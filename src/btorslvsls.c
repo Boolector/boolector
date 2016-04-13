@@ -1621,12 +1621,13 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
 /*------------------------------------------------------------------------*/
 
-static int
-move (Btor *btor, int nmoves)
+static int32_t
+move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
 
-  int nprops, nsls;
+  uint32_t nprops, nsls;
+  int32_t res;
   BtorNode *constr, *can;
   BtorNodePtrStack candidates;
   BtorHashTableIterator it;
@@ -1649,6 +1650,8 @@ move (Btor *btor, int nmoves)
   slv->max_cans = btor_new_ptr_hash_table (btor->mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
+
+  res = 1;
 
   nprops = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_N_PROP);
   nsls   = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_N_SLS);
@@ -1679,6 +1682,13 @@ move (Btor *btor, int nmoves)
       if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_FORCE_RW))
       {
         select_candidates (btor, constr, &candidates);
+        /* root is const false -> unsat */
+        if (!BTOR_COUNT_STACK (candidates))
+        {
+          res = 0;
+          goto DONE;
+        }
+
         goto SLS_MOVE_RAND_WALK;
       }
 
@@ -1690,7 +1700,12 @@ move (Btor *btor, int nmoves)
     slv->nslsmoves += 1;
   SLS_MOVE:
     select_candidates (btor, constr, &candidates);
-    assert (BTOR_COUNT_STACK (candidates));
+    /* root is const false -> unsat */
+    if (!BTOR_COUNT_STACK (candidates))
+    {
+      res = 0;
+      goto DONE;
+    }
 
     slv->max_score = compute_sls_score_formula (btor, slv->score);
     slv->max_move  = BTOR_SLS_MOVE_DONE;
@@ -1808,13 +1823,14 @@ move (Btor *btor, int nmoves)
   if (slv->max_move == BTOR_SLS_MOVE_RAND) update_assertion_weights (btor);
 
   /** cleanup **/
+DONE:
   btor_init_node_hash_table_iterator (&it, slv->max_cans);
   while (btor_has_next_node_hash_table_iterator (&it))
     btor_free_bv (btor->mm, btor_next_data_hash_table_iterator (&it)->as_ptr);
   btor_delete_ptr_hash_table (slv->max_cans);
   slv->max_cans = 0;
   BTOR_RELEASE_STACK (btor->mm, candidates);
-  return 1;
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
