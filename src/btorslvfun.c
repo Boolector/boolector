@@ -2543,6 +2543,8 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorHashTableIterator it;
   BtorBitVector *result = 0, *inv_result, **e;
   BtorFunSolver *slv;
+  BtorIntHashTable *mark;
+  BtorIntHashTableData *d;
 
   start = btor_time_stamp ();
   mm    = btor->mm;
@@ -2554,17 +2556,18 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   cache = btor_new_ptr_hash_table (mm,
                                    (BtorHashPtr) btor_hash_exp_by_id,
                                    (BtorCmpPtr) btor_compare_exp_by_id);
+  mark  = btor_new_int_hash_map (mm);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
-  assert (!BTOR_REAL_ADDR_NODE (exp)->eval_mark);
-
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur      = BTOR_POP_STACK (work_stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
 
-    if (real_cur->eval_mark == 0)
+    d = btor_get_int_hash_map (mark, real_cur->id);
+
+    if (!d)
     {
       if (BTOR_IS_BV_VAR_NODE (real_cur) || BTOR_IS_APPLY_NODE (real_cur)
           || BTOR_IS_FEQ_NODE (real_cur) || has_bv_assignment (btor, real_cur))
@@ -2588,12 +2591,12 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       }
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
-      real_cur->eval_mark = 1;
+      btor_add_int_hash_map (mark, real_cur->id);
 
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
     }
-    else if (real_cur->eval_mark == 1)
+    else if (d->as_int == 0)
     {
       assert (!BTOR_IS_PARAM_NODE (real_cur));
       assert (!BTOR_IS_ARGS_NODE (real_cur));
@@ -2602,7 +2605,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->arity <= 3);
       assert (real_cur->arity <= BTOR_COUNT_STACK (arg_stack));
 
-      real_cur->eval_mark = 2;
+      d->as_int = 1;
       arg_stack.top -= real_cur->arity;
       e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
@@ -2696,7 +2699,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
     }
     else
     {
-      assert (real_cur->eval_mark == 2);
+      assert (d->as_int == 1);
       b = btor_get_ptr_hash_table (cache, real_cur);
       assert (b);
       result = btor_copy_bv (mm, (BtorBitVector *) b->data.as_ptr);
@@ -2706,12 +2709,6 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
-
-  while (!BTOR_EMPTY_STACK (work_stack))
-  {
-    cur            = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
-    cur->eval_mark = 0;
-  }
 
   while (!BTOR_EMPTY_STACK (arg_stack))
   {
@@ -2723,13 +2720,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_free_bv (mm, (BtorBitVector *) it.bucket->data.as_ptr);
-    real_cur            = btor_next_node_hash_table_iterator (&it);
-    real_cur->eval_mark = 0;
+    real_cur = btor_next_node_hash_table_iterator (&it);
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   btor_delete_ptr_hash_table (cache);
+  btor_delete_int_hash_map (mark);
 
   //  BTORLOG ("%s: %s '%s'", __FUNCTION__, node2string (exp), result);
   slv->time.eval += btor_time_stamp () - start;
