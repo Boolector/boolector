@@ -12,6 +12,7 @@
 
 #include "utils/boolectormap.h"
 #include "btorcore.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
@@ -210,20 +211,22 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
                                                   BoolectorNodeReleaser release,
                                                   BoolectorNode *nroot)
 {
-  BtorNodePtrStack working_stack, marked_stack;
+  BtorNodePtrStack working_stack;
   BtorNode *node, *mapped;
   BoolectorNode *res;
   BtorNode *eroot;
   BtorMemMgr *mm;
+  BtorIntHashTable *mark;
+  BtorIntHashTableData *d;
   int i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
 
-  mm = btor->mm;
+  mm   = btor->mm;
+  mark = btor_new_int_hash_map (mm);
 
   BTOR_INIT_STACK (working_stack);
-  BTOR_INIT_STACK (marked_stack);
   BTOR_PUSH_STACK (mm, working_stack, eroot);
 
   while (!BTOR_EMPTY_STACK (working_stack))
@@ -234,7 +237,8 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     assert (node->kind != BTOR_PROXY_NODE);
     if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
-    if (node->mark == 2) goto DEC_EXT_REFS_AND_CONTINUE;
+    d = btor_get_int_hash_map (mark, node->id);
+    if (d && d->as_int == 1) goto DEC_EXT_REFS_AND_CONTINUE;
     mapped = BTOR_IMPORT_BOOLECTOR_NODE (
         mapper (btor, state, BTOR_EXPORT_BOOLECTOR_NODE (node)));
     if (mapped)
@@ -244,11 +248,10 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
                           BTOR_EXPORT_BOOLECTOR_NODE (mapped));
       release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
     }
-    else if (!node->mark)
+    else if (!d)
     {
-      node->mark = 1;
+      btor_add_int_hash_map (mark, node->id);
       BTOR_PUSH_STACK (mm, working_stack, node);
-      BTOR_PUSH_STACK (mm, marked_stack, node);
       for (i = node->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, working_stack, node->e[i]);
     }
@@ -260,21 +263,15 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
                           BTOR_EXPORT_BOOLECTOR_NODE (node),
                           BTOR_EXPORT_BOOLECTOR_NODE (mapped));
       boolector_release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
-      assert (node->mark == 1);
-      node->mark = 2;
+      assert (d->as_int == 0);
+      d->as_int = 1;
     }
   DEC_EXT_REFS_AND_CONTINUE:
     assert (!BTOR_IS_INVERTED_NODE (node));
     btor_dec_exp_ext_ref_counter (node->btor, node);
   }
   BTOR_RELEASE_STACK (mm, working_stack);
-  while (!BTOR_EMPTY_STACK (marked_stack))
-  {
-    node = BTOR_POP_STACK (marked_stack);
-    assert (node->mark == 2);
-    node->mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, marked_stack);
+  btor_delete_int_hash_map (mark);
   res = boolector_mapped_node (map, nroot);
   assert (res);
   return res;
