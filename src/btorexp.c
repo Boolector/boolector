@@ -3990,7 +3990,7 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   exp = btor_simplify_exp (btor, exp);
-  return exp->is_array == 1;
+  return BTOR_REAL_ADDR_NODE (exp)->is_array == 1;
 }
 
 bool
