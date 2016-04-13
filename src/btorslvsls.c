@@ -586,7 +586,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 
   int i;
   BtorNode *cur, *real_cur, *e;
-  BtorNodePtrStack stack, unmark_stack, controlling;
+  BtorNodePtrStack stack, controlling;
   const BtorBitVector *bv;
   BtorIntHashTable *mark;
   BtorMemMgr *mm;
@@ -596,7 +596,6 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (controlling);
 
   BTOR_RESET_STACK (*candidates);
@@ -609,7 +608,6 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     if (btor_contains_int_hash_table (mark, real_cur->id)) continue;
     btor_add_int_hash_table (mark, real_cur->id);
-    BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
     if (BTOR_IS_BV_VAR_NODE (real_cur))
     {
