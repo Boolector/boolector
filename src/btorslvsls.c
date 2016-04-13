@@ -16,6 +16,7 @@
 #include "btorcore.h"
 #include "btormodel.h"
 #include "btorslvprop.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
@@ -172,7 +173,6 @@ compute_sls_score_node (Btor *btor,
   assert (bv_model);
   assert (fun_model);
   assert (score);
-  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   assert (exp);
 
   int i;
@@ -180,7 +180,10 @@ compute_sls_score_node (Btor *btor,
   BtorNode *cur, *real_cur;
   BtorBitVector *bv0, *bv1;
   BtorPtrHashBucket *b;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNodePtrStack stack;
+  BtorIntHashTable *mark;
+  BtorIntHashTableData *d;
+  BtorMemMgr *mm;
 #ifndef NBTORLOG
   char *a0, *a1;
 #endif
@@ -192,31 +195,30 @@ compute_sls_score_node (Btor *btor,
 
   if ((b = btor_get_ptr_hash_table (score, exp))) return b->data.as_dbl;
 
+  mm = btor->mm;
   BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
+  mark = btor_new_int_hash_map (mm);
 
-  BTOR_PUSH_STACK (btor->mm, stack, exp);
+  BTOR_PUSH_STACK (mm, stack, exp);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    d        = btor_get_int_hash_map (mark, real_cur->id);
 
-    if (real_cur->aux_mark == 2 || btor_get_ptr_hash_table (score, cur))
-      continue;
+    if ((d && d->as_int == 1) || btor_get_ptr_hash_table (score, cur)) continue;
 
-    if (real_cur->aux_mark == 0)
+    if (!d)
     {
-      real_cur->aux_mark = 1;
-      BTOR_PUSH_STACK (btor->mm, stack, cur);
-      BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
-
+      btor_add_int_hash_map (mark, real_cur->id);
+      BTOR_PUSH_STACK (mm, stack, cur);
       for (i = 0; i < real_cur->arity; i++)
-        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+        BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
     }
     else
     {
-      assert (real_cur->aux_mark == 1);
-      real_cur->aux_mark = 2;
+      assert (d->as_int == 0);
+      d->as_int = 1;
 
       if (!BTOR_IS_BV_EQ_NODE (real_cur) && !BTOR_IS_ULT_NODE (real_cur)
           && btor_get_exp_width (btor, real_cur) != 1)
@@ -253,8 +255,8 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_cur->e[1]));
             BTORLOG (3, "      assignment e[0]: %s", a0);
             BTORLOG (3, "      assignment e[1]: %s", a1);
-            btor_freestr (btor->mm, a0);
-            btor_freestr (btor->mm, a1);
+            btor_freestr (mm, a0);
+            btor_freestr (mm, a1);
             BTORLOG (3, "      sls score e[0]: %f", s0);
             BTORLOG (3, "      sls score e[1]: %f", s1);
           }
@@ -277,8 +279,8 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, real_cur->e[1]);
             BTORLOG (3, "      assignment e[0]: %s", a0);
             BTORLOG (3, "      assignment e[1]: %s", a1);
-            btor_freestr (btor->mm, a0);
-            btor_freestr (btor->mm, a1);
+            btor_freestr (mm, a0);
+            btor_freestr (mm, a1);
             BTORLOG (3, "      sls score e[0]: %f", s0);
             BTORLOG (3, "      sls score e[1]: %f", s1);
           }
@@ -304,8 +306,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, real_cur->e[1]);
           BTORLOG (3, "      assignment e[0]: %s", a0);
           BTORLOG (3, "      assignment e[1]: %s", a1);
-          btor_freestr (btor->mm, a0);
-          btor_freestr (btor->mm, a1);
+          btor_freestr (mm, a0);
+          btor_freestr (mm, a1);
         }
 #endif
         if (BTOR_IS_INVERTED_NODE (cur))
@@ -333,8 +335,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, real_cur->e[1]);
           BTORLOG (3, "      assignment e[0]: %s", a0);
           BTORLOG (3, "      assignment e[1]: %s", a1);
-          btor_freestr (btor->mm, a0);
-          btor_freestr (btor->mm, a1);
+          btor_freestr (mm, a0);
+          btor_freestr (mm, a1);
         }
 #endif
         if (BTOR_IS_INVERTED_NODE (cur))
@@ -360,7 +362,7 @@ compute_sls_score_node (Btor *btor,
           a0 = (char *) btor_get_bv_model_str_aux (
               btor, bv_model, fun_model, cur);
           BTORLOG (3, "      assignment : %s", a0);
-          btor_freestr (btor->mm, a0);
+          btor_freestr (mm, a0);
         }
 #endif
         res = ((BtorBitVector *) btor_get_bv_model_aux (
@@ -376,11 +378,8 @@ compute_sls_score_node (Btor *btor,
     }
   }
 
-  /* cleanup */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (mm, stack);
+  btor_delete_int_hash_map (mark);
 
   assert (btor_get_ptr_hash_table (score, exp));
   assert (res == btor_get_ptr_hash_table (score, exp)->data.as_dbl);
