@@ -2716,7 +2716,6 @@ btor_select_move_prop (Btor *btor,
                        BtorBitVector **assignment)
 {
   assert (btor);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (root);
   assert (
       btor_bv_to_uint64_bv ((BtorBitVector *) btor_get_bv_model (btor, root))
