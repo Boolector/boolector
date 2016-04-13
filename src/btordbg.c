@@ -71,21 +71,6 @@ btor_check_id_table_mark_unset_dbg (const Btor *btor)
 }
 
 bool
-btor_check_id_table_aux_mark_unset_dbg (const Btor *btor)
-{
-  int i;
-  BtorNode *cur;
-
-  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
-  {
-    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-    if (!cur) continue;
-    if (cur->aux_mark != 0) return false;
-  }
-  return true;
-}
-
-bool
 btor_check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
