@@ -1092,7 +1092,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
       sorts, btor_get_element_array_sort (sorts, s));
   index_width =
       btor_get_width_bitvec_sort (sorts, btor_get_index_array_sort (sorts, s));
-  BTOR_TRAPI (SORT_FMT " %s", sort, index_width, symb);
+  BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   BTOR_ABORT (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT (index_width < 1, "'index_width' must not be < 1");
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
