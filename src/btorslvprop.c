@@ -56,7 +56,8 @@ select_path_non_const (BtorNode *exp)
       eidx = i ? 0 : 1;
       break;
     }
-  assert (exp->arity == 1 || !BTOR_IS_BV_CONST_NODE (exp->e[i ? 0 : 1]));
+  assert (exp->arity == 1
+          || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[i ? 0 : 1])));
   return eidx;
 }
 
