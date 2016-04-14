@@ -485,16 +485,19 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
 
     if (btor_contains_int_hash_table (marked, real_cur->id)) continue;
 
-    // TODO (ma): hashing arbitrarily deep lambdas might be too expensive
-    if (marked->count > 10)
-    {
-      hash = BTOR_GET_ID_NODE (param) + BTOR_GET_ID_NODE (body);
-      break;
-    }
-
     if (!real_cur->parameterized)
     {
       hash += BTOR_GET_ID_NODE (cur);
+      continue;
+    }
+
+    /* paramterized lambda already hashed, we can use already computed hash
+     * value instead of recomputing it */
+    if (BTOR_IS_LAMBDA_NODE (real_cur))
+    {
+      hash += btor_get_ptr_hash_table (btor->lambdas, real_cur)->data.as_int;
+      hash += real_cur->kind;
+      hash += real_cur->e[0]->kind;
       continue;
     }
 
