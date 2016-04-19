@@ -188,64 +188,6 @@ btor_has_next_param_iterator (BtorNodeIterator *it)
 
 /*------------------------------------------------------------------------*/
 
-void
-btor_init_parameterized_iterator (BtorParameterizedIterator *it,
-                                  const Btor *btor,
-                                  BtorNode *exp)
-{
-  assert (btor);
-  assert (it);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  BtorPtrHashBucket *b;
-
-  if (BTOR_IS_PARAM_NODE (exp))
-  {
-    it->num_params = 1;
-    it->cur        = exp;
-    it->bucket     = 0;
-    return;
-  }
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  if (b)
-  {
-    assert (b->data.as_ptr);
-    it->bucket     = ((BtorPtrHashTable *) b->data.as_ptr)->first;
-    it->cur        = (BtorNode *) it->bucket->key;
-    it->num_params = ((BtorPtrHashTable *) b->data.as_ptr)->count;
-  }
-  else
-  {
-    it->cur        = 0;
-    it->bucket     = 0;
-    it->num_params = 0;
-  }
-}
-
-BtorNode *
-btor_next_parameterized_iterator (BtorParameterizedIterator *it)
-{
-  assert (it);
-  assert (it->cur);
-
-  BtorNode *result;
-  result = it->cur;
-  if (it->bucket) it->bucket = it->bucket->next;
-  it->cur = it->bucket ? (BtorNode *) it->bucket->key : 0;
-  return result;
-}
-
-bool
-btor_has_next_parameterized_iterator (BtorParameterizedIterator *it)
-{
-  assert (it);
-  return it->cur != 0;
-}
-
-/*------------------------------------------------------------------------*/
-
 static void
 find_next_unique_node (BtorNodeIterator *it)
 {

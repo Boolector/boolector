@@ -191,6 +191,39 @@ btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
 }
 
 void
+btor_clone_data_as_htable_int (BtorMemMgr *mm,
+                               const void *map,
+                               BtorPtrHashData *data,
+                               BtorPtrHashData *cloned_data)
+{
+  assert (mm);
+  assert (map);
+  assert (data);
+  assert (cloned_data);
+
+  BtorIntHashTable *table, *res;
+
+  table = (BtorIntHashTable *) data->as_ptr;
+
+  res = btor_new_int_hash_table (mm);
+
+  BTOR_DELETEN (mm, res->keys, res->size);
+  BTOR_DELETEN (mm, res->hop_info, res->size);
+
+  res->size  = table->size;
+  res->count = table->count;
+  BTOR_CNEWN (mm, res->keys, res->size);
+  BTOR_CNEWN (mm, res->hop_info, res->size);
+  if (table->data) BTOR_CNEWN (mm, res->data, res->size);
+
+  memcpy (res->keys, table->keys, table->size);
+  memcpy (res->hop_info, table->hop_info, table->size);
+  if (table->data) memcpy (res->data, table->data, table->size);
+
+  cloned_data->as_ptr = res;
+}
+
+void
 btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
                                   const void *map,
                                   BtorPtrHashData *data,
@@ -1180,7 +1213,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       btor_clone_ptr_hash_table (mm,
                                  btor->parameterized,
                                  btor_clone_key_as_node,
-                                 btor_clone_data_as_htable_ptr,
+                                 btor_clone_data_as_htable_int,
                                  emap,
                                  emap);
   BTORLOG (
@@ -1192,11 +1225,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   btor_init_node_hash_table_iterator (&cit, clone->parameterized);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    assert (
-        MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.as_ptr)
-        == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.as_ptr));
-    allocated +=
-        MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.as_ptr);
+    assert (btor_size_int_hash_table (it.bucket->data.as_ptr)
+            == btor_size_int_hash_table (cit.bucket->data.as_ptr));
+    allocated += btor_size_int_hash_table (cit.bucket->data.as_ptr);
     (void) btor_next_node_hash_table_iterator (&it);
     (void) btor_next_node_hash_table_iterator (&cit);
   }

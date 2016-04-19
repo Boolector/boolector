@@ -460,7 +460,10 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
 }
 
 static unsigned int
-hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
+hash_lambda_exp (Btor *btor,
+                 BtorNode *param,
+                 BtorNode *body,
+                 BtorIntHashTable *params)
 {
   assert (btor);
   assert (param);
@@ -500,6 +503,8 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
       hash += real_cur->e[0]->kind;
       continue;
     }
+    else if (BTOR_IS_PARAM_NODE (real_cur) && real_cur != param && params)
+      btor_add_int_hash_table (params, real_cur->id);
 
     btor_add_int_hash_table (marked, real_cur->id);
     hash += BTOR_IS_INVERTED_NODE (cur) ? -real_cur->kind : real_cur->kind;
@@ -593,133 +598,6 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
 }
 
 static void
-remove_param_parameterized (Btor *btor, BtorNode *exp, BtorNode *param)
-{
-  assert (btor);
-  assert (exp);
-  assert (param);
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  assert (b);
-  t = (BtorPtrHashTable *) b->data.as_ptr;
-  assert (t->count > 0);
-  assert (btor_get_ptr_hash_table (t, param));
-  btor_remove_ptr_hash_table (t, param, 0, 0);
-  btor_release_exp (btor, param);
-
-  /* remove hash table if it is empty */
-  if (t->count == 0)
-  {
-    btor_remove_ptr_hash_table (btor->parameterized, exp, 0, 0);
-    btor_delete_ptr_hash_table (t);
-  }
-}
-
-static void
-remove_parameterized (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-  BtorHashTableIterator it;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  if (!b) return;
-
-  t = (BtorPtrHashTable *) b->data.as_ptr;
-
-  /* release params */
-  btor_init_node_hash_table_iterator (&it, t);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (t);
-
-  btor_remove_ptr_hash_table (btor->parameterized, exp, 0, 0);
-}
-
-static bool
-is_parameterized (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  if (b)
-  {
-    t = (BtorPtrHashTable *) b->data.as_ptr;
-    return t->count > 0;
-  }
-
-  return 0;
-}
-
-static void
-update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
-{
-  assert (btor);
-  assert (parent);
-  assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (child);
-  assert (BTOR_REAL_ADDR_NODE (child)->parameterized);
-
-  BtorNode *param;
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-  BtorParameterizedIterator it;
-
-  child = BTOR_REAL_ADDR_NODE (child);
-
-  b = btor_get_ptr_hash_table (btor->parameterized, parent);
-  if (b)
-  {
-    assert (b->data.as_ptr);
-    t = (BtorPtrHashTable *) b->data.as_ptr;
-  }
-  else
-  {
-    t = btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
-    btor_add_ptr_hash_table (btor->parameterized, parent)->data.as_ptr = t;
-  }
-
-  if (BTOR_IS_PARAM_NODE (child))
-  {
-    if (!btor_get_ptr_hash_table (t, child))
-      btor_add_ptr_hash_table (t, btor_copy_exp (btor, child));
-  }
-  else
-  {
-    btor_init_parameterized_iterator (&it, btor, child);
-    while (btor_has_next_parameterized_iterator (&it))
-    {
-      param = btor_next_parameterized_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (param));
-      assert (BTOR_IS_PARAM_NODE (param));
-      if (!btor_get_ptr_hash_table (t, param))
-        btor_add_ptr_hash_table (t, btor_copy_exp (btor, param));
-      /* cleanup */
-      else if (param->refs == 1)
-      {
-        btor_remove_ptr_hash_table (t, param, 0, 0);
-        btor_release_exp (btor, param);
-      }
-    }
-  }
-}
-
-static void
 remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
 {
   assert (exp);
@@ -791,7 +669,12 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
     }
   }
 
-  remove_parameterized (btor, exp);
+  if (btor_get_ptr_hash_table (btor->parameterized, exp))
+  {
+    btor_remove_ptr_hash_table (btor->parameterized, exp, 0, &data);
+    assert (data.as_ptr);
+    btor_delete_int_hash_table (data.as_ptr);
+  }
 }
 
 /* Disconnect children of expression in parent list and if applicable from
@@ -1110,9 +993,6 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   if (BTOR_REAL_ADDR_NODE (child)->apply_below) parent->apply_below = 1;
 
-  if (BTOR_REAL_ADDR_NODE (child)->parameterized)
-    update_parameterized (btor, parent, child);
-
   BTOR_REAL_ADDR_NODE (child)->parents++;
   inc_exp_ref_counter (btor, child);
 
@@ -1241,6 +1121,8 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   BtorSortUniqueTable *sorts;
   BtorLambdaNode *lambda_exp;
   BtorTupleSortIterator it;
+  BtorPtrHashBucket *b;
+  BtorIntHashTable *params;
 
   BTOR_INIT_STACK (param_sorts);
 
@@ -1268,6 +1150,21 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
       s = btor_next_tuple_sort_iterator (&it);
       BTOR_PUSH_STACK (btor->mm, param_sorts, s);
     }
+
+    if ((b = btor_get_ptr_hash_table (btor->parameterized, e_exp)))
+    {
+      params = b->data.as_ptr;
+      btor_remove_int_hash_table (params, e_param->id);
+      btor_remove_ptr_hash_table (btor->parameterized, e_exp, 0, 0);
+      if (params->count > 0)
+      {
+        btor_add_ptr_hash_table (btor->parameterized, lambda_exp)->data.as_ptr =
+            params;
+        lambda_exp->parameterized = 1;
+      }
+      else
+        btor_delete_int_hash_table (params);
+    }
   }
   else
     btor_lambda_set_body ((BtorNode *) lambda_exp, e_exp);
@@ -1279,12 +1176,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 
   btor_release_sort (sorts, domain);
   BTOR_RELEASE_STACK (btor->mm, param_sorts);
-
-  /* check if 'lambda' is parameterized, i.e. if it contains params that are not
-   * bound by 'lambda' */
-  remove_param_parameterized (btor, (BtorNode *) lambda_exp, e_param);
-  if (is_parameterized (btor, (BtorNode *) lambda_exp))
-    lambda_exp->parameterized = 1;
 
   assert (!BTOR_REAL_ADDR_NODE (lambda_exp->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
@@ -1573,6 +1464,7 @@ find_lambda_exp (Btor *btor,
                  BtorNode *param,
                  BtorNode *body,
                  unsigned int *lambda_hash,
+                 BtorIntHashTable *params,
                  int compare_lambdas)
 {
   assert (btor);
@@ -1584,7 +1476,7 @@ find_lambda_exp (Btor *btor,
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = hash_lambda_exp (btor, param, body);
+  hash = hash_lambda_exp (btor, param, body, params);
   if (lambda_hash) *lambda_hash = hash;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
@@ -1712,7 +1604,7 @@ compare_lambda_exp (Btor *btor,
       }
       else if (BTOR_IS_LAMBDA_NODE (real_cur))
       {
-        result = find_lambda_exp (btor, e[0], e[1], 0, 0);
+        result = find_lambda_exp (btor, e[0], e[1], 0, 0, 0);
       }
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
@@ -1759,7 +1651,8 @@ find_exp (Btor *btor,
           BtorNodeKind kind,
           BtorNode *e[],
           uint32_t arity,
-          unsigned int *lambda_hash)
+          unsigned int *lambda_hash,
+          BtorIntHashTable *params)
 {
   assert (btor);
   assert (arity > 0);
@@ -1771,7 +1664,7 @@ find_exp (Btor *btor,
 #endif
 
   if (kind == BTOR_LAMBDA_NODE)
-    return find_lambda_exp (btor, e[0], e[1], lambda_hash, 1);
+    return find_lambda_exp (btor, e[0], e[1], lambda_hash, params, 1);
   else if (lambda_hash)
     *lambda_hash = 0;
 
@@ -2121,6 +2014,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
   uint32_t i;
   unsigned int lambda_hash;
   BtorNode **lookup, *simp_e[3];
+  BtorIntHashTable *params = 0;
 
   for (i = 0; i < arity; i++)
   {
@@ -2128,13 +2022,17 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
     simp_e[i] = btor_simplify_exp (btor, e[i]);
   }
 
-  lookup = find_exp (btor, kind, simp_e, arity, &lambda_hash);
+  /* collect params only for function bodies */
+  if (kind == BTOR_LAMBDA_NODE && !BTOR_IS_LAMBDA_NODE (e[1]))
+    params = btor_new_int_hash_table (btor->mm);
+
+  lookup = find_exp (btor, kind, simp_e, arity, &lambda_hash, params);
   if (!*lookup)
   {
     if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
       enlarge_nodes_unique_table (btor);
-      lookup = find_exp (btor, kind, simp_e, arity, &lambda_hash);
+      lookup = find_exp (btor, kind, simp_e, arity, &lambda_hash, 0);
     }
 
     switch (kind)
@@ -2144,6 +2042,17 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
         *lookup = new_lambda_exp_node (btor, simp_e[0], simp_e[1]);
         btor_get_ptr_hash_table (btor->lambdas, *lookup)->data.as_int =
             lambda_hash;
+        if (params)
+        {
+          if (params->count > 0)
+          {
+            btor_add_ptr_hash_table (btor->parameterized, *lookup)
+                ->data.as_ptr        = params;
+            (*lookup)->parameterized = 1;
+          }
+          else
+            btor_delete_int_hash_table (params);
+        }
         break;
       case BTOR_ARGS_NODE:
         *lookup = new_args_exp_node (btor, arity, simp_e);
@@ -2155,9 +2064,11 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
     (*lookup)->unique = 1;
   }
   else
+  {
     inc_exp_ref_counter (btor, *lookup);
+    if (params) btor_delete_int_hash_table (params);
+  }
   assert (BTOR_IS_REGULAR_NODE (*lookup));
-  //  printf ("created: %s\n", node2string (*lookup));
   return *lookup;
 }
 
