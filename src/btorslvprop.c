@@ -1252,9 +1252,10 @@ check_result_binary_dbg (Btor *btor,
            "prop (e[%d]): %s: %s := %s %s %s",
            eidx,
            node2string (exp),
+           sbvexp,
            eidx ? sbve : sres,
-           eidx ? sres : sbve,
-           sbvexp);
+           op,
+           eidx ? sres : sbve);
   btor_free_bv (btor->mm, tmp);
   btor_freestr (btor->mm, sbvexp);
   btor_freestr (btor->mm, sbve);
