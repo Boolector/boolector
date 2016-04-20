@@ -55,6 +55,9 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
       BTOR_PUSH_STACK (mm, params, param);
       BTOR_PUSH_STACK (mm, tsorts, param->sort_id);
     }
+    /* param of 'cur' is bound */
+    else if (BTOR_IS_QUANTIFIER_NODE (cur))
+      btor_add_int_hash_table (mark, cur->e[0]->id);
 
     btor_add_int_hash_table (mark, cur->id);
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
@@ -75,6 +78,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
     btor_release_exp (btor, uf);
   }
 
+  btor_delete_int_hash_table (mark);
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, tsorts);
