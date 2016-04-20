@@ -112,10 +112,6 @@ setup_forall_solver (BtorEFSolver *slv)
   /* configure options */
   btor_set_opt (f_solver, BTOR_OPT_MODEL_GEN, 1);
   btor_set_opt (f_solver, BTOR_OPT_INCREMENTAL, 1);
-  /* disable variable substitution (not sound in the context of quantifiers) */
-  // FIXME (ma): check if it can still be used (may be sound since we are in
-  // QF_BV)
-  btor_set_opt (f_solver, BTOR_OPT_VAR_SUBST, 1);
   // FIXME (ma): if -bra is enabled then test_synth5.smt2 fails without
   // disabling this since f_formula will be simplified
   btor_set_opt (f_solver, BTOR_OPT_BETA_REDUCE_ALL, 0);
