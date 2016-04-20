@@ -76,31 +76,36 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       BTOR_PUSH_STACK (mm, visit, cur);
       BTOR_PUSH_STACK (mm, kind, cur_kind);
 
-      if (btor_param_is_free (btor, param, real_cur->e[0]))
-      {
-        //	      printf ("  free: %s\n", node2string (real_cur->e[0]));
-        assert (!btor_param_is_free (btor, param, real_cur->e[1]));
-        BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[0]));
-        BTOR_PUSH_STACK (mm, args_kind, 0);
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
-        if (BTOR_IS_INVERTED_NODE (cur)) cur_kind = INV_KIND (cur_kind);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
-      }
-      else if (btor_param_is_free (btor, param, real_cur->e[1]))
-      {
-        //	      printf ("  free: %s\n", node2string (real_cur->e[1]));
-        assert (!btor_param_is_free (btor, param, real_cur->e[0]));
-        BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[1]));
-        BTOR_PUSH_STACK (mm, args_kind, 0);
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
-        if (BTOR_IS_INVERTED_NODE (cur)) cur_kind = INV_KIND (cur_kind);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
-      }
-      /* match: \forall x . (e0[x] /\ e1[x])
-       * result: (\forall x' . e0[x']) /\ (\forall x'' . e1[x''])
-       */
-      else if (BTOR_IS_FORALL_NODE_KIND (cur_kind)
-               && !BTOR_IS_INVERTED_NODE (cur))
+      // FIXME: is_free not available anymore
+#if 0
+	  if (btor_param_is_free (btor, param, real_cur->e[0]))
+	    {
+//	      printf ("  free: %s\n", node2string (real_cur->e[0]));
+	      assert (!btor_param_is_free (btor, param, real_cur->e[1]));
+	      BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[0]));
+	      BTOR_PUSH_STACK (mm, args_kind, 0);
+	      BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
+	      if (BTOR_IS_INVERTED_NODE (cur))
+		cur_kind = INV_KIND (cur_kind);
+	      BTOR_PUSH_STACK (mm, kind, cur_kind);
+	    }
+	  else if (btor_param_is_free (btor, param, real_cur->e[1]))
+	    {
+//	      printf ("  free: %s\n", node2string (real_cur->e[1]));
+	      assert (!btor_param_is_free (btor, param, real_cur->e[0]));
+	      BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[1]));
+	      BTOR_PUSH_STACK (mm, args_kind, 0);
+	      BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
+	      if (BTOR_IS_INVERTED_NODE (cur))
+		cur_kind = INV_KIND (cur_kind);
+	      BTOR_PUSH_STACK (mm, kind, cur_kind);
+	    }
+	  /* match: \forall x . (e0[x] /\ e1[x])
+	   * result: (\forall x' . e0[x']) /\ (\forall x'' . e1[x''])
+	   */
+	  else
+#endif
+      if (BTOR_IS_FORALL_NODE_KIND (cur_kind) && !BTOR_IS_INVERTED_NODE (cur))
       {
         //	      printf ("  push forall\n");
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);

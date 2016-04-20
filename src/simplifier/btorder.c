@@ -15,6 +15,44 @@
 #include "utils/btorstack.h"
 
 static bool
+occurs (Btor *btor, BtorNode *param, BtorNode *term)
+{
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_IS_PARAM_NODE (param));
+
+  bool res = false;
+  uint32_t i;
+  BtorNodePtrStack visit;
+  BtorIntHashTable *mark;
+  BtorNode *cur;
+  BtorMemMgr *mm;
+
+  mm   = btor->mm;
+  mark = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, term);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (!cur->parameterized || btor_contains_int_hash_table (mark, cur->id))
+      continue;
+
+    if (cur == param)
+    {
+      res = true;
+      break;
+    }
+
+    btor_add_int_hash_table (mark, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+  btor_delete_int_hash_table (mark);
+  BTOR_RELEASE_STACK (mm, visit);
+  return res;
+}
+
+static bool
 check_subst_cond (Btor *btor, BtorNode *param, BtorNode *subst, bool is_cer)
 {
   assert (btor);
@@ -24,7 +62,7 @@ check_subst_cond (Btor *btor, BtorNode *param, BtorNode *subst, bool is_cer)
   return !BTOR_IS_INVERTED_NODE (param) && BTOR_IS_PARAM_NODE (param)
          && ((is_cer && btor_param_is_exists_var (param))
              || (!is_cer && btor_param_is_forall_var (param)))
-         && btor_param_is_free (btor, param, subst);
+         && !occurs (btor, param, subst);
 }
 
 #if 0

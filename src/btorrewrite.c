@@ -4532,13 +4532,15 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 
 /* FORALL rules */
 
-/* match:  (\forall x . t) where x is free in t
+/* match:  (\forall x . t) where x does not occur in t
  * result: t
  */
 static inline int
 applies_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
 {
-  return btor_param_is_free (btor, param, body);
+  (void) btor;
+  (void) body;
+  return param->parents == 0;
 }
 
 static inline BtorNode *
@@ -4551,13 +4553,15 @@ apply_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
 
 /* EXISTS rules */
 
-/* match:  (\exists x . t) where x is free in t
+/* match:  (\exists x . t) where x does not occur in t
  * result: t
  */
 static inline int
 applies_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
 {
-  return btor_param_is_free (btor, param, body);
+  (void) btor;
+  (void) body;
+  return param->parents == 0;
 }
 
 static inline BtorNode *

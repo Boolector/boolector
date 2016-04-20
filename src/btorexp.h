@@ -1004,8 +1004,6 @@ bool btor_param_is_exists_var (BtorNode *param);
 
 bool btor_param_is_forall_var (BtorNode *param);
 
-bool btor_param_is_free (Btor *btor, BtorNode *param, BtorNode *term);
-
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 

@@ -21,30 +21,43 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
   assert (BTOR_IS_BV_COND_NODE (ite));
 
   char buf[128];
-  BtorParameterizedIterator p_it;
-  BtorNodePtrStack params;
+  uint32_t i;
+  BtorNodePtrStack params, visit;
   BtorSortIdStack tsorts;
-  BtorNode *param, *uf, *result;
+  BtorNode *param, *uf, *result, *cur;
   BtorSortId domain, funsort;
   BtorMemMgr *mm;
+  BtorIntHashTable *mark;
   BtorIntHashTableData *d;
   BtorSortUniqueTable *sorts;
 
   mm    = btor->mm;
   sorts = &btor->sorts_unique_table;
+  mark  = btor_new_int_hash_table (mm);
 
   BTOR_INIT_STACK (params);
   BTOR_INIT_STACK (tsorts);
-  btor_init_parameterized_iterator (&p_it, btor, ite);
-  while (btor_has_next_parameterized_iterator (&p_it))
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, ite);
+  while (!BTOR_EMPTY_STACK (visit))
   {
-    param = btor_next_parameterized_iterator (&p_it);
-    d     = btor_get_int_hash_map (map, param->id);
-    assert (d);
-    assert (d->as_ptr);
-    param = d->as_ptr;
-    BTOR_PUSH_STACK (mm, params, param);
-    BTOR_PUSH_STACK (mm, tsorts, param->sort_id);
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (mark, cur->id) || !cur->parameterized)
+      continue;
+
+    if (BTOR_IS_PARAM_NODE (cur))
+    {
+      d = btor_get_int_hash_map (map, cur->id);
+      assert (d);
+      assert (d->as_ptr);
+      param = d->as_ptr;
+      BTOR_PUSH_STACK (mm, params, param);
+      BTOR_PUSH_STACK (mm, tsorts, param->sort_id);
+    }
+
+    btor_add_int_hash_table (mark, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
   }
 
   sprintf (buf, "ite_%d", ite->id);
@@ -62,6 +75,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
     btor_release_exp (btor, uf);
   }
 
+  BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, tsorts);
   BTOR_MSG (btor->msg, 1, "create fresh skolem constant %s", buf);

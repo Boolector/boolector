@@ -259,7 +259,7 @@ btor_remove_int_hash_table (BtorIntHashTable *t, int32_t key)
 size_t
 btor_get_pos_int_hash_table (BtorIntHashTable *t, int32_t key)
 {
-  size_t i, j, size, pos;
+  size_t i, size, end;
   uint32_t h;
   int32_t *keys;
 
@@ -267,10 +267,12 @@ btor_get_pos_int_hash_table (BtorIntHashTable *t, int32_t key)
   size = t->size;
   h    = hash (key);
   i    = h & (size - 1);
+  end  = i + HOP_RANGE;
+  if (end > size) end = size;
 
-  for (j = 0, pos = i + j; j < HOP_RANGE && pos < size; j++, pos = i + j)
+  for (; i < end; i++)
   {
-    if (keys[pos] == key) return pos;
+    if (keys[i] == key) return i;
   }
   return size;
 }

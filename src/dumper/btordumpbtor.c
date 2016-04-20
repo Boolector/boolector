@@ -46,6 +46,7 @@ struct BtorDumpContext
   BtorNodePtrStack constraints;
   BtorNodePtrStack roots;
   BtorNodePtrStack work;
+  BtorPtrHashTable *no_dump;
 };
 
 BtorDumpContext *
@@ -65,6 +66,7 @@ btor_new_dump_context (Btor *btor)
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   res->sorts   = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  res->no_dump = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
   /* set start id for roots */
   if (!btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT))
@@ -119,6 +121,7 @@ btor_delete_dump_context (BtorDumpContext *bdc)
   btor_delete_ptr_hash_table (bdc->idtab);
 
   btor_delete_ptr_hash_table (bdc->sorts);
+  btor_delete_ptr_hash_table (bdc->no_dump);
   BTOR_DELETE (bdc->btor->mm, bdc);
 }
 
@@ -272,6 +275,30 @@ has_lambda_parent (BtorNode *exp)
 #endif
 
 static void
+mark_no_dump (BtorDumpContext *bdc, BtorNode *node)
+{
+  uint32_t i;
+  BtorNode *cur;
+  BtorNodePtrStack visit;
+  BtorMemMgr *mm;
+
+  mm = bdc->btor->mm;
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, node);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (!cur->parameterized || btor_get_ptr_hash_table (bdc->no_dump, cur))
+      continue;
+
+    btor_add_ptr_hash_table (bdc->no_dump, cur);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (mm, visit);
+}
+
+static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
   int i;
@@ -281,7 +308,6 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   BtorNode *n, *index, *value;
   BtorArgsIterator ait;
   BtorNodeIterator nit;
-  BtorParameterizedIterator pit;
   BtorPtrHashTable *rho;
   BtorBitVector *bits;
 
@@ -300,17 +326,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 #endif
 
   /* do not dump parameterized nodes that belong to a "write-lambda" */
-  if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
-      && node->parameterized)
-  {
-    btor_init_parameterized_iterator (&pit, bdc->btor, node);
-    assert (btor_has_next_parameterized_iterator (&pit));
-    n = btor_next_parameterized_iterator (&pit);
-    if (BTOR_IS_LAMBDA_NODE (btor_param_get_binder (n))
-        && btor_lambda_get_static_rho (btor_param_get_binder (n))
-        && !btor_has_next_parameterized_iterator (&pit))
-      return;
-  }
+  if (btor_get_ptr_hash_table (bdc->no_dump, node)) return;
 
   switch (node->kind)
   {
@@ -371,6 +387,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
           && btor_lambda_get_static_rho (node))
       {
         op = "write";
+        mark_no_dump (bdc, node->e[1]);
       }
       else if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
         op = "lambda";

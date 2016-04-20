@@ -461,16 +461,20 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
 }
 
 static unsigned int
-hash_binder_exp (Btor *btor, BtorNode *body)
+hash_binder_exp (Btor *btor,
+                 BtorNode *param,
+                 BtorNode *body,
+                 BtorIntHashTable *params)
 {
   assert (btor);
   assert (body);
 
-  int i;
+  uint32_t i;
   unsigned int hash = 0;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack visit;
-  BtorIntHashTable *marked;
+  BtorIntHashTable *marked, *p;
+  BtorPtrHashBucket *b;
 
   marked = btor_new_int_hash_table (btor->mm);
   BTOR_INIT_STACK (visit);
@@ -504,8 +508,28 @@ hash_binder_exp (Btor *btor, BtorNode *body)
           btor_get_ptr_hash_table (btor->quantifiers, real_cur)->data.as_int;
       hash += real_cur->kind;
       hash += real_cur->e[0]->kind;
+      /* copy parameters of real_cur to params */
+      if (params)
+      {
+        b = btor_get_ptr_hash_table (btor->parameterized, real_cur);
+        if (b)
+        {
+          assert (b->data.as_ptr);
+          p = b->data.as_ptr;
+          for (i = 0; i < p->size; i++)
+          {
+            if (p->keys[i] && p->keys[i] != param->id)
+            {
+              assert (!btor_contains_int_hash_table (params, p->keys[i]));
+              btor_add_int_hash_table (params, p->keys[i]);
+            }
+          }
+        }
+      }
       continue;
     }
+    else if (BTOR_IS_PARAM_NODE (real_cur) && real_cur != param && params)
+      btor_add_int_hash_table (params, real_cur->id);
 
     btor_add_int_hash_table (marked, real_cur->id);
     hash += BTOR_IS_INVERTED_NODE (cur) ? -real_cur->kind : real_cur->kind;
@@ -601,133 +625,6 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
 }
 
 static void
-remove_param_parameterized (Btor *btor, BtorNode *exp, BtorNode *param)
-{
-  assert (btor);
-  assert (exp);
-  assert (param);
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  assert (b);
-  t = (BtorPtrHashTable *) b->data.as_ptr;
-  assert (t->count > 0);
-  assert (btor_get_ptr_hash_table (t, param));
-  btor_remove_ptr_hash_table (t, param, 0, 0);
-  btor_release_exp (btor, param);
-
-  /* remove hash table if it is empty */
-  if (t->count == 0)
-  {
-    btor_remove_ptr_hash_table (btor->parameterized, exp, 0, 0);
-    btor_delete_ptr_hash_table (t);
-  }
-}
-
-static void
-remove_parameterized (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-  BtorHashTableIterator it;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  if (!b) return;
-
-  t = (BtorPtrHashTable *) b->data.as_ptr;
-
-  /* release params */
-  btor_init_node_hash_table_iterator (&it, t);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (t);
-
-  btor_remove_ptr_hash_table (btor->parameterized, exp, 0, 0);
-}
-
-static bool
-is_parameterized (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-
-  b = btor_get_ptr_hash_table (btor->parameterized, exp);
-  if (b)
-  {
-    t = (BtorPtrHashTable *) b->data.as_ptr;
-    return t->count > 0;
-  }
-
-  return 0;
-}
-
-static void
-update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
-{
-  assert (btor);
-  assert (parent);
-  assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (child);
-  assert (BTOR_REAL_ADDR_NODE (child)->parameterized);
-
-  BtorNode *param;
-  BtorPtrHashTable *t;
-  BtorPtrHashBucket *b;
-  BtorParameterizedIterator it;
-
-  child = BTOR_REAL_ADDR_NODE (child);
-
-  b = btor_get_ptr_hash_table (btor->parameterized, parent);
-  if (b)
-  {
-    assert (b->data.as_ptr);
-    t = (BtorPtrHashTable *) b->data.as_ptr;
-  }
-  else
-  {
-    t = btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
-    btor_add_ptr_hash_table (btor->parameterized, parent)->data.as_ptr = t;
-  }
-
-  if (BTOR_IS_PARAM_NODE (child))
-  {
-    if (!btor_get_ptr_hash_table (t, child))
-      btor_add_ptr_hash_table (t, btor_copy_exp (btor, child));
-  }
-  else
-  {
-    btor_init_parameterized_iterator (&it, btor, child);
-    while (btor_has_next_parameterized_iterator (&it))
-    {
-      param = btor_next_parameterized_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (param));
-      assert (BTOR_IS_PARAM_NODE (param));
-      if (!btor_get_ptr_hash_table (t, param))
-        btor_add_ptr_hash_table (t, btor_copy_exp (btor, param));
-      /* cleanup */
-      else if (param->refs == 1)
-      {
-        btor_remove_ptr_hash_table (t, param, 0, 0);
-        btor_release_exp (btor, param);
-      }
-    }
-  }
-}
-
-static void
 remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
 {
   assert (exp);
@@ -803,7 +700,12 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
     }
   }
 
-  remove_parameterized (btor, exp);
+  if (btor_get_ptr_hash_table (btor->parameterized, exp))
+  {
+    btor_remove_ptr_hash_table (btor->parameterized, exp, 0, &data);
+    assert (data.as_ptr);
+    btor_delete_int_hash_table (data.as_ptr);
+  }
 }
 
 /* Disconnect children of expression in parent list and if applicable from
@@ -1125,9 +1027,6 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   if (BTOR_REAL_ADDR_NODE (child)->apply_below) parent->apply_below = 1;
 
-  if (BTOR_REAL_ADDR_NODE (child)->parameterized)
-    update_parameterized (btor, parent, child);
-
   BTOR_REAL_ADDR_NODE (child)->parents++;
   inc_exp_ref_counter (btor, child);
 
@@ -1256,6 +1155,8 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   BtorSortUniqueTable *sorts;
   BtorLambdaNode *lambda_exp;
   BtorTupleSortIterator it;
+  BtorPtrHashBucket *b;
+  BtorIntHashTable *params;
 
   BTOR_INIT_STACK (param_sorts);
 
@@ -1283,6 +1184,21 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
       s = btor_next_tuple_sort_iterator (&it);
       BTOR_PUSH_STACK (btor->mm, param_sorts, s);
     }
+
+    if ((b = btor_get_ptr_hash_table (btor->parameterized, e_exp)))
+    {
+      params = b->data.as_ptr;
+      btor_remove_int_hash_table (params, e_param->id);
+      btor_remove_ptr_hash_table (btor->parameterized, e_exp, 0, 0);
+      if (params->count > 0)
+      {
+        btor_add_ptr_hash_table (btor->parameterized, lambda_exp)->data.as_ptr =
+            params;
+        lambda_exp->parameterized = 1;
+      }
+      else
+        btor_delete_int_hash_table (params);
+    }
   }
   else
     btor_binder_set_body ((BtorNode *) lambda_exp, e_exp);
@@ -1294,12 +1210,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 
   btor_release_sort (sorts, domain);
   BTOR_RELEASE_STACK (btor->mm, param_sorts);
-
-  /* check if 'lambda' is parameterized, i.e. if it contains params that are not
-   * bound by 'lambda' */
-  remove_param_parameterized (btor, (BtorNode *) lambda_exp, e_param);
-  if (is_parameterized (btor, (BtorNode *) lambda_exp))
-    lambda_exp->parameterized = 1;
 
   assert (!BTOR_REAL_ADDR_NODE (lambda_exp->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
@@ -1357,127 +1267,6 @@ new_args_exp_node (Btor *btor, int arity, BtorNode *e[])
   return (BtorNode *) exp;
 }
 
-#if 0
-static void
-mark_cone_quantified (Btor * btor, BtorNode * param)
-{
-  assert (btor);
-  assert (param);
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
-
-  BtorNode *cur;
-  BtorNodeIterator it;
-  BtorNodePtrStack stack;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (btor->mm, stack, param);
-
-  while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-
-      if (cur->quantified)
-	continue;
-
-      if (!cur->parameterized)
-	{
-	  assert (BTOR_IS_FORALL_NODE (cur) || BTOR_IS_EXISTS_NODE (cur));
-	  continue;
-	}
-
-      assert (cur->parameterized); 
-      cur->quantified = 1;
-
-      init_full_parent_iterator (&it, cur);
-      while (has_next_parent_full_parent_iterator (&it))
-	BTOR_PUSH_STACK (btor->mm, stack,
-			 next_parent_full_parent_iterator (&it));
-    }
-  BTOR_RELEASE_STACK (btor->mm, stack);
-}
-#endif
-
-#if 0
-BtorNode *
-btor_invert_quantifier (Btor * btor, BtorNode * quantifier)
-{
-  assert (BTOR_IS_REGULAR_NODE (quantifier));
-  assert (BTOR_IS_QUANTIFIER_NODE (quantifier));
-
-  size_t len;
-  char *sym, *buf;
-  BtorNode *cur, *param, *new_param, *body, *result, *tmp;
-  BtorNodeIterator it;
-  BtorNodeMap *param_substs;
-  BtorNodePtrStack params;
-  BtorMemMgr *mm;
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (params);
-  param_substs = btor_new_node_map (btor);
-  btor_init_binder_iterator (&it, quantifier);
-  while (btor_has_next_binder_iterator (&it))
-    {
-      cur = btor_next_binder_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_QUANTIFIER_NODE (cur));
-      param = cur->e[0];
-      sym = btor_get_symbol_exp (btor, param);
-      assert (sym);
-      len = strlen (sym) + 5;
-      buf = btor_malloc (mm, len);
-      sprintf (buf, "%s_inv", sym);
-      new_param = btor_param_exp (btor, btor_get_exp_width (btor, param), buf);
-      btor_free (mm, buf, len);
-      btor_map_node (param_substs, param, new_param);
-      BTOR_PUSH_STACK (mm, params, cur);
-      BTOR_PUSH_STACK (mm, params, new_param);
-      if (btor_get_ptr_hash_table (btor->inputs, param))
-	{
-	  btor_remove_ptr_hash_table (btor->inputs, param, 0, 0);
-	  btor_release_exp (btor, param);
-	}
-    }
-
-  body = btor_binder_get_body (quantifier);
-  result = btor_substitute_terms (btor, body, param_substs);
-  result = BTOR_INVERT_NODE (result);  /* push negation down to body */
-  btor_delete_node_map (param_substs);
-
-  /* create inverted quantifier prefix */
-  while (!BTOR_EMPTY_STACK (params))
-    {
-      param = BTOR_POP_STACK (params);
-      cur = BTOR_POP_STACK (params);
-      assert (BTOR_IS_REGULAR_NODE (param));
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_PARAM_NODE (param));
-      assert (BTOR_IS_QUANTIFIER_NODE (cur));
-      if (BTOR_IS_FORALL_NODE (cur))
-	{
-	  tmp = btor_exists_exp (btor, param, result);
-	  /* add existential param to inputs in order to correctly print
-	   * models.  do not use param here as tmp might be a cached
-	   * existential quantifier */
-	  btor_add_ptr_hash_table (btor->inputs,
-				   btor_copy_exp (btor, tmp->e[0]));
-	}
-      else
-	tmp = btor_forall_exp (btor, param, result);
-      btor_release_exp (btor, result);
-      btor_release_exp (btor, param);
-      result = tmp;
-    }
-  BTOR_RELEASE_STACK (mm, params);
-
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_QUANTIFIER_NODE (result));
-  return result;
-}
-#endif
-
 static BtorNode *
 new_quantifier_exp_node (Btor *btor,
                          BtorNodeKind kind,
@@ -1515,15 +1304,17 @@ new_quantifier_exp_node (Btor *btor,
   else
     res->body = body;
 
+#if 0
   /* check if 'res' is parameterized, i.e. if it contains params that are not
    * bound by 'res' */
   remove_param_parameterized (btor, (BtorNode *) res, param);
-  if (is_parameterized (btor, (BtorNode *) res)) res->parameterized = 1;
+  if (is_parameterized (btor, (BtorNode *) res))
+    res->parameterized = 1;
+#endif
 
   assert (!BTOR_REAL_ADDR_NODE (res->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (res->body)));
   btor_param_set_binder (param, (BtorNode *) res);
-  //  mark_cone_quantified (btor, param);
   assert (!btor_get_ptr_hash_table (btor->quantifiers, res));
   (void) btor_add_ptr_hash_table (btor->quantifiers, res);
   return (BtorNode *) res;
@@ -1765,6 +1556,7 @@ find_binder_exp (Btor *btor,
                  BtorNode *param,
                  BtorNode *body,
                  unsigned int *binder_hash,
+                 BtorIntHashTable *params,
                  BtorPtrHashTable *map)
 {
   assert (btor);
@@ -1776,7 +1568,7 @@ find_binder_exp (Btor *btor,
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = hash_binder_exp (btor, body);
+  hash = hash_binder_exp (btor, param, body, params);
   if (binder_hash) *binder_hash = hash;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
@@ -1903,8 +1695,13 @@ compare_binder_exp (Btor *btor,
 
       if (BTOR_IS_BINDER_NODE (real_cur))
       {
-        result = *find_binder_exp (
-            btor, real_cur->kind, real_cur->e[0], real_cur->e[1], 0, param_map);
+        result = *find_binder_exp (btor,
+                                   real_cur->kind,
+                                   real_cur->e[0],
+                                   real_cur->e[1],
+                                   0,
+                                   0,
+                                   param_map);
         if (result)
         {
           b->data.as_ptr = result;
@@ -1982,7 +1779,8 @@ find_exp (Btor *btor,
           BtorNodeKind kind,
           BtorNode *e[],
           uint32_t arity,
-          unsigned int *binder_hash)
+          unsigned int *binder_hash,
+          BtorIntHashTable *params)
 {
   assert (btor);
   assert (arity > 0);
@@ -1995,7 +1793,7 @@ find_exp (Btor *btor,
 
   if (kind == BTOR_LAMBDA_NODE || kind == BTOR_FORALL_NODE
       || kind == BTOR_EXISTS_NODE)
-    return find_binder_exp (btor, kind, e[0], e[1], binder_hash, 0);
+    return find_binder_exp (btor, kind, e[0], e[1], binder_hash, params, 0);
   else if (binder_hash)
     *binder_hash = 0;
 
@@ -2345,6 +2143,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
   uint32_t i;
   unsigned int binder_hash;
   BtorNode **lookup, *simp_e[3];
+  BtorIntHashTable *params = 0;
 
   for (i = 0; i < arity; i++)
   {
@@ -2352,13 +2151,18 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
     simp_e[i] = btor_simplify_exp (btor, e[i]);
   }
 
-  lookup = find_exp (btor, kind, simp_e, arity, &binder_hash);
+  /* collect params only for quantifier/function bodies */
+  if ((kind == BTOR_LAMBDA_NODE && !BTOR_IS_LAMBDA_NODE (e[1]))
+      || kind == BTOR_FORALL_NODE || kind == BTOR_EXISTS_NODE)
+    params = btor_new_int_hash_table (btor->mm);
+
+  lookup = find_exp (btor, kind, simp_e, arity, &binder_hash, params);
   if (!*lookup)
   {
     if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
       enlarge_nodes_unique_table (btor);
-      lookup = find_exp (btor, kind, simp_e, arity, &binder_hash);
+      lookup = find_exp (btor, kind, simp_e, arity, &binder_hash, 0);
     }
 
     switch (kind)
@@ -2381,14 +2185,30 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
         break;
       default: *lookup = new_node (btor, kind, arity, simp_e);
     }
+
+    if (params)
+    {
+      assert (BTOR_IS_BINDER_NODE (*lookup));
+      if (params->count > 0)
+      {
+        btor_add_ptr_hash_table (btor->parameterized, *lookup)->data.as_ptr =
+            params;
+        (*lookup)->parameterized = 1;
+      }
+      else
+        btor_delete_int_hash_table (params);
+    }
+
     assert (btor->nodes_unique_table.num_elements < INT_MAX);
     btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
+  {
     inc_exp_ref_counter (btor, *lookup);
+    if (params) btor_delete_int_hash_table (params);
+  }
   assert (BTOR_IS_REGULAR_NODE (*lookup));
-  //  printf ("created: %s\n", node2string (*lookup));
   return *lookup;
 }
 
@@ -4697,22 +4517,6 @@ btor_param_is_forall_var (BtorNode *param)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   return BTOR_IS_FORALL_NODE (btor_param_get_binder (param));
-}
-
-bool
-btor_param_is_free (Btor *btor, BtorNode *param, BtorNode *term)
-{
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
-
-  BtorPtrHashBucket *b;
-  BtorPtrHashTable *t;
-
-  term = BTOR_REAL_ADDR_NODE (term);
-  b    = btor_get_ptr_hash_table (btor->parameterized, term);
-  if (!b) return param != BTOR_REAL_ADDR_NODE (term);
-  t = b->data.as_ptr;
-  return btor_get_ptr_hash_table (t, param) == 0;
 }
 
 #ifndef NDEBUG

@@ -21,48 +21,20 @@
 #include "utils/btorutil.h"
 
 static bool
-is_uc_write (Btor *btor, BtorNode *cond)
+is_uc_write (BtorNode *cond)
 {
   assert (BTOR_IS_REGULAR_NODE (cond));
   assert (BTOR_IS_BV_COND_NODE (cond));
   assert (cond->parameterized);
 
-  BtorNode *param, *nonparam, *cond_c, *cond_if, *cond_else;
-  BtorParameterizedIterator it;
+  BtorNode *lambda;
 
-  cond_c    = cond->e[0];
-  cond_if   = cond->e[1];
-  cond_else = cond->e[2];
+  if (cond->parents != 1) return false;
 
-  if (BTOR_IS_INVERTED_NODE (cond_c) || !BTOR_IS_BV_EQ_NODE (cond_c)
-      || !cond_c->parameterized)
-    return false;
+  lambda = cond->first_parent;
+  if (!BTOR_IS_LAMBDA_NODE (lambda)) return false;
 
-  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cond_if))
-      && BTOR_REAL_ADDR_NODE (cond_if)->parameterized)
-    return false;
-
-  if (!BTOR_IS_INVERTED_NODE (cond_c->e[0])
-      && BTOR_IS_PARAM_NODE (cond_c->e[0]))
-  {
-    param    = cond_c->e[0];
-    nonparam = cond_c->e[1];
-  }
-  else if (!BTOR_IS_INVERTED_NODE (cond_c->e[1])
-           && BTOR_IS_PARAM_NODE (cond_c->e[1]))
-  {
-    param    = cond_c->e[1];
-    nonparam = cond_c->e[0];
-  }
-  else
-    return false;
-
-  if (BTOR_REAL_ADDR_NODE (nonparam)->parameterized) return false;
-
-  btor_init_parameterized_iterator (&it, btor, cond_else);
-  assert (btor_has_next_parameterized_iterator (&it));
-  return param == btor_next_parameterized_iterator (&it)
-         && !btor_has_next_parameterized_iterator (&it);
+  return btor_lambda_get_static_rho (lambda) != 0;
 }
 
 static void
@@ -118,12 +90,11 @@ btor_optimize_unconstrained (Btor *btor)
   double start, delta;
   unsigned num_ucs;
   int i;
-  bool isuc, uc[3], ucp[3];
-  BtorNode *cur, *cur_parent, *lambda, *param;
+  bool uc[3], ucp[3];
+  BtorNode *cur, *cur_parent;
   BtorNodePtrStack stack, roots;
   BtorHashTableIterator it;
   BtorNodeIterator pit;
-  BtorParameterizedIterator parit;
   BtorMemMgr *mm;
   BtorIntHashTable *ucs;  /* unconstrained candidate nodes */
   BtorIntHashTable *ucsp; /* parameterized unconstrained candidate nodes */
@@ -208,37 +179,6 @@ btor_optimize_unconstrained (Btor *btor)
       assert (d->as_int == 1);
       btor_remove_int_hash_map (mark, cur->id, 0);
 
-      /* check if parameterized term can be unconstrained */
-      isuc = true;
-      btor_init_parameterized_iterator (&parit, btor, cur);
-      while (btor_has_next_parameterized_iterator (&parit))
-      {
-        /* parameterized expressions are only unconstrained if they
-         * are instantiated once in case full beta reduction is
-         * applied. */
-        param = btor_next_parameterized_iterator (&parit);
-        assert (BTOR_IS_REGULAR_NODE (param));
-        assert (BTOR_IS_PARAM_NODE (param));
-        assert (btor_param_is_bound (param));
-        lambda = btor_param_get_binder (param);
-        assert (lambda);
-        /* get head lambda of function */
-        while (
-            lambda->parents == 1
-            && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda->first_parent)))
-        {
-          assert (BTOR_IS_LAMBDA_NODE (lambda));
-          lambda = BTOR_REAL_ADDR_NODE (lambda->first_parent);
-        }
-        assert (BTOR_IS_LAMBDA_NODE (lambda));
-        if (lambda->parents > 1)
-        {
-          isuc = false;
-          break;
-        }
-      }
-      if (!isuc) continue;
-
       /* propagate unconstrained candidates */
       if (cur->parents == 0 || (cur->parents == 1 && !cur->constraint))
       {
@@ -289,7 +229,7 @@ btor_optimize_unconstrained (Btor *btor)
             else if (uc[1] && ucp[2])
             {
               /* case: x = t ? uc : ucp */
-              if (is_uc_write (btor, cur)) mark_uc (btor, ucsp, cur);
+              if (is_uc_write (cur)) mark_uc (btor, ucsp, cur);
             }
             break;
           // TODO (ma): functions with parents > 1 can still be

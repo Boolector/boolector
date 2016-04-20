@@ -2882,9 +2882,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
     cur = BTOR_DEQUEUE (queue);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
-
-    d = btor_get_int_hash_map (mark, cur->id);
-    assert (d->as_int == 1);
+    assert (btor_contains_int_hash_map (mark, cur->id));
+    assert (btor_get_int_hash_map (mark, cur->id)->as_int == 1);
 
     if (cur->refs == 1)
     {
@@ -2904,10 +2903,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       {
         cur_parent = btor_next_parent_iterator (&it);
         d          = btor_get_int_hash_map (mark, cur_parent->id);
-        if (d && d->as_int == 1)
-          //		  || !all_exps_below_rebuilt (btor, cur_parent))
-          continue;
+        if (d && d->as_int == 1) continue;
         assert (!d || d->as_int == 0);
+        if (!d) d = btor_add_int_hash_map (mark, cur_parent->id);
         d->as_int = 1;
         BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
       }
@@ -3663,8 +3661,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       btor->slv = btor_new_prop_solver (btor);
     else if (engine == BTOR_ENGINE_AIGPROP)
       btor->slv = btor_new_aigprop_solver (btor);
-    else if ((btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF
-              && btor->quantifiers->count > 0)
+    else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
              || btor->quantifiers->count > 0)
     {
       btor->slv = btor_new_ef_solver (btor);

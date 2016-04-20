@@ -78,21 +78,6 @@ bool btor_has_next_args_iterator (BtorArgsIterator *);
 BtorNode *btor_next_args_iterator (BtorArgsIterator *);
 
 /*------------------------------------------------------------------------*/
-
-typedef struct BtorParameterizedIterator
-{
-  BtorNode *cur;
-  BtorPtrHashBucket *bucket;
-  int num_params;
-} BtorParameterizedIterator;
-
-void btor_init_parameterized_iterator (BtorParameterizedIterator *,
-                                       const Btor *,
-                                       BtorNode *);
-bool btor_has_next_parameterized_iterator (BtorParameterizedIterator *);
-BtorNode *btor_next_parameterized_iterator (BtorParameterizedIterator *);
-
-/*------------------------------------------------------------------------*/
 /* hash table iterators					                  */
 /*------------------------------------------------------------------------*/
 
