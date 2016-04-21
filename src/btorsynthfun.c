@@ -410,12 +410,12 @@ add_exp (Btor *btor,
     sig_matches = 0;                                                          \
     num_checks++;                                                             \
     cur_num_checks++;                                                         \
-    if (btor_contains_int_hash_table (cache, id)                              \
-        || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (EXP)))                 \
-    {                                                                         \
-      btor_release_exp (btor, EXP);                                           \
-      continue;                                                               \
-    }                                                                         \
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (EXP)))                    \
+      || btor_contains_int_hash_table (cache, id)                             \
+      {                                                                       \
+        btor_release_exp (btor, EXP);                                         \
+        continue;                                                             \
+      }                                                                       \
     found_candidate = check_candidate_exp (                                   \
         btor, EXP, &params, uf_model, additional_inputs, &sig, &sig_matches); \
     if (found_candidate)                                                      \
