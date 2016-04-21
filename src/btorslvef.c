@@ -894,7 +894,8 @@ build_dependencies (BtorMemMgr *mm,
     if (btor_contains_int_hash_table (cache, cur->id)) continue;
 
     btor_add_int_hash_table (cache, cur->id);
-    if (BTOR_IS_APPLY_NODE (cur))
+    /* only function applications on UFs are considered as inputs */
+    if (BTOR_IS_APPLY_NODE (cur) && BTOR_IS_UF_NODE (cur->e[0]))
     {
       b = btor_get_ptr_hash_table (deps, cur->e[0]);
       if (!b)
@@ -1022,21 +1023,19 @@ filter_inputs (BtorEFSolver *slv, BtorNode *fs_uf, BtorPtrHashTable *inputs)
   BTOR_RELEASE_STACK (mm, visit);
 }
 
-static void
-prepare_inputs (BtorEFSolver *slv,
-                BtorNode *fs_uf,
-                BtorNodeMap *map,
-                BtorPtrHashTable *inputs)
+static BtorPtrHashTable *
+prepare_inputs (BtorEFSolver *slv, BtorNode *fs_uf, BtorNodeMap *model)
 {
-  BtorNode *cur, *cur_fs, *cur_mapped;
+  BtorNode *cur, *cur_fs, *cur_synth_fun;
   BtorHashTableIterator it;
   const BtorPtrHashTable *m;
-  BtorPtrHashTable *deps;
+  BtorPtrHashTable *deps, *inputs;
   Btor *e_solver;
   BtorMemMgr *mm;
 
   mm       = slv->btor->mm;
   deps     = btor_new_ptr_hash_table (mm, 0, 0);
+  inputs   = btor_new_ptr_hash_table (mm, 0, 0);
   e_solver = slv->e_solver;
 
   btor_init_node_hash_table_iterator (&it, slv->e_exists_vars->table);
@@ -1047,9 +1046,9 @@ prepare_inputs (BtorEFSolver *slv,
     cur_fs = btor_mapped_node (
         BTOR_IS_BV_VAR_NODE (cur) ? slv->e_exists_vars : slv->e_exists_ufs,
         cur);
-    cur_mapped = btor_mapped_node (map, cur_fs);
-    if (!cur_mapped) continue;
-    build_dependencies (mm, cur_fs, cur_mapped, deps);
+    cur_synth_fun = btor_mapped_node (model, cur_fs);
+    if (!cur_synth_fun) continue;
+    build_dependencies (mm, cur_fs, cur_synth_fun, deps);
   }
 
   btor_init_node_hash_table_iterator (&it, slv->e_exists_vars->table);
@@ -1064,7 +1063,7 @@ prepare_inputs (BtorEFSolver *slv,
     if (cur_fs->id == fs_uf->id) continue;
 
 #if 0
-      cur_mapped = btor_mapped_node (map, cur_fs);
+      cur_mapped = btor_mapped_node (model, cur_fs);
       if (cur_mapped)
 	build_dependencies (e_solver, cur_fs, cur_mapped, deps);
 #endif
@@ -1097,6 +1096,7 @@ prepare_inputs (BtorEFSolver *slv,
   btor_delete_ptr_hash_table (deps);
 
   filter_inputs (slv, fs_uf, inputs);
+  return inputs;
 }
 
 static bool
@@ -1398,8 +1398,7 @@ synthesize_model (BtorEFSolver *slv,
     if (opt_synth_fun)
     {
       bb     = btor_get_ptr_hash_table (synth_inputs, e_uf_fs);
-      inputs = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
-      prepare_inputs (slv, e_uf_fs, model, inputs);
+      inputs = prepare_inputs (slv, e_uf_fs, model);
 
       if (b && bb && check_inputs (inputs, bb->data.as_ptr))
         prev_synth_fun = b->data.as_ptr;
@@ -1419,6 +1418,7 @@ synthesize_model (BtorEFSolver *slv,
                                        &best_match,
                                        100000,
                                        max_level);
+      assert (!synth_fun || e_uf_fs->sort_id == synth_fun->sort_id);
       if (bb)
         btor_delete_ptr_hash_table (bb->data.as_ptr);
       else

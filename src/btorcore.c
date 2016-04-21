@@ -2744,6 +2744,10 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       subst = btor_mapped_node (substs, real_cur);
       if (subst)
       {
+        /* if this assertion fails we have a cyclic substitution */
+        assert (!btor_get_int_hash_map (mark, BTOR_REAL_ADDR_NODE (subst)->id)
+                || btor_get_int_hash_map (mark, BTOR_REAL_ADDR_NODE (subst)->id)
+                       ->as_ptr);
         BTOR_PUSH_STACK (mm, visit, BTOR_COND_INVERT_NODE (cur, subst));
         continue;
       }
