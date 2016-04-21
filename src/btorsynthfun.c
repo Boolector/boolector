@@ -596,12 +596,17 @@ btor_synthesize_fun (Btor *btor,
   /* check previously synthesized functions */
   if (prev_synth_fun)
   {
-    do
+    num_checks++;
+    candidate_exp = btor_apply_and_reduce (
+        btor, BTOR_COUNT_STACK (params), params.start, prev_synth_fun);
+    found_candidate = check_candidate_exp (
+        btor, candidate_exp, &params, uf_model, additional_inputs, 0, 0);
+    if (found_candidate)
     {
-      candidate_exp = btor_apply_and_reduce (
-          btor, BTOR_COUNT_STACK (params), params.start, prev_synth_fun);
-      CHECK_CANDIDATE (candidate_exp);
-    } while (0);
+      assert (BTOR_REAL_ADDR_NODE (candidate_exp)->sort_id == candidate_sort);
+      goto DONE;
+    }
+    btor_release_exp (btor, candidate_exp);
   }
 
   if (additional_inputs)
