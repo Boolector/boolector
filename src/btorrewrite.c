@@ -489,6 +489,72 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
   return true;
 }
 
+static bool
+is_neg_exp (Btor *btor, BtorNode *exp, BtorNode **res)
+{
+  BtorNode *real_exp, *real_e0, *real_e1;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_e0  = BTOR_REAL_ADDR_NODE (real_exp->e[0]);
+  real_e1  = BTOR_REAL_ADDR_NODE (real_exp->e[1]);
+
+  if (!BTOR_IS_ADD_NODE (real_exp)) return false;
+
+  if (is_const_one_exp (btor, real_exp->e[0]))
+  {
+    if (res) *res = BTOR_INVERT_NODE (real_exp->e[1]);
+    return true;
+  }
+
+  if (is_const_one_exp (btor, real_exp->e[1]))
+  {
+    if (res) *res = BTOR_INVERT_NODE (real_exp->e[0]);
+    return true;
+  }
+
+  return false;
+}
+
+static bool
+is_urem_exp (Btor *btor,
+             BtorNode *e0,
+             BtorNode *e1,
+             BtorNode **res_e0,
+             BtorNode **res_e1)
+{
+  BtorNode *real_exp, *mul, *udiv, *x, *y;
+
+  if (is_neg_exp (btor, e0, &mul))
+    x = e1;
+  else if (is_neg_exp (btor, e1, &mul))
+    x = e0;
+  else
+    return false;
+
+  if (BTOR_IS_INVERTED_NODE (mul) || !BTOR_IS_MUL_NODE (mul)) return false;
+
+  if (!BTOR_IS_INVERTED_NODE (mul->e[0]) && BTOR_IS_UDIV_NODE (mul->e[0]))
+  {
+    udiv = mul->e[0];
+    y    = mul->e[0];
+  }
+  else if (!BTOR_IS_INVERTED_NODE (mul->e[1]) && BTOR_IS_UDIV_NODE (mul->e[1]))
+  {
+    udiv = mul->e[1];
+    y    = mul->e[0];
+  }
+  else
+    return false;
+
+  if (udiv->e[0] == x && udiv->e[1] == y)
+  {
+    if (res_e0) *res_e0 = x;
+    if (res_e1) *res_e1 = y;
+    return true;
+  }
+  return false;
+}
+
 /* -------------------------------------------------------------------------- */
 
 static BtorNode *rewrite_slice_exp (Btor *, BtorNode *, uint32_t, uint32_t);
@@ -3504,6 +3570,22 @@ apply_bcond_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+static inline bool
+applies_urem_add (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return is_urem_exp (btor, e0, e1, 0, 0);
+}
+
+static inline BtorNode *
+apply_urem_add (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_urem_add (btor, e0, e1));
+
+  BtorNode *x, *y;
+  is_urem_exp (btor, e0, e1, &x, &y);
+  return rewrite_urem_exp (btor, x, y);
+}
+
 /* MUL rules */
 
 /* match:  a * b, wher len(a) = 1
@@ -5970,6 +6052,7 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   ADD_RW_RULE (mult_add, e0, e1);
   ADD_RW_RULE (not_add, e0, e1);
   ADD_RW_RULE (bcond_add, e0, e1);
+  ADD_RW_RULE (urem_add, e0, e1);
 SWAP_OPERANDS:
   ADD_RW_RULE (neg_add, e0, e1);
   ADD_RW_RULE (zero_add, e0, e1);
@@ -6186,10 +6269,10 @@ rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_apply_exp_dbg (btor, e0, e1));
 
-  ADD_RW_RULE (const_lambda_apply, e0, e1);
-  ADD_RW_RULE (param_lambda_apply, e0, e1);
-  ADD_RW_RULE (apply_apply, e0, e1);
-  ADD_RW_RULE (prop_apply, e0, e1);
+  //  ADD_RW_RULE (const_lambda_apply, e0, e1);
+  //  ADD_RW_RULE (param_lambda_apply, e0, e1);
+  //  ADD_RW_RULE (apply_apply, e0, e1);
+  //  ADD_RW_RULE (prop_apply, e0, e1);
 
   assert (!result);
   result = btor_apply_exp_node (btor, e0, e1);
