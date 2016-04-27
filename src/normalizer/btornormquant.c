@@ -380,7 +380,7 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
     }
   }
   assert (BTOR_EMPTY_STACK (pols));
-  assert (BTOR_COUNT_STACK (args) == num_roots);
+  assert (BTOR_COUNT_STACK (args) == 1);
 
   result = BTOR_POP_STACK (args);
   while (!BTOR_EMPTY_STACK (args))
