@@ -230,6 +230,7 @@ build_refinement (Btor *f_solver,
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    assert (!BTOR_IS_PROXY_NODE (real_cur));
 
     if ((result = btor_mapped_node (map, real_cur)))
     {
@@ -1521,11 +1522,11 @@ sat_ef_solver (BtorEFSolver *slv)
   double start;
   Btor *e_solver, *f_solver;
   BtorSolverResult res;
-  BtorNode *g, *cur_uf, *cur_synth_fun;
+  BtorNode *g, *cur_synth_fun;
   BtorNodeMap *map;
   BtorHashTableIterator it;
   BtorPtrHashTable *synth_funs, *synth_inputs;
-  BtorNodeMap *synth_fun_model;
+  //  BtorNodeMap *synth_fun_model;
 
   // TODO (ma): incremental support
   setup_forall_solver (slv);
@@ -1558,6 +1559,7 @@ sat_ef_solver (BtorEFSolver *slv)
         "*****************************\n");
     map = synthesize_model (slv, synth_funs, synth_inputs);
     slv->time.synth += btor_time_stamp () - start;
+    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)));
     g = btor_substitute_terms (f_solver, slv->f_formula, map);
     delete_exists_model (map);
 
@@ -1567,6 +1569,13 @@ sat_ef_solver (BtorEFSolver *slv)
 
     start = btor_time_stamp ();
     res   = btor_sat_btor (f_solver, -1, -1);
+    /* update formula if changed via simplifications */
+    if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)))
+    {
+      g = btor_simplify_exp (f_solver, slv->f_formula);
+      btor_release_exp (f_solver, slv->f_formula);
+      slv->f_formula = btor_copy_exp (f_solver, g);
+    }
     slv->time.f_solver += btor_time_stamp () - start;
     if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
     {
