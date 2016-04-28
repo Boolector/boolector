@@ -492,11 +492,9 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
 static bool
 is_neg_exp (Btor *btor, BtorNode *exp, BtorNode **res)
 {
-  BtorNode *real_exp, *real_e0, *real_e1;
+  BtorNode *real_exp;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  real_e0  = BTOR_REAL_ADDR_NODE (real_exp->e[0]);
-  real_e1  = BTOR_REAL_ADDR_NODE (real_exp->e[1]);
 
   if (!BTOR_IS_ADD_NODE (real_exp)) return false;
 
@@ -522,7 +520,7 @@ is_urem_exp (Btor *btor,
              BtorNode **res_e0,
              BtorNode **res_e1)
 {
-  BtorNode *real_exp, *mul, *udiv, *x, *y;
+  BtorNode *mul, *udiv, *x, *y;
 
   if (is_neg_exp (btor, e0, &mul))
     x = e1;
@@ -6269,10 +6267,10 @@ rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_apply_exp_dbg (btor, e0, e1));
 
-  //  ADD_RW_RULE (const_lambda_apply, e0, e1);
-  //  ADD_RW_RULE (param_lambda_apply, e0, e1);
-  //  ADD_RW_RULE (apply_apply, e0, e1);
-  //  ADD_RW_RULE (prop_apply, e0, e1);
+  ADD_RW_RULE (const_lambda_apply, e0, e1);
+  ADD_RW_RULE (param_lambda_apply, e0, e1);
+  ADD_RW_RULE (apply_apply, e0, e1);
+  ADD_RW_RULE (prop_apply, e0, e1);
 
   assert (!result);
   result = btor_apply_exp_node (btor, e0, e1);
