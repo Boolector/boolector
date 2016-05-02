@@ -223,9 +223,9 @@ eval (Btor *btor,
             btor_add_to_bv_tuple (mm, t, a, i++);
           }
           b = btor_get_ptr_hash_table (model, t);
-          btor_free_bv_tuple (mm, t);
           assert (b);
           result = btor_copy_bv (mm, b->data.as_ptr);
+          btor_free_bv_tuple (mm, t);
           break;
 
         case BTOR_SLICE_NODE:
@@ -620,7 +620,7 @@ btor_synthesize_fun (Btor *btor,
       if (BTOR_IS_UF_NODE (p))
       {
         assert (BTOR_IS_UF_NODE (p));
-        assert (btor_get_fun_arity (btor, p) <= BTOR_COUNT_STACK (params));
+        assert (btor_get_fun_arity (btor, p) == BTOR_COUNT_STACK (params));
         candidate_exp = btor_apply_exps (
             btor, params.start, btor_get_fun_arity (btor, p), p);
       }
