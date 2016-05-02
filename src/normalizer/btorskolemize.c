@@ -53,7 +53,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
     {
       btor_add_int_hash_map (map, real_cur->id);
 
-      if (BTOR_IS_FORALL_NODE (cur)) BTOR_PUSH_STACK (mm, quants, cur);
+      if (BTOR_IS_FORALL_NODE (real_cur)) BTOR_PUSH_STACK (mm, quants, cur);
 
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
@@ -151,7 +151,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
       d->as_ptr = btor_copy_exp (btor, result);
     PUSH_RESULT:
 
-      if (BTOR_IS_FORALL_NODE (cur))
+      if (BTOR_IS_FORALL_NODE (real_cur))
       {
         quant = BTOR_POP_STACK (quants);
         assert (quant == cur);
@@ -160,7 +160,6 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
       result = BTOR_COND_INVERT_NODE (cur, result);
       assert (!BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (result))
               || !BTOR_IS_INVERTED_NODE (result));
-      //	  printf ("  result: %s\n", node2string (result));
       BTOR_PUSH_STACK (mm, args, result);
     }
     else
