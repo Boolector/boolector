@@ -1032,20 +1032,71 @@ filter_inputs (BtorEFSolver *slv, BtorNode *fs_uf, BtorPtrHashTable *inputs)
   BTOR_RELEASE_STACK (mm, visit);
 }
 
+static bool
+check_input_prefix (Btor *btor, BtorNode *uf, BtorNode *cur_uf)
+{
+  assert (BTOR_IS_REGULAR_NODE (uf));
+  assert (BTOR_IS_REGULAR_NODE (cur_uf));
+  assert (BTOR_IS_UF_NODE (cur_uf));
+  assert (BTOR_IS_UF_NODE (cur_uf));
+
+  uint32_t arity0, arity1;
+  BtorArgsIterator it0, it1;
+  BtorNode *app0, *app1, *arg0, *arg1;
+
+  /* all skolem functions have exactly one parent */
+  if (uf->parents != 1 || cur_uf->parents != 1) return false;
+
+  arity0 = btor_get_fun_arity (btor, uf);
+  arity1 = btor_get_fun_arity (btor, cur_uf);
+
+  /* 'cur_uf' is dependent on more universals than 'uf', hence it cannot be an
+   * input for 'uf'. */
+  if (arity1 > arity0) return false;
+
+  app0 = uf->first_parent;
+  app1 = cur_uf->first_parent;
+  assert (BTOR_IS_REGULAR_NODE (app0));
+  assert (BTOR_IS_REGULAR_NODE (app1));
+  assert (BTOR_IS_APPLY_NODE (app0));
+  assert (BTOR_IS_APPLY_NODE (app1));
+
+  if (app0->e[1] == app1->e[1])
+    return true;
+  else if (arity0 == arity1)
+    return false;
+
+  assert (arity0 > arity1);
+  btor_init_args_iterator (&it0, app0->e[1]);
+  btor_init_args_iterator (&it1, app1->e[1]);
+  while (btor_has_next_args_iterator (&it1))
+  {
+    assert (btor_has_next_args_iterator (&it0));
+    arg0 = btor_next_args_iterator (&it0);
+    arg1 = btor_next_args_iterator (&it1);
+    if (arg0 != arg1) return false;
+  }
+  return true;
+}
+
 static BtorPtrHashTable *
 prepare_inputs (BtorEFSolver *slv, BtorNode *fs_uf, BtorNodeMap *model)
 {
+  assert (BTOR_IS_REGULAR_NODE (fs_uf));
+  assert (BTOR_IS_UF_NODE (fs_uf));
+
   BtorNode *cur, *cur_fs, *cur_synth_fun;
   BtorHashTableIterator it;
   const BtorPtrHashTable *m;
   BtorPtrHashTable *deps, *inputs, *t;
-  Btor *e_solver;
+  Btor *e_solver, *f_solver;
   BtorMemMgr *mm;
 
   mm       = slv->btor->mm;
   deps     = btor_new_ptr_hash_table (mm, 0, 0);
   inputs   = btor_new_ptr_hash_table (mm, 0, 0);
   e_solver = slv->e_solver;
+  f_solver = slv->f_solver;
 
   btor_init_node_hash_table_iterator (&it, slv->e_exists_vars->table);
   btor_queue_node_hash_table_iterator (&it, slv->e_exists_ufs->table);
@@ -1066,6 +1117,10 @@ prepare_inputs (BtorEFSolver *slv, BtorNode *fs_uf, BtorNodeMap *model)
     cur    = btor_next_node_hash_table_iterator (&it);
 
     if (cur_fs->id == fs_uf->id) continue;
+
+    if (BTOR_IS_UF_NODE (cur_fs)
+        && !check_input_prefix (f_solver, fs_uf, cur_fs))
+      continue;
 
     if (is_dependent (mm, fs_uf, cur_fs, deps)) continue;
 
