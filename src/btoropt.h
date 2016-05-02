@@ -113,6 +113,13 @@ enum BtorOptSatEngines
 #define BTOR_SLS_STRAT_MIN 0
 #define BTOR_SLS_STRAT_MAX 4
 
+#define BTOR_EF_QINST_CONST 0
+#define BTOR_EF_QINST_SYM 1
+#define BTOR_EF_QINST_SYNTH 2
+#define BTOR_EF_QINST_DEFAULT BTOR_EF_QINST_CONST
+#define BTOR_EF_QINST_MIN BTOR_EF_QINST_CONST
+#define BTOR_EF_QINST_MAX BTOR_EF_QINST_SYNTH
+
 /*------------------------------------------------------------------------*/
 
 void btor_init_opts (Btor *btor);

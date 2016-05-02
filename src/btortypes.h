@@ -551,7 +551,7 @@ enum BtorOption
   BTOR_OPT_EF_DER,
   BTOR_OPT_EF_CER,
   BTOR_OPT_EF_SYNTH,
-  BTOR_OPT_EF_SYMQINST,
+  BTOR_OPT_EF_QINST_MODE,
 
   /* internal options --------------------------------------------------- */
 

@@ -709,15 +709,15 @@ btor_init_opts (Btor *btor)
             1,
             "use synthesis for UF models");
   init_opt (btor,
-            BTOR_OPT_EF_SYMQINST,
+            BTOR_OPT_EF_QINST_MODE,
             false,
             true,
-            "ef:symqinst",
+            "ef:qinstmode",
             0,
-            0,
-            0,
-            1,
-            "use symbolic terms for quantifier instantiation");
+            BTOR_EF_QINST_DEFAULT,
+            BTOR_EF_QINST_MIN,
+            BTOR_EF_QINST_MAX,
+            "quantifier instantiation mode for refinment");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
