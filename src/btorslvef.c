@@ -1042,10 +1042,32 @@ check_input_prefix (Btor *btor, BtorNode *uf, BtorNode *cur_uf)
 
   uint32_t arity0, arity1;
   BtorArgsIterator it0, it1;
-  BtorNode *app0, *app1, *arg0, *arg1;
+  BtorNodeIterator it;
+  BtorNode *app0 = 0, *app1 = 0, *arg0, *arg1, *cur;
 
-  /* all skolem functions have exactly one parent */
-  if (uf->parents != 1 || cur_uf->parents != 1) return false;
+  btor_init_parent_iterator (&it, uf);
+  while (btor_has_next_parent_iterator (&it))
+  {
+    cur = btor_next_parent_iterator (&it);
+    if (!cur->parameterized)
+    {
+      if (app0) return false;
+      app0 = cur;
+    }
+  }
+
+  btor_init_parent_iterator (&it, cur_uf);
+  while (btor_has_next_parent_iterator (&it))
+  {
+    cur = btor_next_parent_iterator (&it);
+    if (!cur->parameterized)
+    {
+      if (app1) return false;
+      app1 = cur;
+    }
+  }
+
+  if (!app0 || !app1) return false;
 
   arity0 = btor_get_fun_arity (btor, uf);
   arity1 = btor_get_fun_arity (btor, cur_uf);
