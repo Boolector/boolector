@@ -518,11 +518,9 @@ hash_binder_exp (Btor *btor,
           p = b->data.as_ptr;
           for (i = 0; i < p->size; i++)
           {
-            if (p->keys[i] && p->keys[i] != param->id)
-            {
-              assert (!btor_contains_int_hash_table (params, p->keys[i]));
+            if (p->keys[i] && p->keys[i] != param->id
+                && !btor_contains_int_hash_table (params, p->keys[i]))
               btor_add_int_hash_table (params, p->keys[i]);
-            }
           }
         }
       }
