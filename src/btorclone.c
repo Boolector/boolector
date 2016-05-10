@@ -196,6 +196,7 @@ btor_clone_data_as_htable_int (BtorMemMgr *mm,
                                BtorPtrHashData *data,
                                BtorPtrHashData *cloned_data)
 {
+  (void) map;
   assert (mm);
   assert (map);
   assert (data);
