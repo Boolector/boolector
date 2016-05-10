@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2015-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2016 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -21,7 +22,7 @@
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btornodemap.h"
-#ifndef NDEBUG
+#if !defined(NDEBUG) || !defined(NBTORLOG)
 #include "btorprintmodel.h"
 #endif
 #include "btorabort.h"
