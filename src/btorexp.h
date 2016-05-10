@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -86,22 +86,17 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
   struct                                                                \
   {                                                                     \
     BtorNodeKind kind : 5;     /* kind of expression */                 \
-    uint8_t mark : 2;          /* for DAG traversal */                  \
-    uint8_t aux_mark : 2;      /* auxiliary mark flag */                \
-    uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
-    uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
-    uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
     uint8_t unique : 1;        /* in unique table? */                   \
-    uint8_t bytes;             /* allocated bytes */                    \
     uint8_t parameterized : 1; /* param as sub expression ? */          \
     uint8_t lambda_below : 1;  /* lambda as sub expression ? */         \
     uint8_t apply_below : 1;   /* apply as sub expression ? */          \
     uint8_t propagated : 1;    /* is set during propagation */          \
     uint8_t is_array : 1;      /* function represents array ? */        \
     uint8_t arity : 2;         /* arity of operator (at most 3) */      \
+    uint8_t bytes;             /* allocated bytes */                    \
     int32_t id;                /* unique expression id */               \
     uint32_t refs;             /* reference counter (incl. ext_refs) */ \
     uint32_t ext_refs;         /* external references counter */        \
@@ -560,7 +555,7 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[]);
+BtorNode *btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc);
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
@@ -794,8 +789,8 @@ BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
  * function body 'exp'.
  */
 BtorNode *btor_fun_exp (Btor *btor,
+                        BtorNode *params[],
                         uint32_t paramc,
-                        BtorNode **params,
                         BtorNode *exp);
 
 /* Apply expression that applies argument expression 'args' to 'fun'.
@@ -805,13 +800,13 @@ BtorNode *btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
 /* Apply expression that applies 'argc' number of arguments to 'fun'.
  */
 BtorNode *btor_apply_exps (Btor *btor,
+                           BtorNode *args[],
                            uint32_t argc,
-                           BtorNode **args,
                            BtorNode *fun);
 
 /* Argument expression with 'argc' arguments.
  */
-BtorNode *btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args);
+BtorNode *btor_args_exp (Btor *btor, BtorNode *args[], uint32_t argc);
 
 /* If-then-else.
  * width(e_cond) = 1
@@ -853,7 +848,7 @@ bool btor_is_uf_exp (Btor *btor, BtorNode *exp);
 bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
+uint32_t btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
 
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, BtorNode *exp);
@@ -978,8 +973,8 @@ BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 
 BtorNode *btor_create_exp (Btor *btor,
                            BtorNodeKind kind,
-                           uint32_t arity,
-                           BtorNode **e);
+                           BtorNode *e[],
+                           uint32_t arity);
 
 /*------------------------------------------------------------------------*/
 /* These are only necessary in kind of internal wrapper code, which uses

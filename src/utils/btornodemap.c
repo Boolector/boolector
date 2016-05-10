@@ -12,6 +12,7 @@
 
 #include "utils/btornodemap.h"
 #include "btorcore.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
@@ -168,15 +169,16 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
                                              BtorNodeReleaser release,
                                              BtorNode *root)
 {
-  BtorNodePtrStack working_stack, marked_stack;
+  BtorNodePtrStack working_stack;
   BtorNode *res, *node, *mapped;
   BtorMemMgr *mm;
   int i;
+  BtorIntHashTable *mark;
+  BtorIntHashTableData *d;
 
-  mm = btor->mm;
-
+  mm   = btor->mm;
+  mark = btor_new_int_hash_map (mm);
   BTOR_INIT_STACK (working_stack);
-  BTOR_INIT_STACK (marked_stack);
   BTOR_PUSH_STACK (mm, working_stack, root);
 
   while (!BTOR_EMPTY_STACK (working_stack))
@@ -185,38 +187,32 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
     node = BTOR_REAL_ADDR_NODE (node);
     assert (node->kind != BTOR_PROXY_NODE);
     if (btor_mapped_node (map, node)) continue;
-    if (node->mark == 2) continue;
+    d = btor_get_int_hash_map (mark, node->id);
+    if (d && d->as_int == 1) continue;
     mapped = mapper (btor, state, node);
     if (mapped)
     {
       btor_map_node (map, node, mapped);
       release (btor, mapped);
     }
-    else if (!node->mark)
+    else if (!d)
     {
-      node->mark = 1;
+      btor_add_int_hash_map (mark, node->id);
       BTOR_PUSH_STACK (mm, working_stack, node);
-      BTOR_PUSH_STACK (mm, marked_stack, node);
       for (i = node->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, working_stack, node->e[i]);
     }
     else
     {
-      mapped = btor_map_node_internal (btor, map, node);
+      assert (d->as_int == 0);
+      d->as_int = 1;
+      mapped    = btor_map_node_internal (btor, map, node);
       btor_map_node (map, node, mapped);
       btor_release_exp (btor, mapped);
-      assert (node->mark == 1);
-      node->mark = 2;
     }
   }
   BTOR_RELEASE_STACK (mm, working_stack);
-  while (!BTOR_EMPTY_STACK (marked_stack))
-  {
-    node = BTOR_POP_STACK (marked_stack);
-    assert (node->mark == 2);
-    node->mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, marked_stack);
+  btor_delete_int_hash_map (mark);
   res = btor_mapped_node (map, root);
   assert (res);
   return res;

@@ -18,7 +18,7 @@ gcov=no
 gprof=no
 python=no
 
-ROOT="\$(ROOT)"
+ROOT="`pwd|sed -e 's, ,\\ ,g'`"
 
 #--------------------------------------------------------------------------#
 
@@ -134,7 +134,7 @@ fi
 
 BINDIR="bin"
 BUILDIR="build"
-TESTDIR="tests" # TODO should be $BUILDIR/tests
+TESTDIR="tests"
 SRCDIR="src"
 
 SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/tests src/utils"
@@ -197,16 +197,17 @@ fi
 
 #--------------------------------------------------------------------------#
 
-LIBS=""
+LIBS="-L$BUILDIR"
 OBJS=""
 INCS="-I$SRCDIR -I$BUILDIR "
+LDEPS="$BUILDIR/libboolector.a"
 
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
+RPATHS="-rpath=$ROOT/$BUILDIR"
 if [ $shared = yes ]
 then
-  LIBS="-Wl\,-rpath=$ROOT/$BUILDIR/."
   LDEPS="$BUILDIR/libboolector.so"
   LIBSTDCPP=yes
 fi
@@ -247,10 +248,10 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    #if [ $shared = yes ]		
-    if false
+    RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
+    if [ $shared = yes ]		
     then
-      LIBS="${LIBS}-L../picosat -Wl\,-rpath=$ROOT/../picosat/ -lpicosat"
+      LIBS="${LIBS}-L../picosat -lpicosat"
       LDEPS="${LDEPS}../picosat/libpicosat.so"
     else
       LIBS="${LIBS}-L../picosat -lpicosat"
@@ -406,9 +407,10 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}$BUILDIR/btorminisat.o"
+    RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$ROOT/../minisat/build/dynamic/lib -lminisat"
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
       LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
@@ -453,6 +455,8 @@ fi
 
 #--------------------------------------------------------------------------#
 
+LIBS="-Wl\,${RPATHS} ${LIBS}"
+
 if [ $python = yes ]
 then
   # set default python command if no PYTHON environment variable was set
@@ -496,7 +500,7 @@ incdirs.extend("$py_inc_dirs".split())
 ext_modules=[
     Extension("boolector",
               sources=["$SRCDIR/api/python/boolector.pyx"],
-	      include_dirs=incdirs,
+              include_dirs=incdirs,
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
@@ -561,5 +565,6 @@ sed \
   -e "s,@BUILDIR@,$BUILDIR," \
   -e "s,@BINDIR@,$BINDIR," \
   -e "s,@TESTDIR@,$TESTDIR," \
+  -e "s,@ROOT@,$ROOT,"\
   makefile.in > makefile
 msg "makefile generated"

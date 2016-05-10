@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -46,8 +47,8 @@ Btor *boolector_btor_mc (BtorMC *);
 
 /*------------------------------------------------------------------------*/
 
-BoolectorNode *boolector_input (BtorMC *, int width, const char *);
-BoolectorNode *boolector_latch (BtorMC *, int width, const char *);
+BoolectorNode *boolector_input (BtorMC *, uint32_t width, const char *);
+BoolectorNode *boolector_latch (BtorMC *, uint32_t width, const char *);
 
 void boolector_next (BtorMC *, BoolectorNode *latch, BoolectorNode *next);
 

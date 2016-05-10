@@ -134,9 +134,9 @@ enum BtorOption
     * **BTOR_OPT_EXIT_CODES**
 
       | Enable (``value``:1) or disable (``value``:0) the use of Boolector exit
-    codes (BTOR_RESULT_SAT: 10, BTOR_RESULT_UNSAT: 20, BTOR_RESULT_UNKNOWN: 0).
-      | If disabled, Boolector returns (BTOR_SUCC_EXIT: 0 for BTOR_RESULT_SAT
-    and BTOR_RESULT_UNSAT, BTOR_ERR_EXIT: 1 in any other case) on exit.
+    codes (BOOLECTOR_SAT, BOOLECTOR_UNSAT, BOOLECTOR_UNKNOWN - see
+    :ref:`macros`). | If disabled, on exit Boolector returns 0 if success (sat
+    or unsat), and 1 in any other case.
   */
   BTOR_OPT_EXIT_CODES,
 
@@ -469,14 +469,14 @@ enum BtorOption
   /* --------------------------------------------------------------------- */
 
   /*!
-    * **BTOR_OPT_PROP_MOVE_RESTARTS**
+    * **BTOR_OPT_PROP_USE_RESTARTS**
 
       Enable (``value``: 1) or disable (``value``: 0) restarts.
   */
   BTOR_OPT_PROP_USE_RESTARTS,
 
   /*!
-    * **BTOR_OPT_PROP_MOVE_RESTARTS**
+    * **BTOR_OPT_PROP_USE_RESTARTS**
 
       | Enable (``value``: 1) or disable (``value``: 0) heuristic (bandit
     scheme) for selecting root constraints. | If enabled, root constraint
@@ -510,6 +510,40 @@ enum BtorOption
     propagation.
   */
   BTOR_OPT_PROP_FLIP_COND_PROB,
+
+  /*!
+   * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
+
+    | Do not perform a propagation move when running into a conflict during
+   inverse computation. | (This is the default behavior for the SLS engine when
+   propagation moves are enabled, where a conflict triggers a recovery by means
+   of a regular SLS move.)
+    */
+  BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
+
+  /* --------------------------------------------------------------------- */
+  /*!
+   **AIGProp Engine Options**:
+   */
+  /* --------------------------------------------------------------------- */
+
+  /*!
+    * **BTOR_OPT_AIGPROP_USE_RESTARTS**
+
+      Enable (``value``: 1) or disable (``value``: 0) restarts.
+  */
+  BTOR_OPT_AIGPROP_USE_RESTARTS,
+
+  /*!
+    * **BTOR_OPT_AIGPROP_USE_RESTARTS**
+
+      | Enable (``value``: 1) or disable (``value``: 0) heuristic (bandit
+    scheme) for selecting root constraints. | If enabled, root constraint
+    selection via bandit scheme is based on a scoring scheme similar to the one
+    employed in the SLS engine. | If disabled, candidate root constraints are
+    selected randomly.
+  */
+  BTOR_OPT_AIGPROP_USE_BANDIT,
 
   /* internal options --------------------------------------------------- */
 

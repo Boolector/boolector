@@ -34,19 +34,20 @@ if __name__ == "__main__":
             elif desc_open:  # collect opt desc
                 desc.append(line.strip())
 
+    opts_str = []
+    for o in opts:
+        for l in o:
+            if not l:
+                opts_str.append("\n")
+                continue
+            if l[0:4] != "* **" and l[0:2] != "**":
+                  opts_str.append(' ' * 2) 
+            opts_str.append(l)
+            opts_str.append(" \n")
+        opts_str.append(" \n")
 
-        
     with open('cboolector_options.rst', 'w') as file:
-        for o in opts:
-            for l in o:
-                if not l:
-                    file.write("\n")
-                    continue
-                if l[0:4] != "* **" and l[0:2] != "**":
-                      file.write(' ' * 2) 
-                file.write(l)
-                file.write(" \n")
-            file.write(" \n")
+        file.write(''.join(opts_str))
 
-
-#    with open('pyboolector_options.rst', 'w') as file:
+    with open('pyboolector_options.rst', 'w') as file:
+        file.write(''.join(opts_str))

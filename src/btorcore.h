@@ -23,7 +23,7 @@
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
-#include "utils/btorutil.h"
+#include "utils/btorrng.h"
 
 #include <stdbool.h>
 
@@ -278,8 +278,8 @@ int btor_simplify (Btor *btor);
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
 int btor_fun_sort_check (Btor *btor,
+                         BtorNode *args[],
                          uint32_t argc,
-                         BtorNode **args,
                          BtorNode *fun);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
@@ -294,6 +294,10 @@ BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
 /* Checks for existing substitutions, finds most simplified expression and
  * shortens path to it */
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
+
+void btor_synthesize_exp (Btor *btor,
+                          BtorNode *exp,
+                          BtorPtrHashTable *backannotation);
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);

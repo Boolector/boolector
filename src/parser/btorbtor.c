@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,13 +11,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbtor.h"
-#include "btorconst.h"
+#include "btorbitvec.h"
 #include "btormsg.h"
 #include "btorparse.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
+
+#include "btorbtor.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -34,7 +35,7 @@ void boolector_set_btor_id (Btor *, BoolectorNode *, int);
 
 typedef struct BtorBTORParser BtorBTORParser;
 
-typedef BoolectorNode *(*BtorOpParser) (BtorBTORParser *, int len);
+typedef BoolectorNode *(*BtorOpParser) (BtorBTORParser *, uint32_t width);
 typedef BoolectorNode *(*Unary) (Btor *, BoolectorNode *);
 typedef BoolectorNode *(*Binary) (Btor *, BoolectorNode *, BoolectorNode *);
 typedef BoolectorNode *(*Shift) (Btor *, BoolectorNode *, BoolectorNode *);
@@ -84,7 +85,7 @@ struct BtorBTORParser
   BtorOpParser *parsers;
   const char **ops;
 
-  int idx;
+  uint32_t idx;
   int verbosity;
 
   int found_arrays;
@@ -184,7 +185,7 @@ btor_savech_btor (BtorBTORParser *parser, int ch)
 }
 
 static const char *
-parse_non_negative_int (BtorBTORParser *parser, int *res_ptr)
+parse_non_negative_int (BtorBTORParser *parser, uint32_t *res_ptr)
 {
   int res, ch;
 
@@ -212,7 +213,7 @@ parse_non_negative_int (BtorBTORParser *parser, int *res_ptr)
 }
 
 static const char *
-parse_positive_int (BtorBTORParser *parser, int *res_ptr)
+parse_positive_int (BtorBTORParser *parser, uint32_t *res_ptr)
 {
   int res, ch;
 
@@ -232,7 +233,7 @@ parse_positive_int (BtorBTORParser *parser, int *res_ptr)
 }
 
 static const char *
-parse_non_zero_int (BtorBTORParser *parser, int *res_ptr)
+parse_non_zero_int (BtorBTORParser *parser, int32_t *res_ptr)
 {
   int res, sign, ch;
 
@@ -267,11 +268,12 @@ parse_non_zero_int (BtorBTORParser *parser, int *res_ptr)
 
 static BoolectorNode *
 parse_exp (BtorBTORParser *parser,
-           int expected_len,
-           int can_be_array,
-           int can_be_inverted)
+           uint32_t expected_width,
+           bool can_be_array,
+           bool can_be_inverted)
 {
-  int lit, idx, len_res;
+  int32_t lit, idx;
+  uint32_t width_res;
   BoolectorNode *res;
 
   lit = 0;
@@ -308,17 +310,17 @@ parse_exp (BtorBTORParser *parser,
     return 0;
   }
 
-  if (expected_len)
+  if (expected_width)
   {
-    len_res = boolector_get_width (parser->btor, res);
+    width_res = boolector_get_width (parser->btor, res);
 
-    if (expected_len != len_res)
+    if (expected_width != width_res)
     {
       (void) btor_perr_btor (parser,
-                             "literal '%d' has length '%d' but expected '%d'",
+                             "literal '%d' has widthgth '%d' but expected '%d'",
                              lit,
-                             len_res,
-                             expected_len);
+                             width_res,
+                             expected_width);
 
       return 0;
     }
@@ -388,14 +390,14 @@ parse_symbol (BtorBTORParser *parser)
 }
 
 static BoolectorNode *
-parse_var (BtorBTORParser *parser, int len)
+parse_var (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s;
 
   if (!parse_symbol (parser)) return 0;
 
-  s   = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_bitvec_sort (parser->btor, width);
   res = boolector_var (
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
   boolector_release_sort (parser->btor, s);
@@ -407,14 +409,14 @@ parse_var (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_param (BtorBTORParser *parser, int len)
+parse_param (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s;
 
   if (!parse_symbol (parser)) return 0;
 
-  s   = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_bitvec_sort (parser->btor, width);
   res = boolector_param (
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
   boolector_release_sort (parser->btor, s);
@@ -424,11 +426,11 @@ parse_param (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_param_exp (BtorBTORParser *parser, int len)
+parse_param_exp (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
 
-  res = parse_exp (parser, len, 0, 0);
+  res = parse_exp (parser, width, false, false);
   if (!res) return 0;
 
   if (boolector_is_param (parser->btor, res)) return res;
@@ -440,20 +442,20 @@ parse_param_exp (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_array (BtorBTORParser *parser, int len)
+parse_array (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s, is, es;
-  int idx_len;
+  uint32_t idx_width;
 
   if (parse_space (parser)) return 0;
 
-  if (parse_positive_int (parser, &idx_len)) return 0;
+  if (parse_positive_int (parser, &idx_width)) return 0;
 
   if (!parse_symbol (parser)) return 0;
 
-  is  = boolector_bitvec_sort (parser->btor, idx_len);
-  es  = boolector_bitvec_sort (parser->btor, len);
+  is  = boolector_bitvec_sort (parser->btor, idx_width);
+  es  = boolector_bitvec_sort (parser->btor, width);
   s   = boolector_array_sort (parser->btor, is, es);
   res = boolector_array (
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
@@ -470,11 +472,11 @@ parse_array (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_array_exp (BtorBTORParser *parser, int len)
+parse_array_exp (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
 
-  res = parse_exp (parser, len, 1, 0);
+  res = parse_exp (parser, width, true, false);
   if (!res) return 0;
 
   if (boolector_is_array (parser->btor, res)) return res;
@@ -486,11 +488,11 @@ parse_array_exp (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_fun_exp (BtorBTORParser *parser, int len)
+parse_fun_exp (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
 
-  res = parse_exp (parser, len, 1, 0);
+  res = parse_exp (parser, width, true, false);
   if (!res) return 0;
 
   if (boolector_is_fun (parser->btor, res)) return res;
@@ -502,10 +504,11 @@ parse_fun_exp (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_const (BtorBTORParser *parser, int len)
+parse_const (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
-  int ch, clen;
+  int ch;
+  uint32_t cwidth;
 
   if (parse_space (parser)) return 0;
 
@@ -522,16 +525,16 @@ parse_const (BtorBTORParser *parser, int len)
   }
 
   btor_savech_btor (parser, ch);
-  clen = BTOR_COUNT_STACK (parser->constant);
+  cwidth = BTOR_COUNT_STACK (parser->constant);
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
-  if (clen != len)
+  if (cwidth != width)
   {
     (void) btor_perr_btor (parser,
                            "binary constant '%s' exceeds bit width %d",
                            parser->constant.start,
-                           len);
+                           width);
     return 0;
   }
 
@@ -541,11 +544,13 @@ parse_const (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_consth (BtorBTORParser *parser, int len)
+parse_consth (BtorBTORParser *parser, uint32_t width)
 {
-  char *tmp, *extended;
+  int ch;
+  uint32_t cwidth;
+  char *tmp, *ext;
+  BtorBitVector *tmpbv, *extbv;
   BoolectorNode *res;
-  int ch, clen;
 
   if (parse_space (parser)) return 0;
 
@@ -564,46 +569,58 @@ parse_consth (BtorBTORParser *parser, int len)
 
   btor_savech_btor (parser, ch);
 
-  clen = BTOR_COUNT_STACK (parser->constant);
+  cwidth = BTOR_COUNT_STACK (parser->constant);
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
-  tmp  = btor_hex_to_const_n (parser->mem, parser->constant.start, clen);
-  clen = (int) strlen (tmp);
+  tmp =
+      btor_hex_to_bin_str_n_util (parser->mem, parser->constant.start, cwidth);
+  cwidth = (int) strlen (tmp);
 
-  if (clen > len)
+  if (cwidth > width)
   {
     (void) btor_perr_btor (parser,
                            "hexadecimal constant '%s' exceeds bit width %d",
                            parser->constant.start,
-                           len);
-
+                           width);
     btor_freestr (parser->mem, tmp);
     return 0;
   }
 
-  if (clen < len)
+  if (cwidth < width)
   {
-    extended = btor_uext_const (parser->mem, tmp, len - clen);
-    btor_delete_const (parser->mem, tmp);
-    tmp = extended;
+    tmpbv = 0;
+    if (!strcmp (tmp, ""))
+      extbv = btor_new_bv (parser->mem, width - cwidth);
+    else
+    {
+      tmpbv = btor_char_to_bv (parser->mem, tmp);
+      extbv = btor_uext_bv (parser->mem, tmpbv, width - cwidth);
+    }
+    ext = btor_bv_to_char_bv (parser->mem, extbv);
+    btor_freestr (parser->mem, tmp);
+    btor_free_bv (parser->mem, extbv);
+    if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+    tmp = ext;
   }
 
-  assert (len == (int) strlen (tmp));
+  assert (width == strlen (tmp));
   res = boolector_const (parser->btor, tmp);
   btor_freestr (parser->mem, tmp);
 
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_constd (BtorBTORParser *parser, int len)
+parse_constd (BtorBTORParser *parser, uint32_t width)
 {
-  char *tmp, *extended;
+  int ch;
+  uint32_t cwidth;
+  char *tmp, *ext;
+  BtorBitVector *tmpbv, *extbv;
   BoolectorNode *res;
-  int clen, ch;
 
   if (parse_space (parser)) return 0;
 
@@ -635,9 +652,10 @@ parse_constd (BtorBTORParser *parser, int len)
     while (isdigit (ch = btor_nextch_btor (parser)))
       BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
 
-    clen = BTOR_COUNT_STACK (parser->constant);
+    cwidth = BTOR_COUNT_STACK (parser->constant);
 
-    tmp = btor_decimal_to_const_n (parser->mem, parser->constant.start, clen);
+    tmp = btor_dec_to_bin_str_n_util (
+        parser->mem, parser->constant.start, cwidth);
   }
 
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
@@ -645,77 +663,87 @@ parse_constd (BtorBTORParser *parser, int len)
 
   btor_savech_btor (parser, ch);
 
-  clen = (int) strlen (tmp);
-  if (clen > len)
+  cwidth = (int) strlen (tmp);
+  if (cwidth > width)
   {
     (void) btor_perr_btor (parser,
                            "decimal constant '%s' exceeds bit width %d",
                            parser->constant.start,
-                           len);
+                           width);
     btor_freestr (parser->mem, tmp);
     return 0;
   }
 
-  if (clen < len)
+  if (cwidth < width)
   {
-    extended = btor_uext_const (parser->mem, tmp, len - clen);
-    btor_delete_const (parser->mem, tmp);
-    tmp = extended;
+    tmpbv = 0;
+    if (!strcmp (tmp, ""))
+      extbv = btor_new_bv (parser->mem, width - cwidth);
+    else
+    {
+      tmpbv = btor_char_to_bv (parser->mem, tmp);
+      extbv = btor_uext_bv (parser->mem, tmpbv, width - cwidth);
+    }
+    ext = btor_bv_to_char_bv (parser->mem, extbv);
+    btor_freestr (parser->mem, tmp);
+    btor_free_bv (parser->mem, extbv);
+    if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+    tmp = ext;
   }
 
-  assert (len == (int) strlen (tmp));
+  assert (width == strlen (tmp));
   res = boolector_const (parser->btor, tmp);
-  btor_delete_const (parser->mem, tmp);
+  btor_freestr (parser->mem, tmp);
 
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_zero (BtorBTORParser *parser, int len)
+parse_zero (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s;
 
-  s   = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_bitvec_sort (parser->btor, width);
   res = boolector_zero (parser->btor, s);
   boolector_release_sort (parser->btor, s);
   return res;
 }
 
 static BoolectorNode *
-parse_one (BtorBTORParser *parser, int len)
+parse_one (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s;
 
-  s   = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_bitvec_sort (parser->btor, width);
   res = boolector_one (parser->btor, s);
   boolector_release_sort (parser->btor, s);
   return res;
 }
 
 static BoolectorNode *
-parse_ones (BtorBTORParser *parser, int len)
+parse_ones (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
   BoolectorSort s;
 
-  s   = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_bitvec_sort (parser->btor, width);
   res = boolector_ones (parser->btor, s);
   boolector_release_sort (parser->btor, s);
   return res;
 }
 
 static BoolectorNode *
-parse_root (BtorBTORParser *parser, int len)
+parse_root (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
 
   if (parse_space (parser)) return 0;
 
-  if (!(res = parse_exp (parser, len, 0, 1))) return 0;
+  if (!(res = parse_exp (parser, width, false, true))) return 0;
 
   BTOR_PUSH_STACK (parser->mem, parser->outputs, res);
 
@@ -723,63 +751,65 @@ parse_root (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_unary (BtorBTORParser *parser, int len, Unary f)
+parse_unary (BtorBTORParser *parser, uint32_t width, Unary f)
 {
+  assert (width);
+
   BoolectorNode *tmp, *res;
 
-  assert (len);
   if (parse_space (parser)) return 0;
 
-  if (!(tmp = parse_exp (parser, len, 0, 1))) return 0;
+  if (!(tmp = parse_exp (parser, width, false, true))) return 0;
 
   res = f (parser->btor, tmp);
   boolector_release (parser->btor, tmp);
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_not (BtorBTORParser *parser, int len)
+parse_not (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_unary (parser, len, boolector_not);
+  return parse_unary (parser, width, boolector_not);
 }
 
 static BoolectorNode *
-parse_neg (BtorBTORParser *parser, int len)
+parse_neg (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_unary (parser, len, boolector_neg);
+  return parse_unary (parser, width, boolector_neg);
 }
 
 static BoolectorNode *
-parse_inc (BtorBTORParser *parser, int len)
+parse_inc (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_unary (parser, len, boolector_inc);
+  return parse_unary (parser, width, boolector_inc);
 }
 
 static BoolectorNode *
-parse_dec (BtorBTORParser *parser, int len)
+parse_dec (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_unary (parser, len, boolector_dec);
+  return parse_unary (parser, width, boolector_dec);
 }
 
 static BoolectorNode *
-parse_proxy (BtorBTORParser *parser, int len)
+parse_proxy (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_unary (parser, len, boolector_copy);
+  return parse_unary (parser, width, boolector_copy);
 }
 
 static BoolectorNode *
-parse_redunary (BtorBTORParser *parser, int len, Unary f)
+parse_redunary (BtorBTORParser *parser, uint32_t width, Unary f)
 {
+  assert (width == 1);
+
   BoolectorNode *tmp, *res;
 
-  (void) len;
-  assert (len == 1);
+  (void) width;
 
   if (parse_space (parser)) return 0;
 
-  if (!(tmp = parse_exp (parser, 0, 0, 1))) return 0;
+  if (!(tmp = parse_exp (parser, 0, false, true))) return 0;
 
   if (boolector_get_width (parser->btor, tmp) == 1)
   {
@@ -797,33 +827,33 @@ parse_redunary (BtorBTORParser *parser, int len, Unary f)
 }
 
 static BoolectorNode *
-parse_redand (BtorBTORParser *parser, int len)
+parse_redand (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_redunary (parser, len, boolector_redand);
+  return parse_redunary (parser, width, boolector_redand);
 }
 
 static BoolectorNode *
-parse_redor (BtorBTORParser *parser, int len)
+parse_redor (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_redunary (parser, len, boolector_redor);
+  return parse_redunary (parser, width, boolector_redor);
 }
 
 static BoolectorNode *
-parse_redxor (BtorBTORParser *parser, int len)
+parse_redxor (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_redunary (parser, len, boolector_redxor);
+  return parse_redunary (parser, width, boolector_redxor);
 }
 
 static BoolectorNode *
-parse_binary (BtorBTORParser *parser, int len, Binary f)
+parse_binary (BtorBTORParser *parser, uint32_t width, Binary f)
 {
+  assert (width);
+
   BoolectorNode *l, *r, *res;
-
-  assert (len);
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, len, 0, 1))) return 0;
+  if (!(l = parse_exp (parser, width, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -832,114 +862,115 @@ parse_binary (BtorBTORParser *parser, int len, Binary f)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, len, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, width, false, true)))
+    goto RELEASE_L_AND_RETURN_ERROR;
 
   res = f (parser->btor, l, r);
   boolector_release (parser->btor, r);
   boolector_release (parser->btor, l);
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_add (BtorBTORParser *parser, int len)
+parse_add (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_add);
+  return parse_binary (parser, width, boolector_add);
 }
 
 static BoolectorNode *
-parse_and (BtorBTORParser *parser, int len)
+parse_and (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_and);
+  return parse_binary (parser, width, boolector_and);
 }
 
 static BoolectorNode *
-parse_smod (BtorBTORParser *parser, int len)
+parse_smod (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_smod);
+  return parse_binary (parser, width, boolector_smod);
 }
 
 static BoolectorNode *
-parse_srem (BtorBTORParser *parser, int len)
+parse_srem (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_srem);
+  return parse_binary (parser, width, boolector_srem);
 }
 
 static BoolectorNode *
-parse_mul (BtorBTORParser *parser, int len)
+parse_mul (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_mul);
+  return parse_binary (parser, width, boolector_mul);
 }
 
 static BoolectorNode *
-parse_sub (BtorBTORParser *parser, int len)
+parse_sub (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_sub);
+  return parse_binary (parser, width, boolector_sub);
 }
 
 static BoolectorNode *
-parse_udiv (BtorBTORParser *parser, int len)
+parse_udiv (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_udiv);
+  return parse_binary (parser, width, boolector_udiv);
 }
 
 static BoolectorNode *
-parse_urem (BtorBTORParser *parser, int len)
+parse_urem (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_urem);
+  return parse_binary (parser, width, boolector_urem);
 }
 
 static BoolectorNode *
-parse_xor (BtorBTORParser *parser, int len)
+parse_xor (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_xor);
+  return parse_binary (parser, width, boolector_xor);
 }
 
 static BoolectorNode *
-parse_xnor (BtorBTORParser *parser, int len)
+parse_xnor (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_xnor);
+  return parse_binary (parser, width, boolector_xnor);
 }
 
 static BoolectorNode *
-parse_or (BtorBTORParser *parser, int len)
+parse_or (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_or);
+  return parse_binary (parser, width, boolector_or);
 }
 
 static BoolectorNode *
-parse_nor (BtorBTORParser *parser, int len)
+parse_nor (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_nor);
+  return parse_binary (parser, width, boolector_nor);
 }
 
 static BoolectorNode *
-parse_nand (BtorBTORParser *parser, int len)
+parse_nand (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_nand);
+  return parse_binary (parser, width, boolector_nand);
 }
 
 static BoolectorNode *
-parse_sdiv (BtorBTORParser *parser, int len)
+parse_sdiv (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_binary (parser, len, boolector_sdiv);
+  return parse_binary (parser, width, boolector_sdiv);
 }
 
 static BoolectorNode *
-parse_logical (BtorBTORParser *parser, int len, Binary f)
+parse_logical (BtorBTORParser *parser, uint32_t width, Binary f)
 {
   BoolectorNode *l, *r, *res;
 
-  if (len != 1)
+  if (width != 1)
   {
-    (void) btor_perr_btor (parser, "logical operator bit width '%d'", len);
+    (void) btor_perr_btor (parser, "logical operator bit width '%d'", width);
     return 0;
   }
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, 0, 1))) return 0;
+  if (!(l = parse_exp (parser, 0, false, true))) return 0;
 
   if (boolector_get_width (parser->btor, l) != 1)
   {
@@ -952,7 +983,8 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 
   if (parse_space (parser)) goto RELEASE_L_AND_RETURN_ERROR;
 
-  if (!(r = parse_exp (parser, 0, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, 0, false, true)))
+    goto RELEASE_L_AND_RETURN_ERROR;
 
   if (boolector_get_width (parser->btor, r) != 1)
   {
@@ -969,35 +1001,35 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 }
 
 static BoolectorNode *
-parse_implies (BtorBTORParser *parser, int len)
+parse_implies (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_logical (parser, len, boolector_implies);
+  return parse_logical (parser, width, boolector_implies);
 }
 
 static BoolectorNode *
-parse_iff (BtorBTORParser *parser, int len)
+parse_iff (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_logical (parser, len, boolector_iff);
+  return parse_logical (parser, width, boolector_iff);
 }
 
 static BoolectorNode *
 parse_compare_and_overflow (BtorBTORParser *parser,
-                            int len,
+                            int width,
                             Binary f,
-                            int can_be_array)
+                            bool can_be_array)
 {
   BoolectorNode *l, *r, *res;
 
-  if (len != 1)
+  if (width != 1)
   {
     (void) btor_perr_btor (
-        parser, "comparison or overflow operator returns %d bits", len);
+        parser, "comparison or overflow operator returns %d bits", width);
     return 0;
   }
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, can_be_array, 1))) return 0;
+  if (!(l = parse_exp (parser, 0, can_be_array, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1006,7 +1038,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
     return 0;
   }
 
-  if (!(r = parse_exp (parser, 0, can_be_array, 1)))
+  if (!(r = parse_exp (parser, 0, can_be_array, true)))
     goto RELEASE_L_AND_RETURN_ERROR;
 
   if (!boolector_is_equal_sort (parser->btor, l, r))
@@ -1046,116 +1078,116 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 }
 
 static BoolectorNode *
-parse_eq (BtorBTORParser *parser, int len)
+parse_eq (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_eq, 1);
+  return parse_compare_and_overflow (parser, width, boolector_eq, 1);
 }
 
 static BoolectorNode *
-parse_ne (BtorBTORParser *parser, int len)
+parse_ne (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ne, 1);
+  return parse_compare_and_overflow (parser, width, boolector_ne, 1);
 }
 
 static BoolectorNode *
-parse_sgt (BtorBTORParser *parser, int len)
+parse_sgt (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_sgt, 0);
+  return parse_compare_and_overflow (parser, width, boolector_sgt, 0);
 }
 
 static BoolectorNode *
-parse_sgte (BtorBTORParser *parser, int len)
+parse_sgte (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_sgte, 0);
+  return parse_compare_and_overflow (parser, width, boolector_sgte, 0);
 }
 
 static BoolectorNode *
-parse_slt (BtorBTORParser *parser, int len)
+parse_slt (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_slt, 0);
+  return parse_compare_and_overflow (parser, width, boolector_slt, 0);
 }
 
 static BoolectorNode *
-parse_slte (BtorBTORParser *parser, int len)
+parse_slte (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_slte, 0);
+  return parse_compare_and_overflow (parser, width, boolector_slte, 0);
 }
 
 static BoolectorNode *
-parse_ugt (BtorBTORParser *parser, int len)
+parse_ugt (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ugt, 0);
+  return parse_compare_and_overflow (parser, width, boolector_ugt, 0);
 }
 
 static BoolectorNode *
-parse_ugte (BtorBTORParser *parser, int len)
+parse_ugte (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ugte, 0);
+  return parse_compare_and_overflow (parser, width, boolector_ugte, 0);
 }
 
 static BoolectorNode *
-parse_ult (BtorBTORParser *parser, int len)
+parse_ult (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ult, 0);
+  return parse_compare_and_overflow (parser, width, boolector_ult, 0);
 }
 
 static BoolectorNode *
-parse_ulte (BtorBTORParser *parser, int len)
+parse_ulte (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ulte, 0);
+  return parse_compare_and_overflow (parser, width, boolector_ulte, 0);
 }
 
 static BoolectorNode *
-parse_saddo (BtorBTORParser *parser, int len)
+parse_saddo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_saddo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_saddo, 0);
 }
 
 static BoolectorNode *
-parse_ssubo (BtorBTORParser *parser, int len)
+parse_ssubo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_ssubo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_ssubo, 0);
 }
 
 static BoolectorNode *
-parse_smulo (BtorBTORParser *parser, int len)
+parse_smulo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_smulo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_smulo, 0);
 }
 
 static BoolectorNode *
-parse_sdivo (BtorBTORParser *parser, int len)
+parse_sdivo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_sdivo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_sdivo, 0);
 }
 
 static BoolectorNode *
-parse_uaddo (BtorBTORParser *parser, int len)
+parse_uaddo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_uaddo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_uaddo, 0);
 }
 
 static BoolectorNode *
-parse_usubo (BtorBTORParser *parser, int len)
+parse_usubo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_usubo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_usubo, 0);
 }
 
 static BoolectorNode *
-parse_umulo (BtorBTORParser *parser, int len)
+parse_umulo (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_compare_and_overflow (parser, len, boolector_umulo, 0);
+  return parse_compare_and_overflow (parser, width, boolector_umulo, 0);
 }
 
 static BoolectorNode *
-parse_concat (BtorBTORParser *parser, int len)
+parse_concat (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *l, *r, *res;
-  int llen, rlen;
+  uint32_t lwidth, rwidth;
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, 0, 1))) return 0;
+  if (!(l = parse_exp (parser, 0, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1164,18 +1196,19 @@ parse_concat (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, 0, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, 0, false, true)))
+    goto RELEASE_L_AND_RETURN_ERROR;
 
-  llen = boolector_get_width (parser->btor, l);
-  rlen = boolector_get_width (parser->btor, r);
+  lwidth = boolector_get_width (parser->btor, l);
+  rwidth = boolector_get_width (parser->btor, r);
 
-  if (llen + rlen != len)
+  if (lwidth + rwidth != width)
   {
     (void) btor_perr_btor (parser,
                            "operands widths %d and %d do not add up to %d",
-                           llen,
-                           rlen,
-                           len);
+                           lwidth,
+                           rwidth,
+                           width);
 
     boolector_release (parser->btor, r);
     boolector_release (parser->btor, l);
@@ -1185,29 +1218,29 @@ parse_concat (BtorBTORParser *parser, int len)
   res = boolector_concat (parser->btor, l, r);
   boolector_release (parser->btor, r);
   boolector_release (parser->btor, l);
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_shift (BtorBTORParser *parser, int len, Shift f)
+parse_shift (BtorBTORParser *parser, uint32_t width, Shift f)
 {
   BoolectorNode *l, *r, *res;
-  int rlen;
+  uint32_t rwidth;
 
-  for (rlen = 1; rlen <= 30 && len != (1 << rlen); rlen++)
+  for (rwidth = 1; rwidth <= 30u && width != (1u << rwidth); rwidth++)
     ;
 
-  if (len != (1 << rlen))
+  if (width != (1u << rwidth))
   {
-    (void) btor_perr_btor (parser, "length %d is not a power of two", len);
+    (void) btor_perr_btor (parser, "widthgth %d is not a power of two", width);
     return 0;
   }
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, len, 0, 1))) return 0;
+  if (!(l = parse_exp (parser, width, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1216,54 +1249,55 @@ parse_shift (BtorBTORParser *parser, int len, Shift f)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, rlen, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, rwidth, false, true)))
+    goto RELEASE_L_AND_RETURN_ERROR;
 
   res = f (parser->btor, l, r);
   boolector_release (parser->btor, r);
   boolector_release (parser->btor, l);
-  assert (boolector_get_width (parser->btor, res) == len);
+  assert (boolector_get_width (parser->btor, res) == width);
 
   return res;
 }
 
 static BoolectorNode *
-parse_rol (BtorBTORParser *parser, int len)
+parse_rol (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_shift (parser, len, boolector_rol);
+  return parse_shift (parser, width, boolector_rol);
 }
 
 static BoolectorNode *
-parse_ror (BtorBTORParser *parser, int len)
+parse_ror (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_shift (parser, len, boolector_ror);
+  return parse_shift (parser, width, boolector_ror);
 }
 
 static BoolectorNode *
-parse_sll (BtorBTORParser *parser, int len)
+parse_sll (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_shift (parser, len, boolector_sll);
+  return parse_shift (parser, width, boolector_sll);
 }
 
 static BoolectorNode *
-parse_sra (BtorBTORParser *parser, int len)
+parse_sra (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_shift (parser, len, boolector_sra);
+  return parse_shift (parser, width, boolector_sra);
 }
 
 static BoolectorNode *
-parse_srl (BtorBTORParser *parser, int len)
+parse_srl (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_shift (parser, len, boolector_srl);
+  return parse_shift (parser, width, boolector_srl);
 }
 
 static BoolectorNode *
-parse_cond (BtorBTORParser *parser, int len)
+parse_cond (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *c, *t, *e, *res;
 
   if (parse_space (parser)) return 0;
 
-  if (!(c = parse_exp (parser, 1, 0, 1))) return 0;
+  if (!(c = parse_exp (parser, 1, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1272,7 +1306,8 @@ parse_cond (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(t = parse_exp (parser, len, 0, 1))) goto RELEASE_C_AND_RETURN_ERROR;
+  if (!(t = parse_exp (parser, width, false, true)))
+    goto RELEASE_C_AND_RETURN_ERROR;
 
   if (parse_space (parser))
   {
@@ -1281,7 +1316,7 @@ parse_cond (BtorBTORParser *parser, int len)
     goto RELEASE_C_AND_RETURN_ERROR;
   }
 
-  if (!(e = parse_exp (parser, len, 0, 1)))
+  if (!(e = parse_exp (parser, width, false, true)))
     goto RELEASE_C_AND_T_AND_RETURN_ERROR;
 
   res = boolector_cond (parser->btor, c, t, e);
@@ -1293,18 +1328,18 @@ parse_cond (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_acond (BtorBTORParser *parser, int len)
+parse_acond (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *c, *t, *e, *res;
-  int idxlen;
+  uint32_t idxwidth;
 
   if (parse_space (parser)) return 0;
 
-  if (parse_positive_int (parser, &idxlen)) return 0;
+  if (parse_positive_int (parser, &idxwidth)) return 0;
 
   if (parse_space (parser)) return 0;
 
-  if (!(c = parse_exp (parser, 1, 0, 1))) return 0;
+  if (!(c = parse_exp (parser, 1, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1313,9 +1348,9 @@ parse_acond (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(t = parse_array_exp (parser, len))) goto RELEASE_C_AND_RETURN_ERROR;
+  if (!(t = parse_array_exp (parser, width))) goto RELEASE_C_AND_RETURN_ERROR;
 
-  if (idxlen != boolector_get_index_width (parser->btor, t))
+  if (idxwidth != boolector_get_index_width (parser->btor, t))
   {
     (void) btor_perr_btor (parser,
                            "mismatch of index bit width of 'then' array");
@@ -1326,10 +1361,10 @@ parse_acond (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) goto RELEASE_C_AND_T_AND_RETURN_ERROR;
 
-  if (!(e = parse_array_exp (parser, len)))
+  if (!(e = parse_array_exp (parser, width)))
     goto RELEASE_C_AND_T_AND_RETURN_ERROR;
 
-  if (idxlen != boolector_get_index_width (parser->btor, e))
+  if (idxwidth != boolector_get_index_width (parser->btor, e))
   {
     (void) btor_perr_btor (parser,
                            "mismatch of index bit width of 'else' array");
@@ -1346,14 +1381,14 @@ parse_acond (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_slice (BtorBTORParser *parser, int len)
+parse_slice (BtorBTORParser *parser, uint32_t width)
 {
-  int arglen, upper, lower, delta;
+  uint32_t argwidth, upper, lower, delta;
   BoolectorNode *res, *arg;
 
   if (parse_space (parser)) return 0;
 
-  if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
+  if (!(arg = parse_exp (parser, 0, false, true))) return 0;
 
   if (parse_space (parser))
   {
@@ -1362,15 +1397,15 @@ parse_slice (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  arglen = boolector_get_width (parser->btor, arg);
+  argwidth = boolector_get_width (parser->btor, arg);
 
   if (parse_non_negative_int (parser, &upper))
     goto RELEASE_ARG_AND_RETURN_ERROR;
 
-  if (upper >= arglen)
+  if (upper >= argwidth)
   {
     (void) btor_perr_btor (
-        parser, "upper index '%d' >= argument width '%d", upper, arglen);
+        parser, "upper index '%d' >= argument width '%d", upper, argwidth);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
@@ -1387,12 +1422,12 @@ parse_slice (BtorBTORParser *parser, int len)
   }
 
   delta = upper - lower + 1;
-  if (delta != len)
+  if (delta != width)
   {
     (void) btor_perr_btor (parser,
                            "slice width '%d' not equal to expected width '%d'",
                            delta,
-                           len);
+                           width);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
@@ -1403,14 +1438,14 @@ parse_slice (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_read (BtorBTORParser *parser, int len)
+parse_read (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *array, *idx, *res;
-  int idxlen;
+  uint32_t idxwidth;
 
   if (parse_space (parser)) return 0;
 
-  if (!(array = parse_array_exp (parser, len))) return 0;
+  if (!(array = parse_array_exp (parser, width))) return 0;
 
   if (parse_space (parser))
   {
@@ -1419,8 +1454,8 @@ parse_read (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  idxlen = boolector_get_index_width (parser->btor, array);
-  if (!(idx = parse_exp (parser, idxlen, 0, 1)))
+  idxwidth = boolector_get_index_width (parser->btor, array);
+  if (!(idx = parse_exp (parser, idxwidth, false, true)))
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
   res = boolector_read (parser->btor, array, idx);
@@ -1431,18 +1466,18 @@ parse_read (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_write (BtorBTORParser *parser, int len)
+parse_write (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *array, *idx, *val, *res;
-  int idxlen, vallen;
+  uint32_t idxwidth, valwidth;
 
   if (parse_space (parser)) return 0;
 
-  if (parse_positive_int (parser, &idxlen)) return 0;
+  if (parse_positive_int (parser, &idxwidth)) return 0;
 
   if (parse_space (parser)) return 0;
 
-  if (!(array = parse_array_exp (parser, len))) return 0;
+  if (!(array = parse_array_exp (parser, width))) return 0;
 
   if (parse_space (parser))
   {
@@ -1451,7 +1486,7 @@ parse_write (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(idx = parse_exp (parser, idxlen, 0, 1)))
+  if (!(idx = parse_exp (parser, idxwidth, false, true)))
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
   if (parse_space (parser))
@@ -1461,8 +1496,8 @@ parse_write (BtorBTORParser *parser, int len)
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
   }
 
-  vallen = boolector_get_width (parser->btor, array);
-  if (!(val = parse_exp (parser, vallen, 0, 1)))
+  valwidth = boolector_get_width (parser->btor, array);
+  if (!(val = parse_exp (parser, valwidth, false, true)))
     goto RELEASE_ARRAY_AND_IDX_AND_RETURN_ERROR;
 
   res = boolector_write (parser->btor, array, idx, val);
@@ -1475,19 +1510,19 @@ parse_write (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_lambda (BtorBTORParser *parser, int len)
+parse_lambda (BtorBTORParser *parser, uint32_t width)
 {
-  int paramlen;
+  uint32_t paramwidth;
   BoolectorNode **params, *exp, *res;
 
   if (parse_space (parser)) return 0;
 
-  if (parse_positive_int (parser, &paramlen)) return 0;
+  if (parse_positive_int (parser, &paramwidth)) return 0;
 
   if (parse_space (parser)) return 0;
 
   BTOR_NEW (parser->mem, params);
-  if (!(params[0] = parse_param_exp (parser, paramlen))) return 0;
+  if (!(params[0] = parse_param_exp (parser, paramwidth))) return 0;
 
   if (boolector_is_bound_param (parser->btor, params[0]))
   {
@@ -1502,7 +1537,7 @@ parse_lambda (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(exp = parse_exp (parser, len, 1, 1)))
+  if (!(exp = parse_exp (parser, width, true, true)))
     goto RELEASE_PARAM_AND_RETURN_ERROR;
 
   res = boolector_fun (parser->btor, params, 1, exp);
@@ -1518,7 +1553,7 @@ parse_lambda (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_apply (BtorBTORParser *parser, int len)
+parse_apply (BtorBTORParser *parser, uint32_t width)
 {
   int i, arity;
   BoolectorNode *res, *fun, *arg;
@@ -1526,7 +1561,7 @@ parse_apply (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(fun = parse_fun_exp (parser, len))) return 0;
+  if (!(fun = parse_fun_exp (parser, width))) return 0;
 
   BTOR_INIT_STACK (args);
 
@@ -1543,7 +1578,7 @@ parse_apply (BtorBTORParser *parser, int len)
   arity = boolector_get_fun_arity (parser->btor, fun);
   for (i = 0; i < arity; i++)
   {
-    arg = parse_exp (parser, 0, 0, 1);
+    arg = parse_exp (parser, 0, false, true);
     if (!arg) goto RELEASE_FUN_AND_RETURN_ERROR;
 
     if (i < arity - 1)
@@ -1563,16 +1598,16 @@ parse_apply (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
-parse_ext (BtorBTORParser *parser, int len, Extend f)
+parse_ext (BtorBTORParser *parser, uint32_t width, Extend f)
 {
   BoolectorNode *res, *arg;
-  int alen, elen;
+  uint32_t awidth, ewidth;
 
   if (parse_space (parser)) return 0;
 
-  if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
+  if (!(arg = parse_exp (parser, 0, false, true))) return 0;
 
-  alen = boolector_get_width (parser->btor, arg);
+  awidth = boolector_get_width (parser->btor, arg);
 
   if (parse_space (parser))
   {
@@ -1581,35 +1616,36 @@ parse_ext (BtorBTORParser *parser, int len, Extend f)
     return 0;
   }
 
-  if (parse_non_negative_int (parser, &elen)) goto RELEASE_ARG_AND_RETURN_ERROR;
+  if (parse_non_negative_int (parser, &ewidth))
+    goto RELEASE_ARG_AND_RETURN_ERROR;
 
-  if (alen + elen != len)
+  if (awidth + ewidth != width)
   {
     (void) btor_perr_btor (parser,
-                           "argument length of %d plus %d does not match %d",
-                           alen,
-                           elen,
-                           len);
+                           "argument widthgth of %d plus %d does not match %d",
+                           awidth,
+                           ewidth,
+                           width);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
-  res = f (parser->btor, arg, elen);
-  assert (boolector_get_width (parser->btor, res) == len);
+  res = f (parser->btor, arg, ewidth);
+  assert (boolector_get_width (parser->btor, res) == width);
   boolector_release (parser->btor, arg);
 
   return res;
 }
 
 static BoolectorNode *
-parse_sext (BtorBTORParser *parser, int len)
+parse_sext (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_ext (parser, len, boolector_sext);
+  return parse_ext (parser, width, boolector_sext);
 }
 
 static BoolectorNode *
-parse_uext (BtorBTORParser *parser, int len)
+parse_uext (BtorBTORParser *parser, uint32_t width)
 {
-  return parse_ext (parser, len, boolector_uext);
+  return parse_ext (parser, width, boolector_uext);
 }
 
 static void
@@ -1796,7 +1832,8 @@ btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorParseResult *res)
 {
   BtorOpParser op_parser;
-  int ch, len;
+  int ch;
+  uint32_t width;
   BoolectorNode *e;
 
   assert (infile);
@@ -1894,18 +1931,18 @@ NEXT:
 
   if (parse_space (parser)) return parser->error;
 
-  if (parse_positive_int (parser, &len)) return parser->error;
+  if (parse_positive_int (parser, &width)) return parser->error;
 
   if (!(op_parser = find_parser (parser, parser->op.start)))
     return btor_perr_btor (parser, "invalid operator '%s'", parser->op.start);
 
-  if (!(e = op_parser (parser, len)))
+  if (!(e = op_parser (parser, width)))
   {
     assert (parser->error);
     return parser->error;
   }
 
-  assert (boolector_get_width (parser->btor, e) == len);
+  assert (boolector_get_width (parser->btor, e) == width);
   parser->exps.start[parser->idx] = e;
 
 SKIP:

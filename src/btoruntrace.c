@@ -620,7 +620,8 @@ NEXT:
     else if (!strcmp (tok, "set_opt"))
     {
       PARSE_ARGS3 (tok, int, str, int);
-      assert (!strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
+      assert (!boolector_get_opt_lng (btor, arg1_int)
+              || !strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
       if (!has_btor_opt (g_btorunt, arg1_int))
       {
         boolector_set_opt (btor, arg1_int, arg3_int);
@@ -1528,6 +1529,15 @@ NEXT:
     {
       PARSE_ARGS1 (tok, int);
       ret_ptr = (void *) (size_t) boolector_bitvec_sort (btor, arg1_int);
+      exp_ret = RET_VOIDPTR;
+    }
+    else if (!strcmp (tok, "array_sort"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      ret_ptr = (void *) (size_t) boolector_array_sort (
+          btor,
+          (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str),
+          (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))

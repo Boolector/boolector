@@ -14,11 +14,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "btorconst.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
+#include "utils/btorrng.h"
 #include "utils/btorstack.h"
-#include "utils/btorutil.h"
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
@@ -74,7 +73,11 @@ uint32_t btor_hash_bv (const BtorBitVector *bv);
 
 void btor_print_bv (const BtorBitVector *bv);
 void btor_print_all_bv (const BtorBitVector *bv);
+
 char *btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv);
+char *btor_bv_to_hex_char_bv (BtorMemMgr *mm, const BtorBitVector *bv);
+char *btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv);
+
 uint64_t btor_bv_to_uint64_bv (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/

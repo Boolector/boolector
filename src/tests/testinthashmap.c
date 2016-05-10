@@ -12,7 +12,6 @@
 #include "testrunner.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btorutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

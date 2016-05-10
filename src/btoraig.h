@@ -89,17 +89,21 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 
+#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (unsigned long int) (aig)))
+
 #define BTOR_IS_VAR_AIG(aig) ((aig)->is_var)
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_GET_AIG_BY_ID(id)                                    \
+#define BTOR_GET_AIG_BY_ID(amgr, id)                              \
   (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
           : BTOR_PEEK_STACK (amgr->id2aig, id))
 
-#define BTOR_LEFT_CHILD_AIG(aig) (BTOR_GET_AIG_BY_ID ((aig)->children[0]))
+#define BTOR_LEFT_CHILD_AIG(amgr, aig) \
+  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[0]))
 
-#define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_AIG_BY_ID ((aig)->children[1]))
+#define BTOR_RIGHT_CHILD_AIG(amgr, aig) \
+  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[1]))
 
 #define BTOR_GET_ID_AIG(aig) \
   (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
@@ -177,6 +181,10 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_cmp_aig (BtorAIG *a, BtorAIG *b);
+int btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1);
 
+/* hash AIG by id */
+unsigned int btor_hash_aig_by_id (BtorAIG *aig);
+/* compare AIG by id */
+int btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1);
 #endif

@@ -14,6 +14,7 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorlog.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
@@ -82,8 +83,6 @@ btor_merge_lambdas (Btor *btor)
 {
   assert (btor);
   assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
-  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   unsigned num_merged_lambdas = 0;
   int i;
@@ -92,17 +91,19 @@ btor_merge_lambdas (Btor *btor)
   BtorMemMgr *mm;
   BtorHashTableIterator it;
   BtorNodeIterator nit;
-  BtorNodePtrStack stack, unmark, visit, params;
+  BtorNodePtrStack stack, visit, params;
   BtorPtrHashTable *merge_lambdas, *static_rho;
+  BtorIntHashTable *mark, *mark_lambda;
 
   if (btor->lambdas->count == 0) return;
 
   start = btor_time_stamp ();
   mm    = btor->mm;
 
+  mark        = btor_new_int_hash_table (mm);
+  mark_lambda = btor_new_int_hash_table (mm);
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark);
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (params);
 
@@ -131,11 +132,9 @@ btor_merge_lambdas (Btor *btor)
     lambda = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
-    if (lambda->mark) continue;
+    if (btor_contains_int_hash_table (mark_lambda, lambda->id)) continue;
 
-    lambda->mark = 1;
-    BTOR_PUSH_STACK (mm, unmark, lambda);
-
+    btor_add_int_hash_table (mark_lambda, lambda->id);
     /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
     BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (lambda));
@@ -145,7 +144,8 @@ btor_merge_lambdas (Btor *btor)
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-      if (cur->aux_mark || (!BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized)
+      if (btor_contains_int_hash_table (mark, cur->id)
+          || (!BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized)
           || !cur->lambda_below)
         continue;
 
@@ -180,9 +180,7 @@ btor_merge_lambdas (Btor *btor)
       {
         for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
       }
-
-      cur->aux_mark = 1;
-      BTOR_PUSH_STACK (mm, unmark, cur);
+      btor_add_int_hash_table (mark, cur->id);
     }
 
     /* no lambdas to merge found */
@@ -205,7 +203,7 @@ btor_merge_lambdas (Btor *btor)
     body = btor_beta_reduce_merge (
         btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
-    subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    subst = btor_fun_exp (btor, params.start, BTOR_COUNT_STACK (params), body);
     if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);
 
@@ -256,23 +254,15 @@ btor_merge_lambdas (Btor *btor)
       btor_release_exp (btor, BTOR_POP_STACK (params));
   }
 
-  /* cleanup */
-  while (!BTOR_EMPTY_STACK (unmark))
-  {
-    cur           = BTOR_POP_STACK (unmark);
-    cur->mark     = 0;
-    cur->aux_mark = 0;
-  }
-
   btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
   btor->stats.lambdas_merged += num_merged_lambdas;
 
+  btor_delete_int_hash_table (mark);
+  btor_delete_int_hash_table (mark_lambda);
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, stack);
-  BTOR_RELEASE_STACK (mm, unmark);
   BTOR_RELEASE_STACK (mm, params);
-  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,

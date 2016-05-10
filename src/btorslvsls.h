@@ -62,8 +62,8 @@ struct BtorSLSSolver
   BtorPtrHashTable *score; /* sls score */
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
-  int npropmoves;            /* record #no moves for prop moves */
-  int nslsmoves;             /* record #no moves for sls moves */
+  uint32_t npropmoves;       /* record #no moves for prop moves */
+  uint32_t nslsmoves;        /* record #no moves for sls moves */
   double sum_score;          /* record sum of all scores for prob rand walk */
 
   /* the following maintain data for the next move (i.e. either the move
@@ -72,33 +72,33 @@ struct BtorSLSSolver
   BtorPtrHashTable *max_cans; /* list of (can, neigh) */
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
-  int max_gw;               /* is groupwise move? (for stats) */
+  int32_t max_gw;           /* is groupwise move? (for stats) */
 
   /* statistics */
   struct
   {
-    int restarts;
-    int moves;
-    int flips;
-    int move_flip;
-    int move_inc;
-    int move_dec;
-    int move_not;
-    int move_range;
-    int move_seg;
-    int move_rand;
-    int move_rand_walk;
-    int move_prop;
-    int move_prop_rec_conf;
-    int move_prop_non_rec_conf;
-    int move_gw_flip;
-    int move_gw_inc;
-    int move_gw_dec;
-    int move_gw_not;
-    int move_gw_range;
-    int move_gw_seg;
-    int move_gw_rand;
-    int move_gw_rand_walk;
+    uint32_t restarts;
+    uint32_t moves;
+    uint32_t flips;
+    uint32_t move_flip;
+    uint32_t move_inc;
+    uint32_t move_dec;
+    uint32_t move_not;
+    uint32_t move_range;
+    uint32_t move_seg;
+    uint32_t move_rand;
+    uint32_t move_rand_walk;
+    uint32_t move_prop;
+    uint32_t move_prop_rec_conf;
+    uint32_t move_prop_non_rec_conf;
+    uint32_t move_gw_flip;
+    uint32_t move_gw_inc;
+    uint32_t move_gw_dec;
+    uint32_t move_gw_not;
+    uint32_t move_gw_range;
+    uint32_t move_gw_seg;
+    uint32_t move_gw_rand;
+    uint32_t move_gw_rand_walk;
   } stats;
 };
 
