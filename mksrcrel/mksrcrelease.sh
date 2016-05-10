@@ -3,21 +3,18 @@
 force=no
 
 die () {
-  echo "*** mksrcrel: $*" 1>&2
+  echo "*** mksrcrelease.sh: $*" 1>&2
   exit 1
 }
 
-intel=no
-
-[ -f boolector.h ] || \
+[ -f src/boolector.h ] || \
 die "can not find 'boolector.h' (call from boolector base directory)"
 
 while [ $# -gt 0 ]
 do
   case $1 in
-    -h) echo "usage: mksrcrel [-f][-h][-t]";exit 0;;
+    -h) echo "usage: mksrcrelease.sh [-f][-h][-t]";exit 0;;
     -f) force=yes;;
-    --intel) intel=yes;;
     *) die "invalid command line option '$1'";;
   esac
   shift
@@ -43,18 +40,23 @@ fi
 rm -rf $dir
 mkdir $dir || exit 1
 
+mkdir $dir/src || exit 1
+
 cp -p \
   VERSION \
   COPYING \
   NEWS \
   README \
-  configure \
+  configure.sh \
+$dir/
+
+cp -p \
   boolector.[ch] \
   boolectormain.[ch] \
   `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
-$dir/
+$dir/src
 
 for subdir in dumper parser utils btorfmt simplifier
 do
@@ -75,29 +77,14 @@ cp -pr \
   doc/_build/html/* \
 $dir/doc/
 
-
-if [ $intel = yes ]
-then
-  cp -p \
-    BitVector.h \
-    btoribv.h \
-    btoribv.cc \
-    btorimc.cc \
-    testibv.cc \
-    ibv.mk \
-  $dir/
-fi
-
-if [ $intel = yes ]
-then
-cat <<EOF > $dir/README.intel
-This src release contains the proprietary file
-
-BitVector.h
-
-which is included in 'btoribv.{h,cc}'.
-EOF
-fi
+cp -p \
+  BitVector.h \
+  btoribv.h \
+  btoribv.cc \
+  btorimc.cc \
+  testibv.cc \
+  ibv.mk \
+$dir/
 
 tar cf - \
   examples/array/*.c \
@@ -116,10 +103,6 @@ do
 done
 
 cp -p makefile.in $dir/
-if [ $intel = no ]
-then
-  sed -i -e '/ibv.mk/d' $dir/makefile.in
-fi
 
 date=`date`
 sed -e 's,@VERSION@,'"`cat VERSION`," \
