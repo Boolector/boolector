@@ -1205,7 +1205,7 @@ BtorIBV::analyze ()
                     BtorIBVBit c (m->id, k);
                     BTOR_PUSH_STACK (btor->mm, work, c);
                   }
-                  else if (!m->flags[k].depends.mark == 1)
+                  else if (m->flags[k].depends.mark == 1)
                   {
                     BTOR_ABORT (
                         m->flags[k].depends.mark != 2,
