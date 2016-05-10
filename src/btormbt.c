@@ -3,7 +3,7 @@
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2013-2014 Armin Biere.
+ *  Copyright (C) 2013-2016 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -2709,6 +2709,7 @@ btormbt_bv_uf (BtorMBT *mbt)
 {
   uint32_t width, rand;
   BoolectorNode *uf, *arg, *apply;
+  BtorSortId sortid;
   BoolectorSort sort;
   BoolectorNodePtrStack stack;
   BtorTupleSortIterator it;
@@ -2739,9 +2740,9 @@ btormbt_bv_uf (BtorMBT *mbt)
       &it, sorts, btor_get_domain_fun_sort (sorts, ((BtorNode *) uf)->sort_id));
   while (btor_has_next_tuple_sort_iterator (&it))
   {
-    sort  = btor_next_tuple_sort_iterator (&it);
-    width = btor_get_width_bitvec_sort (sorts, sort);
-    arg   = select_exp (mbt, BTORMBT_BB_T, 0);
+    sortid = btor_next_tuple_sort_iterator (&it);
+    width  = btor_get_width_bitvec_sort (sorts, sortid);
+    arg    = select_exp (mbt, BTORMBT_BB_T, 0);
     BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, arg, width));
   }
 

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013-2016 Armin Biere.
  *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -94,8 +94,8 @@ test_mctoggle ()
     // boolector_set_verbosity_mc (g_mc, 3);
 
     bit  = boolector_latch (g_mc, 1, "counter");
-    one  = boolector_one (g_btor, 1);
-    zero = boolector_zero (g_btor, 1);
+    one  = boolector_one (g_btor, boolector_bitvec_sort (g_btor, 1));
+    zero = boolector_zero (g_btor, boolector_bitvec_sort (g_btor, 1));
     add  = boolector_add (g_btor, bit, one);
     bad  = boolector_eq (g_btor, bit, one);
 
@@ -157,8 +157,8 @@ test_mccount2enable ()
     counter = boolector_latch (g_mc, 2, "counter");
     enable  = boolector_input (g_mc, 1, "enable");
 
-    one      = boolector_one (g_btor, 2);
-    zero     = boolector_zero (g_btor, 2);
+    one      = boolector_one (g_btor, boolector_bitvec_sort (g_btor, 2));
+    zero     = boolector_zero (g_btor, boolector_bitvec_sort (g_btor, 2));
     three    = boolector_const (g_btor, "11");
     add      = boolector_add (g_btor, counter, one);
     ifenable = boolector_cond (g_btor, enable, add, counter);
@@ -227,8 +227,8 @@ test_mccount2resetenable ()
   enable  = boolector_input (g_mc, 1, "enable");
   reset   = boolector_input (g_mc, 1, "reset");
 
-  one      = boolector_one (g_btor, 2);
-  zero     = boolector_zero (g_btor, 2);
+  one      = boolector_one (g_btor, boolector_bitvec_sort (g_btor, 2));
+  zero     = boolector_zero (g_btor, boolector_bitvec_sort (g_btor, 2));
   three    = boolector_const (g_btor, "11");
   add      = boolector_add (g_btor, counter, one);
   ifenable = boolector_cond (g_btor, enable, add, counter);
@@ -414,8 +414,8 @@ test_mccount2multi ()
     BoolectorNode *count, *one, *zero, *two, *three, *next;
     BoolectorNode *eqzero, *eqone, *eqtwo, *eqthree;
     count = boolector_latch (g_mc, 2, "count");
-    one   = boolector_one (g_btor, 2);
-    zero  = boolector_zero (g_btor, 2);
+    one   = boolector_one (g_btor, boolector_bitvec_sort (g_btor, 2));
+    zero  = boolector_zero (g_btor, boolector_bitvec_sort (g_btor, 2));
     two   = boolector_const (g_btor, "10");
     three = boolector_const (g_btor, "11");
     next  = boolector_add (g_btor, count, one);
