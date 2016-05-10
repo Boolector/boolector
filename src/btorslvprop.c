@@ -971,10 +971,16 @@ cons_mul_bv (Btor *btor,
       else if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
-        r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
-        tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
-        res = btor_uext_bv (btor->mm, tmp, r);
-        btor_free_bv (btor->mm, tmp);
+        if ((r = btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul)))
+        {
+          tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
+          res = btor_uext_bv (btor->mm, tmp, r);
+          btor_free_bv (btor->mm, tmp);
+        }
+        else
+        {
+          res = btor_copy_bv (btor->mm, bvmul);
+        }
       }
       /* choose random even value with prob 0.8 */
       else
