@@ -139,11 +139,15 @@ BUILDIR="build"
 TESTDIR="tests"
 SRCDIR="src"
 
-SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/tests src/utils"
+SRCDIRS="src src/dumper src/parser src/simplifier src/utils"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS $SRCDIR/api/python"
 fi
+for additional in btorfmt tests
+do
+  [ -d src/$additional ] && SRCDIRS="$SRCDIRS src/$additional"
+done
 
 #--------------------------------------------------------------------------#
 
