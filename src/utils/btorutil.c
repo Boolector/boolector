@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2015-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
@@ -116,6 +116,8 @@ strip_zeroes (const char *a)
   return a;
 }
 
+#ifndef NDEBUG
+
 static int
 is_bin_str (const char *c)
 {
@@ -128,6 +130,8 @@ is_bin_str (const char *c)
     if (ch != '0' && ch != '1') return 0;
   return 1;
 }
+
+#endif
 
 static char *
 add_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)

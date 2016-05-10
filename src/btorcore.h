@@ -54,7 +54,7 @@
 #define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSortId) (long) (sort)))
-#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (sort)))
+#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (long) (sort)))
 
 /*------------------------------------------------------------------------*/
 
