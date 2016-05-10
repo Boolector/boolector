@@ -958,7 +958,7 @@ cons_mul_bv (Btor *btor,
     else
     {
       ctz_bvmul = btor_get_num_trailing_zeros_bv (bvmul);
-      /* choose res as 2^n with prob 0.1 */
+      /* choose res as 2^n with ctz(bvmul) >= ctz(res) with prob 0.1 */
       if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
@@ -982,7 +982,7 @@ cons_mul_bv (Btor *btor,
           res = btor_copy_bv (btor->mm, bvmul);
         }
       }
-      /* choose random even value with prob 0.8 */
+      /* choose random value with ctz(bvmul) >= ctz(res) with prob 0.8 */
       else
       {
         ctz_res = btor_get_num_trailing_zeros_bv (res);
