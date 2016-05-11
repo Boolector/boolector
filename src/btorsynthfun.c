@@ -415,18 +415,6 @@ add_exp (Btor *btor,
                                            additional_inputs,        \
                                            &sig,                     \
                                            &sig_matches);            \
-    if (found_candidate)                                             \
-    {                                                                \
-      assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id == candidate_sort); \
-      btor_free_bv_tuple (mm, sig);                                  \
-      goto DONE;                                                     \
-    }                                                                \
-    if (limit && num_checks > limit)                                 \
-    {                                                                \
-      btor_free_bv_tuple (mm, sig);                                  \
-      btor_release_exp (btor, EXP);                                  \
-      goto CLEANUP;                                                  \
-    }                                                                \
     if (btor_get_ptr_hash_table (sigs, sig))                         \
     {                                                                \
       btor_free_bv_tuple (mm, sig);                                  \
@@ -442,6 +430,12 @@ add_exp (Btor *btor,
     btor_add_ptr_hash_table (sigs, sig);                             \
     btor_add_int_hash_table (cache, id);                             \
     add_exp (btor, cur_level, &candidates, EXP);                     \
+    if (found_candidate)                                             \
+    {                                                                \
+      assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id == candidate_sort); \
+      goto DONE;                                                     \
+    }                                                                \
+    if (limit && num_checks > limit) goto DONE;                      \
   }
 
 struct BinOp
@@ -590,12 +584,12 @@ btor_synthesize_fun (Btor *btor,
         btor, BTOR_COUNT_STACK (params), params.start, prev_synth_fun);
     found_candidate = check_candidate_exp (
         btor, candidate_exp, param_map, uf_model, additional_inputs, 0, 0);
+    btor_release_exp (btor, candidate_exp);
     if (found_candidate)
     {
-      assert (BTOR_REAL_ADDR_NODE (candidate_exp)->sort_id == candidate_sort);
+      result = btor_copy_exp (btor, prev_synth_fun);
       goto DONE;
     }
-    btor_release_exp (btor, candidate_exp);
   }
 
   if (additional_inputs)
@@ -788,15 +782,12 @@ DONE:
             num_checks / delta,
             delta,
             (float) btor->mm->allocated / 1024 / 1024);
-  if (found_candidate)
-  {
+
+  /* result may already be set if prev_synth_fun is still a candidate */
+  if (!result && found_candidate)
     result = btor_fun_exp (
         btor, params.start, BTOR_COUNT_STACK (params), candidate_exp);
-    btor_release_exp (btor, candidate_exp);
-  }
-
-CLEANUP:
-  if (!found_candidate && best_candidate && best_match)
+  else if (!found_candidate && best_candidate && best_match)
   {
     assert (BTOR_REAL_ADDR_NODE (best_candidate)->sort_id == candidate_sort);
     best_candidate = btor_fun_exp (
