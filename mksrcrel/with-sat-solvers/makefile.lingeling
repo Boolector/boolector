@@ -6,7 +6,7 @@ all:
 	rm -rf boolector*
 	tar xf archives/boolector*.tar.gz
 	mv boolector* boolector
-	cd boolector && ./configure && make
+	cd boolector && ./configure.sh && make
 clean:
 	rm -rf lingeling* boolector*
 .PHONY: all clean distclean
