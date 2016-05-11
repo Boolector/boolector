@@ -237,9 +237,11 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   int32_t i, id;
   uint32_t j;
   bool push_down;
+  char *sym, *buf;
+  size_t len;
   BtorNode *root, *cur, *cur_pol, *real_cur, *tmp, *result, **e;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, pols, args, conds, reset;
+  BtorNodePtrStack visit, pols, args, conds, reset, vars;
   BtorIntHashTable *map;
   BtorIntHashTableData *d, data;
   BtorNodeKind kind;
@@ -254,6 +256,7 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   BTOR_INIT_STACK (args);
   BTOR_INIT_STACK (conds);
   BTOR_INIT_STACK (reset);
+  BTOR_INIT_STACK (vars);
 
   root = elim_quantified_ite (btor, roots, num_roots);
 
@@ -315,8 +318,36 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
       if (real_cur->arity == 0)
       {
         if (BTOR_IS_PARAM_NODE (real_cur))
+        {
+          sym = btor_get_symbol_exp (btor, real_cur);
+          if (sym)
+          {
+            len = strlen (sym) + 3;
+            BTOR_NEWN (mm, buf, len);
+            sprintf (buf, "%s!0", sym);
+          }
+          else
+            buf = 0;
           result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+          if (buf) BTOR_DELETEN (mm, buf, len);
+        }
+        else if (BTOR_IS_BV_VAR_NODE (real_cur))
+        {
+          sym = btor_get_symbol_exp (btor, real_cur);
+          if (sym)
+          {
+            len = strlen (sym) + 3;
+            BTOR_NEWN (mm, buf, len);
+            sprintf (buf, "%s!0", sym);
+          }
+          else
+            buf = 0;
+          result =
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+          if (buf) BTOR_DELETEN (mm, buf, len);
+          BTOR_PUSH_STACK (mm, vars, result);
+        }
         else
           result = btor_copy_exp (btor, real_cur);
       }
@@ -391,11 +422,19 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
     btor_release_exp (btor, cur);
     result = tmp;
   }
+  /* create outermost existential scope for bv vars */
+  while (!BTOR_EMPTY_STACK (vars))
+  {
+    tmp = btor_exists_exp (btor, BTOR_POP_STACK (vars), result);
+    btor_release_exp (btor, result);
+    result = tmp;
+  }
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, pols);
   BTOR_RELEASE_STACK (mm, args);
   BTOR_RELEASE_STACK (mm, conds);
   BTOR_RELEASE_STACK (mm, reset);
+  BTOR_RELEASE_STACK (mm, vars);
 
   for (j = 0; j < map->size; j++)
   {
