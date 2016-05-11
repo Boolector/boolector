@@ -1107,20 +1107,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE_DATA (bv_model, btor_clone_data_as_bv_ptr);
 #ifndef NDEBUG
-  if (!exp_layer_only && btor->stats.rw_rules_applied)
-  {
-    clone->stats.rw_rules_applied =
-        btor_clone_ptr_hash_table (mm,
-                                   btor->stats.rw_rules_applied,
-                                   btor_clone_key_as_static_str,
-                                   btor_clone_data_as_int,
-                                   0,
-                                   0);
-    assert ((allocated += MEM_PTR_HASH_TABLE (btor->stats.rw_rules_applied))
-            == clone->mm->allocated);
-  }
-#endif
-#ifndef NDEBUG
   if (btor->bv_model)
   {
     btor_init_hash_table_iterator (&it, btor->bv_model);
@@ -1137,6 +1123,20 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_model))
           == clone->mm->allocated);
+#ifndef NDEBUG
+  if (!exp_layer_only && btor->stats.rw_rules_applied)
+  {
+    clone->stats.rw_rules_applied =
+        btor_clone_ptr_hash_table (mm,
+                                   btor->stats.rw_rules_applied,
+                                   btor_clone_key_as_static_str,
+                                   btor_clone_data_as_int,
+                                   0,
+                                   0);
+    assert ((allocated += MEM_PTR_HASH_TABLE (btor->stats.rw_rules_applied))
+            == clone->mm->allocated);
+  }
+#endif
   CLONE_PTR_HASH_TABLE_DATA (fun_model, btor_clone_data_as_bv_htable_ptr);
 #ifndef NDEBUG
   if (btor->fun_model)
