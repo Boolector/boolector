@@ -37,9 +37,9 @@ $(BUILDIR)/%.o: $(SRCDIR)/%.cc
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
-$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig
+$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig.sh
 	@mkdir -p $(@D)
-	rm -f $@; ./mkconfig > $@
+	rm -f $@; ./mkconfig.sh > $@
 
 $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 	rm -f $@

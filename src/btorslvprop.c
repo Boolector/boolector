@@ -958,7 +958,7 @@ cons_mul_bv (Btor *btor,
     else
     {
       ctz_bvmul = btor_get_num_trailing_zeros_bv (bvmul);
-      /* choose res as 2^n with prob 0.1 */
+      /* choose res as 2^n with ctz(bvmul) >= ctz(res) with prob 0.1 */
       if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
@@ -971,12 +971,18 @@ cons_mul_bv (Btor *btor,
       else if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
-        r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
-        tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
-        res = btor_uext_bv (btor->mm, tmp, r);
-        btor_free_bv (btor->mm, tmp);
+        if ((r = btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul)))
+        {
+          tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
+          res = btor_uext_bv (btor->mm, tmp, r);
+          btor_free_bv (btor->mm, tmp);
+        }
+        else
+        {
+          res = btor_copy_bv (btor->mm, bvmul);
+        }
       }
-      /* choose random even value with prob 0.8 */
+      /* choose random value with ctz(bvmul) >= ctz(res) with prob 0.8 */
       else
       {
         ctz_res = btor_get_num_trailing_zeros_bv (res);
@@ -1165,22 +1171,28 @@ cons_slice_bv (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_INC_REC_CONF_STATS(btor, inc)                        \
-  do                                                              \
-  {                                                               \
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP) \
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += inc;   \
-    else                                                          \
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += inc;    \
+#define BTOR_INC_REC_CONF_STATS(btor, inc)                              \
+  do                                                                    \
+  {                                                                     \
+    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)       \
+      BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += inc;         \
+    else                                                                \
+    {                                                                   \
+      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS); \
+      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += inc;          \
+    }                                                                   \
   } while (0)
 
-#define BTOR_INC_NON_REC_CONF_STATS(btor, inc)                      \
-  do                                                                \
-  {                                                                 \
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)   \
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += inc; \
-    else                                                            \
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;  \
+#define BTOR_INC_NON_REC_CONF_STATS(btor, inc)                           \
+  do                                                                     \
+  {                                                                      \
+    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)        \
+      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;      \
+    else                                                                 \
+    {                                                                    \
+      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP); \
+      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;       \
+    }                                                                    \
   } while (0)
 
 static inline BtorBitVector *
@@ -1207,7 +1219,7 @@ non_rec_conf (
   btor_freestr (btor->mm, sbve);
   btor_freestr (btor->mm, sbvexp);
 #endif
-  BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+  BTOR_INC_NON_REC_CONF_STATS (btor, 1);
   return 0;
 }
 
@@ -1246,9 +1258,10 @@ check_result_binary_dbg (Btor *btor,
            "prop (e[%d]): %s: %s := %s %s %s",
            eidx,
            node2string (exp),
+           sbvexp,
            eidx ? sbve : sres,
-           eidx ? sres : sbve,
-           sbvexp);
+           op,
+           eidx ? sres : sbve);
   btor_free_bv (btor->mm, tmp);
   btor_freestr (btor->mm, sbvexp);
   btor_freestr (btor->mm, sbve);

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2014 Armin Biere.
+ *  Copyright (C) 2012-2016 Armin Biere.
  *  Copyright (C) 2014-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
@@ -1205,7 +1205,7 @@ BtorIBV::analyze ()
                     BtorIBVBit c (m->id, k);
                     BTOR_PUSH_STACK (btor->mm, work, c);
                   }
-                  else if (!m->flags[k].depends.mark == 1)
+                  else if (m->flags[k].depends.mark == 1)
                   {
                     BTOR_ABORT (
                         m->flags[k].depends.mark != 2,
@@ -2662,7 +2662,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
       {
         assert (BTOR_COUNT_STACK (stack) == 1);
         unsigned r = ass->arg % l;
-        s          = boolector_unsigned_int (btor, r, d);
+        s = boolector_unsigned_int (btor, r, boolector_bitvec_sort (btor, d));
       }
       else
       {

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2015 Armin Biere.
+ *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *  Copyright (C) 2013-2016 Aina Niemetz.
  *
@@ -3653,6 +3653,18 @@ boolector_bitvec_sort (Btor *btor, int width)
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
+static BtorSortId
+boolector_tuple_sort (BtorSortUniqueTable *table,
+                      BoolectorSort *sorts,
+                      size_t num_elements)
+{
+  BtorSortId element_ids[num_elements];
+  size_t i;
+  for (i = 0; i < num_elements; i++)
+    element_ids[i] = BTOR_IMPORT_BOOLECTOR_SORT (sorts[i]);
+  return btor_tuple_sort (table, element_ids, num_elements);
+}
+
 BoolectorSort
 boolector_fun_sort (Btor *btor,
                     BoolectorSort domain[],
@@ -3677,7 +3689,9 @@ boolector_fun_sort (Btor *btor,
     sprintf (strtrapi + strlen (strtrapi),
              SORT_FMT,
              BTOR_IMPORT_BOOLECTOR_SORT (domain[i]));
-  sprintf (strtrapi + strlen (strtrapi), SORT_FMT, codomain);
+  sprintf (strtrapi + strlen (strtrapi),
+           SORT_FMT,
+           BTOR_IMPORT_BOOLECTOR_SORT (codomain));
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
@@ -3699,7 +3713,8 @@ boolector_fun_sort (Btor *btor,
       !btor_is_bitvec_sort (sorts, cos) && !btor_is_bool_sort (sorts, cos),
       "'codomain' sort must be a bool or bit vector sort");
 
-  tup = btor_tuple_sort (sorts, domain, arity);
+  tup = boolector_tuple_sort (sorts, domain, arity);
+
   res = btor_fun_sort (sorts, tup, cos);
   btor_release_sort (sorts, tup);
   inc_sort_ext_ref_counter (btor, res);
@@ -3745,7 +3760,7 @@ void
 boolector_release_sort (Btor *btor, BoolectorSort sort)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, (BtorSortId) sort);
+  BTOR_TRAPI (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort));
 
   BtorSortUniqueTable *sorts;
   BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);

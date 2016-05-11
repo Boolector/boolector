@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2015 Mathias Preiner.
  *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -26,7 +27,10 @@ typedef enum BtorSolverResult BtorSolverResult;
 
 /* public API types */
 typedef struct BoolectorNode BoolectorNode;
-typedef unsigned BoolectorSort;
+
+typedef struct BoolectorAnymous BoolectorAnymous;
+
+typedef BoolectorAnymous* BoolectorSort;
 
 /* --------------------------------------------------------------------- */
 

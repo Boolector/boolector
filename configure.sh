@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd `dirname $0`
+
 debug=unknown
 check=no
 log=unknown
@@ -23,19 +25,19 @@ ROOT="`pwd|sed -e 's, ,\\ ,g'`"
 #--------------------------------------------------------------------------#
 
 die () {
-  echo "*** configure: $*" 1>&2
+  echo "*** configure.sh: $*" 1>&2
   exit 1
 }
 
 msg () {
-  echo "[configure] $*"
+  echo "[configure.sh] $*"
 }
 
 #--------------------------------------------------------------------------#
 
 usage () {
 cat <<EOF
-usage: ./configure [<option> ...]
+usage: ./configure.sh [<option> ...]
 
 where <option> is one of the following:
 
@@ -52,7 +54,7 @@ where <option> is one of the following:
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
 
-By specifying one of them 'configure' fails if it can not be used.
+By specifying one of them 'configure.sh' fails if it can not be used.
 
   --lingeling       use and link with Lingeling (default)
   --picosat         use and link with PicoSAT
@@ -71,7 +73,7 @@ Disable compilation of specific SAT solver back-ends:
 You might also want to sue the environment variables
 CC and CXX to specify the used C and C++ compiler, as in
 
-  CC=gcc-4.4 CXX=g++-4.4 ./configure
+  CC=gcc-4.4 CXX=g++-4.4 ./configure.sh
 
 which forces to use 'gcc-4.4' and 'g++-4.4'.
 EOF
@@ -142,6 +144,10 @@ if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS $SRCDIR/api/python"
 fi
+for additional in btorfmt tests
+do
+  [ -d src/$additional ] && SRCDIRS="$SRCDIRS src/$additional"
+done
 
 #--------------------------------------------------------------------------#
 

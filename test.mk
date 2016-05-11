@@ -3,6 +3,7 @@ TESTOBJS=$(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c, %.o, $(TESTSRCS)))
 
 all: $(BINDIR)/test
 
+-include testibv.mk
 -include $(BUILDIR)/$(TESTDIR)/test.dep
 
 $(BUILDIR)/$(TESTDIR)/test.dep: $(BUILDIR)/btorconfig.h $(SRCS) $(TESTSRCS) makefile test.mk
