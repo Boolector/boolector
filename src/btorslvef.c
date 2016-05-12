@@ -63,6 +63,7 @@ setup_efg_solvers (BtorEFSolver *slv, BtorNode *root)
   BtorFunSolver *fslv;
   BtorNodeMap *exp_map;
   Btor *btor;
+  BtorSortId sortid;
 
   btor = slv->btor;
   BTOR_NEW (btor->mm, res);
@@ -167,50 +168,38 @@ setup_efg_solvers (BtorEFSolver *slv, BtorNode *root)
   res->forall->slv    = (BtorSolver *) fslv;
 
   /* new exists solver */
-  res->exists = btor_clone_formula (res->forall);
-  evars       = btor_new_node_map (res->exists);
-  ufs         = btor_new_node_map (res->exists);
+  res->exists = btor_new_btor ();
+  btor_delete_opts (res->exists);
+  btor_clone_opts (res->forall, res->exists);
   btor_set_msg_prefix_btor (res->exists, "exists");
   btor_set_opt (res->exists, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+
+  evars = btor_new_node_map (res->exists);
+  ufs   = btor_new_node_map (res->exists);
 
   /* map evars of exists solver to evars of forall solver */
   btor_init_node_map_iterator (&nit, res->forall_evars);
   while (btor_has_next_node_map_iterator (&nit))
   {
     cur = btor_next_node_map_iterator (&nit);
-    var = btor_match_node_by_id (res->exists, cur->id);
+    var = btor_var_exp (res->exists,
+                        btor_get_exp_width (res->forall, cur),
+                        btor_get_symbol_exp (res->forall, cur));
     btor_map_node (evars, var, cur);
   }
 
   /* map ufs of exists solver to ufs of forall solver */
   btor_init_node_hash_table_iterator (&it, res->forall->ufs);
-  while (btor_has_next_hash_table_iterator (&it))
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_hash_table_iterator (&it);
-    var = btor_match_node_by_id (res->exists, cur->id);
+    cur    = btor_next_node_hash_table_iterator (&it);
+    sortid = btor_recursively_rebuild_sort_clone (
+        res->forall, res->exists, cur->sort_id);
+    var = btor_uf_exp (
+        res->exists, sortid, btor_get_symbol_exp (res->forall, cur));
+    btor_release_sort (&res->exists->sorts_unique_table, sortid);
     btor_map_node (ufs, var, cur);
   }
-
-  /* release uvars, not needed in the exists solver case */
-  btor_init_node_map_iterator (&nit, res->forall_uvars);
-  while (btor_has_next_node_map_iterator (&nit))
-  {
-    cur = btor_next_node_map_iterator (&nit);
-    var = btor_match_node_by_id (res->exists, cur->id);
-    btor_release_exp (res->exists, var);
-  }
-
-  /* release roots */
-  //  btor_release_exp (res->exists,
-  //		    btor_match_node_by_id (res->exists,
-  //			BTOR_REAL_ADDR_NODE (res->forall_formula)->id));
-  //  btor_release_exp (res->exists,
-  //		    btor_match_node_by_id (res->exists,
-  //			BTOR_REAL_ADDR_NODE (res->forall_sk_formula)->id));
-  btor_release_exp (
-      res->exists,
-      btor_match_node_by_id (res->exists,
-                             BTOR_REAL_ADDR_NODE (res->forall_formula)->id));
 
   /* create ground solver for exists */
   res->exists->slv  = btor_new_fun_solver (res->exists);
@@ -273,172 +262,6 @@ delete_efg_solvers (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   btor_delete_btor (gslv->forall);
 
   BTOR_DELETE (slv->btor->mm, gslv);
-}
-#endif
-
-#if 0
-static void
-setup_exists_solver (BtorEFSolver * slv)
-{
-  Btor *e_solver, *f_solver;
-  BtorNode *cur, *var;
-  BtorNodeMapIterator it;
-  BtorHashTableIterator hit;
-  BtorNodeMap *exists_vars, *exists_ufs;
-
-  f_solver = slv->f_solver;
-  e_solver = btor_clone_formula (f_solver);
-  exists_vars = btor_new_node_map (e_solver);
-  exists_ufs = btor_new_node_map (e_solver);
-  btor_set_msg_prefix_btor (e_solver, "exists");
-  btor_set_opt (e_solver, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-
-  btor_init_node_map_iterator (&it, slv->f_exists_vars);
-  while (btor_has_next_node_map_iterator (&it))
-    {
-      cur = btor_next_node_map_iterator (&it);
-      var = btor_match_node_by_id (e_solver, cur->id);
-      btor_map_node (exists_vars, var, cur);
-    }
-
-  btor_init_node_hash_table_iterator (&hit, slv->f_solver->ufs);
-  while (btor_has_next_hash_table_iterator (&hit))
-    {
-      cur = btor_next_hash_table_iterator (&hit);
-      var = btor_match_node_by_id (e_solver, cur->id);
-      btor_map_node (exists_ufs, var, cur);
-    }
-
-  btor_init_node_map_iterator (&it, slv->f_forall_vars);
-  while (btor_has_next_node_map_iterator (&it))
-    {
-      cur = btor_next_node_map_iterator (&it);
-      var = btor_match_node_by_id (e_solver, cur->id);
-      btor_release_exp (e_solver, var);
-    }
-
-  btor_release_exp (e_solver,
-		    btor_match_node_by_id (e_solver,
-			BTOR_REAL_ADDR_NODE (slv->f_formula)->id));
-
-  e_solver->slv = btor_new_fun_solver (e_solver);
-  slv->e_solver = e_solver;
-  slv->e_exists_vars = exists_vars;
-  slv->e_exists_ufs = exists_ufs;
-}
-
-static void 
-setup_forall_solver (BtorEFSolver * slv)
-{
-  char *symbol;
-  Btor *f_solver, *btor;
-  BtorNode *cur, *param, *var, *root, *tmp;
-  BtorHashTableIterator it;
-  BtorNodeMap *map, *exists_vars, *forall_vars;
-  BtorFunSolver *fslv;
-  BtorNodeMap *exp_map;
-
-  btor = slv->btor;
-
-  (void) btor_simplify (btor);
-  btor->options[BTOR_OPT_PRETTY_PRINT].val = 0;
-
-  f_solver = btor_new_btor ();
-  btor_delete_opts (f_solver);
-  btor_clone_opts (btor, f_solver);
-  btor_set_msg_prefix_btor (f_solver, "forall");
-
-  exists_vars = btor_new_node_map (f_solver);
-  forall_vars = btor_new_node_map (f_solver);
-  exp_map = btor_new_node_map (btor);
-
-  /* configure options */
-  btor_set_opt (f_solver, BTOR_OPT_MODEL_GEN, 1);
-  btor_set_opt (f_solver, BTOR_OPT_INCREMENTAL, 1);
-  // FIXME (ma): if -bra is enabled then test_synth5.smt2 fails without
-  // disabling this since f_formula will be simplified 
-  btor_set_opt (f_solver, BTOR_OPT_BETA_REDUCE_ALL, 0);
-
-  root = btor_normalize_quantifiers (btor);
-#if 0
-  tmp = btor_normalize_quantifiers_node (btor, BTOR_INVERT_NODE (root));
-  btor_release_exp (btor, root);
-  root = tmp;
-#endif
-  tmp = btor_recursively_rebuild_exp_clone (
-	     btor, f_solver, root, exp_map,
-	     btor_get_opt (f_solver, BTOR_OPT_REWRITE_LEVEL));
-  btor_delete_node_map (exp_map);
-  btor_release_exp (btor, root);
-  root = tmp;
-
-  if (btor_get_opt (f_solver, BTOR_OPT_EF_CER))
-    {
-      tmp = btor_cer_node (f_solver, root);
-      btor_release_exp (f_solver, root);
-      root = tmp;
-    }
-
-  tmp = btor_skolemize_node (f_solver, root);
-  btor_release_exp (f_solver, root);
-  root = tmp;
-
-  if (btor_get_opt (f_solver, BTOR_OPT_EF_DER))
-    {
-      tmp = btor_der_node (f_solver, root);
-      btor_release_exp (f_solver, root);
-      root = tmp;
-    }
-
-  assert (f_solver->exists_vars->count == 0);
-
-  btor_init_node_hash_table_iterator (&it, f_solver->bv_vars);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      cur = btor_next_node_hash_table_iterator (&it);
-      btor_map_node (exists_vars,
-		     btor_copy_exp (f_solver, cur),
-		     btor_copy_exp (f_solver, cur));
-    }
-
-  /* instantiate forall params with fresh variables */
-  btor_init_node_hash_table_iterator (&it, f_solver->quantifiers);
-  map = btor_new_node_map (f_solver);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      cur = btor_next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_FORALL_NODE (cur));
-      param = cur->e[0];
-      symbol = btor_strdup (f_solver->mm,
-			    btor_get_symbol_exp (f_solver, param));
-      btor_set_symbol_exp (f_solver, param, 0);
-      var = btor_var_exp (f_solver, btor_get_exp_width (f_solver, param),
-			  symbol);
-      btor_freestr (f_solver->mm, symbol);
-      btor_map_node (map, param, var);
-      assert (btor_param_is_forall_var (param));
-      btor_map_node (forall_vars, var, btor_copy_exp (f_solver, param));
-    }
-
-  /* eliminate quantified terms by substituting free variables with fresh
-   * variables */
-  tmp = btor_substitute_terms (f_solver, root, map);
-  btor_release_exp (f_solver, root);
-  btor_delete_node_map (map);
-  root = tmp;
-
-  assert (f_solver->forall_vars->count == 0);
-  assert (f_solver->quantifiers->count == 0);
-  
-  slv->f_formula = BTOR_INVERT_NODE (root);
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)));
-  assert (!f_solver->slv);
-  fslv = (BtorFunSolver * ) btor_new_fun_solver (f_solver);
-  fslv->assume_lemmas = true;
-  f_solver->slv = (BtorSolver *) fslv;
-  slv->f_solver = f_solver;
-  slv->f_exists_vars = exists_vars;
-  slv->f_forall_vars = forall_vars;
 }
 #endif
 
@@ -558,7 +381,6 @@ build_refinement (Btor *f_solver,
       d->as_ptr = btor_copy_exp (e_solver, result);
       BTOR_PUSH_STACK (mm, cleanup, result);
     PUSH_RESULT:
-      assert (real_cur->sort_id == BTOR_REAL_ADDR_NODE (result)->sort_id);
       BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
     }
     else
