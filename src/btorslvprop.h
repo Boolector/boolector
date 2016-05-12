@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -28,6 +28,7 @@ struct BtorPropSolver
     uint32_t moves;
     uint32_t move_prop_rec_conf;
     uint32_t move_prop_non_rec_conf;
+    uint64_t props;
   } stats;
 
   struct

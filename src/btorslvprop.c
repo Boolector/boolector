@@ -2754,6 +2754,7 @@ btor_select_move_prop (Btor *btor,
   {
     for (;;)
     {
+      BTOR_PROP_SOLVER (btor)->stats.props += 1;
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       assert (!btor_is_bv_cond_node (real_cur));
       assert (!btor_is_bv_const_node (real_cur));
@@ -3414,6 +3415,11 @@ print_stats_prop_solver (BtorPropSolver *slv)
             1,
             "moves per second: %.2f",
             (double) slv->stats.moves / slv->time.sat);
+  BTOR_MSG (btor->msg, 1, "propagation (steps): %u", slv->stats.props);
+  BTOR_MSG (btor->msg,
+            1,
+            "propagation (steps) per second: %.2f",
+            (double) slv->stats.props / slv->time.sat);
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
             1,
