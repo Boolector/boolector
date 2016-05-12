@@ -21,7 +21,7 @@
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btornodemap.h"
-#ifndef NDEBUG
+#ifndef NBTORLOG
 #include "btorprintmodel.h"
 #endif
 #include "btorabort.h"
