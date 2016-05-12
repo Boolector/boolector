@@ -1,19 +1,17 @@
 #!/bin/sh
 die () {
-  echo "*** mksrcrelease-with-lingeling: $*" 1>&2
+  echo "*** mksrcrelease-with-lingeling.sh: $*" 1>&2
   exit 1
 }
-intel=""
+[ -f src/boolector.h ] || die "need to be called from 'src'"
+cd mksrcrel/with-sat-solvers
 minisat=yes
 while [ $# -gt 0 ]
 do
   case $1 in
     -h|--help) 
-      echo "usage: mksrcrelease-with-lingeling [-h]"
+      echo "usage: mksrcrelease-with-lingeling.sh [-h]"
       exit 0
-      ;;
-    --intel)
-      intel="--intel"
       ;;
     *) 
       die "invalid command line option"
@@ -33,7 +31,7 @@ cp makefile.lingeling $tmp/makefile
 cp README.lingeling $tmp/README
 mkdir $tmp/archives || exit 1
 cd ../..
-./srcrel/mksrcrel $intel >> $log
+./mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in lingeling

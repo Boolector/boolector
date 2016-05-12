@@ -2198,8 +2198,9 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom *b,
 
   if (pushed >= cycle_limit && force >= 2)
   {
-    BoolectorNode *exp = boolector_zero (
-        btor, boolector_bitvec_sort (btor, b->range.getWidth ()));
+    BoolectorSort s    = boolector_bitvec_sort (btor, b->range.getWidth ());
+    BoolectorNode *exp = boolector_zero (btor, s);
+    boolector_release_sort (btor, s);
     if (forward)
       b->next.exp = exp;
     else
@@ -2400,8 +2401,11 @@ btor_ibv_atoms_in_range_collect_exp (Btor *btor,
     if (tmp)
       tmp = boolector_copy (btor, tmp);
     else
-      tmp = boolector_zero (btor,
-                            boolector_bitvec_sort (btor, b->range.getWidth ()));
+    {
+      BoolectorSort s = boolector_bitvec_sort (btor, b->range.getWidth ());
+      tmp             = boolector_zero (btor, s);
+      boolector_release_sort (btor, s);
+    }
     if (exp)
     {
       BoolectorNode *concat = boolector_concat (btor, tmp, exp);
@@ -2472,8 +2476,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
         if (tmp)
           tmp = boolector_copy (btor, tmp);
         else
-          tmp = boolector_zero (
-              btor, boolector_bitvec_sort (btor, b->range.getWidth ()));
+        {
+          BoolectorSort s = boolector_bitvec_sort (btor, b->range.getWidth ());
+          tmp             = boolector_zero (btor, s);
+          boolector_release_sort (btor, s);
+        }
         if (exp)
         {
           BoolectorNode *concat = boolector_concat (btor, tmp, exp);
@@ -2661,8 +2668,10 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
       if (ass->tag & BTOR_IBV_HAS_ARG)
       {
         assert (BTOR_COUNT_STACK (stack) == 1);
-        unsigned r = ass->arg % l;
-        s = boolector_unsigned_int (btor, r, boolector_bitvec_sort (btor, d));
+        unsigned r         = ass->arg % l;
+        BoolectorSort sort = boolector_bitvec_sort (btor, d);
+        s                  = boolector_unsigned_int (btor, r, sort);
+        boolector_release_sort (btor, sort);
       }
       else
       {
@@ -2746,8 +2755,9 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_NOT_USED:
     {
-      BoolectorNode *exp =
-          boolector_zero (btor, boolector_bitvec_sort (btor, r.getWidth ()));
+      BoolectorSort s    = boolector_bitvec_sort (btor, r.getWidth ());
+      BoolectorNode *exp = boolector_zero (btor, s);
+      boolector_release_sort (btor, s);
       if (forward)
         assert (!a->next.exp), a->next.exp = exp;
       else
@@ -3038,9 +3048,13 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           unsigned pos = na->tag == BTOR_IBV_STATE;
           assert (pos < na->nranges);
           BtorIBVNode *next = id2node (na->ranges[pos].id);
-          BtorIBVRange nr (na->ranges[pos].id,
-                           r.msb - r.lsb + na->ranges[pos].lsb,
-                           na->ranges[pos].lsb);
+#if 0
+	  BtorIBVRange nr (na->ranges[pos].id,
+	                   r.msb - r.lsb + na->ranges[pos].lsb,
+			   na->ranges[pos].lsb);
+#else
+          BtorIBVRange nr (na->ranges[pos].id, r.msb, r.lsb);
+#endif
           char *nextname =
               btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
           a->next.exp = boolector_input (btormc, nr.getWidth (), nextname);
@@ -3404,10 +3418,10 @@ BtorIBV::translate ()
       {
         assert (!ninitialized);
         initialized_latch = boolector_latch (btormc, 1, "BtorIBV::initialized");
-        BoolectorNode *zero =
-            boolector_zero (btor, boolector_bitvec_sort (btor, 1));
-        BoolectorNode *one =
-            boolector_one (btor, boolector_bitvec_sort (btor, 1));
+        BoolectorSort s   = boolector_bitvec_sort (btor, 1);
+        BoolectorNode *zero = boolector_zero (btor, s);
+        BoolectorNode *one  = boolector_one (btor, s);
+        boolector_release_sort (btor, s);
         boolector_init (btormc, initialized_latch, zero);
         boolector_next (btormc, initialized_latch, one);
         boolector_release (btor, zero);
