@@ -1183,16 +1183,16 @@ cons_slice_bv (Btor *btor,
     }                                                                   \
   } while (0)
 
-#define BTOR_INC_NON_REC_CONF_STATS(btor, inc)                           \
-  do                                                                     \
-  {                                                                      \
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)        \
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;      \
-    else                                                                 \
-    {                                                                    \
-      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP); \
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;       \
-    }                                                                    \
+#define BTOR_INC_NON_REC_CONF_STATS(btor, inc)                          \
+  do                                                                    \
+  {                                                                     \
+    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)       \
+      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;     \
+    else                                                                \
+    {                                                                   \
+      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS); \
+      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;      \
+    }                                                                   \
   } while (0)
 
 static inline BtorBitVector *
