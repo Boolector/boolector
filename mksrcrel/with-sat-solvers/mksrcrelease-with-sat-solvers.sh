@@ -20,8 +20,8 @@ do
   esac
   shift
 done
-[ -f ../../src/boolector.h ] || \
-die "need to be called from 'mksrcrel/with-sat-solvers"
+[ -f src/boolector.h ] || die "need to be called from 'src'"
+cd mksrcrel/with-sat-solvers
 version=`cat ../../VERSION`
 name=boolector-${version}-with-sat-solvers
 tmp=/tmp/$name
@@ -32,7 +32,7 @@ mkdir $tmp || exit 1
 cp build.sh clean.sh makefile README $tmp
 mkdir $tmp/archives || exit 1
 cd ../..
-./mksrcrel/mksrcrelease.sh >> $log
+./mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in picosat lingeling

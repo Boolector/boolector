@@ -3,8 +3,8 @@ die () {
   echo "*** mksrcrelease-with-lingeling.sh: $*" 1>&2
   exit 1
 }
-[ -f ../../src/boolector.h ] || \
-die "need to be called from 'mksrcrel/with-sat-solvers"
+[ -f src/boolector.h ] || die "need to be called from 'src'"
+cd mksrcrel/with-sat-solvers
 minisat=yes
 while [ $# -gt 0 ]
 do
@@ -31,7 +31,7 @@ cp makefile.lingeling $tmp/makefile
 cp README.lingeling $tmp/README
 mkdir $tmp/archives || exit 1
 cd ../..
-./mksrcrel/mksrcrelease.sh >> $log
+./mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in lingeling
