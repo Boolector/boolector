@@ -1243,36 +1243,16 @@ sat_ef_solver (BtorEFSolver *slv)
   btor_release_exp (slv->btor, g);
 
   g = btor_copy_exp (gslv->forall, gslv->forall_formula);
-  goto CHECK_FORALL;
-
   while (true)
   {
+    /* query forall solver */
     start = btor_time_stamp ();
-    res   = btor_sat_btor (gslv->exists, -1, -1);
-    slv->time.e_solver += btor_time_stamp () - start;
-
-    if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
-      break;
-
-    start = btor_time_stamp ();
-    printf (
-        "**************************** NEW ITERATION "
-        "****************************\n");
-    map = synthesize_model (slv, gslv);
-    slv->time.synth += btor_time_stamp () - start;
-    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (gslv->forall_formula)));
-    g = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
-
-  CHECK_FORALL:
     btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
     btor_release_exp (gslv->forall, g);
-
-    start = btor_time_stamp ();
-    res   = btor_sat_btor (gslv->forall, -1, -1);
-    /* update formula if changed via simplifications */
+    res = btor_sat_btor (gslv->forall, -1, -1);
     update_formula (gslv);
-
     slv->time.f_solver += btor_time_stamp () - start;
+
     if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
     {
       res = BTOR_RESULT_SAT;
@@ -1289,6 +1269,24 @@ sat_ef_solver (BtorEFSolver *slv)
     refine_exists_solver (gslv);
     slv->time.qinst += btor_time_stamp () - start;
     slv->stats.refinements++;
+
+    printf (
+        "**************************** NEW ITERATION "
+        "****************************\n");
+
+    /* query exists solver */
+    start = btor_time_stamp ();
+    res   = btor_sat_btor (gslv->exists, -1, -1);
+    slv->time.e_solver += btor_time_stamp () - start;
+
+    if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
+      break;
+
+    start = btor_time_stamp ();
+    map   = synthesize_model (slv, gslv);
+    slv->time.synth += btor_time_stamp () - start;
+    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (gslv->forall_formula)));
+    g = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
   }
 
   if (res == BTOR_RESULT_SAT)
