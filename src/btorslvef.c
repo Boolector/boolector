@@ -57,7 +57,7 @@ setup_efg_solvers (BtorEFSolver *slv, BtorNode *root)
   BtorNode *cur, *param, *var, *tmp;
   BtorHashTableIterator it;
   BtorNodeMapIterator nit;
-  BtorNodeMap *map, *evars, *uvars, *ufs;
+  BtorNodeMap *map, *evars, *uvars;
   BtorFunSolver *fslv;
   BtorNodeMap *exp_map;
   Btor *btor;
@@ -414,17 +414,12 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
   map                = btor_new_node_map (f_solver);
   var_es_assignments = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv, (BtorCmpPtr) btor_compare_bv);
+
+  /* generate counter example for universal vars */
+  assert (f_solver->last_sat_result == BTOR_RESULT_SAT);
+  f_solver->slv->api.generate_model (f_solver->slv, false, false);
+
   BTOR_INIT_STACK (inputs);
-
-  /* map f_exists_vars to e_exists_vars */
-  btor_init_node_map_iterator (&it, gslv->exists_evars);
-  while (btor_has_next_node_map_iterator (&it))
-  {
-    var_fs = it.it.bucket->data.as_ptr;
-    var_es = btor_next_node_map_iterator (&it);
-    btor_map_node (map, var_fs, var_es);
-  }
-
   if (e_solver->bv_model
       && (inst_mode == BTOR_EF_QINST_SYNTH || inst_mode == BTOR_EF_QINST_SYM))
   {
@@ -468,11 +463,21 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
       sig = 0;
   }
 
-  BTOR_INIT_STACK (consts);
-  /* map f_forall_vars to resp. assignment */
+  /* map f_exists_vars to e_exists_vars */
+  btor_init_node_map_iterator (&it, gslv->exists_evars);
+  while (btor_has_next_node_map_iterator (&it))
+  {
+    var_fs = it.it.bucket->data.as_ptr;
+    var_es = btor_next_node_map_iterator (&it);
+    btor_map_node (map, var_fs, var_es);
+  }
+
 #ifdef PRINT_DBG
   printf ("found counter example\n");
 #endif
+
+  /* map f_forall_vars to resp. assignment */
+  BTOR_INIT_STACK (consts);
   btor_init_node_map_iterator (&it, gslv->forall_uvars);
   while (btor_has_next_node_map_iterator (&it))
   {
@@ -1044,6 +1049,10 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   model         = btor_new_node_map (f_solver);
   opt_synth_fun = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH) == 1;
 
+  /* generate model for exists vars/ufs */
+  assert (e_solver->last_sat_result == BTOR_RESULT_SAT);
+  e_solver->slv->api.generate_model (e_solver->slv, false, false);
+
   /* map existential variables to their resp. assignment */
   btor_init_node_map_iterator (&it, e_vars);
   while (btor_has_next_node_map_iterator (&it))
@@ -1245,9 +1254,6 @@ sat_ef_solver (BtorEFSolver *slv)
     if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
       break;
 
-    assert (res == BTOR_RESULT_SAT);
-    gslv->exists->slv->api.generate_model (gslv->exists->slv, false, false);
-
     start = btor_time_stamp ();
     printf (
         "**************************** NEW ITERATION "
@@ -1279,8 +1285,6 @@ sat_ef_solver (BtorEFSolver *slv)
       map = 0;
     }
 
-    // TODO: move into refine_exists_solver
-    gslv->forall->slv->api.generate_model (gslv->forall->slv, false, false);
     start = btor_time_stamp ();
     refine_exists_solver (gslv);
     slv->time.qinst += btor_time_stamp () - start;
