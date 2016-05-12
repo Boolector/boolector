@@ -52,7 +52,7 @@ static vector<unsigned> vartab;
 static int lineno             = 1;
 static FILE* input            = stdin;
 static const char* input_name = "<stdin>";
-static bool close_input;
+static int close_input;
 
 static char *line, *nts;
 static int szline, nline;

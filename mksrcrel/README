@@ -54,14 +54,16 @@ You need Lingeling, while PicoSAT and MiniSAT are optional.
 
 To compile Boolector issue:
 
-  ./configure
+  ./configure.sh
   make
 
-This will build the library 'libboolector.a', the stand-alone SMT solver
-'boolector', and a small tool 'synthebtor', which can be used to synthesize
-AIGs in AIGER format from BV. The python API can be compiled by issuing
-'./configure -python && make', for further details on the python API see 
-'api/python/README'.
+This will build the library 'build/libboolector.a' and the stand-alone
+SMT solver 'bin/boolector'.  To compile the python API use 
+
+  ./configure.sh -python
+  make
+
+For further details on the python API see 'api/python/README'.
 
 In the 'examples' sub-directory you find two examples for using
 the API, which are also described in the API documentation.
