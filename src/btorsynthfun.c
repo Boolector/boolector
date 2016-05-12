@@ -415,8 +415,10 @@ add_exp (Btor *btor,
                                            additional_inputs,        \
                                            &sig,                     \
                                            &sig_matches);            \
+    if (!found_candidate && limit && num_checks > limit) goto DONE;  \
     if (btor_get_ptr_hash_table (sigs, sig))                         \
     {                                                                \
+      assert (!found_candidate);                                     \
       btor_free_bv_tuple (mm, sig);                                  \
       btor_release_exp (btor, EXP);                                  \
       continue;                                                      \
@@ -435,7 +437,6 @@ add_exp (Btor *btor,
       assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id == candidate_sort); \
       goto DONE;                                                     \
     }                                                                \
-    if (limit && num_checks > limit) goto DONE;                      \
   }
 
 struct BinOp
