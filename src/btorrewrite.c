@@ -3953,7 +3953,7 @@ applies_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1))
          && BTOR_IS_CONCAT_NODE (real_e0)
-         && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e0)->e[1]);
+         && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e0->e[1]));
 }
 
 static inline BtorNode *
