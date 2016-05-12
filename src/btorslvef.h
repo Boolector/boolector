@@ -21,15 +21,6 @@ struct BtorEFSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  Btor *e_solver;
-  BtorNodeMap *e_exists_vars;
-  BtorNodeMap *e_exists_ufs;
-  Btor *f_solver;
-  BtorNodeMap *f_exists_vars;
-  BtorNodeMap *f_forall_vars;
-  BtorNode *f_formula;
-  BtorNodeMap *f_synth_fun_models;
-
   struct
   {
     uint32_t refinements;
@@ -49,6 +40,6 @@ struct BtorEFSolver
 
 typedef struct BtorEFSolver BtorEFSolver;
 
-BtorSolver *btor_new_ef_solver (Btor *btor);
+BtorSolver* btor_new_ef_solver (Btor* btor);
 
 #endif
