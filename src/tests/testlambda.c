@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1385,7 +1385,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   BtorNode *result = btor_apply_and_reduce (g_btor, 1, &a, fun);
 
   /* expected: lambda y' . (a + y') */
-  assert (BTOR_IS_LAMBDA_NODE (result));
+  assert (btor_is_lambda_node (result));
   assert (result != fun->e[1]);
   assert (result->e[0] != fun->e[1]->e[0]);
   assert (BTOR_REAL_ADDR_NODE (result->e[1])->kind == BTOR_ADD_NODE);

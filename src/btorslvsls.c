@@ -189,8 +189,7 @@ compute_sls_score_node (Btor *btor,
 #endif
 
   res = 0.0;
-  assert (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (exp))
-          || BTOR_IS_ULT_NODE (BTOR_REAL_ADDR_NODE (exp))
+  assert (btor_is_bv_eq_node (exp) || btor_is_ult_node (exp)
           || btor_get_exp_width (btor, exp) == 1);
 
   if ((b = btor_get_ptr_hash_table (score, exp))) return b->data.as_dbl;
@@ -220,7 +219,7 @@ compute_sls_score_node (Btor *btor,
       assert (d->as_int == 0);
       d->as_int = 1;
 
-      if (!BTOR_IS_BV_EQ_NODE (real_cur) && !BTOR_IS_ULT_NODE (real_cur)
+      if (!btor_is_bv_eq_node (real_cur) && !btor_is_ult_node (real_cur)
           && btor_get_exp_width (btor, real_cur) != 1)
         continue;
 
@@ -230,7 +229,7 @@ compute_sls_score_node (Btor *btor,
                BTOR_IS_INVERTED_NODE (cur) ? "-" : " ",
                node2string (cur));
 
-      if (BTOR_IS_AND_NODE (real_cur))
+      if (btor_is_and_node (real_cur))
       {
         assert (btor_get_exp_width (btor, real_cur) == 1);
         if (BTOR_IS_INVERTED_NODE (cur))
@@ -291,7 +290,7 @@ compute_sls_score_node (Btor *btor,
           if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;
         }
       }
-      else if (BTOR_IS_BV_EQ_NODE (real_cur))
+      else if (btor_is_bv_eq_node (real_cur))
       {
         bv0 = (BtorBitVector *) btor_get_bv_model_aux (
             btor, bv_model, fun_model, real_cur->e[0]);
@@ -320,7 +319,7 @@ compute_sls_score_node (Btor *btor,
                              - hamming_distance (btor, bv0, bv1)
                                    / (double) bv0->width);
       }
-      else if (BTOR_IS_ULT_NODE (real_cur))
+      else if (btor_is_ult_node (real_cur))
       {
         bv0 = (BtorBitVector *) btor_get_bv_model_aux (
             btor, bv_model, fun_model, real_cur->e[0]);
@@ -438,7 +437,7 @@ compute_sls_scores_aux (Btor *btor,
     {
       assert (d->as_int == 0);
       d->as_int = 1;
-      if (!BTOR_IS_BV_EQ_NODE (real_cur) && !BTOR_IS_ULT_NODE (real_cur)
+      if (!btor_is_bv_eq_node (real_cur) && !btor_is_ult_node (real_cur)
           && btor_get_exp_width (btor, real_cur) != 1)
         continue;
       compute_sls_score_node (btor, bv_model, fun_model, score, cur);
@@ -516,7 +515,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
       b   = it.bucket;
       d   = (BtorSLSConstrData *) b->data.as_ptr;
       cur = btor_next_node_hash_table_iterator (&it);
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+      if (btor_is_bv_const_node (cur)
           && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
         return 0; /* contains false constraint -> unsat */
       sb = btor_get_ptr_hash_table (slv->score, cur);
@@ -549,7 +548,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
     while (btor_has_next_node_hash_table_iterator (&it))
     {
       cur = btor_next_node_hash_table_iterator (&it);
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+      if (btor_is_bv_const_node (cur)
           && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
       {
         BTOR_RELEASE_STACK (btor->mm, stack);
@@ -607,7 +606,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     if (btor_contains_int_hash_table (mark, real_cur->id)) continue;
     btor_add_int_hash_table (mark, real_cur->id);
 
-    if (BTOR_IS_BV_VAR_NODE (real_cur))
+    if (btor_is_bv_var_node (real_cur))
     {
       BTOR_PUSH_STACK (mm, *candidates, real_cur);
       BTORLOG (1, "  %s", node2string (real_cur));
@@ -615,7 +614,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) && BTOR_IS_AND_NODE (real_cur)
+    if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) && btor_is_and_node (real_cur)
         && btor_get_exp_width (btor, real_cur) == 1)
     {
       bv = btor_get_bv_model (btor, real_cur);
@@ -641,7 +640,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
       }
     }
     //      else if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) &&
-    //      BTOR_IS_BCOND_NODE (real_cur))
+    //      btor_is_bv_cond_node (real_cur))
     //	{
     //	  BTOR_PUSH_STACK (mm, stack, real_cur->e[0]);
     //	  bv = btor_get_bv_model (btor, real_cur->e[0]);

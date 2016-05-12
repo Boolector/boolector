@@ -109,7 +109,7 @@ process_skeleton_tseitin (Btor *btor,
     else if (d->as_int == 0)
     {
       d->as_int = 1;
-      if (BTOR_IS_FUN_NODE (exp) || BTOR_IS_ARGS_NODE (exp)
+      if (btor_is_fun_node (exp) || btor_is_args_node (exp)
           || exp->parameterized || btor_get_exp_width (btor, exp) != 1)
         continue;
 
@@ -120,7 +120,7 @@ process_skeleton_tseitin (Btor *btor,
         child           = BTOR_REAL_ADDR_NODE (child);
         d               = btor_get_int_hash_map (mark, child->id);
         assert (d->as_int == 1);
-        if (!BTOR_IS_FUN_NODE (child) && !BTOR_IS_ARGS_NODE (child)
+        if (!btor_is_fun_node (child) && !btor_is_args_node (child)
             && !child->parameterized && btor_get_exp_width (btor, child) == 1)
           assert (btor_get_ptr_hash_table (ids, child));
       }
@@ -153,7 +153,7 @@ process_skeleton_tseitin (Btor *btor,
           lgladd (lgl, 0);
           break;
 
-        case BTOR_BEQ_NODE:
+        case BTOR_BV_EQ_NODE:
           if (btor_get_exp_width (btor, exp->e[0]) != 1) break;
           assert (btor_get_exp_width (btor, exp->e[1]) == 1);
           rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
@@ -181,7 +181,7 @@ process_skeleton_tseitin (Btor *btor,
 
           break;
 
-        case BTOR_BCOND_NODE:
+        case BTOR_COND_NODE:
           assert (btor_get_exp_width (btor, exp->e[0]) == 1);
           if (btor_get_exp_width (btor, exp->e[1]) != 1) break;
           assert (btor_get_exp_width (btor, exp->e[2]) == 1);

@@ -24,7 +24,7 @@ static bool
 is_uc_write (BtorNode *cond)
 {
   assert (BTOR_IS_REGULAR_NODE (cond));
-  assert (BTOR_IS_BV_COND_NODE (cond));
+  assert (btor_is_bv_cond_node (cond));
   assert (cond->parameterized);
 
   BtorNode *lambda;
@@ -32,7 +32,7 @@ is_uc_write (BtorNode *cond)
   if (cond->parents != 1) return false;
 
   lambda = cond->first_parent;
-  if (!BTOR_IS_LAMBDA_NODE (lambda)) return false;
+  if (!btor_is_lambda_node (lambda)) return false;
 
   return btor_lambda_get_static_rho (lambda) != 0;
 }
@@ -61,13 +61,13 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
     return;
   }
 
-  if (BTOR_IS_APPLY_NODE (exp) || BTOR_IS_LAMBDA_NODE (exp)
-      || BTOR_IS_FEQ_NODE (exp))
+  if (btor_is_apply_node (exp) || btor_is_lambda_node (exp)
+      || btor_is_fun_eq_node (exp))
     btor->stats.fun_uc_props++;
   else
     btor->stats.bv_uc_props++;
 
-  if (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_FUN_COND_NODE (exp))
+  if (btor_is_lambda_node (exp) || btor_is_fun_cond_node (exp))
   {
     subst           = btor_uf_exp (btor, exp->sort_id, 0);
     subst->is_array = exp->is_array;
@@ -127,7 +127,7 @@ btor_optimize_unconstrained (Btor *btor)
       btor_add_int_hash_table (ucs, cur->id);
       BTOR_MSG (btor->msg, 2, "found uc input %s", node2string (cur));
       // TODO (ma): why not just collect ufs and vars?
-      if (BTOR_IS_UF_NODE (cur)
+      if (btor_is_uf_node (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
         BTOR_PUSH_STACK (mm, stack, cur_parent);
@@ -162,10 +162,10 @@ btor_optimize_unconstrained (Btor *btor)
 
     if (!d) continue;
 
-    assert (!BTOR_IS_BV_CONST_NODE (cur));
-    assert (!BTOR_IS_BV_VAR_NODE (cur));
-    assert (!BTOR_IS_UF_NODE (cur));
-    assert (!BTOR_IS_PARAM_NODE (cur));
+    assert (!btor_is_bv_const_node (cur));
+    assert (!btor_is_bv_var_node (cur));
+    assert (!btor_is_uf_node (cur));
+    assert (!btor_is_param_node (cur));
 
     if (d->as_int == 0)
     {
@@ -190,7 +190,7 @@ btor_optimize_unconstrained (Btor *btor)
               ucsp, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
           assert (!uc[i] || uc[i] != ucp[i]);
           assert (!ucp[i] || uc[i] != ucp[i]);
-          assert (!ucp[i] || cur->parameterized || BTOR_IS_LAMBDA_NODE (cur));
+          assert (!ucp[i] || cur->parameterized || btor_is_lambda_node (cur));
         }
 
         switch (cur->kind)
@@ -201,15 +201,15 @@ btor_optimize_unconstrained (Btor *btor)
             {
               if (cur->parameterized)
               {
-                if (BTOR_IS_APPLY_NODE (cur)) mark_uc (btor, ucsp, cur);
+                if (btor_is_apply_node (cur)) mark_uc (btor, ucsp, cur);
               }
               else
                 mark_uc (btor, ucs, cur);
             }
             break;
           case BTOR_ADD_NODE:
-          case BTOR_BEQ_NODE:
-          case BTOR_FEQ_NODE:
+          case BTOR_BV_EQ_NODE:
+          case BTOR_FUN_EQ_NODE:
             if (!cur->parameterized && (uc[0] || uc[1]))
               mark_uc (btor, ucs, cur);
             break;
@@ -223,7 +223,7 @@ btor_optimize_unconstrained (Btor *btor)
           case BTOR_UREM_NODE:
             if (!cur->parameterized && uc[0] && uc[1]) mark_uc (btor, ucs, cur);
             break;
-          case BTOR_BCOND_NODE:
+          case BTOR_COND_NODE:
             if ((uc[1] && uc[2]) || (uc[0] && (uc[1] || uc[2])))
               mark_uc (btor, ucs, cur);
             else if (uc[1] && ucp[2])
@@ -241,8 +241,7 @@ btor_optimize_unconstrained (Btor *btor)
             if (ucp[1]
                 /* only consider head lambda of curried lambdas */
                 && (!cur->first_parent
-                    || !BTOR_IS_LAMBDA_NODE (
-                           BTOR_REAL_ADDR_NODE (cur->first_parent))))
+                    || !btor_is_lambda_node (cur->first_parent)))
               mark_uc (btor, ucs, cur);
             break;
           default: break;

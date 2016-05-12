@@ -44,20 +44,18 @@ select_path_non_const (BtorNode *exp)
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (exp->arity <= 2);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[0]))
-          || (exp->arity > 1
-              && !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[1]))));
+  assert (!btor_is_bv_const_node (exp->e[0])
+          || (exp->arity > 1 && !btor_is_bv_const_node (exp->e[1])));
 
   int i, eidx;
 
   for (i = 0, eidx = -1; i < exp->arity; i++)
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[i])))
+    if (btor_is_bv_const_node (exp->e[i]))
     {
       eidx = i ? 0 : 1;
       break;
     }
-  assert (exp->arity == 1
-          || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[i ? 0 : 1])));
+  assert (exp->arity == 1 || !btor_is_bv_const_node (exp->e[i ? 0 : 1]));
   return eidx;
 }
 
@@ -651,7 +649,7 @@ select_path_slice (Btor *btor,
   assert (bvslice);
   assert (bve);
 
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
+  assert (!btor_is_bv_const_node (slice->e[0]));
 
   (void) btor;
   (void) slice;
@@ -693,7 +691,7 @@ cons_add_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvadd->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[eidx])));
+  assert (!btor_is_bv_const_node (add->e[eidx]));
 
   (void) add;
   (void) bve;
@@ -716,7 +714,7 @@ cons_and_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvand->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (and->e[eidx])));
+  assert (!btor_is_bv_const_node (and->e[eidx]));
 
   uint32_t i;
   BtorBitVector *res;
@@ -752,7 +750,7 @@ cons_eq_bv (
   assert (bveq->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (eq->e[eidx])));
+  assert (!btor_is_bv_const_node (eq->e[eidx]));
 
   (void) eq;
   (void) bveq;
@@ -776,7 +774,7 @@ cons_ult_bv (Btor *btor,
   assert (bvult->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (ult->e[eidx])));
+  assert (!btor_is_bv_const_node (ult->e[eidx]));
 
   bool isult;
   uint32_t bw;
@@ -829,7 +827,7 @@ cons_sll_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
+  assert (!btor_is_bv_const_node (sll->e[eidx]));
 
   uint32_t i, s, bw, sbw, ctz_bvsll;
   BtorBitVector *res, *from, *to, *shift;
@@ -879,7 +877,7 @@ cons_srl_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
+  assert (!btor_is_bv_const_node (srl->e[eidx]));
 
   uint32_t i, s, bw, sbw;
   BtorBitVector *res, *from, *to, *shift;
@@ -929,7 +927,7 @@ cons_mul_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvmul->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
+  assert (!btor_is_bv_const_node (mul->e[eidx]));
 
   uint32_t r, bw, ctz_res, ctz_bvmul;
   BtorBitVector *res, *tmp;
@@ -1010,7 +1008,7 @@ cons_udiv_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvudiv->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (udiv->e[eidx])));
+  assert (!btor_is_bv_const_node (udiv->e[eidx]));
 
   uint32_t bw;
   BtorBitVector *res, *tmp, *tmpbve, *zero, *one, *bvmax;
@@ -1092,7 +1090,7 @@ cons_urem_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvurem->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (urem->e[eidx])));
+  assert (!btor_is_bv_const_node (urem->e[eidx]));
 
   uint32_t bw;
   BtorBitVector *res, *bvmax, *tmp;
@@ -1149,7 +1147,7 @@ cons_concat_bv (Btor *btor,
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (concat->e[eidx])));
+  assert (!btor_is_bv_const_node (concat->e[eidx]));
 
   (void) concat;
 
@@ -1286,7 +1284,7 @@ inv_add_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvadd->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[eidx])));
+  assert (!btor_is_bv_const_node (add->e[eidx]));
 
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -1321,7 +1319,7 @@ inv_and_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvand->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (and->e[eidx])));
+  assert (!btor_is_bv_const_node (and->e[eidx]));
 
   uint32_t i;
   int bitand, bite;
@@ -1349,7 +1347,7 @@ inv_and_bv (Btor *btor,
       btor_free_bv (btor->mm, res);
       /* check for non-recoverable conflict */
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          && btor_is_bv_const_node (e))
       {
         res = non_rec_conf (btor, bve, bvand, eidx, "AND");
       }
@@ -1400,7 +1398,7 @@ inv_eq_bv (
   assert (bveq->width = 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (eq->e[eidx])));
+  assert (!btor_is_bv_const_node (eq->e[eidx]));
 
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -1447,7 +1445,7 @@ inv_ult_bv (Btor *btor,
   assert (bvult->width = 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (ult->e[eidx])));
+  assert (!btor_is_bv_const_node (ult->e[eidx]));
 
   bool isult;
   uint32_t bw;
@@ -1478,7 +1476,7 @@ inv_ult_bv (Btor *btor,
     BVULT_CONF:
       /* check for non-recoverable conflict */
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          && btor_is_bv_const_node (e))
       {
         res = non_rec_conf (btor, bve, bvult, eidx, "<");
       }
@@ -1559,7 +1557,7 @@ inv_sll_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
+  assert (!btor_is_bv_const_node (sll->e[eidx]));
 
   uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw;
   BtorNode *e;
@@ -1609,7 +1607,7 @@ inv_sll_bv (Btor *btor,
         BVSLL_CONF:
           /* check for non-recoverable conflict */
           if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-              && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+              && btor_is_bv_const_node (e))
           {
             res = non_rec_conf (btor, bve, bvsll, eidx, "<<");
           }
@@ -1698,7 +1696,7 @@ inv_srl_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
+  assert (!btor_is_bv_const_node (srl->e[eidx]));
 
   uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw;
   BtorNode *e;
@@ -1748,7 +1746,7 @@ inv_srl_bv (Btor *btor,
         BVSRL_CONF:
           /* check for non-recoverable conflict */
           if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-              && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+              && btor_is_bv_const_node (e))
           {
             res = non_rec_conf (btor, bve, bvsrl, eidx, ">>");
           }
@@ -1836,7 +1834,7 @@ inv_mul_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvmul->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
+  assert (!btor_is_bv_const_node (mul->e[eidx]));
 
   int lsbve, lsbvmul, ispow2_bve;
   uint32_t i, j, bw;
@@ -1891,7 +1889,7 @@ inv_mul_bv (Btor *btor,
     BVMUL_CONF:
       /* check for non-recoverable conflict */
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          && btor_is_bv_const_node (e))
       {
         res = non_rec_conf (btor, bve, bvmul, eidx, "*");
       }
@@ -2025,7 +2023,7 @@ inv_udiv_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvudiv->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (udiv->e[eidx])));
+  assert (!btor_is_bv_const_node (udiv->e[eidx]));
 
   uint32_t bw;
   BtorNode *e;
@@ -2090,7 +2088,7 @@ inv_udiv_bv (Btor *btor,
       BVUDIV_CONF:
         /* check for non-recoverable conflict */
         if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+            && btor_is_bv_const_node (e))
         {
           res = non_rec_conf (btor, bve, bvudiv, eidx, "/");
         }
@@ -2266,7 +2264,7 @@ inv_urem_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvurem->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (urem->e[eidx])));
+  assert (!btor_is_bv_const_node (urem->e[eidx]));
 
   uint32_t bw, cnt;
   int cmp;
@@ -2305,7 +2303,7 @@ inv_urem_bv (Btor *btor,
       BVUREM_CONF:
         /* check for non-recoverable conflict */
         if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+            && btor_is_bv_const_node (e))
         {
           res = non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
@@ -2584,7 +2582,7 @@ inv_concat_bv (Btor *btor,
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (concat->e[eidx])));
+  assert (!btor_is_bv_const_node (concat->e[eidx]));
 
   BtorNode *e;
   BtorBitVector *res, *tmp;
@@ -2610,7 +2608,7 @@ inv_concat_bv (Btor *btor,
     BVCONCAT_CONF:
       /* check for non-recoverable conflict */
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          && btor_is_bv_const_node (e))
       {
         res = non_rec_conf (btor, bve, bvconcat, eidx, "o");
       }
@@ -2667,7 +2665,7 @@ inv_slice_bv (Btor *btor,
   assert (slice);
   assert (BTOR_IS_REGULAR_NODE (slice));
   assert (bvslice);
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
+  assert (!btor_is_bv_const_node (slice->e[0]));
 
   uint32_t i, upper, lower;
   BtorNode *e;
@@ -2746,7 +2744,7 @@ btor_select_move_prop (Btor *btor,
   cur   = root;
   bvcur = btor_one_bv (btor->mm, 1);
 
-  if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
+  if (btor_is_bv_var_node (cur))
   {
     *input      = BTOR_REAL_ADDR_NODE (cur);
     *assignment = BTOR_IS_INVERTED_NODE (cur) ? btor_not_bv (btor->mm, bvcur)
@@ -2757,9 +2755,9 @@ btor_select_move_prop (Btor *btor,
     for (;;)
     {
       real_cur = BTOR_REAL_ADDR_NODE (cur);
-      assert (!BTOR_IS_BV_COND_NODE (real_cur));
-      assert (!BTOR_IS_BV_CONST_NODE (real_cur));
-      assert (!BTOR_IS_BV_VAR_NODE (real_cur));
+      assert (!btor_is_bv_cond_node (real_cur));
+      assert (!btor_is_bv_const_node (real_cur));
+      assert (!btor_is_bv_var_node (real_cur));
       assert (real_cur->arity <= 2);
 
       if (BTOR_IS_INVERTED_NODE (cur))
@@ -2773,8 +2771,7 @@ btor_select_move_prop (Btor *btor,
       for (i = 0, nconst = 0; i < real_cur->arity; i++)
       {
         bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[i])))
-          nconst += 1;
+        if (btor_is_bv_const_node (real_cur->e[i])) nconst += 1;
       }
       if (nconst > real_cur->arity - 1) break;
 
@@ -2807,7 +2804,7 @@ btor_select_move_prop (Btor *btor,
           bvenew = b ? inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx)
                      : cons_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
-        case BTOR_BEQ_NODE:
+        case BTOR_BV_EQ_NODE:
           eidx = select_path_eq (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
@@ -2876,7 +2873,7 @@ btor_select_move_prop (Btor *btor,
       cur = real_cur->e[eidx];
 
       /* found input and assignment */
-      if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+      if (btor_is_bv_var_node (real_cur->e[eidx]))
       {
       FOUND_RESULT:
         *input      = BTOR_REAL_ADDR_NODE (cur);
@@ -2886,7 +2883,7 @@ btor_select_move_prop (Btor *btor,
         btor_free_bv (btor->mm, bvenew);
         break;
       }
-      else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+      else if (btor_is_bv_cond_node (real_cur->e[eidx]))
       {
         real_cur = BTOR_REAL_ADDR_NODE (cur);
         do
@@ -2912,13 +2909,13 @@ btor_select_move_prop (Btor *btor,
           }
 
           real_cur = BTOR_REAL_ADDR_NODE (cur);
-        } while (BTOR_IS_BV_COND_NODE (real_cur));
+        } while (btor_is_bv_cond_node (real_cur));
 
-        if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
+        if (btor_is_bv_var_node (cur))
         {
           goto FOUND_RESULT;
         }
-        else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur)))
+        else if (btor_is_bv_const_node (cur))
         {
           /* if input is const -> conflict */
           btor_free_bv (btor->mm, bvenew);
@@ -3043,7 +3040,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
     {
       selected = &it.bucket->data.as_int;
       cur      = btor_next_node_hash_table_iterator (&it);
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+      if (btor_is_bv_const_node (cur)
           && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
         return 0; /* contains false constraint -> unsat */
       b = btor_get_ptr_hash_table (slv->score, cur);
@@ -3075,7 +3072,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
     while (btor_has_next_node_hash_table_iterator (&it))
     {
       cur = btor_next_node_hash_table_iterator (&it);
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+      if (btor_is_bv_const_node (cur)
           && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
       {
         BTOR_RELEASE_STACK (btor->mm, stack);

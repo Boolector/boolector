@@ -57,8 +57,8 @@ enum BtorNodeKind
   BTOR_PARAM_NODE    = 3, /* parameter for lambda expressions */
   BTOR_SLICE_NODE    = 4,
   BTOR_AND_NODE      = 5,
-  BTOR_BEQ_NODE      = 6, /* equality on bit vectors */
-  BTOR_FEQ_NODE      = 7, /* equality on arrays */
+  BTOR_BV_EQ_NODE    = 6, /* equality on bit vectors */
+  BTOR_FUN_EQ_NODE   = 7, /* equality on arrays */
   BTOR_ADD_NODE      = 8,
   BTOR_MUL_NODE      = 9,
   BTOR_ULT_NODE      = 10,
@@ -69,7 +69,7 @@ enum BtorNodeKind
   BTOR_CONCAT_NODE   = 15,
   BTOR_APPLY_NODE    = 16,
   BTOR_LAMBDA_NODE   = 17, /* lambda expression */
-  BTOR_BCOND_NODE    = 18, /* conditional on bit vectors */
+  BTOR_COND_NODE     = 18, /* conditional on bit vectors */
   BTOR_ARGS_NODE     = 19,
   BTOR_UF_NODE       = 20,
   BTOR_PROXY_NODE    = 21, /* simplified expression without children */
@@ -198,133 +198,36 @@ struct BtorArgsNode
 
 typedef struct BtorArgsNode BtorArgsNode;
 
-#define BTOR_IS_INVALID_NODE_KIND(kind) ((kind) == BTOR_INVALID_NODE)
-
-#define BTOR_IS_AND_NODE_KIND(kind) ((kind) == BTOR_AND_NODE)
-
-#define BTOR_IS_SLICE_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
-
-#define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
-
-#define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
-
-#define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
-
-#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
-
-#define BTOR_IS_FUN_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
-
-#define BTOR_IS_ULT_NODE_KIND(kind) (kind == BTOR_ULT_NODE)
-
-#define BTOR_IS_FEQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
-
-#define BTOR_IS_MUL_NODE_KIND(kind) ((kind) == BTOR_MUL_NODE)
-
-#define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
-
-#define BTOR_IS_MUL_NODE_KIND(kind) ((kind) == BTOR_MUL_NODE)
-
-#define BTOR_IS_UDIV_NODE_KIND(kind) ((kind) == BTOR_UDIV_NODE)
-
-#define BTOR_IS_UREM_NODE_KIND(kind) ((kind) == BTOR_UREM_NODE)
-
-#define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
-
-#define BTOR_IS_BCOND_NODE_KIND(kind) ((kind) == BTOR_BCOND_NODE)
-
-#define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
-
-#define BTOR_IS_ARGS_NODE_KIND(kind) ((kind) == BTOR_ARGS_NODE)
-
-#define BTOR_IS_APPLY_NODE_KIND(kind) ((kind) == BTOR_APPLY_NODE)
-
-#define BTOR_IS_BV_COND_NODE_KIND(kind) (kind == BTOR_BCOND_NODE)
-
-#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
-
-#define BTOR_IS_CONCAT_NODE_KIND(kind) ((kind) == BTOR_CONCAT_NODE)
-
-#define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
-
-#define BTOR_IS_BINARY_NODE_KIND(kind) \
-  ((((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_LAMBDA_NODE)))
-
-#define BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND(kind) \
-  (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_MUL_NODE))
-
-#define BTOR_IS_TERNARY_NODE_KIND(kind) (((kind) >= BTOR_BCOND_NODE))
-
-#define BTOR_IS_INVALID_NODE(exp) \
-  ((exp) && BTOR_IS_INVALID_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_AND_NODE(exp) ((exp) && BTOR_IS_AND_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_SLICE_NODE(exp) ((exp) && BTOR_IS_SLICE_NODE_KIND ((exp)->kind))
-#define BTOR_IS_BV_CONST_NODE(exp) \
-  ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BV_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_FUN_EQ_NODE(exp) \
-  ((exp) && BTOR_IS_FUN_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ULT_NODE(exp) ((exp) && BTOR_IS_ULT_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_FEQ_NODE(exp) ((exp) && BTOR_IS_FEQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
-  (BTOR_IS_FEQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
-
-#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_UDIV_NODE(exp) ((exp) && BTOR_IS_UDIV_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_UREM_NODE(exp) ((exp) && BTOR_IS_UREM_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_LAMBDA_NODE(exp) \
-  ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BCOND_NODE(exp) ((exp) && BTOR_IS_BCOND_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_UF_NODE(exp) ((exp) && BTOR_IS_UF_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARGS_NODE(exp) ((exp) && BTOR_IS_ARGS_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_APPLY_NODE(exp) ((exp) && BTOR_IS_APPLY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_COND_NODE(exp) \
-  ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BV_COND_NODE(exp)   \
-  ((exp) && BTOR_IS_COND_NODE (exp) \
-   && btor_is_bitvec_sort (&exp->btor->sorts_unique_table, exp->sort_id))
-
-#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_CONCAT_NODE(exp) \
-  ((exp) && BTOR_IS_CONCAT_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_UNARY_NODE(exp) ((exp) && BTOR_IS_UNARY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BINARY_NODE(exp) \
-  ((exp) && BTOR_IS_BINARY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BINARY_COMMUTATIVE_NODE(exp) \
-  ((exp) && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_TERNARY_NODE(exp) \
-  ((exp) && BTOR_IS_TERNARY_NODE_KIND ((exp)->kind))
+bool btor_is_invalid_node (const BtorNode *exp);
+bool btor_is_proxy_node (const BtorNode *exp);
+bool btor_is_bv_const_node (const BtorNode *exp);
+bool btor_is_bv_var_node (const BtorNode *exp);
+bool btor_is_bv_eq_node (const BtorNode *exp);
+bool btor_is_fun_eq_node (const BtorNode *exp);
+bool btor_is_and_node (const BtorNode *exp);
+bool btor_is_ult_node (const BtorNode *exp);
+bool btor_is_add_node (const BtorNode *exp);
+bool btor_is_mul_node (const BtorNode *exp);
+bool btor_is_udiv_node (const BtorNode *exp);
+bool btor_is_urem_node (const BtorNode *exp);
+bool btor_is_slice_node (const BtorNode *exp);
+bool btor_is_concat_node (const BtorNode *exp);
+bool btor_is_cond_node (const BtorNode *exp);
+bool btor_is_bv_cond_node (const BtorNode *exp);
+bool btor_is_fun_cond_node (const BtorNode *exp);
+bool btor_is_uf_node (const BtorNode *exp);
+bool btor_is_array_node (const BtorNode *exp);
+bool btor_is_lambda_node (const BtorNode *exp);
+bool btor_is_fun_node (const BtorNode *exp);
+bool btor_is_uf_array_node (const BtorNode *exp);
+bool btor_is_param_node (const BtorNode *exp);
+bool btor_is_args_node (const BtorNode *exp);
+bool btor_is_apply_node (const BtorNode *exp);
+bool btor_is_array_or_bv_eq_node (const BtorNode *exp);
+bool btor_is_unary_node (const BtorNode *exp);
+bool btor_is_binary_node (const BtorNode *exp);
+bool btor_is_binary_commutative_node (const BtorNode *exp);
+bool btor_is_ternary_node (const BtorNode *exp);
 
 #define BTOR_INVERT_NODE(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
 
@@ -357,17 +260,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
-
-#define BTOR_IS_FUN_COND_NODE(exp) \
-  (BTOR_IS_COND_NODE (exp)         \
-   && btor_is_fun_sort (&exp->btor->sorts_unique_table, exp->sort_id))
-
-#define BTOR_IS_FUN_NODE(exp)                         \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp) \
-   || BTOR_IS_FUN_COND_NODE (exp))
-
-#define BTOR_IS_UF_ARRAY_NODE(exp) \
-  ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
 
 /*------------------------------------------------------------------------*/
 
@@ -835,18 +727,6 @@ BtorBitVector *btor_const_get_invbits (BtorNode *exp);
 void btor_const_set_bits (BtorNode *exp, BtorBitVector *bits);
 void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
 
-/* Determines if expression is an array or not. */
-bool btor_is_array_exp (Btor *btor, BtorNode *exp);
-
-/* Determines if expression is an uf or array variable or not. */
-bool btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
-
-/* Determines if expression is an uf or not. */
-bool btor_is_uf_exp (Btor *btor, BtorNode *exp);
-
-/* Determines if expression is a bv variable or not. */
-bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
-
 /* Gets the number of bits used by indices on 'e_array'. */
 uint32_t btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
 
@@ -875,17 +755,8 @@ char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 /* Sets the symbol of an expression. */
 void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
-/* Determines if expression is a param or not. */
-bool btor_is_param_exp (Btor *btor, BtorNode *exp);
-
-/* Determines if expression is a lambda or not. */
-bool btor_is_fun_exp (Btor *btor, BtorNode *exp);
-
 /* Gets the number of arguments of lambda expression 'exp'. */
 uint32_t btor_get_fun_arity (Btor *btor, BtorNode *exp);
-
-/* Determines if expression is an argument expression or not. */
-bool btor_is_args_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of arguments of an argument expression 'exp'. */
 int btor_get_args_arity (Btor *btor, BtorNode *exp);

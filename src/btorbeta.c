@@ -35,11 +35,11 @@ cache_beta_result (Btor *btor,
   assert (lambda);
   assert (exp);
   assert (result);
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (lambda)));
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (exp)));
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (result)));
+  assert (!btor_is_proxy_node (lambda));
+  assert (!btor_is_proxy_node (exp));
+  assert (!btor_is_proxy_node (result));
   assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  assert (btor_is_lambda_node (lambda));
 
   BtorNodePair *pair;
   BtorPtrHashBucket *bucket;
@@ -72,7 +72,7 @@ cached_beta_result (Btor *btor,
   assert (lambda);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  assert (btor_is_lambda_node (lambda));
 
   BtorNodePair *pair;
   BtorPtrHashBucket *bucket;
@@ -103,8 +103,8 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (args);
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_REGULAR_NODE (args));
-  assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (BTOR_IS_ARGS_NODE (args));
+  assert (btor_is_lambda_node (fun));
+  assert (btor_is_args_node (args));
 
   //  BTORLOG ("%s: %s (%d params, %d args)", __FUNCTION__, node2string (fun),
   //	   ((BtorLambdaNode *) fun)->num_params,
@@ -134,7 +134,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
   assert (lambda);
   assert (arg);
   assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  assert (btor_is_lambda_node (lambda));
   assert (!btor_param_get_assigned_exp (lambda->e[0]));
   btor_param_set_assigned_exp (lambda->e[0], arg);
 }
@@ -145,8 +145,8 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
   (void) btor;
   assert (lambda);
   assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
+  assert (btor_is_lambda_node (lambda));
+  assert (btor_is_param_node (lambda->e[0]));
 
   do
   {
@@ -154,7 +154,7 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
 
     btor_param_set_assigned_exp (lambda->e[0], 0);
     lambda = BTOR_REAL_ADDR_NODE (lambda->e[1]);
-  } while (BTOR_IS_LAMBDA_NODE (lambda));
+  } while (btor_is_lambda_node (lambda));
 }
 
 /* We distinguish the following options for (un)bounded reduction:
@@ -217,8 +217,7 @@ btor_beta_reduce (Btor *btor,
     cur_parent = BTOR_POP_STACK (stack);
     cur        = BTOR_POP_STACK (stack);
     /* we do not want the simplification of top level apply constraints */
-    if (BTOR_REAL_ADDR_NODE (cur)->constraint
-        && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
+    if (BTOR_REAL_ADDR_NODE (cur)->constraint && btor_is_apply_node (cur))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
     else
       cur = btor_simplify_exp (btor, cur);
@@ -228,33 +227,33 @@ btor_beta_reduce (Btor *btor,
 
     if (!d)
     {
-      assert (!BTOR_IS_LAMBDA_NODE (real_cur) || !real_cur->e[0]->simplified);
+      assert (!btor_is_lambda_node (real_cur) || !real_cur->e[0]->simplified);
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur)
+      if (btor_is_lambda_node (real_cur)
           && !real_cur->parameterized
           /* only count head lambdas (in case of curried lambdas) */
-          && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
+          && (!cur_parent || !btor_is_lambda_node (cur_parent)))
         cur_lambda_depth++;
 
       /* stop at given bound */
-      if (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
+      if (bound > 0 && btor_is_lambda_node (real_cur)
           && cur_lambda_depth == bound)
       {
         assert (!real_cur->parameterized);
-        assert (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent));
+        assert (!cur_parent || !btor_is_lambda_node (cur_parent));
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
       }
       /* skip all lambdas that are not marked for merge */
-      else if (mode == BETA_RED_LAMBDA_MERGE && BTOR_IS_LAMBDA_NODE (real_cur)
+      else if (mode == BETA_RED_LAMBDA_MERGE && btor_is_lambda_node (real_cur)
                && !btor_get_ptr_hash_table (merge_lambdas, real_cur)
                /* do not stop at parameterized lambdas, otherwise the
                 * result may contain parameters that are not bound by any
                 * lambda anymore */
                && !real_cur->parameterized
                /* do not stop at non-parameterized curried lambdas */
-               && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
+               && (!cur_parent || !btor_is_lambda_node (cur_parent)))
       {
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
@@ -267,7 +266,7 @@ btor_beta_reduce (Btor *btor,
         continue;
       }
       /* push assigned argument of parameter on argument stack */
-      else if (BTOR_IS_PARAM_NODE (real_cur))
+      else if (btor_is_param_node (real_cur))
       {
         next = btor_param_get_assigned_exp (real_cur);
         if (!next) next = real_cur;
@@ -276,8 +275,8 @@ btor_beta_reduce (Btor *btor,
         continue;
       }
       /* assign params of lambda expression */
-      else if (BTOR_IS_LAMBDA_NODE (real_cur)
-               && BTOR_IS_APPLY_NODE (cur_parent)
+      else if (btor_is_lambda_node (real_cur)
+               && btor_is_apply_node (cur_parent)
                /* check if we have arguments on the stack */
                && !BTOR_EMPTY_STACK (arg_stack)
                /* if it is nested, its parameter is already assigned */
@@ -285,7 +284,7 @@ btor_beta_reduce (Btor *btor,
       {
         args = BTOR_TOP_STACK (arg_stack);
         assert (BTOR_IS_REGULAR_NODE (args));
-        assert (BTOR_IS_ARGS_NODE (args));
+        assert (btor_is_args_node (args));
 
         if (cache)
         {
@@ -309,9 +308,9 @@ btor_beta_reduce (Btor *btor,
       /* do not try to reduce lambdas below equalities as lambdas cannot
        * be eliminated. further, it may produce lambdas that break lemma
        * generation for extensionality */
-      else if (BTOR_IS_LAMBDA_NODE (real_cur)
-               && (BTOR_IS_FEQ_NODE (cur_parent)
-                   || BTOR_IS_FUN_COND_NODE (cur_parent)))
+      else if (btor_is_lambda_node (real_cur)
+               && (btor_is_fun_eq_node (cur_parent)
+                   || btor_is_fun_cond_node (cur_parent)))
       {
         assert (!btor_param_get_assigned_exp (real_cur->e[0]));
         cur_lambda_depth--;
@@ -320,8 +319,8 @@ btor_beta_reduce (Btor *btor,
       }
       /* do not try to reduce conditionals on functions below equalities
        * as they cannot be eliminated. */
-      else if (BTOR_IS_FUN_COND_NODE (real_cur)
-               && BTOR_IS_FEQ_NODE (cur_parent))
+      else if (btor_is_fun_cond_node (real_cur)
+               && btor_is_fun_eq_node (cur_parent))
       {
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
@@ -359,8 +358,8 @@ btor_beta_reduce (Btor *btor,
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
-        case BTOR_BEQ_NODE:
-        case BTOR_FEQ_NODE:
+        case BTOR_BV_EQ_NODE:
+        case BTOR_FUN_EQ_NODE:
           result = btor_eq_exp (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
@@ -426,9 +425,9 @@ btor_beta_reduce (Btor *btor,
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);
           break;
         case BTOR_APPLY_NODE:
-          if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e[1])))
+          if (btor_is_fun_node (e[1]))
           {
-            assert (BTOR_IS_ARGS_NODE (e[0]));
+            assert (btor_is_args_node (e[0]));
             /* NOTE: do not use btor_apply_exp here since
              * beta reduction is used in btor_rewrite_apply_exp. */
             result = btor_apply_exp_node (btor, e[1], e[0]);
@@ -439,7 +438,7 @@ btor_beta_reduce (Btor *btor,
           }
 
           if (cache && mode == BETA_RED_FULL
-              && BTOR_IS_LAMBDA_NODE (real_cur->e[0]))
+              && btor_is_lambda_node (real_cur->e[0]))
             cache_beta_result (btor, cache, real_cur->e[0], e[0], result);
 
           btor_release_exp (btor, e[0]);
@@ -448,11 +447,11 @@ btor_beta_reduce (Btor *btor,
         case BTOR_LAMBDA_NODE:
           /* function equalities and conditionals always expect a lambda
            * as argument */
-          if (BTOR_IS_FEQ_NODE (cur_parent)
-              || (BTOR_IS_FUN_COND_NODE (cur_parent)
+          if (btor_is_fun_eq_node (cur_parent)
+              || (btor_is_fun_cond_node (cur_parent)
                   && !btor_param_get_assigned_exp (real_cur->e[0])))
           {
-            assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
+            assert (btor_is_param_node (e[1]));
             result = btor_lambda_exp (btor, e[1], e[0]);
             if (real_cur->is_array) result->is_array = 1;
             if (btor_lambda_get_static_rho (real_cur)
@@ -476,7 +475,7 @@ btor_beta_reduce (Btor *btor,
           btor_release_exp (btor, e[1]);
           break;
         default:
-          assert (BTOR_IS_COND_NODE (real_cur));
+          assert (btor_is_cond_node (real_cur));
           result = btor_cond_exp (btor, e[2], e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
@@ -484,10 +483,10 @@ btor_beta_reduce (Btor *btor,
       }
 
       d->as_ptr = btor_copy_exp (btor, result);
-      if (real_cur->parameterized || BTOR_IS_LAMBDA_NODE (real_cur))
+      if (real_cur->parameterized || btor_is_lambda_node (real_cur))
         BTOR_PUSH_STACK (mm, reset, real_cur);
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_APPLY_NODE (cur_parent)
+      if (btor_is_lambda_node (real_cur) && btor_is_apply_node (cur_parent)
           && btor_param_get_assigned_exp (real_cur->e[0]))
       {
         btor_unassign_params (btor, real_cur);
@@ -503,10 +502,10 @@ btor_beta_reduce (Btor *btor,
         } while (next != real_cur);
       }
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur)
+      if (btor_is_lambda_node (real_cur)
           && !real_cur->parameterized
           /* only count head lambdas (in case of curried lambdas) */
-          && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
+          && (!cur_parent || !btor_is_lambda_node (cur_parent)))
         cur_lambda_depth--;
 
     BETA_REDUCE_PUSH_RESULT:
@@ -580,8 +579,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorIntHashTable *mark;
   BtorIntHashTableData *d, md;
 
-  if (!BTOR_REAL_ADDR_NODE (exp)->parameterized
-      && !BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)))
+  if (!BTOR_REAL_ADDR_NODE (exp)->parameterized && !btor_is_lambda_node (exp))
     return btor_copy_exp (btor, exp);
 
   start = btor_time_stamp ();
@@ -596,7 +594,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
   /* skip all curried lambdas */
-  if (BTOR_IS_LAMBDA_NODE (real_cur)) exp = btor_lambda_get_body (real_cur);
+  if (btor_is_lambda_node (real_cur)) exp = btor_lambda_get_body (real_cur);
 
   BTOR_PUSH_STACK (mm, stack, exp);
   BTOR_PUSH_STACK (mm, stack, 0);
@@ -618,7 +616,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
         continue;
       }
       /* push assigned argument of parameter on argument stack */
-      else if (BTOR_IS_PARAM_NODE (real_cur))
+      else if (btor_is_param_node (real_cur))
       {
         next = btor_param_get_assigned_exp (real_cur);
         assert (next);
@@ -627,15 +625,15 @@ btor_beta_reduce_partial_aux (Btor *btor,
         continue;
       }
       /* assign params of lambda expression */
-      else if (BTOR_IS_LAMBDA_NODE (real_cur)
-               && BTOR_IS_APPLY_NODE (cur_parent)
+      else if (btor_is_lambda_node (real_cur)
+               && btor_is_apply_node (cur_parent)
                /* check if we have arguments on the stack */
                && !BTOR_EMPTY_STACK (arg_stack)
                /* if it is nested, its parameter is already assigned */
                && !btor_param_get_assigned_exp (real_cur->e[0]))
       {
         args = BTOR_TOP_STACK (arg_stack);
-        assert (BTOR_IS_ARGS_NODE (args));
+        assert (btor_is_args_node (args));
         btor_assign_args (btor, real_cur, args);
         BTOR_PUSH_STACK (mm, reset, real_cur);
       }
@@ -648,7 +646,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
        *  1) push condition
        *  2) evaluate condition
        *  3) push branch w.r.t. value of evaluated condition */
-      if (BTOR_IS_COND_NODE (real_cur))
+      if (btor_is_cond_node (real_cur))
       {
         BTOR_PUSH_STACK (mm, stack, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, stack, real_cur);
@@ -667,7 +665,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       assert (real_cur->parameterized);
       assert (real_cur->arity >= 1);
 
-      if (BTOR_IS_COND_NODE (real_cur))
+      if (btor_is_cond_node (real_cur))
         arg_stack.top -= 1;
       else
       {
@@ -691,8 +689,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
-        case BTOR_BEQ_NODE:
-        case BTOR_FEQ_NODE:
+        case BTOR_BV_EQ_NODE:
+        case BTOR_FUN_EQ_NODE:
           result = btor_eq_exp (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
@@ -758,7 +756,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);
           break;
         case BTOR_APPLY_NODE:
-          if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e[1])))
+          if (btor_is_fun_node (e[1]))
           {
             result = btor_apply_exp_node (btor, e[1], e[0]);
             btor_release_exp (btor, e[1]);
@@ -774,7 +772,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           btor_release_exp (btor, e[1]);
           break;
         default:
-          assert (BTOR_IS_COND_NODE (real_cur));
+          assert (btor_is_cond_node (real_cur));
           /* only condition rebuilt, evaluate and choose branch */
           assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
           eval_res = btor_eval_exp (btor, e[0]);
@@ -819,10 +817,10 @@ btor_beta_reduce_partial_aux (Btor *btor,
       }
 
       d->as_ptr = btor_copy_exp (btor, result);
-      if (real_cur->parameterized || BTOR_IS_LAMBDA_NODE (real_cur))
+      if (real_cur->parameterized || btor_is_lambda_node (real_cur))
         BTOR_PUSH_STACK (mm, reset, real_cur);
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur))
+      if (btor_is_lambda_node (real_cur))
       {
         btor_unassign_params (btor, real_cur);
         next = BTOR_POP_STACK (reset);
@@ -844,7 +842,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       assert (real_cur->parameterized);
       assert (d->as_ptr);
       result = btor_copy_exp (btor, d->as_ptr);
-      assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
+      assert (!btor_is_lambda_node (result));
       goto BETA_REDUCE_PARTIAL_PUSH_RESULT;
     }
   }
@@ -946,7 +944,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode *args[], BtorNode *lambda)
   for (i = 0; i < argc; i++)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_LAMBDA_NODE (cur));
+    assert (btor_is_lambda_node (cur));
     btor_assign_param (btor, cur, args[i]);
     BTOR_PUSH_STACK (mm, unassign, cur);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);

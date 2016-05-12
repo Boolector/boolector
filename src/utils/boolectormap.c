@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -187,8 +187,8 @@ boolector_map_node_internal (Btor *btor,
       return boolector_slice (
           btor, m[0], btor_slice_get_upper (e), btor_slice_get_lower (e));
     case BTOR_AND_NODE: return boolector_and (btor, m[0], m[1]);
-    case BTOR_BEQ_NODE:
-    case BTOR_FEQ_NODE: return boolector_eq (btor, m[0], m[1]);
+    case BTOR_BV_EQ_NODE:
+    case BTOR_FUN_EQ_NODE: return boolector_eq (btor, m[0], m[1]);
     case BTOR_ADD_NODE: return boolector_add (btor, m[0], m[1]);
     case BTOR_MUL_NODE: return boolector_mul (btor, m[0], m[1]);
     case BTOR_ULT_NODE: return boolector_ult (btor, m[0], m[1]);
@@ -198,7 +198,7 @@ boolector_map_node_internal (Btor *btor,
     case BTOR_UREM_NODE: return boolector_urem (btor, m[0], m[1]);
     case BTOR_CONCAT_NODE: return boolector_concat (btor, m[0], m[1]);
     default:
-      assert (BTOR_IS_BV_COND_NODE (e));
+      assert (btor_is_bv_cond_node (e));
       return boolector_cond (btor, m[0], m[1], m[2]);
   }
 }

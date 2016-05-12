@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -144,8 +144,8 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       return btor_slice_exp (
           btor, m[0], btor_slice_get_upper (exp), btor_slice_get_lower (exp));
     case BTOR_AND_NODE: return btor_and_exp (btor, m[0], m[1]);
-    case BTOR_BEQ_NODE:
-    case BTOR_FEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
+    case BTOR_BV_EQ_NODE:
+    case BTOR_FUN_EQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
     case BTOR_ADD_NODE: return btor_add_exp (btor, m[0], m[1]);
     case BTOR_MUL_NODE: return btor_mul_exp (btor, m[0], m[1]);
     case BTOR_ULT_NODE: return btor_ult_exp (btor, m[0], m[1]);
@@ -156,7 +156,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, m[0], m[1]);
     case BTOR_LAMBDA_NODE: return btor_lambda_exp (btor, m[0], m[1]);
     default:
-      assert (BTOR_IS_BV_COND_NODE (exp));
+      assert (btor_is_bv_cond_node (exp));
       return btor_cond_exp (btor, m[0], m[1], m[2]);
   }
 }

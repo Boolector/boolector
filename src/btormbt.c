@@ -1153,7 +1153,7 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
   if (boolector_is_array (mbt->btor, node))
     stack = is_parameterized ? mbt->paramarr : mbt->arr;
   // TODO (ma): workaround need API for querying if UF
-  else if (BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE ((BtorNode *) node)))
+  else if (btor_is_uf_node ((BtorNode *) node))
     stack = mbt->uf;
   else if (boolector_is_fun (mbt->btor, node))
     stack = is_parameterized ? mbt->paramfun : mbt->fun;

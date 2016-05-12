@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -35,8 +35,8 @@ btor_check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
       data = iit.bucket->data.as_ptr;
       key  = btor_next_node_hash_table_iterator (&iit);
       assert (data);
-      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return false;
-      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (key))) return false;
+      if (btor_is_proxy_node (data)) return false;
+      if (btor_is_proxy_node (key)) return false;
     }
   }
   return true;
@@ -51,7 +51,7 @@ btor_check_unique_table_children_proxy_free_dbg (const Btor *btor)
   for (i = 0; i < btor->nodes_unique_table.size; i++)
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
       for (j = 0; j < cur->arity; j++)
-        if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur->e[j]))) return false;
+        if (btor_is_proxy_node (cur->e[j])) return false;
   return true;
 }
 
@@ -65,7 +65,7 @@ btor_check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur))) return false;
+    if (btor_is_proxy_node (cur)) return false;
   }
   return true;
 }
@@ -121,8 +121,7 @@ btor_check_constraints_not_const_dbg (const Btor *btor)
   {
     cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
-    cur = BTOR_REAL_ADDR_NODE (cur);
-    if (BTOR_IS_BV_CONST_NODE (cur)) return false;
+    if (btor_is_bv_const_node (cur)) return false;
   }
 
   btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -130,8 +129,7 @@ btor_check_constraints_not_const_dbg (const Btor *btor)
   {
     cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
-    cur = BTOR_REAL_ADDR_NODE (cur);
-    if (BTOR_IS_BV_CONST_NODE (cur)) return false;
+    if (btor_is_bv_const_node (cur)) return false;
   }
   return true;
 }
