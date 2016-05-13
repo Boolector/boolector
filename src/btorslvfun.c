@@ -19,6 +19,7 @@
 #include "btordcr.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btorslvprop.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
@@ -2171,7 +2172,44 @@ sat_fun_solver (BtorFunSolver *slv)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
-  result = btor_simplify (btor);
+  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP))
+  {
+    BtorSolver *propslv;
+    BTOR_ABORT (btor->ufs->count,
+                "combination of prop and fun engine supports QF_BV only!");
+    if (btor->lambdas->count) btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+    propslv   = btor_new_prop_solver (btor);
+    btor->slv = propslv;
+    btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+    result = btor->slv->api.sat (btor->slv);
+    if (result == BTOR_RESULT_SAT || result == BTOR_RESULT_UNSAT)
+    {
+      /* print fun solver statistics */
+      btor->slv = (BtorSolver *) slv;
+      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+      slv->api.print_stats ((BtorSolver *) slv);
+      slv->api.print_time_stats ((BtorSolver *) slv);
+      /* delete fun solver */
+      slv->api.delet ((BtorSolver *) slv);
+      /* reset */
+      btor->slv = propslv;
+      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+      goto DONE;
+    }
+    else
+    {
+      /* print prop solver statistics */
+      btor->slv->api.print_stats (btor->slv);
+      btor->slv->api.print_time_stats (btor->slv);
+      /* delete prop solver */
+      btor->slv->api.delet (btor->slv);
+      /* reset */
+      btor->slv = (BtorSolver *) slv;
+      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    }
+  }
+  else
+    result = btor_simplify (btor);
 
   if (result == BTOR_RESULT_UNSAT)
   {

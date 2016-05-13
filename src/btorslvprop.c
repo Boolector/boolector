@@ -3223,13 +3223,14 @@ sat_prop_solver_aux (Btor *btor)
 
   int j, max_steps;
   int sat_result;
-  uint32_t nmoves;
+  uint32_t nmoves, nprops;
   BtorNode *root;
   BtorHashTableIterator it;
   BtorPropSolver *slv;
 
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
+  nprops = btor_get_opt (btor, BTOR_OPT_PROP_NPROPS);
 
   nmoves = 0;
 
@@ -3271,7 +3272,7 @@ sat_prop_solver_aux (Btor *btor)
          !btor_get_opt (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
     {
-      if (btor_terminate_btor (btor))
+      if (btor_terminate_btor (btor) || (nprops && slv->stats.props >= nprops))
       {
         sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;
@@ -3284,7 +3285,7 @@ sat_prop_solver_aux (Btor *btor)
     }
 
     /* restart */
-    slv->api.generate_model (btor->slv, false, true);
+    slv->api.generate_model ((BtorSolver *) slv, false, true);
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
       btor_delete_ptr_hash_table (slv->score);
@@ -3371,7 +3372,7 @@ sat_prop_solver (BtorPropSolver *slv)
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
    * the model generation (if enabled) after SAT has been determined. */
-  btor->slv->api.generate_model (btor->slv, false, true);
+  slv->api.generate_model ((BtorSolver *) slv, false, true);
   sat_result = sat_prop_solver_aux (btor);
 DONE:
   BTOR_PROP_SOLVER (btor)->time.sat += btor_time_stamp () - start;

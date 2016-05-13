@@ -346,6 +346,18 @@ btor_init_opts (Btor *btor)
 
   /* FUN engine ---------------------------------------------------------- */
   init_opt (btor,
+            BTOR_OPT_FUN_PREPROP,
+            false,
+            true,
+            "fun:preprop",
+            0,
+            0,
+            0,
+            1,
+            "run prop engine as a preprocessing step "
+            "within a sequential portfolio "
+            "(QF_BV only!)");
+  init_opt (btor,
             BTOR_OPT_FUN_DUAL_PROP,
             false,
             true,
@@ -568,6 +580,16 @@ btor_init_opts (Btor *btor)
             "use bandit scheme for constraint selection");
 
   /* PROP engine ---------------------------------------------------------- */
+  init_opt (btor,
+            BTOR_OPT_PROP_NPROPS,
+            false,
+            false,
+            "prop:nprops",
+            0,
+            0,
+            0,
+            UINT_MAX,
+            "number of propagation steps used as a limit for prop engine");
   init_opt (btor,
             BTOR_OPT_PROP_USE_RESTARTS,
             false,
