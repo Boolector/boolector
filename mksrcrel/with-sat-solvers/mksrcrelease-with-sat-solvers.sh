@@ -1,6 +1,6 @@
 #!/bin/sh
 die () {
-  echo "*** mksrcrelease-with-sat-solver: $*" 1>&2
+  echo "*** mksrcrelease-with-sat-solver.sh: $*" 1>&2
   exit 1
 }
 minisat=yes
@@ -8,7 +8,7 @@ while [ $# -gt 0 ]
 do
   case $1 in
     -h|--help) 
-      echo "usage: mksrcrelease-with-sat-solvers [-h][--no-minisat]"
+      echo "usage: mksrcrelease-with-sat-solvers.sh [-h][--no-minisat]"
       exit 0
       ;;
     --no-minisat)
@@ -20,6 +20,8 @@ do
   esac
   shift
 done
+[ -f src/boolector.h ] || die "need to be called from 'src'"
+cd mksrcrel/with-sat-solvers
 version=`cat ../../VERSION`
 name=boolector-${version}-with-sat-solvers
 tmp=/tmp/$name
@@ -30,7 +32,7 @@ mkdir $tmp || exit 1
 cp build.sh clean.sh makefile README $tmp
 mkdir $tmp/archives || exit 1
 cd ../..
-./srcrel/mksrcrel >> $log
+./mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in picosat lingeling

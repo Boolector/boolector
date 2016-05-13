@@ -63,7 +63,7 @@ cp -p \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
 $dir/src
 
-for subdir in btorfmt dumper mcapi parser simplifier utils
+for subdir in dumper mcapi parser simplifier utils
 do
   mkdir $dir/src/$subdir/
   cp -p $subdir/*.[ch] $dir/src/$subdir/
