@@ -1474,20 +1474,21 @@ sat_ef_solver (BtorEFSolver *slv)
 
   /* simplify formula and normalize quantifiers */
   btor_simplify (slv->btor);
-  uvars_map     = btor_new_node_map (slv->btor);
-  rev_uvars_map = btor_new_node_map (slv->btor);
+  //  uvars_map = btor_new_node_map (slv->btor);
+  //  rev_uvars_map = btor_new_node_map (slv->btor);
 
-  g         = btor_normalize_quantifiers (slv->btor);
-  dual_g    = btor_normalize_quantifiers_node (slv->btor, BTOR_INVERT_NODE (g));
-  gslv      = setup_efg_solvers (slv, g);
-  dual_gslv = setup_efg_solvers (slv, dual_g);
+  g = btor_normalize_quantifiers (slv->btor);
+  //  dual_g = btor_normalize_quantifiers_node (slv->btor, BTOR_INVERT_NODE
+  //  (g));
+  gslv = setup_efg_solvers (slv, g);
+  //  dual_gslv = setup_efg_solvers (slv, dual_g);
   btor_release_exp (slv->btor, g);
-  btor_release_exp (slv->btor, dual_g);
-  map_vars (gslv, dual_gslv, uvars_map, rev_uvars_map);
+  //  btor_release_exp (slv->btor, dual_g);
+  //  map_vars (gslv, dual_gslv, uvars_map, rev_uvars_map);
 
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (gslv->forall_formula));
-  btor_assume_exp (dual_gslv->forall,
-                   BTOR_INVERT_NODE (dual_gslv->forall_formula));
+  //  btor_assume_exp (dual_gslv->forall,
+  //		   BTOR_INVERT_NODE (dual_gslv->forall_formula));
   while (true)
   {
     res = find_model (slv, gslv);
@@ -1531,11 +1532,11 @@ sat_ef_solver (BtorEFSolver *slv)
       delete_exists_model (map);
     }
 #endif
-  btor_delete_node_map (uvars_map);
-  btor_delete_node_map (rev_uvars_map);
+  //  btor_delete_node_map (uvars_map);
+  //  btor_delete_node_map (rev_uvars_map);
   slv->btor->last_sat_result = res;
   delete_efg_solvers (slv, gslv);
-  delete_efg_solvers (slv, dual_gslv);
+  //  delete_efg_solvers (slv, dual_gslv);
   return res;
 }
 
