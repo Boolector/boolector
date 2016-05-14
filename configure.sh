@@ -70,7 +70,7 @@ Disable compilation of specific SAT solver back-ends:
   --only-picosat    only use PicoSAT
   --only-minisat    only use MiniSAT
 
-You might also want to sue the environment variables
+You might also want to use the environment variables
 CC and CXX to specify the used C and C++ compiler, as in
 
   CC=gcc-4.4 CXX=g++-4.4 ./configure.sh
