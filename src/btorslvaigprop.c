@@ -144,10 +144,10 @@ generate_model_from_aig_model (Btor *btor)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
     btor_add_int_hash_table (cache, real_cur->id);
-    if (BTOR_IS_BV_CONST_NODE (real_cur))
+    if (btor_is_bv_const_node (real_cur))
       btor_add_to_bv_model (
           btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
-    if (BTOR_IS_BV_VAR_NODE (real_cur))
+    if (btor_is_bv_var_node (real_cur))
     {
       bv = get_assignment_bv (btor->mm, real_cur, aprop->model);
       btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);

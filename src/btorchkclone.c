@@ -467,7 +467,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
 
-  if (BTOR_IS_BV_CONST_NODE (real_exp))
+  if (btor_is_bv_const_node (real_exp))
   {
     assert (btor_const_get_bits (real_exp)->width
             == btor_const_get_bits (real_clone)->width);
@@ -495,7 +495,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (parents);
   BTOR_CHKCLONE_EXP (arity);
 
-  if (!BTOR_IS_FUN_NODE (real_exp))
+  if (!btor_is_fun_node (real_exp))
   {
     if (real_exp->av)
     {
@@ -515,12 +515,12 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXPPTAG (first_parent);
   BTOR_CHKCLONE_EXPPTAG (last_parent);
 
-  if (BTOR_IS_PROXY_NODE (real_exp)) return;
+  if (btor_is_proxy_node (real_exp)) return;
 
-  if (!BTOR_IS_BV_CONST_NODE (real_exp))
+  if (!btor_is_bv_const_node (real_exp))
   {
-    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_UF_NODE (real_exp)
-        && !BTOR_IS_PARAM_NODE (real_exp))
+    if (!btor_is_bv_var_node (real_exp) && !btor_is_uf_node (real_exp)
+        && !btor_is_param_node (real_exp))
     {
       if (real_exp->arity)
       {
@@ -528,7 +528,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       }
     }
 
-    if (BTOR_IS_SLICE_NODE (real_exp))
+    if (btor_is_slice_node (real_exp))
     {
       assert (btor_slice_get_upper (real_exp)
               == btor_slice_get_upper (real_clone));
@@ -544,7 +544,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   }
 
 #if 0
-  if (BTOR_IS_FUN_NODE (real_exp))
+  if (btor_is_fun_node (real_exp))
     {
       BTOR_CHKCLONE_EXP (index_len);
       BTOR_CHKCLONE_EXPPTAG (first_aeq_acond_parent);
@@ -561,7 +561,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     }
 #endif
 
-  if (BTOR_IS_PARAM_NODE (real_exp))
+  if (btor_is_param_node (real_exp))
   {
     if (btor_param_is_bound (real_exp))
     {
@@ -584,7 +584,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       assert (!((BtorParamNode *) real_clone)->assigned_exp);
   }
 
-  if (BTOR_IS_LAMBDA_NODE (real_exp))
+  if (btor_is_lambda_node (real_exp))
   {
     if (btor_lambda_get_static_rho (real_exp))
     {

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -136,7 +136,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
     var = BTOR_POP_STACK (vars);
     assert (BTOR_IS_REGULAR_NODE (var));
-    assert (BTOR_IS_BV_VAR_NODE (var));
+    assert (btor_is_bv_var_node (var));
     btor_init_parent_iterator (&it, var);
     /* find all slices on variable */
     while (btor_has_next_parent_iterator (&it))

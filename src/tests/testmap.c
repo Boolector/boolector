@@ -2,7 +2,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -106,7 +106,7 @@ test_map1_mapper (Btor *btor, void *state, BtorNode *node)
   (void) state;
   assert (btor == g_btor);
   assert (BTOR_IS_REGULAR_NODE (node));
-  if (!BTOR_IS_BV_VAR_NODE (node)) return 0;
+  if (!btor_is_bv_var_node (node)) return 0;
   symbol = btor_get_symbol_exp (btor, node);
   assert (symbol);
   return btor_int_exp (btor, atoi (symbol), 8);

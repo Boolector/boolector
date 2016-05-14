@@ -78,11 +78,11 @@ btor_get_fun_model_str_aux (Btor *btor,
   BtorBitVectorTuple *t;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (BTOR_IS_FUN_NODE (exp));
+  assert (btor_is_fun_node (exp));
 
   model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
-  if ((BTOR_IS_LAMBDA_NODE (exp) && btor_get_fun_arity (btor, exp) > 1)
+  if ((btor_is_lambda_node (exp) && btor_get_fun_arity (btor, exp) > 1)
       || !(*fun_model) || !model)
   {
     *size = 0;
@@ -271,7 +271,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     BTOR_NEWN (btor->mm, s, 40);
     sprintf (s,
              "%s%d",
-             BTOR_IS_UF_ARRAY_NODE (node) ? "a" : "uf",
+             btor_is_uf_array_node (node) ? "a" : "uf",
              ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
                                             : node->id);
   }
@@ -281,7 +281,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   /* fun param sorts */
   node = btor_simplify_exp (btor, node);
   assert (BTOR_IS_REGULAR_NODE (node));
-  assert (BTOR_IS_FUN_NODE (node));
+  assert (btor_is_fun_node (node));
   btor_init_tuple_sort_iterator (
       &iit, sorts, btor_get_domain_fun_sort (sorts, node->sort_id));
   x = 0;
@@ -420,7 +420,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur))))
+    if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else
       print_bv_model (btor, cur, format, base, file);
@@ -495,7 +495,7 @@ print_fun_value_smt2 (
     BTOR_NEWN (btor->mm, s, 40);
     sprintf (s,
              "%s%d",
-             BTOR_IS_UF_ARRAY_NODE (node) ? "a" : "uf",
+             btor_is_uf_array_node (node) ? "a" : "uf",
              ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
                                             : node->id);
   }
@@ -570,7 +570,7 @@ btor_print_value (
   int base;
 
   base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
-  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp))))
+  if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
     print_fun_value (btor, exp, exp_str, format, base, file);
   else
     print_bv_value (btor, exp, exp_str, format, base, file);

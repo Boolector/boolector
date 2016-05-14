@@ -493,7 +493,7 @@ clone_exp (Btor *btor,
   memcpy (res, exp, exp->bytes);
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
-  if (BTOR_IS_BV_CONST_NODE (exp))
+  if (btor_is_bv_const_node (exp))
   {
     bits = btor_copy_bv (mm, btor_const_get_bits (exp));
     btor_const_set_bits (res, bits);
@@ -506,7 +506,7 @@ clone_exp (Btor *btor,
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
-  if (BTOR_IS_FUN_NODE (exp))
+  if (btor_is_fun_node (exp))
   {
     if (exp_layer_only)
       res->rho = 0;
@@ -519,28 +519,25 @@ clone_exp (Btor *btor,
   else if (exp->av)
     res->av = exp_layer_only ? 0 : btor_clone_aigvec (exp->av, clone->avmgr);
 
-  assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
+  assert (!exp->next || !btor_is_invalid_node (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
 
-  assert (!exp->simplified
-          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->simplified)));
+  assert (!exp->simplified || !btor_is_invalid_node (exp->simplified));
   BTOR_PUSH_STACK_IF (exp->simplified, mm, *nodes, &res->simplified);
 
   res->btor = clone;
 
-  assert (!exp->first_parent
-          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->first_parent)));
-  assert (!exp->last_parent
-          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->last_parent)));
+  assert (!exp->first_parent || !btor_is_invalid_node (exp->first_parent));
+  assert (!exp->last_parent || !btor_is_invalid_node (exp->last_parent));
 
   BTOR_PUSH_STACK_IF (exp->first_parent, mm, *parents, &res->first_parent);
   BTOR_PUSH_STACK_IF (exp->last_parent, mm, *parents, &res->last_parent);
   /* <---------------------------------------------------------------------- */
 
   /* ------------ BTOR_BV_ADDITIONAL_VAR_NODE_STRUCT (all nodes) ----------> */
-  if (!BTOR_IS_BV_CONST_NODE (exp))
+  if (!btor_is_bv_const_node (exp))
   {
-    if (!BTOR_IS_BV_VAR_NODE (exp) && !BTOR_IS_PARAM_NODE (exp))
+    if (!btor_is_bv_var_node (exp) && !btor_is_param_node (exp))
     {
       if (exp->arity)
       {
@@ -555,11 +552,9 @@ clone_exp (Btor *btor,
       for (i = 0; i < exp->arity; i++)
       {
         assert (!exp->prev_parent[i]
-                || !BTOR_IS_INVALID_NODE (
-                       BTOR_REAL_ADDR_NODE (exp->prev_parent[i])));
+                || !btor_is_invalid_node (exp->prev_parent[i]));
         assert (!exp->next_parent[i]
-                || !BTOR_IS_INVALID_NODE (
-                       BTOR_REAL_ADDR_NODE (exp->next_parent[i])));
+                || !btor_is_invalid_node (exp->next_parent[i]));
 
         BTOR_PUSH_STACK_IF (
             exp->prev_parent[i], mm, *parents, &res->prev_parent[i]);
@@ -570,14 +565,13 @@ clone_exp (Btor *btor,
   }
   /* <---------------------------------------------------------------------- */
 
-  if (BTOR_IS_PARAM_NODE (exp))
+  if (btor_is_param_node (exp))
   {
     param = (BtorParamNode *) exp;
     assert (!btor_param_is_bound (exp)
-            || !BTOR_IS_INVALID_NODE (btor_param_get_binder (exp)));
-    assert (
-        !param->assigned_exp
-        || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->assigned_exp)));
+            || !btor_is_invalid_node (btor_param_get_binder (exp)));
+    assert (!param->assigned_exp
+            || !btor_is_invalid_node (param->assigned_exp));
 
     BTOR_PUSH_STACK_IF (param->binder,
                         mm,
@@ -589,16 +583,15 @@ clone_exp (Btor *btor,
                         (BtorNode **) &((BtorParamNode *) res)->assigned_exp);
   }
 
-  if (BTOR_IS_BINDER_NODE (exp))
+  if (btor_is_binder_node (exp))
   {
-    if (BTOR_IS_LAMBDA_NODE (exp) && btor_lambda_get_static_rho (exp))
+    if (btor_is_lambda_node (exp) && btor_lambda_get_static_rho (exp))
     {
       BTOR_PUSH_STACK (mm, *static_rhos, res);
       BTOR_PUSH_STACK (mm, *static_rhos, exp);
     }
     assert (!btor_binder_get_body (exp)
-            || !BTOR_IS_INVALID_NODE (
-                   BTOR_REAL_ADDR_NODE (btor_binder_get_body (exp))));
+            || !btor_is_invalid_node (btor_binder_get_body (exp)));
     BTOR_PUSH_STACK_IF (btor_binder_get_body (exp),
                         mm,
                         *nodes,
@@ -723,8 +716,8 @@ clone_nodes_id_table (Btor *btor,
   {
     exp        = BTOR_POP_STACK (static_rhos);
     cloned_exp = BTOR_POP_STACK (static_rhos);
-    assert (BTOR_IS_LAMBDA_NODE (exp));
-    assert (BTOR_IS_LAMBDA_NODE (cloned_exp));
+    assert (btor_is_lambda_node (exp));
+    assert (btor_is_lambda_node (cloned_exp));
     t = btor_lambda_get_static_rho (exp);
     assert (t);
     btor_lambda_set_static_rho (
@@ -1011,7 +1004,7 @@ clone_aux_btor (Btor *btor,
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
     allocated += cur->bytes;
-    if (BTOR_IS_BV_CONST_NODE (cur))
+    if (btor_is_bv_const_node (cur))
     {
       allocated += MEM_BITVEC (btor_const_get_bits (cur));
       if (btor_const_get_invbits (cur))
@@ -1019,10 +1012,10 @@ clone_aux_btor (Btor *btor,
     }
     if (!exp_layer_only)
     {
-      if (!BTOR_IS_FUN_NODE (cur) && cur->av)
+      if (!btor_is_fun_node (cur) && cur->av)
         allocated += sizeof (*(cur->av)) + cur->av->len * sizeof (BtorAIG *);
     }
-    if (BTOR_IS_LAMBDA_NODE (cur) && btor_lambda_get_static_rho (cur))
+    if (btor_is_lambda_node (cur) && btor_lambda_get_static_rho (cur))
       allocated += MEM_PTR_HASH_TABLE (btor_lambda_get_static_rho (cur));
   }
   /* Note: hash table is initialized with size 1 */
@@ -1182,8 +1175,8 @@ clone_aux_btor (Btor *btor,
   {
     exp        = BTOR_POP_STACK (rhos);
     cloned_exp = BTOR_POP_STACK (rhos);
-    assert (BTOR_IS_FUN_NODE (exp));
-    assert (BTOR_IS_FUN_NODE (cloned_exp));
+    assert (btor_is_fun_node (exp));
+    assert (btor_is_fun_node (cloned_exp));
     assert (exp->rho);
     cloned_exp->rho = btor_clone_ptr_hash_table (mm,
                                                  exp->rho,
@@ -1618,7 +1611,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
     else
     {
       assert (!btor_mapped_node (exp_map, cur));
-      assert (!BTOR_IS_PROXY_NODE (cur));
+      assert (!btor_is_proxy_node (cur));
       for (i = 0; i < cur->arity; i++)
       {
         e[i] = btor_mapped_node (exp_map, cur->e[i]);
@@ -1679,8 +1672,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
                                       btor_slice_get_lower (cur));
           break;
         case BTOR_AND_NODE: cur_clone = btor_and_exp (clone, e[0], e[1]); break;
-        case BTOR_BEQ_NODE:
-        case BTOR_FEQ_NODE: cur_clone = btor_eq_exp (clone, e[0], e[1]); break;
+        case BTOR_BV_EQ_NODE:
+        case BTOR_FUN_EQ_NODE:
+          cur_clone = btor_eq_exp (clone, e[0], e[1]);
+          break;
         case BTOR_ADD_NODE: cur_clone = btor_add_exp (clone, e[0], e[1]); break;
         case BTOR_MUL_NODE: cur_clone = btor_mul_exp (clone, e[0], e[1]); break;
         case BTOR_ULT_NODE: cur_clone = btor_ult_exp (clone, e[0], e[1]); break;
@@ -1716,7 +1711,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_forall_exp (clone, e[0], e[1]);
           break;
         default:
-          assert (BTOR_IS_BV_COND_NODE (cur));
+          assert (btor_is_bv_cond_node (cur));
           cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
       }
       btor_map_node (exp_map, cur, cur_clone);

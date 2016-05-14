@@ -53,7 +53,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
     {
       btor_add_int_hash_map (map, real_cur->id);
 
-      if (BTOR_IS_FORALL_NODE (real_cur)) BTOR_PUSH_STACK (mm, quants, cur);
+      if (btor_is_forall_node (real_cur)) BTOR_PUSH_STACK (mm, quants, cur);
 
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
@@ -67,7 +67,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
 
       if (real_cur->arity == 0)
       {
-        if (BTOR_IS_PARAM_NODE (real_cur))
+        if (btor_is_param_node (real_cur))
         {
           symbol = btor_get_symbol_exp (btor, real_cur);
           buf    = 0;
@@ -131,16 +131,16 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
         else
           result = btor_copy_exp (btor, real_cur);
       }
-      else if (BTOR_IS_SLICE_NODE (real_cur))
+      else if (btor_is_slice_node (real_cur))
       {
         result = btor_slice_exp (btor,
                                  e[0],
                                  btor_slice_get_upper (real_cur),
                                  btor_slice_get_lower (real_cur));
       }
-      else if (BTOR_IS_EXISTS_NODE (real_cur))
+      else if (btor_is_exists_node (real_cur))
       {
-        assert (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])));
+        assert (!btor_is_param_node (e[0]));
         result = btor_copy_exp (btor, e[1]);
       }
       else
@@ -151,14 +151,14 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
       d->as_ptr = btor_copy_exp (btor, result);
     PUSH_RESULT:
 
-      if (BTOR_IS_FORALL_NODE (real_cur))
+      if (btor_is_forall_node (real_cur))
       {
         quant = BTOR_POP_STACK (quants);
         assert (quant == cur);
       }
 
       result = BTOR_COND_INVERT_NODE (cur, result);
-      assert (!BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (result))
+      assert (!btor_is_quantifier_node (result)
               || !BTOR_IS_INVERTED_NODE (result));
       BTOR_PUSH_STACK (mm, args, result);
     }
@@ -236,7 +236,7 @@ btor_skolemize (Btor *btor)
     {
       (void) btor_add_int_hash_map (cache, cur->id);
 
-      if (BTOR_IS_FORALL_NODE (cur)) BTOR_PUSH_STACK (mm, quants, cur);
+      if (btor_is_forall_node (cur)) BTOR_PUSH_STACK (mm, quants, cur);
 
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
@@ -245,12 +245,12 @@ btor_skolemize (Btor *btor)
     {
       d->as_int = 1;
 
-      if (BTOR_IS_FORALL_NODE (cur))
+      if (btor_is_forall_node (cur))
       {
         quant = BTOR_POP_STACK (quants);
         assert (quant == cur);
       }
-      else if (BTOR_IS_EXISTS_NODE (cur) && BTOR_COUNT_STACK (quants) > 0)
+      else if (btor_is_exists_node (cur) && BTOR_COUNT_STACK (quants) > 0)
       {
         param = cur->e[0];
         for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
@@ -295,7 +295,7 @@ btor_skolemize (Btor *btor)
   {
     cur = btor_next_node_hash_table_iterator (&it);
 
-    if (BTOR_IS_FORALL_NODE (cur)) continue;
+    if (btor_is_forall_node (cur)) continue;
 
     /* exists quanftifier in most outer scope */
     if (!btor_mapped_node (map, cur->e[0])) continue;

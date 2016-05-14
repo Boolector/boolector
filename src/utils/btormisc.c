@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -65,7 +65,7 @@ node2string (BtorNode *exp)
         strbuf, cur_len, new_len, " %d", BTOR_GET_ID_NODE (real_exp->e[i]));
   }
 
-  if (BTOR_IS_SLICE_NODE (real_exp))
+  if (btor_is_slice_node (real_exp))
   {
     new_len += btor_num_digits_util (btor_slice_get_upper (exp));
     new_len += btor_num_digits_util (btor_slice_get_lower (exp));
@@ -77,8 +77,8 @@ node2string (BtorNode *exp)
                btor_slice_get_upper (exp),
                btor_slice_get_lower (exp));
   }
-  else if ((BTOR_IS_BV_VAR_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp)
-            || BTOR_IS_PARAM_NODE (real_exp))
+  else if ((btor_is_bv_var_node (real_exp) || btor_is_uf_node (real_exp)
+            || btor_is_param_node (real_exp))
            && (tmp = btor_get_symbol_exp (btor, real_exp)))
   {
     new_len += strlen (tmp);
@@ -86,7 +86,7 @@ node2string (BtorNode *exp)
     BUFCONCAT (strbuf, cur_len, new_len, " %s", tmp);
   }
   // FIXME: len exceeds buf
-  //  else if (BTOR_IS_BV_CONST_NODE (exp))
+  //  else if (btor_is_bv_const_node (exp))
   //    sprintf (strbuf, "%s %s", strbuf, exp->bits);
 
   assert (cur_len == strlen (strbuf));

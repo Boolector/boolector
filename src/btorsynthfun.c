@@ -171,16 +171,16 @@ eval (Btor *btor,
 
       BTOR_PUSH_STACK (mm, visit, cur);
 
-      if (BTOR_IS_APPLY_NODE (real_cur)) continue;
+      if (btor_is_apply_node (real_cur)) continue;
 
       for (i = real_cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
     }
     else if (!d->as_ptr)
     {
-      assert (!BTOR_IS_FUN_NODE (real_cur));
+      assert (!btor_is_fun_node (real_cur));
 
-      if (!BTOR_IS_APPLY_NODE (real_cur))
+      if (!btor_is_apply_node (real_cur))
       {
         arg_stack.top -= real_cur->arity;
         bv = arg_stack.top;
@@ -219,7 +219,7 @@ eval (Btor *btor,
           {
             arg = btor_next_args_iterator (&it);
             assert (BTOR_IS_REGULAR_NODE (arg));
-            assert (BTOR_IS_PARAM_NODE (arg));
+            assert (btor_is_param_node (arg));
             assert (btor_get_int_hash_map (param_map, arg->id));
             pos = btor_get_int_hash_map (param_map, arg->id)->as_int;
             assert (pos >= 0);
@@ -241,7 +241,7 @@ eval (Btor *btor,
 
         case BTOR_AND_NODE: result = btor_and_bv (mm, bv[0], bv[1]); break;
 
-        case BTOR_BEQ_NODE: result = btor_eq_bv (mm, bv[0], bv[1]); break;
+        case BTOR_BV_EQ_NODE: result = btor_eq_bv (mm, bv[0], bv[1]); break;
 
         case BTOR_ADD_NODE: result = btor_add_bv (mm, bv[0], bv[1]); break;
 
@@ -262,14 +262,14 @@ eval (Btor *btor,
           break;
 
         default:
-          assert (real_cur->kind == BTOR_BCOND_NODE);
+          assert (real_cur->kind == BTOR_COND_NODE);
           if (btor_is_true_bv (bv[0]))
             result = btor_copy_bv (mm, bv[1]);
           else
             result = btor_copy_bv (mm, bv[2]);
       }
 
-      if (!BTOR_IS_APPLY_NODE (real_cur))
+      if (!btor_is_apply_node (real_cur))
       {
         for (i = 0; i < real_cur->arity; i++) btor_free_bv (mm, bv[i]);
       }
@@ -402,7 +402,7 @@ add_exp (Btor *btor,
     sig_matches = 0;                                                 \
     num_checks++;                                                    \
     cur_num_checks++;                                                \
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (EXP))            \
+    if (btor_is_bv_const_node (EXP)                                  \
         || btor_contains_int_hash_table (cache, id))                 \
     {                                                                \
       btor_release_exp (btor, EXP);                                  \
@@ -606,16 +606,15 @@ btor_synthesize_fun (Btor *btor,
       p = btor_next_node_hash_table_iterator (&hit);
       assert (BTOR_IS_REGULAR_NODE (p));
 
-      if (BTOR_IS_UF_NODE (p))
+      if (btor_is_uf_node (p))
       {
-        assert (BTOR_IS_UF_NODE (p));
         assert (btor_get_fun_arity (btor, p) == BTOR_COUNT_STACK (params));
         candidate_exp = btor_apply_exps (
             btor, params.start, btor_get_fun_arity (btor, p), p);
       }
       else
       {
-        assert (BTOR_IS_BV_VAR_NODE (p));
+        assert (btor_is_bv_var_node (p));
         candidate_exp = btor_copy_exp (btor, p);
       }
       //	  printf ("check: %s\n", node2string (candidate_exp));

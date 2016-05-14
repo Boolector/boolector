@@ -20,7 +20,7 @@ static BtorNode *
 push_down_quantifier (Btor *btor, BtorNode *quantifier)
 {
   assert (BTOR_IS_REGULAR_NODE (quantifier));
-  assert (BTOR_IS_QUANTIFIER_NODE (quantifier));
+  assert (btor_is_quantifier_node (quantifier));
 
   int i;
   BtorNode *param, *body, *real_body, *cur, *real_cur, *and, *e[2], *t;
@@ -37,7 +37,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
   body      = btor_binder_get_body (quantifier);
   real_body = BTOR_REAL_ADDR_NODE (body);
   /* cannot push down quantifier */
-  if (!body || !BTOR_IS_AND_NODE (real_body)) return 0;
+  if (!body || !btor_is_and_node (real_body)) return 0;
 
   cache = btor_new_int_hash_table (mm);
   map   = btor_new_int_hash_map (mm);
@@ -61,7 +61,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
     assert (real_cur->parameterized);
 
     // TODO (ma): push over quantifiers of same kind?
-    if (!BTOR_IS_AND_NODE (real_cur))
+    if (!btor_is_and_node (real_cur))
     {
       //	  printf ("  no and\n");
       BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, cur));
@@ -105,7 +105,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 	   */
 	  else
 #endif
-      if (BTOR_IS_FORALL_NODE_KIND (cur_kind) && !BTOR_IS_INVERTED_NODE (cur))
+      if (cur_kind == BTOR_FORALL_NODE && !BTOR_IS_INVERTED_NODE (cur))
       {
         //	      printf ("  push forall\n");
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
@@ -113,8 +113,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
         BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
         BTOR_PUSH_STACK (mm, kind, cur_kind);
       }
-      else if (BTOR_IS_EXISTS_NODE_KIND (cur_kind)
-               && BTOR_IS_INVERTED_NODE (cur))
+      else if (cur_kind == BTOR_EXISTS_NODE && BTOR_IS_INVERTED_NODE (cur))
       {
         //	      printf ("  push exists\n");
         //	      cur_kind = INV_KIND (cur_kind);

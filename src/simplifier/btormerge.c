@@ -120,7 +120,7 @@ btor_merge_lambdas (Btor *btor)
         || lambda->parents == 0
         /* case lambda->parents == 1 */
         || (!parent->parameterized
-            && (BTOR_IS_APPLY_NODE (parent) || BTOR_IS_FEQ_NODE (parent))))
+            && (btor_is_apply_node (parent) || btor_is_fun_eq_node (parent))))
     {
       BTOR_PUSH_STACK (mm, stack, lambda);
       continue;
@@ -145,11 +145,11 @@ btor_merge_lambdas (Btor *btor)
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
       if (btor_contains_int_hash_table (mark, cur->id)
-          || (!BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized)
+          || (!btor_is_lambda_node (cur) && !cur->parameterized)
           || !cur->lambda_below)
         continue;
 
-      if (BTOR_IS_LAMBDA_NODE (cur))
+      if (btor_is_lambda_node (cur))
       {
         /* lambdas with more than one parents cannot be merged */
         if (cur->parents > 1)

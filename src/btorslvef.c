@@ -149,7 +149,7 @@ setup_efg_solvers (BtorEFSolver *slv, BtorNode *root)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_FORALL_NODE (cur));
+    assert (btor_is_forall_node (cur));
     param = cur->e[0];
     symbol =
         btor_strdup (res->forall->mm, btor_get_symbol_exp (res->forall, param));
@@ -169,7 +169,7 @@ setup_efg_solvers (BtorEFSolver *slv, BtorNode *root)
   root = tmp;
 
   res->forall_formula = root;
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (root)));
+  assert (!btor_is_proxy_node (root));
   assert (!BTOR_REAL_ADDR_NODE (root)->quantifier_below);
   res->forall_evars        = evars;
   res->forall_uvars        = uvars;
@@ -306,7 +306,7 @@ build_refinement (Btor *f_solver,
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    assert (!BTOR_IS_PROXY_NODE (real_cur));
+    assert (!btor_is_proxy_node (real_cur));
 
     if ((result = btor_mapped_node (map, real_cur)))
     {
@@ -327,12 +327,12 @@ build_refinement (Btor *f_solver,
       args.top -= real_cur->arity;
       e = args.top;
 
-      if (BTOR_IS_BV_CONST_NODE (real_cur))
+      if (btor_is_bv_const_node (real_cur))
       {
         result = btor_const_exp (e_solver, btor_const_get_bits (real_cur));
       }
-      else if (BTOR_IS_BV_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
-               || BTOR_IS_UF_NODE (real_cur))
+      else if (btor_is_bv_var_node (real_cur) || btor_is_param_node (real_cur)
+               || btor_is_uf_node (real_cur))
       {
         symbol = btor_get_symbol_exp (f_solver, real_cur);
         if (symbol && (result = btor_get_node_by_symbol (e_solver, symbol)))
@@ -341,22 +341,22 @@ build_refinement (Btor *f_solver,
           assert (result->kind == real_cur->kind);
           result = btor_copy_exp (e_solver, result);
         }
-        else if (BTOR_IS_BV_VAR_NODE (real_cur))
+        else if (btor_is_bv_var_node (real_cur))
           result = btor_var_exp (
               e_solver, btor_get_exp_width (f_solver, real_cur), symbol);
-        else if (BTOR_IS_PARAM_NODE (real_cur))
+        else if (btor_is_param_node (real_cur))
           result = btor_param_exp (
               e_solver, btor_get_exp_width (f_solver, real_cur), symbol);
         else
         {
-          assert (BTOR_IS_UF_NODE (real_cur));
+          assert (btor_is_uf_node (real_cur));
           sort = btor_recursively_rebuild_sort_clone (
               f_solver, e_solver, cur->sort_id);
           result = btor_uf_exp (e_solver, sort, symbol);
           btor_release_sort (&e_solver->sorts_unique_table, sort);
         }
       }
-      else if (BTOR_IS_SLICE_NODE (real_cur))
+      else if (btor_is_slice_node (real_cur))
       {
         result = btor_slice_exp (e_solver,
                                  e[0],
@@ -364,7 +364,7 @@ build_refinement (Btor *f_solver,
                                  btor_slice_get_lower (real_cur));
       }
 #if 0
-	  else if (0 && BTOR_IS_AND_NODE (real_cur)
+	  else if (0 && btor_is_and_node (real_cur)
 		   && btor_get_exp_width (f_solver, real_cur) == 1
 		   && (bv = btor_get_bv_model (f_solver, real_cur))
 		   && btor_is_false_bv (bv))
@@ -665,7 +665,7 @@ build_dependencies (BtorMemMgr *mm,
 
     btor_add_int_hash_table (cache, cur->id);
     /* only function applications on UFs are considered as inputs */
-    if (BTOR_IS_APPLY_NODE (cur) && BTOR_IS_UF_NODE (cur->e[0]))
+    if (btor_is_apply_node (cur) && btor_is_uf_node (cur->e[0]))
     {
       b = btor_get_ptr_hash_table (deps, cur->e[0]);
       if (!b)
@@ -796,8 +796,8 @@ check_input_prefix (Btor *btor, BtorNode *uf, BtorNode *cur_uf)
 {
   assert (BTOR_IS_REGULAR_NODE (uf));
   assert (BTOR_IS_REGULAR_NODE (cur_uf));
-  assert (BTOR_IS_UF_NODE (cur_uf));
-  assert (BTOR_IS_UF_NODE (cur_uf));
+  assert (btor_is_uf_node (cur_uf));
+  assert (btor_is_uf_node (cur_uf));
 
   uint32_t arity0, arity1;
   BtorArgsIterator it0, it1;
@@ -839,8 +839,8 @@ check_input_prefix (Btor *btor, BtorNode *uf, BtorNode *cur_uf)
   app1 = cur_uf->first_parent;
   assert (BTOR_IS_REGULAR_NODE (app0));
   assert (BTOR_IS_REGULAR_NODE (app1));
-  assert (BTOR_IS_APPLY_NODE (app0));
-  assert (BTOR_IS_APPLY_NODE (app1));
+  assert (btor_is_apply_node (app0));
+  assert (btor_is_apply_node (app1));
 
   if (app0->e[1] == app1->e[1])
     return true;
@@ -864,7 +864,7 @@ static BtorPtrHashTable *
 prepare_inputs (BtorEFGroundSolvers *gslv, BtorNode *fs_uf, BtorNodeMap *model)
 {
   assert (BTOR_IS_REGULAR_NODE (fs_uf));
-  assert (BTOR_IS_UF_NODE (fs_uf));
+  assert (btor_is_uf_node (fs_uf));
 
   BtorNode *cur, *cur_fs, *cur_synth_fun;
   BtorHashTableIterator it;
@@ -897,7 +897,7 @@ prepare_inputs (BtorEFGroundSolvers *gslv, BtorNode *fs_uf, BtorNodeMap *model)
 
     if (cur_fs->id == fs_uf->id) continue;
 
-    if (BTOR_IS_UF_NODE (cur_fs)
+    if (btor_is_uf_node (cur_fs)
         && !check_input_prefix (f_solver, fs_uf, cur_fs))
       continue;
 
@@ -952,7 +952,7 @@ generate_lambda_model_from_fun_model (Btor *btor,
   assert (exp);
   assert (model);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_FUN_NODE (exp));
+  assert (btor_is_fun_node (exp));
 
   uint32_t i;
   BtorNode *uf, *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
@@ -1143,7 +1143,7 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
       printf ("exists %s := ", node2string (e_uf));
       btor_print_bv (bv);
 #endif
-      assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (e_uf_fs)));
+      assert (!btor_is_proxy_node (e_uf_fs));
       btor_map_node (model, e_uf_fs, btor_const_exp (f_solver, bv));
     }
     /* map skolem functions to resp. synthesized functions */
@@ -1289,7 +1289,7 @@ update_formula (BtorEFGroundSolvers *gslv)
   forall = gslv->forall;
   f      = gslv->forall_formula;
   /* update formula if changed via simplifications */
-  if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (f)))
+  if (btor_is_proxy_node (f))
   {
     g = btor_copy_exp (forall, btor_simplify_exp (forall, f));
     btor_release_exp (forall, f);
@@ -1345,7 +1345,7 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   start = btor_time_stamp ();
   map   = synthesize_model (slv, gslv);
   slv->time.synth += btor_time_stamp () - start;
-  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (gslv->forall_formula)));
+  assert (!btor_is_proxy_node (gslv->forall_formula));
   g = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
   btor_release_exp (gslv->forall, g);

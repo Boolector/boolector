@@ -434,7 +434,7 @@ boolector_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
   BTOR_MC_CHECK_OWNS_NODE_ARG (init);
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (init)));
+  assert (boolector_is_const (mc->btor, init));
   btor = mc->btor;
   assert (boolector_get_width (btor, node) == boolector_get_width (btor, init));
   latch = btor_find_mc_latch (mc, node);
