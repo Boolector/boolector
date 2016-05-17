@@ -23,14 +23,14 @@ rm -rf $dir
 #rm -rf $dir
 #ls -l $archive
 
-# configuration QF_ABV, QF_UFBV, QF_AUFBV, BV, UFBV, QF_BV
-archive=${version}-main.tar.gz
+# configuration QF_BV
+archive=${version}-preprop.tar.gz
 mkdir $dir
 mkdir $dir/bin
 cp bin/boolector $dir/bin
 echo "#!/bin/sh
 
-./boolector -uc \$1" > $dir/bin/starexec_run_boolector
+./boolector -uc --fun:preprop --prop:nprops=1000 \$1" > $dir/bin/starexec_run_boolector
 
 tar -C $dir -zcf $archive .
 rm -rf $dir
