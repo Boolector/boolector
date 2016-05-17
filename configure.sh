@@ -8,6 +8,9 @@ log=unknown
 flto=no
 shared=no
 static=no
+
+ROOT=`dirname "$(readlink -f $0)"|sed -e 's, ,\\ ,g'`
+
 lingeling=yes
 minisat=unknown
 picosat=unknown
@@ -16,11 +19,10 @@ arch=unknown
 onlylingeling=no
 onlyminisat=no
 onlypicosat=no
+
 gcov=no
 gprof=no
 python=no
-
-ROOT="`pwd|sed -e 's, ,\\ ,g'`"
 
 #--------------------------------------------------------------------------#
 
@@ -70,7 +72,7 @@ Disable compilation of specific SAT solver back-ends:
   --only-picosat    only use PicoSAT
   --only-minisat    only use MiniSAT
 
-You might also want to sue the environment variables
+You might also want to use the environment variables
 CC and CXX to specify the used C and C++ compiler, as in
 
   CC=gcc-4.4 CXX=g++-4.4 ./configure.sh
@@ -225,19 +227,19 @@ then
   msg "not using PicoSAT"
 else
 
-  if [ -d ../picosat ]
+  if [ -d $ROOT/../picosat ]
   then
-    for path in ../picosat/picosat.o ../picosat/version.o allfound
+    for path in $ROOT/../picosat/picosat.o $ROOT/../picosat/version.o allfound
     do
       [ -f $path ] || break
     done
   else
-    path=../picosat
+    path=$ROOT/../picosat
   fi
 
   if [ $path = allfound ]
   then
-    msg "using PicoSAT in '../picosat'"
+    msg "using PicoSAT in '$ROOT/../picosat'"
     picosat=yes
   elif [ $picosat = yes ]
   then
@@ -257,13 +259,13 @@ else
     RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
     if [ $shared = yes ]		
     then
-      LIBS="${LIBS}-L../picosat -lpicosat"
-      LDEPS="${LDEPS}../picosat/libpicosat.so"
+      LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
+      LDEPS="${LDEPS}$ROOT/../picosat/libpicosat.so"
     else
-      LIBS="${LIBS}-L../picosat -lpicosat"
-      LDEPS="${LDEPS}../picosat/libpicosat.a"
+      LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
+      LDEPS="${LDEPS}$ROOT/../picosat/libpicosat.a"
     fi
-    INCS="${INCS}-I../picosat"
+    INCS="${INCS}-I$ROOT/../picosat"
   fi
 fi
 
@@ -274,19 +276,19 @@ then
   msg "not using Lingeling as requested by command line option"
 else
 
-  if [ -d ../lingeling ]
+  if [ -d $ROOT/../lingeling ]
   then
-    for path in ../lingeling/lglib.h ../lingeling/liblgl.a allfound
+    for path in $ROOT/../lingeling/lglib.h $ROOT/../lingeling/liblgl.a allfound
     do
       [ -f $path ] || break
     done
   else
-    path=../lingeling
+    path=$ROOT/../lingeling
   fi
 
   if [ $path = allfound ]
   then
-    msg "using Lingeling in '../lingeling'"
+    msg "using Lingeling in '$ROOT/../lingeling'"
     lingeling=yes
   elif [ $lingeling = yes ]
   then
@@ -304,25 +306,25 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING -DBTOR_ENABLE_BETA_REDUCTION_PROBING"
     [ $debug = yes ] && CFLAGS="$CFLAGS -DBTOR_CHECK_FAILED"
-    LIBS="${LIBS}-L../lingeling -llgl"
-    LDEPS="${LDEPS}../lingeling/liblgl.a"
+    LIBS="${LIBS}-L$ROOT/../lingeling -llgl"
+    LDEPS="${LDEPS}$ROOT/../lingeling/liblgl.a"
     LIBM=yes
-    INCS="${INCS}-I../lingeling"
+    INCS="${INCS}-I$ROOT/../lingeling"
   fi
 
-  if [ -d ../yalsat ]
+  if [ -d $ROOT/../yalsat ]
   then
-    for path in ../yalsat/yals.h ../yalsat/libyals.a allfound
+    for path in $ROOT/../yalsat/yals.h $ROOT/../yalsat/libyals.a allfound
     do
       [ -f $path ] || break
     done
   else
-    path=../yalsat
+    path=$ROOT/../yalsat
   fi
 
   if [ $path = allfound ]
   then
-    msg "using YalSAT in '../yalsat' too"
+    msg "using YalSAT in '$ROOT/../yalsat' too"
     yalsat=yes
   else
     msg "not using YalSAT"
@@ -333,23 +335,23 @@ else
   then
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-L../yalsat -lyals"
-    LDEPS="${LDEPS}../yalsat/libyals.a"
+    LIBS="${LIBS}-L$ROOT/../yalsat -lyals"
+    LDEPS="${LDEPS}$ROOT/../yalsat/libyals.a"
   fi
 
-  if [ -d ../druplig ]
+  if [ -d $ROOT/../druplig ]
   then
-    for path in ../druplig/druplig.h ../druplig/libdruplig.a allfound
+    for path in $ROOT/../druplig/druplig.h $ROOT/../druplig/libdruplig.a allfound
     do
       [ -f $path ] || break
     done
   else
-    path=../druplig
+    path=$ROOT/../druplig
   fi
 
   if [ $path = allfound ]
   then
-    msg "using Druplig in '../druplig' too"
+    msg "using Druplig in '$ROOT/../druplig' too"
     druplig=yes
   else
     msg "not using Druplig"
@@ -360,8 +362,8 @@ else
   then
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-L../druplig -ldruplig"
-    LDEPS="${LDEPS}../druplig/libdruplig.a"
+    LIBS="${LIBS}-L$ROOT/../druplig -ldruplig"
+    LDEPS="${LDEPS}$ROOT/../druplig/libdruplig.a"
   fi
 fi
 
@@ -373,10 +375,10 @@ then
 else
 
   for path in \
-    ../minisat \
-    ../minisat/minisat \
-    ../minisat/minisat/simp \
-    ../minisat/build/release \
+    $ROOT/../minisat \
+    $ROOT/../minisat/minisat \
+    $ROOT/../minisat/minisat/simp \
+    $ROOT/../minisat/build/release \
     allfound
   do
     [ -d $path ] || break
@@ -385,8 +387,8 @@ else
   if [ $path = allfound ]
   then
     for path in \
-      ../minisat/minisat/simp/SimpSolver.h \
-      ../minisat/build/release/lib/libminisat.a \
+      $ROOT/../minisat/minisat/simp/SimpSolver.h \
+      $ROOT/../minisat/build/release/lib/libminisat.a \
       allfound
     do
       [ -f $path ] || break
@@ -395,7 +397,7 @@ else
 
   if [ $path = allfound ]
   then
-    msg "using MiniSAT in '../minisat'"
+    msg "using MiniSAT in '$ROOT/../minisat'"
     minisat=yes
   elif [ $minisat = yes ]
   then
@@ -416,16 +418,16 @@ else
     RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
-      LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
+      LIBS="${LIBS}-L$ROOT/../minisat/build/dynamic/lib -lminisat"
+      LDEPS="${LDEPS}$ROOT/../minisat/build/dynamic/lib/libminisat.so"
     else
-      LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
-      LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+      LIBS="${LIBS}-L$ROOT/../minisat/build/release/lib -lminisat"
+      LDEPS="${LDEPS}$ROOT/../minisat/build/release/lib/libminisat.a"
     fi
     LIBSTDCPP=yes
     LIBZ=yes
     LIBM=yes
-    INCS="${INCS}-I../minisat"
+    INCS="${INCS}-I$ROOT/../minisat"
   fi
 
 fi
@@ -476,18 +478,18 @@ then
   py_inc_dirs=""
   if [ $lingeling = yes ]; then
     py_libraries="$py_libraries lgl"
-    py_library_dirs="$py_library_dirs ../lingeling"
-    py_inc_dirs="$py_inc_dirs ../lingeling"
+    py_library_dirs="$py_library_dirs $ROOT/../lingeling"
+    py_inc_dirs="$py_inc_dirs $ROOT/../lingeling"
   fi
   if [ $picosat = yes ]; then
     py_libraries="$py_libraries picosat"
-    py_library_dirs="$py_library_dirs ../picosat"
-    py_inc_dirs="$py_inc_dirs ../picosat"
+    py_library_dirs="$py_library_dirs $ROOT/../picosat"
+    py_inc_dirs="$py_inc_dirs $ROOT/../picosat"
   fi
   if [ $minisat = yes ]; then
     py_libraries="$py_libraries minisat"
-    py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
-    py_inc_dirs="$py_inc_dirs ../minisat/build/dynamic/lib"
+    py_library_dirs="$py_library_dirs $ROOT/../minisat/build/dynamic/lib"
+    py_inc_dirs="$py_inc_dirs $ROOT/../minisat/build/dynamic/lib"
   fi
   OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
@@ -572,5 +574,5 @@ sed \
   -e "s,@BINDIR@,$BINDIR," \
   -e "s,@TESTDIR@,$TESTDIR," \
   -e "s,@ROOT@,$ROOT,"\
-  makefile.in > makefile
+  $ROOT/makefile.in > $ROOT/makefile
 msg "makefile generated"
