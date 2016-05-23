@@ -3208,17 +3208,18 @@ btor_synthesize_exp (Btor *btor,
   int invert_av1 = 0;
   int invert_av2 = 0;
   double start;
-  bool restart;
+  bool restart, opt_lazy_synth;
   BtorIntHashTable *cache;
 
   assert (btor);
   assert (exp);
 
-  start = btor_time_stamp ();
-  mm    = btor->mm;
-  avmgr = btor->avmgr;
-  count = 0;
-  cache = btor_new_int_hash_table (mm);
+  start          = btor_time_stamp ();
+  mm             = btor->mm;
+  avmgr          = btor->avmgr;
+  count          = 0;
+  cache          = btor_new_int_hash_table (mm);
+  opt_lazy_synth = btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE) == 1;
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
@@ -3276,21 +3277,18 @@ btor_synthesize_exp (Btor *btor,
 
         /* continue synthesizing children for apply and feq nodes if
          * lazy_synthesize is disabled */
-        if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
-          goto PUSH_CHILDREN;
+        if (!opt_lazy_synth) goto PUSH_CHILDREN;
       }
       /* we stop at function nodes as they will be lazily synthesized and
        * encoded during consistency checking */
-      else if (btor_is_fun_node (cur)
-               && btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
+      else if (btor_is_fun_node (cur) && opt_lazy_synth)
       {
         continue;
       }
       else
       {
       PUSH_CHILDREN:
-        assert (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE)
-                || !btor_is_fun_node (cur));
+        assert (!opt_lazy_synth || !btor_is_fun_node (cur));
 
         btor_add_int_hash_table (cache, cur->id);
         BTOR_PUSH_STACK (mm, exp_stack, cur);
@@ -3320,7 +3318,7 @@ btor_synthesize_exp (Btor *btor,
     else if (!cur->parameterized && !btor_is_args_node (cur)
              && !btor_is_fun_node (cur))
     {
-      if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
+      if (!opt_lazy_synth)
       {
         /* due to pushing nodes from static_rho onto 'exp_stack' a strict
          * DFS order is not guaranteed anymore. hence, we have to check
@@ -3418,8 +3416,7 @@ btor_synthesize_exp (Btor *btor,
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
           if (invert_av1) btor_invert_aigvec (avmgr, av1);
         }
-        if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
-          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        if (!opt_lazy_synth) btor_aigvec_to_sat_tseitin (avmgr, cur->av);
       }
       else
       {
