@@ -3164,6 +3164,21 @@ btor_simplify (Btor *btor)
     }
 #endif
 
+    if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
+      continue;
+
+    if (btor_get_opt (btor, BTOR_OPT_UCOPT)
+        && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+        && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
+        && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
+    {
+      btor_optimize_unconstrained (btor);
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      if (btor->inconsistent) break;
+    }
+
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         /* FIXME: extraction not supported yet for extensional lambdas */
         && btor->feqs->count == 0
@@ -3179,21 +3194,6 @@ btor_simplify (Btor *btor)
         //	  && !btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
         && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
       btor_merge_lambdas (btor);
-
-    if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
-      continue;
-
-    if (btor_get_opt (btor, BTOR_OPT_UCOPT)
-        && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
-        && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
-    {
-      btor_optimize_unconstrained (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
-      if (btor->inconsistent) break;
-    }
 
     if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
       continue;
