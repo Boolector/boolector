@@ -315,97 +315,97 @@ is_ternary_node_kind (BtorNodeKind kind)
   return kind >= BTOR_COND_NODE;
 }
 
-bool
+inline bool
 btor_is_invalid_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_INVALID_NODE;
 }
 
-bool
+inline bool
 btor_is_proxy_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_PROXY_NODE;
 }
 
-bool
+inline bool
 btor_is_bv_const_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_CONST_NODE;
 }
 
-bool
+inline bool
 btor_is_bv_var_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_VAR_NODE;
 }
 
-bool
+inline bool
 btor_is_bv_eq_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_EQ_NODE;
 }
 
-bool
+inline bool
 btor_is_fun_eq_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_FUN_EQ_NODE;
 }
 
-bool
+inline bool
 btor_is_and_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_AND_NODE;
 }
 
-bool
+inline bool
 btor_is_ult_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ULT_NODE;
 }
 
-bool
+inline bool
 btor_is_add_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ADD_NODE;
 }
 
-bool
+inline bool
 btor_is_mul_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_MUL_NODE;
 }
 
-bool
+inline bool
 btor_is_udiv_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UDIV_NODE;
 }
 
-bool
+inline bool
 btor_is_urem_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UREM_NODE;
 }
 
-bool
+inline bool
 btor_is_slice_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_SLICE_NODE;
 }
 
-bool
+inline bool
 btor_is_concat_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_CONCAT_NODE;
 }
 
-bool
+inline bool
 btor_is_cond_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_COND_NODE;
 }
 
-bool
+inline bool
 btor_is_bv_cond_node (const BtorNode *exp)
 {
   return btor_is_cond_node (exp)
@@ -414,7 +414,7 @@ btor_is_bv_cond_node (const BtorNode *exp)
                 BTOR_REAL_ADDR_NODE (exp)->sort_id);
 }
 
-bool
+inline bool
 btor_is_fun_cond_node (const BtorNode *exp)
 {
   return btor_is_cond_node (exp)
@@ -423,82 +423,82 @@ btor_is_fun_cond_node (const BtorNode *exp)
                 BTOR_REAL_ADDR_NODE (exp)->sort_id);
 }
 
-bool
+inline bool
 btor_is_uf_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UF_NODE;
 }
 
-bool
+inline bool
 btor_is_array_node (const BtorNode *exp)
 {
   return BTOR_REAL_ADDR_NODE (exp)->is_array == 1;
 }
 
-bool
+inline bool
 btor_is_lambda_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_LAMBDA_NODE;
 }
 
-bool
+inline bool
 btor_is_fun_node (const BtorNode *exp)
 {
   return btor_is_lambda_node (exp) || btor_is_uf_node (exp)
          || btor_is_fun_cond_node (exp);
 }
 
-bool
+inline bool
 btor_is_uf_array_node (const BtorNode *exp)
 {
   return btor_is_uf_node (exp)
          && ((BtorUFNode *) BTOR_REAL_ADDR_NODE (exp))->is_array;
 }
 
-bool
+inline bool
 btor_is_param_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_PARAM_NODE;
 }
 
-bool
+inline bool
 btor_is_args_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ARGS_NODE;
 }
 
-bool
+inline bool
 btor_is_apply_node (const BtorNode *exp)
 {
   return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_APPLY_NODE;
 }
 
-bool
+inline bool
 btor_is_array_or_bv_eq_node (const BtorNode *exp)
 {
   return btor_is_fun_eq_node (exp) || btor_is_bv_eq_node (exp);
 }
 
-bool
+inline bool
 btor_is_unary_node (const BtorNode *exp)
 {
   return exp && is_unary_node_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
 }
 
-bool
+inline bool
 btor_is_binary_node (const BtorNode *exp)
 {
   return exp && is_binary_node_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
 }
 
-bool
+inline bool
 btor_is_binary_commutative_node (const BtorNode *exp)
 {
   return exp
          && is_binary_commutative_node_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
 }
 
-bool
+inline bool
 btor_is_ternary_node (const BtorNode *exp)
 {
   return exp && is_ternary_node_kind (BTOR_REAL_ADDR_NODE (exp)->kind);

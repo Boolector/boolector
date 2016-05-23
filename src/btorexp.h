@@ -198,36 +198,36 @@ struct BtorArgsNode
 
 typedef struct BtorArgsNode BtorArgsNode;
 
-bool btor_is_invalid_node (const BtorNode *exp);
-bool btor_is_proxy_node (const BtorNode *exp);
-bool btor_is_bv_const_node (const BtorNode *exp);
-bool btor_is_bv_var_node (const BtorNode *exp);
-bool btor_is_bv_eq_node (const BtorNode *exp);
-bool btor_is_fun_eq_node (const BtorNode *exp);
-bool btor_is_and_node (const BtorNode *exp);
-bool btor_is_ult_node (const BtorNode *exp);
-bool btor_is_add_node (const BtorNode *exp);
-bool btor_is_mul_node (const BtorNode *exp);
-bool btor_is_udiv_node (const BtorNode *exp);
-bool btor_is_urem_node (const BtorNode *exp);
-bool btor_is_slice_node (const BtorNode *exp);
-bool btor_is_concat_node (const BtorNode *exp);
-bool btor_is_cond_node (const BtorNode *exp);
-bool btor_is_bv_cond_node (const BtorNode *exp);
-bool btor_is_fun_cond_node (const BtorNode *exp);
-bool btor_is_uf_node (const BtorNode *exp);
-bool btor_is_array_node (const BtorNode *exp);
-bool btor_is_lambda_node (const BtorNode *exp);
-bool btor_is_fun_node (const BtorNode *exp);
-bool btor_is_uf_array_node (const BtorNode *exp);
-bool btor_is_param_node (const BtorNode *exp);
-bool btor_is_args_node (const BtorNode *exp);
-bool btor_is_apply_node (const BtorNode *exp);
-bool btor_is_array_or_bv_eq_node (const BtorNode *exp);
-bool btor_is_unary_node (const BtorNode *exp);
-bool btor_is_binary_node (const BtorNode *exp);
-bool btor_is_binary_commutative_node (const BtorNode *exp);
-bool btor_is_ternary_node (const BtorNode *exp);
+inline bool btor_is_invalid_node (const BtorNode *exp);
+inline bool btor_is_proxy_node (const BtorNode *exp);
+inline bool btor_is_bv_const_node (const BtorNode *exp);
+inline bool btor_is_bv_var_node (const BtorNode *exp);
+inline bool btor_is_bv_eq_node (const BtorNode *exp);
+inline bool btor_is_fun_eq_node (const BtorNode *exp);
+inline bool btor_is_and_node (const BtorNode *exp);
+inline bool btor_is_ult_node (const BtorNode *exp);
+inline bool btor_is_add_node (const BtorNode *exp);
+inline bool btor_is_mul_node (const BtorNode *exp);
+inline bool btor_is_udiv_node (const BtorNode *exp);
+inline bool btor_is_urem_node (const BtorNode *exp);
+inline bool btor_is_slice_node (const BtorNode *exp);
+inline bool btor_is_concat_node (const BtorNode *exp);
+inline bool btor_is_cond_node (const BtorNode *exp);
+inline bool btor_is_bv_cond_node (const BtorNode *exp);
+inline bool btor_is_fun_cond_node (const BtorNode *exp);
+inline bool btor_is_uf_node (const BtorNode *exp);
+inline bool btor_is_array_node (const BtorNode *exp);
+inline bool btor_is_lambda_node (const BtorNode *exp);
+inline bool btor_is_fun_node (const BtorNode *exp);
+inline bool btor_is_uf_array_node (const BtorNode *exp);
+inline bool btor_is_param_node (const BtorNode *exp);
+inline bool btor_is_args_node (const BtorNode *exp);
+inline bool btor_is_apply_node (const BtorNode *exp);
+inline bool btor_is_array_or_bv_eq_node (const BtorNode *exp);
+inline bool btor_is_unary_node (const BtorNode *exp);
+inline bool btor_is_binary_node (const BtorNode *exp);
+inline bool btor_is_binary_commutative_node (const BtorNode *exp);
+inline bool btor_is_ternary_node (const BtorNode *exp);
 
 #define BTOR_INVERT_NODE(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
 
