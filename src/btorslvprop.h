@@ -29,11 +29,42 @@ struct BtorPropSolver
     uint32_t move_prop_rec_conf;
     uint32_t move_prop_non_rec_conf;
     uint64_t props;
+
+#ifndef NDEBUG
+    uint32_t inv_add;
+    uint32_t inv_and;
+    uint32_t inv_eq;
+    uint32_t inv_ult;
+    uint32_t inv_sll;
+    uint32_t inv_srl;
+    uint32_t inv_mul;
+    uint32_t inv_udiv;
+    uint32_t inv_urem;
+    uint32_t inv_concat;
+    uint32_t inv_slice;
+
+    uint32_t cons_add;
+    uint32_t cons_and;
+    uint32_t cons_eq;
+    uint32_t cons_ult;
+    uint32_t cons_sll;
+    uint32_t cons_srl;
+    uint32_t cons_mul;
+    uint32_t cons_udiv;
+    uint32_t cons_urem;
+    uint32_t cons_concat;
+    uint32_t cons_slice;
+#endif
   } stats;
 
   struct
   {
     double sat;
+#ifndef NDEBUG
+    double update_cone;
+    double update_cone_reset;
+    double update_cone_model_gen;
+#endif
   } time;
 };
 
@@ -45,10 +76,10 @@ BtorSolver *btor_new_prop_solver (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
-void btor_select_move_prop (Btor *btor,
-                            BtorNode *root,
-                            BtorNode **input,
-                            BtorBitVector **assignment);
+uint64_t btor_select_move_prop (Btor *btor,
+                                BtorNode *root,
+                                BtorNode **input,
+                                BtorBitVector **assignment);
 
 /*------------------------------------------------------------------------*/
 

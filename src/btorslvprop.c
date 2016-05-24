@@ -697,6 +697,10 @@ cons_add_bv (Btor *btor,
   (void) bve;
   (void) eidx;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_add++;
+#endif
   return btor_new_random_bv (btor->mm, &btor->rng, bvadd->width);
 }
 
@@ -723,6 +727,10 @@ cons_and_bv (Btor *btor,
   (void) bve;
   (void) eidx;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_and++;
+#endif
   res = btor_new_bv (btor->mm, bvand->width);
 
   /* bve & res = bvand
@@ -757,6 +765,10 @@ cons_eq_bv (
   (void) bve;
   (void) eidx;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_eq++;
+#endif
   return btor_new_random_bv (btor->mm, &btor->rng, bve->width);
 }
 
@@ -782,6 +794,10 @@ cons_ult_bv (Btor *btor,
 
   (void) ult;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_ult++;
+#endif
   bw    = bve->width;
   isult = !btor_is_zero_bv (bvult);
   zero  = btor_new_bv (btor->mm, bw);
@@ -808,7 +824,6 @@ cons_ult_bv (Btor *btor,
 
   btor_free_bv (btor->mm, bvmax);
   btor_free_bv (btor->mm, zero);
-
   return res;
 }
 
@@ -835,6 +850,10 @@ cons_sll_bv (Btor *btor,
   (void) sll;
   (void) bve;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_sll++;
+#endif
   bw  = bvsll->width;
   sbw = btor_log_2_util (bw);
 
@@ -885,6 +904,10 @@ cons_srl_bv (Btor *btor,
   (void) srl;
   (void) bve;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_srl++;
+#endif
   bw  = bvsrl->width;
   sbw = btor_log_2_util (bw);
 
@@ -936,6 +959,10 @@ cons_mul_bv (Btor *btor,
   (void) bve;
   (void) eidx;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_mul++;
+#endif
   bw  = bvmul->width;
   res = btor_new_random_bv (btor->mm, &btor->rng, bw);
   if (!btor_is_zero_bv (bvmul))
@@ -1021,6 +1048,10 @@ cons_udiv_bv (Btor *btor,
   (void) udiv;
   (void) bve;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_udiv++;
+#endif
   if (eidx)
   {
     /* -> bvudiv = 1...1 then res = 0 or res = 1
@@ -1073,6 +1104,7 @@ cons_udiv_bv (Btor *btor,
   btor_free_bv (btor->mm, one);
   btor_free_bv (btor->mm, zero);
   btor_free_bv (btor->mm, bvmax);
+
   return res;
 }
 
@@ -1098,6 +1130,10 @@ cons_urem_bv (Btor *btor,
   (void) urem;
   (void) bve;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_urem++;
+#endif
   bw    = bvurem->width;
   bvmax = btor_ones_bv (btor->mm, bw);
 
@@ -1151,6 +1187,10 @@ cons_concat_bv (Btor *btor,
 
   (void) concat;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_concat++;
+#endif
   if (eidx)
     return btor_slice_bv (
         btor->mm, bvconcat, bvconcat->width - bve->width - 1, 0);
@@ -1164,6 +1204,10 @@ cons_slice_bv (Btor *btor,
                BtorBitVector *bvslice,
                BtorBitVector *bve)
 {
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.cons_slice++;
+#endif
   return inv_slice_bv (btor, slice, bvslice, bve);
 }
 
@@ -1289,10 +1333,15 @@ inv_add_bv (Btor *btor,
   BtorBitVector *res;
   BtorMemMgr *mm;
 
-  mm = btor->mm;
   (void) add;
   (void) eidx;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_add++;
+#endif
+
+  mm = btor->mm;
   /* res + bve = bve + res = bvadd -> res = bvadd - bve */
   res = btor_sub_bv (mm, bvadd, bve);
 #ifndef NDEBUG
@@ -1330,6 +1379,10 @@ inv_and_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_and++;
+#endif
   mm = btor->mm;
   e  = and->e[eidx ? 0 : 1];
   assert (e);
@@ -1403,9 +1456,14 @@ inv_eq_bv (
   BtorBitVector *res;
   BtorMemMgr *mm;
 
-  mm = btor->mm;
   (void) eq;
   (void) eidx;
+
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_eq++;
+#endif
+  mm = btor->mm;
 
   /* res != bveq -> choose random res != bveq */
   if (btor_is_zero_bv (bveq))
@@ -1456,6 +1514,10 @@ inv_ult_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_ult++;
+#endif
   mm = btor->mm;
   e  = ult->e[eidx ? 0 : 1];
   assert (e);
@@ -1567,6 +1629,10 @@ inv_sll_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_sll++;
+#endif
   mm = btor->mm;
   e  = sll->e[eidx ? 0 : 1];
   assert (e);
@@ -1706,6 +1772,10 @@ inv_srl_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_srl++;
+#endif
   mm = btor->mm;
   e  = srl->e[eidx ? 0 : 1];
   assert (e);
@@ -1845,6 +1915,10 @@ inv_mul_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_mul++;
+#endif
   mm = btor->mm;
   e  = mul->e[eidx ? 0 : 1];
   assert (e);
@@ -2034,6 +2108,10 @@ inv_udiv_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_udiv++;
+#endif
   mm  = btor->mm;
   rng = &btor->rng;
   e   = udiv->e[eidx ? 0 : 1];
@@ -2275,6 +2353,10 @@ inv_urem_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_urem++;
+#endif
   mm = btor->mm;
   e  = urem->e[eidx ? 0 : 1];
   assert (e);
@@ -2591,6 +2673,10 @@ inv_concat_bv (Btor *btor,
   int iscon = 0;
 #endif
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_concat++;
+#endif
   mm = btor->mm;
   e  = concat->e[eidx ? 0 : 1];
   assert (e);
@@ -2673,6 +2759,10 @@ inv_slice_bv (Btor *btor,
   BtorMemMgr *mm;
   bool b;
 
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->stats.inv_slice++;
+#endif
   mm = btor->mm;
   e  = slice->e[0];
   assert (e);
@@ -2721,7 +2811,7 @@ inv_slice_bv (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-void
+uint64_t
 btor_select_move_prop (Btor *btor,
                        BtorNode *root,
                        BtorNode **input,
@@ -2735,11 +2825,13 @@ btor_select_move_prop (Btor *btor,
 
   bool b;
   int i, nconst, eidx, idx;
+  uint64_t props;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
 
   *input      = 0;
   *assignment = 0;
+  props       = 0;
 
   cur   = root;
   bvcur = btor_one_bv (btor->mm, 1);
@@ -2754,7 +2846,7 @@ btor_select_move_prop (Btor *btor,
   {
     for (;;)
     {
-      BTOR_PROP_SOLVER (btor)->stats.props += 1;
+      props += 1;
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       assert (!btor_is_bv_cond_node (real_cur));
       assert (!btor_is_bv_const_node (real_cur));
@@ -2929,6 +3021,7 @@ btor_select_move_prop (Btor *btor,
     }
   }
   btor_free_bv (btor->mm, bvcur);
+  return props;
 }
 
 /*------------------------------------------------------------------------*/
@@ -3005,11 +3098,32 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   assert (BTOR_PROP_SOLVER (btor));
   assert (exp);
 
+#ifndef NDEBUG
+  double start, delta;
+  start = delta = btor_time_stamp ();
+#endif
   reset_cone (btor, exp);
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  {
+    BTOR_PROP_SOLVER (btor)->time.update_cone_reset +=
+        btor_time_stamp () - delta;
+    delta = btor_time_stamp ();
+  }
+#endif
   btor_add_to_bv_model (btor, btor->bv_model, exp, assignment);
   btor_generate_model (btor, btor->bv_model, btor->fun_model, 0);
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->time.update_cone_model_gen +=
+        btor_time_stamp () - delta;
+#endif
   if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     btor_compute_sls_scores (btor, BTOR_PROP_SOLVER (btor)->score);
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+    BTOR_PROP_SOLVER (btor)->time.update_cone += btor_time_stamp () - start;
+#endif
 }
 
 static BtorNode *
@@ -3055,6 +3169,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
       }
 
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
+
       if (value > max_value)
       {
         res       = cur;
@@ -3136,7 +3251,8 @@ move (Btor *btor, uint32_t nmoves)
 
   do
   {
-    btor_select_move_prop (btor, root, &input, &assignment);
+    BTOR_PROP_SOLVER (btor)->stats.props +=
+        btor_select_move_prop (btor, root, &input, &assignment);
   } while (!input);
 
 #ifndef NBTORLOG
@@ -3410,8 +3526,8 @@ print_stats_prop_solver (BtorPropSolver *slv)
   Btor *btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "restarts: %d", slv->stats.restarts);
-  BTOR_MSG (btor->msg, 1, "moves: %d", slv->stats.moves);
+  BTOR_MSG (btor->msg, 1, "restarts: %u", slv->stats.restarts);
+  BTOR_MSG (btor->msg, 1, "moves: %u", slv->stats.moves);
   BTOR_MSG (btor->msg,
             1,
             "moves per second: %.2f",
@@ -3424,12 +3540,53 @@ print_stats_prop_solver (BtorPropSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
             1,
-            "propagation move conflicts (recoverable): %d",
+            "propagation move conflicts (recoverable): %u",
             slv->stats.move_prop_rec_conf);
   BTOR_MSG (btor->msg,
             1,
-            "propagation move conflicts (non-recoverable): %d",
+            "propagation move conflicts (non-recoverable): %u",
             slv->stats.move_prop_non_rec_conf);
+#ifndef NDEBUG
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (add): %u", slv->stats.cons_add);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (and): %u", slv->stats.cons_and);
+  BTOR_MSG (btor->msg, 1, "consistent fun calls (eq): %u", slv->stats.cons_eq);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (ult): %u", slv->stats.cons_ult);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (sll): %u", slv->stats.cons_sll);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (srl): %u", slv->stats.cons_srl);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (mul): %u", slv->stats.cons_mul);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (udiv): %u", slv->stats.cons_udiv);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (urem): %u", slv->stats.cons_urem);
+  BTOR_MSG (btor->msg,
+            1,
+            "consistent fun calls (concat): %u",
+            slv->stats.cons_concat);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (slice): %u", slv->stats.cons_slice);
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (add): %u", slv->stats.inv_add);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (and): %u", slv->stats.inv_and);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (eq): %u", slv->stats.inv_eq);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (ult): %u", slv->stats.inv_ult);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (sll): %u", slv->stats.inv_sll);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (srl): %u", slv->stats.inv_srl);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (mul): %u", slv->stats.inv_mul);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (udiv): %u", slv->stats.inv_udiv);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (urem): %u", slv->stats.inv_urem);
+  BTOR_MSG (
+      btor->msg, 1, "inverse fun calls (concat): %u", slv->stats.inv_concat);
+  BTOR_MSG (
+      btor->msg, 1, "inverse fun calls (slice): %u", slv->stats.inv_slice);
+#endif
 }
 
 static void
@@ -3444,6 +3601,20 @@ print_time_stats_prop_solver (BtorPropSolver *slv)
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds for sat call", slv->time.sat);
+#ifndef NDEBUG
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (total)",
+            slv->time.update_cone);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (reset)",
+            slv->time.update_cone_reset);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (model_gen)",
+            slv->time.update_cone_model_gen);
+#endif
   BTOR_MSG (btor->msg, 1, "");
 }
 
