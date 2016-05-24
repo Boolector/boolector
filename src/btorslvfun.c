@@ -1180,6 +1180,8 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
 
   if (e0->sort_id != e1->sort_id) return 1;
 
+  if (e0 == e1) return 0;
+
   btor_init_args_iterator (&it0, e0);
   btor_init_args_iterator (&it1, e1);
 
