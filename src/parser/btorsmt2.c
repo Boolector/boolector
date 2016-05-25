@@ -321,6 +321,7 @@ typedef struct BtorSMT2Parser
   FILE *infile;
   char *infile_name;
   FILE *outfile;
+  double parse_start;
   BtorCharStack *prefix, token;
   BoolectorNodePtrStack outputs, inputs;
   BoolectorSortStack sorts;
@@ -4090,6 +4091,11 @@ read_command_smt2 (BtorSMT2Parser *parser)
         }
         else
 #endif
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "parsed %d commands in %.2f seconds",
+                  parser->commands.all,
+                  btor_time_stamp () - parser->parse_start);
         parser->res->result = boolector_sat (parser->btor);
         if (parser->res->result == BOOLECTOR_SAT)
           fprintf (parser->outfile, "sat\n");
@@ -4293,6 +4299,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   parser->infile_name = btor_strdup (parser->mem, infile_name);
   parser->outfile     = outfile;
   parser->saved       = 0;
+  parser->parse_start = start;
   BTOR_CLR (res);
   parser->res = res;
 

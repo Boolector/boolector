@@ -1293,6 +1293,8 @@ btor_extract_lambdas (Btor *btor)
   BtorPtrHashTable *map_value_index, *map_lambda_base;
   BtorMemMgr *mm;
 
+  if (btor->lambdas->count == 0 && btor->ufs->count == 0) return;
+
   start = btor_time_stamp ();
 
   mm = btor->mm;
