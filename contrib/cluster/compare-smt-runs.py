@@ -1147,7 +1147,7 @@ if __name__ == "__main__":
         aparser.add_argument \
               (
                 "-c",
-                metavar="column", dest="cmp_col", default='time_time',
+                metavar="column", dest="cmp_col",
                 choices=FILE_STATS_KEYS,
                 help="compare results column"
               )
@@ -1217,6 +1217,12 @@ if __name__ == "__main__":
 
         if len(g_args.dirs) < 1:
             raise CmpSMTException ("invalid number of dirs given")
+
+        if g_args.cmp_col is None:
+            if g_args.g:
+                g_args.cmp_col = 'g_solved'
+            else:
+                g_args.cmp_col = 'time_time'
 
         if g_args.vbp: g_args.vb = True
 
