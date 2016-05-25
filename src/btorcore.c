@@ -3680,7 +3680,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       }
       else
       {
-        assert (engine == BTOR_ENGINE_FUN);
         btor->slv = btor_new_fun_solver (btor);
         // TODO (ma): make options for lod_limit and sat_limit
         BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
