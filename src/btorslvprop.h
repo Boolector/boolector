@@ -29,6 +29,7 @@ struct BtorPropSolver
     uint32_t move_prop_rec_conf;
     uint32_t move_prop_non_rec_conf;
     uint64_t props;
+    uint64_t updates;
 
 #ifndef NDEBUG
     uint32_t inv_add;
@@ -60,11 +61,10 @@ struct BtorPropSolver
   struct
   {
     double sat;
-#ifndef NDEBUG
     double update_cone;
     double update_cone_reset;
     double update_cone_model_gen;
-#endif
+    double update_cone_compute_score;
   } time;
 };
 
