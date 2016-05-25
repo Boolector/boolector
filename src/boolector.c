@@ -2972,12 +2972,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   if (!BTOR_IS_INVERTED_NODE (exp))
     bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (exp));
   else
-  {
-    if (!btor_const_get_invbits (real))
-      btor_const_set_invbits (
-          real, btor_not_bv (btor->mm, btor_const_get_bits (real)));
     bits = btor_bv_to_char_bv (btor->mm, btor_const_get_invbits (real));
-  }
   bvass = btor_new_bv_assignment (btor->bv_assignments, bits);
   btor_freestr (btor->mm, bits);
   res = btor_get_bv_assignment_str (bvass);
