@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
@@ -934,7 +934,8 @@ boolector_main (int argc, char **argv)
       }
       else if (has_suffix (g_app->infile_name, ".gz")
                || has_suffix (g_app->infile_name, ".bz2")
-               || has_suffix (g_app->infile_name, ".7z"))
+               || has_suffix (g_app->infile_name, ".7z")
+               || has_suffix (g_app->infile_name, ".zip"))
       {
         BTOR_NEWN (g_app->mm, cmd, len + 40);
         if (has_suffix (g_app->infile_name, ".gz"))
@@ -942,7 +943,9 @@ boolector_main (int argc, char **argv)
         else if (has_suffix (g_app->infile_name, ".bz2"))
           sprintf (cmd, "bzcat %s", g_app->infile_name);
         else if (has_suffix (g_app->infile_name, ".7z"))
-          sprintf (cmd, "7z x -so %s > /dev/null", g_app->infile_name);
+          sprintf (cmd, "7z x -so %s 2> /dev/null", g_app->infile_name);
+        else if (has_suffix (g_app->infile_name, ".zip"))
+          sprintf (cmd, "unzip -p %s", g_app->infile_name);
 
         if ((g_app->infile = popen (cmd, "r"))) g_app->close_infile = 2;
 
