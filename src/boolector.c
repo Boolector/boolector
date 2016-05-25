@@ -3406,7 +3406,7 @@ fun_assignment (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (n));
 
   int i;
-  char **a, **v;
+  char **a = 0, **v = 0;
 
   *ass = 0;
   btor_get_fun_model_str (btor, n, &a, &v, size);
