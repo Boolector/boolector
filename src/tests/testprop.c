@@ -70,8 +70,8 @@ prop_complete_binary_eidx (
     BtorBitVector *bvexp,
     BtorNode *(*create_exp) (Btor *, BtorNode *, BtorNode *),
     BtorBitVector *(*create_bv) (BtorMemMgr *,
-                                 BtorBitVector *,
-                                 BtorBitVector *),
+                                 const BtorBitVector *,
+                                 const BtorBitVector *),
     BtorBitVector *(*inv_bv) (
         Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int) )
 {
@@ -156,8 +156,8 @@ static void
 prop_complete_binary (uint32_t n,
                       BtorNode *(*create_exp) (Btor *, BtorNode *, BtorNode *),
                       BtorBitVector *(*create_bv) (BtorMemMgr *,
-                                                   BtorBitVector *,
-                                                   BtorBitVector *),
+                                                   const BtorBitVector *,
+                                                   const BtorBitVector *),
                       BtorBitVector *(*inv_bv) (Btor *,
                                                 BtorNode *,
                                                 BtorBitVector *,
