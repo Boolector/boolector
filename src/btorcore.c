@@ -3599,19 +3599,31 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv)
   {
-    if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0
-        && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
-            || btor->lambdas->count == 0))
+    /* eliminate lambdas (define-fun) in the QF_BV case */
+    if (btor->ufs->count == 0 && btor->lambdas->count > 0)
+      btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+
+    /* these engines work on QF_BV only */
+    if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0)
+    {
+      assert (btor->lambdas->count == 0
+              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
       btor->slv = btor_new_sls_solver (btor);
-    else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
-             && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
-                 || btor->lambdas->count == 0))
+    }
+    else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0)
+    {
+      assert (btor->lambdas->count == 0
+              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
       btor->slv = btor_new_prop_solver (btor);
-    else if (engine == BTOR_ENGINE_AIGPROP)
+    }
+    else if (engine == BTOR_ENGINE_AIGPROP && btor->ufs->count == 0)
+    {
+      assert (btor->lambdas->count == 0
+              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
       btor->slv = btor_new_aigprop_solver (btor);
+    }
     else
     {
-      assert (engine == BTOR_ENGINE_FUN);
       btor->slv = btor_new_fun_solver (btor);
       // TODO (ma): make options for lod_limit and sat_limit
       BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;

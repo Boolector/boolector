@@ -939,7 +939,8 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
 
 static inline int
 select_inc_dec_not_move (Btor *btor,
-                         BtorBitVector *(*fun) (BtorMemMgr *, BtorBitVector *),
+                         BtorBitVector *(*fun) (BtorMemMgr *,
+                                                const BtorBitVector *),
                          BtorNodePtrStack *candidates,
                          int gw)
 {

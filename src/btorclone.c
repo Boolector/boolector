@@ -497,12 +497,8 @@ clone_exp (Btor *btor,
   {
     bits = btor_copy_bv (mm, btor_const_get_bits (exp));
     btor_const_set_bits (res, bits);
-
-    if (btor_const_get_invbits (exp))
-    {
-      bits = btor_copy_bv (mm, btor_const_get_invbits (exp));
-      btor_const_set_invbits (res, bits);
-    }
+    bits = btor_copy_bv (mm, btor_const_get_invbits (exp));
+    btor_const_set_invbits (res, bits);
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
@@ -1003,8 +999,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     if (btor_is_bv_const_node (cur))
     {
       allocated += MEM_BITVEC (btor_const_get_bits (cur));
-      if (btor_const_get_invbits (cur))
-        allocated += MEM_BITVEC (btor_const_get_invbits (cur));
+      allocated += MEM_BITVEC (btor_const_get_invbits (cur));
     }
     if (!exp_layer_only)
     {

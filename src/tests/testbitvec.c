@@ -596,7 +596,8 @@ dec (uint64_t x, uint32_t bw)
 
 static void
 unary_bitvec (uint64_t (*int_func) (uint64_t, uint32_t),
-              BtorBitVector *(*bitvec_func) (BtorMemMgr *, BtorBitVector *),
+              BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                             const BtorBitVector *),
               uint32_t num_tests,
               uint32_t bit_width)
 {
@@ -693,8 +694,8 @@ urem (uint64_t x, uint64_t y, uint32_t bw)
 static void
 binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
                BtorBitVector *(*bitvec_func) (BtorMemMgr *,
-                                              BtorBitVector *,
-                                              BtorBitVector *),
+                                              const BtorBitVector *,
+                                              const BtorBitVector *),
                uint32_t num_tests,
                uint32_t bit_width)
 {
@@ -986,7 +987,7 @@ test_slice_bitvec (void)
 
 static void
 ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
-                                        BtorBitVector *,
+                                        const BtorBitVector *,
                                         uint32_t),
             uint32_t num_tests,
             uint32_t bit_width)
