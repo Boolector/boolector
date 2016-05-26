@@ -3034,6 +3034,7 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   assert (BTOR_PROP_SOLVER (btor));
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_is_bv_var_node (exp));
   assert (assignment);
 
   double start, delta;
@@ -3045,7 +3046,7 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   BtorNodePtrStack stack, cone;
   BtorIntHashTable *cache;
   BtorPropSolver *slv;
-  BtorBitVector *bv, *e[3], *tmp;
+  BtorBitVector *bv, *e[3];
   BtorMemMgr *mm;
 
   start = delta = btor_time_stamp ();
@@ -3117,9 +3118,6 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
     assert (BTOR_IS_REGULAR_NODE (cur));
     for (j = 0; j < cur->arity; j++)
     {
-      assert (btor_is_bv_const_node (cur->e[j])
-              || btor_get_ptr_hash_table (bv_model,
-                                          BTOR_REAL_ADDR_NODE (cur->e[j])));
       if (btor_is_bv_const_node (cur->e[j]))
       {
         e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
@@ -3128,11 +3126,16 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
       }
       else
       {
-        tmp =
-            btor_get_ptr_hash_table (bv_model, BTOR_REAL_ADDR_NODE (cur->e[j]))
-                ->data.as_ptr;
-        e[j] = BTOR_IS_INVERTED_NODE (cur->e[j]) ? btor_not_bv (mm, tmp)
-                                                 : btor_copy_bv (mm, tmp);
+        b = btor_get_ptr_hash_table (bv_model, BTOR_REAL_ADDR_NODE (cur->e[j]));
+        /* Note: generate model enabled branch for ite (and does not
+         * generate model for nodes in the branch, hence !b may happen */
+        if (!b)
+          e[j] = btor_recursively_compute_assignment (
+              btor, bv_model, btor->fun_model, cur->e[j]);
+        else
+          e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
+                     ? btor_not_bv (mm, b->data.as_ptr)
+                     : btor_copy_bv (mm, b->data.as_ptr);
       }
     }
     switch (cur->kind)
@@ -3156,11 +3159,21 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
         bv = btor_is_true_bv (e[0]) ? btor_copy_bv (mm, e[1])
                                     : btor_copy_bv (mm, e[2]);
     }
+
     /* update assignment */
-    b = btor_get_ptr_hash_table (bv_model, cur);
-    assert (b);
-    btor_free_bv (mm, b->data.as_ptr);
-    b->data.as_ptr = bv;
+
+    /* Note: generate model enabled branch for ite (and does not generate
+     *       model for nodes in the branch, hence !b may happen */
+    if (!(b = btor_get_ptr_hash_table (bv_model, cur)))
+    {
+      b = btor_add_ptr_hash_table (bv_model, btor_copy_exp (btor, cur));
+      b->data.as_ptr = bv;
+    }
+    else
+    {
+      btor_free_bv (mm, b->data.as_ptr);
+      b->data.as_ptr = bv;
+    }
     if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
     {
       btor_free_bv (mm, b->data.as_ptr);
