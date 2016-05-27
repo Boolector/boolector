@@ -268,10 +268,6 @@ bool btor_is_ternary_node (const BtorNode *exp);
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
 
-#define BTOR_BITS_NODE(mm, exp)                                              \
-  (BTOR_IS_INVERTED_NODE (exp) ? btor_not_bv (mm, btor_const_get_bits (exp)) \
-                               : btor_copy_bv (mm, btor_const_get_bits (exp)))
-
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
 

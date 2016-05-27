@@ -1349,6 +1349,7 @@ new_const_exp_node (Btor *btor, const BtorBitVector *bits)
   exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, bits->width);
   setup_node_and_add_to_id_table (btor, exp);
   btor_const_set_bits ((BtorNode *) exp, btor_copy_bv (btor->mm, bits));
+  btor_const_set_invbits ((BtorNode *) exp, btor_not_bv (btor->mm, bits));
   return (BtorNode *) exp;
 }
 

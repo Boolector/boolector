@@ -581,11 +581,6 @@ add_to_index_map (Btor *btor,
     assert (btor_is_bv_const_node (offset));
   }
 
-  /* generate inverted bit string for constants if required */
-  if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
-    btor_const_set_invbits (offset,
-                            btor_not_bv (mm, btor_const_get_bits (offset)));
-
   BTOR_PUSH_STACK (mm, *indices, index);
 }
 

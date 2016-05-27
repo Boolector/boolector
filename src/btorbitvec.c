@@ -33,7 +33,9 @@ rem_bits_zero_dbg (BtorBitVector *bv)
 }
 
 static int
-btor_check_bits_sll_dbg (BtorBitVector *bv, BtorBitVector *res, int shift)
+btor_check_bits_sll_dbg (const BtorBitVector *bv,
+                         const BtorBitVector *res,
+                         int shift)
 {
   assert (bv);
   assert (res);
@@ -696,7 +698,7 @@ btor_ones_bv (BtorMemMgr *mm, uint32_t bw)
 }
 
 BtorBitVector *
-btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_neg_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -713,7 +715,7 @@ btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv)
 }
 
 BtorBitVector *
-btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_not_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -730,7 +732,7 @@ btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv)
 }
 
 BtorBitVector *
-btor_inc_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_inc_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -744,7 +746,7 @@ btor_inc_bv (BtorMemMgr *mm, BtorBitVector *bv)
 }
 
 BtorBitVector *
-btor_dec_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_dec_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -762,7 +764,7 @@ btor_dec_bv (BtorMemMgr *mm, BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_add_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_add_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -799,7 +801,7 @@ btor_add_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_sub_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_sub_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -816,7 +818,7 @@ btor_sub_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_and_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_and_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -835,7 +837,7 @@ btor_and_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_xor_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_xor_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -854,7 +856,7 @@ btor_xor_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_eq_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_eq_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -882,7 +884,7 @@ btor_eq_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_ult_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_ult_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -910,7 +912,7 @@ btor_ult_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 static BtorBitVector *
-sll_bv (BtorMemMgr *mm, BtorBitVector *a, int shift)
+sll_bv (BtorMemMgr *mm, const BtorBitVector *a, int shift)
 {
   assert (mm);
   assert (a);
@@ -938,7 +940,7 @@ sll_bv (BtorMemMgr *mm, BtorBitVector *a, int shift)
 }
 
 BtorBitVector *
-btor_sll_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_sll_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -952,7 +954,7 @@ btor_sll_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_srl_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_srl_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -981,7 +983,7 @@ btor_srl_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_mul_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_mul_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1021,8 +1023,8 @@ btor_mul_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 
 static void
 udiv_urem_bv (BtorMemMgr *mm,
-              BtorBitVector *a,
-              BtorBitVector *b,
+              const BtorBitVector *a,
+              const BtorBitVector *b,
               BtorBitVector **q,
               BtorBitVector **r)
 {
@@ -1102,7 +1104,7 @@ udiv_urem_bv (BtorMemMgr *mm,
 }
 
 BtorBitVector *
-btor_udiv_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_udiv_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1117,7 +1119,7 @@ btor_udiv_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_urem_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_urem_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1132,7 +1134,7 @@ btor_urem_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_concat_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_concat_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1179,7 +1181,7 @@ btor_concat_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 
 BtorBitVector *
 btor_slice_bv (BtorMemMgr *mm,
-               BtorBitVector *bv,
+               const BtorBitVector *bv,
                uint32_t upper,
                uint32_t lower)
 {
@@ -1198,7 +1200,7 @@ btor_slice_bv (BtorMemMgr *mm,
 }
 
 BtorBitVector *
-btor_sext_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t len)
+btor_sext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
@@ -1221,7 +1223,7 @@ btor_sext_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t len)
 }
 
 BtorBitVector *
-btor_uext_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t len)
+btor_uext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
@@ -1237,7 +1239,7 @@ btor_uext_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t len)
 }
 
 BtorBitVector *
-btor_flipped_bit_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t pos)
+btor_flipped_bit_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
 {
   assert (bv);
   assert (bv->len > 0);
@@ -1255,7 +1257,7 @@ btor_flipped_bit_bv (BtorMemMgr *mm, BtorBitVector *bv, uint32_t pos)
 
 BtorBitVector *
 btor_flipped_bit_range_bv (BtorMemMgr *mm,
-                           BtorBitVector *bv,
+                           const BtorBitVector *bv,
                            uint32_t upper,
                            uint32_t lower)
 {
@@ -1277,7 +1279,9 @@ btor_flipped_bit_range_bv (BtorMemMgr *mm,
 /*------------------------------------------------------------------------*/
 
 bool
-btor_is_umulo_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+btor_is_umulo_bv (BtorMemMgr *mm,
+                  const BtorBitVector *a,
+                  const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1310,8 +1314,8 @@ btor_is_umulo_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 
 BtorBitVector *
 btor_gcd_ext_bv (Btor *btor,
-                 BtorBitVector *bv1,
-                 BtorBitVector *bv2,
+                 const BtorBitVector *bv1,
+                 const BtorBitVector *bv2,
                  BtorBitVector **fx,
                  BtorBitVector **fy)
 {
@@ -1391,7 +1395,7 @@ btor_gcd_ext_bv (Btor *btor,
  * Algorithm. Note that c must be odd (the greatest
  * common divisor gcd (c, 2^bw) must be and is in this case always 1).  */
 BtorBitVector *
-btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -1455,7 +1459,7 @@ btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorSpecialConstBitVector
-btor_is_special_const_bv (BtorBitVector *bv)
+btor_is_special_const_bv (const BtorBitVector *bv)
 {
   assert (bv);
 

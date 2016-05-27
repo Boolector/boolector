@@ -1224,8 +1224,8 @@ non_rec_conf (
 static inline void
 check_result_binary_dbg (Btor *btor,
                          BtorBitVector *(*fun) (BtorMemMgr *,
-                                                BtorBitVector *,
-                                                BtorBitVector *),
+                                                const BtorBitVector *,
+                                                const BtorBitVector *),
                          BtorNode *exp,
                          BtorBitVector *bve,
                          BtorBitVector *bvexp,
