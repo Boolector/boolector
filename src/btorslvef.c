@@ -1114,7 +1114,7 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   const BtorPtrHashTable *uf_model;
   BtorPtrHashTable *inputs, *synth_funs, *synth_inputs;
   BtorPtrHashBucket *b, *bb;
-  double sum = 0;
+  //  double sum = 0;
 
   e_solver      = gslv->exists;
   f_solver      = gslv->forall;
@@ -1144,7 +1144,8 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
       btor_print_bv (bv);
 #endif
       assert (!btor_is_proxy_node (e_uf_fs));
-      btor_map_node (model, e_uf_fs, btor_const_exp (f_solver, bv));
+      btor_map_node (
+          model, e_uf_fs, btor_const_exp (f_solver, (BtorBitVector *) bv));
     }
     /* map skolem functions to resp. synthesized functions */
     else
@@ -1177,9 +1178,9 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
         btor_print_bv (bv);
       }
 #endif
-      double start = btor_time_stamp ();
-      best_match   = 0;
-      b            = btor_get_ptr_hash_table (synth_funs, e_uf_fs);
+      //	  double start = btor_time_stamp ();
+      best_match = 0;
+      b          = btor_get_ptr_hash_table (synth_funs, e_uf_fs);
       if (opt_synth_fun)
       {
         bb     = btor_get_ptr_hash_table (synth_inputs, e_uf_fs);
@@ -1217,14 +1218,14 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 
       if (!synth_fun)
       {
-        printf ("NO CANDIDATE FOUND for %s in %.2fs\n",
-                node2string (e_uf_fs),
-                btor_time_stamp () - start);
+        //	      printf ("NO CANDIDATE FOUND for %s in %.2fs\n",
+        // node2string (e_uf_fs), 		      btor_time_stamp () -
+        // start);
         slv->stats.synth_aborts++;
         // FIXME: using best_match only oftern produces true_exp refinements
         if (false && best_match)
         {
-          printf ("USE BEST MATCH\n");
+          //		  printf ("USE BEST MATCH\n");
           synth_fun = btor_copy_exp (f_solver, best_match);
         }
         else
@@ -1244,17 +1245,16 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
       }
       else
       {
-        printf ("CANDIDATE FOUND for %s in %.2fs\n",
-                node2string (e_uf_fs),
-                btor_time_stamp () - start);
+        //	      printf ("CANDIDATE FOUND for %s in %.2fs\n", node2string
+        //(e_uf_fs), 		      btor_time_stamp () - start);
         if (b->data.as_ptr != synth_fun)
         {
-          printf ("NEW\n");
+          //		printf ("NEW\n");
           slv->stats.synth_funs++;
         }
         else
         {
-          printf ("NOT CHANGED\n");
+          //		printf ("NOT CHANGED\n");
           slv->stats.synth_funs_reused++;
         }
 
@@ -1272,11 +1272,11 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
       assert (e_uf_fs->sort_id == synth_fun->sort_id);
       //      btor_dump_smt2_node (f_solver, stdout, synth_fun, -1);
       btor_map_node (model, e_uf_fs, synth_fun);
-      sum += btor_time_stamp () - start;
+      //	  sum += btor_time_stamp() - start;
     }
   }
 
-  printf ("SUM: %.2f\n", sum);
+  //  printf ("SUM: %.2f\n", sum);
   return model;
 }
 
@@ -1330,9 +1330,8 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   slv->time.qinst += btor_time_stamp () - start;
   slv->stats.refinements++;
 
-  printf (
-      "**************************** NEW ITERATION "
-      "****************************\n");
+  //  printf ("**************************** NEW ITERATION "
+  //	  "****************************\n");
 
   /* query exists solver */
   start = btor_time_stamp ();
@@ -1462,11 +1461,11 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  double start;
+  //  double start;
   BtorSolverResult res;
-  BtorNode *g, *dual_g;
-  BtorEFGroundSolvers *gslv, *dual_gslv;
-  BtorNodeMap *uvars_map, *rev_uvars_map;
+  BtorNode *g;                //, *dual_g;
+  BtorEFGroundSolvers *gslv;  //, *dual_gslv;
+                              //  BtorNodeMap *uvars_map, *rev_uvars_map;
   /* 'uvars_map' map gslv uvars to dual_gslv uvars and 'rev_uvars_map' the
    * opposite direction */
 
