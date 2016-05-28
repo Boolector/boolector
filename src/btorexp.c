@@ -3930,10 +3930,13 @@ btor_write_exp (Btor *btor,
   lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
   if (!lambda->static_rho)
   {
-    lambda->static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
-    args               = btor_args_exp (btor, &e_index, 1);
-    b                  = btor_add_ptr_hash_table (lambda->static_rho, args);
-    b->data.as_ptr     = btor_copy_exp (btor, e_value);
+    lambda->static_rho =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+    args           = btor_args_exp (btor, &e_index, 1);
+    b              = btor_add_ptr_hash_table (lambda->static_rho, args);
+    b->data.as_ptr = btor_copy_exp (btor, e_value);
   }
   //#ifndef NDEBUG
   //  else
@@ -4281,7 +4284,9 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
   BtorPtrHashTable *static_rho;
 
   btor_init_node_hash_table_iterator (&it, btor_lambda_get_static_rho (lambda));
-  static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  static_rho = btor_new_ptr_hash_table (btor->mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     data = btor_copy_exp (btor, it.bucket->data.as_ptr);

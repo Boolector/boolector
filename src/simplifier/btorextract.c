@@ -554,7 +554,9 @@ add_to_index_map (Btor *btor,
   if (!(b = btor_get_ptr_hash_table (map_value_index, lambda)))
   {
     b              = btor_add_ptr_hash_table (map_value_index, lambda);
-    t              = btor_new_ptr_hash_table (mm, 0, 0);
+    t              = btor_new_ptr_hash_table (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
     b->data.as_ptr = t;
   }
   else
@@ -600,7 +602,9 @@ collect_indices_writes (Btor *btor,
 
   mm = btor->mm;
   BTOR_INIT_STACK (lambdas);
-  visit_cache = btor_new_ptr_hash_table (mm, 0, 0);
+  visit_cache = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect lambdas that are at the top of lambda chains */
   btor_init_reversed_hash_table_iterator (&it, btor->lambdas);
@@ -640,8 +644,11 @@ collect_indices_writes (Btor *btor,
 
       btor_add_ptr_hash_table (visit_cache, lambda);
 
-      cur         = lambda;
-      index_cache = btor_new_ptr_hash_table (mm, 0, 0);
+      cur = lambda;
+      index_cache =
+          btor_new_ptr_hash_table (mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
       prev_index = prev_value = 0;
       while (is_write_exp (cur, &array, &index, &value))
       {
@@ -1059,8 +1066,11 @@ extract_lambdas (Btor *btor,
       is_top_eq = true;
     }
 
-    index_value_map = btor_new_ptr_hash_table (mm, 0, 0);
-    base            = subst;
+    index_value_map =
+        btor_new_ptr_hash_table (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+    base    = subst;
     i_range = i_index = i_inc = 0;
     for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
     {
@@ -1294,9 +1304,15 @@ btor_extract_lambdas (Btor *btor)
 
   mm = btor->mm;
   /* maps for each array values to stacks of indices */
-  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  map_value_index =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   /* contains the base array for each write chain */
-  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
+  map_lambda_base =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor_init_substitutions (btor);
 
   /* collect lambdas that are at the top of lambda chains */
