@@ -3684,6 +3684,10 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     else
     {
+      /* disabling slice elimination is better on QF_ABV */
+      if (btor->ufs->count > 0)
+        btor_set_opt (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
+
       btor->slv = btor_new_fun_solver (btor);
       // TODO (ma): make options for lod_limit and sat_limit
       BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
