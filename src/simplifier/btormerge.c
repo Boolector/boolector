@@ -138,7 +138,10 @@ btor_merge_lambdas (Btor *btor)
     /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
     BTOR_PUSH_STACK (mm, visit, btor_binder_get_body (lambda));
-    merge_lambdas = btor_new_ptr_hash_table (mm, 0, 0);
+    merge_lambdas =
+        btor_new_ptr_hash_table (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
     btor_add_ptr_hash_table (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
     {
@@ -210,7 +213,9 @@ btor_merge_lambdas (Btor *btor)
     /* generate static_rho from merged lambdas' static_rhos */
     assert (merge_lambdas->count > 0);
     num_merged_lambdas += merge_lambdas->count;
-    static_rho = btor_new_ptr_hash_table (mm, 0, 0);
+    static_rho = btor_new_ptr_hash_table (mm,
+                                          (BtorHashPtr) btor_hash_exp_by_id,
+                                          (BtorCmpPtr) btor_compare_exp_by_id);
     if (btor_lambda_get_static_rho (lambda))
     {
       btor_init_node_hash_table_iterator (&it, merge_lambdas);
