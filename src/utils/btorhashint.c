@@ -277,6 +277,25 @@ btor_get_pos_int_hash_table (BtorIntHashTable *t, int32_t key)
   return size;
 }
 
+BtorIntHashTable *
+btor_clone_int_hash_table (BtorMemMgr *mm, BtorIntHashTable *table)
+{
+  assert (mm);
+
+  BtorIntHashTable *res;
+
+  if (!table) return NULL;
+
+  res = btor_new_int_hash_table (mm);
+  while (res->size < table->size) resize (res);
+  assert (res->size == table->size);
+  memcpy (res->keys, table->keys, table->size * sizeof (*table->keys));
+  memcpy (
+      res->hop_info, table->hop_info, table->size * sizeof (*table->hop_info));
+  res->count = table->count;
+  return res;
+}
+
 /* map functions */
 
 BtorIntHashTable *
@@ -340,4 +359,35 @@ btor_delete_int_hash_map (BtorIntHashTable *t)
   BTOR_DELETEN (t->mm, t->data, t->size);
   t->data = 0;
   btor_delete_int_hash_table (t);
+}
+
+BtorIntHashTable *
+btor_clone_int_hash_map (BtorMemMgr *mm,
+                         BtorIntHashTable *table,
+                         BtorCloneIntHashTableData cdata,
+                         const void *data_map)
+{
+  assert (mm);
+
+  size_t i;
+  BtorIntHashTable *res;
+
+  if (!table) return NULL;
+
+  res = btor_clone_int_hash_table (mm, table);
+  BTOR_CNEWN (mm, res->data, table->size);
+  if (cdata)
+  {
+    for (i = 0; i < table->size; i++)
+    {
+      if (!table->data[i].as_ptr) continue;
+      cdata (mm, data_map, &res->data[i], &table->data[i]);
+    }
+  }
+  else /* as_ptr does not have to be cloned */
+    memcpy (res->data, table->data, table->size * sizeof (*table->data));
+
+  assert (table->count == res->count);
+
+  return res;
 }

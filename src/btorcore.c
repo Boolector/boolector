@@ -2171,7 +2171,10 @@ update_node_hash_tables (Btor *btor)
 
     if (!static_rho) continue;
 
-    new_static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
+    new_static_rho =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
     /* update static rho to get rid of proxy nodes */
     btor_init_node_hash_table_iterator (&iit, static_rho);
     while (btor_has_next_node_hash_table_iterator (&iit))
