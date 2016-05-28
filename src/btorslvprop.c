@@ -1221,6 +1221,7 @@ non_rec_conf (
   return 0;
 }
 
+#ifndef NDEBUG
 static inline void
 check_result_binary_dbg (Btor *btor,
                          BtorBitVector *(*fun) (BtorMemMgr *,
@@ -1265,6 +1266,7 @@ check_result_binary_dbg (Btor *btor,
   btor_freestr (btor->mm, sbve);
   btor_freestr (btor->mm, sres);
 }
+#endif
 
 #ifdef NDEBUG
 static inline BtorBitVector *
