@@ -3164,9 +3164,42 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
 
     /* update assignment */
 
+    b = btor_get_ptr_hash_table (bv_model, cur);
+
+    /* update roots table */
+    if (cur->constraint)
+    {
+      assert (b); /* must be contained, is root */
+
+      /* old assignment != new assignment */
+      if (btor_compare_bv (b->data.as_ptr, bv))
+      {
+        /* cur: old assignment = 0, new assignment = 1
+         *      -> remove */
+        if (btor_get_ptr_hash_table (slv->roots, cur))
+          btor_remove_ptr_hash_table (slv->roots, cur, 0, 0);
+        /* -cur: old assignment = 0, new assignment = 1
+         * -> remove */
+        else if (btor_get_ptr_hash_table (slv->roots, BTOR_INVERT_NODE (cur)))
+          btor_remove_ptr_hash_table (slv->roots, BTOR_INVERT_NODE (cur), 0, 0);
+        /* cur: old assignment = 1, new assignment = 0
+         * -> add */
+        else if (btor_is_true_bv (b->data.as_ptr))
+          btor_add_ptr_hash_table (slv->roots, cur);
+        /* -cur: old assignment = 1, new assignment = 0
+         * -> add */
+        else
+        {
+          assert (btor_is_false_bv (b->data.as_ptr));
+          btor_add_ptr_hash_table (slv->roots, BTOR_INVERT_NODE (cur));
+        }
+      }
+    }
+
+    /* update assignments */
     /* Note: generate model enabled branch for ite (and does not generate
      *       model for nodes in the branch, hence !b may happen */
-    if (!(b = btor_get_ptr_hash_table (bv_model, cur)))
+    if (!b)
     {
       b = btor_add_ptr_hash_table (bv_model, btor_copy_exp (btor, cur));
       b->data.as_ptr = bv;
@@ -3176,6 +3209,7 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
       btor_free_bv (mm, b->data.as_ptr);
       b->data.as_ptr = bv;
     }
+
     if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
     {
       btor_free_bv (mm, b->data.as_ptr);
@@ -3211,6 +3245,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
   assert (slv->roots);
+  assert (slv->roots->count);
 
   res = 0;
 
@@ -3221,19 +3256,18 @@ select_constraint (Btor *btor, uint32_t nmoves)
     int *selected;
     double value, max_value, score;
     BtorPtrHashBucket *b;
-
     max_value = 0.0;
     btor_init_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_node_hash_table_iterator (&it))
     {
       selected = &it.bucket->data.as_int;
       cur      = btor_next_node_hash_table_iterator (&it);
-      if (btor_is_bv_const_node (cur)
-          && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
-        return 0; /* contains false constraint -> unsat */
+
       b = btor_get_ptr_hash_table (slv->score, cur);
       assert (b);
-      if ((score = b->data.as_dbl) >= 1.0) continue;
+      score = b->data.as_dbl;
+      assert (score < 1.0);
+
       if (!res)
       {
         res = cur;
@@ -3253,28 +3287,84 @@ select_constraint (Btor *btor, uint32_t nmoves)
   }
   else
   {
-    uint32_t r;
-    BtorNodePtrStack stack;
+    uint32_t i, r;
 
-    BTOR_INIT_STACK (stack);
+    i = 0;
+    r = btor_pick_rand_rng (&btor->rng, 0, slv->roots->count - 1);
     btor_init_hash_table_iterator (&it, slv->roots);
-    while (btor_has_next_node_hash_table_iterator (&it))
+    do
     {
-      cur = btor_next_node_hash_table_iterator (&it);
-      if (btor_is_bv_const_node (cur)
-          && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
-      {
-        BTOR_RELEASE_STACK (btor->mm, stack);
-        return 0; /* contains false constraint -> unsat */
-      }
-      if (!btor_is_zero_bv (btor_get_bv_model (btor, cur))) continue;
-      BTOR_PUSH_STACK (btor->mm, stack, cur);
-    }
-    assert (BTOR_COUNT_STACK (stack));
-    r   = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (stack) - 1);
-    res = stack.start[r];
-    BTOR_RELEASE_STACK (btor->mm, stack);
+      assert (btor_has_next_node_hash_table_iterator (&it));
+      res = btor_next_node_hash_table_iterator (&it);
+      assert (!btor_is_bv_const_node (res));
+      i += 1;
+    } while (i <= r);
   }
+
+#if 0
+  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    {
+      assert (slv->score);
+
+      int *selected;
+      double value, max_value, score;
+      BtorPtrHashBucket *b;
+
+      max_value = 0.0;
+      btor_init_hash_table_iterator (&it, slv->roots);
+      while (btor_has_next_node_hash_table_iterator (&it))
+	{
+	  selected = &it.bucket->data.as_int;
+	  cur = btor_next_node_hash_table_iterator (&it);
+	  if (btor_is_bv_const_node (cur)
+	      && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+	    return 0; /* contains false constraint -> unsat */
+	  b = btor_get_ptr_hash_table (slv->score, cur);
+	  assert (b);
+	  if ((score = b->data.as_dbl) >= 1.0) continue;
+	  if (!res)
+	    {
+	      res = cur;
+	      *selected += 1;
+	      continue;
+	    }
+
+	  value =
+	    score + BTOR_PROP_SELECT_CFACT * sqrt (log(*selected) / nmoves);
+
+	  if (value > max_value)
+	    {
+	      res = cur;
+	      max_value = value;
+	      *selected += 1;
+	    }
+	}
+    }
+  else
+    {
+      uint32_t r;
+      BtorNodePtrStack stack;
+
+      BTOR_INIT_STACK (stack);
+      btor_init_hash_table_iterator (&it, slv->roots);
+      while (btor_has_next_node_hash_table_iterator (&it))
+	{
+	  cur = btor_next_node_hash_table_iterator (&it);
+	  if (btor_is_bv_const_node (cur)
+	      && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+	    {
+	      BTOR_RELEASE_STACK (btor->mm, stack);
+	      return 0; /* contains false constraint -> unsat */
+	    }
+	  if (!btor_is_zero_bv (btor_get_bv_model (btor, cur))) continue;
+	  BTOR_PUSH_STACK (btor->mm, stack, cur);
+	}
+      assert (BTOR_COUNT_STACK (stack));
+      r = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (stack) - 1);
+      res = stack.start[r];
+      BTOR_RELEASE_STACK (btor->mm, stack);
+    }
+#endif
 
   assert (res);
 
@@ -3284,8 +3374,9 @@ select_constraint (Btor *btor, uint32_t nmoves)
   return res;
 }
 
+#if 0
 static inline bool
-all_constraints_sat (Btor *btor)
+all_constraints_sat (Btor * btor)
 {
   assert (btor);
 
@@ -3296,22 +3387,20 @@ all_constraints_sat (Btor *btor)
   res = true;
   btor_init_node_hash_table_iterator (&it, BTOR_PROP_SOLVER (btor)->roots);
   while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    root = btor_next_node_hash_table_iterator (&it);
-    if (btor_is_zero_bv (btor_get_bv_model (btor, root)))
     {
-      res = false;
-      break;
+      root = btor_next_node_hash_table_iterator (&it);
+      if (btor_is_zero_bv (btor_get_bv_model (btor, root)))
+	{ res = false; break; }
     }
-  }
   return res;
 }
+#endif
 
 static int
 move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
-  assert (!all_constraints_sat (btor));
+  // assert (!all_constraints_sat (btor));
 
   BTORLOG (1, "");
   BTORLOG (1, "*** move");
@@ -3423,7 +3512,7 @@ sat_prop_solver_aux (Btor *btor)
 
   nmoves = 0;
 
-  /* collect roots */
+  /* collect unsatisfied roots */
   assert (!slv->roots);
   slv->roots = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
@@ -3434,8 +3523,13 @@ sat_prop_solver_aux (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    if (!btor_get_ptr_hash_table (slv->roots, root))
+    if (!btor_get_ptr_hash_table (slv->roots, root)
+        && btor_is_zero_bv (btor_get_bv_model (btor, root)))
+    {
+      if (btor_is_bv_const_node (root))
+        goto UNSAT; /* contains false constraint -> unsat */
       btor_add_ptr_hash_table (slv->roots, root);
+    }
   }
 
   if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
@@ -3451,12 +3545,14 @@ sat_prop_solver_aux (Btor *btor)
       goto DONE;
     }
 
+    /* all constraints sat? */
+    if (!slv->roots->count) goto SAT;
+
     /* compute initial sls score */
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
       btor_compute_sls_scores (btor, slv->score);
 
-    if (all_constraints_sat (btor)) goto SAT;
-
+    /* move */
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
          !btor_get_opt (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
@@ -3470,7 +3566,8 @@ sat_prop_solver_aux (Btor *btor)
       if (!(move (btor, nmoves))) goto UNSAT;
       nmoves += 1;
 
-      if (all_constraints_sat (btor)) goto SAT;
+      /* all constraints sat? */
+      if (!slv->roots->count) goto SAT;
     }
 
     /* restart */
@@ -3485,6 +3582,70 @@ sat_prop_solver_aux (Btor *btor)
     }
     slv->stats.restarts += 1;
   }
+
+#if 0
+  /* collect roots */
+  assert (!slv->roots);
+  slv->roots = btor_new_ptr_hash_table (btor->mm,
+      (BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr) btor_compare_exp_by_id);
+  assert (btor->synthesized_constraints->count == 0);
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    {
+      root = btor_next_node_hash_table_iterator (&it);
+      if (!btor_get_ptr_hash_table (slv->roots, root))
+	btor_add_ptr_hash_table (slv->roots, root);
+    }
+
+  if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    slv->score = btor_new_ptr_hash_table (btor->mm,
+      (BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr) btor_compare_exp_by_id);
+
+  for (;;)
+    {
+      if (btor_terminate_btor (btor)) 
+	{
+	  sat_result = BTOR_RESULT_UNKNOWN;
+	  goto DONE;
+	}
+
+      /* compute initial sls score */
+      if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+	btor_compute_sls_scores (btor, slv->score);
+
+      if (all_constraints_sat (btor)) goto SAT;
+
+      for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
+	   !btor_get_opt (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
+	   j++)
+        {
+	  if (btor_terminate_btor (btor)
+	      || (nprops && slv->stats.props >= nprops)) 
+	    {
+	      sat_result = BTOR_RESULT_UNKNOWN;
+	      goto DONE;
+	    }
+
+          if (!(move (btor, nmoves))) goto UNSAT;
+	  nmoves += 1;
+
+	  if (all_constraints_sat (btor)) goto SAT;
+        }
+
+      /* restart */
+      slv->api.generate_model ((BtorSolver *) slv, false, true);
+      if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+	{
+	  btor_delete_ptr_hash_table (slv->score);
+	  slv->score = btor_new_ptr_hash_table (
+	    btor->mm,
+	    (BtorHashPtr) btor_hash_exp_by_id,
+	    (BtorCmpPtr) btor_compare_exp_by_id);
+	}
+      slv->stats.restarts += 1;
+    }
+#endif
 
 SAT:
   sat_result = BTOR_RESULT_SAT;
