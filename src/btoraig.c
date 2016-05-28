@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2015 Armin Biere.
+ *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
@@ -62,7 +62,7 @@
 
 #define BTOR_AIG_TO_CNF_EXTRACT_XOR
 
-#define BTOR_AIG_TO_CNF_NARY_AND
+// #define BTOR_AIG_TO_CNF_NARY_AND
 
 /*------------------------------------------------------------------------*/
 
