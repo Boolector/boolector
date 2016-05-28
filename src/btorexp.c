@@ -4171,9 +4171,11 @@ BtorNode *
 btor_get_node_by_id (Btor *btor, int32_t id)
 {
   assert (btor);
-  assert (id > 0);
+  bool is_inverted = id < 0;
+  id               = abs (id);
   if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
-  return BTOR_PEEK_STACK (btor->nodes_id_table, id);
+  return BTOR_COND_INVERT_NODE (is_inverted,
+                                BTOR_PEEK_STACK (btor->nodes_id_table, id));
 }
 
 BtorNode *

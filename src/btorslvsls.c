@@ -413,7 +413,8 @@ compute_sls_scores_aux (Btor *btor,
   mark = btor_new_int_hash_map (mm);
 
   /* collect roots */
-  btor_init_node_hash_table_iterator (&it, BTOR_SLS_SOLVER (btor)->roots);
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
     BTOR_PUSH_STACK (mm, stack, btor_next_node_hash_table_iterator (&it));
 

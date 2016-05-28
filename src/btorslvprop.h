@@ -14,12 +14,14 @@
 #include "btorbitvec.h"
 #include "btorslv.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 
 struct BtorPropSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorPtrHashTable *roots; /* maintains n times selected */
+  // BtorPtrHashTable *roots;    /* maintains n times selected */
+  BtorIntHashTable *roots;
   BtorPtrHashTable *score;
 
   struct
@@ -61,6 +63,7 @@ struct BtorPropSolver
   struct
   {
     double sat;
+    double sat_total;
     double update_cone;
     double update_cone_reset;
     double update_cone_model_gen;
