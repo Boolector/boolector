@@ -31,7 +31,7 @@ is_uc_write (BtorNode *cond)
 
   if (cond->parents != 1) return false;
 
-  lambda = cond->first_parent;
+  lambda = BTOR_REAL_ADDR_NODE (cond->first_parent);
   if (!btor_is_lambda_node (lambda)) return false;
 
   return btor_lambda_get_static_rho (lambda) != 0;
