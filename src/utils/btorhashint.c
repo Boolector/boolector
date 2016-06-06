@@ -18,13 +18,6 @@ static inline uint32_t
 hash (uint32_t h)
 {
   return h;
-  h += ~(h << 15);
-  h ^= (h >> 10);
-  h += (h << 3);
-  h ^= (h >> 6);
-  h += ~(h << 11);
-  h ^= (h >> 16);
-  return h;
 }
 
 #if 0
@@ -177,7 +170,7 @@ resize (BtorIntHashTable *t)
     if (!key) continue;
     new_pos = add (t, key);
     if (old_data) t->data[new_pos] = old_data[i];
-    /* after resizing it should alwys be possible to find a new position */
+    /* after resizing it should always be possible to find a new position */
     assert (new_pos < new_size);
   }
 
