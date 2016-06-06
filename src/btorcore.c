@@ -2278,7 +2278,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   int pushed, i;
 
   if (substs->count == 0u) return;
@@ -2410,7 +2410,7 @@ substitute_var_exps (Btor *btor)
   unsigned count;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
@@ -2680,7 +2680,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BtorNode *cur, *real_cur, *subst, *result, **e;
   BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *mark, *cache;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm    = btor->mm;
   mark  = btor_new_int_hash_map (mm);
@@ -2780,7 +2780,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   BtorHashTableIterator hit;
   BtorNodeIterator it;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   if (subst->count == 0u) return;
 

@@ -87,8 +87,8 @@ btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 void
 btor_clone_data_as_node_ptr (BtorMemMgr *mm,
                              const void *map,
-                             BtorPtrHashData *data,
-                             BtorPtrHashData *cloned_data)
+                             BtorHashTableData *data,
+                             BtorHashTableData *cloned_data)
 {
   assert (map);
   assert (data);
@@ -108,8 +108,8 @@ btor_clone_data_as_node_ptr (BtorMemMgr *mm,
 void
 btor_clone_data_as_str_ptr (BtorMemMgr *mm,
                             const void *str_table,
-                            BtorPtrHashData *data,
-                            BtorPtrHashData *cloned_data)
+                            BtorHashTableData *data,
+                            BtorHashTableData *cloned_data)
 {
   assert (str_table);
   assert (data);
@@ -129,8 +129,8 @@ btor_clone_data_as_str_ptr (BtorMemMgr *mm,
 void
 btor_clone_data_as_int (BtorMemMgr *mm,
                         const void *map,
-                        BtorPtrHashData *data,
-                        BtorPtrHashData *cloned_data)
+                        BtorHashTableData *data,
+                        BtorHashTableData *cloned_data)
 {
   assert (data);
   assert (cloned_data);
@@ -143,8 +143,8 @@ btor_clone_data_as_int (BtorMemMgr *mm,
 void
 btor_clone_data_as_dbl (BtorMemMgr *mm,
                         const void *map,
-                        BtorPtrHashData *data,
-                        BtorPtrHashData *cloned_data)
+                        BtorHashTableData *data,
+                        BtorHashTableData *cloned_data)
 {
   assert (data);
   assert (cloned_data);
@@ -158,8 +158,8 @@ btor_clone_data_as_dbl (BtorMemMgr *mm,
 void
 btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
                            const void *map,
-                           BtorPtrHashData *data,
-                           BtorPtrHashData *cloned_data)
+                           BtorHashTableData *data,
+                           BtorHashTableData *cloned_data)
 {
   assert (mm);
   assert (data);
@@ -172,8 +172,8 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
 void
 btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
                                const void *map,
-                               BtorPtrHashData *data,
-                               BtorPtrHashData *cloned_data)
+                               BtorHashTableData *data,
+                               BtorHashTableData *cloned_data)
 {
   assert (mm);
   assert (map);
@@ -193,8 +193,8 @@ btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
 void
 btor_clone_data_as_htable_int (BtorMemMgr *mm,
                                const void *map,
-                               BtorPtrHashData *data,
-                               BtorPtrHashData *cloned_data)
+                               BtorHashTableData *data,
+                               BtorHashTableData *cloned_data)
 {
   (void) map;
   assert (mm);
@@ -227,8 +227,8 @@ btor_clone_data_as_htable_int (BtorMemMgr *mm,
 void
 btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
                                   const void *map,
-                                  BtorPtrHashData *data,
-                                  BtorPtrHashData *cloned_data)
+                                  BtorHashTableData *data,
+                                  BtorHashTableData *cloned_data)
 {
   assert (mm);
   assert (map);
@@ -814,7 +814,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorSort *sort;
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  BtorPtrHashData *data, *cdata;
+  BtorHashTableData *data, *cdata;
   BtorOption o;
 #endif
 

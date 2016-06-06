@@ -97,7 +97,7 @@ test_hash_str2str (void)
 {
   BtorPtrHashTable *ht;
   BtorPtrHashBucket *p;
-  BtorPtrHashData data;
+  BtorHashTableData data;
   char buffer[20];
   void *key;
   int i;

@@ -191,7 +191,7 @@ btor_beta_reduce (Btor *btor,
   BtorNode *cached;
   BtorNodePtrStack stack, arg_stack, cleanup_stack, reset;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d, md;
+  BtorHashTableData *d, md;
 #ifndef NDEBUG
   BtorNodePtrStack unassign_stack;
   BTOR_INIT_STACK (unassign_stack);
@@ -577,7 +577,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorNodePtrStack stack, arg_stack, reset;
   BtorPtrHashTable *t;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d, md;
+  BtorHashTableData *d, md;
 
   if (!BTOR_REAL_ADDR_NODE (exp)->parameterized && !btor_is_lambda_node (exp))
     return btor_copy_exp (btor, exp);

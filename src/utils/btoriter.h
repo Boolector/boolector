@@ -98,7 +98,7 @@ void btor_queue_hash_table_iterator (BtorHashTableIterator *,
                                      const BtorPtrHashTable *);
 bool btor_has_next_hash_table_iterator (BtorHashTableIterator *);
 void *btor_next_hash_table_iterator (BtorHashTableIterator *);
-BtorPtrHashData *btor_next_data_hash_table_iterator (BtorHashTableIterator *);
+BtorHashTableData *btor_next_data_hash_table_iterator (BtorHashTableIterator *);
 
 void btor_init_node_hash_table_iterator (BtorHashTableIterator *,
                                          const BtorPtrHashTable *);
@@ -108,7 +108,7 @@ void btor_queue_node_hash_table_iterator (BtorHashTableIterator *,
                                           const BtorPtrHashTable *);
 bool btor_has_next_node_hash_table_iterator (BtorHashTableIterator *);
 BtorNode *btor_next_node_hash_table_iterator (BtorHashTableIterator *);
-BtorPtrHashData *btor_next_data_node_hash_table_iterator (
+BtorHashTableData *btor_next_data_node_hash_table_iterator (
     BtorHashTableIterator *);
 
 struct BtorHashTableIterator2
@@ -134,7 +134,7 @@ void btor_queue_hash_table_iterator2 (BtorHashTableIterator2 *,
                                       const BtorPtrHashTable2 *);
 bool btor_has_next_hash_table_iterator2 (BtorHashTableIterator2 *);
 void *btor_next_hash_table_iterator2 (BtorHashTableIterator2 *);
-BtorPtrHashTable2Data *btor_next_data_hash_table_iterator2 (
+BtorHashTableData *btor_next_data_hash_table_iterator2 (
     BtorHashTableIterator2 *);
 
 /*------------------------------------------------------------------------*/
@@ -152,7 +152,7 @@ void btor_init_reversed_node_map_iterator (BtorNodeMapIterator *,
 void btor_queue_node_map_iterator (BtorNodeMapIterator *, const BtorNodeMap *);
 bool btor_has_next_node_map_iterator (BtorNodeMapIterator *);
 BtorNode *btor_next_node_map_iterator (BtorNodeMapIterator *);
-BtorPtrHashData *btor_next_data_node_map_iterator (BtorNodeMapIterator *);
+BtorHashTableData *btor_next_data_node_map_iterator (BtorNodeMapIterator *);
 
 /*------------------------------------------------------------------------*/
 #endif

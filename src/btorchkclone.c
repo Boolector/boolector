@@ -72,7 +72,7 @@
 /*------------------------------------------------------------------------*/
 
 static int
-cmp_data_as_int (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
+cmp_data_as_int (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
   assert (d2);
@@ -81,7 +81,7 @@ cmp_data_as_int (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
 }
 
 static int
-cmp_data_as_dbl (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
+cmp_data_as_dbl (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
   assert (d2);
@@ -90,7 +90,7 @@ cmp_data_as_dbl (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
 }
 
 static int
-cmp_data_as_bv_ptr (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
+cmp_data_as_bv_ptr (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
   assert (d2);
@@ -99,8 +99,8 @@ cmp_data_as_bv_ptr (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
 }
 
 static int
-cmp_data_as_sls_constr_data_ptr (const BtorPtrHashData *d1,
-                                 const BtorPtrHashData *d2)
+cmp_data_as_sls_constr_data_ptr (const BtorHashTableData *d1,
+                                 const BtorHashTableData *d2)
 {
   assert (d1);
   assert (d2);
@@ -117,8 +117,8 @@ cmp_data_as_sls_constr_data_ptr (const BtorPtrHashData *d1,
 static inline void
 chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
                               BtorPtrHashTable *clone,
-                              int (*cmp_data) (const BtorPtrHashData *,
-                                               const BtorPtrHashData *))
+                              int (*cmp_data) (const BtorHashTableData *,
+                                               const BtorHashTableData *))
 {
   BtorHashTableIterator it, cit;
 
@@ -216,7 +216,7 @@ chkclone_stats (Btor *btor)
   Btor *clone;
 #ifndef NDEBUG
   BtorHashTableIterator it, cit;
-  BtorPtrHashData *data, *cdata;
+  BtorHashTableData *data, *cdata;
   char *key, *ckey;
 #endif
 

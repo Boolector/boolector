@@ -321,7 +321,7 @@ btor_next_hash_table_iterator (BtorHashTableIterator *it)
   return res;
 }
 
-BtorPtrHashData *
+BtorHashTableData *
 btor_next_data_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
@@ -428,11 +428,11 @@ btor_next_hash_table_iterator2 (BtorHashTableIterator2 *it)
   return res;
 }
 
-BtorPtrHashTable2Data *
+BtorHashTableData *
 btor_next_data_hash_table_iterator2 (BtorHashTableIterator2 *it)
 {
   assert (it->cur_table->data);
-  BtorPtrHashTable2Data *res;
+  BtorHashTableData *res;
 
   res = &it->cur_table->data[it->cur_pos];
   btor_next_hash_table_iterator2 (it);
@@ -485,7 +485,7 @@ btor_next_node_hash_table_iterator (BtorHashTableIterator *it)
   return (BtorNode *) btor_next_hash_table_iterator (it);
 }
 
-BtorPtrHashData *
+BtorHashTableData *
 btor_next_data_node_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
@@ -532,7 +532,7 @@ btor_next_node_map_iterator (BtorNodeMapIterator *it)
   return btor_next_node_hash_table_iterator (&it->it);
 }
 
-BtorPtrHashData *
+BtorHashTableData *
 btor_next_data_node_map_iterator (BtorNodeMapIterator *it)
 {
   return btor_next_data_node_hash_table_iterator (&it->it);

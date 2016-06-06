@@ -858,7 +858,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_is_invalid_node (exp));
 
-  BtorPtrHashData data;
+  BtorHashTableData data;
 
   switch (exp->kind)
   {

@@ -62,7 +62,7 @@ add (BtorPtrHashTable2 *t, void *key)
   uint32_t h;
   uint8_t move_hop_info, *hop_info;
   void **keys;
-  BtorPtrHashTable2Data *data;
+  BtorHashTableData *data;
 
   keys     = t->keys;
   hop_info = t->hop_info;
@@ -179,13 +179,13 @@ static void
 resize (BtorPtrHashTable2 *t)
 {
 #ifndef NDEBUG
-  size_t old_count, cnt = 0;
+  size_t old_count;
 #endif
   size_t i, new_pos, old_size, new_size, *old_next, *old_prev, first, last;
   size_t *new_mapping;
   void *key, **old_keys;
   uint8_t *old_hop_info;
-  BtorPtrHashTable2Data *old_data;
+  BtorHashTableData *old_data;
 
   old_size     = t->size;
   old_keys     = t->keys;
@@ -216,7 +216,8 @@ resize (BtorPtrHashTable2 *t)
     new_pos        = add (t, key);
     new_mapping[i] = new_pos;
     if (old_data) t->data[new_pos] = old_data[i];
-    /* after resizing it should always be possible to find a new position */
+    /* after resizing it should always be possible to find a new
+     * position */
     assert (new_pos < new_size);
   }
 
@@ -364,7 +365,7 @@ btor_contains_ptr_hash_map2 (BtorPtrHashTable2 *t, void *key)
 void
 btor_remove_ptr_hash_map2 (BtorPtrHashTable2 *t,
                            void *key,
-                           BtorPtrHashTable2Data *stored_data)
+                           BtorHashTableData *stored_data)
 {
   assert (t->data);
   assert (btor_contains_ptr_hash_map2 (t, key));
@@ -374,10 +375,10 @@ btor_remove_ptr_hash_map2 (BtorPtrHashTable2 *t,
   pos = btor_remove_ptr_hash_table2 (t, key);
 
   if (stored_data) *stored_data = t->data[pos];
-  memset (&t->data[pos], 0, sizeof (BtorPtrHashTable2Data));
+  memset (&t->data[pos], 0, sizeof (BtorHashTableData));
 }
 
-BtorPtrHashTable2Data *
+BtorHashTableData *
 btor_add_ptr_hash_map2 (BtorPtrHashTable2 *t, void *key)
 {
   assert (t->data);
@@ -387,7 +388,7 @@ btor_add_ptr_hash_map2 (BtorPtrHashTable2 *t, void *key)
   return &t->data[pos];
 }
 
-BtorPtrHashTable2Data *
+BtorHashTableData *
 btor_get_ptr_hash_map2 (BtorPtrHashTable2 *t, void *key)
 {
   assert (t->data);

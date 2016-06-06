@@ -13,17 +13,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "utils/btorhashptr.h"
+#include "utils/btorhash.h"
 #include "utils/btormem.h"
-
-union BtorPtrHashTable2Data
-{
-  int32_t as_int;
-  void *as_ptr;
-  char *as_str;
-};
-
-typedef union BtorPtrHashTable2Data BtorPtrHashTable2Data;
 
 struct BtorPtrHashTable2
 {
@@ -32,7 +23,7 @@ struct BtorPtrHashTable2
   size_t size;
   void **keys;
   uint8_t *hop_info; /* displacement information */
-  BtorPtrHashTable2Data *data;
+  BtorHashTableData *data;
   size_t *next;
   size_t *prev;
 
@@ -82,10 +73,10 @@ bool btor_contains_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
 
 void btor_remove_ptr_hash_map2 (BtorPtrHashTable2 *,
                                 void *key,
-                                BtorPtrHashTable2Data *stored_data);
+                                BtorHashTableData *stored_data);
 
-BtorPtrHashTable2Data *btor_add_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
-BtorPtrHashTable2Data *btor_get_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
+BtorHashTableData *btor_add_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
+BtorHashTableData *btor_get_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
 
 void btor_delete_ptr_hash_map2 (BtorPtrHashTable2 *);
 
