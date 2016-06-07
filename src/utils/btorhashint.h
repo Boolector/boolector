@@ -28,11 +28,6 @@ struct BtorIntHashTable
 
 typedef struct BtorIntHashTable BtorIntHashTable;
 
-typedef void (*BtorCloneIntHashTableData) (BtorMemMgr *mm,
-                                           const void *map,
-                                           BtorHashTableData *data,
-                                           BtorHashTableData *cloned_data);
-
 /* Create new int32_t hash table. */
 BtorIntHashTable *btor_new_int_hash_table (BtorMemMgr *);
 
@@ -78,7 +73,7 @@ void btor_delete_int_hash_map (BtorIntHashTable *);
 
 BtorIntHashTable *btor_clone_int_hash_map (BtorMemMgr *mm,
                                            BtorIntHashTable *table,
-                                           BtorCloneIntHashTableData cdata,
+                                           BtorCloneHashTableData cdata,
                                            const void *data_map);
 
 #endif

@@ -357,7 +357,7 @@ btor_delete_int_hash_map (BtorIntHashTable *t)
 BtorIntHashTable *
 btor_clone_int_hash_map (BtorMemMgr *mm,
                          BtorIntHashTable *table,
-                         BtorCloneIntHashTableData cdata,
+                         BtorCloneHashTableData cdata,
                          const void *data_map)
 {
   assert (mm);
@@ -374,7 +374,8 @@ btor_clone_int_hash_map (BtorMemMgr *mm,
     for (i = 0; i < table->size; i++)
     {
       if (!table->data[i].as_ptr) continue;
-      cdata (mm, data_map, &res->data[i], &table->data[i]);
+      assert (table->keys[i]);
+      cdata (mm, data_map, &table->data[i], &res->data[i]);
     }
   }
   else /* as_ptr does not have to be cloned */
