@@ -24,7 +24,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
   BtorNodePtrStack visit, quants, args, params;
   BtorMemMgr *mm;
   BtorIntHashTable *map;
-  BtorIntHashTableData *d, *d_p;
+  BtorHashTableData *d, *d_p;
   BtorSortIdStack sorts;
   BtorSortId tuple_s, fun_s;
   BtorSortUniqueTable *suniq;
@@ -201,7 +201,7 @@ btor_skolemize (Btor *btor)
   BtorNodePtrStack visit, quants, args;
   BtorMemMgr *mm;
   BtorIntHashTable *cache;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorNodeMap *map;
   BtorSortIdStack sorts;
   BtorSortId tuple_s, fun_s;

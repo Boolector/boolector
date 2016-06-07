@@ -99,7 +99,7 @@ btor_optimize_unconstrained (Btor *btor)
   BtorIntHashTable *ucs;  /* unconstrained candidate nodes */
   BtorIntHashTable *ucsp; /* parameterized unconstrained candidate nodes */
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 

@@ -174,7 +174,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
   BtorMemMgr *mm;
   int i;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm   = btor->mm;
   mark = btor_new_int_hash_map (mm);

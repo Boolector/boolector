@@ -103,7 +103,7 @@ static BtorNode *
 find_subst (BtorIntHashTable *map, BtorNode *node)
 {
   bool inv = false;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   goto FIND_SUBST;
 
@@ -128,7 +128,7 @@ map_subst_node (BtorIntHashTable *map,
                 BtorNode *right)
 {
   BtorNodePtrStack *substs;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   right = find_subst (map, right);
   if (BTOR_IS_INVERTED_NODE (left))
@@ -239,7 +239,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
   BtorNodePtrStack visit, reset, *substs;
   BtorMemMgr *mm;
   BtorIntHashTable *map, *subst_map, *subst_scope, *cache;
-  BtorIntHashTableData *cur_d, *d, d_s;
+  BtorHashTableData *cur_d, *d, d_s;
 
   mm          = btor->mm;
   map         = btor_new_int_hash_map (mm);

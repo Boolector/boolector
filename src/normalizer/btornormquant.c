@@ -28,7 +28,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
   BtorSortId domain, funsort;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorSortUniqueTable *sorts;
 
   mm    = btor->mm;
@@ -96,7 +96,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   BtorMemMgr *mm;
   BtorNodePtrStack visit, args, conds;
   BtorIntHashTable *map;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm  = btor->mm;
   map = btor_new_int_hash_map (mm);
@@ -243,7 +243,7 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   BtorMemMgr *mm;
   BtorNodePtrStack visit, pols, args, conds, reset, vars;
   BtorIntHashTable *map;
-  BtorIntHashTableData *d, data;
+  BtorHashTableData *d, data;
   BtorNodeKind kind;
   BtorSortUniqueTable *sorts;
 

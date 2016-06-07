@@ -87,7 +87,7 @@ process_skeleton_tseitin (Btor *btor,
 
   int i, lhs, rhs[3], fixed;
   BtorNode *exp;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   BTOR_PUSH_STACK (btor->mm, *work_stack, root);
 

@@ -18,13 +18,6 @@ static inline uint32_t
 hash (uint32_t h)
 {
   return h;
-  h += ~(h << 15);
-  h ^= (h >> 10);
-  h += (h << 3);
-  h ^= (h >> 6);
-  h += ~(h << 11);
-  h ^= (h >> 16);
-  return h;
 }
 
 #if 0
@@ -63,7 +56,7 @@ add (BtorIntHashTable *t, int32_t key)
   uint32_t h;
   uint8_t move_hop_info, *hop_info;
   int32_t *keys;
-  BtorIntHashTableData *data;
+  BtorHashTableData *data;
 
   keys     = t->keys;
   hop_info = t->hop_info;
@@ -154,7 +147,7 @@ resize (BtorIntHashTable *t)
   size_t i, new_pos, old_size, new_size;
   int32_t key, *old_keys;
   uint8_t *old_hop_info;
-  BtorIntHashTableData *old_data;
+  BtorHashTableData *old_data;
 
   old_size     = t->size;
   old_keys     = t->keys;
@@ -177,7 +170,7 @@ resize (BtorIntHashTable *t)
     if (!key) continue;
     new_pos = add (t, key);
     if (old_data) t->data[new_pos] = old_data[i];
-    /* after resizing it should alwys be possible to find a new position */
+    /* after resizing it should always be possible to find a new position */
     assert (new_pos < new_size);
   }
 
@@ -318,7 +311,7 @@ btor_contains_int_hash_map (BtorIntHashTable *t, int32_t key)
 void
 btor_remove_int_hash_map (BtorIntHashTable *t,
                           int32_t key,
-                          BtorIntHashTableData *stored_data)
+                          BtorHashTableData *stored_data)
 {
   assert (t->data);
   assert (btor_contains_int_hash_map (t, key));
@@ -328,10 +321,10 @@ btor_remove_int_hash_map (BtorIntHashTable *t,
   pos = btor_remove_int_hash_table (t, key);
 
   if (stored_data) *stored_data = t->data[pos];
-  memset (&t->data[pos], 0, sizeof (BtorIntHashTableData));
+  memset (&t->data[pos], 0, sizeof (BtorHashTableData));
 }
 
-BtorIntHashTableData *
+BtorHashTableData *
 btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
 {
   assert (t->data);
@@ -341,7 +334,7 @@ btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
   return &t->data[pos];
 }
 
-BtorIntHashTableData *
+BtorHashTableData *
 btor_get_int_hash_map (BtorIntHashTable *t, int32_t key)
 {
   assert (t->data);
@@ -364,7 +357,7 @@ btor_delete_int_hash_map (BtorIntHashTable *t)
 BtorIntHashTable *
 btor_clone_int_hash_map (BtorMemMgr *mm,
                          BtorIntHashTable *table,
-                         BtorCloneIntHashTableData cdata,
+                         BtorCloneHashTableData cdata,
                          const void *data_map)
 {
   assert (mm);
@@ -381,7 +374,8 @@ btor_clone_int_hash_map (BtorMemMgr *mm,
     for (i = 0; i < table->size; i++)
     {
       if (!table->data[i].as_ptr) continue;
-      cdata (mm, data_map, &res->data[i], &table->data[i]);
+      assert (table->keys[i]);
+      cdata (mm, data_map, &table->data[i], &res->data[i]);
     }
   }
   else /* as_ptr does not have to be cloned */

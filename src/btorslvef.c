@@ -290,7 +290,7 @@ build_refinement (Btor *f_solver,
   BtorNode *cur, *real_cur, *result, **e;
   BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorSortId sort;
   //  BtorBitVector *bv, *bv0, *bv1;
 

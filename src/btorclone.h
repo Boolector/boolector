@@ -53,38 +53,38 @@ void *btor_clone_key_as_bv_tuple (BtorMemMgr *mm,
 
 void btor_clone_data_as_node_ptr (BtorMemMgr *mm,
                                   const void *map,
-                                  BtorPtrHashData *data,
-                                  BtorPtrHashData *cloned_data);
+                                  BtorHashTableData *data,
+                                  BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_str_ptr (BtorMemMgr *mm,
                                  const void *str_table,
-                                 BtorPtrHashData *data,
-                                 BtorPtrHashData *cloned_data);
+                                 BtorHashTableData *data,
+                                 BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_int (BtorMemMgr *mm,
                              const void *map,
-                             BtorPtrHashData *data,
-                             BtorPtrHashData *cloned_data);
+                             BtorHashTableData *data,
+                             BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_dbl (BtorMemMgr *mm,
                              const void *map,
-                             BtorPtrHashData *data,
-                             BtorPtrHashData *cloned_data);
+                             BtorHashTableData *data,
+                             BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
                                 const void *map,
-                                BtorPtrHashData *data,
-                                BtorPtrHashData *cloned_data);
+                                BtorHashTableData *data,
+                                BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
                                     const void *map,
-                                    BtorPtrHashData *data,
-                                    BtorPtrHashData *cloned_data);
+                                    BtorHashTableData *data,
+                                    BtorHashTableData *cloned_data);
 
 void btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
                                        const void *map,
-                                       BtorPtrHashData *data,
-                                       BtorPtrHashData *cloned_data);
+                                       BtorHashTableData *data,
+                                       BtorHashTableData *cloned_data);
 
 void btor_clone_node_ptr_stack (BtorMemMgr *mm,
                                 BtorNodePtrStack *stack,

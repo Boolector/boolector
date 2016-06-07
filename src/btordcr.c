@@ -33,7 +33,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
   BtorPtrHashTable *score;
   BtorPtrHashBucket *b;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorMemMgr *mm;
 
   mm = btor->mm;

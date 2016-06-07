@@ -49,7 +49,7 @@ static void
 init_next_sort (BtorCartProdIterator *it)
 {
   uint32_t i, key;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   if (!it->cur_sort)
     i = 0;
@@ -144,7 +144,7 @@ eval (Btor *btor,
   BtorNode *cur, *real_cur, *arg;
   BtorNodePtrStack visit;
   BtorIntHashTable *cache;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorPtrHashBucket *b;
   BtorPtrHashTable *model;
   BtorBitVectorTuple *t;
@@ -363,7 +363,7 @@ add_exp (Btor *btor,
   assert (candidates);
 
   BtorIntHashTable *sorted_exps;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorSortId sort;
   BtorNodePtrStack *exps;
   BtorMemMgr *mm;
@@ -479,7 +479,7 @@ btor_synthesize_fun (Btor *btor,
   BtorPtrHashTable *sigs;
   BtorIntHashTable *cache, *sorted_exps, *e0_exps, *e1_exps, *e2_exps;
   BtorIntHashTable *param_map;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorBitVector *bv;
   BtorBitVectorTuple *sig;
   BtorPartitionGenerator pg;
