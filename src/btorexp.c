@@ -21,6 +21,7 @@
 #include "btorrewrite.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
+#include "utils/btorhashptr2.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
@@ -875,12 +876,12 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
     default: break;
   }
 
-  if (!keep_symbol && btor_get_ptr_hash_table (btor->node2symbol, exp))
+  if (!keep_symbol && btor_contains_ptr_hash_map2 (btor->node2symbol, exp))
   {
-    btor_remove_ptr_hash_table (btor->node2symbol, exp, 0, &data);
+    btor_remove_ptr_hash_map2 (btor->node2symbol, exp, &data);
     if (data.as_str[0] != 0)
     {
-      btor_remove_ptr_hash_table (btor->symbols, data.as_str, 0, 0);
+      btor_remove_ptr_hash_map2 (btor->symbols, data.as_str, 0);
       btor_freestr (btor->mm, data.as_str);
     }
   }
@@ -2077,7 +2078,8 @@ btor_var_exp (Btor *btor, uint32_t width, const char *symbol)
 {
   assert (btor);
   assert (width > 0);
-  assert (!symbol || !btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
+  assert (!symbol
+          || !btor_contains_ptr_hash_map2 (btor->symbols, (char *) symbol));
 
   BtorBVVarNode *exp;
 
@@ -2096,7 +2098,8 @@ btor_param_exp (Btor *btor, uint32_t width, const char *symbol)
 {
   assert (btor);
   assert (width > 0);
-  assert (!symbol || !btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
+  assert (!symbol
+          || !btor_contains_ptr_hash_map2 (btor->symbols, (char *) symbol));
 
   BtorParamNode *exp;
 
@@ -2143,7 +2146,8 @@ btor_uf_exp (Btor *btor, BtorSortId sort, const char *symbol)
 {
   assert (btor);
   assert (sort);
-  assert (!symbol || !btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
+  assert (!symbol
+          || !btor_contains_ptr_hash_map2 (btor->symbols, (char *) symbol));
 
   BtorUFNode *exp;
   BtorSortUniqueTable *sorts;
@@ -4181,11 +4185,11 @@ btor_get_node_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
-  BtorPtrHashBucket *b;
+  BtorHashTableData *d;
   // FIXME (ma): const...
-  b = btor_get_ptr_hash_table (btor->symbols, (char *) sym);
-  if (!b) return 0;
-  return b->data.as_ptr;
+  d = btor_get_ptr_hash_map2 (btor->symbols, (char *) sym);
+  if (!d) return 0;
+  return d->as_ptr;
 }
 
 char *
@@ -4195,9 +4199,9 @@ btor_get_symbol_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
-  BtorPtrHashBucket *b =
-      btor_get_ptr_hash_table (btor->node2symbol, BTOR_REAL_ADDR_NODE (exp));
-  if (b) return b->data.as_str;
+  BtorHashTableData *d;
+  d = btor_get_ptr_hash_map2 (btor->node2symbol, BTOR_REAL_ADDR_NODE (exp));
+  if (d) return d->as_str;
   return 0;
 }
 
@@ -4209,25 +4213,25 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
   assert (symbol);
-  assert (!btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
+  assert (!btor_contains_ptr_hash_map2 (btor->symbols, (char *) symbol));
 
-  BtorPtrHashBucket *b;
+  BtorHashTableData *d;
   char *sym;
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   sym = btor_strdup (btor->mm, symbol);
-  btor_add_ptr_hash_table (btor->symbols, sym)->data.as_ptr = exp;
-  b = btor_get_ptr_hash_table (btor->node2symbol, exp);
+  btor_add_ptr_hash_map2 (btor->symbols, sym)->as_ptr = exp;
+  d = btor_get_ptr_hash_map2 (btor->node2symbol, exp);
 
-  if (b)
+  if (d)
   {
-    btor_remove_ptr_hash_table (btor->symbols, b->data.as_str, 0, 0);
-    btor_freestr (btor->mm, b->data.as_str);
+    btor_remove_ptr_hash_map2 (btor->symbols, d->as_str, 0);
+    btor_freestr (btor->mm, d->as_str);
   }
   else
-    b = btor_add_ptr_hash_table (btor->node2symbol, exp);
+    d = btor_add_ptr_hash_map2 (btor->node2symbol, exp);
 
-  b->data.as_str = sym;
+  d->as_str = sym;
 }
 
 uint32_t
