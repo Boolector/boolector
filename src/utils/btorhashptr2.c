@@ -239,6 +239,20 @@ resize (BtorPtrHashTable2 *t)
   BTOR_DELETEN (t->mm, new_mapping, old_size);
   if (old_data) BTOR_DELETEN (t->mm, old_data, old_size);
   assert (old_count == t->count);
+#ifndef NDEBUG
+  size_t pos, cnt = 0;
+  if (t->count > 0)
+  {
+    pos = t->first;
+    while (true)
+    {
+      cnt += 1;
+      if (pos == t->last) break;
+      pos = t->next[pos];
+    }
+  }
+  assert (cnt == t->count);
+#endif
 }
 
 BtorPtrHashTable2 *
@@ -307,7 +321,7 @@ btor_contains_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 size_t
 btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 {
-  size_t pos;
+  size_t pos, prev, next;
 
   pos = btor_get_pos_ptr_hash_table2 (t, key);
 
@@ -316,6 +330,22 @@ btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
   assert (t->cmp (t->keys[pos], key) == 0);
   t->keys[pos]     = 0;
   t->hop_info[pos] = 0;
+  next             = t->next[pos];
+  prev             = t->prev[pos];
+  t->next[prev]    = next;
+  t->prev[next]    = prev;
+  if (t->count > 1)
+  {
+    if (pos == t->first) t->first = next;
+    if (pos == t->last) t->last = prev;
+  }
+  else
+  {
+    t->first = 0;
+    t->last  = 0;
+  }
+  t->next[pos] = 0;
+  t->prev[pos] = 0;
   t->count -= 1;
   return pos;
 }
@@ -336,9 +366,50 @@ btor_get_pos_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 
   for (; i < end; i++)
   {
+    if (!keys[i]) continue;
     if (t->cmp (keys[i], key) == 0) return i;
   }
   return size;
+}
+
+BtorPtrHashTable2 *
+btor_clone_ptr_hash_table2 (BtorMemMgr *mm,
+                            BtorPtrHashTable2 *table,
+                            BtorCloneKeyPtr2 ckey,
+                            const void *key_map)
+{
+  assert (mm);
+  assert (table);
+
+  size_t i;
+  void *key;
+  BtorPtrHashTable2 *res;
+
+  if (!table) return NULL;
+
+  res = btor_new_ptr_hash_table2 (mm, table->hash, table->cmp);
+  while (res->size < table->size) resize (res);
+  assert (res->size == table->size);
+  if (ckey)
+  {
+    for (i = 0; i < table->size; i++)
+    {
+      key = table->keys[i];
+      if (!key) continue;
+      res->keys[i] = ckey (mm, key_map, key);
+    }
+  }
+  /* if clone function for keys is not given, just copy the keys */
+  else
+    memcpy (res->keys, table->keys, table->size * sizeof (*table->keys));
+  memcpy (
+      res->hop_info, table->hop_info, table->size * sizeof (*table->hop_info));
+  memcpy (res->next, table->next, table->size * sizeof (*table->next));
+  memcpy (res->prev, table->prev, table->size * sizeof (*table->prev));
+  res->first = table->first;
+  res->last  = table->last;
+  res->count = table->count;
+  return res;
 }
 
 /* map functions */
@@ -406,4 +477,49 @@ btor_delete_ptr_hash_map2 (BtorPtrHashTable2 *t)
   BTOR_DELETEN (t->mm, t->data, t->size);
   t->data = 0;
   btor_delete_ptr_hash_table2 (t);
+}
+
+size_t
+btor_size_ptr_hash_map2 (BtorPtrHashTable2 *t)
+{
+  assert (t);
+
+  size_t res;
+  res = btor_size_ptr_hash_table2 (t);
+  res += t->size * sizeof (*t->data);
+  return res;
+}
+
+BtorPtrHashTable2 *
+btor_clone_ptr_hash_map2 (BtorMemMgr *mm,
+                          BtorPtrHashTable2 *table,
+                          BtorCloneKeyPtr2 ckey,
+                          BtorCloneHashTableData cdata,
+                          const void *key_map,
+                          const void *data_map)
+{
+  assert (mm);
+  assert (table);
+  assert (table->data);
+
+  size_t i;
+  BtorPtrHashTable2 *res;
+
+  res = btor_clone_ptr_hash_table2 (mm, table, ckey, key_map);
+  BTOR_CNEWN (mm, res->data, res->size);
+
+  if (cdata)
+  {
+    for (i = 0; i < table->size; i++)
+    {
+      if (!table->data[i].as_ptr) continue;
+      assert (table->keys[i]);
+      cdata (mm, data_map, &table->data[i], &res->data[i]);
+    }
+  }
+  /* 'cdata' is not given, copy data */
+  else
+    memcpy (res->data, table->data, table->size * sizeof (*table->data));
+
+  return res;
 }

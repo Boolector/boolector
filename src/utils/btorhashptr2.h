@@ -36,6 +36,10 @@ struct BtorPtrHashTable2
 
 typedef struct BtorPtrHashTable2 BtorPtrHashTable2;
 
+typedef void *(*BtorCloneKeyPtr2) (BtorMemMgr *mm,
+                                   const void *map,
+                                   const void *key);
+
 /* Create new int32_t hash table. */
 BtorPtrHashTable2 *btor_new_ptr_hash_table2 (BtorMemMgr *,
                                              BtorHashPtr,
@@ -63,6 +67,12 @@ size_t btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *, void *key);
 // TODO (ma): remove
 size_t btor_get_pos_ptr_hash_table2 (BtorPtrHashTable2 *, void *key);
 
+/* If 'ckey' is NULL the keys will be copied */
+BtorPtrHashTable2 *btor_clone_ptr_hash_table2 (BtorMemMgr *mm,
+                                               BtorPtrHashTable2 *table,
+                                               BtorCloneKeyPtr2 ckey,
+                                               const void *key_map);
+
 /* map functions */
 
 BtorPtrHashTable2 *btor_new_ptr_hash_map2 (BtorMemMgr *,
@@ -79,5 +89,15 @@ BtorHashTableData *btor_add_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
 BtorHashTableData *btor_get_ptr_hash_map2 (BtorPtrHashTable2 *, void *key);
 
 void btor_delete_ptr_hash_map2 (BtorPtrHashTable2 *);
+
+size_t btor_size_ptr_hash_map2 (BtorPtrHashTable2 *);
+
+/* If 'key' and/or 'cdata' is NULL the keys/data will be copied. */
+BtorPtrHashTable2 *btor_clone_ptr_hash_map2 (BtorMemMgr *mm,
+                                             BtorPtrHashTable2 *table,
+                                             BtorCloneKeyPtr2 ckey,
+                                             BtorCloneHashTableData cdata,
+                                             const void *key_map,
+                                             const void *data_map);
 
 #endif
