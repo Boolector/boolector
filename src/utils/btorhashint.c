@@ -55,6 +55,7 @@ print_int_hash_table (BtorIntHashTable * t)
 #endif
 #endif
 
+#if 0
 static void
 print_density (BtorIntHashTable *t, int32_t key)
 {
@@ -69,9 +70,10 @@ print_density (BtorIntHashTable *t, int32_t key)
     if (j == insert_pos)
       printf ("%c", t->keys[j] ? 'O' : 'F');
     else
-      printf ("%c", t->keys[j] ? 'x' : '.');
+      printf ("%c", t->keys[j] ? 'x' : '.'); 
   printf ("\n");
 }
+#endif
 
 /*
  * try to add 'key' to 't'.
