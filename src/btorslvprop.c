@@ -2888,6 +2888,13 @@ btor_select_move_prop (Btor *btor,
       else if (btor_is_bv_cond_node (real_cur->e[eidx]))
       {
         real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+        BTORLOG (2, "");
+        BTORLOG (2, "select path: %s", node2string (real_cur));
+        BTORLOG (2, "       e[0]: %s", node2string (real_cur->e[0]));
+        BTORLOG (2, "       e[1]: %s", node2string (real_cur->e[1]));
+        BTORLOG (2, "       e[2]: %s", node2string (real_cur->e[2]));
+
         do
         {
           /* either assume that cond is fixed and propagate bvenew
@@ -2903,11 +2910,14 @@ btor_select_move_prop (Btor *btor,
             btor_free_bv (btor->mm, bvenew);
             bvenew = btor_not_bv (btor->mm, tmp);
             cur    = real_cur->e[0];
+            BTORLOG (2, "    * chose: 0");
           }
           else
           {
             /* assume cond to be fixed */
-            cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
+            i   = btor_is_zero_bv (tmp) ? 2 : 1;
+            cur = real_cur->e[i];
+            BTORLOG (2, "    * chose: %u", i);
           }
 
           real_cur = BTOR_REAL_ADDR_NODE (cur);
