@@ -1544,12 +1544,13 @@ btor_hash_bv_tuple (BtorBitVectorTuple *t)
 {
   assert (t);
 
-  uint32_t i, hash = 0;
+  uint32_t i, j = 0, hash = 0;
 
   for (i = 0; i < t->arity; i++)
   {
     assert (t->bv[i]);
-    hash += btor_hash_bv (t->bv[i]);
+    hash += btor_hash_bv (t->bv[i]) * hash_primes[j++];
+    if (j == NPRIMES) j = 0;
   }
 
   return hash;
