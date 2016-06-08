@@ -11,10 +11,11 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTOR_HASH_H_INCLUDED
-#define BTOR_HASH_H_INCLUDED
+#ifndef BTOR_PTR_HASH_H_INCLUDED
+#define BTOR_PTR_HASH_H_INCLUDED
 
 #include <string.h>
+#include "utils/btorhash.h"
 #include "utils/btormem.h"
 
 #include <assert.h>
@@ -24,26 +25,13 @@
 typedef struct BtorPtrHashTable BtorPtrHashTable;
 typedef struct BtorPtrHashBucket BtorPtrHashBucket;
 
-typedef unsigned (*BtorHashPtr) (const void *key);
-typedef int (*BtorCmpPtr) (const void *a, const void *b);
-
-typedef union BtorPtrHashData BtorPtrHashData;
-
 typedef void *(*BtorCloneKeyPtr) (BtorMemMgr *mm,
                                   const void *map,
                                   const void *key);
 typedef void (*BtorCloneDataPtr) (BtorMemMgr *mm,
                                   const void *map,
-                                  BtorPtrHashData *data,
-                                  BtorPtrHashData *cloned_data);
-
-union BtorPtrHashData
-{
-  int as_int;
-  double as_dbl;
-  void *as_ptr;
-  char *as_str;
-};
+                                  BtorHashTableData *data,
+                                  BtorHashTableData *cloned_data);
 
 struct BtorPtrHashBucket
 {
@@ -51,7 +39,7 @@ struct BtorPtrHashBucket
    */
   void *key;
 
-  BtorPtrHashData data;
+  BtorHashTableData data;
 
   BtorPtrHashBucket *next; /* chronologically */
   BtorPtrHashBucket *prev; /* chronologically */
@@ -109,7 +97,7 @@ BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *, void *);
 void btor_remove_ptr_hash_table (BtorPtrHashTable *,
                                  void *key,
                                  void **stored_key_ptr,
-                                 BtorPtrHashData *stored_data_ptr);
+                                 BtorHashTableData *stored_data_ptr);
 
 unsigned btor_hash_str (const void *str);
 

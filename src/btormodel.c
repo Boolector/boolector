@@ -82,7 +82,7 @@ btor_remove_from_bv_model (Btor *btor,
                            BtorPtrHashTable *bv_model,
                            BtorNode *exp)
 {
-  BtorPtrHashData d;
+  BtorHashTableData d;
 
   assert (btor_get_ptr_hash_table (bv_model, exp));
   btor_remove_ptr_hash_table (bv_model, exp, 0, &d);
@@ -221,13 +221,13 @@ btor_recursively_compute_assignment (Btor *btor,
   BtorNodePtrStack work_stack, reset;
   BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur, *next, *cur_parent;
-  BtorPtrHashData d;
+  BtorHashTableData d;
   BtorPtrHashBucket *b;
   BtorPtrHashTable *assigned, *reset_st, *param_model_cache;
   BtorBitVector *result = 0, *inv_result, **e;
   BtorBitVectorTuple *t;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *md;
+  BtorHashTableData *md;
 
   mm = btor->mm;
 

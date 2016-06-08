@@ -225,7 +225,7 @@ void
 btor_remove_ptr_hash_table (BtorPtrHashTable *table,
                             void *key,
                             void **stored_key_ptr,
-                            BtorPtrHashData *stored_data_ptr)
+                            BtorHashTableData *stored_data_ptr)
 {
   BtorPtrHashBucket **p, *bucket;
 

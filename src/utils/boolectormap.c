@@ -217,7 +217,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   BtorNode *eroot;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   int i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);

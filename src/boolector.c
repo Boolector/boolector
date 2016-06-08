@@ -1058,9 +1058,10 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   symb  = (char *) symbol;
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   BTOR_ABORT (width < 1, "'width' must not be < 1");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
-              "symbol '%s' is already in use",
-              symb);
+  BTOR_ABORT (
+      symb && btor_contains_ptr_hash_map2 (btor->symbols, (char *) symb),
+      "symbol '%s' is already in use",
+      symb);
   res = btor_var_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1094,7 +1095,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   BTOR_ABORT (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT (index_width < 1, "'index_width' must not be < 1");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_array_exp (btor, elem_width, index_width, symb);
@@ -1129,7 +1130,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               symbol ? " '" : "",
               symbol ? symbol : "",
               symbol ? "'" : "");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
 
@@ -2561,7 +2562,7 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
   BTOR_ABORT (width < 1, "'width' must not be < 1");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_param_exp (btor, width, symb);

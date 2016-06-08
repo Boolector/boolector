@@ -182,7 +182,7 @@ compute_sls_score_node (Btor *btor,
   BtorPtrHashBucket *b;
   BtorNodePtrStack stack;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorMemMgr *mm;
 #ifndef NBTORLOG
   char *a0, *a1;
@@ -402,7 +402,7 @@ compute_sls_scores_aux (Btor *btor,
   BtorNodePtrStack stack;
   BtorHashTableIterator it;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   BtorMemMgr *mm;
 
   BTORLOG (3, "");
@@ -1830,8 +1830,8 @@ DONE:
 void
 clone_data_as_sls_constr_data_ptr (BtorMemMgr *mm,
                                    const void *map,
-                                   BtorPtrHashData *data,
-                                   BtorPtrHashData *cloned_data)
+                                   BtorHashTableData *data,
+                                   BtorHashTableData *cloned_data)
 {
   assert (data);
   assert (cloned_data);
