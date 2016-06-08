@@ -58,24 +58,25 @@ static size_t
 add (BtorPtrHashTable2 *t, void *key)
 {
   bool found, moved;
-  size_t i, j, size, pos, move_pos, rem_move_dist, *next, *prev;
+  size_t i, j, size, pos, move_pos, rem_move_dist, *next, *prev, real_size;
   uint32_t h;
   uint8_t move_hop_info, *hop_info;
   void **keys;
   BtorHashTableData *data;
 
-  keys     = t->keys;
-  hop_info = t->hop_info;
-  size     = t->size;
-  data     = t->data;
-  next     = t->next;
-  prev     = t->prev;
-  h        = t->hash (key);
-  i        = h & (size - 1);
+  keys      = t->keys;
+  hop_info  = t->hop_info;
+  size      = t->size;
+  data      = t->data;
+  next      = t->next;
+  prev      = t->prev;
+  h         = t->hash (key);
+  i         = h & (size - 1);
+  real_size = size + HOP_RANGE;
 
   /* search a free position within the ADD_RANGE window */
   found = false;
-  for (j = 0, pos = i + j; j < ADD_RANGE && pos < size; j++, pos = i + j)
+  for (j = 0, pos = i + j; j < ADD_RANGE && pos < real_size; j++, pos = i + j)
   {
     if (!keys[pos])
     {
@@ -91,7 +92,7 @@ add (BtorPtrHashTable2 *t, void *key)
   }
 
   /* no suitable index found for moving key, needs resizing */
-  if (!found) return size;
+  if (!found) return real_size;
 
   found = false;
   moved = true;
@@ -105,7 +106,7 @@ add (BtorPtrHashTable2 *t, void *key)
     }
 
     /* needs resizing */
-    if (!moved) return size;
+    if (!moved) return real_size;
 
     /* 'pos' contains a free index */
     move_pos = pos - (HOP_RANGE - 1);
@@ -149,8 +150,8 @@ add (BtorPtrHashTable2 *t, void *key)
 
       if (data)
       {
-        data[pos]             = data[move_pos];
-        data[move_pos].as_ptr = 0;
+        data[pos] = data[move_pos];
+        memset (&data[move_pos], 0, sizeof (*data));
       }
       pos   = move_pos;
       moved = true;
@@ -182,34 +183,38 @@ resize (BtorPtrHashTable2 *t)
   size_t old_count;
 #endif
   size_t i, new_pos, old_size, new_size, *old_next, *old_prev, first, last;
-  size_t *new_mapping;
+  size_t *new_mapping, real_old_size, real_new_size;
   void *key, **old_keys;
   uint8_t *old_hop_info;
   BtorHashTableData *old_data;
 
-  old_size     = t->size;
-  old_keys     = t->keys;
-  old_hop_info = t->hop_info;
-  old_data     = t->data;
-  old_next     = t->next;
-  old_prev     = t->prev;
-  first        = t->first;
-  last         = t->last;
+  old_size      = t->size;
+  old_keys      = t->keys;
+  old_hop_info  = t->hop_info;
+  old_data      = t->data;
+  old_next      = t->next;
+  old_prev      = t->prev;
+  first         = t->first;
+  last          = t->last;
+  real_old_size = old_size + HOP_RANGE;
 #ifndef NDEBUG
   old_count = t->count;
 #endif
   assert (old_size > 0);
-  new_size = old_size * 2;
-  BTOR_CNEWN (t->mm, t->keys, new_size);
-  BTOR_CNEWN (t->mm, t->hop_info, new_size);
-  BTOR_CNEWN (t->mm, t->next, new_size);
-  BTOR_CNEWN (t->mm, t->prev, new_size);
-  BTOR_CNEWN (t->mm, new_mapping, old_size);
+  new_size      = old_size * 2;
+  real_new_size = new_size + HOP_RANGE;
+  BTOR_CNEWN (t->mm, t->keys, real_new_size);
+  BTOR_CNEWN (t->mm, t->hop_info, real_new_size);
+  BTOR_CNEWN (t->mm, t->next, real_new_size);
+  BTOR_CNEWN (t->mm, t->prev, real_new_size);
+  BTOR_CNEWN (t->mm, new_mapping, real_old_size);
   if (old_data) BTOR_CNEWN (t->mm, t->data, new_size);
   t->count = 0;
   t->size  = new_size;
 
-  for (i = 0; i < old_size; i++)
+  //  printf ("resize load: %.2f %u %u\n", (float) old_count / real_old_size,
+  //  old_count, real_old_size);
+  for (i = 0; i < real_old_size; i++)
   {
     key = old_keys[i];
     if (!key) continue;
@@ -218,11 +223,11 @@ resize (BtorPtrHashTable2 *t)
     if (old_data) t->data[new_pos] = old_data[i];
     /* after resizing it should always be possible to find a new
      * position */
-    assert (new_pos < new_size);
+    assert (new_pos < real_new_size);
   }
 
   /* restore old chronological order */
-  for (i = 0; i < old_size; i++)
+  for (i = 0; i < real_old_size; i++)
   {
     key = old_keys[i];
     if (!key) continue;
@@ -232,12 +237,12 @@ resize (BtorPtrHashTable2 *t)
   t->first = new_mapping[first];
   t->last  = new_mapping[last];
 
-  BTOR_DELETEN (t->mm, old_keys, old_size);
-  BTOR_DELETEN (t->mm, old_hop_info, old_size);
-  BTOR_DELETEN (t->mm, old_next, old_size);
-  BTOR_DELETEN (t->mm, old_prev, old_size);
-  BTOR_DELETEN (t->mm, new_mapping, old_size);
-  if (old_data) BTOR_DELETEN (t->mm, old_data, old_size);
+  BTOR_DELETEN (t->mm, old_keys, real_old_size);
+  BTOR_DELETEN (t->mm, old_hop_info, real_old_size);
+  BTOR_DELETEN (t->mm, old_next, real_old_size);
+  BTOR_DELETEN (t->mm, old_prev, real_old_size);
+  BTOR_DELETEN (t->mm, new_mapping, real_old_size);
+  if (old_data) BTOR_DELETEN (t->mm, old_data, real_old_size);
   assert (old_count == t->count);
 #ifndef NDEBUG
   size_t pos, cnt = 0;
@@ -260,15 +265,17 @@ btor_new_ptr_hash_table2 (BtorMemMgr *mm,
                           BtorHashPtr hash_func,
                           BtorCmpPtr cmp_func)
 {
+  size_t real_size;
   BtorPtrHashTable2 *res;
 
+  real_size = HOP_RANGE + HOP_RANGE;
   BTOR_CNEW (mm, res);
   res->mm   = mm;
   res->size = HOP_RANGE;
-  BTOR_CNEWN (mm, res->keys, res->size);
-  BTOR_CNEWN (mm, res->hop_info, res->size);
-  BTOR_CNEWN (mm, res->next, res->size);
-  BTOR_CNEWN (mm, res->prev, res->size);
+  BTOR_CNEWN (mm, res->keys, real_size);
+  BTOR_CNEWN (mm, res->hop_info, real_size);
+  BTOR_CNEWN (mm, res->next, real_size);
+  BTOR_CNEWN (mm, res->prev, real_size);
   res->hash = hash_func ? hash_func : hash_ptr;
   res->cmp  = cmp_func ? cmp_func : cmp_ptr;
   return res;
@@ -278,18 +285,24 @@ void
 btor_delete_ptr_hash_table2 (BtorPtrHashTable2 *t)
 {
   assert (!t->data);
-  BTOR_DELETEN (t->mm, t->keys, t->size);
-  BTOR_DELETEN (t->mm, t->hop_info, t->size);
-  BTOR_DELETEN (t->mm, t->next, t->size);
-  BTOR_DELETEN (t->mm, t->prev, t->size);
+
+  size_t real_size;
+
+  real_size = t->size + HOP_RANGE;
+  BTOR_DELETEN (t->mm, t->keys, real_size);
+  BTOR_DELETEN (t->mm, t->hop_info, real_size);
+  BTOR_DELETEN (t->mm, t->next, real_size);
+  BTOR_DELETEN (t->mm, t->prev, real_size);
   BTOR_DELETE (t->mm, t);
 }
 
 size_t
 btor_size_ptr_hash_table2 (BtorPtrHashTable2 *t)
 {
+  size_t real_size;
+  real_size = t->size + HOP_RANGE;
   return sizeof (BtorPtrHashTable2)
-         + t->size
+         + real_size
                * (sizeof (*t->keys) + sizeof (*t->hop_info) + sizeof (*t->next)
                   + sizeof (*t->prev));
 }
@@ -299,15 +312,17 @@ btor_add_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 {
   assert (key);
 
-  size_t pos;
+  size_t pos, real_size;
 
-  pos = add (t, key);
+  real_size = t->size + HOP_RANGE;
+  pos       = add (t, key);
   /* 'add(...)' returns 't->size' if 'key' could not be added to 't'. hence,
    * we need to resize 't'. */
-  while (pos == t->size)
+  while (pos == real_size)  // TODO: loop may be obsolete
   {
     resize (t);
     pos = add (t, key);
+    assert (pos != t->size + HOP_RANGE);
   }
   return pos;
 }
@@ -315,17 +330,21 @@ btor_add_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 bool
 btor_contains_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 {
-  return btor_get_pos_ptr_hash_table2 (t, key) != t->size;
+  size_t real_size;
+  real_size = t->size + HOP_RANGE;
+  return btor_get_pos_ptr_hash_table2 (t, key) != real_size;
 }
 
 size_t
 btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 {
-  size_t pos, prev, next;
+  size_t pos, prev, next, real_size;
+
+  real_size = t->size + HOP_RANGE;
 
   pos = btor_get_pos_ptr_hash_table2 (t, key);
 
-  if (pos == t->size) return pos;
+  if (pos == real_size) return pos;
 
   assert (t->cmp (t->keys[pos], key) == 0);
   t->keys[pos]     = 0;
@@ -353,23 +372,25 @@ btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 size_t
 btor_get_pos_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
 {
-  size_t i, size, end;
+  size_t i, size, end, real_size;
   uint32_t h;
   void **keys;
 
-  keys = t->keys;
-  size = t->size;
-  h    = t->hash (key);
-  i    = h & (size - 1);
-  end  = i + HOP_RANGE;
-  if (end > size) end = size;
+  keys      = t->keys;
+  size      = t->size;
+  real_size = size + HOP_RANGE;
+  h         = t->hash (key);
+  i         = h & (size - 1);
+  end       = i + HOP_RANGE;
+  assert (end < real_size);
+  if (end > real_size) end = real_size;
 
   for (; i < end; i++)
   {
     if (!keys[i]) continue;
     if (t->cmp (keys[i], key) == 0) return i;
   }
-  return size;
+  return real_size;
 }
 
 BtorPtrHashTable2 *
@@ -381,18 +402,19 @@ btor_clone_ptr_hash_table2 (BtorMemMgr *mm,
   assert (mm);
   assert (table);
 
-  size_t i;
+  size_t i, real_size;
   void *key;
   BtorPtrHashTable2 *res;
 
   if (!table) return NULL;
 
-  res = btor_new_ptr_hash_table2 (mm, table->hash, table->cmp);
+  real_size = table->size + HOP_RANGE;
+  res       = btor_new_ptr_hash_table2 (mm, table->hash, table->cmp);
   while (res->size < table->size) resize (res);
   assert (res->size == table->size);
   if (ckey)
   {
-    for (i = 0; i < table->size; i++)
+    for (i = 0; i < real_size; i++)
     {
       key = table->keys[i];
       if (!key) continue;
@@ -401,11 +423,11 @@ btor_clone_ptr_hash_table2 (BtorMemMgr *mm,
   }
   /* if clone function for keys is not given, just copy the keys */
   else
-    memcpy (res->keys, table->keys, table->size * sizeof (*table->keys));
+    memcpy (res->keys, table->keys, real_size * sizeof (*table->keys));
   memcpy (
-      res->hop_info, table->hop_info, table->size * sizeof (*table->hop_info));
-  memcpy (res->next, table->next, table->size * sizeof (*table->next));
-  memcpy (res->prev, table->prev, table->size * sizeof (*table->prev));
+      res->hop_info, table->hop_info, real_size * sizeof (*table->hop_info));
+  memcpy (res->next, table->next, real_size * sizeof (*table->next));
+  memcpy (res->prev, table->prev, real_size * sizeof (*table->prev));
   res->first = table->first;
   res->last  = table->last;
   res->count = table->count;
@@ -420,9 +442,11 @@ btor_new_ptr_hash_map2 (BtorMemMgr *mm,
                         BtorCmpPtr cmp_func)
 {
   BtorPtrHashTable2 *res;
+  size_t real_size;
 
-  res = btor_new_ptr_hash_table2 (mm, hash_func, cmp_func);
-  BTOR_CNEWN (mm, res->data, res->size);
+  res       = btor_new_ptr_hash_table2 (mm, hash_func, cmp_func);
+  real_size = res->size + HOP_RANGE;
+  BTOR_CNEWN (mm, res->data, real_size);
   return res;
 }
 
@@ -464,9 +488,10 @@ btor_get_ptr_hash_map2 (BtorPtrHashTable2 *t, void *key)
 {
   assert (t->data);
 
-  size_t pos;
-  pos = btor_get_pos_ptr_hash_table2 (t, key);
-  if (pos == t->size) return 0;
+  size_t pos, real_size;
+  real_size = t->size + HOP_RANGE;
+  pos       = btor_get_pos_ptr_hash_table2 (t, key);
+  if (pos == real_size) return 0;
   return &t->data[pos];
 }
 
@@ -474,7 +499,10 @@ void
 btor_delete_ptr_hash_map2 (BtorPtrHashTable2 *t)
 {
   assert (t->data);
-  BTOR_DELETEN (t->mm, t->data, t->size);
+  size_t real_size;
+
+  real_size = t->size + HOP_RANGE;
+  BTOR_DELETEN (t->mm, t->data, real_size);
   t->data = 0;
   btor_delete_ptr_hash_table2 (t);
 }
@@ -484,9 +512,10 @@ btor_size_ptr_hash_map2 (BtorPtrHashTable2 *t)
 {
   assert (t);
 
-  size_t res;
-  res = btor_size_ptr_hash_table2 (t);
-  res += t->size * sizeof (*t->data);
+  size_t res, real_size;
+  real_size = t->size + HOP_RANGE;
+  res       = btor_size_ptr_hash_table2 (t);
+  res += real_size * sizeof (*t->data);
   return res;
 }
 
@@ -502,24 +531,24 @@ btor_clone_ptr_hash_map2 (BtorMemMgr *mm,
   assert (table);
   assert (table->data);
 
-  size_t i;
+  size_t i, real_size;
   BtorPtrHashTable2 *res;
 
-  res = btor_clone_ptr_hash_table2 (mm, table, ckey, key_map);
-  BTOR_CNEWN (mm, res->data, res->size);
+  res       = btor_clone_ptr_hash_table2 (mm, table, ckey, key_map);
+  real_size = res->size + HOP_RANGE;
+  BTOR_CNEWN (mm, res->data, real_size);
 
   if (cdata)
   {
-    for (i = 0; i < table->size; i++)
+    for (i = 0; i < real_size; i++)
     {
-      if (!table->data[i].as_ptr) continue;
-      assert (table->keys[i]);
+      if (!table->keys[i]) continue;
       cdata (mm, data_map, &table->data[i], &res->data[i]);
     }
   }
   /* 'cdata' is not given, copy data */
   else
-    memcpy (res->data, table->data, table->size * sizeof (*table->data));
+    memcpy (res->data, table->data, real_size * sizeof (*table->data));
 
   return res;
 }
