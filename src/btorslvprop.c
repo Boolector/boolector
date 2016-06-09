@@ -2909,16 +2909,16 @@ btor_select_move_prop (Btor *btor,
       {
         real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-        BTORLOG (2, "");
-        BTORLOG (2, "select path: %s", node2string (real_cur));
-        BTORLOG (2, "       e[0]: %s", node2string (real_cur->e[0]));
-        BTORLOG (2, "       e[1]: %s", node2string (real_cur->e[1]));
-        BTORLOG (2, "       e[2]: %s", node2string (real_cur->e[2]));
-
         do
         {
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
+
+          BTORLOG (2, "");
+          BTORLOG (2, "select path: %s", node2string (real_cur));
+          BTORLOG (2, "       e[0]: %s", node2string (real_cur->e[0]));
+          BTORLOG (2, "       e[1]: %s", node2string (real_cur->e[1]));
+          BTORLOG (2, "       e[2]: %s", node2string (real_cur->e[2]));
 
           tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
 
