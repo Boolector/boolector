@@ -305,12 +305,18 @@ btor_hash_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
-  uint32_t res = 0, i, j;
+  uint32_t res = 0, i, j, x, p0, p1;
 
   for (i = 0, j = 0; i < bv->len; i++)
   {
-    res += hash_primes[j++] * bv->bits[i];
+    p0 = hash_primes[j++];
     if (j == NPRIMES) j = 0;
+    p1 = hash_primes[j++];
+    if (j == NPRIMES) j = 0;
+    x   = bv->bits[i] ^ res;
+    x   = ((x >> 16) ^ x) * p0;
+    x   = ((x >> 16) ^ x) * p1;
+    res = ((x >> 16) ^ x);
   }
   return res;
 }
