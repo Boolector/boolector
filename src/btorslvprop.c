@@ -89,14 +89,15 @@ select_path_add (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (add));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (add->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (add->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -114,10 +115,13 @@ select_path_and (Btor *btor,
   assert (bvand);
   assert (bve);
 
+  (void) bvand;
+
   int i, eidx;
   BtorBitVector *tmp;
+  BtorMemMgr *mm;
 
-  (void) bvand;
+  mm   = btor->mm;
   eidx = select_path_non_const (and);
 
   if (eidx == -1)
@@ -137,9 +141,9 @@ select_path_and (Btor *btor,
        * -> else choose randomly */
       for (i = 0; i < and->arity; i++)
       {
-        tmp = btor_and_bv (btor->mm, bvand, bve[i]);
+        tmp = btor_and_bv (mm, bvand, bve[i]);
         if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
-        btor_free_bv (btor->mm, tmp);
+        btor_free_bv (mm, tmp);
       }
     }
     if (eidx == -1) eidx = select_path_random (btor, and);
@@ -150,12 +154,12 @@ select_path_and (Btor *btor,
   char *a;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (and));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (and->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (and->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -182,14 +186,15 @@ select_path_eq (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (eq));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (eq->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (eq->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -209,14 +214,16 @@ select_path_ult (Btor *btor,
 
   int eidx;
   BtorBitVector *bvmax;
+  BtorMemMgr *mm;
 
+  mm   = btor->mm;
   eidx = select_path_non_const (ult);
 
   if (eidx == -1)
   {
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
     {
-      bvmax = btor_ones_bv (btor->mm, bve[0]->width);
+      bvmax = btor_ones_bv (mm, bve[0]->width);
       if (btor_is_one_bv (bvult))
       {
         /* 1...1 < bve[1] */
@@ -224,7 +231,7 @@ select_path_ult (Btor *btor,
         /* bve[0] < 0 */
         if (btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
       }
-      btor_free_bv (btor->mm, bvmax);
+      btor_free_bv (mm, bvmax);
     }
     if (eidx == -1) eidx = select_path_random (btor, ult);
   }
@@ -234,12 +241,12 @@ select_path_ult (Btor *btor,
   char *a;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (ult));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (ult->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (ult->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -288,14 +295,15 @@ DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (sll));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (sll->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (sll->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -345,14 +353,15 @@ DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (srl));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (srl->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (srl->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -415,14 +424,15 @@ select_path_mul (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (mul));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (mul->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (mul->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -443,14 +453,16 @@ select_path_udiv (Btor *btor,
   int eidx;
   int cmp_udiv_max;
   BtorBitVector *bvmax, *up, *lo, *tmp;
+  BtorMemMgr *mm;
 
+  mm   = btor->mm;
   eidx = select_path_non_const (udiv);
 
   if (eidx == -1)
   {
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
     {
-      bvmax        = btor_ones_bv (btor->mm, bve[0]->width);
+      bvmax        = btor_ones_bv (mm, bve[0]->width);
       cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
 
       /* bve[0] / bve[1] = 1...1 -> choose e[1]
@@ -469,24 +481,23 @@ select_path_udiv (Btor *btor,
           eidx = 0;
         else
         {
-          up  = btor_udiv_bv (btor->mm, bve[0], bvudiv);
-          lo  = btor_inc_bv (btor->mm, bvudiv);
-          tmp = btor_udiv_bv (btor->mm, bve[0], lo);
-          btor_free_bv (btor->mm, lo);
-          lo = btor_inc_bv (btor->mm, tmp);
+          up  = btor_udiv_bv (mm, bve[0], bvudiv);
+          lo  = btor_inc_bv (mm, bvudiv);
+          tmp = btor_udiv_bv (mm, bve[0], lo);
+          btor_free_bv (mm, lo);
+          lo = btor_inc_bv (mm, tmp);
 
           if (btor_compare_bv (lo, up) > 0) eidx = 0;
-          btor_free_bv (btor->mm, up);
-          btor_free_bv (btor->mm, lo);
-          btor_free_bv (btor->mm, tmp);
+          btor_free_bv (mm, up);
+          btor_free_bv (mm, lo);
+          btor_free_bv (mm, tmp);
         }
 
         /* e[0] / 0 != 1...1 -> choose e[1] */
-        if (btor_is_zero_bv (bve[1])
-            || btor_is_umulo_bv (btor->mm, bve[1], bvudiv))
+        if (btor_is_zero_bv (bve[1]) || btor_is_umulo_bv (mm, bve[1], bvudiv))
           eidx = eidx == -1 ? 1 : -1;
       }
-      btor_free_bv (btor->mm, bvmax);
+      btor_free_bv (mm, bvmax);
     }
     if (eidx == -1) eidx = select_path_random (btor, udiv);
   }
@@ -496,12 +507,12 @@ select_path_udiv (Btor *btor,
   char *a;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (udiv));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (udiv->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (udiv->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -521,16 +532,18 @@ select_path_urem (Btor *btor,
 
   int eidx;
   BtorBitVector *bvmax, *sub, *tmp;
+  BtorMemMgr *mm;
 
+  mm   = btor->mm;
   eidx = select_path_non_const (urem);
 
   if (eidx == -1)
   {
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
     {
-      bvmax = btor_ones_bv (btor->mm, bve[0]->width);
-      sub   = btor_sub_bv (btor->mm, bve[0], bvurem);
-      tmp   = btor_dec_bv (btor->mm, bve[0]);
+      bvmax = btor_ones_bv (mm, bve[0]->width);
+      sub   = btor_sub_bv (mm, bve[0], bvurem);
+      tmp   = btor_dec_bv (mm, bve[0]);
 
       /* bvurem = 1...1 -> bve[0] = 1...1 and bve[1] = 0...0 */
       if (!btor_compare_bv (bvurem, bvmax))
@@ -560,9 +573,9 @@ select_path_urem (Btor *btor,
         eidx = 0;
       }
 
-      btor_free_bv (btor->mm, tmp);
-      btor_free_bv (btor->mm, bvmax);
-      btor_free_bv (btor->mm, sub);
+      btor_free_bv (mm, tmp);
+      btor_free_bv (mm, bvmax);
+      btor_free_bv (mm, sub);
     }
 
     if (eidx == -1) eidx = select_path_random (btor, urem);
@@ -573,12 +586,12 @@ select_path_urem (Btor *btor,
   char *a;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (urem));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (urem->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (urem->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -598,7 +611,9 @@ select_path_concat (Btor *btor,
 
   int eidx;
   BtorBitVector *tmp;
+  BtorMemMgr *mm;
 
+  mm   = btor->mm;
   eidx = select_path_non_const (concat);
 
   if (eidx == -1)
@@ -607,15 +622,13 @@ select_path_concat (Btor *btor,
     {
       /* bve[0] o bve[1] = bvconcat
        * -> bve[0] resp. bve[1] must match with bvconcat */
-      tmp = btor_slice_bv (btor->mm,
-                           bvconcat,
-                           bvconcat->width - 1,
-                           bvconcat->width - bve[0]->width);
+      tmp = btor_slice_bv (
+          mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve[0]->width);
       if (btor_compare_bv (tmp, bve[0])) eidx = 0;
-      btor_free_bv (btor->mm, tmp);
-      tmp = btor_slice_bv (btor->mm, bvconcat, bve[1]->width - 1, 0);
+      btor_free_bv (mm, tmp);
+      tmp = btor_slice_bv (mm, bvconcat, bve[1]->width - 1, 0);
       if (btor_compare_bv (tmp, bve[1])) eidx = eidx == -1 ? 1 : -1;
-      btor_free_bv (btor->mm, tmp);
+      btor_free_bv (mm, tmp);
     }
 
     if (eidx == -1) eidx = select_path_random (btor, concat);
@@ -626,12 +639,12 @@ select_path_concat (Btor *btor,
   char *a;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (concat));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (concat->e[0]), a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (concat->e[1]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -657,11 +670,12 @@ select_path_slice (Btor *btor,
   (void) bve;
 #ifndef NDEBUG
   char *a;
+  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (slice));
-  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  a = btor_bv_to_char_bv (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (slice->e[0]), a);
-  btor_freestr (btor->mm, a);
+  btor_freestr (mm, a);
   BTORLOG (2, "    * chose: 0");
 #endif
 
