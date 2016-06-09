@@ -215,6 +215,12 @@ add (BtorPtrHashTable2 *t, void *key)
   return pos;
 }
 
+static float
+load (BtorPtrHashTable2 *t)
+{
+  return (float) t->count / t->size;
+}
+
 static void
 resize (BtorPtrHashTable2 *t)
 {
@@ -238,8 +244,11 @@ resize (BtorPtrHashTable2 *t)
 #ifndef NDEBUG
   old_count = t->count;
 #endif
-  // printf ("resize load: %.2f %u %u\n", (float) t->count / old_size, t->count,
-  // old_size);
+  // printf ("resize load: %.2f %u %u\n", load (t), t->count, old_size);
+
+  //  if ((float) load (t) < 0.5f)
+  //    printf ("resize at load %.2f bad hash function? (%zu/%zu)\n",
+  //	    load (t), t->count, t->size);
 
   assert (old_size > 0);
   new_size = initsize (pow2size (old_size) * 2);
