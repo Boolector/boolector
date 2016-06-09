@@ -149,8 +149,9 @@ add (BtorIntHashTable *t, int32_t key)
       }
 
       /* move key to free position 'pos' */
-      keys[pos]          = keys[move_pos];
-      hop_info[pos]      = move_hop_info + j; /* update hop info */
+      keys[pos]     = keys[move_pos];
+      hop_info[pos] = move_hop_info + j; /* update hop info */
+      assert (hop_info[pos] < HOP_RANGE);
       keys[move_pos]     = 0;
       hop_info[move_pos] = 0;
       if (data)
@@ -168,6 +169,7 @@ add (BtorIntHashTable *t, int32_t key)
   assert (found);
   keys[pos]     = key;
   hop_info[pos] = pos - i; /* store number of hops */
+  assert (hop_info[pos] < HOP_RANGE);
   t->count += 1;
   return pos;
 }

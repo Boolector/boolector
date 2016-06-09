@@ -138,6 +138,7 @@ add (BtorPtrHashTable2 *t, void *key)
       /* move key to free position 'pos' */
       keys[pos]     = keys[move_pos];
       hop_info[pos] = move_hop_info + j; /* update hop info */
+      assert (hop_info[pos] < HOP_RANGE);
 
       /* update chronological order */
       assert (move_pos != t->first || move_pos != t->last);
@@ -184,6 +185,7 @@ add (BtorPtrHashTable2 *t, void *key)
   assert (found);
   keys[pos]     = key;
   hop_info[pos] = pos - i; /* store number of hops */
+  assert (hop_info[pos] < HOP_RANGE);
   assert (prev[pos] == 0);
   if (t->count > 0)
   {
