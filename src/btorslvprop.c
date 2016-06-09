@@ -779,35 +779,37 @@ cons_ult_bv (Btor *btor,
   bool isult;
   uint32_t bw;
   BtorBitVector *bvmax, *zero, *tmp, *res;
+  BtorMemMgr *mm;
 
   (void) ult;
 
+  mm    = btor->mm;
   bw    = bve->width;
   isult = !btor_is_zero_bv (bvult);
-  zero  = btor_new_bv (btor->mm, bw);
-  bvmax = btor_ones_bv (btor->mm, bw);
+  zero  = btor_new_bv (mm, bw);
+  bvmax = btor_ones_bv (mm, bw);
 
   if (eidx && isult)
   {
     /* bve < res = 1  ->  res > 0 */
-    tmp = btor_one_bv (btor->mm, bw);
-    res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, tmp, bvmax);
-    btor_free_bv (btor->mm, tmp);
+    tmp = btor_one_bv (mm, bw);
+    res = btor_new_random_range_bv (mm, &btor->rng, bw, tmp, bvmax);
+    btor_free_bv (mm, tmp);
   }
   else if (!eidx && isult)
   {
     /* res < bve = 1  ->  0 <= res < 1...1 */
-    tmp = btor_dec_bv (btor->mm, bvmax);
-    res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, tmp);
-    btor_free_bv (btor->mm, tmp);
+    tmp = btor_dec_bv (mm, bvmax);
+    res = btor_new_random_range_bv (mm, &btor->rng, bw, zero, tmp);
+    btor_free_bv (mm, tmp);
   }
   else
   {
-    res = btor_new_random_bv (btor->mm, &btor->rng, bw);
+    res = btor_new_random_bv (mm, &btor->rng, bw);
   }
 
-  btor_free_bv (btor->mm, bvmax);
-  btor_free_bv (btor->mm, zero);
+  btor_free_bv (mm, bvmax);
+  btor_free_bv (mm, zero);
 
   return res;
 }
@@ -831,20 +833,21 @@ cons_sll_bv (Btor *btor,
 
   uint32_t i, s, bw, sbw, ctz_bvsll;
   BtorBitVector *res, *from, *to, *shift;
+  BtorMemMgr *mm;
 
   (void) sll;
   (void) bve;
 
+  mm  = btor->mm;
   bw  = bvsll->width;
   sbw = btor_log_2_util (bw);
 
   ctz_bvsll = btor_get_num_trailing_zeros_bv (bvsll);
-  from      = btor_new_bv (btor->mm, sbw);
-  to        = btor_uint64_to_bv (
-      btor->mm, ctz_bvsll == bw ? ctz_bvsll - 1 : ctz_bvsll, sbw);
-  shift = btor_new_random_range_bv (btor->mm, &btor->rng, sbw, from, to);
-  btor_free_bv (btor->mm, from);
-  btor_free_bv (btor->mm, to);
+  from      = btor_new_bv (mm, sbw);
+  to = btor_uint64_to_bv (mm, ctz_bvsll == bw ? ctz_bvsll - 1 : ctz_bvsll, sbw);
+  shift = btor_new_random_range_bv (mm, &btor->rng, sbw, from, to);
+  btor_free_bv (mm, from);
+  btor_free_bv (mm, to);
 
   if (eidx)
   {
@@ -853,10 +856,10 @@ cons_sll_bv (Btor *btor,
   else
   {
     s   = btor_bv_to_uint64_bv (shift);
-    res = btor_srl_bv (btor->mm, bvsll, shift);
+    res = btor_srl_bv (mm, bvsll, shift);
     for (i = 0; i < s; i++)
       btor_set_bit_bv (res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
-    btor_free_bv (btor->mm, shift);
+    btor_free_bv (mm, shift);
   }
 
   return res;
@@ -881,21 +884,23 @@ cons_srl_bv (Btor *btor,
 
   uint32_t i, s, bw, sbw;
   BtorBitVector *res, *from, *to, *shift;
+  BtorMemMgr *mm;
 
   (void) srl;
   (void) bve;
 
+  mm  = btor->mm;
   bw  = bvsrl->width;
   sbw = btor_log_2_util (bw);
 
   for (i = 0; i < bw; i++)
     if (btor_get_bit_bv (bvsrl, bw - 1 - i)) break;
 
-  from  = btor_new_bv (btor->mm, sbw);
-  to    = btor_uint64_to_bv (btor->mm, i == bw ? i - 1 : i, sbw);
-  shift = btor_new_random_range_bv (btor->mm, &btor->rng, sbw, from, to);
-  btor_free_bv (btor->mm, from);
-  btor_free_bv (btor->mm, to);
+  from  = btor_new_bv (mm, sbw);
+  to    = btor_uint64_to_bv (mm, i == bw ? i - 1 : i, sbw);
+  shift = btor_new_random_range_bv (mm, &btor->rng, sbw, from, to);
+  btor_free_bv (mm, from);
+  btor_free_bv (mm, to);
 
   if (eidx)
   {
@@ -904,10 +909,10 @@ cons_srl_bv (Btor *btor,
   else
   {
     s   = btor_bv_to_uint64_bv (shift);
-    res = btor_srl_bv (btor->mm, bvsrl, shift);
+    res = btor_srl_bv (mm, bvsrl, shift);
     for (i = 0; i < s; i++)
       btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
-    btor_free_bv (btor->mm, shift);
+    btor_free_bv (mm, shift);
   }
 
   return res;
@@ -931,19 +936,21 @@ cons_mul_bv (Btor *btor,
 
   uint32_t r, bw, ctz_res, ctz_bvmul;
   BtorBitVector *res, *tmp;
+  BtorMemMgr *mm;
 
   (void) mul;
   (void) bve;
   (void) eidx;
 
+  mm  = btor->mm;
   bw  = bvmul->width;
-  res = btor_new_random_bv (btor->mm, &btor->rng, bw);
+  res = btor_new_random_bv (mm, &btor->rng, bw);
   if (!btor_is_zero_bv (bvmul))
   {
     if (btor_is_zero_bv (res))
     {
-      btor_free_bv (btor->mm, res);
-      res = btor_new_random_bv (btor->mm, &btor->rng, bw);
+      btor_free_bv (mm, res);
+      res = btor_new_random_bv (mm, &btor->rng, bw);
     }
     /* bvmul odd -> choose odd value > 0 */
     if (btor_get_bit_bv (bvmul, 0))
@@ -959,8 +966,8 @@ cons_mul_bv (Btor *btor,
       /* choose res as 2^n with ctz(bvmul) >= ctz(res) with prob 0.1 */
       if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
-        btor_free_bv (btor->mm, res);
-        res = btor_new_bv (btor->mm, bw);
+        btor_free_bv (mm, res);
+        res = btor_new_bv (mm, bw);
         btor_set_bit_bv (
             res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
       }
@@ -968,16 +975,16 @@ cons_mul_bv (Btor *btor,
        * (note: bw not necessarily power of 2 -> do not use srl) */
       else if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
-        btor_free_bv (btor->mm, res);
+        btor_free_bv (mm, res);
         if ((r = btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul)))
         {
-          tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
-          res = btor_uext_bv (btor->mm, tmp, r);
-          btor_free_bv (btor->mm, tmp);
+          tmp = btor_slice_bv (mm, bvmul, bw - 1, r);
+          res = btor_uext_bv (mm, tmp, r);
+          btor_free_bv (mm, tmp);
         }
         else
         {
-          res = btor_copy_bv (btor->mm, bvmul);
+          res = btor_copy_bv (mm, bvmul);
         }
       }
       /* choose random value with ctz(bvmul) >= ctz(res) with prob 0.8 */
@@ -1012,11 +1019,13 @@ cons_udiv_bv (Btor *btor,
 
   uint32_t bw;
   BtorBitVector *res, *tmp, *tmpbve, *zero, *one, *bvmax;
+  BtorMemMgr *mm;
 
+  mm    = btor->mm;
   bw    = bvudiv->width;
-  zero  = btor_new_bv (btor->mm, bw);
-  one   = btor_one_bv (btor->mm, bw);
-  bvmax = btor_ones_bv (btor->mm, bw);
+  zero  = btor_new_bv (mm, bw);
+  one   = btor_one_bv (mm, bw);
+  bvmax = btor_ones_bv (mm, bw);
 
   (void) udiv;
   (void) bve;
@@ -1026,17 +1035,16 @@ cons_udiv_bv (Btor *btor,
     /* -> bvudiv = 1...1 then res = 0 or res = 1
      * -> else choose res s.t. res * bvudiv does not overflow */
     if (!btor_compare_bv (bvudiv, bvmax))
-      res = btor_uint64_to_bv (
-          btor->mm, btor_pick_rand_rng (&btor->rng, 0, 1), bw);
+      res = btor_uint64_to_bv (mm, btor_pick_rand_rng (&btor->rng, 0, 1), bw);
     else
     {
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
-      while (btor_is_umulo_bv (btor->mm, res, bvudiv))
+      res = btor_new_random_range_bv (mm, &btor->rng, bw, one, bvmax);
+      while (btor_is_umulo_bv (mm, res, bvudiv))
       {
-        tmp = btor_sub_bv (btor->mm, res, one);
-        btor_free_bv (btor->mm, res);
-        res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
-        btor_free_bv (btor->mm, tmp);
+        tmp = btor_sub_bv (mm, res, one);
+        btor_free_bv (mm, res);
+        res = btor_new_random_range_bv (mm, &btor->rng, bw, one, tmp);
+        btor_free_bv (mm, tmp);
       }
     }
   }
@@ -1047,32 +1055,32 @@ cons_udiv_bv (Btor *btor,
      * -> else choose tmpbve s.t. res = tmpbve * bvudiv does not overflow */
     if (btor_is_zero_bv (bvudiv))
     {
-      tmp = btor_dec_bv (btor->mm, bvmax);
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, tmp);
-      btor_free_bv (btor->mm, tmp);
+      tmp = btor_dec_bv (mm, bvmax);
+      res = btor_new_random_range_bv (mm, &btor->rng, bw, zero, tmp);
+      btor_free_bv (mm, tmp);
     }
     else if (!btor_compare_bv (bvudiv, bvmax))
     {
-      res = btor_new_random_bv (btor->mm, &btor->rng, bw);
+      res = btor_new_random_bv (mm, &btor->rng, bw);
     }
     else
     {
-      tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
-      while (btor_is_umulo_bv (btor->mm, tmpbve, bvudiv))
+      tmpbve = btor_new_random_range_bv (mm, &btor->rng, bw, one, bvmax);
+      while (btor_is_umulo_bv (mm, tmpbve, bvudiv))
       {
-        tmp = btor_sub_bv (btor->mm, tmpbve, one);
-        btor_free_bv (btor->mm, tmpbve);
-        tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
-        btor_free_bv (btor->mm, tmp);
+        tmp = btor_sub_bv (mm, tmpbve, one);
+        btor_free_bv (mm, tmpbve);
+        tmpbve = btor_new_random_range_bv (mm, &btor->rng, bw, one, tmp);
+        btor_free_bv (mm, tmp);
       }
-      res = btor_mul_bv (btor->mm, tmpbve, bvudiv);
-      btor_free_bv (btor->mm, tmpbve);
+      res = btor_mul_bv (mm, tmpbve, bvudiv);
+      btor_free_bv (mm, tmpbve);
     }
   }
 
-  btor_free_bv (btor->mm, one);
-  btor_free_bv (btor->mm, zero);
-  btor_free_bv (btor->mm, bvmax);
+  btor_free_bv (mm, one);
+  btor_free_bv (mm, zero);
+  btor_free_bv (mm, bvmax);
   return res;
 }
 
@@ -1094,26 +1102,28 @@ cons_urem_bv (Btor *btor,
 
   uint32_t bw;
   BtorBitVector *res, *bvmax, *tmp;
+  BtorMemMgr *mm;
 
   (void) urem;
   (void) bve;
 
+  mm    = btor->mm;
   bw    = bvurem->width;
-  bvmax = btor_ones_bv (btor->mm, bw);
+  bvmax = btor_ones_bv (mm, bw);
 
   if (eidx)
   {
     /* bvurem = 1...1  ->  res = 0 */
     if (!btor_compare_bv (bvurem, bvmax))
     {
-      res = btor_new_bv (btor->mm, bw);
+      res = btor_new_bv (mm, bw);
     }
     /* else res > bvurem */
     else
     {
-      tmp = btor_inc_bv (btor->mm, bvurem);
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, tmp, bvmax);
-      btor_free_bv (btor->mm, tmp);
+      tmp = btor_inc_bv (mm, bvurem);
+      res = btor_new_random_range_bv (mm, &btor->rng, bw, tmp, bvmax);
+      btor_free_bv (mm, tmp);
     }
   }
   else
@@ -1121,16 +1131,16 @@ cons_urem_bv (Btor *btor,
     /* bvurem = 1...1  ->  res = 1...1 */
     if (!btor_compare_bv (bvurem, bvmax))
     {
-      res = btor_copy_bv (btor->mm, bvmax);
+      res = btor_copy_bv (mm, bvmax);
     }
     /* else res >= bvurem */
     else
     {
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, bvurem, bvmax);
+      res = btor_new_random_range_bv (mm, &btor->rng, bw, bvurem, bvmax);
     }
   }
 
-  btor_free_bv (btor->mm, bvmax);
+  btor_free_bv (mm, bvmax);
   return res;
 }
 
@@ -1289,14 +1299,12 @@ inv_add_bv (Btor *btor,
   assert (!btor_is_bv_const_node (add->e[eidx]));
 
   BtorBitVector *res;
-  BtorMemMgr *mm;
 
-  mm = btor->mm;
   (void) add;
   (void) eidx;
 
   /* res + bve = bve + res = bvadd -> res = bvadd - bve */
-  res = btor_sub_bv (mm, bvadd, bve);
+  res = btor_sub_bv (btor->mm, bvadd, bve);
 #ifndef NDEBUG
   check_result_binary_dbg (btor, btor_add_bv, add, bve, bvadd, res, eidx, "+");
 #endif
@@ -1346,7 +1354,7 @@ inv_and_bv (Btor *btor,
     /* CONFLICT: all bits set in bvand, must be set in bve -------------- */
     if (bitand&&!bite)
     {
-      btor_free_bv (btor->mm, res);
+      btor_free_bv (mm, res);
       /* check for non-recoverable conflict */
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
@@ -1585,7 +1593,7 @@ inv_sll_bv (Btor *btor,
     /* 0...0 << e[1] = 0...0 -> choose res randomly */
     if (btor_is_zero_bv (bve) && btor_is_zero_bv (bvsll))
     {
-      res = btor_new_random_bv (btor->mm, &btor->rng, sbw);
+      res = btor_new_random_bv (mm, &btor->rng, sbw);
     }
     /* -> ctz(bve) > ctz (bvsll) -> conflict
      * -> shift = ctz(bvsll) - ctz(bve)
@@ -1627,12 +1635,11 @@ inv_sll_bv (Btor *btor,
          * -> choose random shift <= res < bw */
         else if (btor_is_zero_bv (bvsll))
         {
-          bvmax = btor_ones_bv (btor->mm, sbw);
+          bvmax = btor_ones_bv (mm, sbw);
           tmp   = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
-          res =
-              btor_new_random_range_bv (btor->mm, &btor->rng, sbw, tmp, bvmax);
-          btor_free_bv (btor->mm, bvmax);
-          btor_free_bv (btor->mm, tmp);
+          res   = btor_new_random_range_bv (mm, &btor->rng, sbw, tmp, bvmax);
+          btor_free_bv (mm, bvmax);
+          btor_free_bv (mm, tmp);
         }
         else
         {
@@ -1724,7 +1731,7 @@ inv_srl_bv (Btor *btor,
     /* 0...0 >> e[1] = 0...0 -> choose random res */
     if (btor_is_zero_bv (bve) && btor_is_zero_bv (bvsrl))
     {
-      res = btor_new_random_bv (btor->mm, &btor->rng, sbw);
+      res = btor_new_random_bv (mm, &btor->rng, sbw);
     }
     /* clz(bve) > clz(bvsrl) -> conflict
      * -> shift = clz(bvsrl) - clz(bve)
@@ -1766,12 +1773,11 @@ inv_srl_bv (Btor *btor,
          * -> choose random shift <= res < bw */
         else if (btor_is_zero_bv (bvsrl))
         {
-          bvmax = btor_ones_bv (btor->mm, sbw);
+          bvmax = btor_ones_bv (mm, sbw);
           tmp   = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
-          res =
-              btor_new_random_range_bv (btor->mm, &btor->rng, sbw, tmp, bvmax);
-          btor_free_bv (btor->mm, bvmax);
-          btor_free_bv (btor->mm, tmp);
+          res   = btor_new_random_range_bv (mm, &btor->rng, sbw, tmp, bvmax);
+          btor_free_bv (mm, bvmax);
+          btor_free_bv (mm, tmp);
         }
         else
         {
@@ -2466,7 +2472,7 @@ inv_urem_bv (Btor *btor,
     if (btor_is_zero_bv (bve))
     {
     BVUREM_ZERO_0:
-      res = btor_copy_bv (btor->mm, bvurem);
+      res = btor_copy_bv (mm, bvurem);
     }
     /* CONFLICT: bvurem > 0 and bve = 1 --------------------------------- */
     else if (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve))
@@ -2706,8 +2712,8 @@ inv_slice_bv (Btor *btor,
   assert (!btor_compare_bv (tmpdbg, bvslice));
   btor_free_bv (mm, tmpdbg);
 
-  char *sbvslice = btor_bv_to_char_bv (btor->mm, bvslice);
-  char *sres     = btor_bv_to_char_bv (btor->mm, res);
+  char *sbvslice = btor_bv_to_char_bv (mm, bvslice);
+  char *sres     = btor_bv_to_char_bv (mm, res);
   BTORLOG (3,
            "prop (xxxxx): %s: %s := %s[%d:%d]",
            node2string (slice),
@@ -2715,8 +2721,8 @@ inv_slice_bv (Btor *btor,
            sres,
            lower,
            upper);
-  btor_freestr (btor->mm, sbvslice);
-  btor_freestr (btor->mm, sres);
+  btor_freestr (mm, sbvslice);
+  btor_freestr (mm, sres);
 #endif
   return res;
 }
