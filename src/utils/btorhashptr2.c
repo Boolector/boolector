@@ -438,19 +438,24 @@ btor_remove_ptr_hash_table2 (BtorPtrHashTable2 *t, void *key)
   assert (t->cmp (t->keys[pos], key) == 0);
   t->keys[pos]     = 0;
   t->hop_info[pos] = 0;
-  next             = t->next[pos];
-  prev             = t->prev[pos];
-  t->next[prev]    = next;
-  t->prev[next]    = prev;
-  if (t->count > 1)
-  {
-    if (pos == t->first) t->first = next;
-    if (pos == t->last) t->last = prev;
-  }
-  else
+  if (t->count == 1)
   {
     t->first = 0;
     t->last  = 0;
+  }
+  else
+  {
+    assert (t->count > 1);
+    next = t->next[pos];
+    prev = t->prev[pos];
+    if (pos == t->first)
+      t->first = next;
+    else
+      t->next[prev] = next;
+    if (pos == t->last)
+      t->last = prev;
+    else
+      t->prev[next] = prev;
   }
   t->next[pos] = 0;
   t->prev[pos] = 0;
