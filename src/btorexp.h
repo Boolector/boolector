@@ -419,13 +419,15 @@ btor_is_array_node (const BtorNode *exp)
 static inline bool
 btor_is_forall_node (const BtorNode *exp)
 {
-  return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_FORALL_NODE;
+  assert (exp);
+  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_FORALL_NODE;
 }
 
 static inline bool
 btor_is_exists_node (const BtorNode *exp)
 {
-  return exp && BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_EXISTS_NODE;
+  assert (exp);
+  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_EXISTS_NODE;
 }
 
 static inline bool
