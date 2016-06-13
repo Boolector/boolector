@@ -275,7 +275,7 @@ btor_beta_reduce (Btor *btor,
         continue;
       }
       /* assign params of lambda expression */
-      else if (btor_is_lambda_node (real_cur)
+      else if (btor_is_lambda_node (real_cur) && cur_parent
                && btor_is_apply_node (cur_parent)
                /* check if we have arguments on the stack */
                && !BTOR_EMPTY_STACK (arg_stack)
@@ -308,7 +308,7 @@ btor_beta_reduce (Btor *btor,
       /* do not try to reduce lambdas below equalities as lambdas cannot
        * be eliminated. further, it may produce lambdas that break lemma
        * generation for extensionality */
-      else if (btor_is_lambda_node (real_cur)
+      else if (btor_is_lambda_node (real_cur) && cur_parent
                && (btor_is_fun_eq_node (cur_parent)
                    || btor_is_fun_cond_node (cur_parent)))
       {
@@ -447,9 +447,10 @@ btor_beta_reduce (Btor *btor,
         case BTOR_LAMBDA_NODE:
           /* function equalities and conditionals always expect a lambda
            * as argument */
-          if (btor_is_fun_eq_node (cur_parent)
-              || (btor_is_fun_cond_node (cur_parent)
-                  && !btor_param_get_assigned_exp (real_cur->e[0])))
+          if (cur_parent
+              && (btor_is_fun_eq_node (cur_parent)
+                  || (btor_is_fun_cond_node (cur_parent)
+                      && !btor_param_get_assigned_exp (real_cur->e[0]))))
           {
             assert (btor_is_param_node (e[1]));
             result = btor_lambda_exp (btor, e[1], e[0]);
@@ -486,7 +487,8 @@ btor_beta_reduce (Btor *btor,
       if (real_cur->parameterized || btor_is_lambda_node (real_cur))
         BTOR_PUSH_STACK (mm, reset, real_cur);
 
-      if (btor_is_lambda_node (real_cur) && btor_is_apply_node (cur_parent)
+      if (btor_is_lambda_node (real_cur) && cur_parent
+          && btor_is_apply_node (cur_parent)
           && btor_param_get_assigned_exp (real_cur->e[0]))
       {
         btor_unassign_params (btor, real_cur);
