@@ -232,7 +232,10 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 }
 
 static BtorNode *
-normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
+normalize_quantifiers (Btor *btor,
+                       BtorNode *roots[],
+                       uint32_t num_roots,
+                       BtorIntHashTable *node_map)
 {
   int32_t i, id;
   uint32_t j;
@@ -397,6 +400,13 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
           btor_release_exp (btor, data.as_ptr);
         }
       }
+
+      if (node_map)
+      {
+        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
+        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+            BTOR_REAL_ADDR_NODE (result)->id;
+      }
     PUSH_RESULT:
       /* quantifiers are never negated (but flipped) */
       if (!btor_is_quantifier_node (real_cur))
@@ -447,9 +457,11 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 }
 
 BtorNode *
-btor_normalize_quantifiers_node (Btor *btor, BtorNode *root)
+btor_normalize_quantifiers_node (Btor *btor,
+                                 BtorNode *root,
+                                 BtorIntHashTable *node_map)
 {
-  return normalize_quantifiers (btor, &root, 1);
+  return normalize_quantifiers (btor, &root, 1, node_map);
 }
 
 BtorNode *
@@ -481,7 +493,8 @@ btor_normalize_quantifiers (Btor *btor)
     BTOR_PUSH_STACK (mm, roots, root);
   }
 
-  result = normalize_quantifiers (btor, roots.start, BTOR_COUNT_STACK (roots));
+  result =
+      normalize_quantifiers (btor, roots.start, BTOR_COUNT_STACK (roots), 0);
   BTOR_RELEASE_STACK (mm, roots);
   btor_set_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, opt_simp_const);
   return result;

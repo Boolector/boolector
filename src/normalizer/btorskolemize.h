@@ -12,9 +12,12 @@
 #define BTORSKOLEMIZE_H_INCLUDED
 
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 
 void btor_skolemize (Btor* btor);
 
-BtorNode* btor_skolemize_node (Btor* btor, BtorNode* root);
+BtorNode* btor_skolemize_node (Btor* btor,
+                               BtorNode* root,
+                               BtorIntHashTable* node_map);
 
 #endif

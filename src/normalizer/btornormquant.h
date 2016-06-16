@@ -12,8 +12,11 @@
 #define BTORNORMQUANT_H_INCLUDED
 
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 
-BtorNode* btor_normalize_quantifiers_node (Btor* btor, BtorNode* root);
+BtorNode* btor_normalize_quantifiers_node (Btor* btor,
+                                           BtorNode* root,
+                                           BtorIntHashTable* node_map);
 
 BtorNode* btor_normalize_quantifiers (Btor* btor);
 

@@ -2712,7 +2712,10 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp, BtorIntHashTable *mark)
 }
 
 BtorNode *
-btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
+btor_substitute_terms_node_map (Btor *btor,
+                                BtorNode *root,
+                                BtorNodeMap *substs,
+                                BtorIntHashTable *node_map)
 {
   assert (btor);
   assert (root);
@@ -2724,6 +2727,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
+  BtorNodeMapIterator it;
 
   mm   = btor->mm;
   mark = btor_new_int_hash_map (mm);
@@ -2788,6 +2792,12 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
 
       d->as_ptr = btor_copy_exp (btor, result);
       BTOR_PUSH_STACK (mm, cleanup, result);
+      if (node_map)
+      {
+        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
+        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+            BTOR_REAL_ADDR_NODE (result)->id;
+      }
     PUSH_RESULT:
       assert (real_cur->sort_id == BTOR_REAL_ADDR_NODE (result)->sort_id);
       BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
@@ -2802,6 +2812,22 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   assert (BTOR_COUNT_STACK (args) == 1);
   result = BTOR_POP_STACK (args);
 
+  /* update 'node_map' for substituted nodes */
+  if (node_map)
+  {
+    btor_init_node_map_iterator (&it, substs);
+    while (btor_has_next_node_map_iterator (&it))
+    {
+      subst = it.it.bucket->data.as_ptr;
+      while (btor_mapped_node (substs, subst))
+        subst = btor_mapped_node (substs, subst);
+      cur = btor_next_node_map_iterator (&it);
+      assert (!btor_contains_int_hash_map (node_map, cur->id));
+      btor_add_int_hash_map (node_map, cur->id)->as_int =
+          BTOR_REAL_ADDR_NODE (subst)->id;
+    }
+  }
+
   while (!BTOR_EMPTY_STACK (cleanup))
     btor_release_exp (btor, BTOR_POP_STACK (cleanup));
   BTOR_RELEASE_STACK (mm, cleanup);
@@ -2809,6 +2835,12 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BTOR_RELEASE_STACK (mm, args);
   btor_delete_int_hash_map (mark);
   return result;
+}
+
+BtorNode *
+btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
+{
+  return btor_substitute_terms_node_map (btor, root, substs, 0);
 }
 
 static void

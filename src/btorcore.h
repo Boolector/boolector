@@ -22,6 +22,7 @@
 #include "btorslv.h"
 #include "btorsort.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr2.h"
 #include "utils/btormem.h"
 #include "utils/btorrng.h"
@@ -322,6 +323,13 @@ void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 BtorNode *btor_substitute_terms (Btor *btor,
                                  BtorNode *root,
                                  BtorNodeMap *substs);
+
+/* Create a new term with 'substs' substituted in root. If 'node_map' is given
+ * it creates an id map from old nodes to new nodes. */
+BtorNode *btor_substitute_terms_node_map (Btor *btor,
+                                          BtorNode *root,
+                                          BtorNodeMap *substs,
+                                          BtorIntHashTable *node_map);
 
 // TODO (ma): make these functions public until we have a common framework for
 //            calling sat simplify etc.

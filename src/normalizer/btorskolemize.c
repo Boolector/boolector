@@ -14,7 +14,7 @@
 #include "utils/btoriter.h"
 
 BtorNode *
-btor_skolemize_node (Btor *btor, BtorNode *root)
+btor_skolemize_node (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
 {
   int32_t i;
   uint32_t j;
@@ -149,6 +149,12 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
 
       d->as_ptr = btor_copy_exp (btor, result);
+      if (node_map)
+      {
+        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
+        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+            BTOR_REAL_ADDR_NODE (result)->id;
+      }
     PUSH_RESULT:
 
       if (btor_is_forall_node (real_cur))
