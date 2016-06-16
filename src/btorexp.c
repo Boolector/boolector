@@ -4421,10 +4421,13 @@ btor_param_set_binder (BtorNode *param, BtorNode *binder)
   if (!binder)
   {
     q = btor_param_get_binder (param);
-    if (btor_is_exists_node (q))
-      btor_remove_ptr_hash_table (param->btor->exists_vars, param, 0, 0);
-    else if (btor_is_forall_node (q))
-      btor_remove_ptr_hash_table (param->btor->forall_vars, param, 0, 0);
+    if (q)
+    {
+      if (btor_is_exists_node (q))
+        btor_remove_ptr_hash_table (param->btor->exists_vars, param, 0, 0);
+      else if (btor_is_forall_node (q))
+        btor_remove_ptr_hash_table (param->btor->forall_vars, param, 0, 0);
+    }
   }
   /* param is bound, add to exists/forall vars tables */
   else
