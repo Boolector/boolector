@@ -35,6 +35,11 @@ struct BtorEFSolver
     double f_solver;
     double synth;
     double qinst;
+
+    double dual_e_solver;
+    double dual_f_solver;
+    double dual_synth;
+    double dual_qinst;
   } time;
 };
 
