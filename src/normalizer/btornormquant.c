@@ -403,9 +403,9 @@ normalize_quantifiers (Btor *btor,
 
       if (node_map)
       {
-        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
-        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
-            BTOR_REAL_ADDR_NODE (result)->id;
+        if (!btor_contains_int_hash_map (node_map, real_cur->id))
+          btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+              BTOR_REAL_ADDR_NODE (result)->id;
       }
     PUSH_RESULT:
       /* quantifiers are never negated (but flipped) */

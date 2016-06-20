@@ -87,7 +87,8 @@ update_node_map (BtorIntHashTable *node_map, BtorIntHashTable *update)
   {
     if (!node_map->keys[i]) continue;
     key = node_map->data[i].as_int;
-    assert (btor_contains_int_hash_map (update, key));
+    /* if key didn't get updated we don't have to update 'node_map' */
+    if (!btor_contains_int_hash_map (update, key)) continue;
     node_map->data[i].as_int = btor_get_int_hash_map (update, key)->as_int;
   }
 }
@@ -1504,6 +1505,10 @@ map_vars (BtorEFGroundSolvers *gslv,
 
     cur      = btor_get_node_by_id (gslv->forall, mapped);
     cur_dual = btor_get_node_by_id (dual_gslv->forall, mapped_dual);
+    if (!cur) continue;      /* variable was eliminated in original formula */
+    if (!cur_dual) continue; /* variable was eliminated in dual formula */
+    assert (cur);
+    assert (cur_dual);
 
     if (btor_is_bv_var_node (cur)
         && (btor_mapped_node (gslv->forall_evars, cur)
@@ -1563,6 +1568,8 @@ add_instantiation (BtorEFGroundSolvers *gslv,
     m      = it.it.bucket->data.as_ptr;
     cur    = btor_next_node_map_iterator (&it);
     var_fs = btor_mapped_node (vars_map, cur);
+    /* some variables may have been eliminated in the dual formula */
+    if (!var_fs) continue;
     assert (var_fs);
     exp_map = btor_new_node_map (gslv->forall);
     if (btor_is_bv_var_node (cur))
@@ -1644,12 +1651,13 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   //  double start;
+  int32_t key;
   size_t i;
   BtorSolverResult res;
-  BtorNode *g, *dual_g;
+  BtorNode *g, *dual_g, *cur;
   BtorEFGroundSolvers *gslv, *dual_gslv;
   BtorNodeMap *vars_map, *dual_vars_map;
-  BtorIntHashTable *node_map, *node_map_dual;
+  BtorIntHashTable *node_map, *node_map_dual, *tmp_map;
   /* 'vars_map' maps existential/universal (gslv) to universal/existential
    * vars (dual_gslv) */
 
@@ -1660,18 +1668,37 @@ sat_ef_solver (BtorEFSolver *slv)
   vars_map      = btor_new_node_map (slv->btor);
   dual_vars_map = btor_new_node_map (slv->btor);
 
+  tmp_map       = btor_new_int_hash_map (slv->btor->mm);
   node_map      = btor_new_int_hash_map (slv->btor->mm);
   node_map_dual = btor_new_int_hash_map (slv->btor->mm);
   g             = btor_normalize_quantifiers (slv->btor);
   dual_g        = btor_normalize_quantifiers_node (
-      slv->btor, BTOR_INVERT_NODE (g), node_map_dual);
+      slv->btor, BTOR_INVERT_NODE (g), tmp_map);
+
+  for (i = 0; i < tmp_map->size; i++)
+  {
+    key = tmp_map->keys[i];
+    if (!key) continue;
+    cur = btor_get_node_by_id (slv->btor, key);
+    if (!btor_is_param_node (cur)
+        || (!btor_param_is_forall_var (cur) && !btor_param_is_exists_var (cur)))
+      continue;
+    btor_add_int_hash_map (node_map, key)->as_int = key;
+    btor_add_int_hash_map (node_map_dual, key)->as_int =
+        tmp_map->data[i].as_int;
+  }
+  btor_delete_int_hash_map (tmp_map);
+
+#if 0
   /* initialize 'node_map', all keys map to themselve */
   for (i = 0; i < node_map_dual->size; i++)
-  {
-    if (!node_map_dual->keys[i]) continue;
-    btor_add_int_hash_map (node_map, node_map_dual->keys[i])->as_int =
-        node_map_dual->keys[i];
-  }
+    {
+      if (!node_map_dual->keys[i]) continue;
+      btor_add_int_hash_map (node_map, node_map_dual->keys[i])->as_int =
+	node_map_dual->keys[i];
+      printf ("node_map: %s\n", node2string (btor_get_node_by_id (slv->btor, node_map_dual->keys[i])));
+    }
+#endif
 
   gslv      = setup_efg_solvers (slv, g, node_map, "forall", "exists");
   dual_gslv = setup_efg_solvers (
