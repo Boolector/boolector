@@ -1638,7 +1638,7 @@ add_instantiation (BtorEFGroundSolvers *gslv,
   //  assert (res != gslv->exists->true_exp);
   //  BTOR_ABORT (res == gslv->exists->true_exp,
   //	      "invalid refinement '%s'", node2string (res));
-  btor_assume_exp (gslv->exists, res);
+  btor_assert_exp (gslv->exists, res);
   btor_release_exp (gslv->exists, res);
 }
 
