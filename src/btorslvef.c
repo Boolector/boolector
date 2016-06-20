@@ -1598,6 +1598,8 @@ add_instantiation (BtorEFGroundSolvers *gslv,
         BTOR_PUSH_STACK (mm, args, arg);
       }
       fun   = build_refinement (dual_gslv->forall, gslv->forall, m, vars_map);
+      subst = btor_apply_and_reduce (
+          gslv->forall, args.start, BTOR_COUNT_STACK (args), fun);
       subst = btor_apply_exps (
           gslv->forall, args.start, BTOR_COUNT_STACK (args), fun);
       btor_release_exp (gslv->forall, fun);
@@ -1635,9 +1637,10 @@ add_instantiation (BtorEFGroundSolvers *gslv,
   btor_delete_node_map (map);
 
   // FIXME: for some reason true_exp is generated once for the dual case?
-  //  assert (res != gslv->exists->true_exp);
-  //  BTOR_ABORT (res == gslv->exists->true_exp,
-  //	      "invalid refinement '%s'", node2string (res));
+  assert (res != gslv->exists->true_exp);
+  BTOR_ABORT (res == gslv->exists->true_exp,
+              "invalid refinement '%s'",
+              node2string (res));
   btor_assert_exp (gslv->exists, res);
   btor_release_exp (gslv->exists, res);
 }
