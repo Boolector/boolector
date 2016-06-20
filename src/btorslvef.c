@@ -1598,7 +1598,7 @@ add_instantiation (BtorEFGroundSolvers *gslv,
         BTOR_PUSH_STACK (mm, args, arg);
       }
       fun   = build_refinement (dual_gslv->forall, gslv->forall, m, vars_map);
-      subst = btor_apply_exps (
+      subst = btor_apply_and_reduce (
           gslv->forall, args.start, BTOR_COUNT_STACK (args), fun);
       btor_release_exp (gslv->forall, fun);
       BTOR_RESET_STACK (args);
