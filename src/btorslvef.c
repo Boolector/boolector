@@ -169,12 +169,18 @@ setup_efg_solvers (BtorEFSolver *slv,
   //  res->forall_formula = btor_copy_exp (res->forall, tmp);
   root = tmp;
 
-  // TODO: tmp_map
-  if (btor_get_opt (res->forall, BTOR_OPT_EF_CER))
+  if (0 && btor_get_opt (res->forall, BTOR_OPT_EF_CER))
   {
-    tmp = btor_cer_node (res->forall, root);
+    tmp = btor_cer_node (res->forall, root, node_map);
     btor_release_exp (res->forall, root);
     root = tmp;
+
+    if (opt_dual_solver)
+    {
+      update_node_map (node_map, tmp_map);
+      btor_delete_int_hash_map (tmp_map);
+      tmp_map = btor_new_int_hash_map (btor->mm);
+    }
   }
 
   tmp = btor_skolemize_node (res->forall, root, tmp_map);
@@ -188,14 +194,18 @@ setup_efg_solvers (BtorEFSolver *slv,
     tmp_map = btor_new_int_hash_map (btor->mm);
   }
 
-  //  res->forall_sk_formula = btor_copy_exp (res->forall, tmp);
-
-  // TODO: tmp_map
-  if (btor_get_opt (res->forall, BTOR_OPT_EF_DER))
+  if (0 && btor_get_opt (res->forall, BTOR_OPT_EF_DER))
   {
-    tmp = btor_der_node (res->forall, root);
+    tmp = btor_der_node (res->forall, root, tmp_map);
     btor_release_exp (res->forall, root);
     root = tmp;
+
+    if (opt_dual_solver)
+    {
+      update_node_map (node_map, tmp_map);
+      btor_delete_int_hash_map (tmp_map);
+      tmp_map = btor_new_int_hash_map (btor->mm);
+    }
   }
 
   /* existential vars in outermost scope */

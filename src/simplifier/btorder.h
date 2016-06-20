@@ -12,11 +12,16 @@
 #define BTORDER_H_INCLUDED
 
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 
 // void btor_der (Btor * btor);
 
-BtorNode* btor_der_node (Btor* btor, BtorNode* root);
+BtorNode* btor_der_node (Btor* btor,
+                         BtorNode* root,
+                         BtorIntHashTable* node_map);
 
-BtorNode* btor_cer_node (Btor* btor, BtorNode* root);
+BtorNode* btor_cer_node (Btor* btor,
+                         BtorNode* root,
+                         BtorIntHashTable* node_map);
 
 #endif
