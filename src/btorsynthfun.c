@@ -587,7 +587,7 @@ btor_synthesize_fun (Btor *btor,
   {
     num_checks++;
     candidate_exp = btor_apply_and_reduce (
-        btor, BTOR_COUNT_STACK (params), params.start, prev_synth_fun);
+        btor, params.start, BTOR_COUNT_STACK (params), prev_synth_fun);
     found_candidate = check_candidate_exp (
         btor, candidate_exp, param_map, uf_model, additional_inputs, 0, 0);
     btor_release_exp (btor, candidate_exp);
