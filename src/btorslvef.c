@@ -169,6 +169,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   //  res->forall_formula = btor_copy_exp (res->forall, tmp);
   root = tmp;
 
+  // FIXME: fix CER
   if (0 && btor_get_opt (res->forall, BTOR_OPT_EF_CER))
   {
     tmp = btor_cer_node (res->forall, root, node_map);
@@ -194,6 +195,7 @@ setup_efg_solvers (BtorEFSolver *slv,
     tmp_map = btor_new_int_hash_map (btor->mm);
   }
 
+  // FIXME: fix DER
   if (0 && btor_get_opt (res->forall, BTOR_OPT_EF_DER))
   {
     tmp = btor_der_node (res->forall, root, tmp_map);
@@ -1722,7 +1724,7 @@ sat_ef_solver (BtorEFSolver *slv)
 
   gslv = setup_efg_solvers (slv, g, node_map, "forall", "exists");
   btor_release_exp (slv->btor, g);
-  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (gslv->forall_formula));
+  //  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (gslv->forall_formula));
 
   if (opt_dual_solver)
   {
@@ -1735,8 +1737,8 @@ sat_ef_solver (BtorEFSolver *slv)
         gslv, dual_gslv, node_map, node_map_dual, vars_map, dual_vars_map);
     btor_delete_int_hash_map (node_map);
     btor_delete_int_hash_map (node_map_dual);
-    btor_assume_exp (dual_gslv->forall,
-                     BTOR_INVERT_NODE (dual_gslv->forall_formula));
+    //      btor_assume_exp (dual_gslv->forall,
+    //		       BTOR_INVERT_NODE (dual_gslv->forall_formula));
   }
 
   while (true)
