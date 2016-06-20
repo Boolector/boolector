@@ -556,6 +556,7 @@ enum BtorOption
   BTOR_OPT_EF_CER,
   BTOR_OPT_EF_SYNTH,
   BTOR_OPT_EF_QINST_MODE,
+  BTOR_OPT_EF_DUAL_SOLVER,
 
   /* internal options --------------------------------------------------- */
 

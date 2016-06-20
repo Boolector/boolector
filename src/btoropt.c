@@ -718,6 +718,16 @@ btor_init_opts (Btor *btor)
             BTOR_EF_QINST_MIN,
             BTOR_EF_QINST_MAX,
             "quantifier instantiation mode for refinment");
+  init_opt (btor,
+            BTOR_OPT_EF_DUAL_SOLVER,
+            false,
+            true,
+            "ef:dual",
+            0,
+            0,
+            0,
+            1,
+            "dual EF solver");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
