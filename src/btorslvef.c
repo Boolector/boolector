@@ -741,6 +741,7 @@ refine_exists_solver (BtorEFGroundSolvers * gslv)
 }
 #endif
 
+/* collect all function applications on skolem functions below 'exp'. */
 static void
 build_dependencies (BtorMemMgr *mm,
                     BtorNode *uf,
@@ -789,6 +790,7 @@ build_dependencies (BtorMemMgr *mm,
   BTOR_RELEASE_STACK (mm, visit);
 }
 
+/* check whether 'to_synth' is dependent on 'cur_in' */
 static bool
 is_dependent (BtorMemMgr *mm,
               BtorNode *to_synth,
@@ -848,7 +850,6 @@ filter_inputs (BtorMemMgr *mm, BtorNode *fs_uf, BtorPtrHashTable *inputs)
   BtorIntHashTable *cache;
   BtorHashTableIterator hit;
 
-  //  printf ("*** %s\n", node2string (fs_uf));
   cache = btor_new_int_hash_table (mm);
   BTOR_INIT_STACK (visit);
   btor_init_parent_iterator (&it, fs_uf);
@@ -873,7 +874,6 @@ filter_inputs (BtorMemMgr *mm, BtorNode *fs_uf, BtorPtrHashTable *inputs)
 
     if (btor_contains_int_hash_table (cache, cur->id)) continue;
 
-    //      printf ("mark: %s\n", node2string (cur));
     btor_add_int_hash_table (cache, cur->id);
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
   }
@@ -883,10 +883,7 @@ filter_inputs (BtorMemMgr *mm, BtorNode *fs_uf, BtorPtrHashTable *inputs)
   {
     cur = btor_next_node_hash_table_iterator (&hit);
     if (!btor_contains_int_hash_table (cache, cur->id))
-    {
-      //	printf ("remove: %s\n", node2string (cur));
       btor_remove_ptr_hash_table (inputs, cur, 0, 0);
-    }
   }
   btor_delete_int_hash_table (cache);
   BTOR_RELEASE_STACK (mm, visit);
@@ -980,14 +977,13 @@ prepare_inputs (BtorEFGroundSolvers *gslv, BtorNode *fs_uf, BtorNodeMap *model)
   e_solver = gslv->exists;
   f_solver = gslv->forall;
 
-  btor_init_node_hash_table_iterator (&it, gslv->exists_evars->table);
+  btor_init_node_hash_table_iterator (&it, gslv->forall_evars->table);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur_fs        = it.bucket->data.as_ptr;
     cur           = btor_next_node_hash_table_iterator (&it);
-    cur_synth_fun = btor_mapped_node (model, cur_fs);
+    cur_synth_fun = btor_mapped_node (model, cur);
     if (!cur_synth_fun) continue;
-    build_dependencies (mm, cur_fs, cur_synth_fun, deps);
+    build_dependencies (mm, cur, cur_synth_fun, deps);
   }
 
   btor_init_node_hash_table_iterator (&it, gslv->exists_evars->table);
