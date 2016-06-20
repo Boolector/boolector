@@ -926,7 +926,7 @@ btor_beta_reduce_partial_collect (Btor *btor,
 }
 
 BtorNode *
-btor_apply_and_reduce (Btor *btor, int argc, BtorNode *args[], BtorNode *lambda)
+btor_apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
 {
   assert (btor);
   assert (argc >= 0);
