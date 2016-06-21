@@ -227,8 +227,10 @@ eval (Btor *btor,
             btor_add_to_bv_tuple (mm, t, param_values->bv[pos], i++);
           }
           b = btor_get_ptr_hash_table (model, t);
-          assert (b);
-          result = btor_copy_bv (mm, b->data.as_ptr);
+          if (b)
+            result = btor_copy_bv (mm, b->data.as_ptr);
+          else
+            result = btor_new_bv (mm, btor_get_exp_width (btor, real_cur));
           btor_free_bv_tuple (mm, t);
           break;
 
