@@ -1464,26 +1464,34 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   BtorSolverResult res;
   BtorNode *g;
   BtorNodeMap *map;
-  //  printf ("\nfind_model\n");
 
-  /* query exists solver */
-  start = btor_time_stamp ();
-  res   = btor_sat_btor (gslv->exists, -1, -1);
-  gslv->time.e_solver += btor_time_stamp () - start;
+  /* exists solver does not have any constraints, so it does not make much
+   * sense to initialize every variable by zero and ask if the model
+   * is correct. */
+  if (gslv->exists->unsynthesized_constraints->count
+          + gslv->exists->synthesized_constraints->count
+      > 0)
+  {
+    /* query exists solver */
+    start = btor_time_stamp ();
+    res   = btor_sat_btor (gslv->exists, -1, -1);
+    gslv->time.e_solver += btor_time_stamp () - start;
 
-  if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
-    return res;
+    if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
+      return res;
 
-  //  printf ("synthesize model\n");
-  start = btor_time_stamp ();
-  map   = synthesize_model (slv, gslv);
-  gslv->time.synth += btor_time_stamp () - start;
-  assert (!btor_is_proxy_node (gslv->forall_formula));
-  g = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
-  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
-  btor_release_exp (gslv->forall, g);
-  if (gslv->exists_cur_model) delete_exists_model (gslv->exists_cur_model);
-  gslv->exists_cur_model = map;
+    start = btor_time_stamp ();
+    map   = synthesize_model (slv, gslv);
+    gslv->time.synth += btor_time_stamp () - start;
+    assert (!btor_is_proxy_node (gslv->forall_formula));
+    g = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
+    btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
+    btor_release_exp (gslv->forall, g);
+    if (gslv->exists_cur_model) delete_exists_model (gslv->exists_cur_model);
+    gslv->exists_cur_model = map;
+  }
+  else
+    btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (gslv->forall_formula));
 
   /* query forall solver */
   start = btor_time_stamp ();
@@ -1750,7 +1758,10 @@ sat_ef_solver (BtorEFSolver *slv)
       if (res == BTOR_RESULT_SAT || res == BTOR_RESULT_UNKNOWN)
       {
         add_instantiation (gslv, dual_gslv, dual_vars_map);
-        if (res == BTOR_RESULT_SAT) printf ("FOUND DUAL MODEL\n");
+        /* the formula is only UNSAT if there are no UFs in the original
+         * one */
+        if (res == BTOR_RESULT_SAT && slv->btor->ufs->count == 0)
+          printf ("FOUND DUAL MODEL\n");
       }
       else if (res == BTOR_RESULT_UNSAT)
       {
