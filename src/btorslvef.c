@@ -1470,6 +1470,9 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
    * is correct. */
   if (gslv->exists->unsynthesized_constraints->count
           + gslv->exists->synthesized_constraints->count
+          + gslv->exists->varsubst_constraints->count
+          + gslv->exists->embedded_constraints->count
+          + gslv->exists->assumptions->count
       > 0)
   {
     /* query exists solver */
