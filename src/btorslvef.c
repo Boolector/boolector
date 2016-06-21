@@ -1589,6 +1589,8 @@ add_instantiation (BtorEFGroundSolvers *gslv,
   BtorMemMgr *mm;
   BtorArgsIterator ait;
 
+  if (!dual_gslv->exists_cur_model) return;
+
   mm  = gslv->forall->mm;
   map = btor_new_node_map (gslv->forall);
   BTOR_INIT_STACK (args);
