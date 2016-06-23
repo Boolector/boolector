@@ -20,4 +20,9 @@ BtorNode* btor_normalize_quantifiers_node (Btor* btor,
 
 BtorNode* btor_normalize_quantifiers (Btor* btor);
 
+/* negates 'root' and inverts all quantifiers under 'root'. */
+BtorNode* btor_invert_quantifiers (Btor* btor,
+                                   BtorNode* root,
+                                   BtorIntHashTable* node_map);
+
 #endif

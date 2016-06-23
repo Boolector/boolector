@@ -14,7 +14,10 @@
 #include "utils/btoriter.h"
 
 BtorNode *
-btor_skolemize_node (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
+btor_skolemize_node (Btor *btor,
+                     BtorNode *root,
+                     BtorIntHashTable *node_map,
+                     BtorPtrHashTable *skolem_consts)
 {
   int32_t i;
   uint32_t j;
@@ -105,14 +108,23 @@ btor_skolemize_node (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
               result = btor_apply_exps (
                   btor, params.start, BTOR_COUNT_STACK (params), uf);
 
+              if (skolem_consts)
+                btor_add_ptr_hash_table (skolem_consts,
+                                         btor_copy_exp (btor, uf));
+
               btor_release_exp (btor, uf);
               BTOR_RESET_STACK (sorts);
               BTOR_RESET_STACK (params);
             }
             /* substitute param with variable in outermost scope */
             else
+            {
               result =
                   btor_var_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+              if (skolem_consts)
+                btor_add_ptr_hash_table (skolem_consts,
+                                         btor_copy_exp (btor, result));
+            }
           }
           else
           {

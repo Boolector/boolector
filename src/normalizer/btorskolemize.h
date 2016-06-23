@@ -13,11 +13,13 @@
 
 #include "btortypes.h"
 #include "utils/btorhashint.h"
+#include "utils/btorhashptr.h"
 
 void btor_skolemize (Btor* btor);
 
 BtorNode* btor_skolemize_node (Btor* btor,
                                BtorNode* root,
-                               BtorIntHashTable* node_map);
+                               BtorIntHashTable* node_map,
+                               BtorPtrHashTable* skolem_consts);
 
 #endif
