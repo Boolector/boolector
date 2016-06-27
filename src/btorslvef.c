@@ -1393,7 +1393,7 @@ add_instantiation (BtorEFGroundSolvers *gslv,
     if (btor_is_bv_var_node (cur))
     {
       assert (btor_is_bv_const_node (m));
-      subst = btor_const_exp (gslv->forall, btor_const_get_bits (m));
+      subst = build_refinement (dual_gslv->forall, gslv->forall, m, vars_map);
     }
     else  // instantiate UFs with resp. arguments
     {
@@ -1550,10 +1550,14 @@ sat_ef_solver (BtorEFSolver *slv)
     btor_delete_int_hash_map (node_map_dual);
   }
 
+#ifndef NDEBUG
+  bool found_dual_model = false;
+#endif
   while (true)
   {
     res = find_model (slv, gslv);
     if (res != BTOR_RESULT_UNKNOWN) break;
+    assert (!found_dual_model);
 
     if (opt_dual_solver)
     {
@@ -1566,7 +1570,12 @@ sat_ef_solver (BtorEFSolver *slv)
         /* the formula is only UNSAT if there are no UFs in the original
          * one */
         if (res == BTOR_RESULT_SAT && gslv->exists_ufs->table->count == 0)
+        {
+#ifndef NDEBUG
+          found_dual_model = true;
+#endif
           printf ("FOUND DUAL MODEL\n");
+        }
       }
       else if (res == BTOR_RESULT_UNSAT)
       {
