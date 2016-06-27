@@ -758,7 +758,7 @@ refine_exists_solver (BtorEFGroundSolvers * gslv)
 	      inst_exp = btor_apply_and_reduce (e_solver,
 			     BTOR_COUNT_STACK (inputs), inputs.start,
 			     synth_fun);
-	      btor_dump_smt2_node (e_solver, stdout, inst_exp, -1);
+//	      btor_dump_smt2_node (e_solver, stdout, inst_exp, -1);
 	      btor_map_node (map, var_fs, inst_exp);
 	      continue;
 	    }
@@ -1511,12 +1511,13 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   /* exists solver does not have any constraints, so it does not make much
    * sense to initialize every variable by zero and ask if the model
    * is correct. */
-  if (gslv->exists->unsynthesized_constraints->count
-          + gslv->exists->synthesized_constraints->count
-          + gslv->exists->varsubst_constraints->count
-          + gslv->exists->embedded_constraints->count
-          + gslv->exists->assumptions->count
-      > 0)
+  if (gslv->exists->inconsistent
+      || (gslv->exists->unsynthesized_constraints->count
+              + gslv->exists->synthesized_constraints->count
+              + gslv->exists->varsubst_constraints->count
+              + gslv->exists->embedded_constraints->count
+              + gslv->exists->assumptions->count
+          > 0))
   {
     /* query exists solver */
     start = btor_time_stamp ();
@@ -1706,7 +1707,6 @@ add_instantiation (BtorEFGroundSolvers *gslv,
   }
 
   subst = btor_substitute_terms (gslv->forall, gslv->forall_formula, map);
-  //  btor_dump_smt2_node (gslv->forall, stdout, subst, -1);
 
   btor_delete_node_map (map);
   map = btor_new_node_map (gslv->forall);
