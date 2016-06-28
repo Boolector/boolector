@@ -114,7 +114,12 @@ boolector_chkclone (Btor *btor)
     /* force auto cleanup (might have been disabled via btormbt) */
     btor_set_opt (btor->clone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_delete_btor (btor->clone);
+    btor->clone = 0;
   }
+  /* do not generate shadow clone if sat solver does not support cloning
+   * (else only expression layer will be cloned and shadowed API function
+   *  calls may fail) */
+  if (!btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))) return;
   btor->clone           = btor_clone_btor (btor);
   btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
