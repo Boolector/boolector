@@ -2567,7 +2567,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorBitVector *result = 0, *inv_result, **e;
   BtorFunSolver *slv;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   start = btor_time_stamp ();
   mm    = btor->mm;

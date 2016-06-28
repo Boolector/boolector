@@ -60,7 +60,7 @@ test_add_int_hash_map (void)
   init_int_hash_map_test ();
 
   size_t i;
-  BtorIntHashTableData d;
+  BtorHashTableData d;
   int32_t items[] = {
       123,       -1,     17,      5,       32,       64,      -1023,    101231,
       10,        11,     12,      13,      14,       -25,     43,       57,

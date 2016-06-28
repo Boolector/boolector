@@ -13,16 +13,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "utils/btorhash.h"
 #include "utils/btormem.h"
-
-union BtorIntHashTableData
-{
-  int32_t as_int;
-  void *as_ptr;
-  char *as_str;
-};
-
-typedef union BtorIntHashTableData BtorIntHashTableData;
 
 struct BtorIntHashTable
 {
@@ -31,15 +23,10 @@ struct BtorIntHashTable
   size_t size;
   int32_t *keys;
   uint8_t *hop_info; /* displacement information */
-  BtorIntHashTableData *data;
+  BtorHashTableData *data;
 };
 
 typedef struct BtorIntHashTable BtorIntHashTable;
-
-typedef void (*BtorCloneIntHashTableData) (BtorMemMgr *mm,
-                                           const void *map,
-                                           BtorIntHashTableData *data,
-                                           BtorIntHashTableData *cloned_data);
 
 /* Create new int32_t hash table. */
 BtorIntHashTable *btor_new_int_hash_table (BtorMemMgr *);
@@ -77,16 +64,16 @@ bool btor_contains_int_hash_map (BtorIntHashTable *, int32_t key);
 
 void btor_remove_int_hash_map (BtorIntHashTable *,
                                int32_t key,
-                               BtorIntHashTableData *stored_data);
+                               BtorHashTableData *stored_data);
 
-BtorIntHashTableData *btor_add_int_hash_map (BtorIntHashTable *, int32_t key);
-BtorIntHashTableData *btor_get_int_hash_map (BtorIntHashTable *, int32_t key);
+BtorHashTableData *btor_add_int_hash_map (BtorIntHashTable *, int32_t key);
+BtorHashTableData *btor_get_int_hash_map (BtorIntHashTable *, int32_t key);
 
 void btor_delete_int_hash_map (BtorIntHashTable *);
 
 BtorIntHashTable *btor_clone_int_hash_map (BtorMemMgr *mm,
                                            BtorIntHashTable *table,
-                                           BtorCloneIntHashTableData cdata,
+                                           BtorCloneHashTableData cdata,
                                            const void *data_map);
 
 #endif

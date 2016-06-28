@@ -630,12 +630,12 @@ btor_new_btor (void)
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
-  btor->symbols = btor_new_ptr_hash_table (
+  btor->symbols = btor_new_ptr_hash_map2 (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   btor->node2symbol =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+      btor_new_ptr_hash_map2 (mm,
+                              (BtorHashPtr) btor_hash_exp_by_id,
+                              (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->inputs  = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
@@ -920,11 +920,11 @@ btor_delete_btor (Btor *btor)
           || btor->sorts_unique_table.num_elements == 0);
   BTOR_RELEASE_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
-  btor_delete_ptr_hash_table (btor->node2symbol);
-  btor_init_hash_table_iterator (&it, btor->symbols);
-  while (btor_has_next_hash_table_iterator (&it))
-    btor_freestr (btor->mm, (char *) btor_next_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (btor->symbols);
+  btor_delete_ptr_hash_map2 (btor->node2symbol);
+  btor_init_hash_table_iterator2 (&it, btor->symbols);
+  while (btor_has_next_hash_table_iterator2 (&it))
+    btor_freestr (btor->mm, (char *) btor_next_hash_table_iterator2 (&it));
+  btor_delete_ptr_hash_map2 (btor->symbols);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
@@ -2280,7 +2280,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
   int pushed, i;
 
   if (substs->count == 0u) return;
@@ -2412,7 +2412,7 @@ substitute_var_exps (Btor *btor)
   unsigned count;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
@@ -2682,7 +2682,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BtorNode *cur, *real_cur, *subst, *result, **e;
   BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *mark, *cache;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   mm    = btor->mm;
   mark  = btor_new_int_hash_map (mm);
@@ -2782,7 +2782,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   BtorHashTableIterator hit;
   BtorNodeIterator it;
   BtorIntHashTable *mark;
-  BtorIntHashTableData *d;
+  BtorHashTableData *d;
 
   if (subst->count == 0u) return;
 
