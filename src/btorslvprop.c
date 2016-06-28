@@ -3313,13 +3313,11 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   }
 
 #ifndef NDEBUG
-  printf ("---\n");
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    printf ("adfasdf %s\n", node2string (root));
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root)));
     else
@@ -3353,7 +3351,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    printf ("select adsf %s\n", node2string (root));
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root)));
     else
