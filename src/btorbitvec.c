@@ -844,6 +844,25 @@ btor_and_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_or_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  int i;
+  BtorBitVector *res;
+
+  res = btor_new_bv (mm, a->width);
+  for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] | b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
 btor_xor_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
