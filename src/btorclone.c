@@ -115,16 +115,15 @@ btor_clone_data_as_str_ptr (BtorMemMgr *mm,
   assert (data);
   assert (cloned_data);
 
-  BtorPtrHashTable2 *t;
-  size_t pos;
   char *str;
 
   (void) mm;
-  t   = (BtorPtrHashTable2 *) str_table;
   str = data->as_str;
-  assert (btor_contains_ptr_hash_map2 (t, str));
-  pos                 = btor_get_pos_ptr_hash_table2 (t, str);
-  cloned_data->as_str = t->keys[pos];
+  assert (btor_get_ptr_hash_table ((BtorPtrHashTable *) str_table, str));
+
+  cloned_data->as_str =
+      (char *) btor_get_ptr_hash_table ((BtorPtrHashTable *) str_table, str)
+          ->key;
 }
 
 void
@@ -1028,29 +1027,29 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
 
-  clone->symbols = btor_clone_ptr_hash_map2 (mm,
-                                             btor->symbols,
-                                             btor_clone_key_as_str,
-                                             btor_clone_data_as_node_ptr,
-                                             0,
-                                             emap);
+  clone->symbols = btor_clone_ptr_hash_table (mm,
+                                              btor->symbols,
+                                              btor_clone_key_as_str,
+                                              btor_clone_data_as_node_ptr,
+                                              0,
+                                              emap);
 #ifndef NDEBUG
-  size_t str_bytes = 0;
-  btor_init_hash_table_iterator2 (&it, btor->symbols);
-  while (btor_has_next_hash_table_iterator2 (&it))
-    str_bytes += strlen ((char *) btor_next_hash_table_iterator2 (&it)) + 1;
-  str_bytes *= sizeof (char);
-  assert ((allocated += btor_size_ptr_hash_map2 (btor->symbols) + str_bytes)
+  int str_bytes = 0;
+  btor_init_hash_table_iterator (&it, btor->symbols);
+  while (btor_has_next_hash_table_iterator (&it))
+    str_bytes += (strlen ((char *) btor_next_hash_table_iterator (&it)) + 1)
+                 * sizeof (char);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->symbols) + str_bytes)
           == clone->mm->allocated);
 #endif
-  clone->node2symbol = btor_clone_ptr_hash_map2 (mm,
-                                                 btor->node2symbol,
-                                                 btor_clone_key_as_node,
-                                                 btor_clone_data_as_str_ptr,
-                                                 emap,
-                                                 clone->symbols);
+  clone->node2symbol = btor_clone_ptr_hash_table (mm,
+                                                  btor->node2symbol,
+                                                  btor_clone_key_as_node,
+                                                  btor_clone_data_as_str_ptr,
+                                                  emap,
+                                                  clone->symbols);
 #ifndef NDEBUG
-  assert ((allocated += btor_size_ptr_hash_map2 (btor->node2symbol))
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->node2symbol))
           == clone->mm->allocated);
 #endif
 
@@ -1484,17 +1483,20 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_const_exp (clone, btor_const_get_bits (cur));
           break;
         case BTOR_BV_VAR_NODE:
-          symbol = btor_get_ptr_hash_map2 (btor->node2symbol, cur)->as_str;
+          symbol =
+              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
           cur_clone =
               btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_PARAM_NODE:
-          symbol = btor_get_ptr_hash_map2 (btor->node2symbol, cur)->as_str;
+          symbol =
+              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
           cur_clone =
               btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_UF_NODE:
-          symbol    = btor_get_ptr_hash_map2 (btor->node2symbol, cur)->as_str;
+          symbol =
+              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
           cur_clone = btor_uf_exp (clone, cur->sort_id, symbol);
           break;
         case BTOR_SLICE_NODE:
