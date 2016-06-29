@@ -755,10 +755,32 @@ clone_nodes_unique_table (BtorMemMgr *mm,
   }
 }
 
+#define MEM_INT_HASH_TABLE(table)                                 \
+  ((table) ? sizeof (*(table)) + (table)->size * sizeof (int32_t) \
+                 + (table)->size * sizeof (uint8_t)               \
+           : 0)
+
+#define MEM_INT_HASH_MAP(table)                               \
+  ((table) ? MEM_INT_HASH_TABLE (table)                       \
+                 + (table)->size * sizeof (BtorHashTableData) \
+           : 0)
+
 #define MEM_PTR_HASH_TABLE(table)                                             \
   ((table) ? sizeof (*(table)) + (table)->size * sizeof (BtorPtrHashBucket *) \
                  + (table)->count * sizeof (BtorPtrHashBucket)                \
            : 0)
+
+#define CHKCLONE_MEM_INT_HASH_TABLE(table, clone)                      \
+  do                                                                   \
+  {                                                                    \
+    assert (MEM_INT_HASH_TABLE (table) == MEM_INT_HASH_TABLE (clone)); \
+  } while (0)
+
+#define CHKCLONE_MEM_INT_HASH_MAP(table, clone)                    \
+  do                                                               \
+  {                                                                \
+    assert (MEM_INT_HASH_MAP (table) == MEM_INT_HASH_MAP (clone)); \
+  } while (0)
 
 #define CHKCLONE_MEM_PTR_HASH_TABLE(table, clone)                      \
   do                                                                   \
@@ -1348,7 +1370,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       BtorPropSolver *slv  = BTOR_PROP_SOLVER (btor);
       BtorPropSolver *cslv = BTOR_PROP_SOLVER (clone);
 
-      CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
+      // CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
+      CHKCLONE_MEM_INT_HASH_MAP (slv->roots, cslv->roots);
       CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
 
       allocated += sizeof (BtorPropSolver) + MEM_PTR_HASH_TABLE (cslv->roots)

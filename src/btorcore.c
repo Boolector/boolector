@@ -1407,7 +1407,7 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
+  //  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
   assert (btor_get_exp_width (btor, exp) == 1);
 
   BtorNode *rep;
@@ -1512,6 +1512,8 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         }
       }
     }
+    else if (constraint_is_inconsistent (btor, exp))
+      btor->inconsistent = 1;
     else
       btor_insert_unsynthesized_constraint (btor, exp);
 

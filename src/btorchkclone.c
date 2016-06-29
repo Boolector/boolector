@@ -1077,13 +1077,41 @@ chkclone_slv (Btor *btor)
     BtorPropSolver *slv  = BTOR_PROP_SOLVER (btor);
     BtorPropSolver *cslv = BTOR_PROP_SOLVER (btor->clone);
 
-    chkclone_node_ptr_hash_table (slv->roots, cslv->roots, cmp_data_as_int);
+    //      chkclone_node_ptr_hash_table (
+    //	  slv->roots, cslv->roots, cmp_data_as_int);
     chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_rec_conf);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_non_rec_conf);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, props);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, updates);
+#ifndef NDEBUG
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_add);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_and);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_eq);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_ult);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_sll);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_srl);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_mul);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_udiv);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_urem);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_concat);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_slice);
+
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_add);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_and);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_eq);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_ult);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_sll);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_srl);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_mul);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_udiv);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_urem);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_concat);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_slice);
+#endif
   }
 }
 
