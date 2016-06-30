@@ -788,6 +788,7 @@ btor_synthesize_fun (Btor *btor,
             BTOR_COUNT_STACK (params),
             uf_model->count);
 
+  // TODO: move this to a different function
   /* check previously synthesized functions */
   if (prev_synth_fun)
   {
