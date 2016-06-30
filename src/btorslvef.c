@@ -1491,7 +1491,6 @@ static BtorNode *
 instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
 {
   assert (gslv);
-  assert (model);
   assert (!btor_is_proxy_node (gslv->forall_formula));
 
   int32_t i;
@@ -1540,9 +1539,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
 
       if (btor_is_uf_node (real_cur))
       {
-        b = btor_get_ptr_hash_table (model, real_cur);
-
-        if (b)
+        if (model && (b = btor_get_ptr_hash_table (model, real_cur)))
         {
           synth_res = b->data.as_ptr;
           assert (synth_res->type == BTOR_SYNTH_TYPE_UF);
@@ -1581,9 +1578,8 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
       else if (btor_is_exists_node (real_cur))
       {
         evar = real_cur->e[0];
-        b    = btor_get_ptr_hash_table (model, evar);
 
-        if (b)
+        if (model && (b = btor_get_ptr_hash_table (model, evar)))
         {
           synth_res = b->data.as_ptr;
           if (synth_res->type == BTOR_SYNTH_TYPE_SK_UF)
@@ -1681,47 +1677,37 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
 }
 
 static BtorSolverResult
-find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
+find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv, bool skip_exists)
 {
   double start;
   BtorSolverResult res;
   BtorNode *g;
-  BtorPtrHashTable *model;
+  BtorPtrHashTable *model = 0;
 
   /* exists solver does not have any constraints, so it does not make much
    * sense to initialize every variable by zero and ask if the model
    * is correct. */
-#if 0
-  if (gslv->exists->inconsistent
-      || (gslv->exists->unsynthesized_constraints->count
-          + gslv->exists->synthesized_constraints->count
-          + gslv->exists->varsubst_constraints->count
-          + gslv->exists->embedded_constraints->count
-          + gslv->exists->assumptions->count > 0))
-    {
-#endif
-  /* query exists solver */
-  start = btor_time_stamp ();
-  res   = btor_sat_btor (gslv->exists, -1, -1);
-  gslv->time.e_solver += btor_time_stamp () - start;
+  if (!skip_exists)
+  {
+    /* query exists solver */
+    start = btor_time_stamp ();
+    res   = btor_sat_btor (gslv->exists, -1, -1);
+    gslv->time.e_solver += btor_time_stamp () - start;
 
-  if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
-    return res;
+    if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
+      return res;
 
-  start = btor_time_stamp ();
-  model = synthesize_model (slv, gslv);
-  gslv->time.synth += btor_time_stamp () - start;
+    start = btor_time_stamp ();
+    model = synthesize_model (slv, gslv);
+    gslv->time.synth += btor_time_stamp () - start;
+
+    delete_model (gslv);
+    gslv->forall_cur_model = model;
+  }
+
   g = instantiate_formula (gslv, model);
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
   btor_release_exp (gslv->forall, g);
-
-  delete_model (gslv);
-  gslv->forall_cur_model = model;
-#if 0
-    }
-  else
-    btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (gslv->forall_formula));
-#endif
 
   /* query forall solver */
   start = btor_time_stamp ();
@@ -2000,7 +1986,7 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   //  double start;
-  bool opt_dual_solver;
+  bool opt_dual_solver, skip_exists = true;
   int32_t key;
   size_t i;
   BtorSolverResult res;
@@ -2075,7 +2061,7 @@ sat_ef_solver (BtorEFSolver *slv)
 #endif
   while (true)
   {
-    res = find_model (slv, gslv);
+    res = find_model (slv, gslv, skip_exists);
     if (res != BTOR_RESULT_UNKNOWN) break;
     assert (!found_dual_model);
 
@@ -2113,6 +2099,7 @@ sat_ef_solver (BtorEFSolver *slv)
     slv->time.f_solver = gslv->time.f_solver;
     slv->time.synth    = gslv->time.synth;
     slv->time.qinst    = gslv->time.qinst;
+    skip_exists        = false;
   }
 
   slv->time.e_solver = gslv->time.e_solver;
