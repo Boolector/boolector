@@ -1296,23 +1296,20 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
       found_model    = false;
       if (opt_synth_fun)
       {
-#if 0
-	      /* check previously synthesized function */
-	      if (prev_model &&
-		  (b = btor_get_ptr_hash_table (prev_model, e_uf_fs)))
-		{
-		  prev_synth_res = b->data.as_ptr;
-		  assert (prev_synth_res);
-		  if (prev_synth_res->full)
-		    {
-		      if (prev_synth_res->type == BTOR_SYNTH_TYPE_SK_UF
-			  && BTOR_COUNT_STACK (prev_synth_res->exps) == 1)
-			prev_synth_fun = BTOR_TOP_STACK (prev_synth_res->exps);
-		      else if (prev_synth_res->type == BTOR_SYNTH_TYPE_UF)
-			prev_synth_fun = prev_synth_res->value;
-		    }
-		}
-#endif
+        /* check previously synthesized function */
+        if (prev_model && (b = btor_get_ptr_hash_table (prev_model, e_uf_fs)))
+        {
+          prev_synth_res = b->data.as_ptr;
+          assert (prev_synth_res);
+          if (prev_synth_res->full)
+          {
+            if (prev_synth_res->type == BTOR_SYNTH_TYPE_SK_UF
+                && BTOR_COUNT_STACK (prev_synth_res->exps) == 1)
+              prev_synth_fun = BTOR_TOP_STACK (prev_synth_res->exps);
+            else if (prev_synth_res->type == BTOR_SYNTH_TYPE_UF)
+              prev_synth_fun = prev_synth_res->value;
+          }
+        }
         // TODO: increase limit after each refinement
         found_model = btor_synthesize_fun (f_solver,
                                            e_uf_fs,
