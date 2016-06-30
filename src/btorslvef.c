@@ -1277,7 +1277,6 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
     // TODO: consider UFs
     printf ("synthesize model for %s\n", node2string (e_uf_fs));
 
-    synth_res = btor_new_synth_result (mm);
     /* map skolem functions to resp. synthesized functions */
     if (btor_mapped_node (gslv->forall_evar_deps, e_uf_fs)
         || btor_is_uf_node (e_uf_fs))
@@ -1291,6 +1290,7 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 
       if (!uf_model) continue;
 
+      synth_res   = btor_new_synth_result (mm);
       found_model = false;
       if (opt_synth_fun)
       {
@@ -1370,6 +1370,7 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 	      btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = matches;
 	    }
 #endif
+      btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
     }
     else
     {
@@ -1382,9 +1383,8 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 #endif
       synth_res->type  = BTOR_SYNTH_TYPE_SK_VAR;
       synth_res->value = btor_const_exp (f_solver, (BtorBitVector *) bv);
+      btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
     }
-    assert (synth_res->type != BTOR_SYNTH_TYPE_NONE);
-    btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
   }
   return model;
 }

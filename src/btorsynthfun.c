@@ -1025,8 +1025,7 @@ DONE:
     bv      = btor_new_bv (mm, uf_model->count);
     for (i = BTOR_COUNT_STACK (stack) - 1; i >= 0; i--)
     {
-      m = BTOR_PEEK_STACK (stack, i);
-      if (matchbv) btor_free_bv (mm, matchbv);
+      m       = BTOR_PEEK_STACK (stack, i);
       matchbv = bv;
       bv      = btor_or_bv (mm, matchbv, m->matches);
       /* more coverage of input/output pairs */
@@ -1036,6 +1035,7 @@ DONE:
         btor_print_bv (m->matches);
         BTOR_PUSH_STACK (mm, *matches, new_fun (btor, &params, m->exp));
       }
+      btor_free_bv (mm, matchbv);
       if (btor_is_ones_bv (bv))
       {
         printf ("found full coverage\n");
@@ -1044,6 +1044,7 @@ DONE:
       }
     }
     btor_free_bv (mm, bv);
+    BTOR_RELEASE_STACK (mm, stack);
   }
 
   /* cleanup */
