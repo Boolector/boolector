@@ -1322,7 +1322,7 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
                                            100000,
                                            0,
                                            &synth_res->exps);
-        assert (!BTOR_EMPTY_STACK (synth_res->exps));
+        assert (!found_model || !BTOR_EMPTY_STACK (synth_res->exps));
       }
 
       if (btor_is_uf_node (e_uf_fs))
@@ -1350,8 +1350,11 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 
         if (!found_model)
         {
-          m = mk_concrete_lambda_model (
-              f_solver, uf_model, BTOR_TOP_STACK (synth_res->exps));
+          m = mk_concrete_lambda_model (f_solver,
+                                        uf_model,
+                                        BTOR_EMPTY_STACK (synth_res->exps)
+                                            ? 0
+                                            : BTOR_TOP_STACK (synth_res->exps));
           BTOR_PUSH_STACK (mm, synth_res->exps, m);
         }
       }
