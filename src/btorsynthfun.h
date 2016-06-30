@@ -16,13 +16,36 @@
 #include "btortypes.h"
 #include "utils/btorhashptr.h"
 
-bool btor_synthesize_fun (Btor* btor,
-                          BtorNode* uf,
-                          const BtorPtrHashTable* model,
-                          BtorNode* prev_synth_fun,
-                          BtorPtrHashTable* additional_inputs,
-                          uint32_t limit,
-                          uint32_t max_level,
-                          BtorNodePtrStack* matches);
+enum BtorSynthType
+{
+  BTOR_SYNTH_TYPE_NONE,
+  BTOR_SYNTH_TYPE_SK_VAR,
+  BTOR_SYNTH_TYPE_SK_UF,
+  BTOR_SYNTH_TYPE_UF,
+};
 
+typedef enum BtorSynthType BtorSynthType;
+
+struct BtorSynthResult
+{
+  BtorSynthType type;
+  BtorNode *value;
+
+  bool full;
+  BtorNodePtrStack exps;
+};
+
+typedef struct BtorSynthResult BtorSynthResult;
+
+bool btor_synthesize_fun (Btor *btor,
+                          BtorNode *uf,
+                          const BtorPtrHashTable *model,
+                          BtorNode *prev_synth_fun,
+                          BtorPtrHashTable *additional_inputs,
+                          uint32_t max_num_checks,
+                          uint32_t max_level,
+                          BtorNodePtrStack *matches);
+
+BtorSynthResult *btor_new_synth_result (BtorMemMgr *mm);
+void btor_delete_synth_result (BtorMemMgr *mm, BtorSynthResult *res);
 #endif
