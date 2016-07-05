@@ -638,9 +638,9 @@ cmp_sort_match (const void *m0, const void *m1)
   const Match *m00 = *(Match **) m0;
   const Match *m11 = *(Match **) m1;
 
-  //  if (m00->num_matches == m11->num_matches)
+  if (m00->num_matches == m11->num_matches) return m00->level - m11->level;
   //    return btor_compare_bv (m00->matches, m11->matches);
-  return m00->num_matches - m11->num_matches;
+  return m11->num_matches - m00->num_matches;
 }
 
 static void
@@ -652,6 +652,111 @@ delete_match (BtorMemMgr *mm, Match *m)
 }
 
 BTOR_DECLARE_STACK (MatchPtr, Match *);
+
+static bool
+find_best_matches (Btor *btor,
+                   BtorNodePtrStack *params,
+                   BtorPtrHashTable *matches,
+                   BtorNodePtrStack *result)
+{
+  bool full_cover = false;
+  int32_t j, w, u;
+  uint32_t i, cur_rem_bits, min_rem_bits, rem_bits, minpos;
+  BtorHashTableIterator it;
+  MatchPtrStack stack;
+  BtorIntStack used;
+  Match *m, *minm;
+  BtorMemMgr *mm;
+  BtorBitVector *bv, *matchbv, *minbv;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (used);
+
+  btor_init_hash_table_iterator (&it, matches);
+  while (btor_has_next_hash_table_iterator (&it))
+  {
+    m = btor_next_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (mm, stack, m);
+    BTOR_PUSH_STACK (mm, used, 0);
+    btor_print_bv (m->matches);
+  }
+
+  qsort (
+      stack.start, BTOR_COUNT_STACK (stack), sizeof (Match *), cmp_sort_match);
+  printf ("sorted:\n");
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    m = BTOR_PEEK_STACK (stack, i);
+    printf ("%u %u ", m->num_matches, m->level);
+    btor_print_bv (m->matches);
+  }
+
+  printf ("collect:\n");
+  matchbv = 0;
+  m       = BTOR_PEEK_STACK (stack, 0);
+  bv      = btor_copy_bv (mm, m->matches);
+  w       = bv->width;
+  printf ("more cov match: %u (%u), ", m->num_matches, m->level);
+  btor_print_bv (m->matches);
+  BTOR_PUSH_STACK (mm, *result, new_fun (btor, params, m->exp));
+
+  do
+  {
+    rem_bits = 0;
+    for (j = w - 1; j >= 0; j--)
+      if (!btor_get_bit_bv (bv, j)) rem_bits++;
+
+    BTOR_POKE_STACK (used, 0, 1);
+    minm         = 0;
+    min_rem_bits = rem_bits;
+    for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
+    {
+      m = BTOR_PEEK_STACK (stack, i);
+      u = BTOR_PEEK_STACK (used, i);
+      if (u) continue;
+
+      matchbv      = m->matches;
+      cur_rem_bits = rem_bits;
+      for (j = w - 1; j >= 0; j--)
+      {
+        if (!btor_get_bit_bv (bv, j) && btor_get_bit_bv (matchbv, j))
+          cur_rem_bits--;
+      }
+      if (cur_rem_bits < min_rem_bits)
+      {
+        min_rem_bits = cur_rem_bits;
+        minm         = m;
+        minpos       = i;
+        printf ("new min; %u\n", min_rem_bits);
+      }
+
+      if (cur_rem_bits == 0)
+      {
+        //	      printf ("found full coverage\n");
+        full_cover = true;
+        break;
+      }
+    }
+
+    if (!minm) break;
+
+    for (j = w - 1; j >= 0; j--)
+    {
+      if (!btor_get_bit_bv (bv, j) && btor_get_bit_bv (minm->matches, j))
+        btor_set_bit_bv (bv, j, 1);
+    }
+    //	  printf ("more cov match: %u (%u), ", minm->num_matches, minm->level);
+    //	  btor_print_bv (minm->matches);
+    BTOR_PUSH_STACK (mm, *result, new_fun (btor, params, minm->exp));
+    BTOR_POKE_STACK (used, minpos, 1);
+  } while (!full_cover && min_rem_bits > 0);
+
+  btor_free_bv (mm, bv);
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, used);
+  return full_cover;
+}
 
 // TODO (ma): more performance measurements what costs the most?
 bool
@@ -1002,50 +1107,13 @@ DONE:
 
   if (result)
   {
+    assert (found_candidate);
     BTOR_PUSH_STACK (mm, *matches, result);
-    //    return result;
   }
   else
   {
-    printf ("---\n");
-    MatchPtrStack stack;
-    BTOR_INIT_STACK (stack);
-    btor_init_hash_table_iterator (&hit, all_matches);
-    while (btor_has_next_hash_table_iterator (&hit))
-    {
-      m = btor_next_hash_table_iterator (&hit);
-      BTOR_PUSH_STACK (mm, stack, m);
-    }
-
-    qsort (stack.start,
-           BTOR_COUNT_STACK (stack),
-           sizeof (Match *),
-           cmp_sort_match);
-
-    matchbv = 0;
-    bv      = btor_new_bv (mm, uf_model->count);
-    for (i = BTOR_COUNT_STACK (stack) - 1; i >= 0; i--)
-    {
-      m       = BTOR_PEEK_STACK (stack, i);
-      matchbv = bv;
-      bv      = btor_or_bv (mm, matchbv, m->matches);
-      /* more coverage of input/output pairs */
-      if (btor_compare_bv (bv, matchbv))
-      {
-        printf ("more cov match: %u (%u), ", m->num_matches, m->level);
-        btor_print_bv (m->matches);
-        BTOR_PUSH_STACK (mm, *matches, new_fun (btor, &params, m->exp));
-      }
-      btor_free_bv (mm, matchbv);
-      if (btor_is_ones_bv (bv))
-      {
-        printf ("found full coverage\n");
-        found_candidate = true;
-        break;
-      }
-    }
-    btor_free_bv (mm, bv);
-    BTOR_RELEASE_STACK (mm, stack);
+    assert (!found_candidate);
+    found_candidate = find_best_matches (btor, &params, all_matches, matches);
   }
 
   /* cleanup */

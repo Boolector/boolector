@@ -29,6 +29,8 @@ typedef enum BtorSynthType BtorSynthType;
 struct BtorSynthResult
 {
   BtorSynthType type;
+  uint32_t limit;
+
   BtorNode *value;
 
   bool full;
