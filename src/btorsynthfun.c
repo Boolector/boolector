@@ -679,26 +679,28 @@ find_best_matches (Btor *btor,
     m = btor_next_hash_table_iterator (&it);
     BTOR_PUSH_STACK (mm, stack, m);
     BTOR_PUSH_STACK (mm, used, 0);
-    btor_print_bv (m->matches);
+    //      btor_print_bv (m->matches);
   }
 
   qsort (
       stack.start, BTOR_COUNT_STACK (stack), sizeof (Match *), cmp_sort_match);
+#if 0
   printf ("sorted:\n");
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-  {
-    m = BTOR_PEEK_STACK (stack, i);
-    printf ("%u %u ", m->num_matches, m->level);
-    btor_print_bv (m->matches);
-  }
+    {
+      m = BTOR_PEEK_STACK (stack, i);
+      printf ("%u %u ", m->num_matches, m->level);
+      btor_print_bv (m->matches);
+    }
+#endif
 
-  printf ("collect:\n");
+  //  printf ("collect:\n");
   matchbv = 0;
   m       = BTOR_PEEK_STACK (stack, 0);
   bv      = btor_copy_bv (mm, m->matches);
   w       = bv->width;
-  printf ("more cov match: %u (%u), ", m->num_matches, m->level);
-  btor_print_bv (m->matches);
+  //  printf ("more cov match: %u (%u), ", m->num_matches, m->level);
+  //  btor_print_bv (m->matches);
   BTOR_PUSH_STACK (mm, *result, new_fun (btor, params, m->exp));
 
   do
@@ -728,7 +730,7 @@ find_best_matches (Btor *btor,
         min_rem_bits = cur_rem_bits;
         minm         = m;
         minpos       = i;
-        printf ("new min; %u\n", min_rem_bits);
+        //	      printf ("new min; %u\n", min_rem_bits);
       }
 
       if (cur_rem_bits == 0)
