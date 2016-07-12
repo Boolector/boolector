@@ -634,10 +634,9 @@ subst_params (Btor *btor, BtorNode *root, BtorNodeMap *map)
 
       if (real_cur->arity == 0)
       {
-        if (btor_is_param_node (real_cur))
+        if ((result = btor_mapped_node (map, real_cur)))
         {
-          result = btor_mapped_node (map, real_cur);
-          assert (result);
+          assert (btor_is_param_node (real_cur));
           result = btor_copy_exp (btor, result);
         }
         else
@@ -715,7 +714,7 @@ mk_fun (Btor *btor, BtorNode *params[], uint32_t nparams, BtorNode *body)
   BTOR_RELEASE_STACK (mm, new_params);
   btor_release_exp (btor, new_body);
   btor_delete_node_map (map);
-  assert (!BTOR_REAL_ADDR_NODE (result)->parameterized);
+  //  assert (!BTOR_REAL_ADDR_NODE (result)->parameterized);
   return result;
 }
 
@@ -1575,11 +1574,12 @@ btor_synthesize_fun (Btor *btor,
     {
       in = btor_next_node_hash_table_iterator (&it);
       assert (BTOR_REAL_ADDR_NODE (in)->arity == 0);
-
-      if (btor_is_uf_node (in))
-        p = btor_apply_exps (btor, params.start, BTOR_COUNT_STACK (params), in);
-      else
-        p = btor_copy_exp (btor, in);
+      assert (btor_is_param_node (in));
+      //	  if (btor_is_uf_node (in))
+      //	    p = btor_apply_exps (
+      //		    btor, params.start, BTOR_COUNT_STACK (params), in);
+      //	  else
+      //	    p = btor_copy_exp (btor, in);
       BTOR_PUSH_STACK (mm, inputs, in);
     }
   }
@@ -1602,8 +1602,10 @@ btor_synthesize_fun (Btor *btor,
       in = BTOR_PEEK_STACK (inputs, i);
       b  = btor_get_ptr_hash_table (additional_inputs, in);
       assert (b);
-      if (btor_is_apply_node (in))
+      if (b->data.flag)
       {
+        // TODO: UF may have a different arity than params (evars from outer
+        // scope)
         assert (BTOR_IS_REGULAR_NODE (in));
         assert (in->parameterized);
         m = b->data.as_ptr;
@@ -1643,8 +1645,8 @@ btor_synthesize_fun (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (value_in))
     btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
-  while (!BTOR_EMPTY_STACK (inputs))
-    btor_release_exp (btor, BTOR_POP_STACK (inputs));
+  while (!BTOR_EMPTY_STACK (params))
+    btor_release_exp (btor, BTOR_POP_STACK (params));
 
   BTOR_RELEASE_STACK (mm, results);
   BTOR_RELEASE_STACK (mm, params);
