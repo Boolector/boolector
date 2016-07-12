@@ -11,18 +11,23 @@
 #ifndef BTOR_HASH_H_INCLUDED
 #define BTOR_HASH_H_INCLUDED
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "utils/btormem.h"
 
-union BtorHashTableData
+struct BtorHashTableData
 {
-  int32_t as_int;
-  double as_dbl;
-  void* as_ptr;
-  char* as_str;
+  bool flag;
+  union
+  {
+    int32_t as_int;
+    double as_dbl;
+    void* as_ptr;
+    char* as_str;
+  };
 };
 
-typedef union BtorHashTableData BtorHashTableData;
+typedef struct BtorHashTableData BtorHashTableData;
 
 typedef uint32_t (*BtorHashPtr) (const void* key);
 typedef int32_t (*BtorCmpPtr) (const void* a, const void* b);
