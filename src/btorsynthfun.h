@@ -40,7 +40,6 @@ struct BtorSynthResult
 typedef struct BtorSynthResult BtorSynthResult;
 
 bool btor_synthesize_fun (Btor *btor,
-                          BtorNode *uf,
                           const BtorPtrHashTable *model,
                           BtorNode *prev_synth_fun,
                           BtorPtrHashTable *additional_inputs,
