@@ -959,6 +959,8 @@ find_best_matches (Btor *btor,
     //  btor_print_bv (m->matches);
     BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, m->exp));
     full_cover = btor_is_ones_bv (m->matches);
+    //      printf ("matches: %u, ", m->num_matches);
+    //      btor_print_bv (m->matches);
 
 #if 0
       do
@@ -1202,6 +1204,47 @@ check_candidate (Btor *btor,
   return found_candidate;
 }
 
+static inline void
+report_stats (Btor *btor,
+              double start,
+              uint32_t cur_level,
+              uint32_t num_checks,
+              BtorPtrHashTable *sigs)
+{
+  double delta;
+  delta = btor_time_stamp () - start;
+  BTOR_MSG (btor->msg,
+            1,
+            "level: %u|%u|%u, %.2f/s, %.2fs, %.2f MiB",
+            cur_level,
+            sigs->count,
+            num_checks,
+            num_checks / delta,
+            delta,
+            (float) btor->mm->allocated / 1024 / 1024);
+}
+
+static void
+max_chain_length (BtorPtrHashTable *sigs)
+{
+  uint32_t i, max_len = 0, cur_len, empty_bucks = 0;
+  BtorPtrHashBucket *b;
+
+  for (i = 0; i < sigs->size; i++)
+  {
+    b       = sigs->table[i];
+    cur_len = 0;
+    if (!b) empty_bucks++;
+    while (b)
+    {
+      cur_len++;
+      if (cur_len > max_len) max_len = cur_len;
+      b = b->chain;
+    }
+  }
+  printf ("max chain: %u, %u/%u\n", max_len, empty_bucks, sigs->size);
+}
+
 static bool
 synthesize (Btor *btor,
             BtorNode *inputs[],
@@ -1225,6 +1268,7 @@ synthesize (Btor *btor,
   assert (nops > 0);
   assert (results);
 
+  double start;
   bool found_candidate = false;
   uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0;
   BtorNode *exp, **exp_tuple;
@@ -1247,6 +1291,7 @@ synthesize (Btor *btor,
       mm, (BtorHashPtr) hash_match, (BtorCmpPtr) cmp_match);
   sigs = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
+  start = btor_time_stamp ();
   BTOR_INIT_STACK (candidates);
   BTOR_PUSH_STACK (mm, candidates, 0);
 
@@ -1273,8 +1318,10 @@ synthesize (Btor *btor,
                                        cache,
                                        sigs,
                                        matches);
-    if (found_candidate) goto DONE;
     num_checks++;
+    if (num_checks % 10000 == 0)
+      report_stats (btor, start, cur_level, num_checks, sigs);
+    if (found_candidate) goto DONE;
     //      num_init_exps++;
   }
 
@@ -1284,6 +1331,7 @@ synthesize (Btor *btor,
     /* initialize current level */
     BTOR_PUSH_STACK (mm, candidates, btor_new_int_hash_map (mm));
     assert (cur_level == BTOR_COUNT_STACK (candidates) - 1);
+    report_stats (btor, start, cur_level, num_checks, sigs);
 
     for (i = 0; i < nops; i++)
     {
@@ -1311,6 +1359,8 @@ synthesize (Btor *btor,
                                                sigs,
                                                matches);
             num_checks++;
+            if (num_checks % 10000 == 0)
+              report_stats (btor, start, cur_level, num_checks, sigs);
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_un_exps++;
           }
@@ -1342,6 +1392,8 @@ synthesize (Btor *btor,
                                                sigs,
                                                matches);
             num_checks++;
+            if (num_checks % 10000 == 0)
+              report_stats (btor, start, cur_level, num_checks, sigs);
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_bin_exps++;
           }
@@ -1400,6 +1452,8 @@ synthesize (Btor *btor,
                                                  sigs,
                                                  matches);
               num_checks++;
+              if (num_checks % 10000 == 0)
+                report_stats (btor, start, cur_level, num_checks, sigs);
               if (found_candidate || num_checks >= max_checks) goto DONE;
               //			  num_ter_exps++;
             }
@@ -1409,6 +1463,8 @@ synthesize (Btor *btor,
     }
   }
 DONE:
+  report_stats (btor, start, cur_level, num_checks, sigs);
+  //  max_chain_length (sigs);
 
   if (found_candidate)
     BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, exp));
@@ -1586,7 +1642,8 @@ btor_synthesize_fun (Btor *btor,
 
   /* create input/output assignment pairs */
   ninputs = BTOR_COUNT_STACK (inputs);
-  btor_init_hash_table_iterator (&it, model);
+  //  btor_init_hash_table_iterator (&it, model);
+  btor_init_reversed_hash_table_iterator (&it, model);
   while (btor_has_next_hash_table_iterator (&it))
   {
     bv = it.bucket->data.as_ptr;
@@ -1618,6 +1675,7 @@ btor_synthesize_fun (Btor *btor,
       btor_add_to_bv_tuple (mm, vin, bv, i);
     }
     BTOR_PUSH_STACK (mm, value_in, vin);
+    break;
   }
   assert (BTOR_COUNT_STACK (value_in) == BTOR_COUNT_STACK (value_out));
 
