@@ -540,7 +540,8 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
       {
         assert (!btor_param_is_exists_var (real_cur));
         assert (!btor_param_is_forall_var (real_cur));
-        result = btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+        result = btor_param_exp (
+            btor, btor_get_exp_width (real_cur->btor, real_cur), 0);
       }
       else if (btor_is_slice_node (real_cur))
       {
@@ -1874,10 +1875,10 @@ synthesize_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
     if (btor_is_uf_node (e_uf_fs))
     {
       synth_res->type = BTOR_SYNTH_TYPE_UF;
-      if (!found_model || BTOR_COUNT_STACK (synth_res->exps) > 1)
+      if (!found_model)  // || BTOR_COUNT_STACK (synth_res->exps) > 1)
       {
         synth_res->value = mk_concrete_lambda_model (
-            f_solver, uf_model, BTOR_TOP_STACK (synth_res->exps));
+            f_solver, uf_model, 0);  // BTOR_TOP_STACK (synth_res->exps));
         synth_res->full = false;
       }
       else
@@ -2505,8 +2506,8 @@ find_model (BtorEFSolver *slv, BtorEFGroundSolvers *gslv, bool skip_exists)
   /* query forall solver */
   start = btor_time_stamp ();
   res   = btor_sat_btor (gslv->forall, -1, -1);
+  update_formula (gslv);
   assert (!btor_is_proxy_node (gslv->forall_formula));
-  // update_formula (gslv);
   gslv->time.f_solver += btor_time_stamp () - start;
 
   if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
