@@ -2794,7 +2794,8 @@ sat_ef_solver (BtorEFSolver *slv)
   // TODO (ma): incremental support
 
   /* simplify formula and normalize quantifiers */
-  btor_simplify (slv->btor);
+  res = btor_simplify (slv->btor);
+  if (res != BTOR_RESULT_UNKNOWN) return res;
 
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
