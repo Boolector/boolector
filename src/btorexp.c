@@ -4122,6 +4122,7 @@ btor_get_exp_width (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
+  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
   assert (!btor_is_fun_node (exp));
   assert (!btor_is_args_node (exp));
   return btor_get_width_bitvec_sort (&btor->sorts_unique_table,
@@ -4134,6 +4135,7 @@ btor_get_fun_exp_width (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   BtorSortUniqueTable *sorts;
   sorts = &btor->sorts_unique_table;
