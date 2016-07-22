@@ -1269,7 +1269,7 @@ synthesize (Btor *btor,
   assert (results);
 
   double start;
-  bool found_candidate = false;
+  bool found_candidate = false, equal;
   uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0, num_added;
   BtorNode *exp, **exp_tuple;
   BtorNodePtrStack *exps;
@@ -1473,7 +1473,25 @@ DONE:
     BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, exp));
   // TODO: check if all out values are the same -> const candidate
   else
-    found_candidate = find_best_matches (btor, matches, results);
+  {
+    equal = true;
+    for (i = 1; i < nvalues; i++)
+    {
+      if (btor_compare_bv (value_out[i - 1], value_out[i]))
+      {
+        equal = false;
+        break;
+      }
+    }
+    if (equal)
+    {
+      found_candidate = true;
+      exp             = btor_const_exp (btor, value_out[0]);
+      BTOR_PUSH_STACK (mm, *results, exp);
+    }
+    else
+      found_candidate = find_best_matches (btor, matches, results);
+  }
 
 #if 0
   if (result)
