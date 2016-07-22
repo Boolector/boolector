@@ -1270,7 +1270,7 @@ synthesize (Btor *btor,
 
   double start;
   bool found_candidate = false;
-  uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0;
+  uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0, num_added;
   BtorNode *exp, **exp_tuple;
   BtorNodePtrStack *exps;
   BtorVoidPtrStack candidates;
@@ -1333,6 +1333,7 @@ synthesize (Btor *btor,
     assert (cur_level == BTOR_COUNT_STACK (candidates) - 1);
     report_stats (btor, start, cur_level, num_checks, sigs);
 
+    num_added = sigs->count;
     for (i = 0; i < nops; i++)
     {
       if (ops[i].arity == 1)
@@ -1461,6 +1462,8 @@ synthesize (Btor *btor,
         }
       }
     }
+    /* no more expressions generated */
+    if (num_added == sigs->count) break;
   }
 DONE:
   report_stats (btor, start, cur_level, num_checks, sigs);
@@ -1468,6 +1471,7 @@ DONE:
 
   if (found_candidate)
     BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, exp));
+  // TODO: check if all out values are the same -> const candidate
   else
     found_candidate = find_best_matches (btor, matches, results);
 
@@ -1591,13 +1595,13 @@ btor_synthesize_fun (Btor *btor,
                      BtorNodePtrStack *matches)
 {
   bool found_candidate;
-  uint32_t i, nops, ninputs;
+  uint32_t i, j, nops, ninputs;
   Op ops[64];
   BtorNodePtrStack params, inputs, results;
   BtorNode *p, *in;
   BtorMemMgr *mm;
   BtorBitVector *bv;
-  BtorBitVectorTuple *tup, *vin;
+  BtorBitVectorTuple *tup, *vin, *tmp;
   BtorBitVectorTuplePtrStack value_in;
   BtorBitVectorPtrStack value_out;
   BtorPtrHashTable *m;
@@ -1631,19 +1635,13 @@ btor_synthesize_fun (Btor *btor,
       in = btor_next_node_hash_table_iterator (&it);
       assert (BTOR_REAL_ADDR_NODE (in)->arity == 0);
       assert (btor_is_param_node (in));
-      //	  if (btor_is_uf_node (in))
-      //	    p = btor_apply_exps (
-      //		    btor, params.start, BTOR_COUNT_STACK (params), in);
-      //	  else
-      //	    p = btor_copy_exp (btor, in);
       BTOR_PUSH_STACK (mm, inputs, in);
     }
   }
 
   /* create input/output assignment pairs */
   ninputs = BTOR_COUNT_STACK (inputs);
-  //  btor_init_hash_table_iterator (&it, model);
-  btor_init_reversed_hash_table_iterator (&it, model);
+  btor_init_hash_table_iterator (&it, model);
   while (btor_has_next_hash_table_iterator (&it))
   {
     bv = it.bucket->data.as_ptr;
@@ -1661,13 +1659,17 @@ btor_synthesize_fun (Btor *btor,
       assert (b);
       if (b->data.flag)
       {
-        // TODO: UF may have a different arity than params (evars from outer
-        // scope)
         assert (BTOR_IS_REGULAR_NODE (in));
         assert (in->parameterized);
-        m = b->data.as_ptr;
-        b = btor_get_ptr_hash_table (m, tup);
+        m   = b->data.as_ptr;
+        tmp = m->first->key;
+        tmp = btor_new_bv_tuple (mm, tmp->arity);
+        assert (tmp->arity <= tup->arity);
+        for (j = 0; j < tmp->arity; j++)
+          btor_add_to_bv_tuple (mm, tmp, tup->bv[j], j);
+        b = btor_get_ptr_hash_table (m, tmp);
         assert (b);
+        btor_free_bv_tuple (mm, tmp);
         bv = b->data.as_ptr;
       }
       else
@@ -1675,7 +1677,6 @@ btor_synthesize_fun (Btor *btor,
       btor_add_to_bv_tuple (mm, vin, bv, i);
     }
     BTOR_PUSH_STACK (mm, value_in, vin);
-    break;
   }
   assert (BTOR_COUNT_STACK (value_in) == BTOR_COUNT_STACK (value_out));
 
