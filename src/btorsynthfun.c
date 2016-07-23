@@ -1325,6 +1325,24 @@ synthesize (Btor *btor,
     //      num_init_exps++;
   }
 
+  equal = true;
+  for (i = 1; i < nvalues; i++)
+  {
+    if (btor_compare_bv (value_out[i - 1], value_out[i]))
+    {
+      equal = false;
+      break;
+    }
+  }
+  if (equal)
+  {
+    found_candidate = true;
+    exp             = btor_const_exp (btor, value_out[0]);
+    add_exp (btor, 1, &candidates, exp);
+    printf ("EQUAL\n");
+    goto DONE;
+  }
+
   /* level 2+ checks */
   for (cur_level = 2; !max_level || cur_level < max_level; cur_level++)
   {
