@@ -289,9 +289,6 @@ setup_efg_solvers (BtorEFSolver *slv,
   /* configure options */
   btor_set_opt (res->forall, BTOR_OPT_MODEL_GEN, 1);
   btor_set_opt (res->forall, BTOR_OPT_INCREMENTAL, 1);
-  // FIXME (ma): if -bra is enabled then test_synth5.smt2 fails without
-  // disabling this since f_formula will be simplified
-  btor_set_opt (res->forall, BTOR_OPT_BETA_REDUCE_ALL, 0);
 
   tmp = btor_recursively_rebuild_exp_clone (
       btor,
