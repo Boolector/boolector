@@ -18,7 +18,7 @@ readonly infile=$1
 
 res=$($Z3 $infile | head -n1)
 
-if [ "$res" == "sat" ]; then
+if [ "$res" == "sat" -o "$res" == "" ]; then
   exit 10
 elif [ "$res" == "unsat" ]; then
   exit 20

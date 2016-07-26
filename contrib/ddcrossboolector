@@ -8,10 +8,10 @@ die ()
 
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
-btor_test=""
-btor_test_opts=""
-btor_ref=""
-btor_ref_opts=""
+solver_test=""
+solver_test_opts=""
+solver_ref=""
+solver_ref_opts=""
 
 while [ $# -gt 0 ]
 do
@@ -31,19 +31,19 @@ do
       exit
       ;;
     -*|[0-9]*) 
-      if [ x"$btor_test" = x ]; then
+      if [ x"$solver_test" = x ]; then
 	die "invalid option: $1"
-      elif [ x"$btor_ref" = x  ]; then
-	btor_test_opts="$btor_test_opts $1"
+      elif [ x"$solver_ref" = x  ]; then
+	solver_test_opts="$solver_test_opts $1"
       else
-	btor_ref_opts="$btor_ref_opts $1"
+	solver_ref_opts="$solver_ref_opts $1"
       fi
       ;;
     *) 
-      if [ x"$btor_test" = x ]; then
-	btor_test=$1
-      elif [ x"$btor_ref" = x  ]; then
-	btor_ref=$1
+      if [ x"$solver_test" = x ]; then
+	solver_test=$1
+      elif [ x"$solver_ref" = x  ]; then
+	solver_ref=$1
       else
 	break
       fi
@@ -56,14 +56,14 @@ inputfile="$*"
 
 [ x"$inputfile" = x ] && die "inputfile missing"
 
-$btor_ref $btor_ref_opts $inputfile > /dev/null 2>&1
+$solver_ref $solver_ref_opts $inputfile > /dev/null 2>&1
 expected_result=$?
-#echo "$btor_ref"
+#echo "$solver_ref"
 #echo "expected result: $expected_result"
 
-$btor_test $btor_test_opts $inputfile > /dev/null 2>&1
+$solver_test $solver_test_opts $inputfile > /dev/null 2>&1
 result=$?
-#echo "$btor_test"
+#echo "$solver_test"
 #echo "result: $result"
 
 # we do not want assertions errors for now
