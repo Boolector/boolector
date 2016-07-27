@@ -47,7 +47,10 @@ def dump():
                 lits.append("(not {})".format(sym))
             else:
                 lits.append(sym)
-        lines.append("(or {})".format(" ".join(lits)))
+        if len(lits) == 1:
+            lines.append("{}".format(lits[0]))
+        else:
+            lines.append("(or {})".format(" ".join(lits)))
 
     # close quantifiers + and + assert
     lines.append(")" * (len(g_prefix) + 2))
