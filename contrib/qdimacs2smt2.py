@@ -35,7 +35,8 @@ def dump():
         lines.append( "({} ({})".format(quant, vars))
     
     # print clauses
-    lines.append("(and")
+    if len(g_clauses) > 1:
+        lines.append("(and")
     for c in g_clauses:
         lits = []
         for l in c:
@@ -53,7 +54,9 @@ def dump():
             lines.append("(or {})".format(" ".join(lits)))
 
     # close quantifiers + and + assert
-    lines.append(")" * (len(g_prefix) + 2))
+    lines.append(")" * (len(g_prefix) + 1))
+    if len(g_clauses) > 1:
+        lines.append(")")
     lines.append("(check-sat)")
     lines.append("(exit)")
     print("\n".join(lines))
