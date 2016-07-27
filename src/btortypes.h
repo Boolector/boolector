@@ -262,7 +262,15 @@ enum BtorOption
   /* --------------------------------------------------------------------- */
 
   /*!
-    * **BTOR_OPT_DUAL_PROP**
+   * **BTOR_OPT_FUN_PREPROP**
+
+     Enable (``value``: 1) or disable (``value``: 0) prop engine as
+   preprocessing step within sequential portfolio setting.
+   */
+  BTOR_OPT_FUN_PREPROP,
+
+  /*!
+    * **BTOR_OPT_FUN_DUAL_PROP**
 
       Enable (``value``: 1) or disable (``value``: 0) dual propagation
     optimization.
@@ -270,7 +278,7 @@ enum BtorOption
   BTOR_OPT_FUN_DUAL_PROP,
 
   /*!
-    * **BTOR_OPT_JUST**
+    * **BTOR_OPT_FUN_JUST**
 
       Enable (``value``: 1) or disable (``value``: 0) justification
     optimization.
@@ -278,7 +286,7 @@ enum BtorOption
   BTOR_OPT_FUN_JUST,
 
   /*!
-    * **BTOR_OPT_JUST_HEURISTIC**
+    * **BTOR_OPT_FUN_JUST_HEURISTIC**
 
       | Set heuristic that determines path selection for justification
     optimization. | Boolector uses BTOR_JUST_HEUR_BRANCH_MIN_APP by default.
@@ -291,7 +299,7 @@ enum BtorOption
   BTOR_OPT_FUN_JUST_HEURISTIC,
 
   /*!
-    * **BTOR_OPT_LAZY_SYNTHESIZE**
+    * **BTOR_OPT_FUN_LAZY_SYNTHESIZE**
 
       Enable (``value``: 1) or disable (``value``: 0) lazy synthesis of bit
     vector expressions.
@@ -299,7 +307,7 @@ enum BtorOption
   BTOR_OPT_FUN_LAZY_SYNTHESIZE,
 
   /*!
-    * **BTOR_OPT_EAGER_LEMMAS**
+    * **BTOR_OPT_FUN_EAGER_LEMMAS**
 
       | Enable (``value``: 1) or disable (``value``: 0) eager generation lemmas.
       | If enabled, in each refinement iteration, lemmas for all possible
@@ -471,6 +479,13 @@ enum BtorOption
    **Prop Engine Options**:
    */
   /* --------------------------------------------------------------------- */
+
+  /*!
+   * **BTOR_OPT_PROP_NPROPS**
+      Set the number of propagation (steps) used as a limit for the propagation
+   engine. Disabled if 0.
+   */
+  BTOR_OPT_PROP_NPROPS,
 
   /*!
     * **BTOR_OPT_PROP_USE_RESTARTS**

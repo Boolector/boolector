@@ -632,12 +632,12 @@ btor_new_btor (void)
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
-  btor->symbols = btor_new_ptr_hash_map2 (
+  btor->symbols = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   btor->node2symbol =
-      btor_new_ptr_hash_map2 (mm,
-                              (BtorHashPtr) btor_hash_exp_by_id,
-                              (BtorCmpPtr) btor_compare_exp_by_id);
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->inputs  = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
@@ -934,11 +934,11 @@ btor_delete_btor (Btor *btor)
           || btor->sorts_unique_table.num_elements == 0);
   BTOR_RELEASE_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
-  btor_delete_ptr_hash_map2 (btor->node2symbol);
-  btor_init_hash_table_iterator2 (&it, btor->symbols);
-  while (btor_has_next_hash_table_iterator2 (&it))
-    btor_freestr (btor->mm, (char *) btor_next_hash_table_iterator2 (&it));
-  btor_delete_ptr_hash_map2 (btor->symbols);
+  btor_delete_ptr_hash_table (btor->node2symbol);
+  btor_init_hash_table_iterator (&it, btor->symbols);
+  while (btor_has_next_hash_table_iterator (&it))
+    btor_freestr (btor->mm, (char *) btor_next_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (btor->symbols);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
@@ -1426,7 +1426,7 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
+  //  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
   assert (btor_get_exp_width (btor, exp) == 1);
 
   BtorNode *rep;
@@ -1531,6 +1531,8 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         }
       }
     }
+    else if (constraint_is_inconsistent (btor, exp))
+      btor->inconsistent = 1;
     else
       btor_insert_unsynthesized_constraint (btor, exp);
 

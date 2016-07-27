@@ -23,7 +23,6 @@
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btorhashint.h"
-#include "utils/btorhashptr2.h"
 #include "utils/btormem.h"
 #include "utils/btorrng.h"
 
@@ -111,8 +110,8 @@ struct Btor
 
   BtorAIGVecMgr *avmgr;
 
-  BtorPtrHashTable2 *symbols;
-  BtorPtrHashTable2 *node2symbol;
+  BtorPtrHashTable *symbols;
+  BtorPtrHashTable *node2symbol;
 
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *bv_vars;

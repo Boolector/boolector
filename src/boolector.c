@@ -114,7 +114,12 @@ boolector_chkclone (Btor *btor)
     /* force auto cleanup (might have been disabled via btormbt) */
     btor_set_opt (btor->clone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_delete_btor (btor->clone);
+    btor->clone = 0;
   }
+  /* do not generate shadow clone if sat solver does not support cloning
+   * (else only expression layer will be cloned and shadowed API function
+   *  calls may fail) */
+  if (!btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))) return;
   btor->clone           = btor_clone_btor (btor);
   btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
@@ -1062,10 +1067,9 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   symb  = (char *) symbol;
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   BTOR_ABORT (width < 1, "'width' must not be < 1");
-  BTOR_ABORT (
-      symb && btor_contains_ptr_hash_map2 (btor->symbols, (char *) symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
+              "symbol '%s' is already in use",
+              symb);
   res = btor_var_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1099,7 +1103,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   BTOR_ABORT (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT (index_width < 1, "'index_width' must not be < 1");
-  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_array_exp (btor, elem_width, index_width, symb);
@@ -1134,7 +1138,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               symbol ? " '" : "",
               symbol ? symbol : "",
               symbol ? "'" : "");
-  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
 
@@ -2566,7 +2570,7 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
   BTOR_ABORT (width < 1, "'width' must not be < 1");
-  BTOR_ABORT (symb && btor_contains_ptr_hash_map2 (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_param_exp (btor, width, symb);
