@@ -1339,7 +1339,6 @@ synthesize (Btor *btor,
     found_candidate = true;
     exp             = btor_const_exp (btor, value_out[0]);
     add_exp (btor, 1, &candidates, exp);
-    printf ("EQUAL\n");
     goto DONE;
   }
 
