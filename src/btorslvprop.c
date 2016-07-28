@@ -19,7 +19,7 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btoropt.h"
-#include "btorslvsls.h"  // currently needed, TODO maybe get rid of in the future
+#include "btorslvsls.h"
 
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
