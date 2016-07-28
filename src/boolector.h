@@ -50,6 +50,13 @@
     boolector_parse
 */
 #define BOOLECTOR_PARSE_ERROR 1
+/*!
+  Preprocessor constant representing status ``parse unknown``.
+
+  .. seealso::
+    boolector_parse
+*/
+#define BOOLECTOR_PARSE_UNKNOWN 2
 
 /*------------------------------------------------------------------------*/
 
@@ -1961,7 +1968,7 @@ bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: In the incremental case (right now `SMT-LIB v1`_ only) the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN, otherwise it always returns BOOLECTOR_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
+  :return: In the incremental case or in case of SMT-LIB v2 (which requires a 'check-sat' command), the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
 */
 int boolector_parse (Btor *btor,
                      FILE *infile,

@@ -1499,8 +1499,8 @@ boolector_main (int argc, char **argv)
     goto DONE;
   }
 
-  /* call sat (if not in incremental mode) */
-  if (parse_res != BOOLECTOR_SAT && parse_res != BOOLECTOR_UNSAT
+  /* call sat (if not yet called) */
+  if (parse_res == BOOLECTOR_PARSE_UNKNOWN
       && !boolector_terminate (g_app->btor))
   {
     sat_res = boolector_sat (g_app->btor);

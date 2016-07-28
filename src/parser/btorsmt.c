@@ -2624,6 +2624,7 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   boolector_release (parser->btor, exp);
 
   satres = boolector_sat (parser->btor);
+  res->nsatcalls += 1;
   if (satres == BOOLECTOR_SAT)
   {
     btor_smt_message (parser, 1, "':formula' %s SAT", formula);

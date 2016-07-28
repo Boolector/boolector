@@ -79,7 +79,7 @@ btor_parse_aux (Btor *btor,
   }
   else
   {
-    res = parse_res.result;
+    res = parse_res.nsatcalls ? parse_res.result : BOOLECTOR_PARSE_UNKNOWN;
 
     if (!parse_opt.incremental)
     {

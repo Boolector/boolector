@@ -3902,6 +3902,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
                   parser->commands.all,
                   btor_time_stamp () - parser->parse_start);
         parser->res->result = boolector_sat (parser->btor);
+        parser->res->nsatcalls += 1;
         if (parser->res->result == BOOLECTOR_SAT)
           fprintf (parser->outfile, "sat\n");
         else if (parser->res->result == BOOLECTOR_UNSAT)
