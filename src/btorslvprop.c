@@ -683,6 +683,37 @@ select_path_slice (Btor *btor,
   return 0;
 }
 
+static inline int
+select_path_cond (Btor *btor, BtorNode *cond, BtorBitVector *bve0)
+{
+  assert (btor);
+  assert (cond);
+  assert (BTOR_IS_REGULAR_NODE (cond));
+  assert (bve0);
+
+  bool e1const, e2const;
+  int32_t eidx;
+
+  if (btor_is_bv_const_node (cond->e[0]))
+    eidx = cond->e[0] == btor->true_exp ? 1 : 2;
+  else
+  {
+    e1const = btor_is_bv_const_node (cond->e[1]);
+    e2const = btor_is_bv_const_node (cond->e[2]);
+
+    /* flip condition */
+    if ((e1const && e2const) || (e1const && btor_is_true_bv (bve0))
+        || (e2const && btor_is_false_bv (bve0))
+        || btor_pick_with_prob_rng (
+               &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
+      eidx = 0;
+    /* assume cond to be fixed */
+    else
+      eidx = btor_is_true_bv (bve0) ? 1 : 2;
+  }
+  return eidx;
+}
+
 /*------------------------------------------------------------------------*/
 
 #ifdef NDEBUG
@@ -3016,9 +3047,7 @@ btor_select_move_prop (Btor *btor,
 
           tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
 
-          if (btor_pick_with_prob_rng (
-                  &btor->rng,
-                  btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
+          if ((eidx = select_path_cond (btor, real_cur, tmp)) == 0)
           {
             /* flip condition */
             btor_free_bv (btor->mm, bvenew);
@@ -3029,9 +3058,8 @@ btor_select_move_prop (Btor *btor,
           else
           {
             /* assume cond to be fixed */
-            i   = btor_is_zero_bv (tmp) ? 2 : 1;
-            cur = real_cur->e[i];
-            BTORLOG (2, "    * chose: %u", i);
+            cur = real_cur->e[eidx];
+            BTORLOG (2, "    * chose: %u", eidx);
           }
 
           real_cur = BTOR_REAL_ADDR_NODE (cur);
