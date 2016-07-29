@@ -612,15 +612,15 @@ btor_init_opts (Btor *btor)
             "use bandit scheme for constraint selection");
   // TODO this is temporary for paper purposes only (eliminate)?
   init_opt (btor,
-            BTOR_OPT_PROP_USE_FULL_PATH,
+            BTOR_OPT_PROP_PATH_SEL,
             false,
-            true,
-            "prop:use-full-path",
+            false,
+            "prop:path-sel",
             0,
-            1,
-            0,
-            1,
-            "perform path selection over the full set of operators");
+            BTOR_PROP_PATH_SEL_DFLT,
+            BTOR_PROP_PATH_SEL_MIN,
+            BTOR_PROP_PATH_SEL_MAX,
+            "path selection mode");
   init_opt (btor,
             BTOR_OPT_PROP_USE_INV_VALUE_PROB,
             false,
