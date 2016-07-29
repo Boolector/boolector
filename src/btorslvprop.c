@@ -711,6 +711,21 @@ select_path_cond (Btor *btor, BtorNode *cond, BtorBitVector *bve0)
     else
       eidx = btor_is_true_bv (bve0) ? 1 : 2;
   }
+#ifndef NDEBUG
+  char *a;
+  BtorMemMgr *mm = btor->mm;
+  BTORLOG (2, "");
+  BTORLOG (2, "select path: %s", node2string (cond));
+  a = btor_bv_to_char_bv (mm, bve0);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (cond->e[0]), a);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, btor_get_bv_model (btor, cond->e[1]));
+  BTORLOG (2, "       e[1]: %s", node2string (cond->e[1]), a);
+  btor_freestr (mm, a);
+  a = btor_bv_to_char_bv (mm, btor_get_bv_model (btor, cond->e[2]));
+  BTORLOG (2, "       e[2]: %s", node2string (cond->e[2]), a);
+  btor_freestr (mm, a);
+#endif
   return eidx;
 }
 
@@ -3038,12 +3053,6 @@ btor_select_move_prop (Btor *btor,
         {
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
-
-          BTORLOG (2, "");
-          BTORLOG (2, "select path: %s", node2string (real_cur));
-          BTORLOG (2, "       e[0]: %s", node2string (real_cur->e[0]));
-          BTORLOG (2, "       e[1]: %s", node2string (real_cur->e[1]));
-          BTORLOG (2, "       e[2]: %s", node2string (real_cur->e[2]));
 
           tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
 
