@@ -1470,7 +1470,7 @@ collect_inputs (BtorEFGroundSolvers *gslv,
         if (btor_mapped_node (gslv->forall_evar_deps, mapped))
         {
           m = btor_get_fun_model (e_solver, cur);
-          if (same_model (model, m))
+          if (m && same_model (model, m))
           {
             b              = btor_add_ptr_hash_table (inputs, mapped);
             b->data.flag   = true;
