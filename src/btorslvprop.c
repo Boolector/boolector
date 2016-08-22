@@ -720,10 +720,10 @@ select_path_cond (Btor *btor, BtorNode *cond, BtorBitVector *bve0)
   BTORLOG (2, "       e[0]: %s (%s)", node2string (cond->e[0]), a);
   btor_freestr (mm, a);
   a = btor_bv_to_char_bv (mm, btor_get_bv_model (btor, cond->e[1]));
-  BTORLOG (2, "       e[1]: %s", node2string (cond->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (cond->e[1]), a);
   btor_freestr (mm, a);
   a = btor_bv_to_char_bv (mm, btor_get_bv_model (btor, cond->e[2]));
-  BTORLOG (2, "       e[2]: %s", node2string (cond->e[2]), a);
+  BTORLOG (2, "       e[2]: %s (%s)", node2string (cond->e[2]), a);
   btor_freestr (mm, a);
 #endif
   return eidx;
