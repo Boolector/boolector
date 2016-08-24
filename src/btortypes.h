@@ -506,12 +506,11 @@ enum BtorOption
   BTOR_OPT_PROP_USE_BANDIT,
 
   /*!
-    * **BTOR_OPT_PROP_USE_FULL_PATH**
+    * **BTOR_OPT_PROP_PATH_SEL**
 
-      Enable (``value``: 1) or disable (``value``: 0) path selection over the
-    full set of operators (rather than just Boolean operators).
+      Choose mode for path selection.
   */
-  BTOR_OPT_PROP_USE_FULL_PATH,
+  BTOR_OPT_PROP_PATH_SEL,
 
   /*!
     * **BTOR_OPT_PROP_USE_INV_VALUE_PROB**

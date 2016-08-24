@@ -112,6 +112,13 @@ enum BtorOptSatEngines
 #define BTOR_SLS_STRAT_MIN 0
 #define BTOR_SLS_STRAT_MAX 4
 
+#define BTOR_PROP_PATH_SEL_CONTROLLING 0
+#define BTOR_PROP_PATH_SEL_ESSENTIAL 1
+#define BTOR_PROP_PATH_SEL_RANDOM 2
+#define BTOR_PROP_PATH_SEL_DFLT BTOR_PROP_PATH_SEL_ESSENTIAL
+#define BTOR_PROP_PATH_SEL_MIN 0
+#define BTOR_PROP_PATH_SEL_MAX 2
+
 /*------------------------------------------------------------------------*/
 
 void btor_init_opts (Btor *btor);

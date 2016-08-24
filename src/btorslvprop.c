@@ -116,6 +116,7 @@ select_path_and (Btor *btor,
   assert (bvand);
   assert (bve);
 
+  uint32_t opt;
   int i, eidx;
   BtorBitVector *tmp;
   BtorMemMgr *mm;
@@ -125,14 +126,20 @@ select_path_and (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_exp_width (btor, and) == 1)
+    opt = btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL);
+
+    if (opt == BTOR_PROP_PATH_SEL_RANDOM)
+    {
+      eidx = select_path_random (btor, and);
+    }
+    else if (btor_get_exp_width (btor, and) == 1)
     {
       /* choose 0-branch if exactly one branch is 0, else choose randomly */
       for (i = 0; i < and->arity; i++)
         if (btor_is_zero_bv (bve[i])) eidx = eidx == -1 ? i : -1;
       if (eidx == -1) eidx = select_path_random (btor, and);
     }
-    else if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    else if (opt == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       /* 1) all bits set in bvand must be set in both inputs, but
        * 2) all bits NOT set in bvand can be cancelled out by either or both
@@ -220,7 +227,8 @@ select_path_ult (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax = btor_ones_bv (mm, bve[0]->width);
       if (btor_is_one_bv (bvult))
@@ -270,7 +278,8 @@ select_path_sll (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       shift = btor_bv_to_uint64_bv (bve[1]);
       /* bve[1] and number of LSB 0-bits in bvsll must match */
@@ -327,7 +336,8 @@ select_path_srl (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       shift = btor_bv_to_uint64_bv (bve[1]);
       /* bve[1] and number of MSB 0-bits in bvsrl must match */
@@ -386,7 +396,8 @@ select_path_mul (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       iszerobve0 = btor_is_zero_bv (bve[0]);
       iszerobve1 = btor_is_zero_bv (bve[1]);
@@ -456,7 +467,8 @@ select_path_udiv (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax        = btor_ones_bv (mm, bve[0]->width);
       cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
@@ -535,7 +547,8 @@ select_path_urem (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax = btor_ones_bv (mm, bve[0]->width);
       sub   = btor_sub_bv (mm, bve[0], bvurem);
@@ -614,7 +627,8 @@ select_path_concat (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_FULL_PATH))
+    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+        == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       /* bve[0] o bve[1] = bvconcat
        * -> bve[0] resp. bve[1] must match with bvconcat */
