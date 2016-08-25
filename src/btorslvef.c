@@ -2049,7 +2049,8 @@ synthesize_model (BtorEFGroundSolvers *gslv)
         }
       }
       b = btor_add_ptr_hash_table (inputs, e_uf_fs);
-      if (!btor_is_uf_node (e_uf_fs))
+      // TODO: disable for now (not required)
+      if (false && !btor_is_uf_node (e_uf_fs))
       {
         assert (btor_param_is_exists_var (e_uf_fs));
         in = find_inputs (gslv, e_uf, uf_model);
