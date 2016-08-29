@@ -20,9 +20,12 @@ struct BtorPropSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  // BtorPtrHashTable *roots;    /* maintains n times selected */
   BtorIntHashTable *roots;
   BtorPtrHashTable *score;
+
+  uint32_t flip_cond_const_prob;
+  int32_t flip_cond_const_prob_delta;
+  uint32_t moves_cond_const;
 
   struct
   {

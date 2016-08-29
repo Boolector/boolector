@@ -610,7 +610,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "use bandit scheme for constraint selection");
-  // TODO this is temporary for paper purposes only (eliminate)?
   init_opt (btor,
             BTOR_OPT_PROP_PATH_SEL,
             false,
@@ -644,6 +643,19 @@ btor_init_opts (Btor *btor)
             "probability for choosing to flip the condition (rather than "
             "choosing the enabled path) for ITE during path selection "
             "for prop moves (interpreted as <n>/1000)");
+  init_opt (btor,
+            BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+            false,
+            false,
+            "prop:flip-cond-const-prob",
+            0,
+            100,
+            0,
+            BTOR_PROB_MAX,
+            "probability for choosing to flip the condition (rather than "
+            "choosing the enabled path) for ITE during path selection "
+            "for prop moves if either of the 'then' or 'else' branch "
+            "is constant (interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,

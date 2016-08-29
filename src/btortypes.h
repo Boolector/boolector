@@ -530,6 +530,15 @@ enum BtorOption
   BTOR_OPT_PROP_FLIP_COND_PROB,
 
   /*!
+    * **BTOR_OPT_PROP_FLIP_COND_CONST_PROB**
+
+     Set probabiality with which to select the path to the condition (in case of
+    an if-then-else operation) rather than the enabled branch during down
+    propagation if either of the 'then' or 'else' branch is constant.
+  */
+  BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+
+  /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
 
     | Do not perform a propagation move when running into a conflict during

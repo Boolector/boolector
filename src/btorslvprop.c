@@ -37,6 +37,8 @@
 
 #define BTOR_PROP_SELECT_CFACT 20
 
+#define BTOR_PROP_FLIP_COND_CONST_PROB_DELTA 100
+
 /*------------------------------------------------------------------------*/
 
 static inline int
@@ -706,6 +708,8 @@ select_path_cond (Btor *btor,
 
   bool e1const, e2const;
   int32_t eidx;
+  uint32_t prob;
+  BtorPropSolver *slv;
 
   (void) bvcond;
 
@@ -715,16 +719,38 @@ select_path_cond (Btor *btor,
   {
     e1const = btor_is_bv_const_node (cond->e[1]);
     e2const = btor_is_bv_const_node (cond->e[2]);
+    slv     = BTOR_PROP_SOLVER (btor);
 
     /* flip condition */
-    if ((e1const && btor_is_true_bv (bve0))
-        || (e2const && btor_is_false_bv (bve0))
-        || btor_pick_with_prob_rng (
-               &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
+    if (((e1const && btor_is_true_bv (bve0))
+         || (e2const && btor_is_false_bv (bve0)))
+        && btor_pick_with_prob_rng (
+               &btor->rng,
+               (prob =
+                    btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB))))
+    {
       eidx = 0;
+      if (++slv->moves_cond_const == 500)
+      {
+        slv->moves_cond_const = 0;
+        slv->flip_cond_const_prob_delta =
+            prob == 0 ? 100
+                      : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
+        btor_set_opt (btor,
+                      BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+                      prob + slv->flip_cond_const_prob_delta);
+      }
+    }
+    else if (btor_pick_with_prob_rng (
+                 &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
+    {
+      eidx = 0;
+    }
     /* assume cond to be fixed */
     else
+    {
       eidx = btor_is_true_bv (bve0) ? 1 : 2;
+    }
   }
 
 #ifndef NBTORLOG
@@ -3643,6 +3669,14 @@ sat_prop_solver_aux (Btor *btor)
     /* compute initial sls score */
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
       btor_compute_sls_scores (btor, slv->score);
+
+    /* init */
+    slv->flip_cond_const_prob =
+        btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB);
+    slv->flip_cond_const_prob_delta =
+        slv->flip_cond_const_prob > (BTOR_PROB_MAX / 2)
+            ? -BTOR_PROP_FLIP_COND_CONST_PROB_DELTA
+            : BTOR_PROP_FLIP_COND_CONST_PROB_DELTA;
 
     /* move */
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
