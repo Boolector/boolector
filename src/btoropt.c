@@ -480,7 +480,7 @@ btor_init_opts (Btor *btor)
             0,
             BTOR_PROB_MAX,
             "probability for choosing random walks "
-            "(interpreted as 1:<n>)");
+            "(interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_SLS_MOVE_RAND_ALL,
             false,
@@ -631,7 +631,7 @@ btor_init_opts (Btor *btor)
             0,
             BTOR_PROB_MAX,
             "probability for producing inverse rather than consistent values "
-            "(interpreted as <n>%)");
+            "(interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_FLIP_COND_PROB,
             false,
@@ -643,7 +643,7 @@ btor_init_opts (Btor *btor)
             BTOR_PROB_MAX,
             "probability for choosing to flip the condition (rather than "
             "choosing the enabled path) for ITE during path selection "
-            "for prop moves (interpreted as <n>%)");
+            "for prop moves (interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,
