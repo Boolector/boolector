@@ -35,6 +35,7 @@ struct BtorEFSolver
     double f_solver;
     double synth;
     double qinst;
+    double findinst;
 
     double dual_e_solver;
     double dual_f_solver;
