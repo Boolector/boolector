@@ -257,12 +257,144 @@ compute_edeps (Btor *btor, BtorNode *root)
   return deps;
 }
 
+static BtorNode *
+mk_dual_formula (Btor *btor,
+                 Btor *dual_btor,
+                 BtorNode *root,
+                 BtorNodeMap *var_map,
+                 BtorNodeMap *dual_var_map)
+{
+  assert (var_map);
+  assert (dual_var_map);
+
+  char *sym;
+  size_t j;
+  int32_t i;
+  BtorMemMgr *mm;
+  BtorNode *cur, *real_cur, *result, **e;
+  BtorNodePtrStack stack, args;
+  BtorIntHashTable *map;
+  BtorHashTableData *d;
+  BtorSortId sortid;
+
+  mm  = btor->mm;
+  map = btor_new_int_hash_map (mm);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (args);
+  BTOR_PUSH_STACK (mm, stack, root);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur      = BTOR_POP_STACK (stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    d        = btor_get_int_hash_map (map, real_cur->id);
+
+    if (!d)
+    {
+      btor_add_int_hash_table (map, real_cur->id);
+
+      BTOR_PUSH_STACK (mm, stack, cur);
+      for (i = real_cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
+    }
+    else if (!d->as_ptr)
+    {
+      /* bit vector variables should be existentially quantified */
+      assert (!btor_is_bv_var_node (real_cur));
+      assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
+      args.top -= real_cur->arity;
+      e = args.top;
+
+      if (real_cur->arity == 0)
+      {
+        if (btor_is_param_node (real_cur))
+        {
+          sym    = btor_get_symbol_exp (btor, real_cur);
+          result = btor_param_exp (
+              dual_btor, btor_get_exp_width (btor, real_cur), sym);
+
+          if (btor_param_is_forall_var (real_cur)
+              || btor_param_is_exists_var (real_cur))
+          {
+            btor_map_node (var_map, real_cur, result);
+            btor_map_node (dual_var_map, result, real_cur);
+          }
+        }
+        else if (btor_is_bv_const_node (real_cur))
+          result = btor_const_exp (dual_btor, btor_const_get_bits (real_cur));
+        else
+        {
+          assert (btor_is_uf_node (real_cur));
+          sortid = btor_recursively_rebuild_sort_clone (
+              btor, dual_btor, real_cur->sort_id);
+          result = btor_uf_exp (dual_btor, sortid, 0);
+        }
+      }
+      else if (btor_is_slice_node (real_cur))
+      {
+        result = btor_slice_exp (dual_btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
+      }
+      /* invert quantifier nodes */
+      else if (btor_is_quantifier_node (real_cur))
+      {
+        /* quantifiers are never negated (but flipped) */
+        if (!btor_is_quantifier_node (e[1])) e[1] = BTOR_INVERT_NODE (e[1]);
+        result = btor_create_exp (dual_btor,
+                                  real_cur->kind == BTOR_EXISTS_NODE
+                                      ? BTOR_FORALL_NODE
+                                      : BTOR_EXISTS_NODE,
+                                  e,
+                                  real_cur->arity);
+      }
+      else
+        result =
+            btor_create_exp (dual_btor, real_cur->kind, e, real_cur->arity);
+
+      d->as_ptr = btor_copy_exp (dual_btor, result);
+
+      for (i = 0; i < real_cur->arity; i++) btor_release_exp (dual_btor, e[i]);
+    PUSH_RESULT:
+      /* quantifiers are never negated (but flipped) */
+      if (!btor_is_quantifier_node (real_cur))
+        result = BTOR_COND_INVERT_NODE (cur, result);
+      BTOR_PUSH_STACK (mm, args, result);
+    }
+    else
+    {
+      assert (d->as_ptr);
+      result = btor_copy_exp (dual_btor, d->as_ptr);
+      goto PUSH_RESULT;
+    }
+  }
+  assert (BTOR_COUNT_STACK (args) == 1);
+  result = BTOR_POP_STACK (args);
+
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, args);
+
+  for (j = 0; j < map->size; j++)
+  {
+    if (!map->data[j].as_ptr) continue;
+    btor_release_exp (dual_btor, map->data[j].as_ptr);
+  }
+  btor_delete_int_hash_map (map);
+
+  /* quantifiers are never negated (but flipped) */
+  if (!btor_is_quantifier_node (result)) result = BTOR_INVERT_NODE (result);
+
+  return result;
+}
+
 static BtorEFGroundSolvers *
 setup_efg_solvers (BtorEFSolver *slv,
                    BtorNode *root,
-                   BtorIntHashTable *node_map,
+                   bool setup_dual,
                    const char *prefix_forall,
-                   const char *prefix_exists)
+                   const char *prefix_exists,
+                   BtorNodeMap *var_map,
+                   BtorNodeMap *dual_var_map)
 {
   bool opt_dual_solver;
   uint32_t width;
@@ -288,23 +420,36 @@ setup_efg_solvers (BtorEFSolver *slv,
   btor_clone_opts (btor, res->forall);
   btor_set_msg_prefix_btor (res->forall, prefix_forall);
 
-  exp_map = btor_new_node_map (btor);
-
   /* configure options */
   btor_set_opt (res->forall, BTOR_OPT_MODEL_GEN, 1);
   btor_set_opt (res->forall, BTOR_OPT_INCREMENTAL, 1);
 
-  tmp = btor_recursively_rebuild_exp_clone (
-      btor,
-      res->forall,
-      root,
-      exp_map,
-      btor_get_opt (res->forall, BTOR_OPT_REWRITE_LEVEL));
-  /* all bv vars are quantified with exists */
-  assert (res->forall->bv_vars->count == 0);
-  btor_delete_node_map (exp_map);
+  if (setup_dual)
+  {
+    assert (var_map);
+    assert (dual_var_map);
 
-  root = tmp;
+    root = mk_dual_formula (BTOR_REAL_ADDR_NODE (root)->btor,
+                            res->forall,
+                            root,
+                            var_map,
+                            dual_var_map);
+  }
+  else
+  {
+    exp_map = btor_new_node_map (btor);
+    tmp     = btor_recursively_rebuild_exp_clone (
+        btor,
+        res->forall,
+        root,
+        exp_map,
+        btor_get_opt (res->forall, BTOR_OPT_REWRITE_LEVEL));
+    /* all bv vars are quantified with exists */
+    assert (res->forall->bv_vars->count == 0);
+    btor_delete_node_map (exp_map);
+
+    root = tmp;
+  }
   assert (!btor_is_proxy_node (root));
   res->forall_formula   = root;
   res->forall_evar_deps = compute_edeps (res->forall, root);
@@ -1019,15 +1164,16 @@ collect_inputs (BtorEFGroundSolvers *gslv,
           m = btor_get_fun_model (e_solver, cur);
           if (m && same_model (model, m))
           {
-            b              = btor_add_ptr_hash_table (inputs, mapped);
-            b->data.flag   = true;
-            b->data.as_ptr = m;  // btor_get_fun_model (e_solver, cur);
+            b            = btor_add_ptr_hash_table (inputs, mapped);
+            b->data.flag = true;
+            b->data.as_ptr =
+                (BtorPtrHashTable *) m;  // btor_get_fun_model (e_solver, cur);
           }
         }
         else
         {
           b              = btor_add_ptr_hash_table (inputs, mapped);
-          b->data.as_ptr = btor_get_bv_model (e_solver, cur);
+          b->data.as_ptr = (BtorBitVector *) btor_get_bv_model (e_solver, cur);
         }
         printf ("  input: %s (%s)\n",
                 node2string (mapped),
@@ -1333,14 +1479,16 @@ generate_model (BtorEFGroundSolvers *gslv)
     {
       fun_model = btor_get_fun_model (e_solver, e_uf);
       if (!fun_model) continue;
-      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr = fun_model;
+      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr =
+          (BtorPtrHashTable *) fun_model;
     }
     else
     {
       assert (btor_is_bitvec_sort (&e_solver->sorts_unique_table,
                                    BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
       bv = btor_get_bv_model (e_solver, btor_simplify_exp (e_solver, e_uf));
-      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr = bv;
+      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr =
+          (BtorBitVector *) bv;
     }
   }
   return res;
@@ -1626,7 +1774,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
         var = btor_mapped_node (varmap, btor_next_node_map_iterator (&it));
         bv  = BTOR_PEEK_STACK (gslv->forall_ce, i);
         i += 1;
-        c  = btor_const_exp (r_solver, bv);
+        c  = btor_const_exp (r_solver, (BtorBitVector *) bv);
         eq = btor_eq_exp (r_solver, var, c);
         btor_assume_exp (r_solver, eq);
         btor_release_exp (r_solver, c);
@@ -2525,76 +2673,77 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   start = btor_time_stamp ();
   // TODO: try to not refine if dual is enabled
   // (refinement over add_inst better?)
+
+  // TODO: what exactly causes the refinement to fail?
   if (!refine_exists_solver (gslv))
   {
-    assert (0);
     printf ("REFINEMENT FAILED\n");
     uf_models        = generate_model (gslv);
     delete_uf_models = false;
     goto RESTART;
   }
+  else
+    printf ("REF OK\n");
   gslv->time.qinst += btor_time_stamp () - start;
 
   return BTOR_RESULT_UNKNOWN;
 }
 
+#if 0
 static void
-map_vars (BtorEFGroundSolvers *gslv,
-          BtorEFGroundSolvers *dual_gslv,
-          BtorIntHashTable *node_map,
-          BtorIntHashTable *node_map_dual,
-          BtorNodeMap *vars_map,
-          BtorNodeMap *dual_vars_map)
+map_vars (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
+	  BtorIntHashTable * node_map, BtorIntHashTable * node_map_dual,
+	  BtorNodeMap * vars_map, BtorNodeMap * dual_vars_map)
 {
   int32_t key, mapped, mapped_dual;
   size_t i;
   BtorNode *cur, *cur_dual;
 
   for (i = 0; i < node_map->size; i++)
-  {
-    key = node_map->keys[i];
-    if (!key) continue;
-    assert (btor_contains_int_hash_map (node_map_dual, key));
-    mapped      = node_map->data[i].as_int;
-    mapped_dual = btor_get_int_hash_map (node_map_dual, key)->as_int;
+    {
+      key = node_map->keys[i];
+      if (!key) continue;
+      assert (btor_contains_int_hash_map (node_map_dual, key));
+      mapped = node_map->data[i].as_int;
+      mapped_dual = btor_get_int_hash_map (node_map_dual, key)->as_int;
+      
+      cur = btor_get_node_by_id (gslv->forall, mapped); 
+      cur_dual = btor_get_node_by_id (dual_gslv->forall, mapped_dual);
+      if (!cur) continue; /* variable was eliminated in original formula */
+      if (!cur_dual) continue; /* variable was eliminated in dual formula */
+      assert (cur);
+      assert (cur_dual);
+  
+      if (btor_is_bv_var_node (cur)
+	  && (btor_mapped_node (gslv->forall_evars, cur)
+	      || btor_mapped_node (gslv->forall_uvars, cur)))
+	{
+	  btor_map_node (vars_map, cur,
+	      btor_is_apply_node (cur_dual) ? cur_dual->e[0] : cur_dual);
+	}
+      else if (btor_is_apply_node (cur)
+	       && btor_mapped_node (gslv->forall_evars, cur->e[0]))
+	{
+	  assert (btor_is_bv_var_node (cur_dual));
+	  btor_map_node (vars_map, cur->e[0], cur_dual);
+	}
 
-    cur      = btor_get_node_by_id (gslv->forall, mapped);
-    cur_dual = btor_get_node_by_id (dual_gslv->forall, mapped_dual);
-    if (!cur) continue;      /* variable was eliminated in original formula */
-    if (!cur_dual) continue; /* variable was eliminated in dual formula */
-    assert (cur);
-    assert (cur_dual);
-
-    if (btor_is_bv_var_node (cur)
-        && (btor_mapped_node (gslv->forall_evars, cur)
-            || btor_mapped_node (gslv->forall_uvars, cur)))
-    {
-      btor_map_node (vars_map,
-                     cur,
-                     btor_is_apply_node (cur_dual) ? cur_dual->e[0] : cur_dual);
+      if (btor_is_bv_var_node (cur_dual)
+	  && (btor_mapped_node (dual_gslv->forall_evars, cur_dual)
+	      || btor_mapped_node (dual_gslv->forall_uvars, cur_dual)))
+	{
+	  btor_map_node (dual_vars_map, cur_dual,
+	      btor_is_apply_node (cur) ? cur->e[0] : cur);
+	}
+      else if (btor_is_apply_node (cur_dual)
+	       && btor_mapped_node (dual_gslv->forall_evars, cur_dual->e[0]))
+	{
+	  assert (btor_is_bv_var_node (cur));
+	  btor_map_node (dual_vars_map, cur_dual->e[0], cur);
+	}
     }
-    else if (btor_is_apply_node (cur)
-             && btor_mapped_node (gslv->forall_evars, cur->e[0]))
-    {
-      assert (btor_is_bv_var_node (cur_dual));
-      btor_map_node (vars_map, cur->e[0], cur_dual);
-    }
-
-    if (btor_is_bv_var_node (cur_dual)
-        && (btor_mapped_node (dual_gslv->forall_evars, cur_dual)
-            || btor_mapped_node (dual_gslv->forall_uvars, cur_dual)))
-    {
-      btor_map_node (
-          dual_vars_map, cur_dual, btor_is_apply_node (cur) ? cur->e[0] : cur);
-    }
-    else if (btor_is_apply_node (cur_dual)
-             && btor_mapped_node (dual_gslv->forall_evars, cur_dual->e[0]))
-    {
-      assert (btor_is_bv_var_node (cur));
-      btor_map_node (dual_vars_map, cur_dual->e[0], cur);
-    }
-  }
 }
+#endif
 
 /* instantiate universal variables in gslv->forall_formula with model of
  * dual_gslv->forall_cur_model and add it to gslv->exists.
@@ -2730,11 +2879,10 @@ sat_ef_solver (BtorEFSolver *slv)
   //  double start;
   bool opt_dual_solver, skip_exists = true;
   BtorSolverResult res;
-  BtorNode *g, *dual_g, *cur;
+  BtorNode *g;
   BtorEFGroundSolvers *gslv, *dual_gslv;
-  BtorNodeMap *vars_map = 0, *dual_vars_map = 0;
-  BtorIntHashTable *node_map = 0, *node_map_dual = 0, *tmp_map = 0;
-  /* 'vars_map' maps existential/universal (gslv) to universal/existential
+  BtorNodeMap *var_map = 0, *dual_var_map = 0;
+  /* 'var_map' maps existential/universal (gslv) to universal/existential
    * vars (dual_gslv) */
 
   // TODO (ma): incremental support
@@ -2746,8 +2894,6 @@ sat_ef_solver (BtorEFSolver *slv)
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   g = btor_normalize_quantifiers (slv->btor);
-  //  printf ("NORMALIZED\n");
-  //  btor_dump_smt2_node (slv->btor, stdout, g, -1);
 
 #if 0
   if (opt_dual_solver)
@@ -2757,11 +2903,8 @@ sat_ef_solver (BtorEFSolver *slv)
       tmp_map = btor_new_int_hash_map (slv->btor->mm); 
       node_map = btor_new_int_hash_map (slv->btor->mm);
       node_map_dual = btor_new_int_hash_map (slv->btor->mm);
-//      dual_g = btor_normalize_quantifiers_node (slv->btor, BTOR_INVERT_NODE (g),
-//					    tmp_map);
       dual_g = btor_invert_quantifiers (slv->btor, g, tmp_map);
-//      printf ("INVERTED\n");
-//      btor_dump_smt2_node (slv->btor, stdout, dual_g, -1);
+
       for (i = 0; i < tmp_map->size; i++)
 	{
 	  key = tmp_map->keys[i];
@@ -2779,23 +2922,33 @@ sat_ef_solver (BtorEFSolver *slv)
     }
 #endif
 
-  gslv = setup_efg_solvers (slv, g, node_map, "forall", "exists");
+  gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
 
-#if 0
   if (opt_dual_solver)
-    {
-      dual_gslv = setup_efg_solvers (slv, dual_g, node_map_dual,
-				     "dual_forall", "dual_exists");
-      btor_release_exp (slv->btor, dual_g);
+  {
+    var_map      = btor_new_node_map (slv->btor);
+    dual_var_map = btor_new_node_map (slv->btor);
+    dual_gslv    = setup_efg_solvers (slv,
+                                   gslv->forall_formula,
+                                   true,
+                                   "dual_forall",
+                                   "dual_exists",
+                                   var_map,
+                                   dual_var_map);
 
-      assert (!opt_dual_solver || node_map->count == node_map_dual->count);
-      map_vars (gslv, dual_gslv, node_map, node_map_dual,
-		vars_map, dual_vars_map);
-      btor_delete_int_hash_map (node_map);
-      btor_delete_int_hash_map (node_map_dual);
-    }
+#if 0
+      BtorNodeMapIterator it;
+      btor_init_node_map_iterator (&it, var_map);
+      BtorNode *cur, *mapped;
+      while (btor_has_next_node_map_iterator (&it))
+	{
+	  mapped = it.it.bucket->data.as_ptr;
+	  cur = btor_next_node_map_iterator (&it);
+	  printf ("mapped: %s -> %s\n", node2string (cur), node2string (mapped));
+	}
 #endif
+  }
 
 #ifndef NDEBUG
   bool found_dual_model = false;
@@ -2806,6 +2959,21 @@ sat_ef_solver (BtorEFSolver *slv)
     slv->stats.refinements++;
     if (res != BTOR_RESULT_UNKNOWN) break;
     assert (!found_dual_model);
+
+    if (opt_dual_solver)
+    {
+      res = find_model (dual_gslv, skip_exists);
+      if (res == BTOR_RESULT_SAT)
+      {
+        res = BTOR_RESULT_UNSAT;
+        printf ("DUAL SAT: UNSAT\n");
+        break;
+      }
+      else if (res == BTOR_RESULT_UNSAT)
+      {
+        printf ("VALID\n");
+      }
+    }
 
 #if 0
       if (opt_dual_solver)
@@ -2864,6 +3032,12 @@ sat_ef_solver (BtorEFSolver *slv)
       delete_efg_solvers (slv, dual_gslv);
     }
 #endif
+  if (opt_dual_solver)
+  {
+    btor_delete_node_map (var_map);
+    btor_delete_node_map (dual_var_map);
+    delete_efg_solvers (slv, dual_gslv);
+  }
   delete_efg_solvers (slv, gslv);
   slv->btor->last_sat_result = res;
   return res;
