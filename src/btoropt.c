@@ -750,6 +750,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "dual EF solver");
+  init_opt (btor,
+            BTOR_OPT_EF_FINST_MODE,
+            false,
+            true,
+            "ef:finstmode",
+            0,
+            BTOR_EF_FINST_DEFAULT,
+            BTOR_EF_FINST_MIN,
+            BTOR_EF_FINST_MAX,
+            "mode for instantiation finding");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
