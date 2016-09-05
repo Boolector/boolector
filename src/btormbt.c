@@ -2936,7 +2936,9 @@ btormbt_state_opt (BtorMBT *mbt)
   /* prop, sls and aigprop engine only support QF_BV */
   opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
   if (opt_engine == BTOR_ENGINE_AIGPROP || opt_engine == BTOR_ENGINE_PROP
-      || opt_engine == BTOR_ENGINE_SLS)
+      || opt_engine == BTOR_ENGINE_SLS
+      || (opt_engine == BTOR_ENGINE_FUN
+          && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
   {
     g_btormbt->create_funs   = false;
     g_btormbt->create_ufs    = false;
@@ -4493,7 +4495,7 @@ main (int argc, char **argv)
       g_btormbt->seed *= 31752023;
       g_btormbt->seed += prev;
       g_btormbt->seed *= 43376579;
-      prev = g_btormbt->seed = abs (g_btormbt->seed) >> 1;
+      prev = g_btormbt->seed = g_btormbt->seed >> 1;
 
       if (!g_btormbt->quiet)
       {
