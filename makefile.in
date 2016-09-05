@@ -22,6 +22,8 @@ TARGETS=@TARGETS@
 ROOT=@ROOT@
 
 all: $(BUILDIR)/libboolector.a $(TARGETS)
+	rm -f $(BUILDIR)/btorconfig.h  # force to always be rebuilt
+				       # (version, commit id must be up-to-date)
 
 -include $(BUILDIR)/dependencies
 -include test.mk
@@ -73,6 +75,5 @@ clean:
 	rm -f $(SRCDIR)/$(TESTDIR)/log/*.log
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)
-
 
 .PHONY: all analyze clean
