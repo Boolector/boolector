@@ -3078,7 +3078,8 @@ btor_select_move_prop (Btor *btor,
           eidx = select_path_slice (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0),
-              bvenew = inv_slice_bv (btor, real_cur, bvcur, bve[0]);
+              bvenew = b ? inv_slice_bv (btor, real_cur, bvcur, bve[0])
+                         : cons_slice_bv (btor, real_cur, bvcur, bve[0]);
       }
 
       if (!bvenew) break; /* non-recoverable conflict */
