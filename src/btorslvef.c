@@ -279,7 +279,9 @@ mk_dual_formula (Btor *btor,
 
   mm   = btor->mm;
   map  = btor_new_int_hash_map (mm);
-  body = btor_is_quantifier_node (root) ? btor_binder_get_body (root) : 0;
+  body = btor_is_quantifier_node (root)
+             ? BTOR_REAL_ADDR_NODE (btor_binder_get_body (root))
+             : 0;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (args);
   BTOR_PUSH_STACK (mm, stack, root);
