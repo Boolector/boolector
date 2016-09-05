@@ -271,14 +271,15 @@ mk_dual_formula (Btor *btor,
   size_t j;
   int32_t i;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, *result, **e;
+  BtorNode *cur, *real_cur, *result, **e, *body;
   BtorNodePtrStack stack, args;
   BtorIntHashTable *map;
   BtorHashTableData *d;
   BtorSortId sortid;
 
-  mm  = btor->mm;
-  map = btor_new_int_hash_map (mm);
+  mm   = btor->mm;
+  map  = btor_new_int_hash_map (mm);
+  body = btor_is_quantifier_node (root) ? btor_binder_get_body (root) : 0;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (args);
   BTOR_PUSH_STACK (mm, stack, root);
@@ -339,8 +340,6 @@ mk_dual_formula (Btor *btor,
       /* invert quantifier nodes */
       else if (btor_is_quantifier_node (real_cur))
       {
-        /* quantifiers are never negated (but flipped) */
-        if (!btor_is_quantifier_node (e[1])) e[1] = BTOR_INVERT_NODE (e[1]);
         result = btor_create_exp (dual_btor,
                                   real_cur->kind == BTOR_EXISTS_NODE
                                       ? BTOR_FORALL_NODE
@@ -359,6 +358,8 @@ mk_dual_formula (Btor *btor,
       /* quantifiers are never negated (but flipped) */
       if (!btor_is_quantifier_node (real_cur))
         result = BTOR_COND_INVERT_NODE (cur, result);
+      /* invert body */
+      if (real_cur == body) result = BTOR_INVERT_NODE (result);
       BTOR_PUSH_STACK (mm, args, result);
     }
     else
@@ -380,9 +381,6 @@ mk_dual_formula (Btor *btor,
     btor_release_exp (dual_btor, map->data[j].as_ptr);
   }
   btor_delete_int_hash_map (map);
-
-  /* quantifiers are never negated (but flipped) */
-  if (!btor_is_quantifier_node (result)) result = BTOR_INVERT_NODE (result);
 
   return result;
 }
@@ -1675,6 +1673,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
     {
       do
       {
+        // TODO: for more variety -> add additoinal constraints like > and so on
         /* block current counter example */
         btor_init_node_map_iterator (&it, map);
         and = 0;
@@ -1683,7 +1682,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
           c   = it.it.bucket->data.as_ptr;
           var = btor_next_node_map_iterator (&it);
           // TODO: more aggressive exclusion of values
-          // (we need a wide variaty of in/out pairs)
+          // (we need a wide variety of in/out pairs)
           // use ne_exp for better results
           eq = btor_eq_exp (r_solver, var, c);
           if (and == 0)
@@ -2679,8 +2678,6 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   }
 
   start = btor_time_stamp ();
-  // TODO: try to not refine if dual is enabled
-  // (refinement over add_inst better?)
 
   // TODO: what exactly causes the refinement to fail?
   if (!refine_exists_solver (gslv))
@@ -2865,7 +2862,8 @@ sat_ef_solver (BtorEFSolver *slv)
       add_instantiation (dual_gslv, gslv, var_map);
       res = find_model (dual_gslv, skip_exists);
 
-      /* the formula is only UNSAT if there are no UFs in the original one */
+      /* the formula is only UNSAT if there are no UFs in the original one
+       */
       if (res == BTOR_RESULT_SAT && gslv->exists_ufs->table->count == 0)
       {
         add_instantiation (gslv, dual_gslv, dual_var_map);
