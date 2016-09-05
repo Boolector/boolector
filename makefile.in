@@ -22,8 +22,7 @@ TARGETS=@TARGETS@
 ROOT=@ROOT@
 
 all: $(BUILDIR)/libboolector.a $(TARGETS)
-	rm -f $(BUILDIR)/btorconfig.h  # force to always be rebuilt
-				       # (version, commit id must be up-to-date)
+	rm -f $(BUILDIR)/btorconfig.h
 
 -include $(BUILDIR)/dependencies
 -include test.mk
