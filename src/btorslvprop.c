@@ -730,9 +730,10 @@ select_path_cond (Btor *btor,
                     btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB))))
     {
       eidx = 0;
-      if (++slv->moves_cond_const == 500)
+      if (++slv->npathsel_cond_const
+          == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
       {
-        slv->moves_cond_const = 0;
+        slv->npathsel_cond_const = 0;
         slv->flip_cond_const_prob_delta =
             prob == 0 ? 100
                       : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);

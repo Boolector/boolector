@@ -63,7 +63,7 @@ init_opt (Btor *btor,
   assert (btor);
   assert (opt >= 0 && opt < BTOR_OPT_NUM_OPTS);
   assert (lng);
-  assert (max <= UINT_MAX);
+  assert (max <= UINT32_MAX);
   assert (min <= val);
   assert (val <= max);
 
@@ -227,7 +227,7 @@ btor_init_opts (Btor *btor)
             "s",
             0,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "random number generator seed");
   init_opt (btor,
             BTOR_OPT_VERBOSITY,
@@ -248,7 +248,7 @@ btor_init_opts (Btor *btor)
             "l",
             0,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "increase loglevel");
 #endif
 
@@ -523,7 +523,7 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "number of prop moves (moves are performed as <n>:m prop "
             "to sls moves");
   init_opt (btor,
@@ -534,7 +534,7 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "number of sls moves (moves are performed as m:<n> prop "
             "to sls moves");
   init_opt (btor,
@@ -588,7 +588,7 @@ btor_init_opts (Btor *btor)
             0,
             0,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "number of propagation steps used as a limit for prop engine");
   init_opt (btor,
             BTOR_OPT_PROP_USE_RESTARTS,
@@ -654,8 +654,33 @@ btor_init_opts (Btor *btor)
             BTOR_PROB_MAX,
             "probability for choosing to flip the condition (rather than "
             "choosing the enabled path) for ITE during path selection "
-            "for prop moves if either of the 'then' or 'else' branch "
+            "for prop moves if either of the 'then' or 'else' branches "
             "is constant (interpreted as <n>/1000)");
+  init_opt (btor,
+            BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
+            false,
+            false,
+            "prop:flip-cond-const-npathsel",
+            0,
+            500,
+            0,
+            INT32_MAX,
+            "limit for how often to flip the condition (rather than choosing "
+            "the enabled branch) for ITE during path selection before "
+            "decreasing or increasing the probability for flipping the "
+            "condition if either the 'then' or 'else' branch is constant");
+  init_opt (btor,
+            BTOR_OPT_PROP_FLIP_COND_CONST_DELTA,
+            false,
+            false,
+            "prop:flip-cond-const-delta",
+            0,
+            100,
+            0,
+            INT32_MAX,
+            "delta by which the limit for how often to flip the condition "
+            "(rather than choosing the enabled branch) for ITE during path "
+            "is decreased or increased");
   init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,

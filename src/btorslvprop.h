@@ -25,7 +25,7 @@ struct BtorPropSolver
 
   uint32_t flip_cond_const_prob;
   int32_t flip_cond_const_prob_delta;
-  uint32_t moves_cond_const;
+  uint32_t npathsel_cond_const;
 
   struct
   {

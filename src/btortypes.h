@@ -523,7 +523,7 @@ enum BtorOption
   /*!
     * **BTOR_OPT_PROP_FLIP_COND_PROB**
 
-     Set probabiality with which to select the path to the condition (in case of
+     Set probability with which to select the path to the condition (in case of
     an if-then-else operation) rather than the enabled branch during down
     propagation.
   */
@@ -532,11 +532,29 @@ enum BtorOption
   /*!
     * **BTOR_OPT_PROP_FLIP_COND_CONST_PROB**
 
-     Set probabiality with which to select the path to the condition (in case of
+     Set probbiality with which to select the path to the condition (in case of
     an if-then-else operation) rather than the enabled branch during down
     propagation if either of the 'then' or 'else' branch is constant.
   */
   BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+
+  /*!
+    * **BTOR_OPT_PROP_FLIP_COND_CONST_DELTA**
+
+     Set delta by which BTOR_OPT_PROP_FLIP_COND_CONST_PROB is decreased or
+    increased after a limit BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL is reached.
+  */
+  BTOR_OPT_PROP_FLIP_COND_CONST_DELTA,
+
+  /*!
+    * **BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL**
+
+     Set the limit for how often the path to the condition (in case of an
+    if-then-else operation) may be selected bevor
+    BTOR_OPT_PROP_FLIP_COND_CONST_PROB is decreased or increased by
+    BTOR_OPT_PROP_FLIP_COND_CONST_PROB_DELTA.
+  */
+  BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
 
   /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
