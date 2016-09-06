@@ -21,8 +21,12 @@ SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
 ROOT=@ROOT@
 
-all: $(BUILDIR)/libboolector.a $(TARGETS)
+all: updateconfig $(BUILDIR)/libboolector.a $(TARGETS)
+
+updateconfig: makefile VERSION mkconfig.sh
+	@mkdir -p $(BUILDIR)
 	rm -f $(BUILDIR)/btorconfig.h
+	./mkconfig.sh > $(BUILDIR)/btorconfig.h
 
 -include $(BUILDIR)/dependencies
 -include test.mk
@@ -37,10 +41,6 @@ $(BUILDIR)/%.o: $(SRCDIR)/%.c
 $(BUILDIR)/%.o: $(SRCDIR)/%.cc
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
-
-$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig.sh
-	@mkdir -p $(@D)
-	rm -f $@; ./mkconfig.sh > $@
 
 $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 	rm -f $@
@@ -75,4 +75,4 @@ clean:
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)
 
-.PHONY: all analyze clean
+.PHONY: all analyze clean updateconfig
