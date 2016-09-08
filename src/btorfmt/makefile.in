@@ -11,5 +11,6 @@ btorfmt.o: btorfmt.c btorfmt.h makefile
 catbtor: catbtor.o libbtorfmt.a makefile
 	$(CC) $(CFLAGS) -o $@ catbtor.o -L. -lbtorfmt
 clean:
+	rm -f makefile
 	rm -f *.o *.a catbtor tests/*.log
 	rm -f *.gcno *.gcov
