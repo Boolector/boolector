@@ -1254,6 +1254,8 @@ synthesize (Btor *btor,
             uint32_t nvalues,
             Op ops[],
             uint32_t nops,
+            BtorNode *consts[],
+            uint32_t nconsts,
             uint32_t max_checks,
             uint32_t max_level,
             BtorNodePtrStack *results)
@@ -1267,6 +1269,7 @@ synthesize (Btor *btor,
   assert (ops);
   assert (nops > 0);
   assert (results);
+  assert (!nconsts || consts);
 
   double start;
   bool found_candidate = false, equal;
@@ -1325,6 +1328,7 @@ synthesize (Btor *btor,
     //      num_init_exps++;
   }
 
+  /* check for constant function */
   equal = true;
   for (i = 1; i < nvalues; i++)
   {
@@ -1341,6 +1345,10 @@ synthesize (Btor *btor,
     add_exp (btor, 1, &candidates, exp);
     goto DONE;
   }
+
+  /* add constants to level 1 */
+  for (i = 0; i < nconsts; i++)
+    add_exp (btor, 1, &candidates, btor_copy_exp (btor, consts[i]));
 
   /* level 2+ checks */
   for (cur_level = 2; !max_level || cur_level < max_level; cur_level++)
@@ -1580,14 +1588,27 @@ init_ops (Btor *btor, Op *ops)
 
   /* boolean ops */
   INIT_OP (2, false, btor_ult_exp);
+  INIT_OP (2, false, btor_slt_exp);
   INIT_OP (2, true, btor_eq_exp);
+
   /* bv ops */
-  INIT_OP (2, true, btor_and_exp);
-  INIT_OP (2, true, btor_add_exp);
-  INIT_OP (2, false, btor_sub_exp);
-  INIT_OP (2, true, btor_mul_exp);
-  INIT_OP (2, false, btor_udiv_exp);
-  INIT_OP (2, false, btor_urem_exp);
+  if (btor->ops[BTOR_AND_NODE].cur > 0) INIT_OP (2, true, btor_and_exp);
+  if (btor->ops[BTOR_ADD_NODE].cur > 0)
+  {
+    INIT_OP (2, true, btor_add_exp);
+    INIT_OP (2, false, btor_sub_exp);
+  }
+  if (btor->ops[BTOR_MUL_NODE].cur > 0) INIT_OP (2, true, btor_mul_exp);
+  if (btor->ops[BTOR_UDIV_NODE].cur > 0)
+  {
+    INIT_OP (2, false, btor_udiv_exp);
+    INIT_OP (2, false, btor_sdiv_exp);
+  }
+  if (btor->ops[BTOR_UREM_NODE].cur > 0)
+  {
+    INIT_OP (2, false, btor_urem_exp);
+    INIT_OP (2, false, btor_srem_exp);
+  }
 #if 0
   INIT_OP (2, true,  btor_ne_exp);
   INIT_OP (2, true,  btor_xor_exp);
@@ -1625,6 +1646,8 @@ btor_synthesize_fun (Btor *btor,
                      const BtorPtrHashTable *model,
                      BtorNode *prev_synth_fun,
                      BtorPtrHashTable *additional_inputs,
+                     BtorNode *consts[],
+                     uint32_t nconsts,
                      uint32_t max_checks,
                      uint32_t max_level,
                      BtorNodePtrStack *matches)
@@ -1723,6 +1746,8 @@ btor_synthesize_fun (Btor *btor,
                                 BTOR_COUNT_STACK (value_in),
                                 ops,
                                 nops,
+                                consts,
+                                nconsts,
                                 max_checks,
                                 max_level,
                                 &results);

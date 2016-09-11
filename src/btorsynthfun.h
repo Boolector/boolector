@@ -43,6 +43,8 @@ bool btor_synthesize_fun (Btor *btor,
                           const BtorPtrHashTable *model,
                           BtorNode *prev_synth_fun,
                           BtorPtrHashTable *additional_inputs,
+                          BtorNode *consts[],
+                          uint32_t nconsts,
                           uint32_t max_num_checks,
                           uint32_t max_level,
                           BtorNodePtrStack *matches);
