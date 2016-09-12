@@ -906,10 +906,10 @@ find_best_matches (Btor * btor, BtorNode * params[], uint32_t nparams,
 }
 #endif
 
-static bool
-find_best_matches (Btor *btor,
-                   BtorPtrHashTable *matches,
-                   BtorNodePtrStack *results)
+#if 0
+static bool 
+find_best_matches (Btor * btor,
+		   BtorPtrHashTable * matches, BtorNodePtrStack * results)
 {
   bool full_cover = false;
   int32_t j, w, u;
@@ -927,12 +927,12 @@ find_best_matches (Btor *btor,
 
   btor_init_hash_table_iterator (&it, matches);
   while (btor_has_next_hash_table_iterator (&it))
-  {
-    m = btor_next_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (mm, stack, m);
-    BTOR_PUSH_STACK (mm, used, 0);
-    //      btor_print_bv (m->matches);
-  }
+    {
+      m = btor_next_hash_table_iterator (&it);
+      BTOR_PUSH_STACK (mm, stack, m);
+      BTOR_PUSH_STACK (mm, used, 0);
+//      btor_print_bv (m->matches);
+    }
 
 #if 0
   printf ("sorted:\n");
@@ -945,22 +945,20 @@ find_best_matches (Btor *btor,
 #endif
 
   if (!BTOR_EMPTY_STACK (stack))
-  {
-    qsort (stack.start,
-           BTOR_COUNT_STACK (stack),
-           sizeof (Match *),
-           cmp_sort_match);
-    //  printf ("collect:\n");
-    matchbv = 0;
-    m       = BTOR_PEEK_STACK (stack, 0);
-    bv      = btor_copy_bv (mm, m->matches);
-    w       = bv->width;
+    {
+      qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (Match *),
+	     cmp_sort_match);
+//  printf ("collect:\n");
+      matchbv = 0;
+      m = BTOR_PEEK_STACK (stack, 0);
+      bv = btor_copy_bv (mm, m->matches);
+      w = bv->width;
     //  printf ("more cov match: %u (%u), ", m->num_matches, m->level);
     //  btor_print_bv (m->matches);
-    BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, m->exp));
-    full_cover = btor_is_ones_bv (m->matches);
-    //      printf ("matches: %u, ", m->num_matches);
-    //      btor_print_bv (m->matches);
+      BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, m->exp));
+      full_cover = btor_is_ones_bv (m->matches);
+//      printf ("matches: %u, ", m->num_matches);
+//      btor_print_bv (m->matches);
 
 #if 0
       do
@@ -1019,12 +1017,13 @@ find_best_matches (Btor *btor,
       while (!full_cover && min_rem_bits > 0);
 #endif
 
-    btor_free_bv (mm, bv);
-    BTOR_RELEASE_STACK (mm, stack);
-    BTOR_RELEASE_STACK (mm, used);
-  }
+      btor_free_bv (mm, bv);
+      BTOR_RELEASE_STACK (mm, stack);
+      BTOR_RELEASE_STACK (mm, used);
+    }
   return full_cover;
 }
+#endif
 
 #if 0
 /* Check if expression 'EXP' was already created, or if it is an expressions
@@ -1245,7 +1244,7 @@ max_chain_length (BtorPtrHashTable *sigs)
   printf ("max chain: %u, %u/%u\n", max_len, empty_bucks, sigs->size);
 }
 
-static bool
+static BtorNode *
 synthesize (Btor *btor,
             BtorNode *inputs[],
             uint32_t ninputs,
@@ -1257,8 +1256,7 @@ synthesize (Btor *btor,
             BtorNode *consts[],
             uint32_t nconsts,
             uint32_t max_checks,
-            uint32_t max_level,
-            BtorNodePtrStack *results)
+            uint32_t max_level)
 {
   assert (btor);
   assert (inputs);
@@ -1268,13 +1266,12 @@ synthesize (Btor *btor,
   assert (nvalues > 0);
   assert (ops);
   assert (nops > 0);
-  assert (results);
   assert (!nconsts || consts);
 
   double start;
   bool found_candidate = false, equal;
   uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0, num_added;
-  BtorNode *exp, **exp_tuple;
+  BtorNode *exp, **exp_tuple, *result = 0;
   BtorNodePtrStack *exps;
   BtorVoidPtrStack candidates;
   BtorIntHashTable *value_in_map, *cache, *e0_exps, *e1_exps, *e2_exps;
@@ -1494,8 +1491,8 @@ DONE:
   report_stats (btor, start, cur_level, num_checks, sigs);
   //  max_chain_length (sigs);
 
-  if (found_candidate)
-    BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, exp));
+  if (found_candidate) result = btor_copy_exp (btor, exp);
+  //    BTOR_PUSH_STACK (mm, *results, btor_copy_exp (btor, exp));
   // TODO: check if all out values are the same -> const candidate
   else
   {
@@ -1511,11 +1508,11 @@ DONE:
     if (equal)
     {
       found_candidate = true;
-      exp             = btor_const_exp (btor, value_out[0]);
-      BTOR_PUSH_STACK (mm, *results, exp);
+      result          = btor_const_exp (btor, value_out[0]);
+      //	  BTOR_PUSH_STACK (mm, *results, exp);
     }
-    else
-      found_candidate = find_best_matches (btor, matches, results);
+    //      else
+    //	found_candidate = find_best_matches (btor, matches, results);
   }
 
 #if 0
@@ -1562,7 +1559,7 @@ DONE:
   btor_delete_int_hash_table (cache);
 
   btor_release_sort (&btor->sorts_unique_table, bool_sort);
-  return found_candidate;
+  return result;
 }
 
 #define INIT_OP(ARITY, ASSOC, FPTR) \
@@ -1641,7 +1638,7 @@ init_ops (Btor *btor, Op *ops)
   return i;
 }
 
-bool
+BtorNode *
 btor_synthesize_fun (Btor *btor,
                      const BtorPtrHashTable *model,
                      BtorNode *prev_synth_fun,
@@ -1649,14 +1646,14 @@ btor_synthesize_fun (Btor *btor,
                      BtorNode *consts[],
                      uint32_t nconsts,
                      uint32_t max_checks,
-                     uint32_t max_level,
-                     BtorNodePtrStack *matches)
+                     uint32_t max_level)
+//		     BtorNodePtrStack * matches)
 {
   bool found_candidate;
   uint32_t i, j, nops, ninputs;
   Op ops[64];
   BtorNodePtrStack params, inputs, results;
-  BtorNode *p, *in;
+  BtorNode *p, *in, *candidate, *result = 0;
   BtorMemMgr *mm;
   BtorBitVector *bv;
   BtorBitVectorTuple *tup, *vin, *tmp;
@@ -1738,28 +1735,33 @@ btor_synthesize_fun (Btor *btor,
   }
   assert (BTOR_COUNT_STACK (value_in) == BTOR_COUNT_STACK (value_out));
 
-  found_candidate = synthesize (btor,
-                                inputs.start,
-                                ninputs,
-                                value_in.start,
-                                value_out.start,
-                                BTOR_COUNT_STACK (value_in),
-                                ops,
-                                nops,
-                                consts,
-                                nconsts,
-                                max_checks,
-                                max_level,
-                                &results);
+  candidate = synthesize (btor,
+                          inputs.start,
+                          ninputs,
+                          value_in.start,
+                          value_out.start,
+                          BTOR_COUNT_STACK (value_in),
+                          ops,
+                          nops,
+                          consts,
+                          nconsts,
+                          max_checks,
+                          max_level);
 
-  /* create functions from candidate expressions */
+  /* create function from candidate expression */
+#if 0
   for (i = 0; i < BTOR_COUNT_STACK (results); i++)
+    {
+      p = BTOR_PEEK_STACK (results, i);
+      BTOR_PUSH_STACK (mm, *matches, mk_fun (btor, params.start,
+					     BTOR_COUNT_STACK (params), p));
+      btor_release_exp (btor, p);
+    }
+#endif
+  if (candidate)
   {
-    p = BTOR_PEEK_STACK (results, i);
-    BTOR_PUSH_STACK (mm,
-                     *matches,
-                     mk_fun (btor, params.start, BTOR_COUNT_STACK (params), p));
-    btor_release_exp (btor, p);
+    result = mk_fun (btor, params.start, BTOR_COUNT_STACK (params), candidate);
+    btor_release_exp (btor, candidate);
   }
 
   while (!BTOR_EMPTY_STACK (value_in))
@@ -1772,7 +1774,7 @@ btor_synthesize_fun (Btor *btor,
   BTOR_RELEASE_STACK (mm, inputs);
   BTOR_RELEASE_STACK (mm, value_in);
   BTOR_RELEASE_STACK (mm, value_out);
-  return found_candidate;
+  return result;
 }
 
 #if 0
@@ -2182,36 +2184,3 @@ DONE:
   return found_candidate; 
 }
 #endif
-
-BtorSynthResult *
-btor_new_synth_result (BtorMemMgr *mm)
-{
-  BtorSynthResult *res;
-  BTOR_CNEW (mm, res);
-  res->type = BTOR_SYNTH_TYPE_NONE;
-  return res;
-}
-
-void
-btor_delete_synth_result (BtorMemMgr *mm, BtorSynthResult *res)
-{
-  BtorNode *cur;
-
-  if (res->value)
-  {
-    assert (res->type == BTOR_SYNTH_TYPE_SK_VAR
-            || res->type == BTOR_SYNTH_TYPE_UF);
-    cur = BTOR_REAL_ADDR_NODE (res->value);
-    btor_release_exp (cur->btor, cur);
-  }
-
-  while (!BTOR_EMPTY_STACK (res->exps))
-  {
-    cur = BTOR_POP_STACK (res->exps);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (btor_is_fun_node (cur));
-    btor_release_exp (cur->btor, cur);
-  }
-  BTOR_RELEASE_STACK (mm, res->exps);
-  BTOR_DELETE (mm, res);
-}

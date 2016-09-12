@@ -26,29 +26,13 @@ enum BtorSynthType
 
 typedef enum BtorSynthType BtorSynthType;
 
-struct BtorSynthResult
-{
-  BtorSynthType type;
-  uint32_t limit;
-
-  BtorNode *value;
-
-  bool full;
-  BtorNodePtrStack exps;
-};
-
-typedef struct BtorSynthResult BtorSynthResult;
-
-bool btor_synthesize_fun (Btor *btor,
-                          const BtorPtrHashTable *model,
-                          BtorNode *prev_synth_fun,
-                          BtorPtrHashTable *additional_inputs,
-                          BtorNode *consts[],
-                          uint32_t nconsts,
-                          uint32_t max_num_checks,
-                          uint32_t max_level,
-                          BtorNodePtrStack *matches);
-
-BtorSynthResult *btor_new_synth_result (BtorMemMgr *mm);
-void btor_delete_synth_result (BtorMemMgr *mm, BtorSynthResult *res);
+BtorNode* btor_synthesize_fun (Btor* btor,
+                               const BtorPtrHashTable* model,
+                               BtorNode* prev_synth_fun,
+                               BtorPtrHashTable* additional_inputs,
+                               BtorNode* consts[],
+                               uint32_t nconsts,
+                               uint32_t max_num_checks,
+                               uint32_t max_level);
+//			        BtorNodePtrStack * matches);
 #endif
