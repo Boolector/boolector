@@ -136,7 +136,6 @@ delete_synth_result (BtorMemMgr *mm, SynthResult *res)
 static void
 print_cur_model (BtorEFGroundSolvers *gslv)
 {
-  uint32_t i;
   BtorNode *cur;
   BtorHashTableIterator it;
   SynthResult *synth_res;
@@ -993,7 +992,8 @@ mk_concrete_lambda_model (Btor *btor,
   assert (model);
 
   uint32_t i;
-  BtorNode *uf, *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
+  //  BtorNode *uf;
+  BtorNode *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
   BtorHashTableIterator it;
   BtorNodePtrStack params, consts;
   BtorBitVector *value;
@@ -1980,7 +1980,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   bool opt_synth_fun;
   BtorPtrHashTable *model, *prev_model, *inputs, *in;
   Btor *e_solver, *f_solver;
-  BtorNode *e_uf, *e_uf_fs, *m, *prev_synth_fun, *pfun, *candidate;
+  BtorNode *e_uf, *e_uf_fs, *prev_synth_fun, *candidate;
   BtorNodeMapIterator it;
   BtorHashTableIterator hit;
   const BtorBitVector *bv;
@@ -2428,7 +2428,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
   Btor *btor;
   BtorMemMgr *mm;
   BtorNodePtrStack visit, args;
-  BtorNode *cur, *real_cur, *result, **e, *tmp, *subst, *evar, *a, *app;
+  BtorNode *cur, *real_cur, *result, **e, *subst, *evar, *a, *app;
   BtorNode *fun;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
