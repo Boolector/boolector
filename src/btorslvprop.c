@@ -758,7 +758,7 @@ select_path_cond (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
 
-  a = btor_bv_to_char_bv (mm, eidx ? bvcond : bve0);
+  a = btor_bv_to_char_bv (mm, bvcond);
   BTORLOG (2, "");
   BTORLOG (2, "propagate: %s", a);
   btor_freestr (mm, a);
@@ -3114,16 +3114,11 @@ btor_select_move_prop (Btor *btor,
             /* flip condition */
             btor_free_bv (btor->mm, bvenew);
             bvenew = btor_not_bv (btor->mm, tmp);
-            cur    = real_cur->e[0];
-            BTORLOG (2, "    * chose: 0");
           }
-          else
-          {
-            /* assume cond to be fixed */
-            cur = real_cur->e[eidx];
-            BTORLOG (2, "    * chose: %u", eidx);
-          }
+          /* else continue propagating current bvenew down */
 
+          cur = real_cur->e[eidx];
+          BTORLOG (2, "    * chose: %u", eidx);
           real_cur = BTOR_REAL_ADDR_NODE (cur);
         } while (btor_is_bv_cond_node (real_cur));
 
