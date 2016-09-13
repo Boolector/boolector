@@ -1521,8 +1521,10 @@ generate_model (BtorEFGroundSolvers *gslv)
   BtorNodeMapIterator it;
   const BtorBitVector *bv;
   const BtorPtrHashTable *fun_model;
-  BtorPtrHashTable *res;
+  BtorBitVectorTuple *tup;
+  BtorPtrHashTable *res, *t;
   BtorNode *e_uf_fs, *e_uf;
+  BtorHashTableIterator hit;
 
   e_solver = gslv->exists;
   res      = btor_new_ptr_hash_table (e_solver->mm, 0, 0);
@@ -1545,8 +1547,19 @@ generate_model (BtorEFGroundSolvers *gslv)
     {
       fun_model = btor_get_fun_model (e_solver, e_uf);
       if (!fun_model) continue;
-      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr =
-          (BtorPtrHashTable *) fun_model;
+
+      t = btor_new_ptr_hash_table (e_solver->mm,
+                                   (BtorHashPtr) btor_hash_bv_tuple,
+                                   (BtorCmpPtr) btor_compare_bv_tuple);
+      btor_init_hash_table_iterator (&hit, fun_model);
+      while (btor_has_next_hash_table_iterator (&hit))
+      {
+        bv  = hit.bucket->data.as_ptr;
+        tup = btor_next_hash_table_iterator (&hit);
+        btor_add_ptr_hash_table (t, btor_copy_bv_tuple (e_solver->mm, tup))
+            ->data.as_ptr = btor_copy_bv (e_solver->mm, bv);
+      }
+      btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr = t;
     }
     else
     {
@@ -1554,7 +1567,7 @@ generate_model (BtorEFGroundSolvers *gslv)
                                    BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
       bv = btor_get_bv_model (e_solver, btor_simplify_exp (e_solver, e_uf));
       btor_add_ptr_hash_table (res, e_uf_fs)->data.as_ptr =
-          (BtorBitVector *) bv;
+          btor_copy_bv (e_solver->mm, bv);
     }
   }
   return res;
@@ -1618,14 +1631,13 @@ find_instantiations (BtorEFGroundSolvers *gslv)
   BtorNode *var_es, *var_fs, *c, *ref, *uvar, *a, *var, *eq, *cur, *and;
   BtorNode *r_evar, *tmp;
   const BtorBitVector *bv;
-  BtorBitVectorTuple *tup, *ce;
+  BtorBitVectorTuple *ce;
   BtorNodePtrStack visit, bool_exps, true_exps, false_exps, models, outer_evars;
-  BtorPtrHashTable *r_evars_ufs, *t, *result;
-  const BtorPtrHashTable *uf_model;
+  BtorPtrHashTable *r_evars_ufs, *result;
   BtorMemMgr *mm;
   BtorSolverResult r;
   BtorSortId sort_id;
-  BtorHashTableIterator ce_it, hit, mit;
+  BtorHashTableIterator ce_it, hit;
   BtorPtrHashBucket *b;
 
   r_solver = btor_new_btor ();
@@ -1860,41 +1872,8 @@ find_instantiations (BtorEFGroundSolvers *gslv)
         btor_init_node_hash_table_iterator (&hit, r_evars_ufs);
         while (btor_has_next_node_hash_table_iterator (&hit))
         {
-          b      = hit.bucket;
           r_evar = btor_next_node_hash_table_iterator (&hit);
-
-          if (btor_is_uf_node (r_evar))
-          {
-            uf_model = btor_get_fun_model (r_solver, r_evar);
-            if (!uf_model) continue;
-
-            if (b->data.as_ptr)
-              t = b->data.as_ptr;
-            else
-            {
-              t              = btor_new_ptr_hash_table (mm,
-                                           (BtorHashPtr) btor_hash_bv_tuple,
-                                           (BtorCmpPtr) btor_compare_bv_tuple);
-              b->data.as_ptr = t;
-            }
-            btor_init_hash_table_iterator (&mit, uf_model);
-            while (btor_has_next_hash_table_iterator (&mit))
-            {
-              bv  = mit.bucket->data.as_ptr;
-              tup = btor_next_hash_table_iterator (&mit);
-#if 0
-			  for (i = 0; i < tup->arity; i++)
-			    {
-			      printf ("in: "); btor_print_bv (tup->bv[i]);
-			    }
-			  printf ("out: "); btor_print_bv (bv);
-#endif
-              assert (!btor_get_ptr_hash_table (t, tup));
-              btor_add_ptr_hash_table (t, btor_copy_bv_tuple (mm, tup))
-                  ->data.as_ptr = btor_copy_bv (mm, bv);
-            }
-            //		  printf ("t->count: %u\n", t->count);
-          }
+          update_model (r_solver, mm, r_evar, r_evars_ufs);
         }
       }
       // TODO: make this an option
@@ -2024,12 +2003,9 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 
       b = btor_get_ptr_hash_table (uf_models, e_uf_fs);
       if (!b) continue;
+
       uf_model = b->data.as_ptr;
       if (!uf_model) continue;
-        //	  uf_model = btor_get_fun_model (e_solver, e_uf);
-
-        //	  if (!uf_model) continue;
-
 #if 0
 	  printf ("exists %s\n", node2string (e_uf_fs));
 	  BtorHashTableIterator mit;
@@ -2075,6 +2051,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
           else
             limit = limit * 1.5;
         }
+        if (limit > 100000) limit = 10000;
         b = btor_add_ptr_hash_table (inputs, e_uf_fs);
         // TODO: disable for now (not required)
         if (false && !btor_is_uf_node (e_uf_fs))
@@ -2086,8 +2063,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
           in = 0;
         b->data.as_ptr = in;
         check_input_cycle (mm, e_uf_fs, inputs);
-        //	      printf ("synthesize model for %s\n", btor_get_symbol_exp
-        //(f_solver, e_uf_fs));
+        printf ("synthesize model for %s\n",
+                btor_get_symbol_exp (f_solver, e_uf_fs));
         candidate        = btor_synthesize_fun (f_solver,
                                          uf_model,
                                          prev_synth_fun,
@@ -2097,14 +2074,14 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
                                          limit,
                                          level);
         synth_res->limit = limit;
-#if 0
-	      if (candidate)
-		{
-		  printf ("model found\n");
-//		  btor_dump_smt2_node (f_solver, stdout, candidate, -1);
-		}
-	      else
-		printf ("no model found\n");
+#if 1
+        if (candidate)
+        {
+          printf ("model found\n");
+          //		  btor_dump_smt2_node (f_solver, stdout, candidate, -1);
+        }
+        else
+          printf ("no model found\n");
 #endif
       }
 
@@ -2684,7 +2661,6 @@ free_uf_models (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
-  bool delete_uf_models = false;
   double start;
   BtorSolverResult res;
   BtorNode *g;
@@ -2705,14 +2681,16 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
       return res;
 
-    start            = btor_time_stamp ();
-    delete_uf_models = true;
-    uf_models        = find_instantiations (gslv);
+    start = btor_time_stamp ();
+    if (gslv->forall_evar_deps->table->count || gslv->forall->ufs->count)
+      uf_models = find_instantiations (gslv);
+    else
+      uf_models = generate_model (gslv);
     gslv->time.findinst += btor_time_stamp () - start;
   RESTART:
     start = btor_time_stamp ();
     model = synthesize_model (gslv, uf_models);
-    if (delete_uf_models) free_uf_models (gslv, uf_models);
+    free_uf_models (gslv, uf_models);
     btor_delete_ptr_hash_table (uf_models);
     gslv->time.synth += btor_time_stamp () - start;
 
@@ -2742,8 +2720,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   // TODO: what exactly causes the refinement to fail?
   if (!refine_exists_solver (gslv))
   {
-    uf_models        = generate_model (gslv);
-    delete_uf_models = false;
+    uf_models = generate_model (gslv);
     //      printf ("RESTART\n");
     goto RESTART;
   }
