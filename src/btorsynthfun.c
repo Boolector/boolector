@@ -930,6 +930,7 @@ synthesize (Btor *btor,
   for (i = 0; i < nconsts; i++)
     add_exp (btor, 1, &candidates, btor_copy_exp (btor, consts[i]));
 
+  /* add the desired outputs as constants to level 1 */
   for (i = 0; i < nvalues; i++)
   {
     exp = btor_const_exp (btor, value_out[i]);
