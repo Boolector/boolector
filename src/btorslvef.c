@@ -2772,9 +2772,7 @@ add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
       else
 	{
 	  assert (synth_res->type == BTOR_SYNTH_TYPE_SK_UF);
-	  assert (BTOR_COUNT_STACK (synth_res->exps) == 1);
-
-	  fun = BTOR_TOP_STACK (synth_res->exps);
+	  fun = synth_res->value;
 	  clone_map = btor_new_node_map (btor);
 	  fun = btor_recursively_rebuild_exp_clone (dual_gslv->forall, btor, fun, clone_map, 3);
 	  btor_delete_node_map (clone_map);
@@ -2946,6 +2944,7 @@ sat_ef_solver (BtorEFSolver *slv)
 
   if (opt_dual_solver)
   {
+    if (res == BTOR_RESULT_UNSAT) print_cur_model (dual_gslv);
     slv->time.dual_e_solver = dual_gslv->time.e_solver;
     slv->time.dual_f_solver = dual_gslv->time.f_solver;
     slv->time.dual_synth    = dual_gslv->time.synth;
