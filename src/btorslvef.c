@@ -2656,6 +2656,7 @@ free_uf_models (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       btor_free_bv (mm, bv);
     }
   }
+  btor_delete_ptr_hash_table (uf_models);
 }
 
 static BtorSolverResult
@@ -2685,13 +2686,14 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     if (gslv->forall_evar_deps->table->count || gslv->forall->ufs->count)
       uf_models = find_instantiations (gslv);
     else
+    {
+    RESTART:
       uf_models = generate_model (gslv);
+    }
     gslv->time.findinst += btor_time_stamp () - start;
-  RESTART:
     start = btor_time_stamp ();
     model = synthesize_model (gslv, uf_models);
     free_uf_models (gslv, uf_models);
-    btor_delete_ptr_hash_table (uf_models);
     gslv->time.synth += btor_time_stamp () - start;
 
     delete_model (gslv);
@@ -2716,12 +2718,9 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   }
 
   start = btor_time_stamp ();
-
-  // TODO: what exactly causes the refinement to fail?
   if (!refine_exists_solver (gslv))
   {
-    uf_models = generate_model (gslv);
-    //      printf ("RESTART\n");
+    free_uf_models (gslv, uf_models);
     goto RESTART;
   }
   gslv->time.qinst += btor_time_stamp () - start;
