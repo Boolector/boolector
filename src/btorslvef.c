@@ -1648,6 +1648,117 @@ update_model (Btor *btor,
   }
 }
 
+static BtorNode *
+extract_branch (Btor *btor, BtorNode *root)
+{
+  int32_t i;
+  uint32_t j;
+  BtorNode *cur, *real_cur, **e, *result;
+  const BtorBitVector *bv;
+  BtorNodePtrStack visit, args;
+  BtorIntHashTable *mark;
+  BtorHashTableData *d;
+  BtorMemMgr *mm;
+
+  mm   = btor->mm;
+  mark = btor_new_int_hash_map (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (args);
+  BTOR_PUSH_STACK (mm, visit, root);
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur      = BTOR_POP_STACK (visit);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+    d = btor_get_int_hash_map (mark, real_cur->id);
+    if (!d)
+    {
+      btor_add_int_hash_map (mark, real_cur->id);
+      BTOR_PUSH_STACK (mm, visit, cur);
+      for (i = real_cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+    }
+    else if (!d->as_ptr)
+    {
+      assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
+
+      args.top -= real_cur->arity;
+      e = args.top;
+
+      if (real_cur->arity == 0)
+      {
+        if (btor_is_param_node (real_cur))
+        {
+          result =
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+        }
+        else
+        {
+          result = btor_copy_exp (btor, real_cur);
+        }
+      }
+      else if (btor_is_slice_node (real_cur))
+      {
+        result = btor_slice_exp (btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
+      }
+      else if (btor_is_and_node (real_cur)
+               && btor_get_exp_width (btor, real_cur) == 1
+               && (bv = btor_get_bv_model (btor, real_cur))
+               && btor_is_zero_bv (bv))
+      {
+        bv = btor_get_bv_model (btor, real_cur->e[0]);
+        if (btor_is_zero_bv (bv))
+          result = btor_copy_exp (btor, e[0]);
+        else
+          result = btor_copy_exp (btor, e[1]);
+#if 0
+	      bv = btor_get_bv_model (btor, real_cur->e[1]);
+	      if (btor_is_zero_bv (bv))
+		{
+		  printf ("branch 1 is zero\n");
+		  result = btor_copy_exp (btor, e[1]);
+		}
+#endif
+      }
+      else
+      {
+        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
+      }
+
+      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
+
+      d->as_ptr = btor_copy_exp (btor, result);
+    PUSH_RESULT:
+      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+    }
+    else
+    {
+      assert (d->as_ptr);
+      result = btor_copy_exp (btor, d->as_ptr);
+      goto PUSH_RESULT;
+    }
+  }
+  assert (BTOR_COUNT_STACK (args) == 1);
+  result = BTOR_POP_STACK (args);
+
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, args);
+
+  for (j = 0; j < mark->size; j++)
+  {
+    if (!mark->keys[j]) continue;
+    assert (mark->data[j].as_ptr);
+    btor_release_exp (btor, mark->data[j].as_ptr);
+  }
+  btor_delete_int_hash_map (mark);
+
+  return result;
+}
+
 static BtorPtrHashTable *
 find_instantiations (BtorEFGroundSolvers *gslv)
 {
@@ -1658,7 +1769,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
   BtorNodeMap *map, *varmap, *rev_varmap, *rev_evars;
   BtorNodeMapIterator it;
   BtorNode *var_es, *var_fs, *c, *ref, *uvar, *a, *var, *eq, *cur, *and;
-  BtorNode *r_evar, *tmp;
+  BtorNode *r_evar, *tmp, *root;
   const BtorBitVector *bv;
   BtorBitVectorTuple *ce;
   BtorNodePtrStack visit, bool_exps, true_exps, false_exps, models, outer_evars;
@@ -1787,8 +1898,13 @@ find_instantiations (BtorEFGroundSolvers *gslv)
   }
 
   /* initial SAT call */
+#if 1
   btor_assert_exp (r_solver, ref);
   btor_release_exp (r_solver, ref);
+#else
+  // extract branch code
+  btor_assume_exp (r_solver, ref);
+#endif
 
   /* assume current counter example (from last refinement) */
   btor_init_node_map_iterator (&it, map);
@@ -1806,7 +1922,13 @@ find_instantiations (BtorEFGroundSolvers *gslv)
   if (r == BTOR_RESULT_SAT)
   {
     r_solver->slv->api.generate_model (r_solver->slv, false, false);
-
+#if 0
+      // extract branch code
+      root = extract_branch (r_solver, ref);
+      btor_release_exp (r_solver, ref);
+      printf ("extracted branch: \n");
+      btor_dump_smt2_node (r_solver, stdout, root, -1);
+#else
     /* collect true/false exps in boolean skeleton */
     for (i = 0; i < BTOR_COUNT_STACK (bool_exps); i++)
     {
@@ -1821,6 +1943,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
         BTOR_PUSH_STACK (mm, false_exps, cur);
       }
     }
+#endif
 
     /* fix assignments of outermost existential variables */
     for (i = 0; i < BTOR_COUNT_STACK (outer_evars); i++)
@@ -1841,6 +1964,12 @@ find_instantiations (BtorEFGroundSolvers *gslv)
       btor_assert_exp (r_solver, eq);
       btor_release_exp (r_solver, eq);
     }
+
+#if 0
+      // extract branch code
+      btor_assert_exp (r_solver, root);
+      btor_release_exp (r_solver, root);
+#endif
 
     if (opt_finst_mode == BTOR_EF_FINST_MOD)
     {
@@ -2080,6 +2209,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
           else
             limit = limit * 1.5;
         }
+        // TODO: set limit of UFs to 10000 fixed
         if (limit > 100000) limit = 10000;
         b = btor_add_ptr_hash_table (inputs, e_uf_fs);
         // TODO: disable for now (not required)
