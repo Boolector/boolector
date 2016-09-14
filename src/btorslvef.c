@@ -2597,7 +2597,7 @@ underapprox (BtorEFGroundSolvers *gslv,
              BtorPtrHashTable *assumptions)
 {
   uint32_t w;
-  BtorNode *cur, *var, *eq, *c, *s, *z;
+  BtorNode *var, *eq, *s, *z;
   BtorNodeMapIterator it;
   Btor *btor;
 
@@ -2607,10 +2607,10 @@ underapprox (BtorEFGroundSolvers *gslv,
   while (btor_has_next_node_map_iterator (&it))
   {
     var = it.it.bucket->data.as_ptr;
-    cur = btor_next_node_map_iterator (&it);
+    (void) btor_next_node_map_iterator (&it);
 
     w = btor_get_exp_width (btor, var) - 1;
-    if (w >= upper)
+    if (w >= upper + 1)
     {
       s  = btor_slice_exp (btor, var, w, upper + 1);
       z  = btor_zero_exp (btor, w - upper);
@@ -2921,7 +2921,7 @@ sat_ef_solver (BtorEFSolver *slv)
   bool opt_dual_solver, skip_exists = true;
   BtorSolverResult res;
   BtorNode *g;
-  BtorEFGroundSolvers *gslv, *dual_gslv;
+  BtorEFGroundSolvers *gslv, *dual_gslv = 0;
   BtorNodeMap *var_map = 0, *dual_var_map = 0;
   /* 'var_map' maps existential/universal (gslv) to universal/existential
    * vars (dual_gslv) */
