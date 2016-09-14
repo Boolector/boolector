@@ -886,8 +886,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
     btor_release_exp (e_solver, c);
     btor_add_to_bv_tuple (f_solver->mm, ce, bv, i++);
   }
-  assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
-  btor_add_ptr_hash_table (gslv->forall_ces, ce);
 
   /* map existential variables to skolem constants */
   btor_init_node_map_iterator (&it, gslv->forall_evars);
@@ -929,20 +927,22 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
 
   btor_delete_node_map (map);
 
-#if 0
-  printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  btor_dump_smt2_node (e_solver, stdout, res, -1);
-  printf ("<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+#if 1
+  //  printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  //  btor_dump_smt2_node (e_solver, stdout, res, -1);
+  //  printf ("<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
   if (res == e_solver->true_exp)
-    {
-    printf ("TRUE REFINEMENT\n");
+  {
+    btor_free_bv_tuple (f_solver->mm, ce);
     return false;
-    }
+  }
 #endif
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
       res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
   gslv->stats.refinements++;
+  assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
+  btor_add_ptr_hash_table (gslv->forall_ces, ce);
 //  btor_add_ptr_hash_table (gslv->exists_refinements, res);
 //  collect_ref_exps (gslv, res);
 #if 1
@@ -2063,8 +2063,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
           in = 0;
         b->data.as_ptr = in;
         check_input_cycle (mm, e_uf_fs, inputs);
-        printf ("synthesize model for %s\n",
-                btor_get_symbol_exp (f_solver, e_uf_fs));
+        //	      printf ("synthesize model for %s\n", btor_get_symbol_exp
+        //(f_solver, e_uf_fs));
         candidate        = btor_synthesize_fun (f_solver,
                                          uf_model,
                                          prev_synth_fun,
@@ -2074,14 +2074,14 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
                                          limit,
                                          level);
         synth_res->limit = limit;
-#if 1
-        if (candidate)
-        {
-          printf ("model found\n");
-          //		  btor_dump_smt2_node (f_solver, stdout, candidate, -1);
-        }
-        else
-          printf ("no model found\n");
+#if 0
+	      if (candidate)
+		{
+		  printf ("model found\n");
+		  btor_dump_smt2_node (f_solver, stdout, candidate, -1);
+		}
+	      else
+		printf ("no model found\n");
 #endif
       }
 
@@ -2590,26 +2590,77 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
   return result;
 }
 
-#if 0
+#if 1
 static void
-underapprox (BtorEFGroundSolvers * gslv)
+underapprox (BtorEFGroundSolvers *gslv,
+             uint32_t upper,
+             BtorPtrHashTable *assumptions)
 {
-  BtorNode *cur, *var, *ult, *c;
+  uint32_t w;
+  BtorNode *cur, *var, *eq, *c, *s, *z;
   BtorNodeMapIterator it;
+  Btor *btor;
+
+  btor = gslv->forall;
 
   btor_init_node_map_iterator (&it, gslv->forall_uvars);
   while (btor_has_next_node_map_iterator (&it))
-    {
-      var = it.it.bucket->data.as_ptr;
-      cur = btor_next_node_map_iterator (&it);
+  {
+    var = it.it.bucket->data.as_ptr;
+    cur = btor_next_node_map_iterator (&it);
 
-      c = btor_int_exp (gslv->forall, 4,
-			btor_get_exp_width (gslv->forall, var));
-      ult = btor_ult_exp (gslv->forall, var, c);
-      btor_release_exp (gslv->forall, c);
-      btor_assume_exp (gslv->forall, ult);
-      btor_release_exp (gslv->forall, ult);
+    w = btor_get_exp_width (btor, var) - 1;
+    if (w >= upper)
+    {
+      s  = btor_slice_exp (btor, var, w, upper + 1);
+      z  = btor_zero_exp (btor, w - upper);
+      eq = btor_eq_exp (btor, s, z);
+      btor_release_exp (btor, z);
+      btor_release_exp (btor, s);
+      btor_assume_exp (btor, eq);
+      btor_add_ptr_hash_table (assumptions, eq);
     }
+  }
+}
+
+static bool
+underapprox_check (BtorEFGroundSolvers *gslv,
+                   BtorNode *g,
+                   BtorPtrHashTable *assumptions)
+{
+  bool res = true;
+  BtorNode *cur;
+  BtorHashTableIterator it;
+
+  btor_init_node_hash_table_iterator (&it, assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur = btor_next_node_hash_table_iterator (&it);
+    if (btor_failed_exp (gslv->forall, cur))
+    {
+      //	  printf ("FAILED: %s\n", node2string (cur));
+      res = false;
+    }
+  }
+
+  if (!res)
+  {
+    btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
+    res = btor_sat_btor (gslv->forall, -1, -1) == BTOR_RESULT_UNSAT;
+  }
+
+  return res;
+}
+
+static void
+underapprox_release (BtorEFGroundSolvers *gslv, BtorPtrHashTable *assumptions)
+{
+  BtorHashTableIterator it;
+
+  btor_init_node_hash_table_iterator (&it, assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (gslv->forall, btor_next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (assumptions);
 }
 #endif
 
@@ -2666,6 +2717,8 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   BtorSolverResult res;
   BtorNode *g;
   BtorPtrHashTable *model = 0, *uf_models;
+  uint32_t width;
+  BtorPtrHashTable *assumptions;
 
   //  printf ("\n----- find_model %u -----\n", gslv->stats.refinements);
 
@@ -2701,30 +2754,45 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   }
 
   g = instantiate_formula (gslv, model);
-  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
-  btor_release_exp (gslv->forall, g);
 
   /* query forall solver */
   start = btor_time_stamp ();
-  res   = btor_sat_btor (gslv->forall, -1, -1);
+  width = 1;
+UNDERAPPROX:
+  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
+  assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
+  //  printf ("underapprox: %u\n", width);
+  underapprox (gslv, width, assumptions);
+  res = btor_sat_btor (gslv->forall, -1, -1);
   update_formula (gslv);
   assert (!btor_is_proxy_node (gslv->forall_formula));
   gslv->time.f_solver += btor_time_stamp () - start;
 
   if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
   {
+    //      printf ("underapprox SAT\n");
+    if (!underapprox_check (gslv, g, assumptions))
+    {
+      width *= 2;
+      underapprox_release (gslv, assumptions);
+      goto UNDERAPPROX;
+    }
+
+    underapprox_release (gslv, assumptions);
+    btor_release_exp (gslv->forall, g);
     res = BTOR_RESULT_SAT;
     return res;
   }
 
+  underapprox_release (gslv, assumptions);
+  btor_release_exp (gslv->forall, g);
+
   start = btor_time_stamp ();
   if (!refine_exists_solver (gslv))
   {
-    free_uf_models (gslv, uf_models);
     goto RESTART;
   }
   gslv->time.qinst += btor_time_stamp () - start;
-
   return BTOR_RESULT_UNKNOWN;
 }
 
