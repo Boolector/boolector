@@ -286,17 +286,42 @@ mk_dual_formula (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *result, **e, *body;
   BtorNodePtrStack stack, args;
-  BtorIntHashTable *map;
+  BtorIntHashTable *map, *inv;
   BtorHashTableData *d;
   BtorSortId sortid;
 
-  mm   = btor->mm;
-  map  = btor_new_int_hash_map (mm);
-  body = btor_is_quantifier_node (root)
-             ? BTOR_REAL_ADDR_NODE (btor_binder_get_body (root))
-             : 0;
+  mm  = btor->mm;
+  map = btor_new_int_hash_map (mm);
+  inv = btor_new_int_hash_table (mm);
+
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (args);
+  BTOR_PUSH_STACK (mm, stack, root);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur      = BTOR_POP_STACK (stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+    if (btor_contains_int_hash_map (map, real_cur->id)) continue;
+
+    btor_add_int_hash_map (map, real_cur->id);
+
+    if (btor_is_quantifier_node (real_cur))
+    {
+      body = BTOR_REAL_ADDR_NODE (btor_binder_get_body (real_cur));
+      btor_add_int_hash_table (inv, body->id);
+    }
+    else
+    {
+      for (i = 0; i < real_cur->arity; i++)
+        BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
+    }
+  }
+
+  btor_delete_int_hash_map (map);
+  map = btor_new_int_hash_map (mm);
+
+  BTOR_RESET_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, root);
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -374,7 +399,8 @@ mk_dual_formula (Btor *btor,
       if (!btor_is_quantifier_node (real_cur))
         result = BTOR_COND_INVERT_NODE (cur, result);
       /* invert body */
-      if (real_cur == body) result = BTOR_INVERT_NODE (result);
+      if (btor_contains_int_hash_table (inv, real_cur->id))
+        result = BTOR_INVERT_NODE (result);
       BTOR_PUSH_STACK (mm, args, result);
     }
     else
@@ -396,6 +422,9 @@ mk_dual_formula (Btor *btor,
     btor_release_exp (dual_btor, map->data[j].as_ptr);
   }
   btor_delete_int_hash_map (map);
+  btor_delete_int_hash_table (inv);
+
+  if (!btor_is_quantifier_node (root)) result = BTOR_INVERT_NODE (result);
 
   return result;
 }
