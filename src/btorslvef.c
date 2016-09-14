@@ -2856,7 +2856,7 @@ add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
       synth_res = it.bucket->data.as_ptr; 
       evar = btor_next_node_hash_table_iterator (&it);
 
-      if (!btor_is_param_node (evar) && !btor_param_is_exists_var (evar))
+      if (!btor_is_param_node (evar) || !btor_param_is_exists_var (evar))
 	continue;
 
       uvar = btor_mapped_node (var_map, evar);
