@@ -248,7 +248,7 @@ compute_edeps (Btor *btor, BtorNode *root)
         for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
         {
           q = BTOR_PEEK_STACK (quants, i);
-          BTOR_PUSH_STACK (mm, uvars, q->e[0]);
+          BTOR_PUSH_STACK (mm, uvars, BTOR_REAL_ADDR_NODE (q)->e[0]);
         }
 
         args = btor_args_exp (btor, uvars.start, BTOR_COUNT_STACK (uvars));

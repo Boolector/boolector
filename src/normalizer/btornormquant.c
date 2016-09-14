@@ -231,12 +231,291 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   return result;
 }
 
+static int32_t
+get_polarity (BtorNode *n)
+{
+  return BTOR_IS_INVERTED_NODE (n) ? -1 : 1;
+}
+
+#if 0
+static void
+check_polarity (Btor * btor, BtorNode * root)
+{
+  uint32_t i;
+  int32_t pol, id;
+  BtorNodePtrStack visit;
+  BtorIntStack polarity;
+  BtorMemMgr *mm;
+  BtorNode *cur, *real_cur;
+  BtorIntHashTable *cache;
+
+  mm = btor->mm;
+  cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (polarity);
+  BTOR_PUSH_STACK (mm, visit, root);
+  BTOR_PUSH_STACK (mm, polarity, get_polarity (root));
+  while (!BTOR_EMPTY_STACK (visit))
+    {
+      cur = BTOR_POP_STACK (visit);
+      real_cur = BTOR_REAL_ADDR_NODE (cur);
+      id = BTOR_GET_ID_NODE (cur);
+      pol = BTOR_POP_STACK (polarity);
+
+      if (btor_contains_int_hash_table (cache, id)
+	  || (!btor_is_and_node (real_cur)
+	      && !btor_is_quantifier_node (real_cur)))
+	continue;
+
+      if (pol == -1 && btor_is_quantifier_node (real_cur))
+	printf ("check pol: (%d) %s\n", pol, node2string (cur));
+      btor_add_int_hash_table (cache, id);
+      for (i = 0; i < real_cur->arity; i++)
+	{
+	  BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+	  BTOR_PUSH_STACK (mm, polarity, pol * get_polarity (real_cur->e[i])); 
+	}
+    }
+
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, polarity);
+  btor_delete_int_hash_table (cache);
+}
+#endif
+
+static BtorNode *
+normalize_quantifiers2 (Btor *btor,
+                        BtorNode *roots[],
+                        uint32_t num_roots,
+                        BtorIntHashTable *node_map)
+{
+  int32_t i, id, cur_pol;
+  uint32_t j;
+  bool push_down;
+  char *sym, *buf;
+  size_t len;
+  BtorNode *root, *cur, *real_cur, *tmp, *result, **e;
+  BtorMemMgr *mm;
+  BtorNodePtrStack visit, args, conds, reset, vars;
+  BtorIntHashTable *map;
+  BtorIntStack polarity;
+  BtorHashTableData *d, data;
+  BtorNodeKind kind;
+  BtorSortUniqueTable *sorts;
+
+  mm    = btor->mm;
+  sorts = &btor->sorts_unique_table;
+  map   = btor_new_int_hash_map (mm);
+
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (polarity);
+  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (conds);
+  BTOR_INIT_STACK (reset);
+  BTOR_INIT_STACK (vars);
+
+  root = elim_quantified_ite (btor, roots, num_roots);
+  //  check_polarity (btor, root);
+
+  BTOR_PUSH_STACK (mm, visit, root);
+  BTOR_PUSH_STACK (mm, polarity, get_polarity (root));
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    assert (BTOR_COUNT_STACK (visit) == BTOR_COUNT_STACK (polarity));
+    cur      = BTOR_POP_STACK (visit);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    cur_pol  = BTOR_POP_STACK (polarity);
+
+    if (!btor_is_and_node (real_cur) && !btor_is_quantifier_node (real_cur))
+      cur_pol = 1;
+
+    id = BTOR_GET_ID_NODE (cur);
+
+    d = btor_get_int_hash_map (map, id);
+
+    if (!d)
+    {
+      btor_add_int_hash_map (map, id);
+#if 0
+	  if (cur_pol == -1 && BTOR_IS_INVERTED_NODE (cur))
+	    BTOR_PUSH_STACK (mm, visit, real_cur);
+	  else
+	    BTOR_PUSH_STACK (mm, visit, cur);
+	  BTOR_PUSH_STACK (mm, polarity, cur_pol);
+	  if (btor_is_quantifier_node (real_cur))
+	    {
+	      if (cur_pol == -1 && BTOR_IS_INVERTED_NODE (cur))
+		{
+		printf ("push down negation: %s\n", node2string (cur));
+		BTOR_PUSH_STACK (mm, visit, BTOR_INVERT_NODE (real_cur->e[1]));
+		}
+	      else
+		BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
+	      BTOR_PUSH_STACK (mm, polarity,
+			       cur_pol * get_polarity (real_cur->e[1]));
+
+	      BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
+	      /* params at position 0 are never negated */
+	      BTOR_PUSH_STACK (mm, polarity, 0);
+	    }
+	  else
+#endif
+      BTOR_PUSH_STACK (mm, visit, cur);
+      for (i = real_cur->arity - 1; i >= 0; i--)
+      {
+        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (mm, polarity, cur_pol * get_polarity (real_cur->e[i]));
+      }
+    }
+    else if (!d->as_ptr)
+    {
+      assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
+      args.top -= real_cur->arity;
+      e = args.top;
+
+      if (real_cur->arity == 0)
+      {
+        if (btor_is_param_node (real_cur))
+        {
+          sym = btor_get_symbol_exp (btor, real_cur);
+          if (sym)
+          {
+            len = strlen (sym) + 3;
+            BTOR_NEWN (mm, buf, len);
+            sprintf (buf, "%s!0", sym);
+          }
+          else
+            buf = 0;
+          result =
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+          if (buf) BTOR_DELETEN (mm, buf, len);
+        }
+        else if (btor_is_bv_var_node (real_cur))
+        {
+          sym = btor_get_symbol_exp (btor, real_cur);
+          if (sym)
+          {
+            len = strlen (sym) + 3;
+            BTOR_NEWN (mm, buf, len);
+            sprintf (buf, "%s!0", sym);
+          }
+          else
+            buf = 0;
+          result =
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+          if (buf) BTOR_DELETEN (mm, buf, len);
+          BTOR_PUSH_STACK (mm, vars, result);
+        }
+        else
+          result = btor_copy_exp (btor, real_cur);
+      }
+      else if (btor_is_slice_node (real_cur))
+      {
+        result = btor_slice_exp (btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
+      }
+      else
+      {
+        if (btor_is_quantifier_node (real_cur) && cur_pol == -1)
+        {
+          /* flip quantification */
+          kind = real_cur->kind == BTOR_FORALL_NODE ? BTOR_EXISTS_NODE
+                                                    : BTOR_FORALL_NODE;
+          printf ("flip: %s\n", node2string (real_cur));
+        }
+        else
+          kind = real_cur->kind;
+        result = btor_create_exp (btor, kind, e, real_cur->arity);
+      }
+
+      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
+
+      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, cur);
+      d->as_ptr = btor_copy_exp (btor, result);
+
+      /* scope of 'real_cur' is closed remove all parameterized nodes from
+       * cache that are in the scope of 'real_cur'. */
+      // TODO (ma): this removes all parameterized nodes from the reset
+      //		stack, which is not necessary. try to only remove
+      //		parameterized nodes in the scope of real_cur
+      if (btor_is_quantifier_node (real_cur))
+      {
+        while (!BTOR_EMPTY_STACK (reset))
+        {
+          tmp = BTOR_POP_STACK (reset);
+          id  = BTOR_GET_ID_NODE (tmp);
+          tmp = BTOR_REAL_ADDR_NODE (tmp);
+          /* do not remove params other than real_cur->e[0] */
+          if (btor_is_param_node (tmp) && tmp->id != real_cur->e[0]->id)
+            continue;
+          btor_remove_int_hash_map (map, id, &data);
+          btor_release_exp (btor, data.as_ptr);
+        }
+      }
+
+      if (node_map)
+      {
+        if (!btor_contains_int_hash_map (node_map, real_cur->id))
+          btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+              BTOR_REAL_ADDR_NODE (result)->id;
+      }
+    PUSH_RESULT:
+      /* quantifiers are never negated (but flipped) */
+      result = BTOR_COND_INVERT_NODE (cur, result);
+      BTOR_PUSH_STACK (mm, args, result);
+    }
+    else
+    {
+      assert (d->as_ptr);
+      result = btor_copy_exp (btor, d->as_ptr);
+      goto PUSH_RESULT;
+    }
+  }
+  assert (BTOR_EMPTY_STACK (polarity));
+  assert (BTOR_COUNT_STACK (args) == 1);
+
+  result = BTOR_POP_STACK (args);
+  while (!BTOR_EMPTY_STACK (args))
+  {
+    cur = BTOR_POP_STACK (args);
+    tmp = btor_and_exp (btor, result, cur);
+    btor_release_exp (btor, result);
+    btor_release_exp (btor, cur);
+    result = tmp;
+  }
+  /* create outermost existential scope for bv vars */
+  while (!BTOR_EMPTY_STACK (vars))
+  {
+    tmp = btor_exists_exp (btor, BTOR_POP_STACK (vars), result);
+    btor_release_exp (btor, result);
+    result = tmp;
+  }
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, polarity);
+  BTOR_RELEASE_STACK (mm, args);
+  BTOR_RELEASE_STACK (mm, conds);
+  BTOR_RELEASE_STACK (mm, reset);
+  BTOR_RELEASE_STACK (mm, vars);
+
+  for (j = 0; j < map->size; j++)
+  {
+    if (!map->data[j].as_ptr) continue;
+    btor_release_exp (btor, map->data[j].as_ptr);
+  }
+  btor_delete_int_hash_map (map);
+  btor_release_exp (btor, root);
+  return result;
+}
+
 static BtorNode *
 normalize_quantifiers (Btor *btor,
                        BtorNode *roots[],
                        uint32_t num_roots,
                        BtorIntHashTable *node_map)
 {
+  return normalize_quantifiers2 (btor, roots, num_roots, node_map);
   int32_t i, id;
   uint32_t j;
   bool push_down;
@@ -262,6 +541,7 @@ normalize_quantifiers (Btor *btor,
   BTOR_INIT_STACK (vars);
 
   root = elim_quantified_ite (btor, roots, num_roots);
+  //  check_polarity (btor, root);
 
   BTOR_PUSH_STACK (mm, visit, root);
   BTOR_PUSH_STACK (mm, pols, root);
@@ -291,7 +571,7 @@ normalize_quantifiers (Btor *btor,
         if (btor_is_quantifier_node (real_cur)
             && !btor_is_quantifier_node (real_cur->e[1]))
           BTOR_PUSH_STACK (
-              mm, visit, BTOR_COND_INVERT_NODE (cur_pol, real_cur->e[1]));
+              mm, visit, BTOR_COND_INVERT_NODE (cur, real_cur->e[1]));
         else
           BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
