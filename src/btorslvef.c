@@ -2197,7 +2197,6 @@ UNDERAPPROX:
   BTOR_RELEASE_STACK (mm, false_exps);
   BTOR_RELEASE_STACK (mm, outer_evars);
   BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, evars);
 
   while (!BTOR_EMPTY_STACK (bool_exps))
     btor_release_exp (r_solver, BTOR_POP_STACK (bool_exps));
@@ -3003,6 +3002,8 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     btor_release_exp (gslv->forall, g);
   }
 
+  //  g = instantiate_formula (gslv, model);
+
   /* query forall solver */
   start = btor_time_stamp ();
   width = 1;
@@ -3020,7 +3021,6 @@ UNDERAPPROX:
       eq = btor_eq_exp (gslv->forall, skvar, candidate);
       btor_assume_exp (gslv->forall, eq);
       btor_release_exp (gslv->forall, eq);
-      btor_release_exp (gslv->forall, candidate);
     }
   }
 
@@ -3044,12 +3044,14 @@ UNDERAPPROX:
     }
 
     underapprox_release (gslv->forall, assumptions);
+    //      btor_release_exp (gslv->forall, g);
     BTOR_RELEASE_STACK (gslv->forall->mm, vars);
     res = BTOR_RESULT_SAT;
     return res;
   }
 
   underapprox_release (gslv->forall, assumptions);
+  //  btor_release_exp (gslv->forall, g);
 
   start = btor_time_stamp ();
   if (!refine_exists_solver (gslv))
