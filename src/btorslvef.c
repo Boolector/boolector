@@ -2030,9 +2030,9 @@ find_instantiations (BtorEFGroundSolvers *gslv)
     for (i = 0; i < BTOR_COUNT_STACK (outer_evars); i++)
     {
       r_evar = BTOR_PEEK_STACK (outer_evars, i);
-      bv     = btor_get_bv_model (r_solver, r_evar);
-      c      = btor_const_exp (r_solver, (BtorBitVector *) bv);
-      eq     = btor_eq_exp (r_solver, r_evar, c);
+      bv = btor_get_bv_model (r_solver, btor_simplify_exp (r_solver, r_evar));
+      c  = btor_const_exp (r_solver, (BtorBitVector *) bv);
+      eq = btor_eq_exp (r_solver, r_evar, c);
       btor_release_exp (r_solver, c);
       BTOR_POKE_STACK (outer_evars, i, eq);
     }
