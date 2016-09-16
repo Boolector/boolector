@@ -61,6 +61,11 @@ expected_result=$?
 #echo "$solver_ref"
 #echo "expected result: $expected_result"
 
+# we do not want assertions errors for now
+if [[ $expected_result != 10 && $expected_result != 20 ]]; then
+  exit 0
+fi
+
 $solver_test $solver_test_opts $inputfile > /dev/null 2>&1
 result=$?
 #echo "$solver_test"
