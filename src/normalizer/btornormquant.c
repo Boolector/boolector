@@ -279,17 +279,19 @@ normalize_quantifiers (Btor *btor,
     if (!btor_is_and_node (real_cur) && !btor_is_quantifier_node (real_cur))
       cur_pol = 1;
 
-    id = real_cur->id * cur_pol;
+    /* quantifiers are always flipped if negated, restore polarity since
+     * one negation will be eliminated */
+    if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
+      cur_pol = cur_pol * -1;
 
-    d = btor_get_int_hash_map (map, id);
+    id = real_cur->id * cur_pol;
+    d  = btor_get_int_hash_map (map, id);
 
     if (!d)
     {
       btor_add_int_hash_map (map, id);
-      /* push down negation in case that quantifier needs to be flipped
-       * and if it is negated */
-      if (btor_is_quantifier_node (real_cur) && cur_pol == -1
-          && BTOR_IS_INVERTED_NODE (cur))
+      /* push down negation in case that quantifier is inverted */
+      if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
       {
         BTOR_PUSH_STACK (mm, visit, real_cur);
         BTOR_PUSH_STACK (mm, polarity, cur_pol);
@@ -402,6 +404,9 @@ normalize_quantifiers (Btor *btor,
               BTOR_REAL_ADDR_NODE (result)->id;
       }
     PUSH_RESULT:
+      /* quantifiers get always flipped if negated */
+      assert (!btor_is_quantifier_node (real_cur)
+              || !BTOR_IS_INVERTED_NODE (cur));
       result = BTOR_COND_INVERT_NODE (cur, result);
       BTOR_PUSH_STACK (mm, args, result);
     }
