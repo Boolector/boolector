@@ -87,6 +87,27 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
 }
 
 static BtorNode *
+mk_param_with_symbol (Btor *btor, BtorNode *node)
+{
+  BtorMemMgr *mm;
+  BtorNode *result;
+  size_t len = 0;
+  char *sym, *buf = 0;
+
+  mm  = btor->mm;
+  sym = btor_get_symbol_exp (btor, node);
+  if (sym)
+  {
+    len = strlen (sym) + 3;
+    BTOR_NEWN (mm, buf, len);
+    sprintf (buf, "%s!0", sym);
+  }
+  result = btor_param_exp (btor, btor_get_exp_width (btor, node), buf);
+  if (buf) BTOR_DELETEN (mm, buf, len);
+  return result;
+}
+
+static BtorNode *
 elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 {
   int32_t i;
@@ -133,8 +154,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
       if (real_cur->arity == 0)
       {
         if (btor_is_param_node (real_cur))
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+          result = mk_param_with_symbol (btor, real_cur);
         else
           result = btor_copy_exp (btor, real_cur);
       }
@@ -145,10 +165,11 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
                                  btor_slice_get_upper (real_cur),
                                  btor_slice_get_lower (real_cur));
       }
-      // TODO: do only for quantified conds (no lambdas)
       else if (btor_is_bv_cond_node (real_cur)
                && BTOR_REAL_ADDR_NODE (real_cur->e[0])->quantifier_below)
       {
+        // TODO (check): this one might not be correct, introduce
+        //               existential variable
         result = create_skolem_ite (btor, real_cur, map);
 
         tmp    = btor_eq_exp (btor, result, e[1]);
@@ -245,8 +266,6 @@ normalize_quantifiers (Btor *btor,
 {
   int32_t i, id, cur_pol;
   uint32_t j;
-  char *sym, *buf;
-  size_t len;
   BtorNode *root, *cur, *real_cur, *tmp, *result, **e;
   BtorMemMgr *mm;
   BtorNodePtrStack visit, args, conds, vars;
@@ -279,12 +298,7 @@ normalize_quantifiers (Btor *btor,
     if (!btor_is_and_node (real_cur) && !btor_is_quantifier_node (real_cur))
       cur_pol = 1;
 
-    /* quantifiers are always flipped if negated, restore polarity since
-     * one negation will be eliminated */
-    if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
-      cur_pol = cur_pol * -1;
-
-    id = real_cur->id * cur_pol;
+    id = BTOR_GET_ID_NODE (cur);
     d  = btor_get_int_hash_map (map, id);
 
     if (!d)
@@ -293,11 +307,18 @@ normalize_quantifiers (Btor *btor,
       /* push down negation in case that quantifier is inverted */
       if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
       {
-        BTOR_PUSH_STACK (mm, visit, real_cur);
+        /* quantifiers are always flipped if negated, restore polarity
+         * since one negation will be eliminated */
+        cur_pol = cur_pol * -1;
+
+        BTOR_PUSH_STACK (mm, visit, cur);
         BTOR_PUSH_STACK (mm, polarity, cur_pol);
 
         BTOR_PUSH_STACK (mm, visit, BTOR_INVERT_NODE (real_cur->e[1]));
-        BTOR_PUSH_STACK (mm, polarity, cur_pol * get_polarity (real_cur->e[1]));
+        BTOR_PUSH_STACK (
+            mm,
+            polarity,
+            cur_pol * get_polarity (BTOR_INVERT_NODE (real_cur->e[1])));
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, polarity, cur_pol * get_polarity (real_cur->e[0]));
       }
@@ -322,34 +343,10 @@ normalize_quantifiers (Btor *btor,
       if (real_cur->arity == 0)
       {
         if (btor_is_param_node (real_cur))
-        {
-          sym = btor_get_symbol_exp (btor, real_cur);
-          if (sym)
-          {
-            len = strlen (sym) + 3;
-            BTOR_NEWN (mm, buf, len);
-            sprintf (buf, "%s!0", sym);
-          }
-          else
-            buf = 0;
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
-          if (buf) BTOR_DELETEN (mm, buf, len);
-        }
+          result = mk_param_with_symbol (btor, real_cur);
         else if (btor_is_bv_var_node (real_cur))
         {
-          sym = btor_get_symbol_exp (btor, real_cur);
-          if (sym)
-          {
-            len = strlen (sym) + 3;
-            BTOR_NEWN (mm, buf, len);
-            sprintf (buf, "%s!0", sym);
-          }
-          else
-            buf = 0;
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
-          if (buf) BTOR_DELETEN (mm, buf, len);
+          result = mk_param_with_symbol (btor, real_cur);
           BTOR_PUSH_STACK (mm, vars, result);
         }
         else
@@ -365,7 +362,11 @@ normalize_quantifiers (Btor *btor,
       else
       {
         /* flip quantification */
-        if (btor_is_quantifier_node (real_cur) && cur_pol == -1)
+        if (btor_is_quantifier_node (real_cur)
+            /* a negative polarity and a negated quantifier results in
+             * a double negation, hence no flip */
+            && ((cur_pol == -1 && !BTOR_IS_INVERTED_NODE (cur))
+                || (cur_pol == 1 && BTOR_IS_INVERTED_NODE (cur))))
         {
           kind = real_cur->kind == BTOR_FORALL_NODE ? BTOR_EXISTS_NODE
                                                     : BTOR_FORALL_NODE;
@@ -405,9 +406,8 @@ normalize_quantifiers (Btor *btor,
       }
     PUSH_RESULT:
       /* quantifiers get always flipped if negated */
-      assert (!btor_is_quantifier_node (real_cur)
-              || !BTOR_IS_INVERTED_NODE (cur));
-      result = BTOR_COND_INVERT_NODE (cur, result);
+      if (!btor_is_quantifier_node (real_cur))
+        result = BTOR_COND_INVERT_NODE (cur, result);
       BTOR_PUSH_STACK (mm, args, result);
     }
     else
@@ -500,8 +500,7 @@ btor_normalize_quantifiers (Btor *btor)
 BtorNode *
 btor_invert_quantifiers (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
 {
-  char *sym, *buf;
-  size_t len, j;
+  size_t j;
   int32_t i;
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *result, **e;
@@ -539,20 +538,7 @@ btor_invert_quantifiers (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
       if (real_cur->arity == 0)
       {
         if (btor_is_param_node (real_cur))
-        {
-          sym = btor_get_symbol_exp (btor, real_cur);
-          if (sym)
-          {
-            len = strlen (sym) + 3;
-            BTOR_NEWN (mm, buf, len);
-            sprintf (buf, "%s!0", sym);
-          }
-          else
-            buf = 0;
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
-          if (buf) BTOR_DELETEN (mm, buf, len);
-        }
+          result = mk_param_with_symbol (btor, real_cur);
         else
           result = btor_copy_exp (btor, real_cur);
       }
