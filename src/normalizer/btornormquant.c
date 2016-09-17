@@ -13,6 +13,7 @@
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 static BtorNode *
 create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
@@ -91,16 +92,28 @@ mk_param_with_symbol (Btor *btor, BtorNode *node)
 {
   BtorMemMgr *mm;
   BtorNode *result;
-  size_t len = 0;
+  size_t len  = 0;
+  int32_t idx = 0;
   char *sym, *buf = 0;
 
   mm  = btor->mm;
   sym = btor_get_symbol_exp (btor, node);
   if (sym)
   {
-    len = strlen (sym) + 3;
-    BTOR_NEWN (mm, buf, len);
-    sprintf (buf, "%s!0", sym);
+    len = strlen (sym);
+    while (true)
+    {
+      len += 2 + btor_num_digits_util (idx);
+      BTOR_NEWN (mm, buf, len);
+      sprintf (buf, "%s!%d", sym, idx);
+      if (btor_get_ptr_hash_table (btor->symbols, buf))
+      {
+        BTOR_DELETEN (mm, buf, len);
+        idx += 1;
+      }
+      else
+        break;
+    }
   }
   result = btor_param_exp (btor, btor_get_exp_width (btor, node), buf);
   if (buf) BTOR_DELETEN (mm, buf, len);
