@@ -181,8 +181,8 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
       else if (btor_is_bv_cond_node (real_cur)
                && BTOR_REAL_ADDR_NODE (real_cur->e[0])->quantifier_below)
       {
-        // TODO (check): this one might not be correct, introduce
-        //               existential variable
+        // TODO (ma): sanity check if a new UF is sufficient to express
+        //            the same as a new existential variable
         result = create_skolem_ite (btor, real_cur, map);
 
         tmp    = btor_eq_exp (btor, result, e[1]);
@@ -272,19 +272,16 @@ get_polarity (BtorNode *n)
 }
 
 static BtorNode *
-normalize_quantifiers (Btor *btor,
-                       BtorNode *roots[],
-                       uint32_t num_roots,
-                       BtorIntHashTable *node_map)
+fix_quantifier_polarities (Btor *btor, BtorNode *root)
 {
   int32_t i, id, cur_pol;
   uint32_t j;
-  BtorNode *root, *cur, *real_cur, *tmp, *result, **e;
+  BtorNode *cur, *real_cur, *result, **e;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, args, conds, vars;
+  BtorNodePtrStack visit, args;
   BtorIntHashTable *map;
-  BtorIntStack polarity, reset;
-  BtorHashTableData *d, data;
+  BtorIntStack polarity;
+  BtorHashTableData *d;
   BtorNodeKind kind;
 
   mm  = btor->mm;
@@ -293,11 +290,6 @@ normalize_quantifiers (Btor *btor,
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (polarity);
   BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (conds);
-  BTOR_INIT_STACK (reset);
-  BTOR_INIT_STACK (vars);
-
-  root = elim_quantified_ite (btor, roots, num_roots);
 
   BTOR_PUSH_STACK (mm, visit, root);
   BTOR_PUSH_STACK (mm, polarity, get_polarity (root));
@@ -308,8 +300,126 @@ normalize_quantifiers (Btor *btor,
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     cur_pol  = BTOR_POP_STACK (polarity);
 
+    /* bv variables have been converted to outermost existential vars in
+     * normalize_quantifiers */
+    assert (!btor_is_bv_var_node (real_cur));
+    /* negated quantifiers have been eliminated in normalize_quantifiers */
+    assert (!btor_is_quantifier_node (real_cur)
+            || !BTOR_IS_INVERTED_NODE (cur));
+
+    /* polarities are only pushed along the boolean skeleton */
     if (!btor_is_and_node (real_cur) && !btor_is_quantifier_node (real_cur))
       cur_pol = 1;
+
+    id = real_cur->id * cur_pol;
+    d  = btor_get_int_hash_map (map, id);
+
+    if (!d)
+    {
+      btor_add_int_hash_map (map, id);
+      BTOR_PUSH_STACK (mm, visit, cur);
+      BTOR_PUSH_STACK (mm, polarity, cur_pol);
+      for (i = real_cur->arity - 1; i >= 0; i--)
+      {
+        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (mm, polarity, cur_pol * get_polarity (real_cur->e[i]));
+      }
+    }
+    else if (!d->as_ptr)
+    {
+      assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
+      args.top -= real_cur->arity;
+      e = args.top;
+
+      if (real_cur->arity == 0)
+      {
+        if (btor_is_param_node (real_cur))
+          result = mk_param_with_symbol (btor, real_cur);
+        else
+          result = btor_copy_exp (btor, real_cur);
+      }
+      else if (btor_is_slice_node (real_cur))
+      {
+        result = btor_slice_exp (btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
+      }
+      else
+      {
+        /* flip quantification */
+        if (btor_is_quantifier_node (real_cur) && cur_pol == -1)
+          kind = real_cur->kind == BTOR_FORALL_NODE ? BTOR_EXISTS_NODE
+                                                    : BTOR_FORALL_NODE;
+        else
+          kind = real_cur->kind;
+
+        result = btor_create_exp (btor, kind, e, real_cur->arity);
+      }
+
+      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
+
+      d->as_ptr = btor_copy_exp (btor, result);
+    PUSH_RESULT:
+      result = BTOR_COND_INVERT_NODE (cur, result);
+      BTOR_PUSH_STACK (mm, args, result);
+    }
+    else
+    {
+      assert (d->as_ptr);
+      result = btor_copy_exp (btor, d->as_ptr);
+      goto PUSH_RESULT;
+    }
+  }
+  assert (BTOR_EMPTY_STACK (polarity));
+  assert (BTOR_COUNT_STACK (args) == 1);
+
+  result = BTOR_POP_STACK (args);
+
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, polarity);
+  BTOR_RELEASE_STACK (mm, args);
+
+  for (j = 0; j < map->size; j++)
+  {
+    if (!map->data[j].as_ptr) continue;
+    btor_release_exp (btor, map->data[j].as_ptr);
+  }
+  btor_delete_int_hash_map (map);
+  return result;
+}
+
+static BtorNode *
+normalize_quantifiers (Btor *btor,
+                       BtorNode *roots[],
+                       uint32_t num_roots,
+                       BtorIntHashTable *node_map)
+{
+  int32_t i, id;
+  uint32_t j;
+  BtorNode *root, *root_fixed, *cur, *real_cur, *tmp, *result, **e;
+  BtorMemMgr *mm;
+  BtorNodePtrStack visit, args, vars;
+  BtorIntHashTable *map;
+  BtorIntStack reset;
+  BtorHashTableData *d, data;
+  BtorNodeKind kind;
+
+  mm  = btor->mm;
+  map = btor_new_int_hash_map (mm);
+
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (reset);
+
+  root = elim_quantified_ite (btor, roots, num_roots);
+
+  BTOR_PUSH_STACK (mm, visit, root);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur      = BTOR_POP_STACK (visit);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
 
     id = BTOR_GET_ID_NODE (cur);
     d  = btor_get_int_hash_map (map, id);
@@ -317,34 +427,18 @@ normalize_quantifiers (Btor *btor,
     if (!d)
     {
       btor_add_int_hash_map (map, id);
+      BTOR_PUSH_STACK (mm, visit, cur);
       /* push down negation in case that quantifier is inverted */
       if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
       {
-        /* quantifiers are always flipped if negated, restore polarity
-         * since one negation will be eliminated */
-        cur_pol = cur_pol * -1;
-
-        BTOR_PUSH_STACK (mm, visit, cur);
-        BTOR_PUSH_STACK (mm, polarity, cur_pol);
-
+        /* push negation down */
         BTOR_PUSH_STACK (mm, visit, BTOR_INVERT_NODE (real_cur->e[1]));
-        BTOR_PUSH_STACK (
-            mm,
-            polarity,
-            cur_pol * get_polarity (BTOR_INVERT_NODE (real_cur->e[1])));
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
-        BTOR_PUSH_STACK (mm, polarity, cur_pol * get_polarity (real_cur->e[0]));
       }
       else
       {
-        BTOR_PUSH_STACK (mm, visit, cur);
-        BTOR_PUSH_STACK (mm, polarity, cur_pol);
         for (i = real_cur->arity - 1; i >= 0; i--)
-        {
           BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
-          BTOR_PUSH_STACK (
-              mm, polarity, cur_pol * get_polarity (real_cur->e[i]));
-        }
       }
     }
     else if (!d->as_ptr)
@@ -374,25 +468,28 @@ normalize_quantifiers (Btor *btor,
       }
       else
       {
-        /* flip quantification */
-        if (btor_is_quantifier_node (real_cur)
-            /* a negative polarity and a negated quantifier results in
-             * a double negation, hence no flip */
-            && ((cur_pol == -1 && !BTOR_IS_INVERTED_NODE (cur))
-                || (cur_pol == 1 && BTOR_IS_INVERTED_NODE (cur))))
-        {
+        /* flip negated quantifier */
+        if (btor_is_quantifier_node (real_cur) && BTOR_IS_INVERTED_NODE (cur))
           kind = real_cur->kind == BTOR_FORALL_NODE ? BTOR_EXISTS_NODE
                                                     : BTOR_FORALL_NODE;
-        }
         else
           kind = real_cur->kind;
+
         result = btor_create_exp (btor, kind, e, real_cur->arity);
       }
 
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
 
-      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, id);
       d->as_ptr = btor_copy_exp (btor, result);
+
+      if (node_map)
+      {
+        if (!btor_contains_int_hash_map (node_map, real_cur->id))
+          btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+              BTOR_REAL_ADDR_NODE (result)->id;
+      }
+
+      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, id);
 
       /* scope of 'real_cur' is closed remove all parameterized nodes from
        * cache that are in the scope of 'real_cur'. */
@@ -405,17 +502,10 @@ normalize_quantifiers (Btor *btor,
         {
           id = BTOR_POP_STACK (reset);
           /* do not remove params other than real_cur->e[0] */
-          if (abs (id) != real_cur->e[0]->id) continue;
+          if (id != real_cur->e[0]->id) continue;
           btor_remove_int_hash_map (map, id, &data);
           btor_release_exp (btor, data.as_ptr);
         }
-      }
-
-      if (node_map)
-      {
-        if (!btor_contains_int_hash_map (node_map, real_cur->id))
-          btor_add_int_hash_map (node_map, real_cur->id)->as_int =
-              BTOR_REAL_ADDR_NODE (result)->id;
       }
     PUSH_RESULT:
       /* quantifiers get always flipped if negated */
@@ -430,19 +520,11 @@ normalize_quantifiers (Btor *btor,
       goto PUSH_RESULT;
     }
   }
-  assert (BTOR_EMPTY_STACK (polarity));
   assert (BTOR_COUNT_STACK (args) == 1);
-
+  assert (BTOR_EMPTY_STACK (reset));
   result = BTOR_POP_STACK (args);
-  while (!BTOR_EMPTY_STACK (args))
-  {
-    cur = BTOR_POP_STACK (args);
-    tmp = btor_and_exp (btor, result, cur);
-    btor_release_exp (btor, result);
-    btor_release_exp (btor, cur);
-    result = tmp;
-  }
-  /* create outermost existential scope for bv vars */
+
+  /* create outermost existential scope for bv variables */
   while (!BTOR_EMPTY_STACK (vars))
   {
     tmp = btor_exists_exp (btor, BTOR_POP_STACK (vars), result);
@@ -450,11 +532,9 @@ normalize_quantifiers (Btor *btor,
     result = tmp;
   }
   BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, polarity);
   BTOR_RELEASE_STACK (mm, args);
-  BTOR_RELEASE_STACK (mm, conds);
-  BTOR_RELEASE_STACK (mm, reset);
   BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (mm, reset);
 
   for (j = 0; j < map->size; j++)
   {
@@ -463,7 +543,13 @@ normalize_quantifiers (Btor *btor,
   }
   btor_delete_int_hash_map (map);
   btor_release_exp (btor, root);
-  return result;
+
+  /* since we don't have a NNF we have to check the polarities of the
+   * quantifiers and flip them if necessary */
+  root_fixed = fix_quantifier_polarities (btor, result);
+  btor_release_exp (btor, result);
+
+  return root_fixed;
 }
 
 BtorNode *
@@ -493,7 +579,6 @@ btor_normalize_quantifiers (Btor *btor)
    * complete formula in nnf */
   opt_simp_const = btor_get_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS);
   btor_set_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0);
-  // TODO (ma): check if all quants checked
 
   BTOR_INIT_STACK (roots);
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
