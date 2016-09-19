@@ -607,6 +607,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   }
   assert (!btor_is_proxy_node (root));
 
+  //  btor_dump_smt2_node (res->forall, stdout, root, -1);
   res->forall_formula   = root;
   res->forall_evar_deps = compute_edeps (res->forall, root);
   res->forall_evars     = btor_new_node_map (res->forall);
@@ -2879,6 +2880,7 @@ free_uf_models (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
+  bool opt_underapprox;
   double start;
   BtorSolverResult res;
   BtorNode *g;
@@ -2886,7 +2888,8 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   BtorPtrHashTable *assumptions, *vars;
   BtorNodeMapIterator it;
 
-  vars = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
+  opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
+  vars            = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
 
   btor_init_node_map_iterator (&it, gslv->forall_uvars);
   while (btor_has_next_node_map_iterator (&it))
@@ -2937,7 +2940,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 UNDERAPPROX:
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
   assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
-  underapprox (gslv->forall, vars, assumptions);
+  if (opt_underapprox) underapprox (gslv->forall, vars, assumptions);
 
   res = btor_sat_btor (gslv->forall, -1, -1);
   update_formula (gslv);
@@ -2946,12 +2949,12 @@ UNDERAPPROX:
 
   if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
   {
-    printf ("underapprox SAT\n");
     if (!underapprox_check (gslv->forall, vars, assumptions, g))
     {
       underapprox_release (gslv->forall, assumptions);
       goto UNDERAPPROX;
     }
+    printf ("underapprox SAT\n");
 
     underapprox_release (gslv->forall, assumptions);
     btor_delete_ptr_hash_table (vars);
@@ -3104,6 +3107,9 @@ sat_ef_solver (BtorEFSolver *slv)
    * vars (dual_gslv) */
 
   // TODO (ma): incremental support
+
+  // FIXME (ma): not sound with slice elimination. see red-vsl.proof3106.smt2
+  btor_set_opt (slv->btor, BTOR_OPT_ELIMINATE_SLICES, 0);
 
   /* simplify formula and normalize quantifiers */
   res = btor_simplify (slv->btor);

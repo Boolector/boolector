@@ -573,6 +573,7 @@ enum BtorOption
   BTOR_OPT_EF_QINST_MODE,
   BTOR_OPT_EF_DUAL_SOLVER,
   BTOR_OPT_EF_FINST_MODE,
+  BTOR_OPT_EF_UNDERAPPROX,
 
   /* internal options --------------------------------------------------- */
 

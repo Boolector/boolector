@@ -760,6 +760,16 @@ btor_init_opts (Btor *btor)
             BTOR_EF_FINST_MIN,
             BTOR_EF_FINST_MAX,
             "mode for instantiation finding");
+  init_opt (btor,
+            BTOR_OPT_EF_UNDERAPPROX,
+            false,
+            true,
+            "ef:ua",
+            0,
+            0,
+            0,
+            1,
+            "under approximation for universal variables");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
