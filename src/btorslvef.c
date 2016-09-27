@@ -119,7 +119,7 @@ delete_synth_result (BtorMemMgr *mm, SynthResult *res)
 static void
 underapprox (Btor *btor, BtorPtrHashTable *vars, BtorPtrHashTable *assumptions)
 {
-  uint32_t i, w, upper;
+  uint32_t w, upper;
   BtorNode *var, *eq, *s, *z;
   BtorHashTableIterator it;
 
@@ -1730,8 +1730,9 @@ update_model (Btor *btor,
   }
 }
 
+#if 0
 static BtorNode *
-extract_branch (Btor *btor, BtorNode *root)
+extract_branch (Btor * btor, BtorNode * root)
 {
   int32_t i;
   uint32_t j;
@@ -1742,61 +1743,61 @@ extract_branch (Btor *btor, BtorNode *root)
   BtorHashTableData *d;
   BtorMemMgr *mm;
 
-  mm   = btor->mm;
+  mm = btor->mm;
   mark = btor_new_int_hash_map (mm);
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (args);
   BTOR_PUSH_STACK (mm, visit, root);
 
   while (!BTOR_EMPTY_STACK (visit))
-  {
-    cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
-
-    d = btor_get_int_hash_map (mark, real_cur->id);
-    if (!d)
     {
-      btor_add_int_hash_map (mark, real_cur->id);
-      BTOR_PUSH_STACK (mm, visit, cur);
-      for (i = real_cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
-    }
-    else if (!d->as_ptr)
-    {
-      assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
+      cur = BTOR_POP_STACK (visit);
+      real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-      args.top -= real_cur->arity;
-      e = args.top;
+      d = btor_get_int_hash_map (mark, real_cur->id);
+      if (!d)
+	{
+	  btor_add_int_hash_map (mark, real_cur->id);
+	  BTOR_PUSH_STACK (mm, visit, cur);
+	  for (i = real_cur->arity - 1; i >= 0; i--)
+	    BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+	}
+      else if (!d->as_ptr)
+	{
+	  assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
 
-      if (real_cur->arity == 0)
-      {
-        if (btor_is_param_node (real_cur))
-        {
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
-        }
-        else
-        {
-          result = btor_copy_exp (btor, real_cur);
-        }
-      }
-      else if (btor_is_slice_node (real_cur))
-      {
-        result = btor_slice_exp (btor,
-                                 e[0],
-                                 btor_slice_get_upper (real_cur),
-                                 btor_slice_get_lower (real_cur));
-      }
-      else if (btor_is_and_node (real_cur)
-               && btor_get_exp_width (btor, real_cur) == 1
-               && (bv = btor_get_bv_model (btor, real_cur))
-               && btor_is_zero_bv (bv))
-      {
-        bv = btor_get_bv_model (btor, real_cur->e[0]);
-        if (btor_is_zero_bv (bv))
-          result = btor_copy_exp (btor, e[0]);
-        else
-          result = btor_copy_exp (btor, e[1]);
+	  args.top -= real_cur->arity;
+	  e = args.top;
+
+	  if (real_cur->arity == 0)
+	    {
+	      if (btor_is_param_node (real_cur))
+		{
+		  result =
+		    btor_param_exp (btor,
+			btor_get_exp_width (btor, real_cur), 0);
+		}
+	      else
+		{
+		  result = btor_copy_exp (btor, real_cur);
+		}
+	    }
+	  else if (btor_is_slice_node (real_cur))
+	    {
+	      result = btor_slice_exp (btor, e[0],
+				       btor_slice_get_upper (real_cur),
+				       btor_slice_get_lower (real_cur));
+	    }
+	  else if (btor_is_and_node (real_cur)
+		   && btor_get_exp_width (btor, real_cur) == 1
+		   && (bv = btor_get_bv_model (btor, real_cur))
+		   && btor_is_zero_bv (bv))
+	    {
+	      bv = btor_get_bv_model (btor, real_cur->e[0]);
+	      if (btor_is_zero_bv (bv))
+		result = btor_copy_exp (btor, e[0]);
+	      else
+		result = btor_copy_exp (btor, e[1]);
 #if 0
 	      bv = btor_get_bv_model (btor, real_cur->e[1]);
 	      if (btor_is_zero_bv (bv))
@@ -1805,25 +1806,27 @@ extract_branch (Btor *btor, BtorNode *root)
 		  result = btor_copy_exp (btor, e[1]);
 		}
 #endif
-      }
+	    }
+	  else
+	    {
+	      result =
+		btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
+	    }
+
+	  for (i = 0; i < real_cur->arity; i++)
+	    btor_release_exp (btor, e[i]);
+
+	  d->as_ptr = btor_copy_exp (btor, result);
+PUSH_RESULT:
+	  BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+	}
       else
-      {
-        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
-      }
-
-      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
-
-      d->as_ptr = btor_copy_exp (btor, result);
-    PUSH_RESULT:
-      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+	{
+	  assert (d->as_ptr);
+	  result = btor_copy_exp (btor, d->as_ptr);
+	  goto PUSH_RESULT;
+	}
     }
-    else
-    {
-      assert (d->as_ptr);
-      result = btor_copy_exp (btor, d->as_ptr);
-      goto PUSH_RESULT;
-    }
-  }
   assert (BTOR_COUNT_STACK (args) == 1);
   result = BTOR_POP_STACK (args);
 
@@ -1831,15 +1834,16 @@ extract_branch (Btor *btor, BtorNode *root)
   BTOR_RELEASE_STACK (mm, args);
 
   for (j = 0; j < mark->size; j++)
-  {
-    if (!mark->keys[j]) continue;
-    assert (mark->data[j].as_ptr);
-    btor_release_exp (btor, mark->data[j].as_ptr);
-  }
+    {
+      if (!mark->keys[j]) continue;
+      assert (mark->data[j].as_ptr);
+      btor_release_exp (btor, mark->data[j].as_ptr);
+    }
   btor_delete_int_hash_map (mark);
 
   return result;
 }
+#endif
 
 static BtorPtrHashTable *
 find_instantiations (BtorEFGroundSolvers *gslv)
@@ -1977,6 +1981,22 @@ find_instantiations (BtorEFGroundSolvers *gslv)
       BTOR_PUSH_STACK (mm, bool_exps, btor_copy_exp (r_solver, cur));
       for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
     }
+  }
+
+  /* fix assignments of outermost existential variables */
+  btor_init_node_map_iterator (&it, gslv->exists_evars);
+  while (btor_has_next_node_map_iterator (&it))
+  {
+    var_fs = it.it.bucket->data.as_ptr;
+    var_es = btor_next_node_map_iterator (&it);
+    if (btor_mapped_node (gslv->forall_evar_deps, var_fs)) continue;
+    bv     = btor_get_bv_model (e_solver, btor_simplify_exp (e_solver, var_es));
+    r_evar = btor_mapped_node (varmap, var_fs);
+    assert (r_evar);
+    c  = btor_const_exp (r_solver, (BtorBitVector *) bv);
+    eq = btor_eq_exp (r_solver, r_evar, c);
+    btor_release_exp (r_solver, c);
+    btor_assert_exp (r_solver, eq);
   }
 
   /* initial SAT call */
