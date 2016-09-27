@@ -64,13 +64,13 @@ test_normquant_inv_exists (void)
 {
   BtorNode *exists, *eqx, *eqy, *x[2], *y[2], *expected, *result;
 
-  x[0]   = btor_param_exp (g_btor, 32, 0);
-  x[1]   = btor_param_exp (g_btor, 32, 0);
+  x[0]   = btor_param_exp (g_btor, 32, "x0");
+  x[1]   = btor_param_exp (g_btor, 32, "x1");
   eqx    = btor_eq_exp (g_btor, x[0], x[1]);
   exists = btor_exists_n_exp (g_btor, x, 2, eqx);
 
-  y[0]     = btor_param_exp (g_btor, 32, 0);
-  y[1]     = btor_param_exp (g_btor, 32, 0);
+  y[0]     = btor_param_exp (g_btor, 32, "y0");
+  y[1]     = btor_param_exp (g_btor, 32, "y1");
   eqy      = btor_eq_exp (g_btor, y[0], y[1]);
   expected = btor_forall_n_exp (g_btor, y, 2, BTOR_INVERT_NODE (eqy));
 
@@ -254,6 +254,9 @@ test_normquant_inv_prefix (void)
  * quantifiers (quantifier is flipped if uneven number of not)
  *
  * exp: \forall x . \not ((\exists y . x > y) /\ (\exists z . x < z))
+ *
+ * after fixing polarities:
+ *
  * res: \forall x . \not ((\forall y . x > y) /\ (\forall z . x < z))
  *
  */
@@ -312,173 +315,17 @@ test_normquant_inv_and_exists (void)
  * NOTE: since we don't have NNF we need to fix the polarities of the
  * quantifiers (quantifier is flipped if uneven number of not)
  *
- * exp: \forall x . x = (\exists y . x < y) ? v0 : v1
- * res: \forall x . x = v_ite(x)
- *		    /\ \not ((\forall y . x < y) /\ v_ite(x) != v0)
- *		    /\ \not ((\exists y . x >= y) /\ v_ite(x) != v1)
- *
- */
-static void
-test_normquant_elim_ite (void)
-{
-  BtorNode *forall, *exists, *x, *y, *v0, *v1, *ult, *ite, *eqx;
-  BtorNode *expected, *existsY, *forallY, *X, *Y[2], *Z, *ugte, *ultY;
-  BtorNode *eqZX, *eqZv1, *eqZv0, *imp_if, *imp_else, *and0, *and1;
-  BtorNode *result, *uf, *V[2], *forallX;
-
-  v0     = btor_var_exp (g_btor, 32, "v0");
-  v1     = btor_var_exp (g_btor, 32, "v1");
-  x      = btor_param_exp (g_btor, 32, 0);
-  y      = btor_param_exp (g_btor, 32, 0);
-  ult    = btor_ult_exp (g_btor, x, y);
-  exists = btor_exists_exp (g_btor, y, ult);
-  ite    = btor_cond_exp (g_btor, exists, v0, v1);
-  eqx    = btor_eq_exp (g_btor, x, ite);
-  forall = btor_forall_exp (g_btor, x, eqx);
-
-  result = btor_normalize_quantifiers_node (g_btor, forall, 0);
-  assert (g_btor->ufs->count == 1);
-  uf = g_btor->ufs->first->key;
-
-  X    = btor_param_exp (g_btor, 32, 0);
-  Y[0] = btor_param_exp (g_btor, 32, 0);
-  Y[1] = btor_param_exp (g_btor, 32, 0);
-  Z    = btor_apply_exps (g_btor, &X, 1, uf);
-
-  V[0]     = btor_param_exp (g_btor, 32, "V0");
-  V[1]     = btor_param_exp (g_btor, 32, "V1");
-  eqZX     = btor_eq_exp (g_btor, X, Z);
-  eqZv0    = btor_eq_exp (g_btor, Z, V[0]);
-  eqZv1    = btor_eq_exp (g_btor, Z, V[1]);
-  ultY     = btor_ult_exp (g_btor, X, Y[0]);
-  ugte     = btor_ugte_exp (g_btor, X, Y[1]);
-  existsY  = btor_forall_exp (g_btor, Y[0], ultY);
-  forallY  = btor_exists_exp (g_btor, Y[1], ugte);
-  imp_if   = btor_implies_exp (g_btor, existsY, eqZv0);
-  imp_else = btor_implies_exp (g_btor, forallY, eqZv1);
-  and0     = btor_and_exp (g_btor, imp_if, imp_else);
-  and1     = btor_and_exp (g_btor, eqZX, and0);
-  forallX  = btor_forall_exp (g_btor, X, and1);
-  expected = btor_exists_n_exp (g_btor, V, 2, forallX);
-
-  assert (result == expected);
-
-  btor_release_exp (g_btor, v0);
-  btor_release_exp (g_btor, v1);
-  btor_release_exp (g_btor, V[0]);
-  btor_release_exp (g_btor, V[1]);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, ult);
-  btor_release_exp (g_btor, exists);
-  btor_release_exp (g_btor, ite);
-  btor_release_exp (g_btor, eqx);
-  btor_release_exp (g_btor, forall);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, X);
-  btor_release_exp (g_btor, Y[0]);
-  btor_release_exp (g_btor, Y[1]);
-  btor_release_exp (g_btor, Z);
-  btor_release_exp (g_btor, eqZX);
-  btor_release_exp (g_btor, eqZv0);
-  btor_release_exp (g_btor, eqZv1);
-  btor_release_exp (g_btor, ultY);
-  btor_release_exp (g_btor, ugte);
-  btor_release_exp (g_btor, existsY);
-  btor_release_exp (g_btor, forallY);
-  btor_release_exp (g_btor, imp_if);
-  btor_release_exp (g_btor, imp_else);
-  btor_release_exp (g_btor, and0);
-  btor_release_exp (g_btor, and1);
-  btor_release_exp (g_btor, forallX);
-  btor_release_exp (g_btor, expected);
-}
-
-#if 0
-/*
- * exp: v2 = (\exists y . v2 < y) ? v0 : v1
- * res: \exists v0,v1,v2,v_ite .
- *	   v2 = v_ite
- *	   /\ \not ((\exists y . v2 < y) /\ v_ite != v0)
- *	   /\ \not ((\forall y . v2 >= y) /\ v_ite != v1)
- */
-static void
-test_normquant_elim_top_ite (void)
-{
-  BtorNode *exists, *y, *v0, *v1, *v2, *ult, *ite, *eqv;
-  BtorNode *expected, *existsY, *forallY, *Y[2], *Z, *ugte, *ultY;
-  BtorNode *eqZv2, *eqZv1, *eqZv0, *imp_if, *imp_else, *and0;
-  BtorNode *result, *existsV0, *existsV1, *V[3];
-
-  v0 = btor_var_exp (g_btor, 32, "v0");
-  v1 = btor_var_exp (g_btor, 32, "v1");
-  v2 = btor_var_exp (g_btor, 32, "v2");
-  y = btor_param_exp (g_btor, 32, 0);
-  ult = btor_ult_exp (g_btor, v2, y); 
-  exists = btor_exists_exp (g_btor, y, ult);
-  ite = btor_cond_exp (g_btor, exists, v0, v1); 
-  eqv = btor_eq_exp (g_btor, v2, ite);
-
-  result = btor_normalize_quantifiers_node (g_btor, eqv, 0);
-  assert (g_btor->bv_vars->count == 3);
-
-  Y[0] = btor_param_exp (g_btor, 32, 0);
-  Y[1] = btor_param_exp (g_btor, 32, 0);
-  Z = g_btor->bv_vars->last->key; 
-
-  V0 = btor_param_exp (g_btor, 32, "V0");
-  V1 = btor_param_exp (g_btor, 32, "V1");
-  V2 = btor_param_exp (g_btor, 32, "V2");
-  eqZv2 = btor_eq_exp (g_btor, V1, Z);
-  eqZv0 = btor_eq_exp (g_btor, Z, v0); 
-  eqZv1 = btor_eq_exp (g_btor, Z, v1);
-  ultY = btor_ult_exp (g_btor, , Y[0]);
-  ugte = btor_ugte_exp (g_btor, v2, Y[1]);
-  existsY = btor_exists_exp (g_btor, Y[0], ultY);
-  forallY = btor_forall_exp (g_btor, Y[1], ugte);
-  imp_if = btor_implies_exp (g_btor, forallY, eqZv0);
-  imp_else = btor_implies_exp (g_btor, existsY, eqZv1);
-  and0 = btor_and_exp (g_btor, imp_if, imp_else);
-  expected = btor_and_exp (g_btor, eqZv2, and0); 
-
-  printf ("\n"); btor_dump_smt2_node (g_btor, stdout, result, -1);
-  printf ("\n"); btor_dump_smt2_node (g_btor, stdout, expected, -1);
-  assert (result == expected);
-
-  btor_release_exp (g_btor, v0);
-  btor_release_exp (g_btor, v1);
-  btor_release_exp (g_btor, v2);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, ult);
-  btor_release_exp (g_btor, exists);
-  btor_release_exp (g_btor, ite);
-  btor_release_exp (g_btor, eqv);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, Y[0]);
-  btor_release_exp (g_btor, Y[1]);
-  btor_release_exp (g_btor, eqZv2);
-  btor_release_exp (g_btor, eqZv0);
-  btor_release_exp (g_btor, eqZv1);
-  btor_release_exp (g_btor, ultY);
-  btor_release_exp (g_btor, ugte);
-  btor_release_exp (g_btor, existsY);
-  btor_release_exp (g_btor, forallY);
-  btor_release_exp (g_btor, imp_if);
-  btor_release_exp (g_btor, imp_else);
-  btor_release_exp (g_btor, and0);
-  btor_release_exp (g_btor, expected);
-}
-#endif
-
-/*
- * NOTE: since we don't have NNF we need to fix the polarities of the
- * quantifiers (quantifier is flipped if uneven number of not)
- *
  * exp: \forall x . (\not ((\not \exists y . y > x) /\ x > 0))
+ *
+ * after eliminating negated quantifiers:
+ *
+ * res: \forall x . (\not ((\forall y . y <= x) /\ x > 0))
+ *
+ * after fixing ploarities:
+ *
  * res: \forall x . (\not ((\exists y . y <= x) /\ x > 0))
  *
  */
-
 static void
 test_normquant_normalize_negated_quant (void)
 {
@@ -526,6 +373,209 @@ test_normquant_normalize_negated_quant (void)
   btor_release_exp (g_btor, expected);
 }
 
+/*
+ * NOTE: since we don't have NNF we need to fix the polarities of the
+ * quantifiers (quantifier is flipped if uneven number of not)
+ *
+ * exp: \forall x . x = (\exists y . x < y) ? v0 : v1
+ *
+ * after eliminating ITE:
+ *
+ * res_ite: \exists v0,v1 . \forall x. x = v_ite(x)
+ *                     /\ \not ((\exists y . x < y) /\ v_ite(x) != v0)
+ *                     /\ \not ((\forall y . x >= y) /\ v_ite(x) != v1)
+ *
+ * after fixing polarities:
+ *
+ * res: \exists v0,v1 . \forall x . x = v_ite(x)
+ *		    /\ \not ((\forall y . x < y) /\ v_ite(x) != v0)
+ *		    /\ \not ((\exists y . x >= y) /\ v_ite(x) != v1)
+ *
+ */
+static void
+test_normquant_elim_ite (void)
+{
+  BtorNode *forall, *exists, *x, *y, *v0, *v1, *ult, *ite, *eqx;
+  BtorNode *expected, *existsY, *forallY, *X, *Y[2], *Z, *ugte, *ultY;
+  BtorNode *eqZX, *eqZv1, *eqZv0, *imp_if, *imp_else, *and0, *and1;
+  BtorNode *result, *uf, *V[2], *forallX;
+
+  v0     = btor_var_exp (g_btor, 32, "v0");
+  v1     = btor_var_exp (g_btor, 32, "v1");
+  x      = btor_param_exp (g_btor, 32, "x");
+  y      = btor_param_exp (g_btor, 32, "y");
+  ult    = btor_ult_exp (g_btor, x, y);
+  exists = btor_exists_exp (g_btor, y, ult);
+  ite    = btor_cond_exp (g_btor, exists, v0, v1);
+  eqx    = btor_eq_exp (g_btor, x, ite);
+  forall = btor_forall_exp (g_btor, x, eqx);
+
+  result = btor_normalize_quantifiers_node (g_btor, forall, 0);
+  /* new UF introduced for ITE */
+  assert (g_btor->ufs->count == 1);
+  uf = g_btor->ufs->first->key;
+
+  X    = btor_param_exp (g_btor, 32, 0);
+  Y[0] = btor_param_exp (g_btor, 32, 0);
+  Y[1] = btor_param_exp (g_btor, 32, 0);
+  Z    = btor_apply_exps (g_btor, &X, 1, uf);
+
+  V[0]     = btor_param_exp (g_btor, 32, "V0");
+  V[1]     = btor_param_exp (g_btor, 32, "V1");
+  eqZX     = btor_eq_exp (g_btor, X, Z);
+  eqZv0    = btor_eq_exp (g_btor, Z, V[0]);
+  eqZv1    = btor_eq_exp (g_btor, Z, V[1]);
+  ultY     = btor_ult_exp (g_btor, X, Y[0]);
+  ugte     = btor_ugte_exp (g_btor, X, Y[1]);
+  forallY  = btor_forall_exp (g_btor, Y[0], ultY);
+  existsY  = btor_exists_exp (g_btor, Y[1], ugte);
+  imp_if   = btor_and_exp (g_btor, forallY, BTOR_INVERT_NODE (eqZv0));
+  imp_else = btor_and_exp (g_btor, existsY, BTOR_INVERT_NODE (eqZv1));
+  and0     = btor_and_exp (
+      g_btor, BTOR_INVERT_NODE (imp_if), BTOR_INVERT_NODE (imp_else));
+  and1     = btor_and_exp (g_btor, eqZX, and0);
+  forallX  = btor_forall_exp (g_btor, X, and1);
+  expected = btor_exists_n_exp (g_btor, V, 2, forallX);
+
+  assert (result == expected);
+
+  btor_release_exp (g_btor, v0);
+  btor_release_exp (g_btor, v1);
+  btor_release_exp (g_btor, V[0]);
+  btor_release_exp (g_btor, V[1]);
+  btor_release_exp (g_btor, x);
+  btor_release_exp (g_btor, y);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, exists);
+  btor_release_exp (g_btor, ite);
+  btor_release_exp (g_btor, eqx);
+  btor_release_exp (g_btor, forall);
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, X);
+  btor_release_exp (g_btor, Y[0]);
+  btor_release_exp (g_btor, Y[1]);
+  btor_release_exp (g_btor, Z);
+  btor_release_exp (g_btor, eqZX);
+  btor_release_exp (g_btor, eqZv0);
+  btor_release_exp (g_btor, eqZv1);
+  btor_release_exp (g_btor, ultY);
+  btor_release_exp (g_btor, ugte);
+  btor_release_exp (g_btor, existsY);
+  btor_release_exp (g_btor, forallY);
+  btor_release_exp (g_btor, imp_if);
+  btor_release_exp (g_btor, imp_else);
+  btor_release_exp (g_btor, and0);
+  btor_release_exp (g_btor, and1);
+  btor_release_exp (g_btor, forallX);
+  btor_release_exp (g_btor, expected);
+}
+
+/*
+ * NOTE: since we don't have NNF we need to fix the polarities of the
+ * quantifiers (quantifier is flipped if uneven number of not)
+ *
+ * exp: v2 = (\exists y . v2 < y) ? v0 : v1
+ *
+ * after eliminating ITE:
+ *
+ * res: \exists v0,v1,v2,v_ite .
+ *	   v2 = v_ite
+ *         /\ \not ((\exists y . v2 < y) /\ v_ite != v0)
+ *         /\ \not ((\forall y . v2 >= y) /\ v_ite != v!)
+ *
+ * after fixing polarities:
+ *
+ * res: \exists v0,v1,v2,v_ite .
+ *	   v2 = v_ite
+ *	   /\ \not ((\forall y . v2 < y) /\ v_ite != v0)
+ *	   /\ \not ((\exists y . v2 >= y) /\ v_ite != v1)
+ */
+#if 0
+static void
+test_normquant_elim_top_ite (void)
+{
+  BtorNode *exists, *y, *v0, *v1, *v2, *ult, *ite, *eqv;
+  BtorNode *expected, *existsY, *forallY, *Y[2], *ugte, *ultY;
+  BtorNode *eqZv2, *eqZv1, *eqZv0, *imp_if, *imp_else, *and0, *and1;
+  BtorNode *result, *V[4];
+
+  v0 = btor_var_exp (g_btor, 32, "v0");
+  v1 = btor_var_exp (g_btor, 32, "v1");
+  v2 = btor_var_exp (g_btor, 32, "v2");
+  y = btor_param_exp (g_btor, 32, "y");
+  ult = btor_ult_exp (g_btor, v2, y); 
+  exists = btor_exists_exp (g_btor, y, ult);
+  ite = btor_cond_exp (g_btor, exists, v0, v1); 
+  eqv = btor_eq_exp (g_btor, v2, ite);
+
+  result = btor_normalize_quantifiers_node (g_btor, eqv, 0);
+
+  Y[0] = btor_param_exp (g_btor, 32, "Y0");
+  Y[1] = btor_param_exp (g_btor, 32, "Y1");
+
+  V[0] = btor_param_exp (g_btor, 32, "V0");
+  V[1] = btor_param_exp (g_btor, 32, "V1");
+  V[2] = btor_param_exp (g_btor, 32, "V2");
+  V[3] = btor_param_exp (g_btor, 32, "V_ite");
+  eqZv2 = btor_eq_exp (g_btor, V[2], V[3]);
+  eqZv0 = btor_eq_exp (g_btor, V[3], V[0]); 
+  eqZv1 = btor_eq_exp (g_btor, V[3], V[1]);
+  ultY = btor_ult_exp (g_btor, V[2], Y[0]);
+  ugte = btor_ugte_exp (g_btor, V[2], Y[1]);
+  forallY = btor_forall_exp (g_btor, Y[0], ultY);
+  existsY = btor_exists_exp (g_btor, Y[1], ugte);
+  imp_if = btor_and_exp (g_btor, forallY, BTOR_INVERT_NODE (eqZv0));
+  imp_else = btor_and_exp (g_btor, existsY, BTOR_INVERT_NODE (eqZv1));
+  and0 = btor_and_exp (g_btor, BTOR_INVERT_NODE (imp_if),
+		       BTOR_INVERT_NODE (imp_else));
+  and1 = btor_and_exp (g_btor, eqZv2, and0); 
+  expected = btor_exists_n_exp (g_btor, V, 4, and1);
+
+  printf ("\n"); btor_dump_smt2_node (g_btor, stdout, result, -1);
+  printf ("\n"); btor_dump_smt2_node (g_btor, stdout, expected, -1);
+  assert (result == expected);
+
+  btor_release_exp (g_btor, v0);
+  btor_release_exp (g_btor, v1);
+  btor_release_exp (g_btor, v2);
+  btor_release_exp (g_btor, V[0]);
+  btor_release_exp (g_btor, V[1]);
+  btor_release_exp (g_btor, V[2]);
+  btor_release_exp (g_btor, V[3]);
+  btor_release_exp (g_btor, y);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, exists);
+  btor_release_exp (g_btor, ite);
+  btor_release_exp (g_btor, eqv);
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, Y[0]);
+  btor_release_exp (g_btor, Y[1]);
+  btor_release_exp (g_btor, eqZv2);
+  btor_release_exp (g_btor, eqZv0);
+  btor_release_exp (g_btor, eqZv1);
+  btor_release_exp (g_btor, ultY);
+  btor_release_exp (g_btor, ugte);
+  btor_release_exp (g_btor, existsY);
+  btor_release_exp (g_btor, forallY);
+  btor_release_exp (g_btor, imp_if);
+  btor_release_exp (g_btor, imp_else);
+  btor_release_exp (g_btor, and0);
+  btor_release_exp (g_btor, and1);
+  btor_release_exp (g_btor, expected);
+}
+#endif
+
+/*
+ * test quantifier hashing
+ *
+ * Ex0-Ex1.x0=x1 == Ey0-Ey1.y0=y1
+ * Ex0x1.x0=x1 == Ey0y1.y1==y0
+ *
+ *
+ *
+ *
+ */
+
 void
 run_normquant_tests (int argc, char **argv)
 {
@@ -535,7 +585,9 @@ run_normquant_tests (int argc, char **argv)
   RUN_TEST (normquant_inv_exists_nested2);
   RUN_TEST (normquant_inv_prefix);
   RUN_TEST (normquant_inv_and_exists);
-  RUN_TEST (normquant_elim_ite);
-  //  RUN_TEST (normquant_elim_top_ite);
   RUN_TEST (normquant_normalize_negated_quant);
+  RUN_TEST (normquant_elim_ite);
+  // FIXME (ma): this one is disabled for now since hashing of quantifier
+  // expressions does not recognize result and expected to be the same
+  //  RUN_TEST (normquant_elim_top_ite);
 }
