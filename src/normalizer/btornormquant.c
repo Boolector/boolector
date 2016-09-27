@@ -421,8 +421,11 @@ normalize_quantifiers (Btor *btor,
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    id = BTOR_GET_ID_NODE (cur);
-    d  = btor_get_int_hash_map (map, id);
+    if (btor_is_quantifier_node (real_cur))
+      id = BTOR_GET_ID_NODE (cur);
+    else
+      id = real_cur->id;
+    d = btor_get_int_hash_map (map, id);
 
     if (!d)
     {
@@ -440,6 +443,10 @@ normalize_quantifiers (Btor *btor,
         for (i = real_cur->arity - 1; i >= 0; i--)
           BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
       }
+
+      /* push marker for scope of 'real_cur', every parameterized exp
+       * under 'real_cur' is in the scope of 'real_cur' */
+      if (btor_is_quantifier_node (real_cur)) BTOR_PUSH_STACK (mm, reset, 0);
     }
     else if (!d->as_ptr)
     {
@@ -489,23 +496,24 @@ normalize_quantifiers (Btor *btor,
               BTOR_REAL_ADDR_NODE (result)->id;
       }
 
-      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, id);
+      if (real_cur->parameterized && real_cur->arity > 0)
+        BTOR_PUSH_STACK (mm, reset, id);
 
       /* scope of 'real_cur' is closed remove all parameterized nodes from
        * cache that are in the scope of 'real_cur'. */
-      // TODO (ma): this removes all parameterized nodes from the reset
-      //		stack, which is not necessary. try to only remove
-      //		parameterized nodes in the scope of real_cur
       if (btor_is_quantifier_node (real_cur))
       {
         while (!BTOR_EMPTY_STACK (reset))
         {
           id = BTOR_POP_STACK (reset);
-          /* do not remove params other than real_cur->e[0] */
-          if (id != real_cur->e[0]->id) continue;
+          /* scope of 'real_cur' closed */
+          if (id == 0) break;
           btor_remove_int_hash_map (map, id, &data);
           btor_release_exp (btor, data.as_ptr);
         }
+        /* remove cached param from current quantifier */
+        btor_remove_int_hash_map (map, real_cur->e[0]->id, &data);
+        btor_release_exp (btor, data.as_ptr);
       }
     PUSH_RESULT:
       /* quantifiers get always flipped if negated */
