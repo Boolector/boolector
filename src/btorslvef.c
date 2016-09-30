@@ -2935,15 +2935,17 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       return res;
     }
 
-    start = btor_time_stamp ();
     if (gslv->forall_evar_deps->table->count || gslv->forall->ufs->count)
+    {
+      start     = btor_time_stamp ();
       uf_models = find_instantiations (gslv);
+      gslv->time.findinst += btor_time_stamp () - start;
+    }
     else
     {
     RESTART:
       uf_models = generate_model (gslv);
     }
-    gslv->time.findinst += btor_time_stamp () - start;
     start = btor_time_stamp ();
     model = synthesize_model (gslv, uf_models);
     free_uf_models (gslv, uf_models);
@@ -3323,9 +3325,11 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds synthesizing functions",
+            slv->time.synth);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds find instantiations",
             slv->time.findinst);
-  BTOR_MSG (
-      slv->btor->msg, 1, "%.2f seconds find instantiations", slv->time.synth);
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds quantifier instantiation",
