@@ -2896,14 +2896,14 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 
   g = instantiate_formula (gslv, model);
 
-  /* query forall solver */
-  start = btor_time_stamp ();
 UNDERAPPROX:
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
   assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
   if (opt_underapprox) underapprox (gslv->forall, vars, assumptions);
 
-  res = btor_sat_btor (gslv->forall, -1, -1);
+  /* query forall solver */
+  start = btor_time_stamp ();
+  res   = btor_sat_btor (gslv->forall, -1, -1);
   update_formula (gslv);
   assert (!btor_is_proxy_node (gslv->forall_formula));
   gslv->time.f_solver += btor_time_stamp () - start;
