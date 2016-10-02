@@ -1028,39 +1028,26 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
     btor_map_node (map, var_fs, var_es);
   }
 
-#if 0
-  assert (f_solver->unsynthesized_constraints->count == 0);
-  assert (f_solver->synthesized_constraints->count == 0);
-  assert (f_solver->embedded_constraints->count == 0);
-  assert (f_solver->varsubst_constraints->count == 0);
-#endif
   res = build_refinement (e_solver, gslv->forall_formula, map);
 
   btor_delete_node_map (map);
 
-#if 1
-  //  printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  //  btor_dump_smt2_node (e_solver, stdout, res, -1);
-  //  printf ("<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
   if (res == e_solver->true_exp)
   {
     btor_free_bv_tuple (f_solver->mm, ce);
     return false;
   }
-#endif
+
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
       res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
   gslv->stats.refinements++;
   assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
   btor_add_ptr_hash_table (gslv->forall_ces, ce);
-//  btor_add_ptr_hash_table (gslv->exists_refinements, res);
-//  collect_ref_exps (gslv, res);
-#if 1
+
   collect_ref_exps (gslv, res);
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
-#endif
   return true;
 }
 
@@ -2226,29 +2213,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 
       uf_model = b->data.as_ptr;
       if (!uf_model) continue;
-#if 0
-	  printf ("exists %s\n", node2string (e_uf_fs));
-	  BtorHashTableIterator mit;
-	  BtorBitVectorTuple *tup;
-	  uint32_t i;
-	  btor_init_hash_table_iterator (&mit, uf_model);
-	  while (btor_has_next_hash_table_iterator (&mit))
-	    {
-	      bv = mit.bucket->data.as_ptr;
-	      tup = btor_next_hash_table_iterator (&mit);
 
-	      char *s;
-	      for (i = 0; i < tup->arity; i++)
-		{
-		  s = btor_bv_to_char_bv (mm, tup->bv[i]);
-		  printf ("  a %s %zu\n", s, btor_bv_to_uint64_bv (tup->bv[i]));
-		  btor_freestr (mm, s);
-		}
-	      s = btor_bv_to_char_bv (mm, bv);
-	      printf ("* r %s %zu\n", s, btor_bv_to_uint64_bv (bv));
-	      btor_freestr (mm, s);
-	    }
-#endif
       synth_res      = new_synth_result (mm);
       prev_synth_res = 0;
       prev_synth_fun = 0;
