@@ -2311,9 +2311,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
           else
             limit = limit * 1.5;
         }
-        //	      // TODO: set limit of UFs to 10000 fixed
-        //	      if (limit > 100000)
-        //		limit = 10000;
+        // TODO: set limit of UFs to 10000 fixed
+        if (limit > 100000) limit = 10000;
         b = btor_add_ptr_hash_table (inputs, e_uf_fs);
         // TODO: disable for now (not required)
         if (false && !btor_is_uf_node (e_uf_fs))
