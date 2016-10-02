@@ -1059,7 +1059,8 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   assert (model);
 
   uint32_t i;
-  //  BtorNode *uf;
+  bool opt_synth_complete;
+  BtorNode *uf;
   BtorNode *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
   BtorHashTableIterator it;
   BtorNodePtrStack params, consts;
@@ -1076,6 +1077,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   BTOR_INIT_STACK (params);
   BTOR_INIT_STACK (consts);
   BTOR_INIT_STACK (tup_sorts);
+  opt_synth_complete = btor_get_opt (btor, BTOR_OPT_EF_SYNTH_ITE_COMPLETE) == 1;
 
   sorts      = &btor->sorts_unique_table;
   args_tuple = model->first->key;
@@ -1097,8 +1099,11 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   btor_release_sort (sorts, cdsortid);
   BTOR_RELEASE_STACK (mm, tup_sorts);
 
-#if 0
-    uf = btor_uf_exp (btor, funsortid, 0);
+  if (opt_synth_complete)
+    e_else = btor_zero_exp (btor, value->width);
+  else
+  {
+    uf   = btor_uf_exp (btor, funsortid, 0);
     args = btor_args_exp (btor, params.start, BTOR_COUNT_STACK (params));
     assert (args->sort_id = btor_get_domain_fun_sort (sorts, uf->sort_id));
     e_else = btor_apply_exp (btor, uf, args);
@@ -1106,9 +1111,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
             == btor_get_codomain_fun_sort (sorts, uf->sort_id));
     btor_release_exp (btor, args);
     btor_release_exp (btor, uf);
-#else
-  e_else = btor_zero_exp (btor, value->width);
-#endif
+  }
 
   /* generate ITEs */
   ite = 0;
@@ -2169,6 +2172,7 @@ static BtorPtrHashTable *
 synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 {
   uint32_t limit, level;
+  uint32_t opt_synth_limit;
   bool opt_synth_fun;
   BtorPtrHashTable *model, *prev_model;
   Btor *e_solver, *f_solver;
@@ -2180,12 +2184,13 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
 
-  e_solver      = gslv->exists;
-  f_solver      = gslv->forall;
-  mm            = f_solver->mm;
-  prev_model    = gslv->forall_cur_model;
-  model         = btor_new_ptr_hash_table (mm, 0, 0);
-  opt_synth_fun = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH) == 1;
+  e_solver        = gslv->exists;
+  f_solver        = gslv->forall;
+  mm              = f_solver->mm;
+  prev_model      = gslv->forall_cur_model;
+  model           = btor_new_ptr_hash_table (mm, 0, 0);
+  opt_synth_fun   = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH) == 1;
+  opt_synth_limit = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH_LIMIT);
 #if 0
   inputs = btor_new_ptr_hash_table (mm, 0, 0);
 #endif
@@ -2221,7 +2226,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       if (opt_synth_fun)
       {
         level = 0;
-        limit = 10000;
+        limit = opt_synth_limit;
 
         /* check previously synthesized function */
         if (prev_model && (b = btor_get_ptr_hash_table (prev_model, e_uf_fs)))
@@ -2238,7 +2243,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
         }
 
         // TODO: set limit of UFs to 10000 fixed
-        if (limit > 100000) limit = 10000;
+        if (limit > 100000) limit = opt_synth_limit;
 
 #if 0
 	      b = btor_add_ptr_hash_table (inputs, e_uf_fs);

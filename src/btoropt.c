@@ -770,6 +770,26 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "under approximation for universal variables");
+  init_opt (btor,
+            BTOR_OPT_EF_SYNTH_LIMIT,
+            false,
+            false,
+            "ef:synthlimit",
+            0,
+            10000,
+            0,
+            UINT_MAX,
+            "number of checks for synthesizing terms");
+  init_opt (btor,
+            BTOR_OPT_EF_SYNTH_ITE_COMPLETE,
+            false,
+            true,
+            "ef:synthcomplete",
+            0,
+            0,
+            0,
+            1,
+            "make base case of concrete model constant instead of undef.");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,

@@ -574,6 +574,8 @@ enum BtorOption
   BTOR_OPT_EF_DUAL_SOLVER,
   BTOR_OPT_EF_FINST_MODE,
   BTOR_OPT_EF_UNDERAPPROX,
+  BTOR_OPT_EF_SYNTH_LIMIT,
+  BTOR_OPT_EF_SYNTH_ITE_COMPLETE,
 
   /* internal options --------------------------------------------------- */
 
