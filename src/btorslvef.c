@@ -449,6 +449,7 @@ mk_dual_formula (Btor *btor,
           sortid = btor_recursively_rebuild_sort_clone (
               btor, dual_btor, real_cur->sort_id);
           result = btor_uf_exp (dual_btor, sortid, 0);
+          btor_release_sort (&dual_btor->sorts_unique_table, sortid);
         }
       }
       else if (btor_is_slice_node (real_cur))
