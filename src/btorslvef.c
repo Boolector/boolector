@@ -3109,6 +3109,10 @@ sat_ef_solver (BtorEFSolver *slv)
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
 
+  /* disable dual solver if UFs are present in the formula */
+  // TODO: eliminate UFs with ackermann
+  if (gslv->exists_ufs->table->count > 0) opt_dual_solver = false;
+
   if (opt_dual_solver)
   {
     var_map      = btor_new_node_map (slv->btor);
@@ -3134,14 +3138,11 @@ sat_ef_solver (BtorEFSolver *slv)
 
     if (opt_dual_solver)
     {
-      //	  add_instantiation (dual_gslv, gslv, var_map);
       res = find_model (dual_gslv, skip_exists);
 
-      /* the formula is only UNSAT if there are no UFs in the original one
-       */
-      if (res == BTOR_RESULT_SAT && gslv->exists_ufs->table->count == 0)
+      if (res == BTOR_RESULT_SAT)
       {
-        //	      add_instantiation (gslv, dual_gslv, dual_var_map);
+        assert (gslv->exists_ufs->table->count == 0);
         res = BTOR_RESULT_UNSAT;
         printf ("DUAL SAT: UNSAT\n");
 #ifndef NDEBUG
@@ -3152,10 +3153,6 @@ sat_ef_solver (BtorEFSolver *slv)
       else if (res == BTOR_RESULT_UNSAT)
       {
         printf ("VALID\n");
-      }
-      else
-      {
-        //	      add_instantiation (gslv, dual_gslv, dual_var_map);
       }
 
       slv->time.dual_e_solver = dual_gslv->time.e_solver;
