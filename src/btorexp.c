@@ -1727,7 +1727,7 @@ enlarge_nodes_unique_table (Btor *btor)
 }
 
 BtorNode *
-btor_const_exp (Btor *btor, BtorBitVector *bits)
+btor_const_exp (Btor *btor, const BtorBitVector *bits)
 {
   assert (btor);
   assert (bits);
@@ -1736,14 +1736,16 @@ btor_const_exp (Btor *btor, BtorBitVector *bits)
   BtorBitVector *lookupbits;
   BtorNode **lookup;
 
-  inv        = false;
-  lookupbits = bits;
-
-  /* normalize constants, constans are always even */
+  /* normalize constants, constants are always even */
   if (btor_get_bit_bv (bits, 0))
   {
     lookupbits = btor_not_bv (btor->mm, bits);
     inv        = true;
+  }
+  else
+  {
+    lookupbits = btor_copy_bv (btor->mm, bits);
+    inv        = false;
   }
 
   lookup = find_const_exp (btor, lookupbits);
@@ -1764,11 +1766,9 @@ btor_const_exp (Btor *btor, BtorBitVector *bits)
 
   assert (BTOR_IS_REGULAR_NODE (*lookup));
 
-  if (inv)
-  {
-    btor_free_bv (btor->mm, lookupbits);
-    return BTOR_INVERT_NODE (*lookup);
-  }
+  btor_free_bv (btor->mm, lookupbits);
+
+  if (inv) return BTOR_INVERT_NODE (*lookup);
   return *lookup;
 }
 

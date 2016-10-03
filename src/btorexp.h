@@ -487,7 +487,7 @@ void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
  * strlen(bits) > 0
  * width(result) = strlen(bits)
  */
-BtorNode *btor_const_exp (Btor *btor, BtorBitVector *bits);
+BtorNode *btor_const_exp (Btor *btor, const BtorBitVector *bits);
 
 /* Binary constant representing 'width' zeros.
  * width > 0
