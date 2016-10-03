@@ -3300,7 +3300,7 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   qsort (cone.start,
          BTOR_COUNT_STACK (cone),
          sizeof (BtorNode *),
-         btor_cmp_exp_by_id_qsort_asc);
+         btor_compare_exp_by_id_qsort_asc);
   for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
   {
     cur = BTOR_PEEK_STACK (cone, i);

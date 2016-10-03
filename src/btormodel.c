@@ -901,7 +901,7 @@ btor_generate_model (Btor *btor,
   qsort (stack.start,
          BTOR_COUNT_STACK (stack),
          sizeof (BtorNode *),
-         btor_cmp_exp_by_id_qsort_asc);
+         btor_compare_exp_by_id_qsort_asc);
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {

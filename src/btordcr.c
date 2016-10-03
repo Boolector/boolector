@@ -126,7 +126,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
   qsort (nodes->start,
          BTOR_COUNT_STACK (*nodes),
          sizeof (BtorNode *),
-         btor_cmp_exp_by_id_qsort_asc);
+         btor_compare_exp_by_id_qsort_asc);
 
   /* compute score */
   for (k = 0; k < BTOR_COUNT_STACK (*nodes); k++)

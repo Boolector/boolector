@@ -1359,7 +1359,7 @@ btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
 }
 
 int
-btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q)
+btor_compare_exp_by_id_qsort_desc (const void *p, const void *q)
 {
   BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
   BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
@@ -1367,7 +1367,7 @@ btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q)
 }
 
 int
-btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q)
+btor_compare_exp_by_id_qsort_asc (const void *p, const void *q)
 {
   BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
   BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);

@@ -239,7 +239,7 @@ full_adder (
 }
 
 static int
-btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
+btor_compare_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
 {
   uint32_t len, i;
   int res;
@@ -248,7 +248,8 @@ btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
   len = a->len;
   assert (len == b->len);
   res = 0;
-  for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
+  for (i = 0; !res && i < len; i++)
+    res = btor_compare_aig (a->aigs[i], b->aigs[i]);
   return res;
 }
 
@@ -267,7 +268,7 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   int i;
 
   if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
-      && btor_cmp_aigvec_lsb_first (av1, av2) > 0)
+      && btor_compare_aigvec_lsb_first (av1, av2) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, av1, av2);
   }
@@ -413,7 +414,7 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len == b->len);
 
   if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
-      && btor_cmp_aigvec_lsb_first (a, b) > 0)
+      && btor_compare_aigvec_lsb_first (a, b) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, a, b);
   }

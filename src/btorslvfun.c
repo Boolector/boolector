@@ -807,7 +807,7 @@ search_initial_applies_dual_prop (Btor *btor,
     }
   }
 
-  (void) btor_cmp_exp_by_id_qsort_asc;
+  (void) btor_compare_exp_by_id_qsort_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
   btor_compute_scores_dual_prop (btor);
@@ -825,7 +825,7 @@ search_initial_applies_dual_prop (Btor *btor,
                            exp_map,
                            &inputs,
                            top_applies,
-                           btor_cmp_exp_by_id_qsort_asc);
+                           btor_compare_exp_by_id_qsort_asc);
 #elif DP_QSORT == DP_QSORT_DESC
   set_up_dual_and_collect (btor,
                            clone,
@@ -833,7 +833,7 @@ search_initial_applies_dual_prop (Btor *btor,
                            exp_map,
                            &inputs,
                            top_applies,
-                           btor_cmp_exp_by_id_qsort_desc);
+                           btor_compare_exp_by_id_qsort_desc);
 #else
 
 #if DP_QSORT_ASC_DESC_FIRST
@@ -851,24 +851,24 @@ search_initial_applies_dual_prop (Btor *btor,
                              exp_map,
                              &inputs,
                              &tmp_desc,
-                             btor_cmp_exp_by_id_qsort_desc);
+                             btor_compare_exp_by_id_qsort_desc);
     set_up_dual_and_collect (btor,
                              clone,
                              clone_root,
                              exp_map,
                              &inputs,
                              &tmp_asc,
-                             btor_cmp_exp_by_id_qsort_asc);
+                             btor_compare_exp_by_id_qsort_asc);
 
     if (BTOR_COUNT_STACK (tmp_asc) < BTOR_COUNT_STACK (tmp_desc))
     {
-      slv->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_asc;
+      slv->dp_cmp_inputs = btor_compare_exp_by_id_qsort_asc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_asc); i++)
         BTOR_PUSH_STACK (mm, *top_applies, BTOR_PEEK_STACK (tmp_asc, i));
     }
     else
     {
-      slv->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_desc;
+      slv->dp_cmp_inputs = btor_compare_exp_by_id_qsort_desc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_desc); i++)
         BTOR_PUSH_STACK (mm, *top_applies, BTOR_PEEK_STACK (tmp_desc, i));
     }

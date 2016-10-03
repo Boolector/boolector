@@ -21,7 +21,7 @@ btor_hash_ptr (const void *p)
 }
 
 static int
-btor_cmp_ptr (const void *p, const void *q)
+btor_compare_ptr (const void *p, const void *q)
 {
   return ((long) p) != ((long) q);
 }
@@ -67,7 +67,7 @@ btor_new_ptr_hash_table (BtorMemMgr *mm, BtorHashPtr hash, BtorCmpPtr cmp)
 
   res->mm   = mm;
   res->hash = hash ? hash : btor_hash_ptr;
-  res->cmp  = cmp ? cmp : btor_cmp_ptr;
+  res->cmp  = cmp ? cmp : btor_compare_ptr;
 
   btor_enlarge_ptr_hash_table (res);
 

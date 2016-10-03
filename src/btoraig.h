@@ -181,7 +181,7 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1);
+int btor_compare_aig (BtorAIG *aig0, BtorAIG *aig1);
 
 /* hash AIG by id */
 unsigned int btor_hash_aig_by_id (BtorAIG *aig);

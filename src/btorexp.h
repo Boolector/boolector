@@ -983,8 +983,8 @@ void btor_release_exp (Btor *btor, BtorNode *exp);
  * NOTE: 'exp' must be already simplified */
 void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 
-int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
-int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
+int btor_compare_exp_by_id_qsort_desc (const void *p, const void *q);
+int btor_compare_exp_by_id_qsort_asc (const void *p, const void *q);
 
 /*------------------------------------------------------------------------*/
 

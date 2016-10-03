@@ -1471,7 +1471,7 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 int
-btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1)
+btor_compare_aig (BtorAIG *aig0, BtorAIG *aig1)
 {
   if (aig0 == aig1) return 0;
   if (BTOR_INVERT_AIG (aig0) == aig1)
