@@ -2843,6 +2843,7 @@ static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
   bool opt_underapprox;
+  uint32_t opt_finst_mode;
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
@@ -2851,6 +2852,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   BtorNodeMapIterator it;
 
   opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
+  opt_finst_mode  = btor_get_opt (gslv->forall, BTOR_OPT_EF_FINST_MODE);
 
   /* initialize all universal variables with a bit-width of 1 */
   if (opt_underapprox)
@@ -2879,16 +2881,18 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       goto DONE;
     }
 
-    if (gslv->forall_evar_deps->table->count || gslv->forall->ufs->count)
+    if (opt_finst_mode == BTOR_EF_FINST_NONE
+        || (gslv->forall_evar_deps->table->count == 0
+            && gslv->forall->ufs->count == 0))
+    {
+    RESTART:
+      cur_model = generate_model (gslv);
+    }
+    else
     {
       start     = btor_time_stamp ();
       cur_model = find_instantiations (gslv);
       gslv->time.findinst += btor_time_stamp () - start;
-    }
-    else
-    {
-    RESTART:
-      cur_model = generate_model (gslv);
     }
 
     /* synthesize model based on 'cur_model' */
