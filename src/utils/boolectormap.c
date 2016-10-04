@@ -64,7 +64,7 @@ boolector_delete_node_map (BoolectorNodeMap *map)
 }
 
 BoolectorNode *
-boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n)
+boolector_mapped_node (BoolectorNodeMap *map, const BoolectorNode *n)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *real_node;
@@ -86,7 +86,7 @@ boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n)
 }
 
 int
-boolector_count_map (BoolectorNodeMap *map)
+boolector_count_map (const BoolectorNodeMap *map)
 {
   assert (map);
   return map->table->count;

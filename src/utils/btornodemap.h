@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -45,17 +45,17 @@ typedef struct BtorNodeMap BtorNodeMap;
 
 /*------------------------------------------------------------------------*/
 
-BtorNodeMap *btor_new_node_map (Btor *);
-BtorNode *btor_mapped_node (BtorNodeMap *, BtorNode *);
-int btor_count_map (BtorNodeMap *map);
-void btor_map_node (BtorNodeMap *, BtorNode *src, BtorNode *dst);
-void btor_delete_node_map (BtorNodeMap *);
+BtorNodeMap *btor_new_node_map (Btor *btor);
+BtorNode *btor_mapped_node (BtorNodeMap *map, const BtorNode *node);
+int btor_count_map (const BtorNodeMap *map);
+void btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst);
+void btor_delete_node_map (BtorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_non_recursive_substitute_node (Btor *,
-                                              BtorNodeMap *,
-                                              BtorNode *);
+BtorNode *btor_non_recursive_substitute_node (Btor *btor,
+                                              BtorNodeMap *map,
+                                              BtorNode *root);
 
 /*------------------------------------------------------------------------*/
 /* Extended mapping.  A 'BtorNodeMapper' function should return a NEW
@@ -66,16 +66,16 @@ BtorNode *btor_non_recursive_substitute_node (Btor *,
  * The mapper will only be called with non-inverted and simplified
  * nodes as arguments.
  */
-typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
+typedef BtorNode *(*BtorNodeMapper) (Btor *btor, void *state, BtorNode *node);
 
 /* References returned by a 'BtorNodeMapper' are not restricted to be
  * allocated internally, hence we need a matching release operation.
  */
-typedef void (*BtorNodeReleaser) (Btor *, BtorNode *);
+typedef void (*BtorNodeReleaser) (Btor *btor, BtorNode *node);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
-    Btor *,
-    BtorNodeMap *,     // share/cache substitution results
+    Btor *btor,
+    BtorNodeMap *map,  // share/cache substitution results
     void *state,       // for the mapper
     BtorNodeMapper,    // see above
     BtorNodeReleaser,  // see above

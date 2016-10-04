@@ -43,9 +43,10 @@ void boolector_map_node (BoolectorNodeMap *map,
                          BoolectorNode *src,
                          BoolectorNode *dst);
 
-BoolectorNode *boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n);
+BoolectorNode *boolector_mapped_node (BoolectorNodeMap *map,
+                                      const BoolectorNode *n);
 
-int boolector_count_map (BoolectorNodeMap *map);
+int boolector_count_map (const BoolectorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
 

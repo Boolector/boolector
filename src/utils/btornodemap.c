@@ -54,7 +54,7 @@ btor_delete_node_map (BtorNodeMap *map)
 }
 
 BtorNode *
-btor_mapped_node (BtorNodeMap *map, BtorNode *node)
+btor_mapped_node (BtorNodeMap *map, const BtorNode *node)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *real_node;
@@ -70,7 +70,7 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 }
 
 int
-btor_count_map (BtorNodeMap *map)
+btor_count_map (const BtorNodeMap *map)
 {
   assert (map);
   return map->table->count;
