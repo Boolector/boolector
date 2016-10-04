@@ -84,8 +84,8 @@ BtorBitVector *
 btor_new_random_range_bv (BtorMemMgr *mm,
                           BtorRNG *rng,
                           uint32_t bw,
-                          BtorBitVector *from,
-                          BtorBitVector *to)
+                          const BtorBitVector *from,
+                          const BtorBitVector *to)
 {
   assert (mm);
   assert (rng);
@@ -1526,7 +1526,8 @@ btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 }
 
 int
-btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
+btor_compare_bv_tuple (const BtorBitVectorTuple *t0,
+                       const BtorBitVectorTuple *t1)
 {
   assert (t0);
   assert (t1);
@@ -1547,7 +1548,7 @@ btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
 }
 
 uint32_t
-btor_hash_bv_tuple (BtorBitVectorTuple *t)
+btor_hash_bv_tuple (const BtorBitVectorTuple *t)
 {
   assert (t);
 
