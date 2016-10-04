@@ -258,7 +258,7 @@ btor_insert_substitution (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 const char *
-btor_version (Btor *btor)
+btor_version (const Btor *btor)
 {
   assert (btor);
   (void) btor;

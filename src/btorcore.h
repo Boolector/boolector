@@ -226,7 +226,7 @@ Btor *btor_new_btor (void);
 void btor_delete_btor (Btor *btor);
 
 /* Gets version. */
-const char *btor_version (Btor *btor);
+const char *btor_version (const Btor *btor);
 
 /* Set termination callback. */
 void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
