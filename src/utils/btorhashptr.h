@@ -81,11 +81,11 @@ BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mm,
                                              const void *key_map,
                                              const void *data_map);
 
-void btor_delete_ptr_hash_table (BtorPtrHashTable *);
+void btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht);
 
-BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
 
-BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
 
 /* Remove from hash table the bucket with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
