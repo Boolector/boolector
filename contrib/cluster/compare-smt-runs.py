@@ -810,6 +810,8 @@ def _print_html_footer():
 def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
 
+def _has_result(result, f):
+    return result in set(g_file_stats['result'][d][f] for d in g_args.dirs)
 
 def _get_column_name(key):
     if key in FILTER_LOG:
@@ -1051,6 +1053,10 @@ def _print_data ():
                 continue
             if g_args.mem and not _has_status('mem', f):
                 continue
+            if g_args.sat and not _has_result(10, f):
+                continue
+            if g_args.unsat and not _has_result(20, f):
+                continue
 
         s = None
         r = None
@@ -1203,6 +1209,18 @@ if __name__ == "__main__":
                 "-ok",
                 action="store_true",
                 help="show non-errors only"
+              )
+        aparser.add_argument \
+              (
+                "-sat",
+                action="store_true",
+                help="show sat instances only"
+              )
+        aparser.add_argument \
+              (
+                "-unsat",
+                action="store_true",
+                help="show unsat instances only"
               )
         aparser.add_argument \
               (
