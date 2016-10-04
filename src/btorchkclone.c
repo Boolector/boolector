@@ -379,7 +379,7 @@ chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 #define BTOR_CHKCLONE_AIG_UNIQUE_TABLE(table, clone)   \
   do                                                   \
   {                                                    \
-    int i;                                             \
+    uint32_t i;                                        \
     assert (table.size == clone.size);                 \
     assert (table.num_elements == clone.num_elements); \
     for (i = 0; i < table.size; i++)                   \

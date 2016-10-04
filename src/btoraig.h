@@ -46,8 +46,8 @@ BTOR_DECLARE_STACK (BtorAIGPtr, BtorAIG *);
 
 struct BtorAIGUniqueTable
 {
-  int size;
-  int num_elements;
+  uint32_t size;
+  uint32_t num_elements;
   int32_t *chains;
 };
 
@@ -180,10 +180,10 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_compare_aig (BtorAIG *aig0, BtorAIG *aig1);
+int btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1);
 
 /* hash AIG by id */
-unsigned int btor_hash_aig_by_id (BtorAIG *aig);
+uint32_t btor_hash_aig_by_id (const BtorAIG *aig);
 /* compare AIG by id */
-int btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1);
+int btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
 #endif

@@ -1471,7 +1471,7 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 int
-btor_compare_aig (BtorAIG *aig0, BtorAIG *aig1)
+btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1)
 {
   if (aig0 == aig1) return 0;
   if (BTOR_INVERT_AIG (aig0) == aig1)
@@ -1486,8 +1486,8 @@ btor_compare_aig (BtorAIG *aig0, BtorAIG *aig1)
 }
 
 /* hash AIG by id */
-unsigned int
-btor_hash_aig_by_id (BtorAIG *aig)
+uint32_t
+btor_hash_aig_by_id (const BtorAIG *aig)
 {
   assert (aig);
   return (unsigned int) BTOR_GET_ID_AIG (aig) * 7334147u;
@@ -1495,7 +1495,7 @@ btor_hash_aig_by_id (BtorAIG *aig)
 
 /* compare AIG by id */
 int
-btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1)
+btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1)
 {
   assert (aig0);
   assert (aig1);
