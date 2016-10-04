@@ -20,7 +20,7 @@
 #include "btorsat.h"
 
 void btor_chkclone (Btor *btor);
-void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);
+void btor_chkclone_exp (const BtorNode *exp, const BtorNode *clone);
 void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
 
 #define BTOR_CHKCLONE_NORES(fun, args...)  \

@@ -436,7 +436,7 @@ chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 /*------------------------------------------------------------------------*/
 
 void
-btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
+btor_chkclone_exp (const BtorNode *exp, const BtorNode *clone)
 {
   assert (exp);
   assert (clone);
