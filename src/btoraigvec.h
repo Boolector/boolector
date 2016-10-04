@@ -48,8 +48,9 @@ BtorAIGVecMgr *btor_new_aigvec_mgr (Btor *btor);
 BtorAIGVecMgr *btor_clone_aigvec_mgr (Btor *btor, BtorAIGVecMgr *avmgr);
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
-// TODO REMOVE
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);
+
+/*------------------------------------------------------------------------*/
 
 /* Implicit precondition of all functions taking AIG vectors as inputs:
  * The length of all input AIG vectors have to be greater than zero.
@@ -58,7 +59,7 @@ BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);
 /* Creates new AIG vector representing the constant specified by bits.
  * len(result) = width(bits)
  */
-BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits);
+BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const BtorBitVector *bits);
 
 /* Creates new AIG vector representing a variable.
  * len > 0

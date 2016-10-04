@@ -42,7 +42,7 @@ new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 }
 
 BtorAIGVec *
-btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits)
+btor_const_aigvec (BtorAIGVecMgr *avmgr, const BtorBitVector *bits)
 {
   assert (avmgr);
   assert (bits);
