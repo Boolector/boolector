@@ -287,7 +287,7 @@ btor_process_skeleton (Btor *btor)
   if (res == 20)
   {
     BTOR_MSG (btor->msg, 1, "skeleton inconsistent");
-    btor->inconsistent = 1;
+    btor->inconsistent = true;
   }
   else
   {

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -53,8 +53,8 @@ struct BtorPtrHashTable
 {
   BtorMemMgr *mm;
 
-  unsigned size;
-  unsigned count;
+  uint32_t size;
+  uint32_t count;
   BtorPtrHashBucket **table;
 
   BtorHashPtr hash;

@@ -122,7 +122,6 @@ BtorAIGMgr *btor_new_aig_mgr (Btor *btor);
 BtorAIGMgr *btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr);
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
-// TODO remove
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
 
 /* Variable representing 1 bit. */

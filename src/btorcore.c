@@ -323,17 +323,29 @@ constraints_stats_changes (Btor *btor)
       && !btor->unsynthesized_constraints->count)
     return INT_MAX;
 
-  res = abs (btor->stats.oldconstraints.varsubst
-             - btor->varsubst_constraints->count);
-
-  res += abs (btor->stats.oldconstraints.embedded
-              - btor->embedded_constraints->count);
-
-  res += abs (btor->stats.oldconstraints.unsynthesized
-              - btor->unsynthesized_constraints->count);
-
-  res += abs (btor->stats.oldconstraints.synthesized
-              - btor->synthesized_constraints->count);
+  res = btor->stats.oldconstraints.varsubst >= btor->varsubst_constraints->count
+            ? btor->stats.oldconstraints.varsubst
+                  - btor->varsubst_constraints->count
+            : btor->varsubst_constraints->count
+                  - btor->stats.oldconstraints.varsubst;
+  res +=
+      btor->stats.oldconstraints.embedded >= btor->embedded_constraints->count
+          ? btor->stats.oldconstraints.embedded
+                - btor->embedded_constraints->count
+          : btor->embedded_constraints->count
+                - btor->stats.oldconstraints.embedded;
+  res += btor->stats.oldconstraints.unsynthesized
+                 >= btor->unsynthesized_constraints->count
+             ? btor->stats.oldconstraints.unsynthesized
+                   - btor->unsynthesized_constraints->count
+             : btor->unsynthesized_constraints->count
+                   - btor->stats.oldconstraints.unsynthesized;
+  res += btor->stats.oldconstraints.synthesized
+                 >= btor->synthesized_constraints->count
+             ? btor->stats.oldconstraints.synthesized
+                   - btor->synthesized_constraints->count
+             : btor->synthesized_constraints->count
+                   - btor->stats.oldconstraints.synthesized;
 
   return res;
 }
@@ -1015,7 +1027,7 @@ btor_process_unsynthesized_constraints (Btor *btor)
       aig = exp_to_aig (btor, cur);
       if (aig == BTOR_AIG_FALSE)
       {
-        btor->found_constraint_false = 1;
+        btor->found_constraint_false = true;
         break;
       }
       btor_add_toplevel_aig_to_sat (amgr, aig);
@@ -1052,7 +1064,7 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
     if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
         || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
     {
-      btor->inconsistent = 1;
+      btor->inconsistent = true;
       return;
     }
     else
@@ -1455,7 +1467,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
     /* we do not add true/false */
     if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
         || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
-      btor->inconsistent = 1;
+      btor->inconsistent = true;
     else
     {
       assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
@@ -1495,7 +1507,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
        *   -> c1 is not an assumption and thus, failed () aborts
        */
       if (constraint_is_inconsistent (btor, exp))
-        btor->inconsistent = 1;
+        btor->inconsistent = true;
       else
       {
         if (!real_exp->constraint)
@@ -1513,7 +1525,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
       }
     }
     else if (constraint_is_inconsistent (btor, exp))
-      btor->inconsistent = 1;
+      btor->inconsistent = true;
     else
       btor_insert_unsynthesized_constraint (btor, exp);
 
@@ -3593,7 +3605,6 @@ int
 btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
-  assert (btor->btor_sat_btor_called >= 0);
   assert (btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
           || btor->btor_sat_btor_called == 0);
 

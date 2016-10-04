@@ -85,10 +85,10 @@ typedef struct BtorCallbacks BtorCallbacks;
 
 struct BtorConstraintStats
 {
-  int varsubst;
-  int embedded;
-  int unsynthesized;
-  int synthesized;
+  uint32_t varsubst;
+  uint32_t embedded;
+  uint32_t unsynthesized;
+  uint32_t synthesized;
 };
 
 typedef struct BtorConstraintStats BtorConstraintStats;
@@ -127,13 +127,16 @@ struct Btor
   BtorPtrHashTable *fun_model;
   BtorNodePtrStack functions_with_model;
 
-  int rec_rw_calls; /* calls for recursive rewriting */
-  int valid_assignments;
-  int vis_idx; /* file index for visualizing expressions */
-  int inconsistent;
-  int found_constraint_false;
-  int external_refs;                /* external references (library mode) */
-  int btor_sat_btor_called;         /* how often is btor_sat_btor been called */
+  uint32_t rec_rw_calls; /* calls for recursive rewriting */
+  uint32_t valid_assignments;
+
+  int32_t vis_idx; /* file index for visualizing expressions */
+
+  bool inconsistent;
+  bool found_constraint_false;
+
+  uint32_t external_refs;           /* external references (library mode) */
+  uint32_t btor_sat_btor_called;    /* how often is btor_sat_btor been called */
   BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
@@ -153,7 +156,7 @@ struct Btor
   char *parse_error_msg;
 
   FILE *apitrace;
-  int close_apitrace;
+  int8_t close_apitrace;
 
   BtorOpt *options;
   BtorPtrHashTable *str2opt;
@@ -168,22 +171,23 @@ struct Btor
 
   struct
   {
-    int max_rec_rw_calls;      /* maximum number of recursive rewrite calls */
-    int var_substitutions;     /* number substituted vars */
-    int uf_substitutions;      /* num substituted uninterpreted functions */
-    int ec_substitutions;      /* embedded constraint substitutions */
-    int linear_equations;      /* number of linear equations */
-    int gaussian_eliminations; /* number of gaussian eliminations */
-    int eliminated_slices;     /* number of eliminated slices */
-    int skeleton_constraints;  /* number of extracted skeleton constraints */
-    int adds_normalized;       /* number of add chains normalizations */
-    int ands_normalized;       /* number of and chains normalizations */
-    int muls_normalized;       /* number of mul chains normalizations */
-    int ackermann_constraints;
+    uint32_t max_rec_rw_calls;  /* maximum number of recursive rewrite calls */
+    uint32_t var_substitutions; /* number substituted vars */
+    uint32_t uf_substitutions;  /* num substituted uninterpreted functions */
+    uint32_t ec_substitutions;  /* embedded constraint substitutions */
+    uint32_t linear_equations;  /* number of linear equations */
+    uint32_t gaussian_eliminations; /* number of gaussian eliminations */
+    uint32_t eliminated_slices;     /* number of eliminated slices */
+    uint32_t
+        skeleton_constraints; /* number of extracted skeleton constraints */
+    uint32_t adds_normalized; /* number of add chains normalizations */
+    uint32_t ands_normalized; /* number of and chains normalizations */
+    uint32_t muls_normalized; /* number of mul chains normalizations */
+    uint32_t ackermann_constraints;
     long long apply_props_construct; /* number of static apply propagations */
-    int bv_uc_props;
-    int fun_uc_props;
-    int param_uc_props;
+    uint32_t bv_uc_props;
+    uint32_t fun_uc_props;
+    uint32_t param_uc_props;
     long long lambdas_merged;
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
