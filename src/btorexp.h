@@ -448,7 +448,137 @@ btor_is_array_or_bv_eq_node (const BtorNode *exp)
   return btor_is_fun_eq_node (exp) || btor_is_bv_eq_node (exp);
 }
 
+/*========================================================================*/
+
+/* Copies expression (increments reference counter). */
+BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
+
+/* Releases expression (decrements reference counter). */
+void btor_release_exp (Btor *btor, BtorNode *exp);
+
 /*------------------------------------------------------------------------*/
+
+/* These are only necessary in kind of internal wrapper code, which uses
+ * the internal structure of expressions, e.g., BtorNode, but otherwise
+ * works through the external API, e.g., BoolectorNode, particularly if
+ * call backs are provided by the user which have the external view.
+ * Consider for example the substitution functions in 'boolectormap.h'
+ * which in turn is heavily used in the model checker 'btormc.c'.
+ */
+void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
+
+void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
+
+/*------------------------------------------------------------------------*/
+
+/* Convert 'exp' to a proxy expression.
+ * NOTE: 'exp' must be already simplified */
+void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
+
+/* Get the id of an expression. */
+int btor_get_id (Btor *btor, const BtorNode *exp);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given id.
+ * Note: increases ref counter of returned match!
+ * Note: 'id' must be greater 0
+ *       -> will not return a conditionally inverted node */
+BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given
+ * expression by id. This is intended to be used for handling expressions
+ * of a cloned instance (in a clone and its parent, expressions
+ * with the same id correspond to each other, i.e. initially, the cloned
+ * expression is an identical copy of the parent expression).
+ * (Note: increases ref counter of return match!) */
+BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
+
+/* Get the exp (belonging to instance 'btor') that matches given id.
+ * Note: The main difference to 'btor_match_node_by_id' is that this function
+ *       does NOT increase the reference counter, and passing and 'id' < 0
+ *       will return an inverted node */
+BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
+/*------------------------------------------------------------------------*/
+
+/* Gets the symbol of an expression. */
+char *btor_get_symbol_exp (Btor *btor, const BtorNode *exp);
+
+/* Sets the symbol of an expression. */
+void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
+
+/* Get the exp (belonging to instance 'btor') that matches given symbol.
+ * Note: does NOT increase the ref counter */
+BtorNode *btor_get_node_by_symbol (Btor *btor, char *sym);
+
+/*------------------------------------------------------------------------*/
+
+/* Compares two expression pairs by ID */
+int btor_compare_exp_by_id (const BtorNode *exp0, const BtorNode *exp1);
+/* Compare function for expressions (by ID) to be used for qsort */
+int btor_compare_exp_by_id_qsort_desc (const void *p, const void *q);
+int btor_compare_exp_by_id_qsort_asc (const void *p, const void *q);
+
+/* Hashes expression by ID */
+unsigned int btor_hash_exp_by_id (const BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+/* Get the bit width of a bit vector expression */
+uint32_t btor_get_exp_width (Btor *btor, const BtorNode *exp);
+/* Get the bit width of the array elements / function return value. */
+uint32_t btor_get_fun_exp_width (Btor *btor, const BtorNode *exp);
+/* Get the index width of an array expression */
+uint32_t btor_get_index_exp_width (Btor *btor, const BtorNode *e_array);
+
+/*------------------------------------------------------------------------*/
+
+BtorBitVector *btor_const_get_bits (BtorNode *exp);
+BtorBitVector *btor_const_get_invbits (BtorNode *exp);
+void btor_const_set_bits (BtorNode *exp, BtorBitVector *bits);
+void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
+
+/*------------------------------------------------------------------------*/
+
+/* Gets the number of arguments of lambda expression 'exp'. */
+uint32_t btor_get_fun_arity (Btor *btor, BtorNode *exp);
+
+/* Gets the number of arguments of an argument expression 'exp'. */
+int btor_get_args_arity (Btor *btor, BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+BtorNode *btor_lambda_get_body (BtorNode *lambda);
+void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
+
+BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+
+void btor_lambda_set_static_rho (BtorNode *lambda,
+                                 BtorPtrHashTable *static_rho);
+
+BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
+
+/*------------------------------------------------------------------------*/
+
+uint32_t btor_slice_get_upper (BtorNode *slice);
+uint32_t btor_slice_get_lower (BtorNode *slice);
+
+/*------------------------------------------------------------------------*/
+
+BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+
+void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+
+bool btor_param_is_bound (BtorNode *param);
+
+BtorNode *btor_param_get_assigned_exp (BtorNode *param);
+
+BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
+
+/*========================================================================*/
 
 struct BtorNodePair
 {
@@ -462,23 +592,12 @@ BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
 void btor_delete_exp_pair (Btor *, BtorNodePair *);
 
-unsigned int btor_hash_exp_pair (BtorNodePair *);
+unsigned int btor_hash_exp_pair (const BtorNodePair *);
 
-int btor_compare_exp_pair (BtorNodePair *, BtorNodePair *);
+int btor_compare_exp_pair (const BtorNodePair *, const BtorNodePair *);
 
-/*------------------------------------------------------------------------*/
+/*========================================================================*/
 
-/* Compares two expression pairs by ID */
-int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
-
-/* Hashes expression by ID */
-unsigned int btor_hash_exp_by_id (BtorNode *exp);
-
-/*------------------------------------------------------------------------*/
-
-void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
-
-/*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
  * The 'width' of all input expressions has to be greater than zero.
  */
@@ -903,89 +1022,6 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
-/* Gets the bit width of a bit vector expression */
-uint32_t btor_get_exp_width (Btor *btor, BtorNode *exp);
-
-/* Gets the bit width of the array elements. */
-uint32_t btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
-
-BtorBitVector *btor_const_get_bits (BtorNode *exp);
-BtorBitVector *btor_const_get_invbits (BtorNode *exp);
-void btor_const_set_bits (BtorNode *exp, BtorBitVector *bits);
-void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
-
-/* Gets the number of bits used by indices on 'e_array'. */
-uint32_t btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
-
-/* Get the id of an expression. */
-int btor_get_id (Btor *btor, BtorNode *exp);
-
-/* Retrieve the exp (belonging to instance 'btor') that matches given id.
- * (Note: increases ref counter of returned match!) */
-BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
-
-/* Retrieve the exp (belonging to instance 'btor') that matches given
- * expression by id. This is intended to be used for handling expressions
- * of a cloned instance (in a clone and its parent, expressions
- * with the same id correspond to each other, i.e. initially, the cloned
- * expression is an identical copy of the parent expression).
- * (Note: increases ref counter of return match!) */
-BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
-
-BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
-
-BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
-
-/* Gets the symbol of an expression. */
-char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
-
-/* Sets the symbol of an expression. */
-void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
-
-/* Gets the number of arguments of lambda expression 'exp'. */
-uint32_t btor_get_fun_arity (Btor *btor, BtorNode *exp);
-
-/* Gets the number of arguments of an argument expression 'exp'. */
-int btor_get_args_arity (Btor *btor, BtorNode *exp);
-
-/* Returns static_rho of given lambda node. */
-BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
-
-void btor_lambda_set_static_rho (BtorNode *lambda,
-                                 BtorPtrHashTable *static_rho);
-
-BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
-
-BtorNode *btor_lambda_get_body (BtorNode *lambda);
-void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
-
-/* Getter for BtorSliceNode fields */
-uint32_t btor_slice_get_upper (BtorNode *slice);
-uint32_t btor_slice_get_lower (BtorNode *slice);
-
-BtorNode *btor_param_get_binding_lambda (BtorNode *param);
-
-void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
-
-bool btor_param_is_bound (BtorNode *param);
-
-BtorNode *btor_param_get_assigned_exp (BtorNode *param);
-
-BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
-
-/* Copies expression (increments reference counter). */
-BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
-
-/* Releases expression (decrements reference counter). */
-void btor_release_exp (Btor *btor, BtorNode *exp);
-
-/* Convert 'exp' to a proxy expression.
- * NOTE: 'exp' must be already simplified */
-void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
-
-int btor_compare_exp_by_id_qsort_desc (const void *p, const void *q);
-int btor_compare_exp_by_id_qsort_asc (const void *p, const void *q);
-
 /*------------------------------------------------------------------------*/
 
 BtorNode *btor_slice_exp_node (Btor *btor,
@@ -1035,53 +1071,49 @@ BtorNode *btor_create_exp (Btor *btor,
                            uint32_t arity);
 
 /*------------------------------------------------------------------------*/
-/* These are only necessary in kind of internal wrapper code, which uses
- * the internal structure of expressions, e.g., BtorNode, but otherwise
- * works through the external API, e.g., BoolectorNode, particularly if
- * call backs are provided by the user which have the external view.
- * Consider for example the substitution functions in 'boolectormap.h'
- * which in turn is heavily used in the model checker 'btormc.c'.
- */
-void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
-
-void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
-
-/*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
 bool btor_precond_slice_exp_dbg (Btor *btor,
-                                 BtorNode *exp,
+                                 const BtorNode *exp,
                                  uint32_t upper,
                                  uint32_t lower);
 
-bool btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
+bool btor_precond_regular_unary_bv_exp_dbg (Btor *btor, const BtorNode *exp);
 
 bool btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
-                                             BtorNode *e0,
-                                             BtorNode *e1);
+                                             const BtorNode *e0,
+                                             const BtorNode *e1);
 
-bool btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_eq_exp_dbg (Btor *btor,
+                              const BtorNode *e0,
+                              const BtorNode *e1);
 
-bool btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_shift_exp_dbg (Btor *btor,
+                                 const BtorNode *e0,
+                                 const BtorNode *e1);
 
-bool btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_concat_exp_dbg (Btor *btor,
+                                  const BtorNode *e0,
+                                  const BtorNode *e1);
 
 bool btor_precond_read_exp_dbg (Btor *btor,
-                                BtorNode *e_array,
-                                BtorNode *e_index);
+                                const BtorNode *e_array,
+                                const BtorNode *e_index);
 
 bool btor_precond_write_exp_dbg (Btor *btor,
-                                 BtorNode *e_array,
-                                 BtorNode *e_index,
-                                 BtorNode *e_value);
+                                 const BtorNode *e_array,
+                                 const BtorNode *e_index,
+                                 const BtorNode *e_value);
 
 bool btor_precond_cond_exp_dbg (Btor *btor,
-                                BtorNode *e_cond,
-                                BtorNode *e_if,
-                                BtorNode *e_else);
+                                const BtorNode *e_cond,
+                                const BtorNode *e_if,
+                                const BtorNode *e_else);
 
-bool btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
+bool btor_precond_apply_exp_dbg (Btor *btor,
+                                 const BtorNode *fun,
+                                 const BtorNode *args);
 
 /*------------------------------------------------------------------------*/
 #endif
