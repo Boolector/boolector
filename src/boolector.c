@@ -3294,7 +3294,7 @@ fun_assignment (Btor *btor,
 
   if (*size)
   {
-    *ass = btor_new_array_assignment (btor->array_assignments, a, v, *size);
+    *ass = btor_new_array_assignment (btor->fun_assignments, a, v, *size);
     for (i = 0; i < *size; i++)
     {
       btor_release_bv_assignment_str (btor, a[i]);
@@ -3389,8 +3389,7 @@ boolector_free_array_assignment (Btor *btor,
   cindices = arrass->cloned_indices;
   cvalues  = arrass->cloned_values;
 #endif
-  btor_release_array_assignment (
-      btor->array_assignments, indices, values, size);
+  btor_release_array_assignment (btor->fun_assignments, indices, values, size);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cindices, cvalues, size);
 #endif
@@ -3473,7 +3472,7 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
   cargs   = arrass->cloned_indices;
   cvalues = arrass->cloned_values;
 #endif
-  btor_release_array_assignment (btor->array_assignments, args, values, size);
+  btor_release_array_assignment (btor->fun_assignments, args, values, size);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cargs, cvalues, size);
 #endif

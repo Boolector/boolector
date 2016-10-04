@@ -918,19 +918,19 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   if (exp_layer_only)
   {
-    clone->array_assignments = btor_new_array_assignment_list (mm);
+    clone->fun_assignments = btor_new_array_assignment_list (mm);
     assert ((allocated += sizeof (BtorArrayAssignmentList))
             == clone->mm->allocated);
   }
   else
   {
     BTORLOG_TIMESTAMP (delta);
-    clone->array_assignments =
-        btor_clone_array_assignment_list (clone->mm, btor->array_assignments);
+    clone->fun_assignments =
+        btor_clone_array_assignment_list (clone->mm, btor->fun_assignments);
     BTORLOG (
         1, "  clone array assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-    for (arrass = btor->array_assignments->first; arrass; arrass = arrass->next)
+    for (arrass = btor->fun_assignments->first; arrass; arrass = arrass->next)
     {
       allocated +=
           sizeof (BtorArrayAssignment) + 2 * arrass->size * sizeof (char *);

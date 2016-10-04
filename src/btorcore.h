@@ -93,7 +93,6 @@ struct BtorConstraintStats
 
 typedef struct BtorConstraintStats BtorConstraintStats;
 
-// TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
   BtorMemMgr *mm;
@@ -101,7 +100,7 @@ struct Btor
   BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
-  BtorArrayAssignmentList *array_assignments;
+  BtorArrayAssignmentList *fun_assignments;
 
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;

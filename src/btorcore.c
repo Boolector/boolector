@@ -636,8 +636,8 @@ btor_new_btor (void)
 
   btor_init_rng (&btor->rng, btor_get_opt (btor, BTOR_OPT_SEED));
 
-  btor->bv_assignments    = btor_new_bv_assignment_list (mm);
-  btor->array_assignments = btor_new_array_assignment_list (mm);
+  btor->bv_assignments  = btor_new_bv_assignment_list (mm);
+  btor->fun_assignments = btor_new_array_assignment_list (mm);
 
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
@@ -827,7 +827,7 @@ btor_delete_btor (Btor *btor)
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
   btor_delete_array_assignment_list (
-      btor->array_assignments,
+      btor->fun_assignments,
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
 

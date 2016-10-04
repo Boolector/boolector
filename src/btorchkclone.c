@@ -713,10 +713,9 @@ chkclone_assignment_lists (Btor *btor)
                      btor_get_bv_assignment_str (cbvass)));
   }
 
-  assert (btor->array_assignments->count
-          == btor->clone->array_assignments->count);
-  for (arrass = btor->array_assignments->first,
-      carrass = btor->clone->array_assignments->first;
+  assert (btor->fun_assignments->count == btor->clone->fun_assignments->count);
+  for (arrass = btor->fun_assignments->first,
+      carrass = btor->clone->fun_assignments->first;
        arrass;
        arrass = arrass->next, carrass = carrass->next)
   {
