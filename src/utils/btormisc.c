@@ -67,9 +67,8 @@ node2string (BtorNode *exp)
 
   if (btor_is_slice_node (real_exp))
   {
-    new_len += btor_num_digits_util (btor_slice_get_upper (exp));
-    new_len += btor_num_digits_util (btor_slice_get_lower (exp));
-    new_len += 2;
+    new_len += btor_num_digits_util (btor_slice_get_upper (exp)) + 1;
+    new_len += btor_num_digits_util (btor_slice_get_lower (exp)) + 1;
     BUFCONCAT (strbuf,
                cur_len,
                new_len,
@@ -81,8 +80,7 @@ node2string (BtorNode *exp)
             || btor_is_param_node (real_exp))
            && (tmp = btor_get_symbol_exp (btor, real_exp)))
   {
-    new_len += strlen (tmp);
-    new_len += 1;
+    new_len += strlen (tmp) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", tmp);
   }
   // FIXME: len exceeds buf
