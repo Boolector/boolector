@@ -26,7 +26,7 @@ btor_init_apply_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_apply_parent_iterator (BtorNodeIterator *it)
+btor_has_next_apply_parent_iterator (const BtorNodeIterator *it)
 {
   assert (it);
   assert (BTOR_IS_REGULAR_NODE (it->cur));
@@ -58,7 +58,7 @@ btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_parent_iterator (BtorNodeIterator *it)
+btor_has_next_parent_iterator (const BtorNodeIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -93,7 +93,7 @@ btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_args_iterator (BtorArgsIterator *it)
+btor_has_next_args_iterator (const BtorArgsIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -144,6 +144,14 @@ btor_init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp)
   it->cur = exp;
 }
 
+bool
+btor_has_next_lambda_iterator (const BtorNodeIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+  return btor_is_lambda_node (it->cur);
+}
+
 BtorNode *
 btor_next_lambda_iterator (BtorNodeIterator *it)
 {
@@ -156,18 +164,18 @@ btor_next_lambda_iterator (BtorNodeIterator *it)
   return result;
 }
 
-bool
-btor_has_next_lambda_iterator (BtorNodeIterator *it)
-{
-  assert (it);
-  assert (it->cur);
-  return btor_is_lambda_node (it->cur);
-}
+/*------------------------------------------------------------------------*/
 
 void
 btor_init_param_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   btor_init_lambda_iterator (it, exp);
+}
+
+bool
+btor_has_next_param_iterator (const BtorNodeIterator *it)
+{
+  return btor_has_next_lambda_iterator (it);
 }
 
 BtorNode *
@@ -177,12 +185,6 @@ btor_next_param_iterator (BtorNodeIterator *it)
   result = btor_next_lambda_iterator (it);
   assert (btor_is_param_node (result->e[0]));
   return result->e[0];
-}
-
-bool
-btor_has_next_param_iterator (BtorNodeIterator *it)
-{
-  return btor_has_next_lambda_iterator (it);
 }
 
 /*------------------------------------------------------------------------*/
@@ -212,7 +214,7 @@ btor_init_unique_table_iterator (BtorNodeIterator *it, const Btor *btor)
 }
 
 bool
-btor_has_next_unique_table_iterator (BtorNodeIterator *it)
+btor_has_next_unique_table_iterator (const BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur || it->pos >= it->btor->nodes_unique_table.size);
@@ -239,7 +241,7 @@ btor_next_unique_table_iterator (BtorNodeIterator *it)
 }
 
 /*------------------------------------------------------------------------*/
-/* hash table iterators						          */
+/* hash table iterators                                                   */
 /*------------------------------------------------------------------------*/
 
 void
@@ -291,7 +293,7 @@ btor_queue_hash_table_iterator (BtorHashTableIterator *it,
 }
 
 bool
-btor_has_next_hash_table_iterator (BtorHashTableIterator *it)
+btor_has_next_hash_table_iterator (const BtorHashTableIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -386,7 +388,7 @@ btor_queue_hash_table_iterator2 (BtorHashTableIterator *it,
 }
 
 bool
-btor_has_next_hash_table_iterator2 (BtorHashTableIterator *it)
+btor_has_next_hash_table_iterator2 (const BtorHashTableIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -468,7 +470,7 @@ btor_queue_node_hash_table_iterator2 (BtorHashTableIterator *it,
 }
 
 bool
-btor_has_next_node_hash_table_iterator2 (BtorHashTableIterator *it)
+btor_has_next_node_hash_table_iterator2 (const BtorHashTableIterator *it)
 {
   assert (it);
   return btor_has_next_hash_table_iterator2 (it);
@@ -523,7 +525,7 @@ btor_queue_node_hash_table_iterator (BtorHashTableIterator *it,
 }
 
 bool
-btor_has_next_node_hash_table_iterator (BtorHashTableIterator *it)
+btor_has_next_node_hash_table_iterator (const BtorHashTableIterator *it)
 {
   assert (it);
   return btor_has_next_hash_table_iterator (it);
@@ -567,7 +569,7 @@ btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
 }
 
 bool
-btor_has_next_node_map_iterator (BtorNodeMapIterator *it)
+btor_has_next_node_map_iterator (const BtorNodeMapIterator *it)
 {
   return btor_has_next_node_hash_table_iterator (&it->it);
 }

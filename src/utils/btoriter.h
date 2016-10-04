@@ -41,25 +41,26 @@ typedef struct BtorNodeIterator
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_NODE (exp)->prev_parent[BTOR_GET_TAG_NODE (exp)])
 
-void btor_init_apply_parent_iterator (BtorNodeIterator *, const BtorNode *);
-bool btor_has_next_apply_parent_iterator (BtorNodeIterator *);
-BtorNode *btor_next_apply_parent_iterator (BtorNodeIterator *);
+void btor_init_apply_parent_iterator (BtorNodeIterator *it,
+                                      const BtorNode *exp);
+bool btor_has_next_apply_parent_iterator (const BtorNodeIterator *it);
+BtorNode *btor_next_apply_parent_iterator (BtorNodeIterator *it);
 
-void btor_init_parent_iterator (BtorNodeIterator *, const BtorNode *);
-bool btor_has_next_parent_iterator (BtorNodeIterator *);
-BtorNode *btor_next_parent_iterator (BtorNodeIterator *);
+void btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp);
+bool btor_has_next_parent_iterator (const BtorNodeIterator *it);
+BtorNode *btor_next_parent_iterator (BtorNodeIterator *it);
 
-void btor_init_lambda_iterator (BtorNodeIterator *, BtorNode *);
-bool btor_has_next_lambda_iterator (BtorNodeIterator *);
-BtorNode *btor_next_lambda_iterator (BtorNodeIterator *);
+void btor_init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp);
+bool btor_has_next_lambda_iterator (const BtorNodeIterator *it);
+BtorNode *btor_next_lambda_iterator (BtorNodeIterator *it);
 
-void btor_init_param_iterator (BtorNodeIterator *, BtorNode *);
-bool btor_has_next_param_iterator (BtorNodeIterator *);
-BtorNode *btor_next_param_iterator (BtorNodeIterator *);
+void btor_init_param_iterator (BtorNodeIterator *it, BtorNode *exp);
+bool btor_has_next_param_iterator (const BtorNodeIterator *it);
+BtorNode *btor_next_param_iterator (BtorNodeIterator *it);
 
-void btor_init_unique_table_iterator (BtorNodeIterator *, const Btor *);
-bool btor_has_next_unique_table_iterator (BtorNodeIterator *);
-BtorNode *btor_next_unique_table_iterator (BtorNodeIterator *);
+void btor_init_unique_table_iterator (BtorNodeIterator *it, const Btor *exp);
+bool btor_has_next_unique_table_iterator (const BtorNodeIterator *it);
+BtorNode *btor_next_unique_table_iterator (BtorNodeIterator *it);
 
 /*------------------------------------------------------------------------*/
 
@@ -70,12 +71,12 @@ typedef struct BtorArgsIterator
   const BtorNode *exp;
 } BtorArgsIterator;
 
-void btor_init_args_iterator (BtorArgsIterator *, const BtorNode *);
-bool btor_has_next_args_iterator (BtorArgsIterator *);
-BtorNode *btor_next_args_iterator (BtorArgsIterator *);
+void btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp);
+bool btor_has_next_args_iterator (const BtorArgsIterator *it);
+BtorNode *btor_next_args_iterator (BtorArgsIterator *it);
 
 /*------------------------------------------------------------------------*/
-/* hash table iterators					                  */
+/* hash table iterators		                                          */
 /*------------------------------------------------------------------------*/
 
 #define BTOR_HASH_TABLE_ITERATOR_STACK_SIZE 8
@@ -102,26 +103,27 @@ typedef struct BtorHashTableIterator
   const BtorPtrHashTable2 *stack2[BTOR_HASH_TABLE_ITERATOR_STACK_SIZE];
 } BtorHashTableIterator;
 
-void btor_init_hash_table_iterator (BtorHashTableIterator *,
-                                    const BtorPtrHashTable *);
-void btor_init_reversed_hash_table_iterator (BtorHashTableIterator *,
-                                             const BtorPtrHashTable *);
-void btor_queue_hash_table_iterator (BtorHashTableIterator *,
-                                     const BtorPtrHashTable *);
-bool btor_has_next_hash_table_iterator (BtorHashTableIterator *);
-void *btor_next_hash_table_iterator (BtorHashTableIterator *);
-BtorHashTableData *btor_next_data_hash_table_iterator (BtorHashTableIterator *);
+void btor_init_hash_table_iterator (BtorHashTableIterator *it,
+                                    const BtorPtrHashTable *t);
+void btor_init_reversed_hash_table_iterator (BtorHashTableIterator *it,
+                                             const BtorPtrHashTable *t);
+void btor_queue_hash_table_iterator (BtorHashTableIterator *it,
+                                     const BtorPtrHashTable *t);
+bool btor_has_next_hash_table_iterator (const BtorHashTableIterator *it);
+void *btor_next_hash_table_iterator (BtorHashTableIterator *it);
+BtorHashTableData *btor_next_data_hash_table_iterator (
+    BtorHashTableIterator *it);
 
-void btor_init_node_hash_table_iterator (BtorHashTableIterator *,
-                                         const BtorPtrHashTable *);
-void btor_init_reversed_node_hash_table_iterator (BtorHashTableIterator *,
-                                                  const BtorPtrHashTable *);
-void btor_queue_node_hash_table_iterator (BtorHashTableIterator *,
-                                          const BtorPtrHashTable *);
-bool btor_has_next_node_hash_table_iterator (BtorHashTableIterator *);
-BtorNode *btor_next_node_hash_table_iterator (BtorHashTableIterator *);
+void btor_init_node_hash_table_iterator (BtorHashTableIterator *it,
+                                         const BtorPtrHashTable *t);
+void btor_init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
+                                                  const BtorPtrHashTable *t);
+void btor_queue_node_hash_table_iterator (BtorHashTableIterator *it,
+                                          const BtorPtrHashTable *t);
+bool btor_has_next_node_hash_table_iterator (const BtorHashTableIterator *it);
+BtorNode *btor_next_node_hash_table_iterator (BtorHashTableIterator *it);
 BtorHashTableData *btor_next_data_node_hash_table_iterator (
-    BtorHashTableIterator *);
+    BtorHashTableIterator *it);
 
 struct BtorHashTableIterator2
 {
@@ -138,27 +140,27 @@ struct BtorHashTableIterator2
 
 typedef struct BtorHashTableIterator2 BtorHashTableIterator2;
 
-void btor_init_hash_table_iterator2 (BtorHashTableIterator *,
-                                     const BtorPtrHashTable2 *);
-void btor_init_reversed_hash_table_iterator2 (BtorHashTableIterator *,
-                                              const BtorPtrHashTable2 *);
-void btor_queue_hash_table_iterator2 (BtorHashTableIterator *,
-                                      const BtorPtrHashTable2 *);
-bool btor_has_next_hash_table_iterator2 (BtorHashTableIterator *);
-void *btor_next_hash_table_iterator2 (BtorHashTableIterator *);
+void btor_init_hash_table_iterator2 (BtorHashTableIterator *it,
+                                     const BtorPtrHashTable2 *t);
+void btor_init_reversed_hash_table_iterator2 (BtorHashTableIterator *it,
+                                              const BtorPtrHashTable2 *t);
+void btor_queue_hash_table_iterator2 (BtorHashTableIterator *it,
+                                      const BtorPtrHashTable2 *t);
+bool btor_has_next_hash_table_iterator2 (const BtorHashTableIterator *it);
+void *btor_next_hash_table_iterator2 (BtorHashTableIterator *it);
 BtorHashTableData *btor_next_data_hash_table_iterator2 (
-    BtorHashTableIterator *);
+    BtorHashTableIterator *it);
 
-void btor_init_node_hash_table_iterator2 (BtorHashTableIterator *,
-                                          const BtorPtrHashTable2 *);
-void btor_init_reversed_node_hash_table_iterator2 (BtorHashTableIterator *,
-                                                   const BtorPtrHashTable2 *);
-void btor_queue_node_hash_table_iterator2 (BtorHashTableIterator *,
-                                           const BtorPtrHashTable2 *);
-bool btor_has_next_node_hash_table_iterator2 (BtorHashTableIterator *);
-BtorNode *btor_next_node_hash_table_iterator2 (BtorHashTableIterator *);
+void btor_init_node_hash_table_iterator2 (BtorHashTableIterator *it,
+                                          const BtorPtrHashTable2 *t);
+void btor_init_reversed_node_hash_table_iterator2 (BtorHashTableIterator *it,
+                                                   const BtorPtrHashTable2 *t);
+void btor_queue_node_hash_table_iterator2 (BtorHashTableIterator *it,
+                                           const BtorPtrHashTable2 *t);
+bool btor_has_next_node_hash_table_iterator2 (const BtorHashTableIterator *it);
+BtorNode *btor_next_node_hash_table_iterator2 (BtorHashTableIterator *it);
 BtorHashTableData *btor_next_data_node_hash_table_iterator2 (
-    BtorHashTableIterator *);
+    BtorHashTableIterator *it);
 
 /*------------------------------------------------------------------------*/
 /* map iterators						          */
@@ -169,13 +171,15 @@ typedef struct BtorNodeMapIterator
   BtorHashTableIterator it;
 } BtorNodeMapIterator;
 
-void btor_init_node_map_iterator (BtorNodeMapIterator *, const BtorNodeMap *);
-void btor_init_reversed_node_map_iterator (BtorNodeMapIterator *,
-                                           const BtorNodeMap *);
-void btor_queue_node_map_iterator (BtorNodeMapIterator *, const BtorNodeMap *);
-bool btor_has_next_node_map_iterator (BtorNodeMapIterator *);
-BtorNode *btor_next_node_map_iterator (BtorNodeMapIterator *);
-BtorHashTableData *btor_next_data_node_map_iterator (BtorNodeMapIterator *);
+void btor_init_node_map_iterator (BtorNodeMapIterator *it,
+                                  const BtorNodeMap *map);
+void btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
+                                           const BtorNodeMap *map);
+void btor_queue_node_map_iterator (BtorNodeMapIterator *it,
+                                   const BtorNodeMap *map);
+bool btor_has_next_node_map_iterator (const BtorNodeMapIterator *it);
+BtorNode *btor_next_node_map_iterator (BtorNodeMapIterator *it);
+BtorHashTableData *btor_next_data_node_map_iterator (BtorNodeMapIterator *it);
 
 /*------------------------------------------------------------------------*/
 #endif
