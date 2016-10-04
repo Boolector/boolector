@@ -703,14 +703,14 @@ btor_get_element_array_sort (const BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
-btor_is_valid_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_valid_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
   return id < BTOR_COUNT_STACK (table->id2sort)
          && BTOR_PEEK_STACK (table->id2sort, id) != 0;
 }
 
 bool
-btor_is_bool_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_bool_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
 #if 0
   BtorSort *sort;
@@ -723,7 +723,7 @@ btor_is_bool_sort (BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
-btor_is_bitvec_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_bitvec_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (table, id);
@@ -732,7 +732,7 @@ btor_is_bitvec_sort (BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
-btor_is_array_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_array_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (table, id);
@@ -741,7 +741,7 @@ btor_is_array_sort (BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
-btor_is_tuple_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_tuple_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (table, id);
@@ -750,7 +750,7 @@ btor_is_tuple_sort (BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
-btor_is_fun_sort (BtorSortUniqueTable *table, BtorSortId id)
+btor_is_fun_sort (const BtorSortUniqueTable *table, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (table, id);
@@ -771,7 +771,7 @@ btor_init_tuple_sort_iterator (BtorTupleSortIterator *it,
 }
 
 bool
-btor_has_next_tuple_sort_iterator (BtorTupleSortIterator *it)
+btor_has_next_tuple_sort_iterator (const BtorTupleSortIterator *it)
 {
   assert (it);
   return it->pos < it->tuple->tuple.num_elements;
