@@ -47,7 +47,7 @@ btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssignmentList *list)
 }
 
 void
-btor_delete_bv_assignment_list (BtorBVAssignmentList *list, int auto_cleanup)
+btor_delete_bv_assignment_list (BtorBVAssignmentList *list, bool auto_cleanup)
 {
   assert (list);
 

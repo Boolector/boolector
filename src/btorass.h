@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -12,6 +12,7 @@
 #ifndef BTORASS_H_INCLUDED
 #define BTORASS_H_INCLUDED
 
+#include <stdbool.h>
 #include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
@@ -37,26 +38,28 @@ struct BtorBVAssignmentList
 };
 
 /* Create new bv assignment list. */
-BtorBVAssignmentList *btor_new_bv_assignment_list (BtorMemMgr *);
+BtorBVAssignmentList *btor_new_bv_assignment_list (BtorMemMgr *mm);
 
 /* Clone bv assignment list. */
-BtorBVAssignmentList *btor_clone_bv_assignment_list (BtorMemMgr *,
-                                                     BtorBVAssignmentList *);
+BtorBVAssignmentList *btor_clone_bv_assignment_list (
+    BtorMemMgr *mm, BtorBVAssignmentList *list);
 
 /* Delete bv assignment list. */
-void btor_delete_bv_assignment_list (BtorBVAssignmentList *, int);
+void btor_delete_bv_assignment_list (BtorBVAssignmentList *list,
+                                     bool auto_cleanup);
 
 /* Get BtorBVAssignment bucket reference from bv assignment string. */
-BtorBVAssignment *btor_get_bv_assignment (const char *);
+BtorBVAssignment *btor_get_bv_assignment (const char *ass);
 
 /* Get bv assignment string from BtorBVAssignment bucket. */
-const char *btor_get_bv_assignment_str (BtorBVAssignment *);
+const char *btor_get_bv_assignment_str (BtorBVAssignment *ass);
 
 /* Create new bv assignment and add it to the list. */
-BtorBVAssignment *btor_new_bv_assignment (BtorBVAssignmentList *, char *);
+BtorBVAssignment *btor_new_bv_assignment (BtorBVAssignmentList *list,
+                                          char *ass);
 
 /* Release bv assignment and remove it from the list. */
-void btor_release_bv_assignment (BtorBVAssignmentList *, const char *);
+void btor_release_bv_assignment (BtorBVAssignmentList *list, const char *ass);
 
 /*------------------------------------------------------------------------*/
 
