@@ -861,15 +861,15 @@ btor_delete_opts (Btor *btor)
 }
 
 bool
-btor_has_opt (Btor *btor, BtorOption opt)
+btor_has_opt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   (void) btor;
-  return opt >= 0 && opt < BTOR_OPT_NUM_OPTS;
+  return opt < BTOR_OPT_NUM_OPTS;
 }
 
 uint32_t
-btor_get_opt (Btor *btor, BtorOption opt)
+btor_get_opt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -878,7 +878,7 @@ btor_get_opt (Btor *btor, BtorOption opt)
 }
 
 uint32_t
-btor_get_opt_min (Btor *btor, BtorOption opt)
+btor_get_opt_min (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -887,7 +887,7 @@ btor_get_opt_min (Btor *btor, BtorOption opt)
 }
 
 uint32_t
-btor_get_opt_max (Btor *btor, BtorOption opt)
+btor_get_opt_max (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -896,7 +896,7 @@ btor_get_opt_max (Btor *btor, BtorOption opt)
 }
 
 uint32_t
-btor_get_opt_dflt (Btor *btor, BtorOption opt)
+btor_get_opt_dflt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -905,7 +905,7 @@ btor_get_opt_dflt (Btor *btor, BtorOption opt)
 }
 
 const char *
-btor_get_opt_lng (Btor *btor, BtorOption opt)
+btor_get_opt_lng (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -914,7 +914,7 @@ btor_get_opt_lng (Btor *btor, BtorOption opt)
 }
 
 const char *
-btor_get_opt_shrt (Btor *btor, BtorOption opt)
+btor_get_opt_shrt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -923,7 +923,7 @@ btor_get_opt_shrt (Btor *btor, BtorOption opt)
 }
 
 const char *
-btor_get_opt_desc (Btor *btor, BtorOption opt)
+btor_get_opt_desc (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -932,7 +932,7 @@ btor_get_opt_desc (Btor *btor, BtorOption opt)
 }
 
 const char *
-btor_get_opt_valstr (Btor *btor, BtorOption opt)
+btor_get_opt_valstr (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -941,7 +941,7 @@ btor_get_opt_valstr (Btor *btor, BtorOption opt)
 }
 
 void
-btor_set_opt (Btor *btor, BtorOption opt, uint32_t val)
+btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
@@ -1001,7 +1001,7 @@ btor_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 }
 
 void
-btor_set_opt_str (Btor *btor, BtorOption opt, const char *str)
+btor_set_opt_str (Btor *btor, const BtorOption opt, const char *str)
 {
   assert (btor);
   assert (btor_has_opt (btor, opt));
