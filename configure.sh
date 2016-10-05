@@ -474,7 +474,7 @@ then
   [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
 
   py_libraries="boolector"
-  py_library_dirs="$BUILDIR"
+  py_library_dirs="$ROOT/$BUILDIR"
   py_inc_dirs=""
   if [ $lingeling = yes ]; then
     py_libraries="$py_libraries lgl"
@@ -509,10 +509,10 @@ ext_modules=[
     Extension("boolector",
               sources=["$SRCDIR/api/python/boolector.pyx"],
               include_dirs=incdirs,
-              library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
+              library_dirs=[s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-       extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
+       extra_link_args=["-Wl,-rpath="+":".join([s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
