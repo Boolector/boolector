@@ -482,25 +482,17 @@ void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, const BtorNode *exp);
 
-/* Retrieve the exp (belonging to instance 'btor') that matches given id.
- * Note: increases ref counter of returned match!
- * Note: 'id' must be greater 0
- *       -> will not return a conditionally inverted node */
-BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
-
-/* Retrieve the exp (belonging to instance 'btor') that matches given
- * expression by id. This is intended to be used for handling expressions
- * of a cloned instance (in a clone and its parent, expressions
- * with the same id correspond to each other, i.e. initially, the cloned
- * expression is an identical copy of the parent expression).
- * (Note: increases ref counter of return match!) */
-BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
-
 /* Get the exp (belonging to instance 'btor') that matches given id.
  * Note: The main difference to 'btor_match_node_by_id' is that this function
  *       does NOT increase the reference counter, and passing and 'id' < 0
  *       will return an inverted node */
 BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given id.
+ * Note: increases ref counter of returned match!
+ * Note: 'id' must be greater 0
+ *       -> will not return a conditionally inverted node */
+BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
 
 /*------------------------------------------------------------------------*/
 
@@ -513,6 +505,20 @@ void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 /* Get the exp (belonging to instance 'btor') that matches given symbol.
  * Note: does NOT increase the ref counter */
 BtorNode *btor_get_node_by_symbol (Btor *btor, char *sym);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given symbol.
+ * Note: increases ref counter of returned match! */
+BtorNode *btor_match_node_by_symbol (Btor *btor, char *sym);
+
+/*------------------------------------------------------------------------*/
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given
+ * expression by id. This is intended to be used for handling expressions
+ * of a cloned instance (in a clone and its parent, expressions
+ * with the same id correspond to each other, i.e. initially, the cloned
+ * expression is an identical copy of the parent expression).
+ * (Note: increases ref counter of return match!) */
+BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 

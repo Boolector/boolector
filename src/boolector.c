@@ -2853,6 +2853,22 @@ boolector_match_node_by_id (Btor *btor, int id)
 }
 
 BoolectorNode *
+boolector_match_node_by_symbol (Btor *btor, char *symbol)
+{
+  BtorNode *res;
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (symbol);
+  BTOR_TRAPI ("%s", symbol);
+  res = btor_match_node_by_symbol (btor, symbol);
+  inc_exp_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_PTR (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, match_node_by_symbol, symbol);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_match_node (Btor *btor, BoolectorNode *node)
 {
   BtorNode *res, *exp;

@@ -839,7 +839,7 @@ cdef class Boolector:
             E.g., ::
 
               btor = Boolector()
-              v = btor.Var(16, "x")
+              v = btor.Var(btor.BitVecSort(16), "x")
               clone = btor.Clone()
               v_cloned = clone.Match(v)
 
@@ -858,6 +858,29 @@ cdef class Boolector:
             btorapi.boolector_match_node(self._c_btor, n._c_node)
         if (<BoolectorNode> r)._c_node is NULL:
             raise BoolectorException("Could not match given node 'n'")
+        return r
+
+    def Match_by_symbol(self, str s):
+        """ Match_by_symbol(s)
+
+            Retrieve the node matching symbol ``s``.
+
+            E.g., ::
+
+              btor = Boolector()
+              v = btor.Var(btor.BitVecSort(16), "x")
+              w = btor.Match_by_symbol("x")
+
+            :param s: Symbol.
+            :type s:  str
+            :return:  The Boolector node that matches by symbol ``s``.
+            :rtype: :class:`~boolector.BoolectorNode`
+        """
+        r = BoolectorNode(self)
+        (<BoolectorNode> r)._c_node = \
+            btorapi.boolector_match_node_by_symbol(self._c_btor, _ChPtr(s)._c_str)
+        if (<BoolectorNode> r)._c_node is NULL:
+            raise BoolectorException("Could not match given symbol 's'")
         return r
 
     # Boolector options

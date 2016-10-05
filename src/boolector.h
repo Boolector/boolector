@@ -1527,6 +1527,21 @@ BoolectorNode *boolector_match_node_by_id (Btor *btor, int id);
 
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
+  given ``symbol``.
+
+  :param btor: Boolector instance.
+  :param symbol: The symbol of an expression.
+  :return: The Boolector node that matches given ``node`` in Boolector instance ``btor`` by symbol.
+
+  .. note::
+    Matching a node against another increases the reference
+    count of the returned match, which must therefore be released appropriately
+    (boolector_release).
+*/
+BoolectorNode *boolector_match_node_by_symbol (Btor *btor, char *symbol);
+
+/*!
+  Retrieve the node belonging to Boolector instance ``btor`` that matches
   given BoolectorNode ``node`` by id. This is intended to be used for handling
   expressions of a cloned instance (boolector_clone).
 

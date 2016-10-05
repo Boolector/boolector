@@ -508,6 +508,12 @@ NEXT:
       ret_ptr = boolector_match_node_by_id (btor, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "match_node_by_symbol"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = boolector_match_node_by_symbol (btor, arg1_str);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "match_node"))
     {
       PARSE_ARGS1 (tok, str);

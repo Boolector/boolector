@@ -298,6 +298,8 @@ cdef extern from "boolector.h":
 
 #    BoolectorNode *boolector_match_node_by_id (Btor * btor, int id)
 
+    BoolectorNode *boolector_match_node_by_symbol (Btor * btor, char * sym)
+
     BoolectorNode *boolector_match_node (Btor * btor, BoolectorNode * node)
 
     int boolector_is_const (Btor *btor, BoolectorNode * node)

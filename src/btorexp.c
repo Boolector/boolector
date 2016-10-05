@@ -648,22 +648,6 @@ btor_match_node_by_id (Btor *btor, int id)
 }
 
 BtorNode *
-btor_match_node (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int id;
-  BtorNode *res;
-
-  id = BTOR_REAL_ADDR_NODE (exp)->id;
-  assert (id > 0);
-  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
-  res = btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
-  return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
-}
-
-BtorNode *
 btor_get_node_by_id (Btor *btor, int32_t id)
 {
   assert (btor);
@@ -728,6 +712,32 @@ btor_get_node_by_symbol (Btor *btor, char *sym)
   b = btor_get_ptr_hash_table (btor->symbols, sym);
   if (!b) return 0;
   return b->data.as_ptr;
+}
+
+BtorNode *
+btor_match_node_by_symbol (Btor *btor, char *sym)
+{
+  assert (btor);
+  assert (sym);
+  return btor_copy_exp (btor, btor_get_node_by_symbol (btor, sym));
+}
+
+/*------------------------------------------------------------------------*/
+
+BtorNode *
+btor_match_node (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  int id;
+  BtorNode *res;
+
+  id = BTOR_REAL_ADDR_NODE (exp)->id;
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  res = btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+  return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
 /*------------------------------------------------------------------------*/
