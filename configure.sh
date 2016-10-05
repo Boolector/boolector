@@ -205,7 +205,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-LIBS="-L$BUILDIR"
+LIBS="-L$BUILDIR -lpthread"
 OBJS=""
 INCS="-I$SRCDIR -I$BUILDIR "
 LDEPS="$BUILDIR/libboolector.a"

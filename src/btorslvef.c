@@ -31,6 +31,10 @@
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
 
+#include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
+
 //#define PRINT_DBG
 
 struct BtorEFGroundSolvers
@@ -61,7 +65,7 @@ struct BtorEFGroundSolvers
   BtorNodePtrStack exists_last_ref_exps;
   BtorPtrHashTable *exists_refinements;
 
-  uint32_t last_comb;
+  BtorSolverResult result;
 
   struct
   {
@@ -572,6 +576,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   BTOR_CNEW (mm, res);
 
   /* new forall solver */
+  res->result = BTOR_RESULT_UNKNOWN;
   res->forall = btor_new_btor ();
   btor_delete_opts (res->forall);
   btor_clone_opts (btor, res->forall);
@@ -3081,6 +3086,29 @@ add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
 }
 #endif
 
+bool thread_found_result            = false;
+pthread_mutex_t thread_result_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void *
+thread_work (void *state)
+{
+  BtorSolverResult res = BTOR_RESULT_UNKNOWN;
+  BtorEFGroundSolvers *gslv;
+  bool skip_exists = true;
+
+  gslv = state;
+  while (res == BTOR_RESULT_UNKNOWN && !thread_found_result)
+  {
+    res         = find_model (gslv, skip_exists);
+    skip_exists = false;
+  }
+  gslv->result = res;
+  pthread_mutex_lock (&thread_result_mutex);
+  thread_found_result = true;
+  pthread_mutex_unlock (&thread_result_mutex);
+  return NULL;
+}
+
 static BtorSolverResult
 sat_ef_solver (BtorEFSolver *slv)
 {
@@ -3097,6 +3125,7 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorNodeMap *var_map = 0, *dual_var_map = 0;
   /* 'var_map' maps existential/universal (gslv) to universal/existential
    * vars (dual_gslv) */
+  pthread_t thread_orig, thread_dual;
 
   // TODO (ma): incremental support
 
@@ -3128,6 +3157,30 @@ sat_ef_solver (BtorEFSolver *slv)
                                    "dual_exists",
                                    var_map,
                                    dual_var_map);
+
+#if 1
+    pthread_create (&thread_orig, 0, thread_work, gslv);
+    pthread_create (&thread_dual, 0, thread_work, dual_gslv);
+    pthread_join (thread_orig, 0);
+    pthread_join (thread_dual, 0);
+
+    printf ("FOUND SOLUTION\n");
+
+    if (gslv->result != BTOR_RESULT_UNKNOWN)
+      res = gslv->result;
+    else
+    {
+      assert (dual_gslv->result != BTOR_RESULT_UNKNOWN);
+      if (dual_gslv->result == BTOR_RESULT_SAT)
+        res = BTOR_RESULT_UNSAT;
+      else
+      {
+        assert (dual_gslv->result == BTOR_RESULT_UNSAT);
+        res = BTOR_RESULT_SAT;
+      }
+    }
+    goto DONE;
+#endif
   }
 
 #ifndef NDEBUG
@@ -3179,6 +3232,8 @@ sat_ef_solver (BtorEFSolver *slv)
   slv->time.synth    = gslv->time.synth;
   slv->time.qinst    = gslv->time.qinst;
   slv->time.findinst = gslv->time.findinst;
+
+DONE:
 
   if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
 
