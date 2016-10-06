@@ -569,6 +569,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   /* configure options */
   btor_set_opt (res->forall, BTOR_OPT_MODEL_GEN, 1);
   btor_set_opt (res->forall, BTOR_OPT_INCREMENTAL, 1);
+  btor_set_opt (res->forall, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
   if (setup_dual)
   {
