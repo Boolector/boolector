@@ -39,10 +39,6 @@
 
 struct BtorEFGroundSolvers
 {
-  //  BtorNodeMap *forall_ufs;
-  //  BtorPtrHashTable *forall_synth_funs;   /* synthesized functions cache */
-  //  BtorPtrHashTable *forall_synth_inputs; /* synthesized functions input
-  //  cache */
   Btor *forall; /* solver for checking the model */
   BtorNode *forall_formula;
   BtorNodeMap *forall_evars;     /* existential vars (map to skolem
@@ -67,20 +63,7 @@ struct BtorEFGroundSolvers
 
   BtorSolverResult result;
 
-  struct
-  {
-    double e_solver;
-    double f_solver;
-    double synth;
-    double qinst;
-    double findinst;
-  } time;
-
-  struct
-  {
-    uint32_t refinements;
-    uint32_t failed_refinements;
-  } stats;
+  BtorEFStats *statistics;
 };
 
 typedef struct BtorEFGroundSolvers BtorEFGroundSolvers;
@@ -1050,7 +1033,7 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
       res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
-  gslv->stats.refinements++;
+  gslv->statistics->stats.refinements++;
   assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
   btor_add_ptr_hash_table (gslv->forall_ces, ce);
 
@@ -2879,7 +2862,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     /* query exists solver */
     start = btor_time_stamp ();
     r     = btor_sat_btor (gslv->exists, -1, -1);
-    gslv->time.e_solver += btor_time_stamp () - start;
+    gslv->statistics->time.e_solver += btor_time_stamp () - start;
 
     if (r == BTOR_RESULT_UNSAT) /* formula is UNSAT */
     {
@@ -2898,14 +2881,14 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     {
       start     = btor_time_stamp ();
       cur_model = find_instantiations (gslv);
-      gslv->time.findinst += btor_time_stamp () - start;
+      gslv->statistics->time.findinst += btor_time_stamp () - start;
     }
 
     /* synthesize model based on 'cur_model' */
     start       = btor_time_stamp ();
     synth_model = synthesize_model (gslv, cur_model);
     free_cur_model (gslv, cur_model);
-    gslv->time.synth += btor_time_stamp () - start;
+    gslv->statistics->time.synth += btor_time_stamp () - start;
 
     /* save currently synthesized model */
     delete_model (gslv);
@@ -2922,7 +2905,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     btor_assert_exp (gslv->forall, g);
     start = btor_time_stamp ();
     res   = btor_sat_btor (gslv->forall, -1, -1);
-    gslv->time.f_solver += btor_time_stamp () - start;
+    gslv->statistics->time.f_solver += btor_time_stamp () - start;
     goto DONE;
   }
 
@@ -2941,7 +2924,7 @@ UNDERAPPROX:
   r     = btor_sat_btor (gslv->forall, -1, -1);
   update_formula (gslv);
   assert (!btor_is_proxy_node (gslv->forall_formula));
-  gslv->time.f_solver += btor_time_stamp () - start;
+  gslv->statistics->time.f_solver += btor_time_stamp () - start;
 
   if (r == BTOR_RESULT_UNSAT) /* formula is SAT */
   {
@@ -2959,7 +2942,7 @@ UNDERAPPROX:
   if (!refine_exists_solver (gslv))
   {
     btor_release_exp (gslv->forall, g);
-    gslv->stats.failed_refinements++;
+    gslv->statistics->stats.failed_refinements++;
     goto RESTART;
   }
 
@@ -3103,7 +3086,7 @@ thread_work (void *state)
   {
     res         = find_model (gslv, skip_exists);
     skip_exists = false;
-    gslv->stats.refinements++;
+    gslv->statistics->stats.refinements++;
   }
   gslv->result = res;
   pthread_mutex_lock (&thread_result_mutex);
@@ -3178,6 +3161,7 @@ sat_ef_solver (BtorEFSolver *slv)
   g    = btor_normalize_quantifiers (slv->btor);
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
+  gslv->statistics = &slv->statistics;
 
   /* disable dual solver if UFs are present in the formula */
   // TODO: eliminate UFs with ackermann
@@ -3185,16 +3169,17 @@ sat_ef_solver (BtorEFSolver *slv)
 
   if (opt_dual_solver)
   {
-    var_map      = btor_new_node_map (slv->btor);
-    dual_var_map = btor_new_node_map (slv->btor);
-    dual_gslv    = setup_efg_solvers (slv,
+    var_map               = btor_new_node_map (slv->btor);
+    dual_var_map          = btor_new_node_map (slv->btor);
+    dual_gslv             = setup_efg_solvers (slv,
                                    gslv->forall_formula,
                                    true,
                                    "dual_forall",
                                    "dual_exists",
                                    var_map,
                                    dual_var_map);
-    res          = run_parallel (gslv, dual_gslv);
+    dual_gslv->statistics = &slv->dual_statistics;
+    res                   = run_parallel (gslv, dual_gslv);
   }
   else
   {
@@ -3208,23 +3193,8 @@ sat_ef_solver (BtorEFSolver *slv)
     if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
   }
 
-  slv->time.e_solver            = gslv->time.e_solver;
-  slv->time.f_solver            = gslv->time.f_solver;
-  slv->time.synth               = gslv->time.synth;
-  slv->time.qinst               = gslv->time.qinst;
-  slv->time.findinst            = gslv->time.findinst;
-  slv->stats.refinements        = gslv->stats.refinements;
-  slv->stats.failed_refinements = gslv->stats.failed_refinements;
-
   if (opt_dual_solver)
   {
-    slv->time.dual_e_solver            = dual_gslv->time.e_solver;
-    slv->time.dual_f_solver            = dual_gslv->time.f_solver;
-    slv->time.dual_synth               = dual_gslv->time.synth;
-    slv->time.dual_qinst               = dual_gslv->time.qinst;
-    slv->time.dual_findinst            = dual_gslv->time.findinst;
-    slv->stats.dual_refinements        = dual_gslv->stats.refinements;
-    slv->stats.dual_failed_refinements = dual_gslv->stats.failed_refinements;
     btor_delete_node_map (var_map);
     btor_delete_node_map (dual_var_map);
     delete_efg_solvers (slv, dual_gslv);
@@ -3296,23 +3266,22 @@ print_stats_ef_solver (BtorEFSolver *slv)
   BTOR_MSG (slv->btor->msg,
             1,
             "cegqi solver refinements: %u",
-            slv->stats.refinements);
+            slv->statistics.stats.refinements);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "cegqi solver failed refinements: %u",
+            slv->statistics.stats.failed_refinements);
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
     BTOR_MSG (slv->btor->msg,
               1,
               "cegqi dual solver refinements: %u",
-              slv->stats.dual_refinements);
+              slv->dual_statistics.stats.refinements);
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "cegqi dual solver failed refinements: %u",
+              slv->dual_statistics.stats.failed_refinements);
   }
-  //  BTOR_MSG (slv->btor->msg, 1, "synthesize function aborts: %u",
-  //	    slv->stats.synth_aborts);
-  //  BTOR_MSG (slv->btor->msg, 1, "synthesized functions: %u",
-  //	    slv->stats.synth_funs);
-  //  BTOR_MSG (slv->btor->msg, 1, "synthesized functions reused: %u",
-  //	    slv->stats.synth_funs_reused);
-  //  printf ("****************\n");
-  //  btor_print_stats_btor (slv->e_solver);
-  //  btor_print_stats_btor (slv->f_solver);
 }
 
 static void
@@ -3323,44 +3292,48 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BTOR_MSG (
-      slv->btor->msg, 1, "%.2f seconds exists solver", slv->time.e_solver);
-  BTOR_MSG (
-      slv->btor->msg, 1, "%.2f seconds forall solver", slv->time.f_solver);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds exists solver",
+            slv->statistics.time.e_solver);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds forall solver",
+            slv->statistics.time.f_solver);
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds synthesizing functions",
-            slv->time.synth);
+            slv->statistics.time.synth);
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds find instantiations",
-            slv->time.findinst);
+            slv->statistics.time.findinst);
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds quantifier instantiation",
-            slv->time.qinst);
+            slv->statistics.time.qinst);
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual exists solver",
-              slv->time.dual_e_solver);
+              slv->dual_statistics.time.e_solver);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual forall solver",
-              slv->time.dual_f_solver);
+              slv->dual_statistics.time.f_solver);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual synthesizing functions",
-              slv->time.dual_synth);
+              slv->dual_statistics.time.synth);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual quantifier instantiation",
-              slv->time.dual_qinst);
+              slv->dual_statistics.time.qinst);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual find instantiations",
-              slv->time.dual_findinst);
+              slv->dual_statistics.time.findinst);
   }
 }
 

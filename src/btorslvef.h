@@ -17,21 +17,12 @@
 
 #include <stdint.h>
 
-struct BtorEFSolver
+struct BtorEFStats
 {
-  BTOR_SOLVER_STRUCT;
-
   struct
   {
     uint32_t refinements;
     uint32_t failed_refinements;
-
-    uint32_t dual_refinements;
-    uint32_t dual_failed_refinements;
-
-    uint32_t synth_aborts;
-    uint32_t synth_funs;
-    uint32_t synth_funs_reused;
   } stats;
 
   struct
@@ -41,13 +32,16 @@ struct BtorEFSolver
     double synth;
     double qinst;
     double findinst;
-
-    double dual_e_solver;
-    double dual_f_solver;
-    double dual_synth;
-    double dual_qinst;
-    double dual_findinst;
   } time;
+};
+
+typedef struct BtorEFStats BtorEFStats;
+
+struct BtorEFSolver
+{
+  BTOR_SOLVER_STRUCT;
+  BtorEFStats statistics;
+  BtorEFStats dual_statistics;
 };
 
 typedef struct BtorEFSolver BtorEFSolver;
