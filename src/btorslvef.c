@@ -2999,9 +2999,17 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     goto DONE;
   }
 
-  if (of_guards) release_overflow_guards (gslv->forall, of_guards);
+#if 0
+  if (of_guards)
+    release_overflow_guards (gslv->forall, of_guards);
   of_guards = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
+
+  /* currently synthesis has issues to find a term in case of
+   * overflowing operators */
+  add_overflow_guards (gslv->forall, g, of_guards);
+
 OVERFLOW:
+#endif
 UNDERAPPROX:
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
 
@@ -3011,10 +3019,6 @@ UNDERAPPROX:
     assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
     underapprox (gslv->forall, vars, assumptions);
   }
-
-  /* currently synthesis has issues to find a term in case of
-   * overflowing operators */
-  add_overflow_guards (gslv->forall, g, of_guards);
 
   /* query forall solver */
   start = btor_time_stamp ();
@@ -3030,7 +3034,10 @@ UNDERAPPROX:
         && !underapprox_check (gslv->forall, vars, assumptions, g))
       goto UNDERAPPROX;
 
-    if (!check_overflow_guards (gslv->forall, g, of_guards)) goto OVERFLOW;
+#if 0
+      if (!check_overflow_guards (gslv->forall, g, of_guards))
+	goto OVERFLOW;
+#endif
 
     res = BTOR_RESULT_SAT;
     goto DONE;
@@ -3054,7 +3061,10 @@ DONE:
     underapprox_release (gslv->forall, assumptions);
     btor_delete_ptr_hash_table (vars);
   }
-  release_overflow_guards (gslv->forall, of_guards);
+#if 0
+  if (of_guards)
+    release_overflow_guards (gslv->forall, of_guards);
+#endif
   return res;
 }
 
