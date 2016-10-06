@@ -24,6 +24,11 @@ struct BtorEFSolver
   struct
   {
     uint32_t refinements;
+    uint32_t failed_refinements;
+
+    uint32_t dual_refinements;
+    uint32_t dual_failed_refinements;
+
     uint32_t synth_aborts;
     uint32_t synth_funs;
     uint32_t synth_funs_reused;
