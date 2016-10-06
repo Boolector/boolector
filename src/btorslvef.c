@@ -2828,6 +2828,95 @@ free_cur_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   btor_delete_ptr_hash_table (uf_models);
 }
 
+static void
+add_overflow_guards (Btor *btor, BtorNode *root, BtorPtrHashTable *assumptions)
+{
+  uint32_t i;
+  BtorNodePtrStack visit;
+  BtorIntHashTable *cache;
+  BtorNode *cur, *of_guard;
+  BtorMemMgr *mm;
+
+  mm    = btor->mm;
+  cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, root);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_is_apply_node (cur)
+        || btor_contains_int_hash_table (cache, cur->id))
+      continue;
+
+    of_guard = 0;
+    if (btor_is_add_node (cur))
+      of_guard = btor_uaddo_exp (btor, cur->e[0], cur->e[1]);
+    else if (btor_is_mul_node (cur))
+      of_guard = btor_umulo_exp (btor, cur->e[0], cur->e[1]);
+
+    if (of_guard)
+    {
+      of_guard = BTOR_INVERT_NODE (of_guard);
+      btor_assume_exp (btor, of_guard);
+      btor_add_ptr_hash_table (assumptions, of_guard);
+    }
+
+    btor_add_int_hash_table (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (mm, visit);
+  btor_delete_int_hash_table (cache);
+}
+
+static bool
+check_overflow_guards (Btor *btor,
+                       BtorNode *root,
+                       BtorPtrHashTable *assumptions)
+{
+  bool res = true;
+  BtorNode *cur;
+  BtorHashTableIterator it;
+  BtorPtrHashBucket *b;
+
+  btor_init_node_hash_table_iterator (&it, assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur = btor_next_node_hash_table_iterator (&it);
+    if (btor_failed_exp (btor, cur))
+    {
+      printf ("failed: %s\n", node2string (cur));
+      btor_remove_ptr_hash_table (assumptions, cur, 0, 0);
+      btor_release_exp (btor, cur);
+      res = false;
+      break;
+    }
+  }
+
+  if (!res)
+  {
+    btor_assume_exp (btor, BTOR_INVERT_NODE (root));
+    printf ("check again\n");
+    if (btor_sat_btor (btor, -1, -1) == BTOR_RESULT_UNSAT)
+    {
+      printf ("OF required\n");
+      res = true;
+    }
+    printf ("done\n");
+  }
+  return res;
+}
+
+static void
+release_overflow_guards (Btor *btor, BtorPtrHashTable *assumptions)
+{
+  BtorHashTableIterator it;
+  btor_init_node_hash_table_iterator (&it, assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (assumptions);
+}
+
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
@@ -2837,7 +2926,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
   BtorPtrHashTable *synth_model = 0, *cur_model;
-  BtorPtrHashTable *assumptions = 0, *vars = 0;
+  BtorPtrHashTable *assumptions = 0, *vars = 0, *of_guards = 0;
   BtorNodeMapIterator it;
 
   opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
@@ -2909,6 +2998,9 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     goto DONE;
   }
 
+  if (of_guards) release_overflow_guards (gslv->forall, of_guards);
+  of_guards = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
+OVERFLOW:
 UNDERAPPROX:
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
 
@@ -2918,6 +3010,10 @@ UNDERAPPROX:
     assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
     underapprox (gslv->forall, vars, assumptions);
   }
+
+  /* currently synthesis has issues to find a term in case of
+   * overflowing operators */
+  add_overflow_guards (gslv->forall, g, of_guards);
 
   /* query forall solver */
   start = btor_time_stamp ();
@@ -2932,6 +3028,8 @@ UNDERAPPROX:
     if (opt_underapprox
         && !underapprox_check (gslv->forall, vars, assumptions, g))
       goto UNDERAPPROX;
+
+    if (!check_overflow_guards (gslv->forall, g, of_guards)) goto OVERFLOW;
 
     res = BTOR_RESULT_SAT;
     goto DONE;
@@ -2955,6 +3053,7 @@ DONE:
     underapprox_release (gslv->forall, assumptions);
     btor_delete_ptr_hash_table (vars);
   }
+  release_overflow_guards (gslv->forall, of_guards);
   return res;
 }
 

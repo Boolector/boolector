@@ -1274,14 +1274,15 @@ btor_synthesize_fun (Btor *btor,
   {
     bv = it.bucket->data.as_ptr;
     BTOR_PUSH_STACK (mm, value_out, bv);
-    //      printf ("out: "); btor_print_bv (bv);
+    //      printf ("out: %zu ", btor_bv_to_uint64_bv (bv)); btor_print_bv (bv);
 
     tup = btor_next_hash_table_iterator (&it);
     vin = btor_new_bv_tuple (mm, ninputs);
     i   = 0;
     for (; i < tup->arity; i++)
     {
-      //	printf (" in: "); btor_print_bv (tup->bv[i]);
+      //	printf (" in: %zu ", btor_bv_to_uint64_bv (tup->bv[i]));
+      // btor_print_bv (tup->bv[i]);
       btor_add_to_bv_tuple (mm, vin, tup->bv[i], i);
     }
     for (; i < ninputs; i++)
