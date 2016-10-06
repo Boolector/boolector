@@ -28,9 +28,9 @@ typedef enum BtorSolverResult BtorSolverResult;
 /* public API types */
 typedef struct BoolectorNode BoolectorNode;
 
-typedef struct BoolectorAnymous BoolectorAnymous;
+typedef struct BoolectorAnonymous BoolectorAnonymous;
 
-typedef BoolectorAnymous* BoolectorSort;
+typedef BoolectorAnonymous* BoolectorSort;
 
 /* --------------------------------------------------------------------- */
 
