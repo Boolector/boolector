@@ -786,7 +786,7 @@ btor_init_opts (Btor *btor)
             true,
             "ef:synthcomplete",
             0,
-            0,
+            1,
             0,
             1,
             "make base case of concrete model constant instead of undef.");
