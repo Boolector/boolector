@@ -3048,6 +3048,12 @@ UNDERAPPROX:
     res = BTOR_RESULT_SAT;
     goto DONE;
   }
+  /* solver terminated due to termination callback */
+  else if (r == BTOR_RESULT_UNKNOWN)
+  {
+    assert (gslv->forall->cbs.term.done);
+    goto DONE;
+  }
 
   /* if refinement fails, we got a counter-example that we already got in
    * a previous call. in this case we produce a model using all refinements */
