@@ -253,7 +253,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   {
     case 10: res = BTOR_RESULT_SAT; break;
     case 20: res = BTOR_RESULT_UNSAT; break;
-    default: assert (res == 0); res = BTOR_RESULT_UNKNOWN;
+    default: assert (sat_res == 0); res = BTOR_RESULT_UNKNOWN;
   }
   return res;
 }
