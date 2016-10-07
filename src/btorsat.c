@@ -740,7 +740,11 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);
-      assert (!res || bfres == res);
+      /* it may happen that the lglsat call returns a result sat or unsat,
+       * but in lglunclone the terminate callback forces lglunclone to
+       * return unknown */
+      assert ((!res || bfres == res)
+              || (bfres != res && smgr->term.fun (smgr->term.state)));
       res = bfres;
     }
     else
