@@ -2262,7 +2262,7 @@ sat_fun_solver (BtorFunSolver *slv)
       goto DONE;
     else if (result == BTOR_RESULT_UNKNOWN)
     {
-      assert (slv->sat_limit > -1);
+      assert (slv->sat_limit > -1 || btor->cbs.term.done);
       goto DONE;
     }
 
