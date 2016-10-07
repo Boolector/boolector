@@ -2886,7 +2886,6 @@ check_overflow_guards (Btor *btor,
     cur = btor_next_node_hash_table_iterator (&it);
     if (btor_failed_exp (btor, cur))
     {
-      printf ("failed: %s\n", node2string (cur));
       btor_remove_ptr_hash_table (assumptions, cur, 0, 0);
       btor_release_exp (btor, cur);
       res = false;
@@ -2897,13 +2896,10 @@ check_overflow_guards (Btor *btor,
   if (!res)
   {
     btor_assume_exp (btor, BTOR_INVERT_NODE (root));
-    printf ("check again\n");
     if (btor_sat_btor (btor, -1, -1) == BTOR_RESULT_UNSAT)
     {
-      printf ("OF required\n");
       res = true;
     }
-    printf ("done\n");
   }
   return res;
 }
@@ -3210,15 +3206,14 @@ thread_work (void *state)
     skip_exists = false;
     gslv->statistics->stats.refinements++;
   }
-  if (res != BTOR_RESULT_UNKNOWN)
-  {
-    assert (!thread_found_result);
-    BTOR_MSG (gslv->exists->msg, 1, "found solution");
-  }
-  gslv->result = res;
   pthread_mutex_lock (&thread_result_mutex);
-  thread_found_result = true;
+  if (!thread_found_result)
+  {
+    BTOR_MSG (gslv->exists->msg, 1, "found solution");
+    thread_found_result = true;
+  }
   pthread_mutex_unlock (&thread_result_mutex);
+  gslv->result = res;
   return NULL;
 }
 
