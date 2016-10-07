@@ -205,8 +205,6 @@ btor_init_sat (BtorSATMgr *smgr)
   smgr->inc_required = true;
   smgr->sat_time     = 0;
 
-  if (smgr->api.setterm) smgr->api.setterm (smgr);
-
   smgr->true_lit = btor_next_cnf_id_sat_mgr (smgr);
   btor_add_sat (smgr, smgr->true_lit);
   btor_add_sat (smgr, 0);
@@ -248,6 +246,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
       smgr->msg, 2, "calling SAT solver %s with limit %d", smgr->name, limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
+  if (smgr->api.setterm) smgr->api.setterm (smgr);
   sat_res = smgr->api.sat (smgr, limit);
   smgr->sat_time += btor_time_stamp () - start;
   switch (sat_res)
@@ -725,7 +724,9 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       lglmeltall (clone);
       str = "clone";
       lglsetopt (clone, "clim", limit);
-      sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
+      /* callbacks are not cloned in Lingeling */
+      if (smgr->term.fun) lglseterm (clone, smgr->term.fun, smgr->term.state);
+      sprintf (name, "[%s lgl%s%d] ", smgr->msg->prefix, str, blgl->nforked);
       lglsetprefix (clone, name);
       lglsetout (clone, smgr->output);
 
