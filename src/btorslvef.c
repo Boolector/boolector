@@ -2959,10 +2959,10 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       res = BTOR_RESULT_UNSAT;
       goto DONE;
     }
+    /* solver terminated due to termination callback */
     else if (r == BTOR_RESULT_UNKNOWN)
     {
-      assert (gslv->exists->cbs.term);
-      assert (gslv->exists->cbs.term.fun (gslv->exists->cbs.term.state));
+      assert (gslv->exists->cbs.term.done);
       goto DONE;
     }
 
