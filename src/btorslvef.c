@@ -2959,6 +2959,12 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       res = BTOR_RESULT_UNSAT;
       goto DONE;
     }
+    else if (r == BTOR_RESULT_UNKNOWN)
+    {
+      assert (gslv->exists->cbs.term);
+      assert (gslv->exists->cbs.term.fun (gslv->exists->cbs.term.state));
+      goto DONE;
+    }
 
     if (opt_finst_mode == BTOR_EF_FINST_NONE
         || (gslv->forall_evar_deps->table->count == 0
@@ -3198,11 +3204,22 @@ thread_work (void *state)
     skip_exists = false;
     gslv->statistics->stats.refinements++;
   }
+  if (res != BTOR_RESULT_UNKNOWN)
+  {
+    assert (!thread_found_result);
+    BTOR_MSG (gslv->exists->msg, 1, "found solution");
+  }
   gslv->result = res;
   pthread_mutex_lock (&thread_result_mutex);
   thread_found_result = true;
   pthread_mutex_unlock (&thread_result_mutex);
   return NULL;
+}
+
+int
+thread_terminate (void *state)
+{
+  return thread_found_result == true;
 }
 
 static BtorSolverResult
@@ -3211,6 +3228,10 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
   BtorSolverResult res;
   pthread_t thread_orig, thread_dual;
 
+  btor_set_term_btor (gslv->forall, thread_terminate, 0);
+  btor_set_term_btor (gslv->exists, thread_terminate, 0);
+  btor_set_term_btor (dual_gslv->forall, thread_terminate, 0);
+  btor_set_term_btor (dual_gslv->exists, thread_terminate, 0);
   pthread_create (&thread_orig, 0, thread_work, gslv);
   pthread_create (&thread_dual, 0, thread_work, dual_gslv);
   pthread_join (thread_orig, 0);
