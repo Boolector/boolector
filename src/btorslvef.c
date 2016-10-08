@@ -1832,6 +1832,7 @@ find_partial_model (BtorEFGroundSolvers *gslv)
   btor_delete_opts (r_solver);
   btor_clone_opts (e_solver, r_solver);
   opt_pmfind_mode = btor_get_opt (r_solver, BTOR_OPT_EF_FINDPM_MODE);
+  assert (opt_pmfind_mode == BTOR_EF_FINDPM_REF);
 
   mm = e_solver->mm;
 
