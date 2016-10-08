@@ -24,9 +24,15 @@ struct BtorEFStats
     uint32_t refinements;
     uint32_t failed_refinements;
 
-    uint32_t model_const;
-    uint32_t model_synthesized;
-    uint32_t model_ite;
+    /* overall synthesize statistics */
+    uint32_t synthesize_const;
+    uint32_t synthesize_term;
+    uint32_t synthesize_none;
+
+    /* statistics for the currently synthesized model */
+    uint32_t synthesize_model_const;
+    uint32_t synthesize_model_term;
+    uint32_t synthesize_model_none;
   } stats;
 
   struct

@@ -2137,9 +2137,10 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   inputs = btor_new_ptr_hash_table (mm, 0, 0);
 #endif
 
-  gslv->statistics->stats.model_const       = 0;
-  gslv->statistics->stats.model_synthesized = 0;
-  gslv->statistics->stats.model_ite         = 0;
+  /* reset stats for currently synthesized model */
+  gslv->statistics->stats.synthesize_model_const = 0;
+  gslv->statistics->stats.synthesize_model_term  = 0;
+  gslv->statistics->stats.synthesize_model_none  = 0;
 
   /* map existential variables to their resp. assignment */
   btor_init_node_map_iterator (&it, gslv->exists_evars);
@@ -2236,9 +2237,9 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
         synth_res->partial = false;
         assert (btor_is_lambda_node (candidate));
         if (btor_is_bv_const_node (btor_binder_get_body (candidate)))
-          gslv->statistics->stats.model_const++;
+          gslv->statistics->stats.synthesize_const++;
         else
-          gslv->statistics->stats.model_synthesized++;
+          gslv->statistics->stats.synthesize_model_term++;
 #if 0
 	      if (!btor_is_uf_node (e_uf_fs))
 		check_inputs_used (mm, candidate, in);
@@ -2249,7 +2250,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       {
         synth_res->value   = mk_concrete_lambda_model (f_solver, uf_model);
         synth_res->partial = true;
-        gslv->statistics->stats.model_ite++;
+        gslv->statistics->stats.synthesize_model_none++;
       }
       btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
     }
@@ -2266,13 +2267,20 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       printf ("exists %s := ", node2string (e_uf));
       btor_print_bv (bv);
 #endif
-      gslv->statistics->stats.model_const++;
       synth_res        = new_synth_result (mm);
       synth_res->type  = BTOR_SYNTH_TYPE_SK_VAR;
       synth_res->value = btor_const_exp (f_solver, (BtorBitVector *) bv);
       btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
     }
   }
+
+  /* update overall synthesize statistics */
+  gslv->statistics->stats.synthesize_const +=
+      gslv->statistics->stats.synthesize_model_const;
+  gslv->statistics->stats.synthesize_term +=
+      gslv->statistics->stats.synthesize_model_term;
+  gslv->statistics->stats.synthesize_none +=
+      gslv->statistics->stats.synthesize_model_none;
 
 #if 0
   btor_init_node_hash_table_iterator (&hit, inputs);
@@ -3372,14 +3380,19 @@ print_stats_ef_solver (BtorEFSolver *slv)
   {
     BTOR_MSG (slv->btor->msg,
               1,
-              "model synthesized const: %u",
-              slv->statistics.stats.model_const);
+              "model synthesized const: %u (%u)",
+              slv->statistics.stats.synthesize_model_const,
+              slv->statistics.stats.synthesize_const);
     BTOR_MSG (slv->btor->msg,
               1,
-              "model synthesized term: %u",
-              slv->statistics.stats.model_synthesized);
-    BTOR_MSG (
-        slv->btor->msg, 1, "model ite: %u", slv->statistics.stats.model_ite);
+              "model synthesized term: %u (%u)",
+              slv->statistics.stats.synthesize_model_term,
+              slv->statistics.stats.synthesize_term);
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "model synthesized none: %u (%u)",
+              slv->statistics.stats.synthesize_model_none,
+              slv->statistics.stats.synthesize_none);
   }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
@@ -3395,16 +3408,19 @@ print_stats_ef_solver (BtorEFSolver *slv)
     {
       BTOR_MSG (slv->btor->msg,
                 1,
-                "dual model synthesized const: %u",
-                slv->dual_statistics.stats.model_const);
+                "dual model synthesized const: %u (%u)",
+                slv->dual_statistics.stats.synthesize_model_const,
+                slv->dual_statistics.stats.synthesize_const);
       BTOR_MSG (slv->btor->msg,
                 1,
-                "dual model synthesized term: %u",
-                slv->dual_statistics.stats.model_synthesized);
+                "dual model synthesized term: %u (%u)",
+                slv->dual_statistics.stats.synthesize_model_term,
+                slv->dual_statistics.stats.synthesize_term);
       BTOR_MSG (slv->btor->msg,
                 1,
-                "dual model ite: %u",
-                slv->dual_statistics.stats.model_ite);
+                "dual model synthesized none: %u (%u)",
+                slv->dual_statistics.stats.synthesize_model_none,
+                slv->dual_statistics.stats.synthesize_none);
     }
   }
 }
