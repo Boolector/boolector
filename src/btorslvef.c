@@ -1806,16 +1806,16 @@ PUSH_RESULT:
 #endif
 
 static BtorPtrHashTable *
-find_instantiations (BtorEFGroundSolvers *gslv)
+find_partial_model (BtorEFGroundSolvers *gslv)
 {
-  uint32_t i, opt_finst_mode;
+  uint32_t i, opt_pmfind_mode;
   BtorIntHashTable *cache;
   Btor *f_solver, *e_solver;
   Btor *r_solver;
   BtorNodeMap *map, *varmap, *rev_varmap, *rev_evars;
   BtorNodeMapIterator it;
-  BtorNode *var_es, *var_fs, *c, *ref, *uvar, *a, *var, *eq, *cur, *and;
-  BtorNode *r_evar, *tmp, *root;
+  BtorNode *var_es, *var_fs, *c, *ref, *uvar, *a, *var, *eq, *cur;
+  BtorNode *r_evar;
   const BtorBitVector *bv;
   BtorBitVectorTuple *ce;
   BtorNodePtrStack visit, bool_exps, true_exps, false_exps, models, outer_evars;
@@ -1831,7 +1831,7 @@ find_instantiations (BtorEFGroundSolvers *gslv)
   e_solver = gslv->exists;
   btor_delete_opts (r_solver);
   btor_clone_opts (e_solver, r_solver);
-  opt_finst_mode = btor_get_opt (r_solver, BTOR_OPT_EF_FINST_MODE);
+  opt_pmfind_mode = btor_get_opt (r_solver, BTOR_OPT_EF_FINDPM_MODE);
 
   mm = e_solver->mm;
 
@@ -2033,112 +2033,43 @@ find_instantiations (BtorEFGroundSolvers *gslv)
       btor_release_exp (r_solver, root);
 #endif
 
-    if (opt_finst_mode == BTOR_EF_FINST_MOD)
+    btor_init_hash_table_iterator (&ce_it, gslv->forall_ces);
+    while (btor_has_next_hash_table_iterator (&ce_it))
     {
-      do
+      i  = 0;
+      ce = btor_next_hash_table_iterator (&ce_it);
+      btor_init_node_map_iterator (&it, gslv->forall_uvars);
+      while (btor_has_next_node_map_iterator (&it))
       {
-        // TODO: for more variety -> add additoinal constraints like > and so on
-        /* block current counter example */
-        btor_init_node_map_iterator (&it, map);
-        and = 0;
-        while (btor_has_next_node_map_iterator (&it))
-        {
-          c   = it.it.bucket->data.as_ptr;
-          var = btor_next_node_map_iterator (&it);
-          // TODO: more aggressive exclusion of values
-          // (we need a wide variety of in/out pairs)
-          // use ne_exp for better results
-          eq = btor_eq_exp (r_solver, var, c);
-          if (and == 0)
-            and = eq;
-          else
-          {
-            tmp = and;
-            and = btor_and_exp (r_solver, tmp, eq);
-            btor_release_exp (r_solver, eq);
-            btor_release_exp (r_solver, tmp);
-          }
-        }
-        //	  printf ("block: %s\n", node2string (and));
-        BTOR_PUSH_STACK (mm, models, and);
-
-        // TODO: check if assertion would be faster
-        for (i = 0; i < BTOR_COUNT_STACK (true_exps); i++)
-          btor_assume_exp (r_solver, BTOR_PEEK_STACK (true_exps, i));
-        for (i = 0; i < BTOR_COUNT_STACK (false_exps); i++)
-          btor_assume_exp (r_solver,
-                           BTOR_INVERT_NODE (BTOR_PEEK_STACK (false_exps, i)));
-        for (i = 0; i < BTOR_COUNT_STACK (models); i++)
-          btor_assume_exp (r_solver,
-                           BTOR_INVERT_NODE (BTOR_PEEK_STACK (models, i)));
-
-        r = btor_sat_btor (r_solver, -1, -1);
-
-        if (r == BTOR_RESULT_UNSAT) break;
-
-        assert (r == BTOR_RESULT_SAT);
-
-        btor_init_node_map_iterator (&it, map);
-        while (btor_has_next_node_map_iterator (&it))
-        {
-          b   = it.it.bucket;
-          var = btor_next_node_map_iterator (&it);
-          bv  = btor_get_bv_model (r_solver, btor_simplify_exp (r_solver, var));
-          c   = b->data.as_ptr;
-          btor_release_exp (r_solver, c);
-          b->data.as_ptr = btor_const_exp (r_solver, (BtorBitVector *) bv);
-        }
-
-        btor_init_node_hash_table_iterator (&hit, r_evars_ufs);
-        while (btor_has_next_node_hash_table_iterator (&hit))
-        {
-          r_evar = btor_next_node_hash_table_iterator (&hit);
-          update_model (r_solver, mm, r_evar, r_evars_ufs);
-        }
+        var = btor_mapped_node (varmap, btor_next_node_map_iterator (&it));
+        bv  = ce->bv[i++];
+        c   = btor_const_exp (r_solver, (BtorBitVector *) bv);
+        //		  printf ("check CE = "); btor_print_bv (bv);
+        eq = btor_eq_exp (r_solver, var, c);
+        btor_assume_exp (r_solver, eq);
+        btor_release_exp (r_solver, c);
+        btor_release_exp (r_solver, eq);
       }
-      // TODO: make this an option
-      while (BTOR_COUNT_STACK (models) < 5);
-    }
-    else if (opt_finst_mode == BTOR_EF_FINST_REF)
-    {
-      btor_init_hash_table_iterator (&ce_it, gslv->forall_ces);
-      while (btor_has_next_hash_table_iterator (&ce_it))
+
+      // TODO: check if assertion would be faster
+      for (i = 0; i < BTOR_COUNT_STACK (true_exps); i++)
+        btor_assume_exp (r_solver, BTOR_PEEK_STACK (true_exps, i));
+      for (i = 0; i < BTOR_COUNT_STACK (false_exps); i++)
+        btor_assume_exp (r_solver,
+                         BTOR_INVERT_NODE (BTOR_PEEK_STACK (false_exps, i)));
+
+      r = btor_sat_btor (r_solver, -1, -1);
+
+      /* skip counter-example, does not satisfy current boolean
+       * skeleton */
+      if (r == BTOR_RESULT_UNSAT) continue;
+
+      assert (r == BTOR_RESULT_SAT);
+      btor_init_node_hash_table_iterator (&hit, r_evars_ufs);
+      while (btor_has_next_node_hash_table_iterator (&hit))
       {
-        i  = 0;
-        ce = btor_next_hash_table_iterator (&ce_it);
-        btor_init_node_map_iterator (&it, gslv->forall_uvars);
-        while (btor_has_next_node_map_iterator (&it))
-        {
-          var = btor_mapped_node (varmap, btor_next_node_map_iterator (&it));
-          bv  = ce->bv[i++];
-          c   = btor_const_exp (r_solver, (BtorBitVector *) bv);
-          //		  printf ("check CE = "); btor_print_bv (bv);
-          eq = btor_eq_exp (r_solver, var, c);
-          btor_assume_exp (r_solver, eq);
-          btor_release_exp (r_solver, c);
-          btor_release_exp (r_solver, eq);
-        }
-
-        // TODO: check if assertion would be faster
-        for (i = 0; i < BTOR_COUNT_STACK (true_exps); i++)
-          btor_assume_exp (r_solver, BTOR_PEEK_STACK (true_exps, i));
-        for (i = 0; i < BTOR_COUNT_STACK (false_exps); i++)
-          btor_assume_exp (r_solver,
-                           BTOR_INVERT_NODE (BTOR_PEEK_STACK (false_exps, i)));
-
-        r = btor_sat_btor (r_solver, -1, -1);
-
-        /* skip counter-example, does not satisfy current boolean
-         * skeleton */
-        if (r == BTOR_RESULT_UNSAT) continue;
-
-        assert (r == BTOR_RESULT_SAT);
-        btor_init_node_hash_table_iterator (&hit, r_evars_ufs);
-        while (btor_has_next_node_hash_table_iterator (&hit))
-        {
-          r_evar = btor_next_node_hash_table_iterator (&hit);
-          update_model (r_solver, mm, r_evar, r_evars_ufs);
-        }
+        r_evar = btor_next_node_hash_table_iterator (&hit);
+        update_model (r_solver, mm, r_evar, r_evars_ufs);
       }
     }
   }
@@ -2907,7 +2838,6 @@ check_overflow_guards (Btor *btor,
   bool res = true;
   BtorNode *cur;
   BtorHashTableIterator it;
-  BtorPtrHashBucket *b;
 
   btor_init_node_hash_table_iterator (&it, assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -2947,7 +2877,7 @@ static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
   bool opt_underapprox;
-  uint32_t opt_finst_mode;
+  uint32_t opt_pmfind_mode;
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
@@ -2956,7 +2886,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   BtorNodeMapIterator it;
 
   opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
-  opt_finst_mode  = btor_get_opt (gslv->forall, BTOR_OPT_EF_FINST_MODE);
+  opt_pmfind_mode = btor_get_opt (gslv->forall, BTOR_OPT_EF_FINDPM_MODE);
 
   /* initialize all universal variables with a bit-width of 1 */
   if (opt_underapprox)
@@ -2991,7 +2921,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       goto DONE;
     }
 
-    if (opt_finst_mode == BTOR_EF_FINST_NONE
+    if (opt_pmfind_mode == BTOR_EF_FINDPM_NONE
         || (gslv->forall_evar_deps->table->count == 0
             && gslv->forall->ufs->count == 0))
     {
@@ -3001,8 +2931,8 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     else
     {
       start     = time_stamp ();
-      cur_model = find_instantiations (gslv);
-      gslv->statistics->time.findinst += time_stamp () - start;
+      cur_model = find_partial_model (gslv);
+      gslv->statistics->time.findpm += time_stamp () - start;
     }
 
     /* synthesize model based on 'cur_model' */
@@ -3501,8 +3431,8 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
             slv->statistics.time.synth);
   BTOR_MSG (slv->btor->msg,
             1,
-            "%.2f seconds find instantiations",
-            slv->statistics.time.findinst);
+            "%.2f seconds find partial model",
+            slv->statistics.time.findpm);
   BTOR_MSG (slv->btor->msg,
             1,
             "%.2f seconds quantifier instantiation",
@@ -3527,8 +3457,8 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
               slv->dual_statistics.time.qinst);
     BTOR_MSG (slv->btor->msg,
               1,
-              "%.2f seconds dual find instantiations",
-              slv->dual_statistics.time.findinst);
+              "%.2f seconds dual find partial model",
+              slv->dual_statistics.time.findpm);
   }
 }
 

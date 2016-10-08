@@ -35,7 +35,7 @@ struct BtorEFStats
     double f_solver;
     double synth;
     double qinst;
-    double findinst;
+    double findpm;
   } time;
 };
 
