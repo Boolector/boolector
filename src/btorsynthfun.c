@@ -648,7 +648,6 @@ check_signature (Btor *btor,
                  BtorBitVector *value_out[],
                  uint32_t nvalues,
                  BtorIntHashTable *value_in_map,
-
                  BtorBitVectorTuple **sig,
                  uint32_t *num_matches,
                  BtorBitVector **matchbv)
@@ -1223,6 +1222,7 @@ btor_synthesize_fun (Btor *btor,
                      uint32_t max_level)
 //		     BtorNodePtrStack * matches)
 {
+  bool prev_synth_ok;
   uint32_t i, j, nops, ninputs;
   Op ops[64];
   BtorNodePtrStack params, inputs, results;
@@ -1235,6 +1235,8 @@ btor_synthesize_fun (Btor *btor,
   BtorPtrHashTable *m;
   BtorHashTableIterator it;
   BtorPtrHashBucket *b;
+  BtorIntHashTable *value_in_map;
+  BtorNodeIterator nit;
 
   mm   = btor->mm;
   nops = init_ops (btor, ops);
@@ -1244,6 +1246,18 @@ btor_synthesize_fun (Btor *btor,
   BTOR_INIT_STACK (value_in);
   BTOR_INIT_STACK (value_out);
   BTOR_INIT_STACK (results);
+
+  if (prev_synth_fun)
+  {
+    value_in_map = btor_new_int_hash_map (mm);
+    i            = 0;
+    btor_init_param_iterator (&nit, prev_synth_fun);
+    while (btor_has_next_param_iterator (&nit))
+    {
+      p = btor_next_param_iterator (&nit);
+      btor_add_int_hash_map (value_in_map, p->id)->as_int = i++;
+    }
+  }
 
   /* create parameters */
   tup = model->first->key;
@@ -1314,33 +1328,45 @@ btor_synthesize_fun (Btor *btor,
   }
   assert (BTOR_COUNT_STACK (value_in) == BTOR_COUNT_STACK (value_out));
 
-  candidate = synthesize (btor,
-                          inputs.start,
-                          ninputs,
-                          value_in.start,
-                          value_out.start,
-                          BTOR_COUNT_STACK (value_in),
-                          ops,
-                          nops,
-                          consts,
-                          nconsts,
-                          max_checks,
-                          max_level);
-
-  /* create function from candidate expression */
-#if 0
-  for (i = 0; i < BTOR_COUNT_STACK (results); i++)
-    {
-      p = BTOR_PEEK_STACK (results, i);
-      BTOR_PUSH_STACK (mm, *matches, mk_fun (btor, params.start,
-					     BTOR_COUNT_STACK (params), p));
-      btor_release_exp (btor, p);
-    }
-#endif
-  if (candidate)
+  prev_synth_ok = false;
+  if (prev_synth_fun)
   {
-    result = mk_fun (btor, params.start, BTOR_COUNT_STACK (params), candidate);
-    btor_release_exp (btor, candidate);
+    prev_synth_ok = check_signature (btor,
+                                     btor_binder_get_body (prev_synth_fun),
+                                     value_in.start,
+                                     value_out.start,
+                                     BTOR_COUNT_STACK (value_in),
+                                     value_in_map,
+                                     0,
+                                     0,
+                                     0);
+    btor_delete_int_hash_map (value_in_map);
+  }
+
+  if (prev_synth_ok)
+    result = btor_copy_exp (btor, prev_synth_fun);
+  else
+  {
+    candidate = synthesize (btor,
+                            inputs.start,
+                            ninputs,
+                            value_in.start,
+                            value_out.start,
+                            BTOR_COUNT_STACK (value_in),
+                            ops,
+                            nops,
+                            consts,
+                            nconsts,
+                            max_checks,
+                            max_level);
+
+    /* create function from candidate expression */
+    if (candidate)
+    {
+      result =
+          mk_fun (btor, params.start, BTOR_COUNT_STACK (params), candidate);
+      btor_release_exp (btor, candidate);
+    }
   }
 
   while (!BTOR_EMPTY_STACK (value_in))
