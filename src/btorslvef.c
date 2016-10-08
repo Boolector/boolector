@@ -104,6 +104,25 @@ delete_synth_result (BtorMemMgr *mm, SynthResult *res)
 
 /*------------------------------------------------------------------------*/
 
+static bool g_measure_thread_time = false;
+
+static double
+time_stamp (void)
+{
+  struct timespec ts;
+  double res = -1;
+  if (g_measure_thread_time)
+  {
+    if (!clock_gettime (CLOCK_THREAD_CPUTIME_ID, &ts))
+      res += (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000;
+    return res;
+  }
+  else
+    return btor_time_stamp ();
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 underapprox (Btor *btor, BtorPtrHashTable *vars, BtorPtrHashTable *assumptions)
 {
@@ -2945,9 +2964,9 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   if (!skip_exists)
   {
     /* query exists solver */
-    start = btor_time_stamp ();
+    start = time_stamp ();
     r     = btor_sat_btor (gslv->exists, -1, -1);
-    gslv->statistics->time.e_solver += btor_time_stamp () - start;
+    gslv->statistics->time.e_solver += time_stamp () - start;
 
     if (r == BTOR_RESULT_UNSAT) /* formula is UNSAT */
     {
@@ -2970,16 +2989,16 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     }
     else
     {
-      start     = btor_time_stamp ();
+      start     = time_stamp ();
       cur_model = find_instantiations (gslv);
-      gslv->statistics->time.findinst += btor_time_stamp () - start;
+      gslv->statistics->time.findinst += time_stamp () - start;
     }
 
     /* synthesize model based on 'cur_model' */
-    start       = btor_time_stamp ();
+    start       = time_stamp ();
     synth_model = synthesize_model (gslv, cur_model);
     free_cur_model (gslv, cur_model);
-    gslv->statistics->time.synth += btor_time_stamp () - start;
+    gslv->statistics->time.synth += time_stamp () - start;
 
     /* save currently synthesized model */
     delete_model (gslv);
@@ -2994,9 +3013,9 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   {
     assert (skip_exists);
     btor_assert_exp (gslv->forall, g);
-    start = btor_time_stamp ();
+    start = time_stamp ();
     res   = btor_sat_btor (gslv->forall, -1, -1);
-    gslv->statistics->time.f_solver += btor_time_stamp () - start;
+    gslv->statistics->time.f_solver += time_stamp () - start;
     goto DONE;
   }
 
@@ -3022,11 +3041,11 @@ UNDERAPPROX:
   }
 
   /* query forall solver */
-  start = btor_time_stamp ();
+  start = time_stamp ();
   r     = btor_sat_btor (gslv->forall, -1, -1);
   update_formula (gslv);
   assert (!btor_is_proxy_node (gslv->forall_formula));
-  gslv->statistics->time.f_solver += btor_time_stamp () - start;
+  gslv->statistics->time.f_solver += time_stamp () - start;
 
   if (r == BTOR_RESULT_UNSAT) /* formula is SAT */
   {
@@ -3219,6 +3238,7 @@ thread_work (void *state)
 int
 thread_terminate (void *state)
 {
+  (void) state;
   return thread_found_result == true;
 }
 
@@ -3228,6 +3248,7 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
   BtorSolverResult res;
   pthread_t thread_orig, thread_dual;
 
+  g_measure_thread_time = true;
   btor_set_term_btor (gslv->forall, thread_terminate, 0);
   btor_set_term_btor (gslv->exists, thread_terminate, 0);
   btor_set_term_btor (dual_gslv->forall, thread_terminate, 0);
