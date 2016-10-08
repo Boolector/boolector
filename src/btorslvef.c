@@ -2206,6 +2206,10 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   inputs = btor_new_ptr_hash_table (mm, 0, 0);
 #endif
 
+  gslv->statistics->stats.model_const       = 0;
+  gslv->statistics->stats.model_synthesized = 0;
+  gslv->statistics->stats.model_ite         = 0;
+
   /* map existential variables to their resp. assignment */
   btor_init_node_map_iterator (&it, gslv->exists_evars);
   btor_queue_node_map_iterator (&it, gslv->exists_ufs);
@@ -2299,6 +2303,11 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       if (candidate)
       {
         synth_res->partial = false;
+        assert (btor_is_lambda_node (candidate));
+        if (btor_is_bv_const_node (btor_binder_get_body (candidate)))
+          gslv->statistics->stats.model_const++;
+        else
+          gslv->statistics->stats.model_synthesized++;
 #if 0
 	      if (!btor_is_uf_node (e_uf_fs))
 		check_inputs_used (mm, candidate, in);
@@ -2309,6 +2318,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       {
         synth_res->value   = mk_concrete_lambda_model (f_solver, uf_model);
         synth_res->partial = true;
+        gslv->statistics->stats.model_ite++;
       }
       btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
     }
@@ -2325,6 +2335,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       printf ("exists %s := ", node2string (e_uf));
       btor_print_bv (bv);
 #endif
+      gslv->statistics->stats.model_const++;
       synth_res        = new_synth_result (mm);
       synth_res->type  = BTOR_SYNTH_TYPE_SK_VAR;
       synth_res->value = btor_const_exp (f_solver, (BtorBitVector *) bv);
@@ -3230,6 +3241,7 @@ thread_work (void *state)
     BTOR_MSG (gslv->exists->msg, 1, "found solution");
     thread_found_result = true;
   }
+  assert (thread_found_result || res == BTOR_RESULT_UNKNOWN);
   pthread_mutex_unlock (&thread_result_mutex);
   gslv->result = res;
   return NULL;
@@ -3345,8 +3357,11 @@ sat_ef_solver (BtorEFSolver *slv)
     if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
   }
 
+  slv->solver_result = gslv->result;
+
   if (opt_dual_solver)
   {
+    slv->dual_solver_result = dual_gslv->result;
     btor_delete_node_map (var_map);
     btor_delete_node_map (dual_var_map);
     delete_efg_solvers (slv, dual_gslv);
@@ -3423,6 +3438,19 @@ print_stats_ef_solver (BtorEFSolver *slv)
             1,
             "cegqi solver failed refinements: %u",
             slv->statistics.stats.failed_refinements);
+  if (slv->solver_result == BTOR_RESULT_SAT)
+  {
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "model synthesized const: %u",
+              slv->statistics.stats.model_const);
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "model synthesized term: %u",
+              slv->statistics.stats.model_synthesized);
+    BTOR_MSG (
+        slv->btor->msg, 1, "model ite: %u", slv->statistics.stats.model_ite);
+  }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
     BTOR_MSG (slv->btor->msg,
@@ -3433,6 +3461,21 @@ print_stats_ef_solver (BtorEFSolver *slv)
               1,
               "cegqi dual solver failed refinements: %u",
               slv->dual_statistics.stats.failed_refinements);
+    if (slv->dual_solver_result == BTOR_RESULT_SAT)
+    {
+      BTOR_MSG (slv->btor->msg,
+                1,
+                "dual model synthesized const: %u",
+                slv->dual_statistics.stats.model_const);
+      BTOR_MSG (slv->btor->msg,
+                1,
+                "dual model synthesized term: %u",
+                slv->dual_statistics.stats.model_synthesized);
+      BTOR_MSG (slv->btor->msg,
+                1,
+                "dual model ite: %u",
+                slv->dual_statistics.stats.model_ite);
+    }
   }
 }
 
