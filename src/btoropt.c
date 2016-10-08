@@ -679,47 +679,25 @@ btor_init_opts (Btor *btor)
             "use bandit scheme for constraint selection");
 
   /* EF engine ----------------------------------------------------------- */
-  init_opt (btor,
-            BTOR_OPT_EF_MINISCOPING,
-            false,
-            true,
-            "ef:miniscoping",
-            "ef:ms",
-            0,
-            0,
-            1,
-            "miniscoping for EF solver");
+#if 0
+  init_opt (btor, BTOR_OPT_EF_MINISCOPING, false, true,
+	    "ef:miniscoping", "ef:ms",
+	    0, 0, 1,
+	    "miniscoping for EF solver");
 
-  init_opt (btor,
-            BTOR_OPT_EF_DUAL_PROP,
-            false,
-            true,
-            "ef:dual-prop",
-            "ef:dp",
-            0,
-            0,
-            1,
-            "dual propagation optimization for EF solver");
-  init_opt (btor,
-            BTOR_OPT_EF_DER,
-            false,
-            true,
-            "ef:der",
-            0,
-            0,
-            0,
-            1,
-            "destructive equality resolution for EF solver");
-  init_opt (btor,
-            BTOR_OPT_EF_CER,
-            false,
-            true,
-            "ef:cer",
-            0,
-            0,
-            0,
-            1,
-            "constructive equality resolution for EF solver");
+  init_opt (btor, BTOR_OPT_EF_DUAL_PROP, false, true,
+	    "ef:dual-prop", "ef:dp",
+	    0, 0, 1,
+	    "dual propagation optimization for EF solver");
+  init_opt (btor, BTOR_OPT_EF_DER, false, true,
+	    "ef:der", 0,
+	    0, 0, 1,
+	    "destructive equality resolution for EF solver");
+  init_opt (btor, BTOR_OPT_EF_CER, false, true,
+	    "ef:cer", 0,
+	    0, 0, 1,
+	    "constructive equality resolution for EF solver");
+#endif
   init_opt (btor,
             BTOR_OPT_EF_SYNTH,
             false,
@@ -730,16 +708,14 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "use synthesis for UF models");
-  init_opt (btor,
-            BTOR_OPT_EF_QINST_MODE,
-            false,
-            true,
-            "ef:qinstmode",
-            0,
-            BTOR_EF_QINST_DEFAULT,
-            BTOR_EF_QINST_MIN,
-            BTOR_EF_QINST_MAX,
-            "quantifier instantiation mode for refinment");
+#if 0
+  init_opt (btor, BTOR_OPT_EF_QINST_MODE, false, true,
+	    "ef:qinstmode", 0,
+	    BTOR_EF_QINST_DEFAULT,
+	    BTOR_EF_QINST_MIN,
+	    BTOR_EF_QINST_MAX,
+	    "quantifier instantiation mode for refinment");
+#endif
   init_opt (btor,
             BTOR_OPT_EF_DUAL_SOLVER,
             false,
