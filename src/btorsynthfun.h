@@ -34,5 +34,17 @@ BtorNode* btor_synthesize_fun (Btor* btor,
                                uint32_t nconsts,
                                uint32_t max_num_checks,
                                uint32_t max_level);
-//			        BtorNodePtrStack * matches);
+
+BtorNode* btor_synthesize_fun_constraints (Btor* btor,
+                                           const BtorPtrHashTable* model,
+                                           BtorNode* prev_synth_fun,
+                                           BtorNode* var,
+                                           BtorNode* constraints[],
+                                           uint32_t nconstraints,
+                                           BtorNode* cinputs[],
+                                           uint32_t ncinputs,
+                                           BtorNode* consts[],
+                                           uint32_t nconsts,
+                                           uint32_t max_num_checks,
+                                           uint32_t max_level);
 #endif

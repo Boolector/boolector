@@ -2111,10 +2111,147 @@ find_partial_model (BtorEFGroundSolvers *gslv)
   return result;
 }
 
+static bool
+check_constraint_inputs (Btor *btor,
+                         BtorNode *root,
+                         BtorIntHashTable *allowed_inputs)
+{
+  uint32_t i;
+  bool res = true;
+  BtorNode *cur;
+  BtorNodePtrStack visit;
+  BtorMemMgr *mm;
+  BtorIntHashTable *cache;
+
+  mm    = btor->mm;
+  cache = btor_new_int_hash_table (mm);
+
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, root);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+
+    if (cur->arity == 0 && !btor_is_bv_const_node (cur)
+        && !btor_contains_int_hash_table (allowed_inputs, cur->id))
+    {
+      res = false;
+      break;
+    }
+
+    btor_add_int_hash_table (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+
+  BTOR_RELEASE_STACK (mm, visit);
+  btor_delete_int_hash_table (cache);
+  return res;
+}
+
+static BtorNode *
+synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
+                               BtorNode *evar,
+                               const BtorPtrHashTable *uf_model,
+                               uint32_t limit,
+                               BtorNode *prev_synth_fun)
+{
+  uint32_t i;
+  BtorNode *cur, *par, *result, *args;
+  BtorNodePtrStack visit;
+  BtorMemMgr *mm;
+  BtorIntHashTable *reachable, *cache, *allowed_inputs;
+  BtorNodeIterator it;
+  BtorNodePtrStack constraints, cinputs;
+  BtorArgsIterator ait;
+
+  mm             = gslv->forall->mm;
+  reachable      = btor_new_int_hash_table (mm);
+  cache          = btor_new_int_hash_table (mm);
+  allowed_inputs = btor_new_int_hash_table (mm);
+
+  BTOR_INIT_STACK (cinputs);
+  BTOR_INIT_STACK (constraints);
+  BTOR_INIT_STACK (visit);
+
+  args = btor_mapped_node (gslv->forall_evar_deps, evar);
+  assert (args);
+  btor_init_args_iterator (&ait, args);
+  while (btor_has_next_args_iterator (&ait))
+  {
+    cur = btor_next_args_iterator (&ait);
+    btor_add_int_hash_table (allowed_inputs, cur->id);
+    BTOR_PUSH_STACK (mm, cinputs, cur);
+  }
+  btor_add_int_hash_table (allowed_inputs, evar->id);
+
+  BTOR_PUSH_STACK (mm, visit, gslv->forall_formula);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (reachable, cur->id)) continue;
+
+    btor_add_int_hash_table (reachable, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+
+  assert (btor_contains_int_hash_table (reachable, evar->id));
+
+  BTOR_PUSH_STACK (mm, visit, evar);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (!btor_contains_int_hash_table (reachable, cur->id)
+        || btor_contains_int_hash_table (cache, cur->id))
+      continue;
+
+    if (btor_is_bv_eq_node (cur) || btor_is_ult_node (cur))
+    {
+      printf ("constraint: %s\n", node2string (cur));
+      if (check_constraint_inputs (gslv->forall, cur, allowed_inputs))
+        BTOR_PUSH_STACK (mm, constraints, cur);
+      continue;
+    }
+
+    btor_add_int_hash_table (cache, cur->id);
+    btor_init_parent_iterator (&it, cur);
+    while (btor_has_next_parent_iterator (&it))
+    {
+      par = btor_next_parent_iterator (&it);
+      BTOR_PUSH_STACK (mm, visit, par);
+    }
+  }
+
+  result =
+      btor_synthesize_fun_constraints (gslv->forall,
+                                       uf_model,
+                                       prev_synth_fun,
+                                       evar,
+                                       constraints.start,
+                                       BTOR_COUNT_STACK (constraints),
+                                       cinputs.start,
+                                       BTOR_COUNT_STACK (cinputs),
+                                       gslv->forall_consts.start,
+                                       BTOR_COUNT_STACK (gslv->forall_consts),
+                                       limit,
+                                       0);
+
+  btor_delete_int_hash_table (allowed_inputs);
+  btor_delete_int_hash_table (reachable);
+  btor_delete_int_hash_table (cache);
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, constraints);
+  BTOR_RELEASE_STACK (mm, cinputs);
+  return result;
+}
+
 static BtorPtrHashTable *
 synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 {
-  uint32_t limit, level;
+  uint32_t limit;
   uint32_t opt_synth_limit;
   bool opt_synth_fun;
   BtorPtrHashTable *model, *prev_model;
@@ -2173,7 +2310,6 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       candidate      = 0;
       if (opt_synth_fun)
       {
-        level = 0;
         limit = opt_synth_limit;
 
         /* check previously synthesized function */
@@ -2215,7 +2351,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
                                          gslv->forall_consts.start,
                                          BTOR_COUNT_STACK (gslv->forall_consts),
                                          limit,
-                                         level);
+                                         0);
         synth_res->limit = limit;
 #if 0
 	      if (candidate)
@@ -2226,6 +2362,19 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 	      else
 		printf ("no model found\n");
 #endif
+
+        if (!candidate)
+        {
+          candidate = synthesize_modulo_constraints (
+              gslv, e_uf_fs, uf_model, limit, prev_synth_fun);
+          if (candidate)
+          {
+            printf ("model found\n");
+            btor_dump_smt2_node (f_solver, stdout, candidate, -1);
+          }
+          else
+            printf ("no model found\n");
+        }
       }
 
       if (btor_is_uf_node (e_uf_fs))
