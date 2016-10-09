@@ -3415,7 +3415,8 @@ print_stats_ef_solver (BtorEFSolver *slv)
             1,
             "cegqi solver failed refinements: %u",
             slv->statistics.stats.failed_refinements);
-  if (slv->solver_result == BTOR_RESULT_SAT)
+  if (slv->solver_result == BTOR_RESULT_SAT
+      || slv->solver_result == BTOR_RESULT_UNKNOWN)
   {
     BTOR_MSG (slv->btor->msg,
               1,
@@ -3443,7 +3444,8 @@ print_stats_ef_solver (BtorEFSolver *slv)
               1,
               "cegqi dual solver failed refinements: %u",
               slv->dual_statistics.stats.failed_refinements);
-    if (slv->dual_solver_result == BTOR_RESULT_SAT)
+    if (slv->dual_solver_result == BTOR_RESULT_SAT
+        || slv->solver_result == BTOR_RESULT_UNKNOWN)
     {
       BTOR_MSG (slv->btor->msg,
                 1,
