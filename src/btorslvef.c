@@ -47,10 +47,10 @@ struct BtorEFGroundSolvers
   BtorNodeMap *forall_evar_deps; /* existential vars map to argument nodes
                                     of universal vars */
   BtorNodePtrStack forall_consts;
-  BtorPtrHashTable *forall_cur_model; /* currently synthesized model for
+  BtorPtrHashTable *forall_synth_model; /* currently synthesized model for
                                          existential vars */
-  BtorPtrHashTable *forall_ces;       /* counter examples */
-  BtorNodeMap *forall_skolem;         /* skolem functions for evars */
+  BtorPtrHashTable *forall_ces;         /* counter examples */
+  BtorNodeMap *forall_skolem;           /* skolem functions for evars */
 
   Btor *exists;              /* solver for computing the model */
   BtorNodeMap *exists_evars; /* skolem constants (map to existential
@@ -211,9 +211,9 @@ print_cur_model (BtorEFGroundSolvers *gslv)
   BtorHashTableIterator it;
   SynthResult *synth_res;
 
-  if (!gslv->forall_cur_model) return;
+  if (!gslv->forall_synth_model) return;
 
-  btor_init_node_hash_table_iterator (&it, gslv->forall_cur_model);
+  btor_init_node_hash_table_iterator (&it, gslv->forall_synth_model);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     synth_res = it.bucket->data.as_ptr;
@@ -231,9 +231,9 @@ delete_model (BtorEFGroundSolvers *gslv)
   BtorHashTableIterator it;
   SynthResult *synth_res;
 
-  if (!gslv->forall_cur_model) return;
+  if (!gslv->forall_synth_model) return;
 
-  btor_init_node_hash_table_iterator (&it, gslv->forall_cur_model);
+  btor_init_node_hash_table_iterator (&it, gslv->forall_synth_model);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     synth_res = it.bucket->data.as_ptr;
@@ -241,8 +241,8 @@ delete_model (BtorEFGroundSolvers *gslv)
     assert (btor_is_uf_node (cur) || btor_param_is_exists_var (cur));
     delete_synth_result (gslv->forall->mm, synth_res);
   }
-  btor_delete_ptr_hash_table (gslv->forall_cur_model);
-  gslv->forall_cur_model = 0;
+  btor_delete_ptr_hash_table (gslv->forall_synth_model);
+  gslv->forall_synth_model = 0;
 }
 
 #if 1
@@ -2137,6 +2137,7 @@ check_constraint_inputs (Btor *btor,
     if (cur->arity == 0 && !btor_is_bv_const_node (cur)
         && !btor_contains_int_hash_table (allowed_inputs, cur->id))
     {
+      printf ("no constraint: %s\n", node2string (cur));
       res = false;
       break;
     }
@@ -2153,7 +2154,7 @@ check_constraint_inputs (Btor *btor,
 static BtorNode *
 synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
                                BtorNode *evar,
-                               const BtorPtrHashTable *uf_model,
+                               const BtorPtrHashTable *model,
                                uint32_t limit,
                                BtorNode *prev_synth_fun)
 {
@@ -2175,6 +2176,7 @@ synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
   BTOR_INIT_STACK (constraints);
   BTOR_INIT_STACK (visit);
 
+  printf ("find constraints for %s\n", node2string (evar));
   args = btor_mapped_node (gslv->forall_evar_deps, evar);
   assert (args);
   btor_init_args_iterator (&ait, args);
@@ -2229,7 +2231,7 @@ synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
   {
     result =
         btor_synthesize_fun_constraints (gslv->forall,
-                                         uf_model,
+                                         model,
                                          prev_synth_fun,
                                          evar,
                                          constraints.start,
@@ -2252,27 +2254,27 @@ synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
 }
 
 static BtorPtrHashTable *
-synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
+synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *partial_model)
 {
   uint32_t limit;
   uint32_t opt_synth_limit, opt_synth_mode;
-  BtorPtrHashTable *model, *prev_model;
+  BtorPtrHashTable *synth_model, *prev_synth_model;
   Btor *e_solver, *f_solver;
   BtorNode *e_uf, *e_uf_fs, *prev_synth_fun, *candidate;
   BtorNodeMapIterator it;
   const BtorBitVector *bv;
-  const BtorPtrHashTable *uf_model;
+  const BtorPtrHashTable *model;
   SynthResult *synth_res, *prev_synth_res;
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
 
-  e_solver        = gslv->exists;
-  f_solver        = gslv->forall;
-  mm              = f_solver->mm;
-  prev_model      = gslv->forall_cur_model;
-  model           = btor_new_ptr_hash_table (mm, 0, 0);
-  opt_synth_mode  = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH);
-  opt_synth_limit = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH_LIMIT);
+  e_solver         = gslv->exists;
+  f_solver         = gslv->forall;
+  mm               = f_solver->mm;
+  prev_synth_model = gslv->forall_synth_model;
+  synth_model      = btor_new_ptr_hash_table (mm, 0, 0);
+  opt_synth_mode   = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH);
+  opt_synth_limit  = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH_LIMIT);
 #if 0
   inputs = btor_new_ptr_hash_table (mm, 0, 0);
 #endif
@@ -2300,11 +2302,11 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
                                 BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
       assert (btor_is_uf_node (e_uf));
 
-      b = btor_get_ptr_hash_table (uf_models, e_uf_fs);
+      b = btor_get_ptr_hash_table (partial_model, e_uf_fs);
       if (!b) continue;
 
-      uf_model = b->data.as_ptr;
-      if (!uf_model) continue;
+      model = b->data.as_ptr;
+      if (!model) continue;
 
       synth_res      = new_synth_result (mm);
       prev_synth_res = 0;
@@ -2315,7 +2317,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
         limit = opt_synth_limit;
 
         /* check previously synthesized function */
-        if (prev_model && (b = btor_get_ptr_hash_table (prev_model, e_uf_fs)))
+        if (prev_synth_model
+            && (b = btor_get_ptr_hash_table (prev_synth_model, e_uf_fs)))
         {
           prev_synth_res = b->data.as_ptr;
           assert (prev_synth_res);
@@ -2337,7 +2340,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 	      if (false && !btor_is_uf_node (e_uf_fs))
 		{
 		  assert (btor_param_is_exists_var (e_uf_fs));
-		  in = find_inputs (gslv, e_uf, uf_model);
+		  in = find_inputs (gslv, e_uf, model);
 		}
 	      else
 		in = 0;
@@ -2346,12 +2349,13 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 #endif
         //	      printf ("synthesize model for %s\n", btor_get_symbol_exp
         //(f_solver, e_uf_fs));
+
         if (opt_synth_mode == BTOR_EF_SYNTH_EL
             || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC)
         {
           candidate =
               btor_synthesize_fun (f_solver,
-                                   uf_model,
+                                   model,
                                    prev_synth_fun,
                                    0,
                                    gslv->forall_consts.start,
@@ -2364,7 +2368,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
                 || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC))
         {
           candidate = synthesize_modulo_constraints (
-              gslv, e_uf_fs, uf_model, limit, prev_synth_fun);
+              gslv, e_uf_fs, model, limit, prev_synth_fun);
         }
         synth_res->limit = limit;
       }
@@ -2390,18 +2394,18 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       }
       else
       {
-        synth_res->value   = mk_concrete_lambda_model (f_solver, uf_model);
+        synth_res->value   = mk_concrete_lambda_model (f_solver, model);
         synth_res->partial = true;
         gslv->statistics->stats.synthesize_model_none++;
       }
-      btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
+      btor_add_ptr_hash_table (synth_model, e_uf_fs)->data.as_ptr = synth_res;
     }
     else
     {
       assert (btor_is_bitvec_sort (&e_solver->sorts_unique_table,
                                    BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
 
-      b = btor_get_ptr_hash_table (uf_models, e_uf_fs);
+      b = btor_get_ptr_hash_table (partial_model, e_uf_fs);
       assert (b);
       assert (b->data.as_ptr);
       bv = b->data.as_ptr;
@@ -2412,7 +2416,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       synth_res        = new_synth_result (mm);
       synth_res->type  = BTOR_SYNTH_TYPE_SK_VAR;
       synth_res->value = btor_const_exp (f_solver, (BtorBitVector *) bv);
-      btor_add_ptr_hash_table (model, e_uf_fs)->data.as_ptr = synth_res;
+      btor_add_ptr_hash_table (synth_model, e_uf_fs)->data.as_ptr = synth_res;
     }
   }
 
@@ -2437,7 +2441,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 #if 0
   BTOR_RELEASE_STACK (mm, evars);
 #endif
-  return model;
+  return synth_model;
 }
 
 static void
@@ -2894,7 +2898,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
 }
 
 static void
-free_cur_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
+free_partial_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *partial_model)
 {
   BtorNode *cur;
   BtorHashTableIterator it, mit;
@@ -2906,7 +2910,7 @@ free_cur_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 
   mm = gslv->exists->mm;
 
-  btor_init_node_hash_table_iterator (&it, uf_models);
+  btor_init_node_hash_table_iterator (&it, partial_model);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     b   = it.bucket;
@@ -2936,7 +2940,7 @@ free_cur_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       btor_free_bv (mm, bv);
     }
   }
-  btor_delete_ptr_hash_table (uf_models);
+  btor_delete_ptr_hash_table (partial_model);
 }
 
 static BtorSolverResult
@@ -2947,7 +2951,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
-  BtorPtrHashTable *synth_model = 0, *cur_model;
+  BtorPtrHashTable *synth_model = 0, *partial_model;
   BtorPtrHashTable *assumptions = 0, *vars = 0;
   BtorNodeMapIterator it;
 
@@ -2992,24 +2996,24 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
             && gslv->forall->ufs->count == 0))
     {
     RESTART:
-      cur_model = generate_model (gslv);
+      partial_model = generate_model (gslv);
     }
     else
     {
-      start     = time_stamp ();
-      cur_model = find_partial_model (gslv);
+      start         = time_stamp ();
+      partial_model = find_partial_model (gslv);
       gslv->statistics->time.findpm += time_stamp () - start;
     }
 
-    /* synthesize model based on 'cur_model' */
+    /* synthesize model based on 'partial_model' */
     start       = time_stamp ();
-    synth_model = synthesize_model (gslv, cur_model);
-    free_cur_model (gslv, cur_model);
+    synth_model = synthesize_model (gslv, partial_model);
+    free_partial_model (gslv, partial_model);
     gslv->statistics->time.synth += time_stamp () - start;
 
     /* save currently synthesized model */
     delete_model (gslv);
-    gslv->forall_cur_model = synth_model;
+    gslv->forall_synth_model = synth_model;
   }
 
   g = instantiate_formula (gslv, synth_model);
@@ -3083,7 +3087,7 @@ DONE:
 
 #if 0
 /* Create new refinement for 'gslv->exists' by instantiating 
- * the universal variables of 'gslv->exists' with 'dual_gslv->forall_cur_model'.
+ * the universal variables of 'gslv->exists' with 'dual_gslv->forall_synth_model'.
  */
 static void
 add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
@@ -3099,14 +3103,14 @@ add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
   SynthResult *synth_res;
   BtorArgsIterator ait;
 
-  if (!dual_gslv->forall_cur_model)
+  if (!dual_gslv->forall_synth_model)
     return;
 
   btor = gslv->exists;
   subst_map = btor_new_node_map (btor);
   deps = dual_gslv->forall_evar_deps;
 
-  btor_init_node_hash_table_iterator (&it, dual_gslv->forall_cur_model);
+  btor_init_node_hash_table_iterator (&it, dual_gslv->forall_synth_model);
   while (btor_has_next_node_hash_table_iterator (&it))
     {
       synth_res = it.bucket->data.as_ptr; 
