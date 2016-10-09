@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include "btorexp.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 
 enum BtorSynthType
@@ -36,15 +37,16 @@ BtorNode* btor_synthesize_fun (Btor* btor,
                                uint32_t max_level);
 
 BtorNode* btor_synthesize_fun_constraints (Btor* btor,
-                                           const BtorPtrHashTable* model,
+                                           uint32_t nparams,
+                                           BtorBitVectorTuple* value_in[],
+                                           BtorBitVector* value_out[],
+                                           uint32_t nvalues,
+                                           BtorIntHashTable* value_in_map,
                                            BtorNode* prev_synth_fun,
-                                           BtorNode* var,
                                            BtorNode* constraints[],
                                            uint32_t nconstraints,
-                                           BtorNode* cinputs[],
-                                           uint32_t ncinputs,
                                            BtorNode* consts[],
                                            uint32_t nconsts,
-                                           uint32_t max_num_checks,
+                                           uint32_t max_checks,
                                            uint32_t max_level);
 #endif

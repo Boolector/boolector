@@ -1498,48 +1498,33 @@ btor_synthesize_fun (Btor *btor,
 
 BtorNode *
 btor_synthesize_fun_constraints (Btor *btor,
-                                 const BtorPtrHashTable *model,
+                                 uint32_t nparams,
+                                 BtorBitVectorTuple *value_in[],
+                                 BtorBitVector *value_out[],
+                                 uint32_t nvalues,
+                                 BtorIntHashTable *value_in_map,
                                  BtorNode *prev_synth_fun,
-                                 BtorNode *var,
                                  BtorNode *constraints[],
                                  uint32_t nconstraints,
-                                 BtorNode *cinputs[],
-                                 uint32_t ncinputs,
                                  BtorNode *consts[],
                                  uint32_t nconsts,
                                  uint32_t max_checks,
                                  uint32_t max_level)
 {
   bool prev_synth_ok;
-  uint32_t i, j, nops, ninputs;
+  uint32_t i, nops, ninputs;
   Op ops[64];
   BtorNodePtrStack params, inputs, results;
-  BtorNode *p, *in, *candidate, *result = 0;
+  BtorNode *p, *candidate, *result = 0;
   BtorMemMgr *mm;
-  BtorBitVector *bv;
-  BtorBitVectorTuple *tup, *vin, *tmp;
-  BtorBitVectorTuplePtrStack value_in;
-  BtorBitVectorPtrStack value_out;
-  BtorPtrHashTable *m;
-  BtorHashTableIterator it;
-  BtorPtrHashBucket *b;
-  BtorIntHashTable *value_in_map;
-  BtorNodeIterator nit;
+  BtorBitVectorTuple *tup;
 
   mm   = btor->mm;
   nops = init_ops (btor, ops);
   assert (nops);
   BTOR_INIT_STACK (params);
   BTOR_INIT_STACK (inputs);
-  BTOR_INIT_STACK (value_in);
-  BTOR_INIT_STACK (value_out);
   BTOR_INIT_STACK (results);
-  value_in_map = btor_new_int_hash_map (mm);
-
-  btor_add_int_hash_map (value_in_map, var->id)->as_int = -1;
-
-  for (i = 0; i < ncinputs; i++)
-    btor_add_int_hash_map (value_in_map, cinputs[i]->id)->as_int = i;
 
 #if 0
   if (prev_synth_fun)
@@ -1556,40 +1541,18 @@ btor_synthesize_fun_constraints (Btor *btor,
 #endif
 
   /* create parameters */
-  tup = model->first->key;
-  for (i = 0; i < tup->arity; i++)
+  tup = value_in[0];
+  for (i = 0; i < nparams; i++)
   {
     p = btor_param_exp (btor, tup->bv[i]->width, 0);
     BTOR_PUSH_STACK (mm, params, p);
     BTOR_PUSH_STACK (mm, inputs, p);
   }
+  ninputs = BTOR_COUNT_STACK (inputs);
 
   printf ("---------\n");
   for (i = 0; i < nconstraints; i++)
     printf ("constraint[%u]: %s\n", i, node2string (constraints[i]));
-  /* create input/output assignment pairs */
-  ninputs = BTOR_COUNT_STACK (inputs);
-  btor_init_hash_table_iterator (&it, model);
-  while (btor_has_next_hash_table_iterator (&it))
-  {
-    bv = it.bucket->data.as_ptr;
-    BTOR_PUSH_STACK (mm, value_out, bv);
-    printf ("out: %zu ", btor_bv_to_uint64_bv (bv));
-    btor_print_bv (bv);
-
-    tup = btor_next_hash_table_iterator (&it);
-    vin = btor_new_bv_tuple (mm, ninputs);
-    i   = 0;
-    for (; i < tup->arity; i++)
-    {
-      printf (" in: %zu ", btor_bv_to_uint64_bv (tup->bv[i]));
-      btor_print_bv (tup->bv[i]);
-      btor_add_to_bv_tuple (mm, vin, tup->bv[i], i);
-    }
-    BTOR_PUSH_STACK (mm, value_in, vin);
-  }
-
-  assert (BTOR_COUNT_STACK (value_in) == BTOR_COUNT_STACK (value_out));
 
   prev_synth_ok = false;
 #if 0
@@ -1610,9 +1573,9 @@ btor_synthesize_fun_constraints (Btor *btor,
     candidate = synthesize (btor,
                             inputs.start,
                             ninputs,
-                            value_in.start,
-                            value_out.start,
-                            BTOR_COUNT_STACK (value_in),
+                            value_in,
+                            value_out,
+                            nvalues,
                             ops,
                             nops,
                             consts,
@@ -1632,16 +1595,11 @@ btor_synthesize_fun_constraints (Btor *btor,
     }
   }
 
-  while (!BTOR_EMPTY_STACK (value_in))
-    btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
   while (!BTOR_EMPTY_STACK (params))
     btor_release_exp (btor, BTOR_POP_STACK (params));
 
-  btor_delete_int_hash_map (value_in_map);
   BTOR_RELEASE_STACK (mm, results);
   BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, inputs);
-  BTOR_RELEASE_STACK (mm, value_in);
-  BTOR_RELEASE_STACK (mm, value_out);
   return result;
 }
