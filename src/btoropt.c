@@ -704,10 +704,14 @@ btor_init_opts (Btor *btor)
             true,
             "ef:synth",
             0,
-            1,
-            0,
-            1,
-            "use synthesis for UF models");
+            BTOR_EF_SYNTH_DEFAULT,
+            BTOR_EF_SYNTH_MIN,
+            BTOR_EF_SYNTH_MAX,
+            "synthesis mode for Skolem functions:"
+            "0=none,"
+            "1=enumlearn,"
+            "2=enumlearn modulo constraints,"
+            "3=1+2 combined");
 #if 0
   init_opt (btor, BTOR_OPT_EF_QINST_MODE, false, true,
 	    "ef:qinstmode", 0,

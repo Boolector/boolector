@@ -2255,8 +2255,7 @@ static BtorPtrHashTable *
 synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 {
   uint32_t limit;
-  uint32_t opt_synth_limit;
-  bool opt_synth_fun;
+  uint32_t opt_synth_limit, opt_synth_mode;
   BtorPtrHashTable *model, *prev_model;
   Btor *e_solver, *f_solver;
   BtorNode *e_uf, *e_uf_fs, *prev_synth_fun, *candidate;
@@ -2272,7 +2271,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
   mm              = f_solver->mm;
   prev_model      = gslv->forall_cur_model;
   model           = btor_new_ptr_hash_table (mm, 0, 0);
-  opt_synth_fun   = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH) == 1;
+  opt_synth_mode  = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH);
   opt_synth_limit = btor_get_opt (f_solver, BTOR_OPT_EF_SYNTH_LIMIT);
 #if 0
   inputs = btor_new_ptr_hash_table (mm, 0, 0);
@@ -2311,7 +2310,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
       prev_synth_res = 0;
       prev_synth_fun = 0;
       candidate      = 0;
-      if (opt_synth_fun)
+      if (opt_synth_mode)
       {
         limit = opt_synth_limit;
 
@@ -2347,37 +2346,27 @@ synthesize_model (BtorEFGroundSolvers *gslv, BtorPtrHashTable *uf_models)
 #endif
         //	      printf ("synthesize model for %s\n", btor_get_symbol_exp
         //(f_solver, e_uf_fs));
-        candidate        = btor_synthesize_fun (f_solver,
-                                         uf_model,
-                                         prev_synth_fun,
-                                         0,
-                                         gslv->forall_consts.start,
-                                         BTOR_COUNT_STACK (gslv->forall_consts),
-                                         limit,
-                                         0);
-        synth_res->limit = limit;
-#if 0
-	      if (candidate)
-		{
-		  printf ("model found\n");
-		  btor_dump_smt2_node (f_solver, stdout, candidate, -1);
-		}
-	      else
-		printf ("no model found\n");
-#endif
-
-        if (!candidate)
+        if (opt_synth_mode == BTOR_EF_SYNTH_EL
+            || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC)
+        {
+          candidate =
+              btor_synthesize_fun (f_solver,
+                                   uf_model,
+                                   prev_synth_fun,
+                                   0,
+                                   gslv->forall_consts.start,
+                                   BTOR_COUNT_STACK (gslv->forall_consts),
+                                   limit,
+                                   0);
+        }
+        if (!candidate
+            && (opt_synth_mode == BTOR_EF_SYNTH_ELMC
+                || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC))
         {
           candidate = synthesize_modulo_constraints (
               gslv, e_uf_fs, uf_model, limit, prev_synth_fun);
-          if (candidate)
-          {
-            printf ("model found\n");
-            btor_dump_smt2_node (f_solver, stdout, candidate, -1);
-          }
-          else
-            printf ("no model found\n");
         }
+        synth_res->limit = limit;
       }
 
       if (btor_is_uf_node (e_uf_fs))
