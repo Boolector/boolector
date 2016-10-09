@@ -718,10 +718,8 @@ check_signature (Btor *btor,
     //      assert (value_in_map->count == inputs->arity);
 
     if (constraints)
-    {
       res = constraints_signature (
           btor, exp, constraints, nconstraints, inputs, output, value_in_map);
-    }
     else
       res = eval_exp (btor, exp, 0, inputs, 0, value_in_map);
 
@@ -927,7 +925,7 @@ synthesize (Btor *btor,
   BtorHashTableIterator it;
   BtorSortId bool_sort, target_sort;
   BtorBitVectorPtrStack sig_constraints;
-  BtorBitVector *bv;
+  BtorBitVector *bv, **tmp_value_out;
 
   mm           = btor->mm;
   bool_sort    = btor_bool_sort (&btor->sorts_unique_table);
@@ -952,13 +950,7 @@ synthesize (Btor *btor,
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
 
-  /* add the desired outputs as constants to level 1 */
-  for (i = 0; i < nvalues; i++)
-  {
-    exp = btor_const_exp (btor, value_out[i]);
-    add_exp (btor, 1, &candidates, exp);
-  }
-
+  tmp_value_out = value_out;
   if (constraints)
   {
     for (i = 0; i < constraints_input_map->size; i++)
@@ -980,14 +972,13 @@ synthesize (Btor *btor,
       BTOR_PUSH_STACK (mm, sig_constraints, bv);
     }
     value_out = sig_constraints.start;
-    nvalues   = BTOR_COUNT_STACK (sig_constraints);
+    assert (nvalues == BTOR_COUNT_STACK (sig_constraints));
   }
 
   /* level 1 checks (inputs) */
   for (i = 0; i < ninputs; i++)
   {
-    exp = btor_copy_exp (btor, inputs[i]);
-    printf ("check pos %u\n", i);
+    exp             = btor_copy_exp (btor, inputs[i]);
     found_candidate = check_candidate (btor,
                                        cur_level,
                                        exp,
@@ -1006,34 +997,25 @@ synthesize (Btor *btor,
     num_checks++;
     if (num_checks % 10000 == 0)
       report_stats (btor, start, cur_level, num_checks, sigs);
-    if (found_candidate)
-    {
-      printf ("found candidate\n");
-      goto DONE;
-    }
-    //      num_init_exps++;
+    if (found_candidate) goto DONE;
   }
-  printf ("----\n");
 
   /* check for constant function */
-  if (nconstraints == 0)
+  equal = true;
+  for (i = 1; i < nvalues; i++)
   {
-    equal = true;
-    for (i = 1; i < nvalues; i++)
+    if (btor_compare_bv (tmp_value_out[i - 1], tmp_value_out[i]))
     {
-      if (btor_compare_bv (value_out[i - 1], value_out[i]))
-      {
-        equal = false;
-        break;
-      }
+      equal = false;
+      break;
     }
-    if (equal)
-    {
-      found_candidate = true;
-      exp             = btor_const_exp (btor, value_out[0]);
-      add_exp (btor, 1, &candidates, exp);
-      goto DONE;
-    }
+  }
+  if (equal)
+  {
+    found_candidate = true;
+    exp             = btor_const_exp (btor, tmp_value_out[0]);
+    add_exp (btor, 1, &candidates, exp);
+    goto DONE;
   }
 
   /* add constants to level 1 */
@@ -1041,13 +1023,10 @@ synthesize (Btor *btor,
     add_exp (btor, 1, &candidates, btor_copy_exp (btor, consts[i]));
 
   /* add the desired outputs as constants to level 1 */
-  if (nconstraints == 0)
+  for (i = 0; i < nvalues; i++)
   {
-    for (i = 0; i < nvalues; i++)
-    {
-      exp = btor_const_exp (btor, value_out[i]);
-      add_exp (btor, 1, &candidates, exp);
-    }
+    exp = btor_const_exp (btor, tmp_value_out[i]);
+    add_exp (btor, 1, &candidates, exp);
   }
 
   /* level 2+ checks */
@@ -1205,12 +1184,12 @@ DONE:
 
   if (found_candidate)
     result = btor_copy_exp (btor, exp);
-  else if (nconstraints == 0)
+  else
   {
     equal = true;
     for (i = 1; i < nvalues; i++)
     {
-      if (btor_compare_bv (value_out[i - 1], value_out[i]))
+      if (btor_compare_bv (tmp_value_out[i - 1], tmp_value_out[i]))
       {
         equal = false;
         break;
@@ -1219,7 +1198,7 @@ DONE:
     if (equal)
     {
       found_candidate = true;
-      result          = btor_const_exp (btor, value_out[0]);
+      result          = btor_const_exp (btor, tmp_value_out[0]);
     }
   }
 
@@ -1546,7 +1525,6 @@ btor_synthesize_fun_constraints (Btor *btor,
   BtorPtrHashBucket *b;
   BtorIntHashTable *value_in_map;
   BtorNodeIterator nit;
-  BtorArgsIterator ait;
 
   mm   = btor->mm;
   nops = init_ops (btor, ops);
@@ -1587,6 +1565,8 @@ btor_synthesize_fun_constraints (Btor *btor,
   }
 
   printf ("---------\n");
+  for (i = 0; i < nconstraints; i++)
+    printf ("constraint[%u]: %s\n", i, node2string (constraints[i]));
   /* create input/output assignment pairs */
   ninputs = BTOR_COUNT_STACK (inputs);
   btor_init_hash_table_iterator (&it, model);
