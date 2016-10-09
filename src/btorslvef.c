@@ -2158,7 +2158,7 @@ synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
                                BtorNode *prev_synth_fun)
 {
   uint32_t i;
-  BtorNode *cur, *par, *result, *args;
+  BtorNode *cur, *par, *result = 0, *args;
   BtorNodePtrStack visit;
   BtorMemMgr *mm;
   BtorIntHashTable *reachable, *cache, *allowed_inputs;
@@ -2225,19 +2225,22 @@ synthesize_modulo_constraints (BtorEFGroundSolvers *gslv,
     }
   }
 
-  result =
-      btor_synthesize_fun_constraints (gslv->forall,
-                                       uf_model,
-                                       prev_synth_fun,
-                                       evar,
-                                       constraints.start,
-                                       BTOR_COUNT_STACK (constraints),
-                                       cinputs.start,
-                                       BTOR_COUNT_STACK (cinputs),
-                                       gslv->forall_consts.start,
-                                       BTOR_COUNT_STACK (gslv->forall_consts),
-                                       limit,
-                                       0);
+  if (BTOR_COUNT_STACK (constraints) > 0)
+  {
+    result =
+        btor_synthesize_fun_constraints (gslv->forall,
+                                         uf_model,
+                                         prev_synth_fun,
+                                         evar,
+                                         constraints.start,
+                                         BTOR_COUNT_STACK (constraints),
+                                         cinputs.start,
+                                         BTOR_COUNT_STACK (cinputs),
+                                         gslv->forall_consts.start,
+                                         BTOR_COUNT_STACK (gslv->forall_consts),
+                                         limit,
+                                         0);
+  }
 
   btor_delete_int_hash_table (allowed_inputs);
   btor_delete_int_hash_table (reachable);
@@ -3441,6 +3444,7 @@ sat_ef_solver (BtorEFSolver *slv)
       if (res != BTOR_RESULT_UNKNOWN) break;
       skip_exists = false;
     }
+    gslv->result = res;
 
     if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
   }
