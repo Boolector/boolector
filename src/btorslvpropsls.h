@@ -69,58 +69,10 @@ btor_propsls_non_rec_conf (
   return 0;
 }
 
-static inline void
-btor_propsls_update_roots (Btor* btor,
-                           BtorIntHashTable* roots,
-                           BtorNode* exp,
-                           BtorBitVector* bv)
-{
-  assert (btor);
-  assert (roots);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (bv);
-  assert (btor_compare_bv (btor_get_bv_model (btor, exp), bv));
-
-  (void) btor;
-
-  /* exp: old assignment = 0, new assignment = 1 -> bv = 1
-   *      -> remove */
-  if (btor_get_int_hash_map (roots, exp->id))
-  {
-    btor_remove_int_hash_map (roots, exp->id, 0);
-    assert (btor_is_false_bv (btor_get_bv_model (btor, exp)));
-    assert (btor_is_true_bv (bv));
-  }
-  /* -exp: old assignment = 0, new assignment = 1 -> bv = 0
-   * -> remove */
-  else if (btor_get_int_hash_map (roots, -exp->id))
-  {
-    btor_remove_int_hash_map (roots, -exp->id, 0);
-    assert (
-        btor_is_false_bv (btor_get_bv_model (btor, BTOR_INVERT_NODE (exp))));
-    assert (btor_is_false_bv (bv));
-  }
-  /* exp: old assignment = 1, new assignment = 0 -> bv = 0
-   * -> add */
-  else if (btor_is_false_bv (bv))
-  {
-    btor_add_int_hash_map (roots, exp->id);
-    assert (btor_is_true_bv (btor_get_bv_model (btor, exp)));
-  }
-  /* -exp: old assignment = 1, new assignment = 0 -> bv = 1
-   * -> add */
-  else
-  {
-    assert (btor_is_true_bv (bv));
-    btor_add_int_hash_map (roots, -exp->id);
-    assert (btor_is_true_bv (btor_get_bv_model (btor, BTOR_INVERT_NODE (exp))));
-  }
-}
-
 /*------------------------------------------------------------------------*/
 
 void btor_propsls_update_cone (Btor* btor,
+                               BtorPtrHashTable* bv_model,
                                BtorIntHashTable* roots,
                                BtorPtrHashTable* score,
                                BtorIntHashTable* exps,
