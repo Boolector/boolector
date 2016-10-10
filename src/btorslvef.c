@@ -1782,7 +1782,7 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
   BtorNodeMapIterator nit;
   BtorBitVectorTuple *ce, *mtup, *evar_values;
   const BtorPtrHashTable *m;
-  const BtorBitVector *bv;
+  BtorBitVector *bv;
   BtorArgsIterator ait;
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
@@ -1852,7 +1852,8 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
       free_bv = false;
       if ((args = btor_mapped_node (gslv->forall_evar_deps, f_evar)))
       {
-        m = btor_get_fun_model (e_solver, e_evar);
+        bv = 0;
+        m  = btor_get_fun_model (e_solver, e_evar);
         if (m)
         {
           mtup = btor_new_bv_tuple (mm, btor_get_args_arity (f_solver, args));
@@ -1867,11 +1868,9 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
           }
           b = btor_get_ptr_hash_table ((BtorPtrHashTable *) m, mtup);
           btor_free_bv_tuple (mm, mtup);
-          assert (b);  // this one might not be right
-
-          bv = b->data.as_ptr;
+          if (b) bv = b->data.as_ptr;
         }
-        else
+        if (!bv)
         {
           free_bv = true;
           bv      = btor_new_bv (mm, btor_get_exp_width (f_solver, f_evar));
@@ -1880,7 +1879,8 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
       else
       {
         assert (btor_param_is_exists_var (f_evar));
-        bv = btor_get_bv_model (e_solver, btor_simplify_exp (e_solver, e_evar));
+        bv = (BtorBitVector *) btor_get_bv_model (
+            e_solver, btor_simplify_exp (e_solver, e_evar));
       }
       btor_add_to_bv_tuple (mm, evar_values, bv, pos++);
       if (free_bv) btor_free_bv (mm, bv);
