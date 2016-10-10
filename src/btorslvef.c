@@ -3455,13 +3455,11 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   RESTART:
     start      = time_stamp ();
     flat_model = flat_model_generate (gslv);
-#if 0
-      if (!failed_refinement
-	  && (opt_pmfind_mode == BTOR_EF_FINDPM_REF
-	      || (gslv->forall_evar_deps->table->count == 0
-		  && gslv->forall->ufs->count == 0)))
-	filter_flat_model (gslv, flat_model);
-#endif
+    if (!failed_refinement
+        && (opt_pmfind_mode == BTOR_EF_FINDPM_REF
+            || (gslv->forall_evar_deps->table->count == 0
+                && gslv->forall->ufs->count == 0)))
+      filter_flat_model (gslv, flat_model);
     gslv->statistics->time.findpm += time_stamp () - start;
 
     /* synthesize model based on 'partial_model' */
