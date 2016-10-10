@@ -106,7 +106,4 @@ typedef struct BtorSLSSolver BtorSLSSolver;
 
 BtorSolver *btor_new_sls_solver (Btor *btor);
 
-/* currently needed by prop engine (TODO maybe remove in the future) */
-void btor_compute_sls_scores (Btor *btor, BtorPtrHashTable *score);
-
 #endif

@@ -20,7 +20,6 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btoropt.h"
-#include "btorslvsls.h"
 
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
@@ -1334,58 +1333,6 @@ cons_slice_bv (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_INC_REC_CONF_STATS(btor, inc)                              \
-  do                                                                    \
-  {                                                                     \
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)       \
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += inc;         \
-    else                                                                \
-    {                                                                   \
-      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS); \
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += inc;          \
-    }                                                                   \
-  } while (0)
-
-#define BTOR_INC_NON_REC_CONF_STATS(btor, inc)                          \
-  do                                                                    \
-  {                                                                     \
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)       \
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;     \
-    else                                                                \
-    {                                                                   \
-      assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS); \
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;      \
-    }                                                                   \
-  } while (0)
-
-static inline BtorBitVector *
-non_rec_conf (
-    Btor *btor, BtorBitVector *bve, BtorBitVector *bvexp, int eidx, char *op)
-{
-  assert (btor);
-  assert (bve);
-  assert (bvexp);
-  assert (op);
-
-  (void) bve;
-  (void) bvexp;
-  (void) eidx;
-  (void) op;
-
-#ifndef NDEBUG
-  char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-  char *sbvexp = btor_bv_to_char_bv (btor->mm, bvexp);
-  if (eidx)
-    BTORLOG (2, "prop CONFLICT: %s := %s %s x", sbvexp, sbve, op);
-  else
-    BTORLOG (2, "prop CONFLICT: %s := x %s %s", sbvexp, op, sbve);
-  btor_freestr (btor->mm, sbve);
-  btor_freestr (btor->mm, sbvexp);
-#endif
-  BTOR_INC_NON_REC_CONF_STATS (btor, 1);
-  return 0;
-}
-
 #ifndef NDEBUG
 static inline void
 check_result_binary_dbg (Btor *btor,
@@ -1523,12 +1470,12 @@ inv_and_bv (Btor *btor,
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
-        res = non_rec_conf (btor, bve, bvand, eidx, "AND");
+        res = btor_propsls_non_rec_conf (btor, bve, bvand, eidx, "AND");
       }
       else
       {
         res = cons_and_bv (btor, and, bvand, bve, eidx);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
+        btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
       iscon = 1;
@@ -1661,12 +1608,12 @@ inv_ult_bv (Btor *btor,
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
-        res = non_rec_conf (btor, bve, bvult, eidx, "<");
+        res = btor_propsls_non_rec_conf (btor, bve, bvult, eidx, "<");
       }
       else
       {
         res = cons_ult_bv (btor, ult, bvult, bve, eidx);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
+        btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
       iscon = 1;
@@ -1796,12 +1743,12 @@ inv_sll_bv (Btor *btor,
           if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_is_bv_const_node (e))
           {
-            res = non_rec_conf (btor, bve, bvsll, eidx, "<<");
+            res = btor_propsls_non_rec_conf (btor, bve, bvsll, eidx, "<<");
           }
           else
           {
             res = cons_sll_bv (btor, sll, bvsll, bve, eidx);
-            BTOR_INC_REC_CONF_STATS (btor, 1);
+            btor_propsls_rec_conf (btor);
           }
 #ifndef NDEBUG
           iscon = 1;
@@ -1938,12 +1885,12 @@ inv_srl_bv (Btor *btor,
           if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_is_bv_const_node (e))
           {
-            res = non_rec_conf (btor, bve, bvsrl, eidx, ">>");
+            res = btor_propsls_non_rec_conf (btor, bve, bvsrl, eidx, ">>");
           }
           else
           {
             res = cons_srl_bv (btor, srl, bvsrl, bve, eidx);
-            BTOR_INC_REC_CONF_STATS (btor, 1);
+            btor_propsls_rec_conf (btor);
           }
 #ifndef NDEBUG
           iscon = 1;
@@ -2084,12 +2031,12 @@ inv_mul_bv (Btor *btor,
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
-        res = non_rec_conf (btor, bve, bvmul, eidx, "*");
+        res = btor_propsls_non_rec_conf (btor, bve, bvmul, eidx, "*");
       }
       else
       {
         res = cons_mul_bv (btor, mul, bvmul, bve, eidx);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
+        btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
       iscon = 1;
@@ -2287,12 +2234,12 @@ inv_udiv_bv (Btor *btor,
         if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_is_bv_const_node (e))
         {
-          res = non_rec_conf (btor, bve, bvudiv, eidx, "/");
+          res = btor_propsls_non_rec_conf (btor, bve, bvudiv, eidx, "/");
         }
         else
         {
           res = cons_udiv_bv (btor, udiv, bvudiv, bve, eidx);
-          BTOR_INC_REC_CONF_STATS (btor, 1);
+          btor_propsls_rec_conf (btor);
         }
 #ifndef NDEBUG
         iscon = 1;
@@ -2506,12 +2453,12 @@ inv_urem_bv (Btor *btor,
         if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_is_bv_const_node (e))
         {
-          res = non_rec_conf (btor, bve, bvurem, eidx, "%");
+          res = btor_propsls_non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
         else
         {
           res = cons_urem_bv (btor, urem, bvurem, bve, eidx);
-          BTOR_INC_REC_CONF_STATS (btor, 1);
+          btor_propsls_rec_conf (btor);
         }
 #ifndef NDEBUG
         iscon = 1;
@@ -2815,12 +2762,12 @@ inv_concat_bv (Btor *btor,
       if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
-        res = non_rec_conf (btor, bve, bvconcat, eidx, "o");
+        res = btor_propsls_non_rec_conf (btor, bve, bvconcat, eidx, "o");
       }
       else
       {
         res = cons_concat_bv (btor, concat, bvconcat, bve, eidx);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
+        btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
       iscon = 1;
@@ -3424,7 +3371,8 @@ update_cone (Btor * btor, BtorNode * exp, BtorBitVector * assignment)
   if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
       delta = btor_time_stamp ();
-      btor_compute_sls_scores (btor, BTOR_PROP_SOLVER (btor)->score);
+      btor_propsls_compute_sls_scores (
+	  btor, &btor->bv_model, &btor->fun_model, BTOR_PROP_SOLVER (btor)->score);
       BTOR_PROP_SOLVER (btor)->time.update_cone_compute_score +=
 	    btor_time_stamp () - delta;
     }
@@ -3719,7 +3667,8 @@ sat_prop_solver_aux (Btor *btor)
 
     /* compute initial sls score */
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
-      btor_compute_sls_scores (btor, slv->score);
+      btor_propsls_compute_sls_scores (
+          btor, &btor->bv_model, &btor->fun_model, slv->score);
 
     /* init */
     slv->flip_cond_const_prob =
