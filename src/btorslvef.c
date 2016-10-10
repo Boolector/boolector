@@ -2670,7 +2670,8 @@ synthesize (BtorEFGroundSolvers *gslv,
           || btor_contains_int_hash_table (cache, cur->id))
         continue;
 
-      if (btor_is_bv_eq_node (cur) || btor_is_ult_node (cur))
+      /* cut-off at boolean layer */
+      if (btor_get_exp_width (gslv->forall, cur) == 1)
       {
         BTOR_PUSH_STACK (mm, constraints, cur);
         continue;
