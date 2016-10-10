@@ -1774,6 +1774,7 @@ flat_model_free_model (BtorPtrHashTable *model)
 static FlatModel *
 flat_model_generate (BtorEFGroundSolvers *gslv)
 {
+  bool free_bv;
   uint32_t i, j, pos, nevars;
   Btor *e_solver, *f_solver;
   BtorNode *cur, *e_evar, *f_evar, *args;
@@ -1848,27 +1849,33 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
       e_evar = nit.it.bucket->data.as_ptr;
       f_evar = btor_next_node_map_iterator (&nit);
 
+      free_bv = false;
       if ((args = btor_mapped_node (gslv->forall_evar_deps, f_evar)))
       {
         m = btor_get_fun_model (e_solver, e_evar);
-        assert (m);
-        if (!m) continue;
-
-        mtup = btor_new_bv_tuple (mm, btor_get_args_arity (f_solver, args));
-        j    = 0;
-        btor_init_args_iterator (&ait, args);
-        while (btor_has_next_args_iterator (&ait))
+        if (m)
         {
-          cur = btor_next_args_iterator (&ait);
-          i   = btor_get_int_hash_map (flat_model->uvar_index_map, cur->id)
-                  ->as_int;
-          btor_add_to_bv_tuple (mm, mtup, ce->bv[i], j++);
-        }
-        b = btor_get_ptr_hash_table ((BtorPtrHashTable *) m, mtup);
-        btor_free_bv_tuple (mm, mtup);
-        assert (b);  // this one might not be right
+          mtup = btor_new_bv_tuple (mm, btor_get_args_arity (f_solver, args));
+          j    = 0;
+          btor_init_args_iterator (&ait, args);
+          while (btor_has_next_args_iterator (&ait))
+          {
+            cur = btor_next_args_iterator (&ait);
+            i   = btor_get_int_hash_map (flat_model->uvar_index_map, cur->id)
+                    ->as_int;
+            btor_add_to_bv_tuple (mm, mtup, ce->bv[i], j++);
+          }
+          b = btor_get_ptr_hash_table ((BtorPtrHashTable *) m, mtup);
+          btor_free_bv_tuple (mm, mtup);
+          assert (b);  // this one might not be right
 
-        bv = b->data.as_ptr;
+          bv = b->data.as_ptr;
+        }
+        else
+        {
+          free_bv = true;
+          bv      = btor_new_bv (mm, btor_get_exp_width (f_solver, f_evar));
+        }
       }
       else
       {
@@ -1876,6 +1883,7 @@ flat_model_generate (BtorEFGroundSolvers *gslv)
         bv = btor_get_bv_model (e_solver, btor_simplify_exp (e_solver, e_evar));
       }
       btor_add_to_bv_tuple (mm, evar_values, bv, pos++);
+      if (free_bv) btor_free_bv (mm, bv);
     }
     printf ("(");
     for (i = 0; i < evar_values->arity; i++)
