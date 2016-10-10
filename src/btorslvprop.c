@@ -3531,22 +3531,21 @@ move (Btor *btor, uint32_t nmoves)
   btor_freestr (btor->mm, a);
 #endif
 
-  exps = btor_new_int_hash_table (btor->mm);
+  exps = btor_new_int_hash_map (btor->mm);
   assert (BTOR_IS_REGULAR_NODE (input));
-  btor_add_int_hash_table (exps, input->id);
+  btor_add_int_hash_map (exps, input->id)->as_ptr = assignment;
   btor_propsls_update_cone (
       btor,
       btor->bv_model,
       slv->roots,
       btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
       exps,
-      assignment,
       &slv->stats.updates,
       &slv->time.update_cone,
       &slv->time.update_cone_reset,
       &slv->time.update_cone_model_gen,
       &slv->time.update_cone_compute_score);
-  btor_delete_int_hash_table (exps);
+  btor_delete_int_hash_map (exps);
 
   slv->stats.moves += 1;
   btor_free_bv (btor->mm, assignment);

@@ -72,7 +72,6 @@ btor_propsls_update_cone (Btor *btor,
                           BtorIntHashTable *roots,
                           BtorPtrHashTable *score,
                           BtorIntHashTable *exps,
-                          BtorBitVector *assignment,
                           uint64_t *stats_updates,
                           double *time_update_cone,
                           double *time_update_cone_reset,
@@ -84,7 +83,6 @@ btor_propsls_update_cone (Btor *btor,
   assert (roots);
   assert (exps);
   assert (exps->count);
-  assert (assignment);
   assert (time_update_cone);
   assert (time_update_cone_reset);
   assert (time_update_cone_model_gen);
@@ -96,7 +94,7 @@ btor_propsls_update_cone (Btor *btor,
   BtorPtrHashBucket *b;
   BtorNodePtrStack stack, cone;
   BtorIntHashTable *cache;
-  BtorBitVector *bv, *e[3];
+  BtorBitVector *bv, *e[3], *ass;
   BtorMemMgr *mm;
 
   start = delta = btor_time_stamp ();
@@ -168,21 +166,22 @@ btor_propsls_update_cone (Btor *btor,
   {
     if (!exps->keys[i]) continue;
     exp = btor_get_node_by_id (btor, exps->keys[i]);
+    ass = (BtorBitVector *) exps->data[i].as_ptr;
     b   = btor_get_ptr_hash_table (bv_model, exp);
     assert (b);
     if ((exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
          || btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (exp)))
-        && btor_compare_bv (b->data.as_ptr, assignment))
+        && btor_compare_bv (b->data.as_ptr, ass))
     {
       /* old assignment != new assignment */
-      update_roots (btor, roots, exp, assignment);
+      update_roots (btor, roots, exp, ass);
     }
     btor_free_bv (mm, b->data.as_ptr);
-    b->data.as_ptr = btor_copy_bv (mm, assignment);
+    b->data.as_ptr = btor_copy_bv (mm, ass);
     if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (exp))))
     {
       btor_free_bv (mm, b->data.as_ptr);
-      b->data.as_ptr = btor_not_bv (mm, assignment);
+      b->data.as_ptr = btor_not_bv (mm, ass);
     }
   }
 
