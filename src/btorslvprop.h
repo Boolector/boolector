@@ -8,8 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORPROP_H_INCLUDED
-#define BTORPROP_H_INCLUDED
+#ifndef BTORSLVPROP_H_INCLUDED
+#define BTORSLVPROP_H_INCLUDED
 
 #include "btorbitvec.h"
 #include "btorslv.h"
