@@ -2552,10 +2552,9 @@ synthesize (BtorEFGroundSolvers *gslv,
             BtorNode *evar,
             FlatModel *flat_model,
             uint32_t limit,
-            BtorNode *prev_synth_fun,
-            bool find_constraints)
+            BtorNode *prev_synth_fun)
 {
-  uint32_t i, pos;
+  uint32_t i, pos, opt_synth_mode;
   BtorNode *cur, *par, *result = 0, *args;
   BtorNodePtrStack visit;
   BtorMemMgr *mm;
@@ -2568,11 +2567,12 @@ synthesize (BtorEFGroundSolvers *gslv,
   BtorBitVectorPtrStack value_out;
   BtorNodeMapIterator nit;
 
-  mm           = gslv->forall->mm;
-  reachable    = btor_new_int_hash_table (mm);
-  cache        = btor_new_int_hash_table (mm);
-  value_in_map = btor_new_int_hash_map (mm);
-  inputs       = btor_new_ptr_hash_table (mm, 0, 0);
+  mm             = gslv->forall->mm;
+  reachable      = btor_new_int_hash_table (mm);
+  cache          = btor_new_int_hash_table (mm);
+  value_in_map   = btor_new_int_hash_map (mm);
+  inputs         = btor_new_ptr_hash_table (mm, 0, 0);
+  opt_synth_mode = btor_get_opt (gslv->forall, BTOR_OPT_EF_SYNTH);
 
   BTOR_INIT_STACK (value_in);
   BTOR_INIT_STACK (value_out);
@@ -2611,10 +2611,32 @@ synthesize (BtorEFGroundSolvers *gslv,
   /* 'evar' is a special placeholder for constraint evaluation */
   btor_add_int_hash_map (value_in_map, evar->id)->as_int = -1;
 
-  if (find_constraints)
-  {
-    //      printf ("find constraints for %s\n", node2string (evar));
+  build_input_output_values (gslv, evar, flat_model, &value_in, &value_out);
 
+  if (opt_synth_mode == BTOR_EF_SYNTH_EL
+      || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC)
+  {
+    result =
+        btor_synthesize_fun_constraints (gslv->forall,
+                                         params.start,
+                                         BTOR_COUNT_STACK (params),
+                                         value_in.start,
+                                         value_out.start,
+                                         BTOR_COUNT_STACK (value_in),
+                                         value_in_map,
+                                         prev_synth_fun,
+                                         constraints.start,
+                                         BTOR_COUNT_STACK (constraints),
+                                         gslv->forall_consts.start,
+                                         BTOR_COUNT_STACK (gslv->forall_consts),
+                                         limit,
+                                         0);
+  }
+
+  if (!result
+      && (opt_synth_mode == BTOR_EF_SYNTH_ELMC
+          || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC))
+  {
     /* mark reachable exps */
     BTOR_PUSH_STACK (mm, visit, gslv->forall_formula);
     while (!BTOR_EMPTY_STACK (visit))
@@ -2654,33 +2676,30 @@ synthesize (BtorEFGroundSolvers *gslv,
       }
     }
   }
+  else if (opt_synth_mode == BTOR_EF_SYNTH_ELMR)
+  {
+    assert (opt_synth_mode == BTOR_EF_SYNTH_ELMR);
+    BTOR_PUSH_STACK (mm, constraints, gslv->forall_formula);
+  }
 
-#if 0
-  btor_init_node_hash_table_iterator (&hit, inputs);
-  while (btor_has_next_node_hash_table_iterator (&hit))
-    {
-      cur = btor_next_node_hash_table_iterator (&hit);
-      btor_add_int_hash_map (value_in_map, cur->id)->as_int = pos++;
-    }
-#endif
-
-  build_input_output_values (gslv, evar, flat_model, &value_in, &value_out);
-
-  result =
-      btor_synthesize_fun_constraints (gslv->forall,
-                                       params.start,
-                                       BTOR_COUNT_STACK (params),
-                                       value_in.start,
-                                       value_out.start,
-                                       BTOR_COUNT_STACK (value_in),
-                                       value_in_map,
-                                       prev_synth_fun,
-                                       constraints.start,
-                                       BTOR_COUNT_STACK (constraints),
-                                       gslv->forall_consts.start,
-                                       BTOR_COUNT_STACK (gslv->forall_consts),
-                                       limit,
-                                       0);
+  if (!result)
+  {
+    result =
+        btor_synthesize_fun_constraints (gslv->forall,
+                                         params.start,
+                                         BTOR_COUNT_STACK (params),
+                                         value_in.start,
+                                         value_out.start,
+                                         BTOR_COUNT_STACK (value_in),
+                                         value_in_map,
+                                         prev_synth_fun,
+                                         constraints.start,
+                                         BTOR_COUNT_STACK (constraints),
+                                         gslv->forall_consts.start,
+                                         BTOR_COUNT_STACK (gslv->forall_consts),
+                                         limit,
+                                         0);
+  }
 
   while (!BTOR_EMPTY_STACK (value_in))
     btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
@@ -2801,20 +2820,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
 #endif
         //	      printf ("synthesize model for %s\n", btor_get_symbol_exp
         //(f_solver, e_uf_fs));
-
-        if (opt_synth_mode == BTOR_EF_SYNTH_EL
-            || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC)
-        {
-          candidate = synthesize (
-              gslv, e_uf_fs, flat_model, limit, prev_synth_fun, false);
-        }
-        if (!candidate
-            && (opt_synth_mode == BTOR_EF_SYNTH_ELMC
-                || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC))
-        {
-          candidate = synthesize (
-              gslv, e_uf_fs, flat_model, limit, prev_synth_fun, true);
-        }
+        candidate =
+            synthesize (gslv, e_uf_fs, flat_model, limit, prev_synth_fun);
 #if 0
 	      if (candidate)
 		{

@@ -260,6 +260,9 @@ eval_exp (Btor *btor,
           result = btor_concat_bv (mm, bv[0], bv[1]);
           break;
 
+        case BTOR_EXISTS_NODE:
+        case BTOR_FORALL_NODE: result = btor_copy_bv (mm, bv[1]); break;
+
         default:
           assert (real_cur->kind == BTOR_COND_NODE);
           if (btor_is_true_bv (bv[0]))
