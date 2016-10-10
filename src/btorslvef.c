@@ -50,7 +50,8 @@ struct BtorEFGroundSolvers
   BtorPtrHashTable *forall_synth_model; /* currently synthesized model for
                                          existential vars */
   BtorPtrHashTable *forall_ces;         /* counter examples */
-  BtorNodeMap *forall_skolem;           /* skolem functions for evars */
+  BtorBitVectorTuple *forall_last_ce;
+  BtorNodeMap *forall_skolem; /* skolem functions for evars */
 
   Btor *exists;              /* solver for computing the model */
   BtorNodeMap *exists_evars; /* skolem constants (map to existential
@@ -982,6 +983,7 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
   BtorNode *var_es, *var_fs, *c, *res, *uvar, *a;
   const BtorBitVector *bv;
   BtorBitVectorTuple *ce;
+  BtorPtrHashBucket *b;
 
   //  printf ("  refine\n");
   f_solver = gslv->forall;
@@ -1045,6 +1047,15 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
 
   btor_delete_node_map (map);
 
+  // TODO (ma): need to check why this still occurs
+  //            probably because of findpm=1
+  if ((b = btor_get_ptr_hash_table (gslv->forall_ces, ce)))
+  {
+    gslv->forall_last_ce = b->data.as_ptr;
+    btor_free_bv_tuple (f_solver->mm, ce);
+    return false;
+  }
+
   if (res == e_solver->true_exp)
   {
     btor_free_bv_tuple (f_solver->mm, ce);
@@ -1057,6 +1068,7 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
   gslv->statistics->stats.refinements++;
   assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
   btor_add_ptr_hash_table (gslv->forall_ces, ce);
+  gslv->forall_last_ce = ce;
 
   collect_ref_exps (gslv, res);
   btor_assert_exp (e_solver, res);
@@ -2130,8 +2142,9 @@ filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   //  printf ("CE (skeleton) %u\n", gslv->forall_ces->count);
   /* position of last refinement */
   //  i = BTOR_TOP_STACK (gslv->forall_ce_trail);
-  i  = 0;
-  ce = gslv->forall_ces->last->key;
+  i = 0;
+  //  ce = gslv->forall_ces->last->key;
+  ce = gslv->forall_last_ce;
   /* instantiate universal vars with fresh vars */
   btor_init_node_map_iterator (&it, gslv->forall_uvars);
   while (btor_has_next_node_map_iterator (&it))
