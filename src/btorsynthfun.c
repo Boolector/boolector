@@ -954,7 +954,7 @@ synthesize (Btor *btor,
                                   value_in[i],
                                   value_out[i],
                                   value_in_map);
-      btor_print_bv (bv);
+      //	  btor_print_bv (bv);
       BTOR_PUSH_STACK (mm, sig_constraints, bv);
     }
     value_out = sig_constraints.start;
@@ -1497,19 +1497,21 @@ btor_synthesize_fun_constraints (Btor *btor,
                                  uint32_t max_checks,
                                  uint32_t max_level)
 {
-  bool prev_synth_ok;
-  uint32_t i, nops;
+  bool prev_synth_ok = false;
+  uint32_t nops;
   Op ops[64];
   BtorNode *candidate, *result = 0;
 
   nops = init_ops (btor, ops);
   assert (nops);
 
+#if 0
+  uint32_t i;
   printf ("---------\n");
   for (i = 0; i < nconstraints; i++)
     printf ("constraint[%u]: %s\n", i, node2string (constraints[i]));
+#endif
 
-  prev_synth_ok = false;
 #if 0
   if (prev_synth_fun)
     {
