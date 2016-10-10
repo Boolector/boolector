@@ -756,38 +756,37 @@ check_candidate (Btor *btor,
                  BtorNode *constraints[],
                  uint32_t nconstraints)
 {
-  bool found_candidate;
+  bool found_candidate = false;
   int32_t id;
-  uint32_t num_matches = 0;
-  BtorBitVectorTuple *sig;
-  BtorBitVector *matchbv;
+  uint32_t num_matches    = 0;
+  BtorBitVectorTuple *sig = 0;
+  BtorBitVector *matchbv  = 0;
   BtorMemMgr *mm;
   Match *m;
 
   id = BTOR_GET_ID_NODE (exp);
   mm = btor->mm;
 
-  if (btor_is_bv_const_node (exp) || btor_contains_int_hash_table (cache, id)
-      || (nconstraints > 0
-          && BTOR_REAL_ADDR_NODE (exp)->sort_id != target_sort))
+  if (btor_is_bv_const_node (exp) || btor_contains_int_hash_table (cache, id))
   {
     btor_release_exp (btor, exp);
     return false;
   }
 
-  found_candidate = check_signature (btor,
-                                     exp,
-                                     value_in,
-                                     value_out,
-                                     nvalues,
-                                     value_in_map,
-                                     &sig,
-                                     &num_matches,
-                                     &matchbv,
-                                     constraints,
-                                     nconstraints);
+  if (nconstraints == 0 || BTOR_REAL_ADDR_NODE (exp)->sort_id == target_sort)
+    found_candidate = check_signature (btor,
+                                       exp,
+                                       value_in,
+                                       value_out,
+                                       nvalues,
+                                       value_in_map,
+                                       &sig,
+                                       &num_matches,
+                                       &matchbv,
+                                       constraints,
+                                       nconstraints);
 
-  if (btor_get_ptr_hash_table (sigs, sig))
+  if (sig && btor_get_ptr_hash_table (sigs, sig))
   {
     assert (!found_candidate);
     btor_free_bv_tuple (mm, sig);
@@ -804,10 +803,10 @@ check_candidate (Btor *btor,
     else
       delete_match (mm, m);
   }
-  else
+  else if (matchbv)
     btor_free_bv (mm, matchbv);
 
-  btor_add_ptr_hash_table (sigs, sig);
+  if (sig) btor_add_ptr_hash_table (sigs, sig);
   btor_add_int_hash_table (cache, id);
   add_exp (btor, cur_level, candidates, exp);
   return found_candidate;
