@@ -282,7 +282,7 @@ btor_propsls_update_cone (Btor *btor,
   {
     delta = btor_time_stamp ();
     btor_propsls_compute_sls_scores (
-        btor, &btor->bv_model, &btor->fun_model, score);
+        btor, btor->bv_model, btor->fun_model, score);
     *time_update_cone_compute_score += btor_time_stamp () - delta;
   }
 
@@ -417,8 +417,8 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 //
 static double
 compute_sls_score_node (Btor *btor,
-                        BtorPtrHashTable **bv_model,
-                        BtorPtrHashTable **fun_model,
+                        BtorPtrHashTable *bv_model,
+                        BtorPtrHashTable *fun_model,
                         BtorPtrHashTable *score,
                         BtorNode *exp)
 {
@@ -640,8 +640,8 @@ compute_sls_score_node (Btor *btor,
 
 void
 btor_propsls_compute_sls_scores (Btor *btor,
-                                 BtorPtrHashTable **bv_model,
-                                 BtorPtrHashTable **fun_model,
+                                 BtorPtrHashTable *bv_model,
+                                 BtorPtrHashTable *fun_model,
                                  BtorPtrHashTable *score)
 {
   assert (btor);

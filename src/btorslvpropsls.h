@@ -84,8 +84,8 @@ void btor_propsls_update_cone (Btor* btor,
                                double* time_update_cone_compute_score);
 
 void btor_propsls_compute_sls_scores (Btor* btor,
-                                      BtorPtrHashTable** bv_model,
-                                      BtorPtrHashTable** fun_model,
+                                      BtorPtrHashTable* bv_model,
+                                      BtorPtrHashTable* fun_model,
                                       BtorPtrHashTable* score);
 
 #endif

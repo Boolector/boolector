@@ -933,26 +933,24 @@ btor_delete_model (Btor *btor)
  *       all bit vectors are maintained via btor->bv_model */
 const BtorBitVector *
 btor_get_bv_model_aux (Btor *btor,
-                       BtorPtrHashTable **bv_model,
-                       BtorPtrHashTable **fun_model,
+                       BtorPtrHashTable *bv_model,
+                       BtorPtrHashTable *fun_model,
                        BtorNode *exp)
 {
   assert (btor);
   assert (bv_model);
-  assert (*bv_model);
   assert (fun_model);
-  assert (*fun_model);
   assert (exp);
   assert (!btor_is_proxy_node (exp));
 
   BtorBitVector *result;
   BtorPtrHashBucket *b;
 
-  b = btor_get_ptr_hash_table (*bv_model, exp);
+  b = btor_get_ptr_hash_table (bv_model, exp);
 
   if (!b)
   {
-    b = btor_get_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
+    b = btor_get_ptr_hash_table (bv_model, BTOR_REAL_ADDR_NODE (exp));
 
     /* if exp has no assignment, regenerate model in case that it is an exp
      * that previously existed but was simplified (i.e. the original exp is
@@ -960,11 +958,11 @@ btor_get_bv_model_aux (Btor *btor,
      * assignment via get-value in SMT-LIB v2) */
     if (!b)
     {
-      result = btor_recursively_compute_assignment (
-          btor, *bv_model, *fun_model, exp);
+      result =
+          btor_recursively_compute_assignment (btor, bv_model, fun_model, exp);
       btor_free_bv (btor->mm, result);
     }
-    b = btor_get_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
+    b = btor_get_ptr_hash_table (bv_model, BTOR_REAL_ADDR_NODE (exp));
     if (!b) return 0;
   }
 
@@ -972,14 +970,14 @@ btor_get_bv_model_aux (Btor *btor,
   /* Note: we cache assignments of inverted expressions on demand */
   if (BTOR_IS_INVERTED_NODE (exp))
   {
-    if ((b = btor_get_ptr_hash_table (*bv_model, exp)))
+    if ((b = btor_get_ptr_hash_table (bv_model, exp)))
       result = b->data.as_ptr;
     else
     {
       /* we don't use add_to_bv_model in order to avoid redundant
        * hash table queries and copying/freeing of the resulting bv */
       result = btor_not_bv (btor->mm, result);
-      b      = btor_add_ptr_hash_table (*bv_model, btor_copy_exp (btor, exp));
+      b      = btor_add_ptr_hash_table (bv_model, btor_copy_exp (btor, exp));
       b->data.as_ptr = result;
     }
   }
@@ -991,32 +989,31 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return btor_get_bv_model_aux (btor, &btor->bv_model, &btor->fun_model, exp);
+  return btor_get_bv_model_aux (btor, btor->bv_model, btor->fun_model, exp);
 }
 
 const BtorPtrHashTable *
 btor_get_fun_model_aux (Btor *btor,
-                        BtorPtrHashTable **bv_model,
-                        BtorPtrHashTable **fun_model,
+                        BtorPtrHashTable *bv_model,
+                        BtorPtrHashTable *fun_model,
                         BtorNode *exp)
 {
   assert (btor);
   assert (fun_model);
-  assert (*fun_model);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_is_proxy_node (exp));
 
   BtorPtrHashBucket *b;
 
   assert (btor_is_fun_node (exp));
-  b = btor_get_ptr_hash_table (*fun_model, exp);
+  b = btor_get_ptr_hash_table (fun_model, exp);
 
   /* if exp has no assignment, regenerate model in case that it is an exp
    * that previously existed but was simplified (i.e. the original exp is now
    * a proxy and was therefore regenerated when querying it's assignment via
    * get-value in SMT-LIB v2) */
-  if (!b) recursively_compute_function_model (btor, *bv_model, *fun_model, exp);
-  b = btor_get_ptr_hash_table (*fun_model, exp);
+  if (!b) recursively_compute_function_model (btor, bv_model, fun_model, exp);
+  b = btor_get_ptr_hash_table (fun_model, exp);
   if (!b) return 0;
 
   return (BtorPtrHashTable *) b->data.as_ptr;
@@ -1027,7 +1024,7 @@ btor_get_fun_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return btor_get_fun_model_aux (btor, &btor->bv_model, &btor->fun_model, exp);
+  return btor_get_fun_model_aux (btor, btor->bv_model, btor->fun_model, exp);
 }
 
 BtorNode *

@@ -351,8 +351,8 @@ reset_cone (Btor *btor,
 
 static void
 update_cone (Btor *btor,
-             BtorPtrHashTable **bv_model,
-             BtorPtrHashTable **fun_model,
+             BtorPtrHashTable *bv_model,
+             BtorPtrHashTable *fun_model,
              BtorPtrHashTable *cans,
              BtorPtrHashTable *score)
 {
@@ -360,9 +360,7 @@ update_cone (Btor *btor,
   assert (BTOR_SLS_SOLVER (btor));
   assert (BTOR_SLS_SOLVER (btor)->roots);
   assert (bv_model);
-  assert (*bv_model);
   assert (fun_model);
-  assert (*fun_model);
   assert (cans);
   assert (cans->count);
   assert (score);
@@ -371,17 +369,17 @@ update_cone (Btor *btor,
   BtorNode *exp;
   BtorBitVector *ass;
 
-  reset_cone (btor, cans, *bv_model, score);
+  reset_cone (btor, cans, bv_model, score);
 
   btor_init_hash_table_iterator (&it, cans);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     ass = it.bucket->data.as_ptr;
     exp = btor_next_node_hash_table_iterator (&it);
-    btor_add_to_bv_model (btor, *bv_model, exp, ass);
+    btor_add_to_bv_model (btor, bv_model, exp, ass);
   }
 
-  btor_generate_model (btor, *bv_model, *fun_model, 0);
+  btor_generate_model (btor, bv_model, fun_model, 0);
   btor_propsls_compute_sls_scores (btor, bv_model, fun_model, score);
 }
 
@@ -428,7 +426,7 @@ update_assertion_weights (Btor *btor)
 
 static inline double
 try_move (Btor *btor,
-          BtorPtrHashTable **bv_model,
+          BtorPtrHashTable *bv_model,
           BtorPtrHashTable *score,
           BtorPtrHashTable *cans)
 {
@@ -470,7 +468,7 @@ try_move (Btor *btor,
 #endif
 
   /* we currently support QF_BV only, hence no funs */
-  update_cone (btor, bv_model, &btor->fun_model, cans, score);
+  update_cone (btor, bv_model, btor->fun_model, cans, score);
 
   return compute_sls_score_formula (btor, score);
 }
@@ -593,7 +591,7 @@ select_inc_dec_not_move (Btor *btor,
             : fun (btor->mm, ass);
   }
 
-  sc = try_move (btor, &bv_model, score, cans);
+  sc = try_move (btor, bv_model, score, cans);
   BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
 
 DONE:
@@ -655,7 +653,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               : btor_flipped_bit_bv (btor->mm, ass, cpos);
     }
 
-    sc = try_move (btor, &bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
@@ -732,7 +730,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
     }
 
-    sc = try_move (btor, &bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
@@ -816,7 +814,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
                 : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
       }
 
-      sc = try_move (btor, &bv_model, score, cans);
+      sc = try_move (btor, bv_model, score, cans);
       BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
     }
   }
@@ -886,7 +884,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               btor->mm, &btor->rng, ass->width, cup, clo);
     }
 
-    sc = try_move (btor, &bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans);
     if (rand_max_score == -1.0 || sc > rand_max_score)
     {
       /* reset, use current */
@@ -1346,7 +1344,7 @@ move (Btor *btor, uint32_t nmoves)
 #endif
 
   update_cone (
-      btor, &btor->bv_model, &btor->fun_model, slv->max_cans, slv->score);
+      btor, btor->bv_model, btor->fun_model, slv->max_cans, slv->score);
 
   slv->stats.moves += 1;
 
@@ -1627,7 +1625,7 @@ sat_sls_solver (BtorSLSSolver *slv)
 
     /* compute initial sls score */
     btor_propsls_compute_sls_scores (
-        btor, &btor->bv_model, &btor->fun_model, slv->score);
+        btor, btor->bv_model, btor->fun_model, slv->score);
 
     if (compute_sls_score_formula (btor, slv->score) == -1.0)
     {

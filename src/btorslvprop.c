@@ -3372,7 +3372,7 @@ update_cone (Btor * btor, BtorNode * exp, BtorBitVector * assignment)
     {
       delta = btor_time_stamp ();
       btor_propsls_compute_sls_scores (
-	  btor, &btor->bv_model, &btor->fun_model, BTOR_PROP_SOLVER (btor)->score);
+	  btor, btor->bv_model, btor->fun_model, BTOR_PROP_SOLVER (btor)->score);
       BTOR_PROP_SOLVER (btor)->time.update_cone_compute_score +=
 	    btor_time_stamp () - delta;
     }
@@ -3668,7 +3668,7 @@ sat_prop_solver_aux (Btor *btor)
     /* compute initial sls score */
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
       btor_propsls_compute_sls_scores (
-          btor, &btor->bv_model, &btor->fun_model, slv->score);
+          btor, btor->bv_model, btor->fun_model, slv->score);
 
     /* init */
     slv->flip_cond_const_prob =

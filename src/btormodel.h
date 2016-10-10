@@ -30,14 +30,14 @@ void btor_delete_bv_model (Btor* btor, BtorPtrHashTable** bv_model);
 
 const BtorBitVector* btor_get_bv_model (Btor* btor, BtorNode* exp);
 const BtorBitVector* btor_get_bv_model_aux (Btor* btor,
-                                            BtorPtrHashTable** bv_model,
-                                            BtorPtrHashTable** fun_model,
+                                            BtorPtrHashTable* bv_model,
+                                            BtorPtrHashTable* fun_model,
                                             BtorNode* exp);
 
 const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
 const BtorPtrHashTable* btor_get_fun_model_aux (Btor* btor,
-                                                BtorPtrHashTable** bv_model,
-                                                BtorPtrHashTable** fun_model,
+                                                BtorPtrHashTable* bv_model,
+                                                BtorPtrHashTable* fun_model,
                                                 BtorNode* exp);
 
 void btor_add_to_bv_model (Btor* btor,

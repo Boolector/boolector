@@ -17,8 +17,8 @@
 
 const char *
 btor_get_bv_model_str_aux (Btor *btor,
-                           BtorPtrHashTable **bv_model,
-                           BtorPtrHashTable **fun_model,
+                           BtorPtrHashTable *bv_model,
+                           BtorPtrHashTable *fun_model,
                            BtorNode *exp)
 {
   assert (btor);
@@ -49,14 +49,13 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  return btor_get_bv_model_str_aux (
-      btor, &btor->bv_model, &btor->fun_model, exp);
+  return btor_get_bv_model_str_aux (btor, btor->bv_model, btor->fun_model, exp);
 }
 
 void
 btor_get_fun_model_str_aux (Btor *btor,
-                            BtorPtrHashTable **bv_model,
-                            BtorPtrHashTable **fun_model,
+                            BtorPtrHashTable *bv_model,
+                            BtorPtrHashTable *fun_model,
                             BtorNode *exp,
                             char ***args,
                             char ***values,
@@ -83,7 +82,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
   if ((btor_is_lambda_node (exp) && btor_get_fun_arity (btor, exp) > 1)
-      || !(*fun_model) || !model)
+      || !fun_model || !model)
   {
     *size = 0;
     return;
@@ -138,7 +137,7 @@ btor_get_fun_model_str (
   assert (size);
 
   btor_get_fun_model_str_aux (
-      btor, &btor->bv_model, &btor->fun_model, exp, args, values, size);
+      btor, btor->bv_model, btor->fun_model, exp, args, values, size);
 }
 
 static void
