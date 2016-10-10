@@ -1742,8 +1742,17 @@ flat_model_get_model (FlatModel *flat_model, BtorNode *deps, BtorNode *evar)
       pos = BTOR_PEEK_STACK (uvar_indices, i);
       btor_add_to_bv_tuple (mm, tup, ce->bv[pos], i);
     }
-    btor_add_ptr_hash_table (model, tup)->data.as_ptr =
-        btor_copy_bv (mm, values->bv[evar_pos]);
+    if (!btor_get_ptr_hash_table (model, tup))
+      btor_add_ptr_hash_table (model, tup)->data.as_ptr =
+          btor_copy_bv (mm, values->bv[evar_pos]);
+    else
+    {
+      assert (
+          btor_compare_bv (btor_get_ptr_hash_table (model, tup)->data.as_ptr,
+                           values->bv[evar_pos])
+          == 0);
+      btor_free_bv_tuple (mm, tup);
+    }
   }
   BTOR_RELEASE_STACK (mm, uvar_indices);
   return model;
@@ -3559,7 +3568,6 @@ UNDERAPPROX:
    * a previous call. in this case we produce a model using all refinements */
   if (!refine_exists_solver (gslv))
   {
-    assert (0);
     printf ("failed refinment\n");
     failed_refinement = true;
     btor_release_exp (gslv->forall, g);
