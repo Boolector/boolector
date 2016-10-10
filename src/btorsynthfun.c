@@ -200,6 +200,7 @@ eval_exp (Btor *btor,
     else if (!d->as_ptr)
     {
       assert (!btor_is_fun_node (real_cur));
+      assert (!btor_is_apply_node (real_cur));
 
       if (!btor_is_apply_node (real_cur))
       {
@@ -717,7 +718,7 @@ check_signature (Btor *btor,
     output = value_out[i];
     //      assert (value_in_map->count == inputs->arity);
 
-    if (constraints)
+    if (nconstraints > 0)
       res = constraints_signature (
           btor, exp, constraints, nconstraints, inputs, output, value_in_map);
     else
@@ -896,7 +897,7 @@ synthesize (Btor *btor,
             uint32_t nconsts,
             BtorNode *constraints[],
             uint32_t nconstraints,
-            BtorIntHashTable *constraints_input_map,
+            BtorIntHashTable *value_in_map,
             uint32_t max_checks,
             uint32_t max_level)
 {
@@ -916,7 +917,7 @@ synthesize (Btor *btor,
   BtorNode *exp, **exp_tuple, *result = 0;
   BtorNodePtrStack *exps;
   BtorVoidPtrStack candidates;
-  BtorIntHashTable *value_in_map, *cache, *e0_exps, *e1_exps, *e2_exps;
+  BtorIntHashTable *cache, *e0_exps, *e1_exps, *e2_exps;
   BtorPtrHashTable *matches, *sigs;
   BtorHashTableData *d;
   BtorMemMgr *mm;
@@ -927,11 +928,10 @@ synthesize (Btor *btor,
   BtorBitVectorPtrStack sig_constraints;
   BtorBitVector *bv, **tmp_value_out;
 
-  mm           = btor->mm;
-  bool_sort    = btor_bool_sort (&btor->sorts_unique_table);
-  value_in_map = btor_new_int_hash_map (mm);
-  cache        = btor_new_int_hash_table (mm);
-  matches      = btor_new_ptr_hash_table (
+  mm        = btor->mm;
+  bool_sort = btor_bool_sort (&btor->sorts_unique_table);
+  cache     = btor_new_int_hash_table (mm);
+  matches   = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_match, (BtorCmpPtr) cmp_match);
   sigs = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
@@ -940,25 +940,12 @@ synthesize (Btor *btor,
   BTOR_INIT_STACK (candidates);
   BTOR_PUSH_STACK (mm, candidates, 0);
 
-  /* map inputs to their resp. index in 'inputs' in order to have fast
-   * access of assignment tuples (value_in) during expression evaluation */
-  for (i = 0; i < ninputs; i++)
-  {
-    assert (BTOR_IS_REGULAR_NODE (inputs[i]));
-    btor_add_int_hash_map (value_in_map, inputs[i]->id)->as_int = i;
-  }
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
 
   tmp_value_out = value_out;
-  if (constraints)
+  if (nconstraints > 0)
   {
-    for (i = 0; i < constraints_input_map->size; i++)
-    {
-      if (!constraints_input_map->keys[i]) continue;
-      btor_add_int_hash_map (value_in_map, constraints_input_map->keys[i])
-          ->as_int = constraints_input_map->data[i].as_int;
-    }
     for (i = 0; i < nvalues; i++)
     {
       bv = constraints_signature (btor,
@@ -1233,7 +1220,6 @@ DONE:
 
   btor_delete_ptr_hash_table (sigs);
   btor_delete_ptr_hash_table (matches);
-  btor_delete_int_hash_map (value_in_map);
   btor_delete_int_hash_table (cache);
 
   assert (!result || BTOR_REAL_ADDR_NODE (result)->sort_id == target_sort);
@@ -1498,6 +1484,7 @@ btor_synthesize_fun (Btor *btor,
 
 BtorNode *
 btor_synthesize_fun_constraints (Btor *btor,
+                                 BtorNode *params[],
                                  uint32_t nparams,
                                  BtorBitVectorTuple *value_in[],
                                  BtorBitVector *value_out[],
@@ -1512,43 +1499,12 @@ btor_synthesize_fun_constraints (Btor *btor,
                                  uint32_t max_level)
 {
   bool prev_synth_ok;
-  uint32_t i, nops, ninputs;
+  uint32_t i, nops;
   Op ops[64];
-  BtorNodePtrStack params, inputs, results;
-  BtorNode *p, *candidate, *result = 0;
-  BtorMemMgr *mm;
-  BtorBitVectorTuple *tup;
+  BtorNode *candidate, *result = 0;
 
-  mm   = btor->mm;
   nops = init_ops (btor, ops);
   assert (nops);
-  BTOR_INIT_STACK (params);
-  BTOR_INIT_STACK (inputs);
-  BTOR_INIT_STACK (results);
-
-#if 0
-  if (prev_synth_fun)
-    {
-      value_in_map = btor_new_int_hash_map (mm);
-      i = 0;
-      btor_init_param_iterator (&nit, prev_synth_fun);
-      while (btor_has_next_param_iterator (&nit))
-	{
-	  p = btor_next_param_iterator (&nit);
-	  btor_add_int_hash_map (value_in_map, p->id)->as_int = i++;
-	}
-    }
-#endif
-
-  /* create parameters */
-  tup = value_in[0];
-  for (i = 0; i < nparams; i++)
-  {
-    p = btor_param_exp (btor, tup->bv[i]->width, 0);
-    BTOR_PUSH_STACK (mm, params, p);
-    BTOR_PUSH_STACK (mm, inputs, p);
-  }
-  ninputs = BTOR_COUNT_STACK (inputs);
 
   printf ("---------\n");
   for (i = 0; i < nconstraints; i++)
@@ -1571,8 +1527,8 @@ btor_synthesize_fun_constraints (Btor *btor,
   else
   {
     candidate = synthesize (btor,
-                            inputs.start,
-                            ninputs,
+                            params,
+                            nparams,
                             value_in,
                             value_out,
                             nvalues,
@@ -1589,17 +1545,10 @@ btor_synthesize_fun_constraints (Btor *btor,
     /* create function from candidate expression */
     if (candidate)
     {
-      result =
-          mk_fun (btor, params.start, BTOR_COUNT_STACK (params), candidate);
+      result = mk_fun (btor, params, nparams, candidate);
       btor_release_exp (btor, candidate);
     }
   }
 
-  while (!BTOR_EMPTY_STACK (params))
-    btor_release_exp (btor, BTOR_POP_STACK (params));
-
-  BTOR_RELEASE_STACK (mm, results);
-  BTOR_RELEASE_STACK (mm, params);
-  BTOR_RELEASE_STACK (mm, inputs);
   return result;
 }

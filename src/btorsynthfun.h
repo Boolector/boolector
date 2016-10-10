@@ -37,6 +37,7 @@ BtorNode* btor_synthesize_fun (Btor* btor,
                                uint32_t max_level);
 
 BtorNode* btor_synthesize_fun_constraints (Btor* btor,
+                                           BtorNode* params[],
                                            uint32_t nparams,
                                            BtorBitVectorTuple* value_in[],
                                            BtorBitVector* value_out[],
