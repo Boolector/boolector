@@ -3840,6 +3840,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
           default: btor->slv->api.generate_model (btor->slv, false, true);
         }
       }
+      mclone->cbs.term.fun   = 0;
+      mclone->cbs.term.state = 0;
+      mclone->cbs.term.done  = 0;
       check_model (btor, mclone, inputs);
     }
 
