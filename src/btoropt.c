@@ -770,6 +770,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "make base case of concrete model constant instead of undef.");
+  init_opt (btor,
+            BTOR_OPT_EF_FIXSYNTH,
+            false,
+            true,
+            "ef:fixsynth",
+            0,
+            0,
+            0,
+            1,
+            "update current model w.r.t. synthesized skolem function");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
