@@ -41,5 +41,24 @@ void btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst);
 void btor_delete_node_map (BtorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
+/* iterators    						          */
+/*------------------------------------------------------------------------*/
+
+typedef struct BtorNodeMapIterator
+{
+  BtorPtrHashTableIterator it;
+} BtorNodeMapIterator;
+
+void btor_init_node_map_iterator (BtorNodeMapIterator *it,
+                                  const BtorNodeMap *map);
+void btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
+                                           const BtorNodeMap *map);
+void btor_queue_node_map_iterator (BtorNodeMapIterator *it,
+                                   const BtorNodeMap *map);
+bool btor_has_next_node_map_iterator (const BtorNodeMapIterator *it);
+BtorNode *btor_next_node_map_iterator (BtorNodeMapIterator *it);
+BtorHashTableData *btor_next_data_node_map_iterator (BtorNodeMapIterator *it);
+
+/*------------------------------------------------------------------------*/
 
 #endif

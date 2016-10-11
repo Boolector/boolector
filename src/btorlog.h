@@ -13,6 +13,7 @@
 #ifndef BTORLOG_H_INCLUDED
 #define BTORLOG_H_INCLUDED
 
+#include "btorcore.h"
 #include "btormsg.h"
 #include "btoropt.h"
 

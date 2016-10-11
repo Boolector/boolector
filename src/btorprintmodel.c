@@ -13,7 +13,6 @@
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 
 const char *
 btor_get_bv_model_str_aux (Btor *btor,
@@ -415,10 +414,10 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
-  btor_init_node_ptr_hash_table_iterator (&it, btor->inputs);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->inputs);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else

@@ -12,7 +12,6 @@
  */
 
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 
 static unsigned
 btor_hash_ptr (const void *p)
@@ -254,3 +253,102 @@ btor_remove_ptr_hash_table (BtorPtrHashTable *table,
 
   BTOR_DELETE (table->mm, bucket);
 }
+
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+void
+btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                   const BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+
+  it->bucket                  = t->first;
+  it->cur                     = it->bucket ? it->bucket->key : 0;
+  it->reversed                = false;
+  it->num_queued              = 0;
+  it->pos                     = 0;
+  it->stack[it->num_queued++] = t;
+}
+
+void
+btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                            const BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+
+  it->bucket                  = t->last;
+  it->cur                     = it->bucket ? it->bucket->key : 0;
+  it->reversed                = true;
+  it->num_queued              = 0;
+  it->pos                     = 0;
+  it->stack[it->num_queued++] = t;
+}
+
+void
+btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                    const BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+  assert (it->num_queued < BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE);
+
+  /* if initial table is empty, initialize with queued table */
+  if (!it->bucket)
+  {
+    it->bucket = it->reversed ? t->last : t->first;
+    it->cur    = it->bucket ? it->bucket->key : 0;
+    it->pos += 1;
+  }
+  it->stack[it->num_queued++] = t;
+}
+
+bool
+btor_has_next_ptr_hash_table_iterator (const BtorPtrHashTableIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
+void *
+btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
+{
+  assert (it);
+  assert (it->bucket);
+  assert (it->cur);
+
+  void *res;
+  res = it->cur;
+  if (it->bucket)
+    it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
+
+  while (!it->bucket)
+  {
+    it->pos += 1;
+    if (it->pos >= it->num_queued) break;
+    it->bucket =
+        it->reversed ? it->stack[it->pos]->last : it->stack[it->pos]->first;
+  }
+
+  it->cur = it->bucket ? it->bucket->key : 0;
+  return res;
+}
+
+BtorHashTableData *
+btor_next_data_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
+{
+  assert (it);
+  assert (it->bucket);
+  assert (it->cur);
+
+  void *res;
+
+  res = &it->bucket->data;
+  btor_next_ptr_hash_table_iterator (it);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/

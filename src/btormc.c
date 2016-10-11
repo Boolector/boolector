@@ -14,12 +14,12 @@
 
 #include "boolector.h"
 #include "btorabort.h"
+#include "btorcore.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
 #include "dumper/btordumpbtor.h"
 #include "utils/boolectormap.h"
-#include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
 

@@ -19,7 +19,6 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btorrng.h"
 
 /*------------------------------------------------------------------------*/

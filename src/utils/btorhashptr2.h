@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (c) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,10 +12,14 @@
 #ifndef BTOR_PTR2_HASH_H_INCLUDED
 #define BTOR_PTR2_HASH_H_INCLUDED
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "btorexp.h"
 #include "utils/btorhash.h"
 #include "utils/btormem.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+
+/*------------------------------------------------------------------------*/
 
 struct BtorPtrHashTable2
 {
@@ -39,6 +44,8 @@ typedef struct BtorPtrHashTable2 BtorPtrHashTable2;
 typedef void *(*BtorCloneKeyPtr2) (BtorMemMgr *mm,
                                    const void *map,
                                    const void *key);
+
+/*------------------------------------------------------------------------*/
 
 /* Create new int32_t hash table. */
 BtorPtrHashTable2 *btor_new_ptr_hash_table2 (BtorMemMgr *,
@@ -73,7 +80,9 @@ BtorPtrHashTable2 *btor_clone_ptr_hash_table2 (BtorMemMgr *mm,
                                                BtorCloneKeyPtr2 ckey,
                                                const void *key_map);
 
-/* map functions */
+/*------------------------------------------------------------------------*/
+/* map functions 		                                          */
+/*------------------------------------------------------------------------*/
 
 BtorPtrHashTable2 *btor_new_ptr_hash_map2 (BtorMemMgr *,
                                            BtorHashPtr,
@@ -99,5 +108,40 @@ BtorPtrHashTable2 *btor_clone_ptr_hash_map2 (BtorMemMgr *mm,
                                              BtorCloneHashTableData cdata,
                                              const void *key_map,
                                              const void *data_map);
+
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+#define BTOR_PTR_HASH_TABLE2_ITERATOR_STACK_SIZE 8
+
+struct BtorPtrHashTableIterator2
+{
+  void *cur;
+  size_t cur_pos;
+  const BtorPtrHashTable2 *cur_table;
+
+  /* queue fields */
+  bool reversed;
+  uint8_t num_queued;
+  uint8_t queue_pos;
+  const BtorPtrHashTable2 *stack[BTOR_PTR_HASH_TABLE2_ITERATOR_STACK_SIZE];
+};
+
+/*------------------------------------------------------------------------*/
+
+typedef struct BtorPtrHashTableIterator2 BtorPtrHashTableIterator2;
+
+void btor_init_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                         const BtorPtrHashTable2 *t);
+void btor_init_reversed_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                                  const BtorPtrHashTable2 *t);
+void btor_queue_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                          const BtorPtrHashTable2 *t);
+bool btor_has_next_ptr_hash_table_iterator2 (
+    const BtorPtrHashTableIterator2 *it);
+void *btor_next_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it);
+BtorHashTableData *btor_next_data_ptr_hash_table_iterator2 (
+    BtorPtrHashTableIterator2 *it);
 
 #endif

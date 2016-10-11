@@ -15,8 +15,8 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btormsg.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
@@ -116,11 +116,11 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
-  btor_init_node_ptr_hash_table_iterator (&it, btor->bv_vars);
+  btor_init_ptr_hash_table_iterator (&it, btor->bv_vars);
   btor_queue_ptr_hash_table_iterator (&it, btor->ufs);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
     {

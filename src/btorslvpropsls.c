@@ -11,7 +11,7 @@
 #include "btorslvpropsls.h"
 
 #include "btorprintmodel.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
@@ -104,11 +104,11 @@ btor_propsls_update_cone (Btor *btor,
 #ifndef NDEBUG
   BtorPtrHashTableIterator it;
   BtorNode *root;
-  btor_init_node_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    root = btor_next_node_ptr_hash_table_iterator (&it);
+    root = btor_next_ptr_hash_table_iterator (&it);
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (roots, BTOR_GET_ID_NODE (root)));
     else
@@ -286,11 +286,11 @@ btor_propsls_update_cone (Btor *btor,
   }
 
 #ifndef NDEBUG
-  btor_init_node_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    root = btor_next_node_ptr_hash_table_iterator (&it);
+    root = btor_next_ptr_hash_table_iterator (&it);
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (roots, BTOR_GET_ID_NODE (root)));
     else
@@ -664,10 +664,10 @@ btor_propsls_compute_sls_scores (Btor *btor,
   mark = btor_new_int_hash_map (mm);
 
   /* collect roots */
-  btor_init_node_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm, stack, btor_next_node_ptr_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&it));
 
   /* compute score */
   while (!BTOR_EMPTY_STACK (stack))

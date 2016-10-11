@@ -21,7 +21,6 @@
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 
 #include "btorchkclone.h"
 
@@ -132,16 +131,16 @@ chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
   assert (table->count == clone->count);
   assert (table->hash == clone->hash);
   assert (table->cmp == clone->cmp);
-  btor_init_node_ptr_hash_table_iterator (&it, table);
-  btor_init_node_ptr_hash_table_iterator (&cit, clone);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, table);
+  btor_init_ptr_hash_table_iterator (&cit, clone);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+    assert (btor_has_next_ptr_hash_table_iterator (&cit));
     if (cmp_data) assert (!cmp_data (&it.bucket->data, &cit.bucket->data));
-    BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&it),
-                         btor_next_node_ptr_hash_table_iterator (&cit));
+    BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
+                         btor_next_ptr_hash_table_iterator (&cit));
   }
-  assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+  assert (!btor_has_next_ptr_hash_table_iterator (&cit));
 }
 
 /*------------------------------------------------------------------------*/
@@ -271,7 +270,7 @@ chkclone_stats (Btor *btor)
     assert (!strcmp (key, ckey));
     assert (data->as_int == cdata->as_int);
   }
-  assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+  assert (!btor_has_next_ptr_hash_table_iterator (&cit));
 #endif
 
   BTOR_CHKCLONE_STATS (expressions);
@@ -409,28 +408,28 @@ chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                      \
-  do                                                                         \
-  {                                                                          \
-    BtorPtrHashTableIterator iter, citer;                                    \
-    if (!(table))                                                            \
-    {                                                                        \
-      assert (!(clone));                                                     \
-      break;                                                                 \
-    }                                                                        \
-    assert ((table)->size == (clone)->size);                                 \
-    assert ((table)->count == (clone)->count);                               \
-    assert ((table)->hash == (clone)->hash);                                 \
-    assert ((table)->cmp == (clone)->cmp);                                   \
-    btor_init_node_ptr_hash_table_iterator (&iter, (table));                 \
-    btor_init_node_ptr_hash_table_iterator (&citer, (clone));                \
-    while (btor_has_next_node_ptr_hash_table_iterator (&iter))               \
-    {                                                                        \
-      assert (btor_has_next_node_ptr_hash_table_iterator (&citer));          \
-      BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&iter),   \
-                           btor_next_node_ptr_hash_table_iterator (&citer)); \
-    }                                                                        \
-    assert (!btor_has_next_node_ptr_hash_table_iterator (&citer));           \
+#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                 \
+  do                                                                    \
+  {                                                                     \
+    BtorPtrHashTableIterator iter, citer;                               \
+    if (!(table))                                                       \
+    {                                                                   \
+      assert (!(clone));                                                \
+      break;                                                            \
+    }                                                                   \
+    assert ((table)->size == (clone)->size);                            \
+    assert ((table)->count == (clone)->count);                          \
+    assert ((table)->hash == (clone)->hash);                            \
+    assert ((table)->cmp == (clone)->cmp);                              \
+    btor_init_ptr_hash_table_iterator (&iter, (table));                 \
+    btor_init_ptr_hash_table_iterator (&citer, (clone));                \
+    while (btor_has_next_ptr_hash_table_iterator (&iter))               \
+    {                                                                   \
+      assert (btor_has_next_ptr_hash_table_iterator (&citer));          \
+      BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&iter),   \
+                           btor_next_ptr_hash_table_iterator (&citer)); \
+    }                                                                   \
+    assert (!btor_has_next_ptr_hash_table_iterator (&citer));           \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -588,15 +587,15 @@ btor_chkclone_exp (const BtorNode *exp, const BtorNode *clone)
   {
     if (btor_lambda_get_static_rho (real_exp))
     {
-      btor_init_node_ptr_hash_table_iterator (
-          &it, btor_lambda_get_static_rho (real_exp));
-      btor_init_node_ptr_hash_table_iterator (
+      btor_init_ptr_hash_table_iterator (&it,
+                                         btor_lambda_get_static_rho (real_exp));
+      btor_init_ptr_hash_table_iterator (
           &cit, btor_lambda_get_static_rho (real_clone));
-      while (btor_has_next_node_ptr_hash_table_iterator (&it))
+      while (btor_has_next_ptr_hash_table_iterator (&it))
       {
-        assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
-        e  = btor_next_node_ptr_hash_table_iterator (&it);
-        ce = btor_next_node_ptr_hash_table_iterator (&cit);
+        assert (btor_has_next_ptr_hash_table_iterator (&cit));
+        e  = btor_next_ptr_hash_table_iterator (&it);
+        ce = btor_next_ptr_hash_table_iterator (&cit);
         if (e)
         {
           assert (ce);
@@ -769,21 +768,21 @@ chkclone_tables (Btor *btor)
     assert (btor->node2symbol->hash == btor->clone->node2symbol->hash);
     assert (btor->node2symbol->cmp == btor->clone->node2symbol->cmp);
     assert (!btor->node2symbol->first || btor->clone->node2symbol->first);
-    btor_init_node_ptr_hash_table_iterator (&it, btor->node2symbol);
-    btor_init_node_ptr_hash_table_iterator (&cit, btor->clone->node2symbol);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, btor->node2symbol);
+    btor_init_ptr_hash_table_iterator (&cit, btor->clone->node2symbol);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+      assert (btor_has_next_ptr_hash_table_iterator (&cit));
       sym  = it.bucket->data.as_str;
       csym = cit.bucket->data.as_str;
       assert (sym != csym);
       assert (!strcmp (sym, csym));
       assert (btor_get_ptr_hash_table (btor->symbols, sym));
       assert (btor_get_ptr_hash_table (btor->clone->symbols, sym));
-      BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&it),
-                           btor_next_node_ptr_hash_table_iterator (&cit));
+      BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
+                           btor_next_ptr_hash_table_iterator (&cit));
     }
-    assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+    assert (!btor_has_next_ptr_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->node2symbol);
@@ -815,19 +814,19 @@ chkclone_tables (Btor *btor)
     assert (btor->parameterized->hash == btor->clone->parameterized->hash);
     assert (btor->parameterized->cmp == btor->clone->parameterized->cmp);
     assert (!btor->parameterized->first || btor->clone->parameterized->first);
-    btor_init_node_ptr_hash_table_iterator (&it, btor->parameterized);
-    btor_init_node_ptr_hash_table_iterator (&cit, btor->clone->parameterized);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, btor->parameterized);
+    btor_init_ptr_hash_table_iterator (&cit, btor->clone->parameterized);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+      assert (btor_has_next_ptr_hash_table_iterator (&cit));
       chkclone_node_ptr_hash_table (
           (BtorPtrHashTable *) it.bucket->data.as_ptr,
           (BtorPtrHashTable *) cit.bucket->data.as_ptr,
           0);
-      BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&it),
-                           btor_next_node_ptr_hash_table_iterator (&cit));
+      BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
+                           btor_next_ptr_hash_table_iterator (&cit));
     }
-    assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+    assert (!btor_has_next_ptr_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->parameterized);
@@ -839,20 +838,20 @@ chkclone_tables (Btor *btor)
     assert (btor->bv_model->count == btor->clone->bv_model->count);
     assert (btor->bv_model->hash == btor->clone->bv_model->hash);
     assert (btor->bv_model->cmp == btor->clone->bv_model->cmp);
-    btor_init_node_ptr_hash_table_iterator (&it, btor->bv_model);
-    btor_init_node_ptr_hash_table_iterator (&cit, btor->clone->bv_model);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, btor->bv_model);
+    btor_init_ptr_hash_table_iterator (&cit, btor->clone->bv_model);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+      assert (btor_has_next_ptr_hash_table_iterator (&cit));
       BTOR_CHKCLONE_EXPID ((BtorNode *) it.cur, (BtorNode *) cit.cur);
       assert (it.bucket->data.as_ptr);
       assert (cit.bucket->data.as_ptr);
       assert (!btor_compare_bv ((BtorBitVector *) it.bucket->data.as_ptr,
                                 (BtorBitVector *) cit.bucket->data.as_ptr));
-      (void) btor_next_node_ptr_hash_table_iterator (&it);
-      (void) btor_next_node_ptr_hash_table_iterator (&cit);
+      (void) btor_next_ptr_hash_table_iterator (&it);
+      (void) btor_next_ptr_hash_table_iterator (&cit);
     }
-    assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+    assert (!btor_has_next_ptr_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->bv_model);
@@ -864,11 +863,11 @@ chkclone_tables (Btor *btor)
     assert (btor->fun_model->count == btor->clone->fun_model->count);
     assert (btor->fun_model->hash == btor->clone->fun_model->hash);
     assert (btor->fun_model->cmp == btor->clone->fun_model->cmp);
-    btor_init_node_ptr_hash_table_iterator (&it, btor->fun_model);
-    btor_init_node_ptr_hash_table_iterator (&cit, btor->clone->fun_model);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, btor->fun_model);
+    btor_init_ptr_hash_table_iterator (&cit, btor->clone->fun_model);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+      assert (btor_has_next_ptr_hash_table_iterator (&cit));
       assert (it.bucket->data.as_ptr);
       assert (cit.bucket->data.as_ptr);
       btor_init_ptr_hash_table_iterator (
@@ -886,10 +885,10 @@ chkclone_tables (Btor *btor)
         (void) btor_next_ptr_hash_table_iterator (&cnit);
       }
       assert (!btor_has_next_ptr_hash_table_iterator (&cnit));
-      BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&it),
-                           btor_next_node_ptr_hash_table_iterator (&cit));
+      BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
+                           btor_next_ptr_hash_table_iterator (&cit));
     }
-    assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+    assert (!btor_has_next_ptr_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->fun_model);
@@ -979,18 +978,18 @@ chkclone_slv (Btor *btor)
       assert (!slv->score->first || cslv->score->first);
       if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
       {
-        btor_init_node_ptr_hash_table_iterator (&it, slv->score);
-        btor_init_node_ptr_hash_table_iterator (&cit, cslv->score);
-        while (btor_has_next_node_ptr_hash_table_iterator (&it))
+        btor_init_ptr_hash_table_iterator (&it, slv->score);
+        btor_init_ptr_hash_table_iterator (&cit, cslv->score);
+        while (btor_has_next_ptr_hash_table_iterator (&it))
         {
-          assert (btor_has_next_node_ptr_hash_table_iterator (&cit));
+          assert (btor_has_next_ptr_hash_table_iterator (&cit));
           BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (
               (BtorPtrHashTable *) it.bucket->data.as_ptr,
               (BtorPtrHashTable *) cit.bucket->data.as_ptr);
-          BTOR_CHKCLONE_EXPID (btor_next_node_ptr_hash_table_iterator (&it),
-                               btor_next_node_ptr_hash_table_iterator (&cit));
+          BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
+                               btor_next_ptr_hash_table_iterator (&cit));
         }
-        assert (!btor_has_next_node_ptr_hash_table_iterator (&cit));
+        assert (!btor_has_next_ptr_hash_table_iterator (&cit));
       }
       else
       {

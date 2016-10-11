@@ -14,7 +14,7 @@
 
 #include "btorabort.h"
 #include "btoraigvec.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
 static unsigned
@@ -76,13 +76,13 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   /* do not encode AIGs to SAT */
   lazy_synthesize = btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE);
   btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, 1);
-  btor_init_node_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   merged = BTOR_AIG_TRUE;
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     av = btor_exp_to_aigvec (
-        btor, btor_next_node_ptr_hash_table_iterator (&it), backannotation);
+        btor, btor_next_ptr_hash_table_iterator (&it), backannotation);
     assert (av->len == 1);
     if (merge_roots)
     {

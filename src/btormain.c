@@ -14,11 +14,11 @@
 #include "btormain.h"
 #include "boolector.h"
 #include "btorconfig.h"
+#include "btorcore.h"
 #include "btorexit.h"
 #include "btoropt.h"
 #include "btorparse.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btorutil.h"
 

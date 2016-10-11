@@ -14,8 +14,8 @@
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "btorslvfun.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 

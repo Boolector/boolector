@@ -14,7 +14,6 @@
 #include "btorslvfun.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
 /* heuristic: minimum depth to the inputs
@@ -155,10 +154,10 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         if (!min_t || t->count < min_t->count) min_t = t;
       }
       assert (min_t);
-      btor_init_node_ptr_hash_table_iterator (&it, min_t);
-      while (btor_has_next_node_ptr_hash_table_iterator (&it))
+      btor_init_ptr_hash_table_iterator (&it, min_t);
+      while (btor_has_next_ptr_hash_table_iterator (&it))
       {
-        e = btor_next_node_ptr_hash_table_iterator (&it);
+        e = btor_next_ptr_hash_table_iterator (&it);
         assert (!btor_get_ptr_hash_table (in, e));
         btor_add_ptr_hash_table (in, btor_copy_exp (btor, e));
       }
@@ -173,10 +172,10 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         {
           /* merge tables */
           delta = btor_time_stamp ();
-          btor_init_node_ptr_hash_table_iterator (&it, t);
-          while (btor_has_next_node_ptr_hash_table_iterator (&it))
+          btor_init_ptr_hash_table_iterator (&it, t);
+          while (btor_has_next_ptr_hash_table_iterator (&it))
           {
-            e = btor_next_node_ptr_hash_table_iterator (&it);
+            e = btor_next_ptr_hash_table_iterator (&it);
             if (!btor_get_ptr_hash_table (in, e))
               btor_add_ptr_hash_table (in, btor_copy_exp (btor, e));
           }
@@ -261,11 +260,11 @@ btor_compute_scores (Btor *btor)
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     BTOR_PUSH_STACK (mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -337,11 +336,11 @@ btor_compute_scores_dual_prop (Btor *btor)
                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect applies in bv skeleton */
-  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     BTOR_PUSH_STACK (mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {

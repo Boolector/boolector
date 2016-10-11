@@ -13,7 +13,6 @@
 #include "utils/btornodemap.h"
 #include "btorcore.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -40,13 +39,13 @@ btor_delete_node_map (BtorNodeMap *map)
   BtorPtrHashTableIterator it;
   BtorNode *cur;
 
-  btor_init_node_ptr_hash_table_iterator (&it, map->table);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, map->table);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     btor_release_exp (
         BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.as_ptr)->btor,
         it.bucket->data.as_ptr);
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
   btor_delete_ptr_hash_table (map->table);
@@ -97,6 +96,50 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   bucket->key = btor_copy_exp (BTOR_REAL_ADDR_NODE (src)->btor, src);
   assert (!bucket->data.as_ptr);
   bucket->data.as_ptr = btor_copy_exp (BTOR_REAL_ADDR_NODE (dst)->btor, dst);
+}
+
+/*------------------------------------------------------------------------*/
+/* iterators    						          */
+/*------------------------------------------------------------------------*/
+
+void
+btor_init_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
+{
+  assert (map);
+  btor_init_ptr_hash_table_iterator (&it->it, map->table);
+}
+
+void
+btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
+                                      const BtorNodeMap *map)
+{
+  assert (map);
+  btor_init_reversed_ptr_hash_table_iterator (&it->it, map->table);
+}
+
+bool
+btor_has_next_node_map_iterator (const BtorNodeMapIterator *it)
+{
+  return btor_has_next_ptr_hash_table_iterator (&it->it);
+}
+
+void
+btor_queue_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
+{
+  assert (map);
+  btor_queue_ptr_hash_table_iterator (&it->it, map->table);
+}
+
+BtorNode *
+btor_next_node_map_iterator (BtorNodeMapIterator *it)
+{
+  return btor_next_ptr_hash_table_iterator (&it->it);
+}
+
+BtorHashTableData *
+btor_next_data_node_map_iterator (BtorNodeMapIterator *it)
+{
+  return btor_next_data_ptr_hash_table_iterator (&it->it);
 }
 
 /*------------------------------------------------------------------------*/

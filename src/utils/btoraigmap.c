@@ -12,7 +12,7 @@
 
 #include "utils/btoraigmap.h"
 #include "btorcore.h"
-#include "utils/btoriter.h"
+#include "utils/btorhashptr.h"
 
 /*------------------------------------------------------------------------*/
 

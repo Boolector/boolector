@@ -19,9 +19,9 @@
 #include "btorbeta.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
@@ -251,11 +251,11 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       static_rho = btor_lambda_get_static_rho (exp);
       if (static_rho)
       {
-        btor_init_node_ptr_hash_table_iterator (&it, static_rho);
-        while (btor_has_next_node_ptr_hash_table_iterator (&it))
+        btor_init_ptr_hash_table_iterator (&it, static_rho);
+        while (btor_has_next_ptr_hash_table_iterator (&it))
         {
           btor_release_exp (btor, it.bucket->data.as_ptr);
-          btor_release_exp (btor, btor_next_node_ptr_hash_table_iterator (&it));
+          btor_release_exp (btor, btor_next_ptr_hash_table_iterator (&it));
         }
         btor_delete_ptr_hash_table (static_rho);
         ((BtorLambdaNode *) exp)->static_rho = 0;
@@ -932,15 +932,14 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
   BtorPtrHashTableIterator it;
   BtorPtrHashTable *static_rho;
 
-  btor_init_node_ptr_hash_table_iterator (&it,
-                                          btor_lambda_get_static_rho (lambda));
+  btor_init_ptr_hash_table_iterator (&it, btor_lambda_get_static_rho (lambda));
   static_rho = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     data = btor_copy_exp (btor, it.bucket->data.as_ptr);
-    key  = btor_copy_exp (btor, btor_next_node_ptr_hash_table_iterator (&it));
+    key  = btor_copy_exp (btor, btor_next_ptr_hash_table_iterator (&it));
     btor_add_ptr_hash_table (static_rho, key)->data.as_ptr = data;
   }
   return static_rho;
@@ -4104,11 +4103,11 @@ btor_write_exp (Btor *btor,
   //      else
   //	{
   //	  BtorPtrHashTableIterator it;
-  //	  btor_init_node_ptr_hash_table_iterator (&it, lambda->static_rho);
-  //	  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  //	  btor_init_ptr_hash_table_iterator (&it, lambda->static_rho);
+  //	  while (btor_has_next_ptr_hash_table_iterator (&it))
   //	    {
   //	      assert (it.bucket->data.as_ptr == e_value);
-  //	      (void) btor_next_node_ptr_hash_table_iterator (&it);
+  //	      (void) btor_next_ptr_hash_table_iterator (&it);
   //	    }
   //	}
   //    }

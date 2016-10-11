@@ -17,8 +17,8 @@
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif
+#include "utils/btorexpiter.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 
 #include "btordumpsmt.h"
 
@@ -86,9 +86,9 @@ delete_smt_dump_context (BtorSMTDumpContext *sdc)
   btor_delete_ptr_hash_table (sdc->stores);
   btor_delete_ptr_hash_table (sdc->idtab);
 
-  btor_init_node_ptr_hash_table_iterator (&it, sdc->roots);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
-    btor_release_exp (sdc->btor, btor_next_node_ptr_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, sdc->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    btor_release_exp (sdc->btor, btor_next_ptr_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (sdc->roots);
 
   btor_init_ptr_hash_table_iterator (&it, sdc->const_cache);
@@ -1131,10 +1131,10 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (vars);
   BTOR_INIT_STACK (ufs);
 
-  btor_init_node_ptr_hash_table_iterator (&it, sdc->roots);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, sdc->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur));
   }
 
@@ -1260,19 +1260,19 @@ dump_smt (BtorSMTDumpContext *sdc)
   }
 
   /* dump assertions/build root */
-  btor_init_node_ptr_hash_table_iterator (&it, sdc->roots);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, sdc->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     dump_assert_smt2 (sdc, cur);
   }
   assert (sdc->open_lets == 0);
 
 #ifndef NDEBUG
-  btor_init_node_ptr_hash_table_iterator (&it, sdc->dump);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, sdc->dump);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     /* constants and function applications are always dumped (hence, not in
      * mark) */
     if (btor_is_bv_const_node (cur)
@@ -1324,14 +1324,12 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
     if (ret == BTOR_RESULT_UNKNOWN)
     {
-      btor_init_node_ptr_hash_table_iterator (&it,
-                                              btor->unsynthesized_constraints);
-      btor_queue_node_ptr_hash_table_iterator (&it,
-                                               btor->synthesized_constraints);
-      btor_queue_node_ptr_hash_table_iterator (&it, btor->embedded_constraints);
-      while (btor_has_next_node_ptr_hash_table_iterator (&it))
-        add_root_to_smt_dump_context (
-            sdc, btor_next_node_ptr_hash_table_iterator (&it));
+      btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+      btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+      btor_queue_ptr_hash_table_iterator (&it, btor->embedded_constraints);
+      while (btor_has_next_ptr_hash_table_iterator (&it))
+        add_root_to_smt_dump_context (sdc,
+                                      btor_next_ptr_hash_table_iterator (&it));
     }
     else
     {

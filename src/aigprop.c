@@ -10,9 +10,9 @@
 
 #include "aigprop.h"
 #include "btorclone.h"
+#include "btorcore.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 

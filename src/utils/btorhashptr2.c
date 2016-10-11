@@ -637,3 +637,113 @@ btor_clone_ptr_hash_map2 (BtorMemMgr *mm,
 
   return res;
 }
+
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+void
+btor_init_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                    const BtorPtrHashTable2 *t)
+{
+  assert (it);
+  assert (t);
+
+  it->cur_pos                 = t->first;
+  it->cur                     = t->keys[it->cur_pos];
+  it->cur_table               = t;
+  it->reversed                = false;
+  it->num_queued              = 0;
+  it->queue_pos               = 0;
+  it->stack[it->num_queued++] = t;
+}
+
+void
+btor_init_reversed_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                             const BtorPtrHashTable2 *t)
+{
+  assert (it);
+  assert (t);
+
+  it->cur_pos                 = t->last;
+  it->cur                     = t->keys[it->cur_pos];
+  it->cur_table               = t;
+  it->reversed                = true;
+  it->num_queued              = 0;
+  it->queue_pos               = 0;
+  it->stack[it->num_queued++] = t;
+}
+
+void
+btor_queue_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it,
+                                     const BtorPtrHashTable2 *t)
+{
+  assert (it);
+  assert (t);
+  assert (it->num_queued < BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE);
+
+  /* if initial table is empty, initialize with queued table */
+  if (it->cur_table->count == 0)
+  {
+    it->cur = t->keys[it->reversed ? t->last : t->first];
+    it->queue_pos += 1;
+    it->cur_table = t;
+  }
+  it->stack[it->num_queued++] = t;
+}
+
+bool
+btor_has_next_ptr_hash_table_iterator2 (const BtorPtrHashTableIterator2 *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
+void *
+btor_next_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  void *res;
+  const BtorPtrHashTable2 *t;
+
+  t   = it->cur_table;
+  res = it->cur;
+
+  if (it->cur_pos == t->last)
+  {
+    it->cur = 0;
+  }
+  else
+  {
+    it->cur_pos = it->reversed ? t->prev[it->cur_pos] : t->next[it->cur_pos];
+    it->cur     = t->keys[it->cur_pos];
+  }
+
+  while (!it->cur)
+  {
+    it->queue_pos += 1;
+    if (it->queue_pos >= it->num_queued) break;
+    t = it->stack[it->queue_pos];
+    if (t->count == 0) continue;
+    it->cur_table = t;
+    it->cur_pos   = it->reversed ? t->last : t->first;
+    it->cur       = t->keys[it->cur_pos];
+  }
+
+  return res;
+}
+
+BtorHashTableData *
+btor_next_data_ptr_hash_table_iterator2 (BtorPtrHashTableIterator2 *it)
+{
+  assert (it->cur_table->data);
+  BtorHashTableData *res;
+
+  res = &it->cur_table->data[it->cur_pos];
+  btor_next_ptr_hash_table_iterator2 (it);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/

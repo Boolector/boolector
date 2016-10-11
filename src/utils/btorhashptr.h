@@ -14,11 +14,12 @@
 #ifndef BTOR_PTR_HASH_H_INCLUDED
 #define BTOR_PTR_HASH_H_INCLUDED
 
+#include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 #include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
-
-#include <assert.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -103,4 +104,32 @@ unsigned btor_hash_str (const void *str);
 
 #define btor_compare_str ((BtorCmpPtr) strcmp)
 
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+#define BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE 8
+
+typedef struct BtorPtrHashTableIterator
+{
+  BtorPtrHashBucket *bucket;
+  void *cur;
+  bool reversed;
+  uint8_t num_queued;
+  uint8_t pos;
+  const BtorPtrHashTable *stack[BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE];
+} BtorPtrHashTableIterator;
+
+void btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                        const BtorPtrHashTable *t);
+void btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                                 const BtorPtrHashTable *t);
+void btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                         const BtorPtrHashTable *t);
+bool btor_has_next_ptr_hash_table_iterator (const BtorPtrHashTableIterator *it);
+void *btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it);
+BtorHashTableData *btor_next_data_ptr_hash_table_iterator (
+    BtorPtrHashTableIterator *it);
+
+/*------------------------------------------------------------------------*/
 #endif

@@ -25,7 +25,6 @@
 #include "btorsort.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btornodemap.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
@@ -1120,7 +1119,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     btor_init_ptr_hash_table_iterator (&it, btor->bv_model);
     btor_init_ptr_hash_table_iterator (&cit, clone->bv_model);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
       data  = btor_next_data_ptr_hash_table_iterator (&it);
       cdata = btor_next_data_ptr_hash_table_iterator (&cit);
@@ -1231,15 +1230,15 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #ifndef NDEBUG
   CHKCLONE_MEM_PTR_HASH_TABLE (btor->parameterized, clone->parameterized);
   allocated += MEM_PTR_HASH_TABLE (btor->parameterized);
-  btor_init_node_ptr_hash_table_iterator (&it, btor->parameterized);
-  btor_init_node_ptr_hash_table_iterator (&cit, clone->parameterized);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->parameterized);
+  btor_init_ptr_hash_table_iterator (&cit, clone->parameterized);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     assert (btor_size_int_hash_table (it.bucket->data.as_ptr)
             == btor_size_int_hash_table (cit.bucket->data.as_ptr));
     allocated += btor_size_int_hash_table (cit.bucket->data.as_ptr);
-    (void) btor_next_node_ptr_hash_table_iterator (&it);
-    (void) btor_next_node_ptr_hash_table_iterator (&cit);
+    (void) btor_next_ptr_hash_table_iterator (&it);
+    (void) btor_next_ptr_hash_table_iterator (&cit);
   }
   assert (allocated == clone->mm->allocated);
 #endif
@@ -1252,11 +1251,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     allocated -= MEM_PTR_HASH_TABLE (clone->synthesized_constraints);
     allocated -= MEM_PTR_HASH_TABLE (clone->unsynthesized_constraints);
 #endif
-    btor_init_node_ptr_hash_table_iterator (&it,
-                                            clone->synthesized_constraints);
-    while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, clone->synthesized_constraints);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      exp = btor_next_node_ptr_hash_table_iterator (&it);
+      exp = btor_next_ptr_hash_table_iterator (&it);
       btor_add_ptr_hash_table (clone->unsynthesized_constraints, exp);
     }
     btor_delete_ptr_hash_table (clone->synthesized_constraints);
@@ -1294,9 +1292,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
           CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
           allocated += MEM_PTR_HASH_TABLE (slv->score);
 
-          btor_init_node_ptr_hash_table_iterator (&it, slv->score);
-          btor_init_node_ptr_hash_table_iterator (&cit, cslv->score);
-          while (btor_has_next_node_ptr_hash_table_iterator (&it))
+          btor_init_ptr_hash_table_iterator (&it, slv->score);
+          btor_init_ptr_hash_table_iterator (&cit, cslv->score);
+          while (btor_has_next_ptr_hash_table_iterator (&it))
           {
             assert (
                 MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.as_ptr)
@@ -1304,8 +1302,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                        (BtorPtrHashTable *) cit.bucket->data.as_ptr));
             allocated += MEM_PTR_HASH_TABLE (
                 (BtorPtrHashTable *) it.bucket->data.as_ptr);
-            (void) btor_next_node_ptr_hash_table_iterator (&it);
-            (void) btor_next_node_ptr_hash_table_iterator (&cit);
+            (void) btor_next_ptr_hash_table_iterator (&it);
+            (void) btor_next_ptr_hash_table_iterator (&cit);
           }
         }
         else
@@ -1349,8 +1347,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         assert (MEM_PTR_HASH_TABLE (m->cans)
                 == MEM_PTR_HASH_TABLE (BTOR_PEEK_STACK (cslv->moves, i)->cans));
         allocated += MEM_PTR_HASH_TABLE (m->cans);
-        btor_init_node_ptr_hash_table_iterator (&it, m->cans);
-        while (btor_has_next_node_ptr_hash_table_iterator (&it))
+        btor_init_ptr_hash_table_iterator (&it, m->cans);
+        while (btor_has_next_ptr_hash_table_iterator (&it))
           allocated += btor_size_bv (
               btor_next_data_ptr_hash_table_iterator (&it)->as_ptr);
       }
@@ -1360,8 +1358,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         assert (slv->max_cans);
         assert (slv->max_cans->count == cslv->max_cans->count);
         allocated += MEM_PTR_HASH_TABLE (cslv->max_cans);
-        btor_init_node_ptr_hash_table_iterator (&it, cslv->max_cans);
-        while (btor_has_next_node_ptr_hash_table_iterator (&it))
+        btor_init_ptr_hash_table_iterator (&it, cslv->max_cans);
+        while (btor_has_next_ptr_hash_table_iterator (&it))
           allocated += btor_size_bv (
               btor_next_data_ptr_hash_table_iterator (&it)->as_ptr);
       }
@@ -1414,13 +1412,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
 #ifndef NDEBUG
   /* flag sanity checks */
-  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it,
-                                           btor->unsynthesized_constraints);
-  btor_queue_node_ptr_hash_table_iterator (&it, btor->embedded_constraints);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->embedded_constraints);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    exp = btor_next_node_ptr_hash_table_iterator (&it);
+    exp = btor_next_ptr_hash_table_iterator (&it);
     assert (BTOR_REAL_ADDR_NODE (exp)->constraint);
   }
 #endif

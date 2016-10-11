@@ -11,7 +11,7 @@
 
 #include "simplifier/btorack.h"
 #include "btorcore.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
 void
@@ -28,10 +28,10 @@ btor_add_ackermann_constraints (Btor *btor)
   BtorNodePtrStack applies;
 
   start = btor_time_stamp ();
-  btor_init_node_ptr_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->ufs);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    uf = btor_next_node_ptr_hash_table_iterator (&it);
+    uf = btor_next_ptr_hash_table_iterator (&it);
     BTOR_INIT_STACK (applies);
     btor_init_apply_parent_iterator (&nit, uf);
     while (btor_has_next_apply_parent_iterator (&nit))

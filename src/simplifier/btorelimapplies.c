@@ -13,7 +13,7 @@
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
 void
@@ -46,10 +46,10 @@ btor_eliminate_applies (Btor *btor)
     btor_init_substitutions (btor);
 
     /* collect function applications */
-    btor_init_node_ptr_hash_table_iterator (&h_it, btor->lambdas);
-    while (btor_has_next_node_ptr_hash_table_iterator (&h_it))
+    btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
+    while (btor_has_next_ptr_hash_table_iterator (&h_it))
     {
-      fun = btor_next_node_ptr_hash_table_iterator (&h_it);
+      fun = btor_next_ptr_hash_table_iterator (&h_it);
 
       btor_init_apply_parent_iterator (&it, fun);
       while (btor_has_next_apply_parent_iterator (&it))
@@ -79,10 +79,10 @@ btor_eliminate_applies (Btor *btor)
   } while (num_applies > 0);
 
 #ifndef NDEBUG
-  btor_init_node_ptr_hash_table_iterator (&h_it, btor->lambdas);
-  while (btor_has_next_node_ptr_hash_table_iterator (&h_it))
+  btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
+  while (btor_has_next_ptr_hash_table_iterator (&h_it))
   {
-    fun = btor_next_node_ptr_hash_table_iterator (&h_it);
+    fun = btor_next_ptr_hash_table_iterator (&h_it);
 
     btor_init_apply_parent_iterator (&it, fun);
     while (btor_has_next_apply_parent_iterator (&it))
