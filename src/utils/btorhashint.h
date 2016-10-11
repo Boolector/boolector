@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -16,6 +17,8 @@
 #include "utils/btorhash.h"
 #include "utils/btormem.h"
 
+/*------------------------------------------------------------------------*/
+
 struct BtorIntHashTable
 {
   BtorMemMgr *mm;
@@ -27,6 +30,10 @@ struct BtorIntHashTable
 };
 
 typedef struct BtorIntHashTable BtorIntHashTable;
+
+/*------------------------------------------------------------------------*/
+/* hash table                                                             */
+/*------------------------------------------------------------------------*/
 
 /* Create new int32_t hash table. */
 BtorIntHashTable *btor_new_int_hash_table (BtorMemMgr *);
@@ -56,7 +63,9 @@ size_t btor_get_pos_int_hash_table (BtorIntHashTable *, int32_t key);
 BtorIntHashTable *btor_clone_int_hash_table (BtorMemMgr *mm,
                                              BtorIntHashTable *table);
 
-/* map functions */
+/*------------------------------------------------------------------------*/
+/* hash map                                                               */
+/*------------------------------------------------------------------------*/
 
 BtorIntHashTable *btor_new_int_hash_map (BtorMemMgr *);
 
@@ -75,5 +84,27 @@ BtorIntHashTable *btor_clone_int_hash_map (BtorMemMgr *mm,
                                            BtorIntHashTable *table,
                                            BtorCloneHashTableData cdata,
                                            const void *data_map);
+
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+typedef struct BtorIntHashTableIterator
+{
+  size_t cur_pos;
+  const BtorIntHashTable *t;
+} BtorIntHashTableIterator;
+
+void btor_init_int_hash_table_iterator (BtorIntHashTableIterator *it,
+                                        const BtorIntHashTable *t);
+
+bool btor_has_next_int_hash_table_iterator (const BtorIntHashTableIterator *it);
+
+int32_t btor_next_int_hash_table_iterator (BtorIntHashTableIterator *it);
+
+BtorHashTableData *btor_next_data_int_hash_table_iterator (
+    BtorIntHashTableIterator *it);
+
+/*------------------------------------------------------------------------*/
 
 #endif

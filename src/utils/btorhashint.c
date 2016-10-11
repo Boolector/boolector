@@ -11,8 +11,12 @@
 #include "utils/btorhashint.h"
 #include <assert.h>
 
+/*------------------------------------------------------------------------*/
+
 #define HOP_RANGE 32
 #define ADD_RANGE 8 * HOP_RANGE
+
+/*------------------------------------------------------------------------*/
 
 static inline uint32_t
 hash (uint32_t h)
@@ -215,6 +219,8 @@ resize (BtorIntHashTable *t)
   if (old_data) BTOR_DELETEN (t->mm, old_data, old_size);
   assert (old_count == t->count);
 }
+
+/*------------------------------------------------------------------------*/
 
 BtorIntHashTable *
 btor_new_int_hash_table (BtorMemMgr *mm)
@@ -424,3 +430,56 @@ btor_clone_int_hash_map (BtorMemMgr *mm,
 
   return res;
 }
+
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+void
+btor_init_int_hash_table_iterator (BtorIntHashTableIterator *it,
+                                   const BtorIntHashTable *t)
+{
+  assert (it);
+  assert (t);
+
+  it->cur_pos = 0;
+  it->t       = t;
+  while (it->cur_pos < it->t->size && !it->t->keys[it->cur_pos])
+    it->cur_pos += 1;
+}
+
+bool
+btor_has_next_int_hash_table_iterator (const BtorIntHashTableIterator *it)
+{
+  assert (it);
+  return it->cur_pos < it->t->size;
+}
+
+int32_t
+btor_next_int_hash_table_iterator (BtorIntHashTableIterator *it)
+{
+  assert (it);
+
+  int32_t res;
+
+  res = it->t->keys[it->cur_pos++];
+  while (it->cur_pos < it->t->size && !it->t->keys[it->cur_pos])
+    it->cur_pos += 1;
+  return res;
+}
+
+BtorHashTableData *
+btor_next_data_int_hash_table_iterator (BtorIntHashTableIterator *it)
+{
+  assert (it);
+  assert (it->t->data);
+
+  BtorHashTableData *res;
+
+  res = &it->t->data[it->cur_pos++];
+  while (it->cur_pos < it->t->size && !it->t->keys[it->cur_pos])
+    it->cur_pos += 1;
+  return res;
+}
+
+/*------------------------------------------------------------------------*/

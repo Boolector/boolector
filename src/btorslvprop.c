@@ -3098,22 +3098,21 @@ select_constraint (Btor *btor, uint32_t nmoves)
 
   BtorNode *res, *cur;
   BtorPropSolver *slv;
+  BtorIntHashTableIterator it;
 
-  size_t i;
-  int32_t id;
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
   assert (slv->roots);
   assert (slv->roots->count);
 
 #ifndef NDEBUG
-  BtorPtrHashTableIterator it;
+  BtorPtrHashTableIterator pit;
   BtorNode *root;
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&it);
+    root = btor_next_ptr_hash_table_iterator (&pit);
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root)));
     else
@@ -3132,12 +3131,11 @@ select_constraint (Btor *btor, uint32_t nmoves)
     double value, max_value, score;
     BtorPtrHashBucket *b;
     max_value = 0.0;
-    for (i = 0; i < slv->roots->size; i++)
+    btor_init_int_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_int_hash_table_iterator (&it))
     {
-      if (!(id = slv->roots->keys[i])) continue;
-
-      cur      = btor_get_node_by_id (btor, id);
-      selected = &slv->roots->data[i].as_int;
+      selected = &slv->roots->data[it.cur_pos].as_int;
+      cur = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
 
       b = btor_get_ptr_hash_table (slv->score, cur);
       assert (b);
@@ -3165,14 +3163,15 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     size_t j, r;
 
+    j = 0;
     r = btor_pick_rand_rng (&btor->rng, 0, slv->roots->count - 1);
-    for (i = 0, j = 0; j <= r; i++)
+    btor_init_int_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_int_hash_table_iterator (&it) && j <= r)
     {
-      assert (i < slv->roots->size);
-      if (!slv->roots->keys[i]) continue;
-      res = btor_get_node_by_id (btor, slv->roots->keys[i]);
-      j++;
+      res = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
+      j += 1;
     }
+    assert (res);
     assert (!btor_is_bv_const_node (res));
   }
 
