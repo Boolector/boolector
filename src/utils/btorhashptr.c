@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -86,7 +86,7 @@ btor_clone_ptr_hash_table (BtorMemMgr *mm,
   assert (ckey);
 
   BtorPtrHashTable *res;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorPtrHashBucket *b, *cloned_b;
   void *key, *cloned_key;
 
@@ -96,11 +96,11 @@ btor_clone_ptr_hash_table (BtorMemMgr *mm,
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  btor_init_hash_table_iterator (&it, table);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, table);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     b          = it.bucket;
-    key        = btor_next_hash_table_iterator (&it);
+    key        = btor_next_ptr_hash_table_iterator (&it);
     cloned_key = ckey (mm, key_map, key);
     assert (cloned_key);
     cloned_b = btor_add_ptr_hash_table (res, cloned_key);

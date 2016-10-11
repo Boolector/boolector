@@ -42,19 +42,19 @@ boolector_delete_node_map (BoolectorNodeMap *map)
 {
   assert (map);
 
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNode *e;
   Btor *btor;
 
-  btor_init_node_hash_table_iterator (&it, map->table);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, map->table);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
     e    = it.bucket->data.as_ptr;
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
 
-    e    = btor_next_node_hash_table_iterator (&it);
+    e    = btor_next_node_ptr_hash_table_iterator (&it);
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);

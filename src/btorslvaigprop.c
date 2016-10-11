@@ -113,7 +113,7 @@ generate_model_from_aig_model (Btor *btor)
   BtorNode *cur, *real_cur;
   BtorBitVector *bv;
   BtorAIGPropSolver *slv;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
   AIGProp *aprop;
@@ -134,10 +134,11 @@ generate_model_from_aig_model (Btor *btor)
   BTOR_INIT_STACK (stack);
   cache = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (btor->mm, stack, btor_next_node_hash_table_iterator (&it));
+  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (
+        btor->mm, stack, btor_next_node_ptr_hash_table_iterator (&it));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -193,7 +194,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int sat_result;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNode *root;
   BtorAIG *aig;
   Btor *btor;
@@ -237,9 +238,9 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
 #ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
+    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_ptr_hash_table_iterator (&it))
                  ->simplified);
 #endif
 
@@ -260,11 +261,11 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
                                (BtorHashPtr) btor_hash_aig_by_id,
                                (BtorCmpPtr) btor_compare_aig_by_id);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
-    root = btor_next_node_hash_table_iterator (&it);
+    root = btor_next_node_ptr_hash_table_iterator (&it);
 
     if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);

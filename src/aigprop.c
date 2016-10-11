@@ -55,11 +55,12 @@ check_roots_mark_unset_dbg (BtorPtrHashTable *roots)
 {
   assert (roots);
 
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
 
-  btor_init_hash_table_iterator (&it, roots);
-  while (btor_has_next_hash_table_iterator (&it))
-    if (((BtorAIG *) btor_next_hash_table_iterator (&it))->mark) return false;
+  btor_init_ptr_hash_table_iterator (&it, roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    if (((BtorAIG *) btor_next_ptr_hash_table_iterator (&it))->mark)
+      return false;
   return true;
 }
 
@@ -293,7 +294,7 @@ compute_scores (AIGProp *aprop)
   BtorAIGPtrStack stack;
   BtorIntHashTable *cache;
   BtorAIG *cur, *real_cur, *left, *right;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorMemMgr *mm;
 
   AIGPROPLOG (3, "*** compute scores");
@@ -310,9 +311,9 @@ compute_scores (AIGProp *aprop)
                                  (BtorCmpPtr) btor_compare_aig_by_id);
 
   /* collect roots */
-  btor_init_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm, stack, btor_next_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&it));
 
   /* compute scores */
   while (!BTOR_EMPTY_STACK (stack))
@@ -453,13 +454,14 @@ aigprop_generate_model (AIGProp *aprop, int reset)
   assert (aprop);
   assert (aprop->roots);
 
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
 
   if (reset) aigprop_init_model (aprop);
 
-  btor_init_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_hash_table_iterator (&it))
-    recursively_compute_assignment (aprop, btor_next_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    recursively_compute_assignment (aprop,
+                                    btor_next_ptr_hash_table_iterator (&it));
 }
 
 /*------------------------------------------------------------------------*/
@@ -472,7 +474,7 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
 
   int i;
   BtorAIG *cur, *child;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorPtrHashBucket *b;
   BtorAIGPtrStack stack, unmark_stack;
   BtorMemMgr *mm;
@@ -491,9 +493,9 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
   assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig)));
   btor_remove_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig), 0, 0);
 
-  btor_init_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm, stack, btor_next_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&it));
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -579,7 +581,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   assert (aprop->score);
 
   BtorAIG *res, *cur;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorMemMgr *mm;
 
   mm  = aprop->amgr->btor->mm;
@@ -592,11 +594,11 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     BtorPtrHashBucket *b;
 
     max_value = 0.0;
-    btor_init_hash_table_iterator (&it, aprop->roots);
-    while (btor_has_next_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
       selected = &it.bucket->data.as_int;
-      cur      = btor_next_hash_table_iterator (&it);
+      cur      = btor_next_ptr_hash_table_iterator (&it);
       if (cur == BTOR_AIG_FALSE) return 0; /* contains false root -> unsat */
       if (cur == BTOR_AIG_TRUE) continue;
       b = btor_get_ptr_hash_table (aprop->score, cur);
@@ -623,10 +625,10 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     BtorAIGPtrStack stack;
 
     BTOR_INIT_STACK (stack);
-    btor_init_hash_table_iterator (&it, aprop->roots);
-    while (btor_has_next_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      cur = btor_next_hash_table_iterator (&it);
+      cur = btor_next_ptr_hash_table_iterator (&it);
       if (cur == BTOR_AIG_FALSE)
       {
         BTOR_RELEASE_STACK (mm, stack);
@@ -802,13 +804,13 @@ all_roots_sat (AIGProp *aprop)
   int ass;
   bool res;
   BtorAIG *root;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
 
   res = true;
-  btor_init_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, aprop->roots);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    root = btor_next_hash_table_iterator (&it);
+    root = btor_next_ptr_hash_table_iterator (&it);
     if (root == BTOR_AIG_FALSE) return false;
     if (root == BTOR_AIG_TRUE) continue;
     assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root)));

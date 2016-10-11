@@ -52,7 +52,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   assert (btor->lambdas->count == 0);
   assert (btor->ufs->count == 0);
 
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorPtrHashTable *backannotation;
   BtorAIGVec *av;
   BtorAIG *tmp, *merged;
@@ -76,13 +76,13 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   /* do not encode AIGs to SAT */
   lazy_synthesize = btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE);
   btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, 1);
-  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_init_node_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   merged = BTOR_AIG_TRUE;
-  while (btor_has_next_node_hash_table_iterator (&it))
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
     av = btor_exp_to_aigvec (
-        btor, btor_next_node_hash_table_iterator (&it), backannotation);
+        btor, btor_next_node_ptr_hash_table_iterator (&it), backannotation);
     assert (av->len == 1);
     if (merge_roots)
     {
@@ -115,11 +115,11 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
     btor_release_aig (amgr, BTOR_POP_STACK (roots));
   BTOR_RELEASE_STACK (btor->mm, roots);
 
-  btor_init_hash_table_iterator (&it, backannotation);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, backannotation);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     btor_freestr (btor->mm, it.bucket->data.as_str);
-    (void) btor_next_hash_table_iterator (&it);
+    (void) btor_next_ptr_hash_table_iterator (&it);
   }
   btor_delete_ptr_hash_table (backannotation);
 }

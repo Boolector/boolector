@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -23,14 +24,14 @@ btor_add_ackermann_constraints (Btor *btor)
   BtorNode *uf, *app_i, *app_j, *p, *c, *imp, *a_i, *a_j, *eq, *tmp;
   BtorArgsIterator ait_i, ait_j;
   BtorNodeIterator nit;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNodePtrStack applies;
 
   start = btor_time_stamp ();
-  btor_init_node_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, btor->ufs);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
-    uf = btor_next_node_hash_table_iterator (&it);
+    uf = btor_next_node_ptr_hash_table_iterator (&it);
     BTOR_INIT_STACK (applies);
     btor_init_apply_parent_iterator (&nit, uf);
     while (btor_has_next_apply_parent_iterator (&nit))

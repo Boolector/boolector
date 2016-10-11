@@ -223,7 +223,7 @@ btor_process_skeleton (Btor *btor)
   int count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   double start, delta;
   int res, lit, val;
   BtorNode *exp;
@@ -253,12 +253,13 @@ btor_process_skeleton (Btor *btor)
   BTOR_INIT_STACK (work_stack);
   mark = btor_new_int_hash_map (mm);
 
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_ptr_hash_table_iterator (&it,
+                                           btor->unsynthesized_constraints);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
     count++;
-    exp = btor_next_node_hash_table_iterator (&it);
+    exp = btor_next_node_ptr_hash_table_iterator (&it);
     assert (btor_get_exp_width (btor, exp) == 1);
     process_skeleton_tseitin (btor, lgl, &work_stack, mark, ids, exp);
     lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
@@ -292,10 +293,10 @@ btor_process_skeleton (Btor *btor)
   else
   {
     assert (res == 0 || res == 10);
-    btor_init_node_hash_table_iterator (&it, ids);
-    while (btor_has_next_node_hash_table_iterator (&it))
+    btor_init_node_ptr_hash_table_iterator (&it, ids);
+    while (btor_has_next_node_ptr_hash_table_iterator (&it))
     {
-      exp = btor_next_node_hash_table_iterator (&it);
+      exp = btor_next_node_ptr_hash_table_iterator (&it);
       assert (!BTOR_IS_INVERTED_NODE (exp));
       lit = process_skeleton_tseitin_lit (ids, exp);
       val = lglfixed (lgl, lit);

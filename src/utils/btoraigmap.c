@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -81,15 +81,15 @@ btor_delete_aig_map (BtorAIGMap *map)
   assert (map);
 
   Btor *btor;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
 
   btor = map->btor;
 
-  btor_init_hash_table_iterator (&it, map->table);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, map->table);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     btor_release_aig (map->amgr_dst, it.bucket->data.as_ptr);
-    btor_release_aig (map->amgr_src, btor_next_hash_table_iterator (&it));
+    btor_release_aig (map->amgr_src, btor_next_ptr_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

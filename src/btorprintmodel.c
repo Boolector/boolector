@@ -71,7 +71,7 @@ btor_get_fun_model_str_aux (Btor *btor,
 
   char *arg, *tmp, *bv;
   uint32_t i, j, len;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   const BtorPtrHashTable *model;
   BtorBitVector *value;
   BtorBitVectorTuple *t;
@@ -95,13 +95,13 @@ btor_get_fun_model_str_aux (Btor *btor,
   BTOR_NEWN (btor->mm, *values, *size);
 
   i = 0;
-  btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, (BtorPtrHashTable *) model);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     value = (BtorBitVector *) it.bucket->data.as_ptr;
 
     /* build assignment string for all arguments */
-    t   = (BtorBitVectorTuple *) btor_next_hash_table_iterator (&it);
+    t   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it);
     len = t->arity;
     for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
     BTOR_NEWN (btor->mm, arg, len);
@@ -250,7 +250,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   char *s, *symbol;
   uint32_t i, x, n;
   BtorPtrHashTable *fun_model;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorBitVectorTuple *args;
   BtorBitVector *assignment, *tmp;
   BtorSortId sort;
@@ -299,12 +299,12 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   /* fun model as ite over args and assignments */
   n          = 0;
   assignment = 0;
-  btor_init_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, fun_model);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     fprintf (file, "%4c(ite ", ' ');
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_hash_table_iterator (&it);
+    args       = btor_next_ptr_hash_table_iterator (&it);
     x          = 0;
     if (args->arity > 1)
     {
@@ -358,7 +358,7 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorBitVector *assignment;
   BtorBitVectorTuple *args;
   BtorPtrHashTable *fun_model;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
 
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (
       btor, btor_simplify_exp (btor, node));
@@ -367,11 +367,11 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   symbol = btor_get_symbol_exp (btor, node);
   id     = ((BtorUFNode *) node)->btor_id;
 
-  btor_init_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, fun_model);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_hash_table_iterator (&it);
+    args       = btor_next_ptr_hash_table_iterator (&it);
     // TODO: distinguish between functions and arrays (ma)
     //       needs proper sort handling
     fprintf (file, "%d[", id ? id : node->id);
@@ -407,7 +407,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   assert (file);
 
   BtorNode *cur;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   int base;
 
   base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
@@ -415,10 +415,10 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
-  btor_init_node_hash_table_iterator (&it, btor->inputs);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, btor->inputs);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
+    cur = btor_next_node_ptr_hash_table_iterator (&it);
     if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else
@@ -478,7 +478,7 @@ print_fun_value_smt2 (
   uint32_t i, n;
   char *s, *symbol;
   BtorPtrHashTable *fun_model;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorBitVectorTuple *args;
   BtorBitVector *assignment;
 
@@ -502,12 +502,12 @@ print_fun_value_smt2 (
   fprintf (file, "(");
 
   n = 0;
-  btor_init_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, fun_model);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_hash_table_iterator (&it);
+    args       = btor_next_ptr_hash_table_iterator (&it);
     if (args->arity > 1)
     {
       for (i = 0; i < args->arity; i++)

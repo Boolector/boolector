@@ -5057,7 +5057,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   BtorMemMgr *mm;
   BtorPtrHashTable *left, *right, *comm;
   BtorPtrHashBucket *b;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorIntHashTable *cache;
 
   mm    = btor->mm;
@@ -5204,11 +5204,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
 #if 0
   /* normalize left side */
   result = btor_copy_exp (btor, common);
-  btor_init_node_hash_table_iterator (&it, left);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, left);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
     {
       b = it.bucket;
-      cur = btor_next_node_hash_table_iterator (&it);
+      cur = btor_next_node_ptr_hash_table_iterator (&it);
       for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -5220,11 +5220,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
 
   /* normalize right side */
   result = btor_copy_exp (btor, common);
-  btor_init_node_hash_table_iterator (&it, right);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, right);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
     {
       b = it.bucket;
-      cur = btor_next_node_hash_table_iterator (&it);
+      cur = btor_next_node_ptr_hash_table_iterator (&it);
       for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -5237,11 +5237,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
   /* Bubble up common part.
    */
   result = 0;
-  btor_init_node_hash_table_iterator (&it, left);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, left);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
     b   = it.bucket;
-    cur = btor_next_node_hash_table_iterator (&it);
+    cur = btor_next_node_ptr_hash_table_iterator (&it);
     for (i = 0; i < b->data.as_int; i++)
     {
       if (result)
@@ -5267,11 +5267,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
   *e0_norm = result;
 
   result = 0;
-  btor_init_node_hash_table_iterator (&it, right);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_node_ptr_hash_table_iterator (&it, right);
+  while (btor_has_next_node_ptr_hash_table_iterator (&it))
   {
     b   = it.bucket;
-    cur = btor_next_node_hash_table_iterator (&it);
+    cur = btor_next_node_ptr_hash_table_iterator (&it);
     for (i = 0; i < b->data.as_int; i++)
     {
       if (result)

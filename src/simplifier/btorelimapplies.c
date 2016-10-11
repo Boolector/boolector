@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -24,7 +25,7 @@ btor_eliminate_applies (Btor *btor)
   double start, delta;
   BtorNode *app, *fun, *subst;
   BtorNodeIterator it;
-  BtorHashTableIterator h_it;
+  BtorPtrHashTableIterator h_it;
   BtorPtrHashTable *cache;
 
   if (btor->lambdas->count == 0) return;
@@ -45,10 +46,10 @@ btor_eliminate_applies (Btor *btor)
     btor_init_substitutions (btor);
 
     /* collect function applications */
-    btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
-    while (btor_has_next_node_hash_table_iterator (&h_it))
+    btor_init_node_ptr_hash_table_iterator (&h_it, btor->lambdas);
+    while (btor_has_next_node_ptr_hash_table_iterator (&h_it))
     {
-      fun = btor_next_node_hash_table_iterator (&h_it);
+      fun = btor_next_node_ptr_hash_table_iterator (&h_it);
 
       btor_init_apply_parent_iterator (&it, fun);
       while (btor_has_next_apply_parent_iterator (&it))
@@ -78,10 +79,10 @@ btor_eliminate_applies (Btor *btor)
   } while (num_applies > 0);
 
 #ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
-  while (btor_has_next_node_hash_table_iterator (&h_it))
+  btor_init_node_ptr_hash_table_iterator (&h_it, btor->lambdas);
+  while (btor_has_next_node_ptr_hash_table_iterator (&h_it))
   {
-    fun = btor_next_node_hash_table_iterator (&h_it);
+    fun = btor_next_node_ptr_hash_table_iterator (&h_it);
 
     btor_init_apply_parent_iterator (&it, fun);
     while (btor_has_next_apply_parent_iterator (&it))
@@ -92,11 +93,11 @@ btor_eliminate_applies (Btor *btor)
   }
 #endif
 
-  btor_init_hash_table_iterator (&h_it, cache);
-  while (btor_has_next_hash_table_iterator (&h_it))
+  btor_init_ptr_hash_table_iterator (&h_it, cache);
+  while (btor_has_next_ptr_hash_table_iterator (&h_it))
   {
     btor_release_exp (btor, h_it.bucket->data.as_ptr);
-    btor_delete_exp_pair (btor, btor_next_hash_table_iterator (&h_it));
+    btor_delete_exp_pair (btor, btor_next_ptr_hash_table_iterator (&h_it));
   }
   btor_delete_ptr_hash_table (cache);
 
