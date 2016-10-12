@@ -112,16 +112,8 @@ static bool g_measure_thread_time = false;
 static double
 time_stamp (void)
 {
-  struct timespec ts;
-  double res = -1;
-  if (g_measure_thread_time)
-  {
-    if (!clock_gettime (CLOCK_THREAD_CPUTIME_ID, &ts))
-      res += (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000;
-    return res;
-  }
-  else
-    return btor_time_stamp ();
+  if (g_measure_thread_time) return btor_process_time_thread ();
+  return btor_time_stamp ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2365,7 +2357,7 @@ filter_flat_model2 (BtorEFGroundSolvers * gslv, FlatModel * flat_model)
 static void
 filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
 {
-  uint32_t i, opt_pmfind_mode;
+  uint32_t i;
   BtorIntHashTable *cache;
   Btor *f_solver, *e_solver;
   Btor *r_solver;
@@ -2388,8 +2380,8 @@ filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   e_solver = gslv->exists;
   btor_delete_opts (r_solver);
   btor_clone_opts (e_solver, r_solver);
-  opt_pmfind_mode = btor_get_opt (r_solver, BTOR_OPT_EF_FINDPM_MODE);
-  assert (opt_pmfind_mode == BTOR_EF_FINDPM_REF);
+  assert (btor_get_opt (r_solver, BTOR_OPT_EF_FINDPM_MODE)
+          == BTOR_EF_FINDPM_REF);
 
   mm = e_solver->mm;
 
@@ -3006,8 +2998,6 @@ update_flat_model (BtorEFGroundSolvers *gslv,
   assert (args);
   exp = btor_binder_get_body (result);
 
-  assert (btor_get_fun_arity (btor, result)
-          == btor_get_args_arity (btor, args));
   btor_init_param_iterator (&nit, result);
   btor_init_args_iterator (&ait, args);
   while (btor_has_next_param_iterator (&nit))
@@ -4193,10 +4183,8 @@ thread_work (void *state)
   BtorSolverResult res = BTOR_RESULT_UNKNOWN;
   BtorEFGroundSolvers *gslv;
   bool skip_exists = true;
-  double start;
 
-  start = time_stamp ();
-  gslv  = state;
+  gslv = state;
   while (res == BTOR_RESULT_UNKNOWN && !thread_found_result)
   {
     res         = find_model (gslv, skip_exists);
@@ -4209,7 +4197,7 @@ thread_work (void *state)
     BTOR_MSG (gslv->exists->msg,
               1,
               "found solution in %.2f seconds",
-              time_stamp () - start);
+              btor_process_time_thread ());
     thread_found_result = true;
   }
   assert (thread_found_result || res == BTOR_RESULT_UNKNOWN);
