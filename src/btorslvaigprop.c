@@ -239,7 +239,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&it))
     assert (!BTOR_REAL_ADDR_NODE (
-        ((BtorNode *) btor_next_ptr_hash_table_iterator (&it))->simplified));
+                 ((BtorNode *) btor_next_ptr_hash_table_iterator (&it)))
+                 ->simplified);
 #endif
 
   assert (slv->aprop);
