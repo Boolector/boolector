@@ -9,6 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
+#include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
 #include "btorslvfun.h"
