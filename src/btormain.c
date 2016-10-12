@@ -34,12 +34,11 @@
 typedef struct BtorMainApp BtorMainApp;
 static BtorMainApp *g_app;
 
+bool g_dual_threads;
+static double g_start_time_real;
 static int g_verbosity;
 static int g_set_alarm;
 static int g_caught_sig;
-#ifdef BTOR_HAVE_GETRUSAGE
-static int g_start_time;
-#endif
 
 static void (*sig_int_handler) (int);
 static void (*sig_segv_handler) (int);
@@ -726,16 +725,22 @@ print_version (BtorMainApp *app)
 static void
 print_static_stats (int sat_res)
 {
+  double real = btor_current_time () - g_start_time_real;
 #ifdef BTOR_HAVE_GETRUSAGE
-  double delta_time = delta_time = btor_time_stamp () - g_start_time;
-  btormain_msg ("%.1f seconds", delta_time);
+  double process = btor_time_stamp ();
+  btormain_msg ("%.1f seconds process", process);
+  if (g_dual_threads)
+    btormain_msg ("%.0f%% utilization",
+                  real > 0 ? (100 * process) / real / 2 : 0.0);
+
+#else
+  btormain_msg ("can not determine run-time in seconds (no getrusage)");
+#endif
+  btormain_msg ("%.1f seconds real", real);
   btormain_msg ("%s",
                 sat_res == BOOLECTOR_SAT
                     ? "sat"
                     : (sat_res == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
-#else
-  btormain_msg ("can not determine run-time in seconds (no getrusage)");
-#endif
 }
 
 static void
@@ -885,9 +890,7 @@ boolector_main (int argc, char **argv)
   BtorMainOpt *mo;
   BtorOpt *o;
 
-#ifdef BTOR_HAVE_GETRUSAGE
-  g_start_time = btor_time_stamp ();
-#endif
+  g_start_time_real = btor_current_time ();
 
   g_app = btormain_new_btormain (boolector_new ());
 
@@ -1325,6 +1328,8 @@ boolector_main (int argc, char **argv)
   assert (!g_app->done && !g_app->err);
 
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
+  g_dual_threads =
+      boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   /* open output file */
   if (g_app->outfile_name)
@@ -1459,11 +1464,7 @@ boolector_main (int argc, char **argv)
     }
 
 #ifdef BTOR_HAVE_GETRUSAGE
-    if (g_verbosity)
-    {
-      double delta_time = delta_time = btor_time_stamp () - g_start_time;
-      btormain_msg ("%.1f seconds", delta_time);
-    }
+    if (g_verbosity) btormain_msg ("%.1f seconds", btor_time_stamp ());
 #endif
     goto DONE;
   }

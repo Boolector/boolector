@@ -453,6 +453,19 @@ btor_time_stamp (void)
 }
 #endif
 
+double
+btor_current_time (void)
+{
+  double res = 0;
+  struct timeval tv;
+  if (!gettimeofday (&tv, 0))
+  {
+    res = 1e-6 * tv.tv_usec;
+    res += tv.tv_sec;
+  }
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_HAVE_STAT

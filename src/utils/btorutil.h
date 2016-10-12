@@ -71,6 +71,8 @@ char *btor_hex_to_bin_str_n_util (BtorMemMgr *mm,
 double btor_time_stamp (void);
 #endif
 
+double btor_current_time (void);
+
 /*------------------------------------------------------------------------*/
 
 int btor_file_exists (const char *);
