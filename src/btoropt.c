@@ -710,8 +710,9 @@ btor_init_opts (Btor *btor)
             "synthesis mode for Skolem functions:"
             "0=none,"
             "1=enumlearn,"
-            "2=enumlearn modulo constraints,"
-            "3=1+2 combined");
+            "2=enumlearn modulo predicates,"
+            "3=1+2 combined,"
+            "4=enumlearn modulo formula");
 #if 0
   init_opt (btor, BTOR_OPT_EF_QINST_MODE, false, true,
 	    "ef:qinstmode", 0,
@@ -776,7 +777,7 @@ btor_init_opts (Btor *btor)
             true,
             "ef:fixsynth",
             0,
-            0,
+            1,
             0,
             1,
             "update current model w.r.t. synthesized skolem function");
