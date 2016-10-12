@@ -49,6 +49,11 @@ typedef struct Op Op;
 struct Candidates
 {
   BtorVoidPtrStack exps;
+  BtorIntStack nexps_level;
+  uint32_t nnullary;
+  uint32_t nunary;
+  uint32_t nbinary;
+  uint32_t nternary;
   uint32_t nexps;
 };
 
@@ -354,6 +359,19 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
   }
   BTOR_PUSH_STACK (mm, *exps, exp);
   candidates->nexps++;
+  switch (BTOR_REAL_ADDR_NODE (exp)->arity)
+  {
+    case 0: candidates->nnullary++; break;
+    case 1: candidates->nunary++; break;
+    case 2: candidates->nbinary++; break;
+    default:
+      assert (BTOR_REAL_ADDR_NODE (exp)->arity == 3);
+      candidates->nternary++;
+      break;
+  }
+  if (exp_size >= BTOR_COUNT_STACK (candidates->nexps_level))
+    BTOR_PUSH_STACK (mm, candidates->nexps_level, 0);
+  candidates->nexps_level.start[exp_size]++;
 }
 
 static BtorNode *
@@ -832,9 +850,12 @@ report_stats (Btor *btor,
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
-            "level: %u|%u|%u, %.2f/s, %.2fs, %.2f MiB",
+            "level: %u|%u(%u,%u,%u)|%u, %.2f/s, %.2fs, %.2f MiB",
             cur_level,
             candidates->nexps,
+            candidates->nnullary,
+            candidates->nbinary,
+            candidates->nternary,
             num_checks,
             num_checks / delta,
             delta,
@@ -945,9 +966,11 @@ synthesize (Btor *btor,
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
   start = btor_time_stamp ();
   BTOR_INIT_STACK (sig_constraints);
-  candidates.nexps = 0;
+
+  memset (&candidates, 0, sizeof (Candidates));
   BTOR_INIT_STACK (candidates.exps);
   BTOR_PUSH_STACK (mm, candidates.exps, 0);
+  BTOR_PUSH_STACK (mm, candidates.nexps_level, 0);
 
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
@@ -1214,6 +1237,7 @@ DONE:
     btor_delete_int_hash_map (e0_exps);
   }
   BTOR_RELEASE_STACK (mm, candidates.exps);
+  BTOR_RELEASE_STACK (mm, candidates.nexps_level);
 
   while (!BTOR_EMPTY_STACK (sig_constraints))
     btor_free_bv (mm, BTOR_POP_STACK (sig_constraints));
