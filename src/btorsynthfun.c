@@ -46,6 +46,14 @@ struct Op
 
 typedef struct Op Op;
 
+struct Candidates
+{
+  BtorVoidPtrStack exps;
+  uint32_t nexps;
+};
+
+typedef struct Candidates Candidates;
+
 struct BtorCartProdIterator
 {
   BtorSortId cur_sort;
@@ -313,10 +321,7 @@ eval_exp (Btor *btor,
 /* Add expression 'exp' to expression candidates 'candidates' at level
  * 'exp_size'. */
 static void
-add_exp (Btor *btor,
-         uint32_t exp_size,
-         BtorVoidPtrStack *candidates,
-         BtorNode *exp)
+add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
 {
   assert (exp_size > 0);
   assert (candidates);
@@ -330,14 +335,14 @@ add_exp (Btor *btor,
   mm   = btor->mm;
   sort = BTOR_REAL_ADDR_NODE (exp)->sort_id;
 
-  if (exp_size >= BTOR_COUNT_STACK (*candidates))
+  if (exp_size >= BTOR_COUNT_STACK (candidates->exps))
   {
     sorted_exps = btor_new_int_hash_map (mm);
-    BTOR_PUSH_STACK (mm, *candidates, sorted_exps);
-    assert (exp_size == BTOR_COUNT_STACK (*candidates) - 1);
+    BTOR_PUSH_STACK (mm, candidates->exps, sorted_exps);
+    assert (exp_size == BTOR_COUNT_STACK (candidates->exps) - 1);
   }
   else
-    sorted_exps = BTOR_PEEK_STACK (*candidates, exp_size);
+    sorted_exps = BTOR_PEEK_STACK (candidates->exps, exp_size);
 
   d = btor_get_int_hash_map (sorted_exps, sort);
   if (d)
@@ -348,6 +353,7 @@ add_exp (Btor *btor,
     btor_add_int_hash_map (sorted_exps, sort)->as_ptr = exps;
   }
   BTOR_PUSH_STACK (mm, *exps, exp);
+  candidates->nexps++;
 }
 
 static BtorNode *
@@ -752,7 +758,7 @@ check_candidate (Btor *btor,
                  BtorBitVector *value_out[],
                  uint32_t nvalues,
                  BtorIntHashTable *value_in_map,
-                 BtorVoidPtrStack *candidates,
+                 Candidates *candidates,
                  BtorIntHashTable *cache,
                  BtorPtrHashTable *sigs,
                  BtorPtrHashTable *matches,
@@ -820,7 +826,7 @@ report_stats (Btor *btor,
               double start,
               uint32_t cur_level,
               uint32_t num_checks,
-              BtorPtrHashTable *sigs)
+              Candidates *candidates)
 {
   double delta;
   delta = btor_time_stamp () - start;
@@ -828,7 +834,7 @@ report_stats (Btor *btor,
             1,
             "level: %u|%u|%u, %.2f/s, %.2fs, %.2f MiB",
             cur_level,
-            sigs->count,
+            candidates->nexps,
             num_checks,
             num_checks / delta,
             delta,
@@ -862,7 +868,7 @@ max_chain_length (BtorPtrHashTable * sigs)
 static void
 add_consts (Btor *btor,
             uint32_t width,
-            BtorVoidPtrStack *candidates,
+            Candidates *candidates,
             BtorIntHashTable *cache)
 {
   BtorNode *c;
@@ -918,7 +924,7 @@ synthesize (Btor *btor,
   uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0, num_added;
   BtorNode *exp, **exp_tuple, *result = 0;
   BtorNodePtrStack *exps;
-  BtorVoidPtrStack candidates;
+  Candidates candidates;
   BtorIntHashTable *cache, *e0_exps, *e1_exps, *e2_exps;
   BtorPtrHashTable *matches, *sigs;
   BtorHashTableData *d;
@@ -939,8 +945,9 @@ synthesize (Btor *btor,
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
   start = btor_time_stamp ();
   BTOR_INIT_STACK (sig_constraints);
-  BTOR_INIT_STACK (candidates);
-  BTOR_PUSH_STACK (mm, candidates, 0);
+  candidates.nexps = 0;
+  BTOR_INIT_STACK (candidates.exps);
+  BTOR_PUSH_STACK (mm, candidates.exps, 0);
 
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
@@ -985,7 +992,7 @@ synthesize (Btor *btor,
     add_consts (btor, btor_get_exp_width (btor, exp), &candidates, cache);
     num_checks++;
     if (num_checks % 10000 == 0)
-      report_stats (btor, start, cur_level, num_checks, sigs);
+      report_stats (btor, start, cur_level, num_checks, &candidates);
     if (found_candidate) goto DONE;
   }
 
@@ -1022,18 +1029,18 @@ synthesize (Btor *btor,
   for (cur_level = 2; !max_level || cur_level < max_level; cur_level++)
   {
     /* initialize current level */
-    BTOR_PUSH_STACK (mm, candidates, btor_new_int_hash_map (mm));
-    assert (cur_level == BTOR_COUNT_STACK (candidates) - 1);
-    report_stats (btor, start, cur_level, num_checks, sigs);
+    BTOR_PUSH_STACK (mm, candidates.exps, btor_new_int_hash_map (mm));
+    assert (cur_level == BTOR_COUNT_STACK (candidates.exps) - 1);
+    report_stats (btor, start, cur_level, num_checks, &candidates);
 
-    num_added = sigs->count;
+    num_added = candidates.nexps;
     for (i = 0; i < nops; i++)
     {
       if (ops[i].arity == 1)
       {
         /* use all expressions from previous level and apply unary
          * operators */
-        e0_exps = BTOR_PEEK_STACK (candidates, cur_level - 1);
+        e0_exps = BTOR_PEEK_STACK (candidates.exps, cur_level - 1);
         for (j = 0; j < e0_exps->size; j++)
         {
           if (!e0_exps->keys[j]) continue;
@@ -1057,7 +1064,7 @@ synthesize (Btor *btor,
                                                nconstraints);
             num_checks++;
             if (num_checks % 10000 == 0)
-              report_stats (btor, start, cur_level, num_checks, sigs);
+              report_stats (btor, start, cur_level, num_checks, &candidates);
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_un_exps++;
           }
@@ -1069,8 +1076,8 @@ synthesize (Btor *btor,
         while (btor_has_next_part_gen (&pg))
         {
           tuple   = btor_next_part_gen (&pg);
-          e0_exps = BTOR_PEEK_STACK (candidates, tuple[0]);
-          e1_exps = BTOR_PEEK_STACK (candidates, tuple[1]);
+          e0_exps = BTOR_PEEK_STACK (candidates.exps, tuple[0]);
+          e1_exps = BTOR_PEEK_STACK (candidates.exps, tuple[1]);
 
           btor_init_cart_prod_iterator (&cpit, e0_exps, e1_exps);
           while (btor_has_next_cart_prod_iterator (&cpit))
@@ -1093,7 +1100,7 @@ synthesize (Btor *btor,
                                                nconstraints);
             num_checks++;
             if (num_checks % 10000 == 0)
-              report_stats (btor, start, cur_level, num_checks, sigs);
+              report_stats (btor, start, cur_level, num_checks, &candidates);
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_bin_exps++;
           }
@@ -1107,9 +1114,9 @@ synthesize (Btor *btor,
         while (btor_has_next_part_gen (&pg))
         {
           tuple   = btor_next_part_gen (&pg);
-          e0_exps = BTOR_PEEK_STACK (candidates, tuple[0]);
-          e1_exps = BTOR_PEEK_STACK (candidates, tuple[1]);
-          e2_exps = BTOR_PEEK_STACK (candidates, tuple[2]);
+          e0_exps = BTOR_PEEK_STACK (candidates.exps, tuple[0]);
+          e1_exps = BTOR_PEEK_STACK (candidates.exps, tuple[1]);
+          e2_exps = BTOR_PEEK_STACK (candidates.exps, tuple[2]);
 
 #if 0
 		  // TODO (ma): this speeds up AR-fixpoint by ~3 seconds each, but
@@ -1156,7 +1163,7 @@ synthesize (Btor *btor,
                                                  nconstraints);
               num_checks++;
               if (num_checks % 10000 == 0)
-                report_stats (btor, start, cur_level, num_checks, sigs);
+                report_stats (btor, start, cur_level, num_checks, &candidates);
               if (found_candidate || num_checks >= max_checks) goto DONE;
               //			  num_ter_exps++;
             }
@@ -1165,10 +1172,10 @@ synthesize (Btor *btor,
       }
     }
     /* no more expressions generated */
-    if (num_added == sigs->count) break;
+    if (num_added == candidates.nexps) break;
   }
 DONE:
-  report_stats (btor, start, cur_level, num_checks, sigs);
+  report_stats (btor, start, cur_level, num_checks, &candidates);
   //  max_chain_length (sigs);
 
   if (found_candidate)
@@ -1192,9 +1199,9 @@ DONE:
   }
 
   /* cleanup */
-  for (i = 1; i < BTOR_COUNT_STACK (candidates); i++)
+  for (i = 1; i < BTOR_COUNT_STACK (candidates.exps); i++)
   {
-    e0_exps = BTOR_PEEK_STACK (candidates, i);
+    e0_exps = BTOR_PEEK_STACK (candidates.exps, i);
     for (j = 0; j < e0_exps->size; j++)
     {
       if (!e0_exps->data[j].as_ptr) continue;
@@ -1206,7 +1213,7 @@ DONE:
     }
     btor_delete_int_hash_map (e0_exps);
   }
-  BTOR_RELEASE_STACK (mm, candidates);
+  BTOR_RELEASE_STACK (mm, candidates.exps);
 
   while (!BTOR_EMPTY_STACK (sig_constraints))
     btor_free_bv (mm, BTOR_POP_STACK (sig_constraints));
