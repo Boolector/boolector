@@ -65,6 +65,7 @@ test_boolectormap0 ()
   boolector_map_node (map, a, t);
   boolector_map_node (map, b, o);
   d = boolector_non_recursive_substitute_node (g_btor, map, s);
+  (void) d;
   assert (d == o);
   boolector_delete_node_map (map);
 
