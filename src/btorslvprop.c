@@ -3143,15 +3143,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
-      if (!res)
-      {
-        res       = cur;
-        max_value = value;
-        *selected += 1;
-        continue;
-      }
-
-      if (value > max_value)
+      if (!res || value > max_value)
       {
         res       = cur;
         max_value = value;
@@ -3200,8 +3192,7 @@ move (Btor *btor, uint32_t nmoves)
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
 
-  /* roots contain false constraint -> unsat */
-  if (!(root = select_constraint (btor, nmoves))) return 0;
+  root = select_constraint (btor, nmoves);
 
   do
   {
@@ -3235,6 +3226,7 @@ move (Btor *btor, uint32_t nmoves)
       slv->roots,
       btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
       exps,
+      true,
       &slv->stats.updates,
       &slv->time.update_cone,
       &slv->time.update_cone_reset,

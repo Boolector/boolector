@@ -114,6 +114,36 @@ cmp_data_as_sls_constr_data_ptr (const BtorHashTableData *d1,
 }
 
 static inline void
+chkclone_int_hash_map (BtorIntHashTable *table,
+                       BtorIntHashTable *clone,
+                       int (*cmp_data) (const BtorHashTableData *,
+                                        const BtorHashTableData *))
+{
+  size_t i;
+
+  if (!table)
+  {
+    assert (!clone);
+    return;
+  }
+
+  assert (table->size == clone->size);
+  assert (table->count == clone->count);
+  for (i = 0; i < table->size; i++)
+  {
+    assert (i < clone->size);
+    if (!table->keys[i])
+    {
+      assert (!clone->keys[i]);
+      continue;
+    }
+    assert (table->keys[i] == clone->keys[i]);
+    if (cmp_data) assert (!cmp_data (&table->data[i], &clone->data[i]));
+  }
+  assert (i >= clone->size);
+}
+
+static inline void
 chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
                               BtorPtrHashTable *clone,
                               int (*cmp_data) (const BtorHashTableData *,
@@ -1029,8 +1059,9 @@ chkclone_slv (Btor *btor)
     BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
     BtorSLSSolver *cslv = BTOR_SLS_SOLVER (btor->clone);
 
+    chkclone_int_hash_map (slv->roots, cslv->roots, cmp_data_as_int);
     chkclone_node_ptr_hash_table (
-        slv->roots, cslv->roots, cmp_data_as_sls_constr_data_ptr);
+        slv->weights, cslv->weights, cmp_data_as_sls_constr_data_ptr);
     chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
 
     assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
@@ -1041,11 +1072,10 @@ chkclone_slv (Btor *btor)
       cm = BTOR_PEEK_STACK (cslv->moves, i);
       assert (cm);
       assert (m->sc == cm->sc);
-      chkclone_node_ptr_hash_table (m->cans, cm->cans, cmp_data_as_bv_ptr);
+      chkclone_int_hash_map (m->cans, cm->cans, cmp_data_as_bv_ptr);
     }
 
-    chkclone_node_ptr_hash_table (
-        slv->max_cans, cslv->max_cans, cmp_data_as_bv_ptr);
+    chkclone_int_hash_map (slv->max_cans, cslv->max_cans, cmp_data_as_bv_ptr);
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);

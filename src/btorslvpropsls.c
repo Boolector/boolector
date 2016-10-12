@@ -18,10 +18,10 @@
 /*------------------------------------------------------------------------*/
 
 static inline void
-update_roots (Btor *btor,
-              BtorIntHashTable *roots,
-              BtorNode *exp,
-              BtorBitVector *bv)
+update_roots_table (Btor *btor,
+                    BtorIntHashTable *roots,
+                    BtorNode *exp,
+                    BtorBitVector *bv)
 {
   assert (btor);
   assert (roots);
@@ -72,6 +72,7 @@ btor_propsls_update_cone (Btor *btor,
                           BtorIntHashTable *roots,
                           BtorPtrHashTable *score,
                           BtorIntHashTable *exps,
+                          bool update_roots,
                           uint64_t *stats_updates,
                           double *time_update_cone,
                           double *time_update_cone_reset,
@@ -83,6 +84,8 @@ btor_propsls_update_cone (Btor *btor,
   assert (roots);
   assert (exps);
   assert (exps->count);
+  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_PROP
+          || update_roots);
   assert (time_update_cone);
   assert (time_update_cone_reset);
   assert (time_update_cone_model_gen);
@@ -170,12 +173,14 @@ btor_propsls_update_cone (Btor *btor,
     exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
     b   = btor_get_ptr_hash_table (bv_model, exp);
     assert (b);
-    if ((exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
-         || btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (exp)))
+    if (update_roots
+        && (exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
+            || btor_get_ptr_hash_table (btor->assumptions,
+                                        BTOR_INVERT_NODE (exp)))
         && btor_compare_bv (b->data.as_ptr, ass))
     {
       /* old assignment != new assignment */
-      update_roots (btor, roots, exp, ass);
+      update_roots_table (btor, roots, exp, ass);
     }
     btor_free_bv (mm, b->data.as_ptr);
     b->data.as_ptr = btor_copy_bv (mm, ass);
@@ -244,13 +249,15 @@ btor_propsls_update_cone (Btor *btor,
     b = btor_get_ptr_hash_table (bv_model, cur);
 
     /* update roots table */
-    if (cur->constraint || btor_get_ptr_hash_table (btor->assumptions, cur)
-        || btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (cur)))
+    if (update_roots
+        && (cur->constraint || btor_get_ptr_hash_table (btor->assumptions, cur)
+            || btor_get_ptr_hash_table (btor->assumptions,
+                                        BTOR_INVERT_NODE (cur))))
     {
       assert (b); /* must be contained, is root */
       /* old assignment != new assignment */
       if (btor_compare_bv (b->data.as_ptr, bv))
-        update_roots (btor, roots, cur, bv);
+        update_roots_table (btor, roots, cur, bv);
     }
 
     /* update assignments */

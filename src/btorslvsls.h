@@ -17,6 +17,7 @@
 #endif
 
 #include "btorslv.h"
+#include "utils/btorhashint.h"
 #include "utils/btorstack.h"
 
 enum BtorSLSMoveKind
@@ -36,7 +37,7 @@ typedef enum BtorSLSMoveKind BtorSLSMoveKind;
 
 struct BtorSLSMove
 {
-  BtorPtrHashTable *cans;
+  BtorIntHashTable *cans;
   double sc;
 };
 typedef struct BtorSLSMove BtorSLSMove;
@@ -58,8 +59,9 @@ struct BtorSLSSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorPtrHashTable *roots; /* also maintains assertion weights */
-  BtorPtrHashTable *score; /* sls score */
+  BtorIntHashTable *roots;
+  BtorPtrHashTable *weights; /* also maintains assertion weights */
+  BtorPtrHashTable *score;   /* sls score */
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   uint32_t npropmoves;       /* record #no moves for prop moves */
@@ -69,7 +71,7 @@ struct BtorSLSSolver
   /* the following maintain data for the next move (i.e. either the move
    * with the maximum score of all tried moves, or a random walk, or a
    * randomized move). */
-  BtorPtrHashTable *max_cans; /* list of (can, neigh) */
+  BtorIntHashTable *max_cans; /* list of (can, neigh) */
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
   int32_t max_gw;           /* is groupwise move? (for stats) */
@@ -99,7 +101,18 @@ struct BtorSLSSolver
     uint32_t move_gw_seg;
     uint32_t move_gw_rand;
     uint32_t move_gw_rand_walk;
+    uint64_t updates;
   } stats;
+
+  struct
+  {
+    double sat;
+    double sat_total;
+    double update_cone;
+    double update_cone_reset;
+    double update_cone_model_gen;
+    double update_cone_compute_score;
+  } time;
 };
 
 typedef struct BtorSLSSolver BtorSLSSolver;
