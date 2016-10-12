@@ -42,6 +42,8 @@ struct Op
     BtorTerOp ter;
     void *fun;
   };
+  const char *name;
+  uint32_t num_added;
 };
 
 typedef struct Op Op;
@@ -781,7 +783,8 @@ check_candidate (Btor *btor,
                  BtorPtrHashTable *sigs,
                  BtorPtrHashTable *matches,
                  BtorNode *constraints[],
-                 uint32_t nconstraints)
+                 uint32_t nconstraints,
+                 Op *op)
 {
   bool found_candidate = false;
   int32_t id;
@@ -835,6 +838,7 @@ check_candidate (Btor *btor,
 
   if (sig) btor_add_ptr_hash_table (sigs, sig);
   btor_add_int_hash_table (cache, id);
+  if (op) op->num_added++;
   add_exp (btor, cur_level, candidates, exp);
   return found_candidate;
 }
@@ -860,6 +864,14 @@ report_stats (Btor *btor,
             num_checks / delta,
             delta,
             (float) btor->mm->allocated / 1024 / 1024);
+}
+
+static void
+report_op_stats (Btor *btor, Op ops[], uint32_t nops)
+{
+  uint32_t i;
+  for (i = 0; i < nops; i++)
+    BTOR_MSG (btor->msg, 1, "%s: %u", ops[i].name, ops[i].num_added);
 }
 
 #if 0
@@ -1011,7 +1023,8 @@ synthesize (Btor *btor,
                                        sigs,
                                        matches,
                                        constraints,
-                                       nconstraints);
+                                       nconstraints,
+                                       0);
     add_consts (btor, btor_get_exp_width (btor, exp), &candidates, cache);
     num_checks++;
     if (num_checks % 10000 == 0)
@@ -1041,12 +1054,14 @@ synthesize (Btor *btor,
   for (i = 0; i < nconsts; i++)
     add_exp (btor, 1, &candidates, btor_copy_exp (btor, consts[i]));
 
+#if 0
   /* add the desired outputs as constants to level 1 */
   for (i = 0; i < nvalues; i++)
-  {
-    exp = btor_const_exp (btor, tmp_value_out[i]);
-    add_exp (btor, 1, &candidates, exp);
-  }
+    {
+      exp = btor_const_exp (btor, tmp_value_out[i]);
+      add_exp (btor, 1, &candidates, exp);
+    }
+#endif
 
   /* level 2+ checks */
   for (cur_level = 2; !max_level || cur_level < max_level; cur_level++)
@@ -1084,7 +1099,8 @@ synthesize (Btor *btor,
                                                sigs,
                                                matches,
                                                constraints,
-                                               nconstraints);
+                                               nconstraints,
+                                               &ops[i]);
             num_checks++;
             if (num_checks % 10000 == 0)
               report_stats (btor, start, cur_level, num_checks, &candidates);
@@ -1120,7 +1136,8 @@ synthesize (Btor *btor,
                                                sigs,
                                                matches,
                                                constraints,
-                                               nconstraints);
+                                               nconstraints,
+                                               &ops[i]);
             num_checks++;
             if (num_checks % 10000 == 0)
               report_stats (btor, start, cur_level, num_checks, &candidates);
@@ -1183,7 +1200,8 @@ synthesize (Btor *btor,
                                                  sigs,
                                                  matches,
                                                  constraints,
-                                                 nconstraints);
+                                                 nconstraints,
+                                                 &ops[i]);
               num_checks++;
               if (num_checks % 10000 == 0)
                 report_stats (btor, start, cur_level, num_checks, &candidates);
@@ -1194,6 +1212,7 @@ synthesize (Btor *btor,
         }
       }
     }
+    report_op_stats (btor, ops, nops);
     /* no more expressions generated */
     if (num_added == candidates.nexps) break;
   }
@@ -1263,9 +1282,11 @@ DONE:
 
 #define INIT_OP(ARITY, ASSOC, FPTR) \
   {                                 \
-    ops[i].arity = ARITY;           \
-    ops[i].assoc = ASSOC;           \
-    ops[i].fun   = FPTR;            \
+    ops[i].arity     = ARITY;       \
+    ops[i].assoc     = ASSOC;       \
+    ops[i].fun       = FPTR;        \
+    ops[i].num_added = 0;           \
+    ops[i].name      = #FPTR;       \
     i += 1;                         \
   }
 

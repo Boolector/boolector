@@ -3314,11 +3314,11 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
 #if 0
 	      if (candidate)
 		{
-		  printf ("found candidate\n");
+		  printf ("found candidate for %s\n", node2string (e_uf_fs));
 		  btor_dump_smt2_node (gslv->forall, stdout, candidate, -1);
 		}
 	      else
-		printf ("no candidate found\n");
+		printf ("no candidate found for %s\n", node2string (e_uf_fs));
 #endif
 
         synth_res->limit = limit;
