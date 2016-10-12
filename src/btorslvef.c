@@ -3292,7 +3292,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
         }
 
         // TODO: set limit of UFs to 10000 fixed
-        if (limit > 100000) limit = opt_synth_limit;
+        if (limit > opt_synth_limit * 10) limit = opt_synth_limit;
 
 #if 0
 	      b = btor_add_ptr_hash_table (inputs, e_uf_fs);
