@@ -217,11 +217,8 @@ eval_exp (Btor *btor,
       assert (!btor_is_fun_node (real_cur));
       assert (!btor_is_apply_node (real_cur));
 
-      if (!btor_is_apply_node (real_cur))
-      {
-        arg_stack.top -= real_cur->arity;
-        bv = arg_stack.top;
-      }
+      arg_stack.top -= real_cur->arity;
+      bv = arg_stack.top;
 
       switch (real_cur->kind)
       {
@@ -231,7 +228,6 @@ eval_exp (Btor *btor,
 
         case BTOR_PARAM_NODE:
         case BTOR_BV_VAR_NODE:
-        case BTOR_APPLY_NODE:
           assert (btor_get_int_hash_map (value_in_map, real_cur->id));
           pos = btor_get_int_hash_map (value_in_map, real_cur->id)->as_int;
           /* initial signature computation */
@@ -286,10 +282,7 @@ eval_exp (Btor *btor,
             result = btor_copy_bv (mm, bv[2]);
       }
 
-      if (!btor_is_apply_node (real_cur))
-      {
-        for (i = 0; i < real_cur->arity; i++) btor_free_bv (mm, bv[i]);
-      }
+      for (i = 0; i < real_cur->arity; i++) btor_free_bv (mm, bv[i]);
 
       d->as_ptr = btor_copy_bv (mm, result);
 
@@ -1406,7 +1399,7 @@ btor_synthesize_fun (Btor *btor,
   BtorPtrHashTable *m;
   BtorHashTableIterator it;
   BtorPtrHashBucket *b;
-  BtorIntHashTable *value_in_map;
+  BtorIntHashTable *value_in_map = 0;
   BtorNodeIterator nit;
 
   mm   = btor->mm;
