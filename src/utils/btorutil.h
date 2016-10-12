@@ -69,6 +69,7 @@ char *btor_hex_to_bin_str_n_util (BtorMemMgr *mm,
 
 #ifdef BTOR_HAVE_GETRUSAGE
 double btor_time_stamp (void);
+double btor_process_time_thread (void);
 #endif
 
 double btor_current_time (void);
