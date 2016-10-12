@@ -823,7 +823,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   char *prefix, *clone_prefix;
   BtorNode *exp, *cloned_exp;
   BtorPtrHashTableIterator pit;
-  BtorIntHashTableIterator iit;
   BtorNodePtrStack rhos;
 #ifndef NDEBUG
   int h;

@@ -112,6 +112,7 @@ test_boolectormap1 ()
   BoolectorNode *d, *g;
   d = boolector_non_recursive_extended_substitute_node (
       g_btor, map, 0, test_boolectormap1_mapper, boolector_release, s);
+  (void) d;
   g = boolector_int (g_btor, 66, sort);
   assert (d == g);
   boolector_release (g_btor, g);
