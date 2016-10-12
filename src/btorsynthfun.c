@@ -1104,6 +1104,14 @@ synthesize (Btor *btor,
             num_checks++;
             if (num_checks % 10000 == 0)
               report_stats (btor, start, cur_level, num_checks, &candidates);
+            if (num_checks % 1000 == 0)
+            {
+              if (btor_terminate_btor (btor))
+              {
+                BTOR_MSG (btor->msg, 1, "terminate");
+                goto DONE;
+              }
+            }
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_un_exps++;
           }
@@ -1141,6 +1149,14 @@ synthesize (Btor *btor,
             num_checks++;
             if (num_checks % 10000 == 0)
               report_stats (btor, start, cur_level, num_checks, &candidates);
+            if (num_checks % 1000 == 0)
+            {
+              if (btor_terminate_btor (btor))
+              {
+                BTOR_MSG (btor->msg, 1, "terminate");
+                goto DONE;
+              }
+            }
             if (found_candidate || num_checks >= max_checks) goto DONE;
             //		      num_bin_exps++;
           }
@@ -1205,6 +1221,14 @@ synthesize (Btor *btor,
               num_checks++;
               if (num_checks % 10000 == 0)
                 report_stats (btor, start, cur_level, num_checks, &candidates);
+              if (num_checks % 1000 == 0)
+              {
+                if (btor_terminate_btor (btor))
+                {
+                  BTOR_MSG (btor->msg, 1, "terminate");
+                  goto DONE;
+                }
+              }
               if (found_candidate || num_checks >= max_checks) goto DONE;
               //			  num_ter_exps++;
             }
