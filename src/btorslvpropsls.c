@@ -32,16 +32,16 @@ update_roots_table (Btor *btor,
 
   (void) btor;
 
-  /* exp: old assignment = 0, new assignment = 1 -> bv = 1
-   *      -> remove */
+  /* exp: old assignment = 0, new assignment = 1 (bv = 1)
+   *      -> satisfied, remove */
   if (btor_get_int_hash_map (roots, exp->id))
   {
     btor_remove_int_hash_map (roots, exp->id, 0);
     assert (btor_is_false_bv (btor_get_bv_model (btor, exp)));
     assert (btor_is_true_bv (bv));
   }
-  /* -exp: old assignment = 0, new assignment = 1 -> bv = 0
-   * -> remove */
+  /* -exp: old assignment = 0, new assignment = 1 (bv = 0)
+   * -> satisfied, remove */
   else if (btor_get_int_hash_map (roots, -exp->id))
   {
     btor_remove_int_hash_map (roots, -exp->id, 0);
@@ -49,15 +49,15 @@ update_roots_table (Btor *btor,
         btor_is_false_bv (btor_get_bv_model (btor, BTOR_INVERT_NODE (exp))));
     assert (btor_is_false_bv (bv));
   }
-  /* exp: old assignment = 1, new assignment = 0 -> bv = 0
-   * -> add */
+  /* exp: old assignment = 1, new assignment = 0 (bv = 0)
+   * -> unsatisfied, add */
   else if (btor_is_false_bv (bv))
   {
     btor_add_int_hash_map (roots, exp->id);
     assert (btor_is_true_bv (btor_get_bv_model (btor, exp)));
   }
-  /* -exp: old assignment = 1, new assignment = 0 -> bv = 1
-   * -> add */
+  /* -exp: old assignment = 1, new assignment = 0 (bv = 1)
+   * -> unsatisfied, add */
   else
   {
     assert (btor_is_true_bv (bv));
@@ -94,7 +94,7 @@ btor_propsls_update_cone (Btor *btor,
   uint32_t i, j;
   BtorNode *exp, *cur;
   BtorNodeIterator nit;
-  BtorIntHashTableIterator it;
+  BtorIntHashTableIterator iit;
   BtorPtrHashBucket *b;
   BtorNodePtrStack stack, cone;
   BtorIntHashTable *cache;
@@ -113,6 +113,10 @@ btor_propsls_update_cone (Btor *btor,
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
+    assert (!btor_get_ptr_hash_table (btor->unsynthesized_constraints,
+                                      BTOR_INVERT_NODE (root)));
+    assert (
+        !btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)));
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (roots, BTOR_GET_ID_NODE (root)));
     else
@@ -123,10 +127,10 @@ btor_propsls_update_cone (Btor *btor,
   /* reset cone */
   BTOR_INIT_STACK (cone);
   BTOR_INIT_STACK (stack);
-  btor_init_int_hash_table_iterator (&it, exps);
-  while (btor_has_next_int_hash_table_iterator (&it))
+  btor_init_int_hash_table_iterator (&iit, exps);
+  while (btor_has_next_int_hash_table_iterator (&iit))
   {
-    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
+    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (btor_is_bv_var_node (exp));
     BTOR_PUSH_STACK (btor->mm, stack, exp);
@@ -166,11 +170,11 @@ btor_propsls_update_cone (Btor *btor,
   delta = btor_time_stamp ();
 
   /* update assignment of exps */
-  btor_init_int_hash_table_iterator (&it, exps);
-  while (btor_has_next_int_hash_table_iterator (&it))
+  btor_init_int_hash_table_iterator (&iit, exps);
+  while (btor_has_next_int_hash_table_iterator (&iit))
   {
-    ass = (BtorBitVector *) exps->data[it.cur_pos].as_ptr;
-    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
+    ass = (BtorBitVector *) exps->data[iit.cur_pos].as_ptr;
+    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
     b   = btor_get_ptr_hash_table (bv_model, exp);
     assert (b);
     if (update_roots
@@ -659,7 +663,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
   int i;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack stack;
-  BtorPtrHashTableIterator it;
+  BtorPtrHashTableIterator pit;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
   BtorMemMgr *mm;
@@ -672,10 +676,10 @@ btor_propsls_compute_sls_scores (Btor *btor,
   mark = btor_new_int_hash_map (mm);
 
   /* collect roots */
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
+    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&pit));
 
   /* compute score */
   while (!BTOR_EMPTY_STACK (stack))

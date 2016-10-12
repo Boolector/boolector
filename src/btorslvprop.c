@@ -3327,6 +3327,7 @@ sat_prop_solver_aux (Btor *btor)
     while (btor_has_next_ptr_hash_table_iterator (&it))
     {
       root = btor_next_ptr_hash_table_iterator (&it);
+
       if (!btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root))
           && btor_is_zero_bv (btor_get_bv_model (btor, root)))
       {

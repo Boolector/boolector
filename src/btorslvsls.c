@@ -1509,10 +1509,28 @@ sat_sls_solver (BtorSLSSolver *slv)
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   assert (btor->synthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
+    assert (!btor_get_ptr_hash_table (btor->unsynthesized_constraints,
+                                      BTOR_INVERT_NODE (root)));
+    if (!btor_get_ptr_hash_table (slv->weights, root))
+    {
+      b = btor_add_ptr_hash_table (slv->weights, root);
+      BTOR_CNEW (btor->mm, d);
+      d->weight      = 1; /* initial assertion weight */
+      b->data.as_ptr = d;
+    }
+  }
+  btor_init_ptr_hash_table_iterator (&pit, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  {
+    root = btor_next_ptr_hash_table_iterator (&pit);
+    if (btor_get_ptr_hash_table (btor->unsynthesized_constraints,
+                                 BTOR_INVERT_NODE (root)))
+      goto UNSAT;
+    if (btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)))
+      goto UNSAT;
     if (!btor_get_ptr_hash_table (slv->weights, root))
     {
       b = btor_add_ptr_hash_table (slv->weights, root);
