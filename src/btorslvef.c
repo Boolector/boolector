@@ -3251,6 +3251,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
     e_uf    = btor_next_node_map_iterator (&it);
     assert (btor_is_uf_node (e_uf_fs) || btor_param_is_exists_var (e_uf_fs));
 
+    if (btor_terminate_btor (gslv->forall)) break;
+
     /* map skolem functions to resp. synthesized functions */
     if (btor_mapped_node (gslv->forall_evar_deps, e_uf_fs)
         || btor_is_uf_node (e_uf_fs))
@@ -4046,10 +4048,12 @@ UNDERAPPROX:
 
   /* if refinement fails, we got a counter-example that we already got in
    * a previous call. in this case we produce a model using all refinements */
-  if (!refine_exists_solver (gslv))
+  start             = time_stamp ();
+  failed_refinement = !refine_exists_solver (gslv);
+  gslv->statistics->time.refine += time_stamp () - start;
+  if (failed_refinement)
   {
     printf ("failed refinment\n");
-    failed_refinement = true;
     btor_release_exp (gslv->forall, g);
     gslv->statistics->stats.failed_refinements++;
     goto RESTART;
@@ -4189,8 +4193,10 @@ thread_work (void *state)
   BtorSolverResult res = BTOR_RESULT_UNKNOWN;
   BtorEFGroundSolvers *gslv;
   bool skip_exists = true;
+  double start;
 
-  gslv = state;
+  start = time_stamp ();
+  gslv  = state;
   while (res == BTOR_RESULT_UNKNOWN && !thread_found_result)
   {
     res         = find_model (gslv, skip_exists);
@@ -4200,7 +4206,10 @@ thread_work (void *state)
   pthread_mutex_lock (&thread_result_mutex);
   if (!thread_found_result)
   {
-    BTOR_MSG (gslv->exists->msg, 1, "found solution");
+    BTOR_MSG (gslv->exists->msg,
+              1,
+              "found solution in %.2f seconds",
+              time_stamp () - start);
     thread_found_result = true;
   }
   assert (thread_found_result || res == BTOR_RESULT_UNKNOWN);
@@ -4480,6 +4489,10 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
             1,
             "%.2f seconds quantifier instantiation",
             slv->statistics.time.qinst);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds refinement",
+            slv->statistics.time.refine);
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
     BTOR_MSG (slv->btor->msg,
@@ -4502,6 +4515,10 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
               1,
               "%.2f seconds dual find partial model",
               slv->dual_statistics.time.findpm);
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "%.2f seconds dual refinement",
+              slv->dual_statistics.time.refine);
   }
 }
 
