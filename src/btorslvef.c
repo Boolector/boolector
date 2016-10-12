@@ -547,6 +547,7 @@ collect_consts (Btor *btor, BtorNode *root, BtorNodePtrStack *consts)
 
     if (btor_is_bv_const_node (real_cur)) BTOR_PUSH_STACK (mm, *consts, cur);
 
+    btor_add_int_hash_table (cache, id);
     for (i = 0; i < real_cur->arity; i++)
       BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
   }
