@@ -733,7 +733,7 @@ print_static_stats (int sat_res)
                   process,
                   real > 0 ? (100 * process) / real / 2 : 0.0);
   else
-    btormain_msg ("%.1f seconds process %s", process);
+    btormain_msg ("%.1f seconds process", process);
 #else
   btormain_msg ("can not determine run-time in seconds (no getrusage)");
 #endif
