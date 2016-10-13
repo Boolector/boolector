@@ -1235,6 +1235,7 @@ synthesize (Btor *btor,
   }
 DONE:
   report_stats (btor, start, cur_level, num_checks, &candidates);
+  report_op_stats (btor, ops, nops);
   //  max_chain_length (sigs);
 
   if (found_candidate)
@@ -1256,6 +1257,14 @@ DONE:
       result          = btor_const_exp (btor, tmp_value_out[0]);
     }
   }
+
+  if (found_candidate)
+    BTOR_MSG (btor->msg,
+              1,
+              "found candidate after enumerating %u expressions",
+              num_checks);
+  else
+    BTOR_MSG (btor->msg, 1, "no candidate found");
 
   /* cleanup */
   for (i = 1; i < BTOR_COUNT_STACK (candidates.exps); i++)
