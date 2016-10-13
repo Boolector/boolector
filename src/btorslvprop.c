@@ -700,6 +700,8 @@ select_path_cond (Btor *btor,
                   BtorBitVector *bve0)
 {
   assert (btor);
+  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (cond);
   assert (BTOR_IS_REGULAR_NODE (cond));
   assert (bvcond);
@@ -708,7 +710,6 @@ select_path_cond (Btor *btor,
   bool e1const, e2const;
   int32_t eidx;
   uint32_t prob;
-  BtorPropSolver *slv;
 
   (void) bvcond;
 
@@ -718,7 +719,6 @@ select_path_cond (Btor *btor,
   {
     e1const = btor_is_bv_const_node (cond->e[1]);
     e2const = btor_is_bv_const_node (cond->e[2]);
-    slv     = BTOR_PROP_SOLVER (btor);
 
     /* flip condition */
     if (((e1const && btor_is_true_bv (bve0))
@@ -729,16 +729,40 @@ select_path_cond (Btor *btor,
                     btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB))))
     {
       eidx = 0;
-      if (++slv->npathsel_cond_const
-          == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
+
+      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
       {
-        slv->npathsel_cond_const = 0;
-        slv->flip_cond_const_prob_delta =
-            prob == 0 ? 100
-                      : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
-        btor_set_opt (btor,
-                      BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
-                      prob + slv->flip_cond_const_prob_delta);
+        BtorPropSolver *slv;
+        slv = BTOR_PROP_SOLVER (btor);
+        if (++slv->npathsel_cond_const
+            == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
+        {
+          slv->npathsel_cond_const = 0;
+          slv->flip_cond_const_prob_delta =
+              prob == 0
+                  ? 100
+                  : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
+          btor_set_opt (btor,
+                        BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+                        prob + slv->flip_cond_const_prob_delta);
+        }
+      }
+      else
+      {
+        BtorSLSSolver *slv;
+        slv = BTOR_SLS_SOLVER (btor);
+        if (++slv->npathsel_cond_const
+            == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
+        {
+          slv->npathsel_cond_const = 0;
+          slv->flip_cond_const_prob_delta =
+              prob == 0
+                  ? 100
+                  : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
+          btor_set_opt (btor,
+                        BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+                        prob + slv->flip_cond_const_prob_delta);
+        }
       }
     }
     else if (btor_pick_with_prob_rng (
@@ -2889,7 +2913,7 @@ btor_select_move_prop (Btor *btor,
       == 0);
 
   bool b;
-  int i, nconst, eidx, idx;
+  int32_t i, nconst, eidx, idx;
   uint64_t props;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;

@@ -90,6 +90,8 @@ btor_propsls_update_cone (Btor *btor,
                           double *time_update_cone_compute_score)
 {
   assert (btor);
+  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (bv_model);
   assert (roots);
   assert (exps);
@@ -665,6 +667,8 @@ btor_propsls_compute_sls_scores (Btor *btor,
                                  BtorPtrHashTable *score)
 {
   assert (btor);
+  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (bv_model);
   assert (fun_model);
   assert (score);

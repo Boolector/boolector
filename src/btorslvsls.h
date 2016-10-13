@@ -76,6 +76,10 @@ struct BtorSLSSolver
   BtorSLSMoveKind max_move; /* move kind (for stats) */
   int32_t max_gw;           /* is groupwise move? (for stats) */
 
+  uint32_t flip_cond_const_prob;
+  int32_t flip_cond_const_prob_delta;
+  uint32_t npathsel_cond_const;
+
   /* statistics */
   struct
   {
