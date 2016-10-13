@@ -38,7 +38,7 @@ btor_delete_btor_msg (BtorMsg *msg)
 }
 
 void
-btor_msg (BtorMsg *msg, bool log, char *filename, char *fmt, ...)
+btor_msg (BtorMsg *msg, bool log, const char *filename, const char *fmt, ...)
 {
   va_list ap;
   char *path, *fname, *c, *p;
