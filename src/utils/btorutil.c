@@ -18,6 +18,7 @@
 #ifndef NDEBUG
 #include <float.h>
 #endif
+#include <sys/time.h>
 #include <time.h>
 
 /*------------------------------------------------------------------------*/
@@ -441,9 +442,8 @@ btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str)
 double
 btor_time_stamp (void)
 {
-  double res = -1;
+  double res = 0;
   struct rusage u;
-  res = 0;
   if (!getrusage (RUSAGE_SELF, &u))
   {
     res += u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
@@ -457,7 +457,7 @@ double
 btor_process_time_thread (void)
 {
   struct timespec ts;
-  double res = -1;
+  double res = 0;
   if (!clock_gettime (CLOCK_THREAD_CPUTIME_ID, &ts))
     res += (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000;
   return res;
