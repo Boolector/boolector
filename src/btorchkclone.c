@@ -114,10 +114,7 @@ cmp_data_as_sls_constr_data_ptr (const BtorHashTableData *d1,
 }
 
 static inline void
-chkclone_int_hash_map (BtorIntHashTable *table,
-                       BtorIntHashTable *clone,
-                       int (*cmp_data) (const BtorHashTableData *,
-                                        const BtorHashTableData *))
+chkclone_int_hash_table (BtorIntHashTable *table, BtorIntHashTable *clone)
 {
   size_t i;
 
@@ -138,7 +135,36 @@ chkclone_int_hash_map (BtorIntHashTable *table,
       continue;
     }
     assert (table->keys[i] == clone->keys[i]);
-    if (cmp_data) assert (!cmp_data (&table->data[i], &clone->data[i]));
+  }
+  assert (i >= clone->size);
+}
+
+static inline void
+chkclone_int_hash_map (BtorIntHashTable *map,
+                       BtorIntHashTable *clone,
+                       int (*cmp_data) (const BtorHashTableData *,
+                                        const BtorHashTableData *))
+{
+  size_t i;
+
+  if (!map)
+  {
+    assert (!clone);
+    return;
+  }
+
+  assert (map->size == clone->size);
+  assert (map->count == clone->count);
+  for (i = 0; i < map->size; i++)
+  {
+    assert (i < clone->size);
+    if (!map->keys[i])
+    {
+      assert (!clone->keys[i]);
+      continue;
+    }
+    assert (map->keys[i] == clone->keys[i]);
+    if (cmp_data) assert (!cmp_data (&map->data[i], &clone->data[i]));
   }
   assert (i >= clone->size);
 }
@@ -849,10 +875,8 @@ chkclone_tables (Btor *btor)
     while (btor_has_next_ptr_hash_table_iterator (&it))
     {
       assert (btor_has_next_ptr_hash_table_iterator (&cit));
-      chkclone_node_ptr_hash_table (
-          (BtorPtrHashTable *) it.bucket->data.as_ptr,
-          (BtorPtrHashTable *) cit.bucket->data.as_ptr,
-          0);
+      chkclone_int_hash_table ((BtorIntHashTable *) it.bucket->data.as_ptr,
+                               (BtorIntHashTable *) cit.bucket->data.as_ptr);
       BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&it),
                            btor_next_ptr_hash_table_iterator (&cit));
     }
