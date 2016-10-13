@@ -66,6 +66,16 @@ update_roots_table (Btor *btor,
   }
 }
 
+/* Note: 'roots' will only be updated if 'update_roots' is true.
+ *         + PROP engine: always
+ *         + SLS  engine: only if an actual move is performed
+ *                        (not during neighborhood exploration, 'try_move')
+ *       -> assertion code guarded with '#ifndef NDEBUG' is therefore
+ *          always valid since 'roots' always maintains a valid state
+ *          ('try_move' of the SLS engine is the only case where 'roots'
+ *           might become globally invalid, i.e., when a tried move
+ *           is not actually performed, however in that particular case
+ *           we do not update 'roots') */
 void
 btor_propsls_update_cone (Btor *btor,
                           BtorPtrHashTable *bv_model,
@@ -292,8 +302,7 @@ btor_propsls_update_cone (Btor *btor,
   if (score)
   {
     delta = btor_time_stamp ();
-    btor_propsls_compute_sls_scores (
-        btor, btor->bv_model, btor->fun_model, score);
+    btor_propsls_compute_sls_scores (btor, bv_model, btor->fun_model, score);
     *time_update_cone_compute_score += btor_time_stamp () - delta;
   }
 

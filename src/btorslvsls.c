@@ -54,7 +54,7 @@
 /*------------------------------------------------------------------------*/
 
 static double
-compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score)
+compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score, bool *done)
 {
   assert (btor);
   assert (score);
@@ -62,7 +62,7 @@ compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score)
   double res, sc, weight;
   BtorNode *root;
   BtorSLSSolver *slv;
-  BtorIntHashTableIterator iit;
+  BtorPtrHashTableIterator pit;
 
   slv = BTOR_SLS_SOLVER (btor);
   assert (slv);
@@ -70,15 +70,14 @@ compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score)
   assert (slv->weights);
 
   res = 0.0;
-  btor_init_int_hash_table_iterator (&iit, slv->roots);
-  while (btor_has_next_int_hash_table_iterator (&iit))
+  if (done) *done = true;
+  btor_init_ptr_hash_table_iterator (&pit, slv->weights);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
-    root = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
-    weight = (double) ((BtorSLSConstrData *) btor_get_ptr_hash_table (
-                           slv->weights, root)
-                           ->data.as_ptr)
-                 ->weight;
-    sc = btor_get_ptr_hash_table (score, root)->data.as_dbl;
+    weight = (double) ((BtorSLSConstrData *) pit.bucket->data.as_ptr)->weight;
+    root   = btor_next_ptr_hash_table_iterator (&pit);
+    sc     = btor_get_ptr_hash_table (score, root)->data.as_dbl;
+    if (done && sc < 1.0) *done = false;
     res += weight * sc;
   }
   return res;
@@ -326,13 +325,15 @@ static inline double
 try_move (Btor *btor,
           BtorPtrHashTable *bv_model,
           BtorPtrHashTable *score,
-          BtorIntHashTable *cans)
+          BtorIntHashTable *cans,
+          bool *done)
 {
   assert (btor);
   assert (bv_model);
   assert (score);
   assert (cans);
   assert (cans->count);
+  assert (done);
 
   BtorSLSSolver *slv;
 
@@ -379,7 +380,7 @@ try_move (Btor *btor,
                             &slv->time.update_cone_model_gen,
                             &slv->time.update_cone_compute_score);
 
-  return compute_sls_score_formula (btor, score);
+  return compute_sls_score_formula (btor, score, done);
 }
 
 static int
@@ -397,7 +398,6 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
 #define BTOR_SLS_SELECT_MOVE_CHECK_SCORE(sc)                                  \
   do                                                                          \
   {                                                                           \
-    done = !slv->roots->count;                                                \
     if (done                                                                  \
         || (sls_strat != BTOR_SLS_STRAT_PROB_RAND_WALK                        \
             && ((sc) > slv->max_score                                         \
@@ -443,15 +443,16 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
     }                                                                         \
   } while (0)
 
-static inline int
+static inline bool
 select_inc_dec_not_move (Btor *btor,
                          BtorBitVector *(*fun) (BtorMemMgr *,
                                                 const BtorBitVector *),
                          BtorNodePtrStack *candidates,
                          int gw)
 {
-  int i, done = 0;
+  int32_t i;
   uint32_t sls_strat;
+  bool done;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -501,7 +502,7 @@ select_inc_dec_not_move (Btor *btor,
             : fun (btor->mm, ass);
   }
 
-  sc = try_move (btor, bv_model, score, cans);
+  sc = try_move (btor, bv_model, score, cans, &done);
   BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
 
 DONE:
@@ -510,11 +511,12 @@ DONE:
   return done;
 }
 
-static inline int
+static inline bool
 select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
-  int i, n_endpos, done = 0;
+  int32_t i, n_endpos;
   uint32_t pos, cpos, sls_strat;
+  bool done;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -561,7 +563,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               : btor_flipped_bit_bv (btor->mm, ass, cpos);
     }
 
-    sc = try_move (btor, bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans, &done);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
@@ -571,11 +573,12 @@ DONE:
   return done;
 }
 
-static inline int
+static inline bool
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
-  int i, n_endpos, done = 0;
+  int32_t i, n_endpos;
   uint32_t up, cup, clo, sls_strat;
+  bool done;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -635,7 +638,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
     }
 
-    sc = try_move (btor, bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans, &done);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
@@ -645,11 +648,12 @@ DONE:
   return done;
 }
 
-static inline int
+static inline bool
 select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
-  int i, ctmp, n_endpos, done = 0;
+  int32_t i, ctmp, n_endpos;
   uint32_t lo, clo, up, cup, seg, sls_strat;
+  bool done;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -716,7 +720,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
                 : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
       }
 
-      sc = try_move (btor, bv_model, score, cans);
+      sc = try_move (btor, bv_model, score, cans, &done);
       BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
     }
   }
@@ -727,12 +731,13 @@ DONE:
   return done;
 }
 
-static inline int
+static inline bool
 select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc, rand_max_score = -1.0;
-  int i, n_endpos, done = 0;
+  int32_t i, n_endpos;
   uint32_t up, cup, clo, sls_strat;
+  bool done;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BtorBitVector *ass;
@@ -785,7 +790,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
               btor->mm, &btor->rng, ass->width, cup, clo);
     }
 
-    sc = try_move (btor, bv_model, score, cans);
+    sc = try_move (btor, bv_model, score, cans, &done);
     if (rand_max_score == -1.0 || sc > rand_max_score)
     {
       /* reset, use current */
@@ -801,7 +806,7 @@ DONE:
   return done;
 }
 
-static inline int
+static inline bool
 select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   assert (btor);
@@ -809,9 +814,9 @@ select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
   assert (gw >= 0);
 
   BtorSLSMoveKind mk;
-  int done;
+  bool done;
 
-  for (mk = 0, done = 0; mk < BTOR_SLS_MOVE_DONE; mk++)
+  for (mk = 0, done = false; mk < BTOR_SLS_MOVE_DONE; mk++)
   {
     switch (mk)
     {
@@ -859,8 +864,9 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  int32_t i, r, done;
+  int32_t i, r;
   bool randomizeall;
+  bool done;
   double rd, sum;
   BtorNode *can;
   BtorBitVector *neigh;
@@ -1193,7 +1199,7 @@ move (Btor *btor, uint32_t nmoves)
       goto DONE;
     }
 
-    slv->max_score = compute_sls_score_formula (btor, slv->score);
+    slv->max_score = compute_sls_score_formula (btor, slv->score, 0);
     slv->max_move  = BTOR_SLS_MOVE_DONE;
     slv->max_gw    = -1;
 
