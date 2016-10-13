@@ -42,7 +42,7 @@ struct BtorEFStats
     double synth;
     double qinst;
     double findpm;
-    double refine;
+    double checkinst;
   } time;
 };
 

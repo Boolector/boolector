@@ -3981,14 +3981,16 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     start       = time_stamp ();
     synth_model = synthesize_model (gslv, flat_model);
     flat_model_free (flat_model);
-    gslv->statistics->time.synth += time_stamp () - start;
 
     /* save currently synthesized model */
     delete_model (gslv);
     gslv->forall_synth_model = synth_model;
+    gslv->statistics->time.synth += time_stamp () - start;
   }
 
-  g = instantiate_formula (gslv, synth_model);
+  start = time_stamp ();
+  g     = instantiate_formula (gslv, synth_model);
+  gslv->statistics->time.checkinst += time_stamp () - start;
 
   /* if there are no universal variables in the formula, we have a simple
    * ground formula */
@@ -4040,7 +4042,7 @@ UNDERAPPROX:
    * a previous call. in this case we produce a model using all refinements */
   start             = time_stamp ();
   failed_refinement = !refine_exists_solver (gslv);
-  gslv->statistics->time.refine += time_stamp () - start;
+  gslv->statistics->time.qinst += time_stamp () - start;
   if (failed_refinement)
   {
     printf ("failed refinment\n");
@@ -4479,8 +4481,8 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
             slv->statistics.time.qinst);
   BTOR_MSG (slv->btor->msg,
             1,
-            "%.2f seconds refinement",
-            slv->statistics.time.refine);
+            "%.2f seconds check instantiation",
+            slv->statistics.time.checkinst);
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
     BTOR_MSG (slv->btor->msg,
@@ -4505,8 +4507,8 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
               slv->dual_statistics.time.findpm);
     BTOR_MSG (slv->btor->msg,
               1,
-              "%.2f seconds dual refinement",
-              slv->dual_statistics.time.refine);
+              "%.2f seconds dual check instantiation",
+              slv->dual_statistics.time.checkinst);
   }
 }
 
