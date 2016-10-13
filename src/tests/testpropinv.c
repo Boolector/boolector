@@ -12,8 +12,7 @@
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorslvprop.h"
-#include "btorslvsls.h"
+#include "btorslvpropsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 

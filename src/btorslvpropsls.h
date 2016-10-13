@@ -23,6 +23,10 @@
 
 /*------------------------------------------------------------------------*/
 
+#define BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA 100
+
+/*------------------------------------------------------------------------*/
+
 static inline void
 btor_propsls_rec_conf (Btor* btor)
 {
@@ -83,9 +87,86 @@ void btor_propsls_update_cone (Btor* btor,
                                double* time_update_cone_model_gen,
                                double* time_update_cone_compute_score);
 
+uint64_t btor_propsls_select_move_prop (Btor* btor,
+                                        BtorNode* root,
+                                        BtorNode** input,
+                                        BtorBitVector** assignment);
 void btor_propsls_compute_sls_scores (Btor* btor,
                                       BtorPtrHashTable* bv_model,
                                       BtorPtrHashTable* fun_model,
                                       BtorPtrHashTable* score);
+
+/*------------------------------------------------------------------------*/
+
+#ifndef NDEBUG
+BtorBitVector* inv_add_bv (Btor* btor,
+                           BtorNode* add_exp,
+                           BtorBitVector* bvadd,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_and_bv (Btor* btor,
+                           BtorNode* and_exp,
+                           BtorBitVector* bvand,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_eq_bv (Btor* btor,
+                          BtorNode* eq_exp,
+                          BtorBitVector* bveq,
+                          BtorBitVector* bve,
+                          int eidx);
+
+BtorBitVector* inv_ult_bv (Btor* btor,
+                           BtorNode* ult_exp,
+                           BtorBitVector* bvult,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_sll_bv (Btor* btor,
+                           BtorNode* sll_exp,
+                           BtorBitVector* bvsll,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_srl_bv (Btor* btor,
+                           BtorNode* srl_exp,
+                           BtorBitVector* bvsrl,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_mul_bv (Btor* btor,
+                           BtorNode* mul_exp,
+                           BtorBitVector* bvmul,
+                           BtorBitVector* bve,
+                           int eidx);
+
+BtorBitVector* inv_udiv_bv (Btor* btor,
+                            BtorNode* div_exp,
+                            BtorBitVector* bvdiv,
+                            BtorBitVector* bve,
+                            int eidx);
+
+BtorBitVector* inv_urem_bv (Btor* btor,
+                            BtorNode* urem_exp,
+                            BtorBitVector* bvurem,
+                            BtorBitVector* bve,
+                            int eidx);
+
+BtorBitVector* inv_concat_bv (Btor* btor,
+                              BtorNode* conc_exp,
+                              BtorBitVector* bvconc,
+                              BtorBitVector* bve,
+                              int eidx);
+
+BtorBitVector* inv_slice_bv (Btor* btor,
+                             BtorNode* slice_exp,
+                             BtorBitVector* bvslice,
+                             BtorBitVector* bve);
+
+int sat_prop_solver_aux (Btor* btor);
+#endif
+
+/*------------------------------------------------------------------------*/
 
 #endif

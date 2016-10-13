@@ -10,12 +10,10 @@
  */
 
 #include "btorslvsls.h"
-
 #include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btormodel.h"
-#include "btorslvprop.h"
 #include "btorslvpropsls.h"
 #include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
@@ -1160,7 +1158,7 @@ move (Btor *btor, uint32_t nmoves)
      * is chosen via justification. If a non-recoverable conflict is
      * encountered, no move is performed. */
     slv->max_move = BTOR_SLS_MOVE_PROP;
-    (void) btor_select_move_prop (btor, constr, &can, &neigh);
+    (void) btor_propsls_select_move_prop (btor, constr, &can, &neigh);
     if (can)
     {
       assert (neigh);
@@ -1558,6 +1556,14 @@ sat_sls_solver (BtorSLSSolver *slv)
       sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
     }
+
+    /* init */
+    slv->prop_flip_cond_const_prob =
+        btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB);
+    slv->prop_flip_cond_const_prob_delta =
+        slv->prop_flip_cond_const_prob > (BTOR_PROB_MAX / 2)
+            ? -BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA
+            : BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA;
 
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);

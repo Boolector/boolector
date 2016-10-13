@@ -68,6 +68,11 @@ struct BtorSLSSolver
   uint32_t nslsmoves;        /* record #no moves for sls moves */
   double sum_score;          /* record sum of all scores for prob rand walk */
 
+  /* prop moves only */
+  uint32_t prop_flip_cond_const_prob;
+  int32_t prop_flip_cond_const_prob_delta;
+  uint32_t prop_nflip_cond_const;
+
   /* the following maintain data for the next move (i.e. either the move
    * with the maximum score of all tried moves, or a random walk, or a
    * randomized move). */
@@ -75,10 +80,6 @@ struct BtorSLSSolver
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
   int32_t max_gw;           /* is groupwise move? (for stats) */
-
-  uint32_t flip_cond_const_prob;
-  int32_t flip_cond_const_prob_delta;
-  uint32_t npathsel_cond_const;
 
   /* statistics */
   struct

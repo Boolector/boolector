@@ -23,9 +23,15 @@ struct BtorPropSolver
   BtorIntHashTable *roots;
   BtorPtrHashTable *score;
 
+  /* current probability for selecting the cond when either the
+   * 'then' or 'else' branch is const (path selection) */
   uint32_t flip_cond_const_prob;
+  /* current delta for updating the probability for selecting the cond
+   * when either the 'then' or 'else' branch is const (path selection) */
   int32_t flip_cond_const_prob_delta;
-  uint32_t npathsel_cond_const;
+  /* number of times the cond has already been selected when either
+   * the 'then' or 'else' branch is const */
+  uint32_t nflip_cond_const;
 
   struct
   {
@@ -81,81 +87,5 @@ typedef struct BtorPropSolver BtorPropSolver;
 BtorSolver *btor_new_prop_solver (Btor *btor);
 
 /*------------------------------------------------------------------------*/
-
-uint64_t btor_select_move_prop (Btor *btor,
-                                BtorNode *root,
-                                BtorNode **input,
-                                BtorBitVector **assignment);
-
-/*------------------------------------------------------------------------*/
-
-#ifndef NDEBUG
-BtorBitVector *inv_add_bv (Btor *btor,
-                           BtorNode *add_exp,
-                           BtorBitVector *bvadd,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_and_bv (Btor *btor,
-                           BtorNode *and_exp,
-                           BtorBitVector *bvand,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_eq_bv (Btor *btor,
-                          BtorNode *eq_exp,
-                          BtorBitVector *bveq,
-                          BtorBitVector *bve,
-                          int eidx);
-
-BtorBitVector *inv_ult_bv (Btor *btor,
-                           BtorNode *ult_exp,
-                           BtorBitVector *bvult,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_sll_bv (Btor *btor,
-                           BtorNode *sll_exp,
-                           BtorBitVector *bvsll,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_srl_bv (Btor *btor,
-                           BtorNode *srl_exp,
-                           BtorBitVector *bvsrl,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_mul_bv (Btor *btor,
-                           BtorNode *mul_exp,
-                           BtorBitVector *bvmul,
-                           BtorBitVector *bve,
-                           int eidx);
-
-BtorBitVector *inv_udiv_bv (Btor *btor,
-                            BtorNode *div_exp,
-                            BtorBitVector *bvdiv,
-                            BtorBitVector *bve,
-                            int eidx);
-
-BtorBitVector *inv_urem_bv (Btor *btor,
-                            BtorNode *urem_exp,
-                            BtorBitVector *bvurem,
-                            BtorBitVector *bve,
-                            int eidx);
-
-BtorBitVector *inv_concat_bv (Btor *btor,
-                              BtorNode *conc_exp,
-                              BtorBitVector *bvconc,
-                              BtorBitVector *bve,
-                              int eidx);
-
-BtorBitVector *inv_slice_bv (Btor *btor,
-                             BtorNode *slice_exp,
-                             BtorBitVector *bvslice,
-                             BtorBitVector *bve);
-
-int sat_prop_solver_aux (Btor *btor);
-#endif
 
 #endif
