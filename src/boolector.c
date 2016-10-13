@@ -885,7 +885,6 @@ boolector_zero (Btor *btor, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
-  uint32_t width;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI (SORT_FMT, sort);
@@ -893,9 +892,7 @@ boolector_zero (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
-  res = btor_zero_exp (btor, width);
+  res = btor_zero_exp (btor, s);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -925,7 +922,6 @@ boolector_ones (Btor *btor, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
-  uint32_t width;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI (SORT_FMT, sort);
@@ -933,9 +929,7 @@ boolector_ones (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
-  res = btor_ones_exp (btor, width);
+  res = btor_ones_exp (btor, s);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -965,7 +959,6 @@ boolector_one (Btor *btor, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
-  uint32_t width;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI (SORT_FMT, sort);
@@ -973,9 +966,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
-  res = btor_one_exp (btor, width);
+  res = btor_one_exp (btor, s);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -989,7 +980,6 @@ boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
-  uint32_t width;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%u " SORT_FMT, u, sort);
@@ -997,9 +987,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
-  res = btor_unsigned_exp (btor, u, width);
+  res = btor_unsigned_exp (btor, u, s);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1013,7 +1001,6 @@ boolector_int (Btor *btor, int i, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
-  uint32_t width;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d " SORT_FMT, i, sort);
@@ -1021,9 +1008,7 @@ boolector_int (Btor *btor, int i, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
-  res = btor_int_exp (btor, i, width);
+  res = btor_int_exp (btor, i, s);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1040,20 +1025,17 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   BtorNode *res;
   char *symb;
   BtorSortId s;
-  uint32_t width;
 
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  symb  = (char *) symbol;
+  symb = (char *) symbol;
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_var_exp (btor, width, symb);
+  res = btor_var_exp (btor, s, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
@@ -1071,23 +1053,20 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   BtorNode *res;
   char *symb;
   BtorSortId s;
-  uint32_t elem_width, index_width;
 
   symb = (char *) symbol;
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
-  BTOR_ABORT (!btor_is_array_sort (btor, s), "'sort' is not an array sort");
-  elem_width =
-      btor_get_width_bitvec_sort (btor, btor_get_element_array_sort (btor, s));
-  index_width =
-      btor_get_width_bitvec_sort (btor, btor_get_index_array_sort (btor, s));
+  BTOR_ABORT (!btor_is_fun_sort (btor, s)
+                  || btor_get_arity_tuple_sort (
+                         btor, btor_get_domain_fun_sort (btor, s))
+                         != 1,
+              "'sort' is not an array sort");
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
-  BTOR_ABORT (elem_width < 1, "'elem_width' must not be < 1");
-  BTOR_ABORT (index_width < 1, "'index_width' must not be < 1");
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_array_exp (btor, elem_width, index_width, symb);
+  res = btor_array_exp (btor, s, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
@@ -1544,10 +1523,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_BTOR_MISMATCH (btor, e0);
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
-  BTOR_ABORT (
-      BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
-      "nodes must have equal sorts");
-  BTOR_ABORT (btor_is_fun_sort (btor, BTOR_REAL_ADDR_NODE (e0)->sort_id)
+  BTOR_ABORT (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1),
+              "nodes must have equal sorts");
+  BTOR_ABORT (btor_is_fun_sort (btor, btor_exp_get_sort_id (e0))
                   && (BTOR_REAL_ADDR_NODE (e0)->parameterized
                       || BTOR_REAL_ADDR_NODE (e1)->parameterized),
               "parameterized function equalities not supported");
@@ -1575,10 +1553,9 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_BTOR_MISMATCH (btor, e0);
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
-  BTOR_ABORT (
-      BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
-      "nodes must have equal sorts");
-  BTOR_ABORT (btor_is_fun_sort (btor, BTOR_REAL_ADDR_NODE (e0)->sort_id)
+  BTOR_ABORT (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1),
+              "nodes must have equal sorts");
+  BTOR_ABORT (btor_is_fun_sort (btor, btor_exp_get_sort_id (e0))
                   && (BTOR_REAL_ADDR_NODE (e0)->parameterized
                       || BTOR_REAL_ADDR_NODE (e1)->parameterized),
               "parameterized function equalities not supported");
@@ -2424,8 +2401,8 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
   BTOR_ABORT_IS_BV (e_array);
   BTOR_ABORT_IS_NOT_BV (e_index);
   BTOR_ABORT (
-      btor_get_index_array_sort (btor, e_array->sort_id)
-          != BTOR_REAL_ADDR_NODE (e_index)->sort_id,
+      btor_get_index_array_sort (btor, btor_exp_get_sort_id (e_array))
+          != btor_exp_get_sort_id (e_index),
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
   res = btor_read_exp (btor, e_array, e_index);
   inc_exp_ext_ref_counter (btor, res);
@@ -2464,11 +2441,11 @@ boolector_write (Btor *btor,
   BTOR_ABORT_IS_NOT_BV (e_index);
   BTOR_ABORT_IS_NOT_BV (e_value);
   BTOR_ABORT (
-      btor_get_index_array_sort (btor, e_array->sort_id)
-          != BTOR_REAL_ADDR_NODE (e_index)->sort_id,
+      btor_get_index_array_sort (btor, btor_exp_get_sort_id (e_array))
+          != btor_exp_get_sort_id (e_index),
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
-  BTOR_ABORT (btor_get_element_array_sort (btor, e_array->sort_id)
-                  != BTOR_REAL_ADDR_NODE (e_value)->sort_id,
+  BTOR_ABORT (btor_get_element_array_sort (btor, btor_exp_get_sort_id (e_array))
+                  != btor_exp_get_sort_id (e_value),
               "element bit-width of 'e_array' and bit-width of 'e_value' must "
               "be equal");
   res = btor_write_exp (btor, e_array, e_index, e_value);
@@ -2510,8 +2487,7 @@ boolector_cond (Btor *btor,
   BTOR_ABORT_IS_NOT_BV (e_cond);
   BTOR_ABORT (btor_get_exp_width (btor, e_cond) != 1,
               "bit-width of 'e_cond' must be equal to 1");
-  BTOR_ABORT (BTOR_REAL_ADDR_NODE (e_if)->sort_id
-                  != BTOR_REAL_ADDR_NODE (e_else)->sort_id,
+  BTOR_ABORT (btor_exp_get_sort_id (e_if) != btor_exp_get_sort_id (e_else),
               "sorts of 'e_if' and 'e_else' branch must be equal");
   res = btor_cond_exp (btor, e_cond, e_if, e_else);
   inc_exp_ext_ref_counter (btor, res);
@@ -2533,7 +2509,6 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
 
   BtorNode *res;
   char *symb;
-  uint32_t width;
   BtorSortId s;
 
   symb = (char *) symbol;
@@ -2542,12 +2517,10 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
-  width = btor_get_width_bitvec_sort (btor, s);
-  BTOR_ABORT (width < 1, "'width' must not be < 1");
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_param_exp (btor, width, symb);
+  res = btor_param_exp (btor, s, symb);
   inc_exp_ext_ref_counter (btor, res);
 
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2638,7 +2611,7 @@ boolector_apply (Btor *btor,
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
-  BTOR_ABORT (!btor_is_fun_sort (btor, BTOR_REAL_ADDR_NODE (e_fun)->sort_id),
+  BTOR_ABORT (!btor_is_fun_sort (btor, btor_exp_get_sort_id (e_fun)),
               "'e_fun' must be a function");
   BTOR_ABORT (
       (uint32_t) argc != btor_get_fun_arity (btor, e_fun),
@@ -2759,7 +2732,7 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_TRAPI_UNFUN (exp);
-  res = BTOR_REAL_ADDR_NODE (exp)->sort_id;
+  res = btor_exp_get_sort_id (exp);
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
@@ -2779,8 +2752,7 @@ boolector_fun_get_domain_sort (Btor *btor, const BoolectorNode *node)
   BTOR_ABORT (!btor_is_fun_node (btor_simplify_exp (btor, exp)),
               "node must be a function node");
   BTOR_TRAPI_UNFUN (exp);
-  res = ((BtorFunSort) btor_get_sort_by_id (btor,
-                                            BTOR_REAL_ADDR_NODE (exp)->sort_id)
+  res = ((BtorFunSort) btor_get_sort_by_id (btor, btor_exp_get_sort_id (exp))
              ->fun)
             .domain->id;
   BTOR_TRAPI_RETURN_SORT (res);
@@ -2802,8 +2774,7 @@ boolector_fun_get_codomain_sort (Btor *btor, const BoolectorNode *node)
   BTOR_ABORT (!btor_is_fun_node (btor_simplify_exp (btor, exp)),
               "node must be a function node");
   BTOR_TRAPI_UNFUN (exp);
-  res = ((BtorFunSort) btor_get_sort_by_id (btor,
-                                            BTOR_REAL_ADDR_NODE (exp)->sort_id)
+  res = ((BtorFunSort) btor_get_sort_by_id (btor, btor_exp_get_sort_id (exp))
              ->fun)
             .codomain->id;
   BTOR_TRAPI_RETURN_SORT (res);
@@ -2913,7 +2884,7 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  if (btor_is_fun_sort (btor, BTOR_REAL_ADDR_NODE (exp)->sort_id))
+  if (btor_is_fun_sort (btor, btor_exp_get_sort_id (exp)))
     res = btor_get_fun_exp_width (btor, exp);
   else
     res = btor_get_exp_width (btor, exp);
@@ -3650,7 +3621,7 @@ boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_BTOR_MISMATCH (btor, e0);
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
-  res = BTOR_REAL_ADDR_NODE (e0)->sort_id == BTOR_REAL_ADDR_NODE (e1)->sort_id;
+  res = btor_exp_get_sort_id (e0) == btor_exp_get_sort_id (e1);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_BOOL (

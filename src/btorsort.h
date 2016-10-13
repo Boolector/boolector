@@ -21,6 +21,8 @@
 #include <stdint.h>
 
 typedef uint32_t BtorSortId;
+// typedef struct btorsortanon btorsortanon; // debug
+// typedef btorsortanon* BtorSortId;
 
 enum BtorSortKind
 {
@@ -77,7 +79,7 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 struct BtorSort
 {
   BtorSortKind kind;  // what kind of sort
-  uint32_t id;        // fixed id
+  BtorSortId id;      // fixed id
   int refs;           // reference counter
   int ext_refs;       // reference counter for API references
   BtorSort *next;     // collision chain for unique table
@@ -100,8 +102,8 @@ BTOR_DECLARE_STACK (BtorSortId, BtorSortId);
 
 struct BtorSortUniqueTable
 {
-  int size;
-  int num_elements;
+  uint32_t size;
+  uint32_t num_elements;
   BtorSort **chains;
   BtorMemMgr *mm;
   BtorSortPtrStack id2sort;

@@ -48,7 +48,8 @@ btor_add_ackermann_constraints (Btor *btor)
       {
         app_j = BTOR_PEEK_STACK (applies, j);
         p     = 0;
-        assert (app_i->e[1]->sort_id == app_j->e[1]->sort_id);
+        assert (btor_exp_get_sort_id (app_i->e[1])
+                == btor_exp_get_sort_id (app_j->e[1]));
         btor_init_args_iterator (&ait_i, app_i->e[1]);
         btor_init_args_iterator (&ait_j, app_j->e[1]);
         while (btor_has_next_args_iterator (&ait_i))

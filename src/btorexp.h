@@ -198,6 +198,8 @@ struct BtorArgsNode
 
 typedef struct BtorArgsNode BtorArgsNode;
 
+/*------------------------------------------------------------------------*/
+
 #define BTOR_INVERT_NODE(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
 
 #define BTOR_IS_INVERTED_NODE(exp) (1ul & (unsigned long int) (exp))
@@ -225,6 +227,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
+
+/*------------------------------------------------------------------------*/
 
 static inline bool
 btor_is_unary_node_kind (BtorNodeKind kind)
@@ -458,6 +462,22 @@ void btor_release_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
+static inline BtorSortId
+btor_exp_get_sort_id (const BtorNode *exp)
+{
+  assert (exp);
+  return BTOR_REAL_ADDR_NODE (exp)->sort_id;
+}
+
+static inline void
+btor_exp_set_sort_id (BtorNode *exp, BtorSortId id)
+{
+  assert (exp);
+  BTOR_REAL_ADDR_NODE (exp)->sort_id = id;
+}
+
+/*------------------------------------------------------------------------*/
+
 /* These are only necessary in kind of internal wrapper code, which uses
  * the internal structure of expressions, e.g., BtorNode, but otherwise
  * works through the external API, e.g., BoolectorNode, particularly if
@@ -614,68 +634,51 @@ int btor_compare_exp_pair (const BtorNodePair *, const BtorNodePair *);
  */
 BtorNode *btor_const_exp (Btor *btor, const BtorBitVector *bits);
 
-/* Binary constant representing 'width' zeros.
- * width > 0
- * width(result) = width
+/* Binary constant representing zero.
  */
-BtorNode *btor_zero_exp (Btor *btor, uint32_t width);
+BtorNode *btor_zero_exp (Btor *btor, BtorSortId sort);
 
-/* Constant respresenting FALSE
- * width(result) = 1
+/* Binary constant representing all ones.
  */
-BtorNode *btor_false_exp (Btor *btor);
+BtorNode *btor_ones_exp (Btor *btor, BtorSortId sort);
 
-/* Binary constant representing 'width' ones.
- * width > 0
- * width(result) = width
+/* Binary constant representing 1.
  */
-BtorNode *btor_ones_exp (Btor *btor, uint32_t width);
+BtorNode *btor_one_exp (Btor *btor, BtorSortId sort);
 
 /* Constant respresenting TRUE
  * width(result) = 1
  */
 BtorNode *btor_true_exp (Btor *btor);
 
-/* Binary constant representing 1 with 'width' bits.
- * width > 0
- * width(result) = width
+/* Constant respresenting FALSE
+ * width(result) = 1
  */
-BtorNode *btor_one_exp (Btor *btor, uint32_t width);
-
-/* Binary constant representing the unsigned integer.
- * The constant is obtained by either truncating bits
- * or by unsigned extension (padding with zeroes).
- * width > 0
- */
-BtorNode *btor_unsigned_exp (Btor *btor, uint32_t u, uint32_t width);
+BtorNode *btor_false_exp (Btor *btor);
 
 /* Binary constant representing the signed integer.
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
- * width > 0
  */
-BtorNode *btor_int_exp (Btor *emg, int32_t i, uint32_t width);
+BtorNode *btor_int_exp (Btor *emg, int32_t i, BtorSortId sort);
 
-/* Variable representing 'width' bits.
- * width > 0
- * width(result) = width
+/* Binary constant representing the unsigned integer.
+ * The constant is obtained by either truncating bits
+ * or by unsigned extension (padding with zeroes).
  */
-BtorNode *btor_var_exp (Btor *btor, uint32_t width, const char *symbol);
+BtorNode *btor_unsigned_exp (Btor *btor, uint32_t u, BtorSortId sort);
 
-/* Lambda variable representing 'width' bits.
- * width > 0
- * width(result) = width
+/* Bit-vector variable.
  */
-BtorNode *btor_param_exp (Btor *btor, uint32_t width, const char *symbol);
+BtorNode *btor_var_exp (Btor *btor, BtorSortId sort, const char *symbol);
 
-/* Array of size 2 ^ 'index_width' with elements of width 'elem_width'.
- * elem_width > 0
- * index_width > 0
+/* Lambda variable.
  */
-BtorNode *btor_array_exp (Btor *btor,
-                          uint32_t elem_width,
-                          uint32_t index_width,
-                          const char *symbol);
+BtorNode *btor_param_exp (Btor *btor, BtorSortId sort, const char *symbol);
+
+/* Array variable.
+ */
+BtorNode *btor_array_exp (Btor *btor, BtorSortId sort, const char *symbol);
 
 /* Uninterpreted function with sort 'sort'.
  */

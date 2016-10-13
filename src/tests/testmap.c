@@ -70,13 +70,21 @@ test_mapnewdel ()
 void
 test_map0 ()
 {
-  Btor *stor       = btor_new_btor ();
-  Btor *dtor       = btor_new_btor ();
-  Btor *mtor       = btor_new_btor ();
-  BtorNode *s      = btor_var_exp (stor, 32, "s");
-  BtorNode *d      = btor_var_exp (dtor, 32, "d");
-  BtorNodeMap *map = btor_new_node_map (mtor);
-  BtorNode *m;
+  Btor *stor, *dtor, *mtor;
+  BtorNode *s, *d, *m;
+  BtorNodeMap *map;
+  BtorSortId sort;
+
+  stor = btor_new_btor ();
+  dtor = btor_new_btor ();
+  mtor = btor_new_btor ();
+  sort = btor_bitvec_sort (stor, 32);
+  s    = btor_var_exp (stor, sort, "s");
+  btor_release_sort (stor, sort);
+  sort = btor_bitvec_sort (dtor, 32);
+  d    = btor_var_exp (dtor, sort, "d");
+  btor_release_sort (dtor, sort);
+  map = btor_new_node_map (mtor);
   btor_map_node (map, s, d);
   m = btor_mapped_node (map, s);
   assert (m == d);
@@ -91,21 +99,26 @@ test_map0 ()
 void
 test_map1 ()
 {
-  Btor *stor       = btor_new_btor ();
-  Btor *dtor       = btor_new_btor ();
-  Btor *mtor       = btor_new_btor ();
-  BtorNode *s      = btor_var_exp (stor, 32, "0");
-  BtorNode *t      = btor_var_exp (stor, 32, "1");
-  BtorNode *a      = btor_and_exp (stor, s, t);
-  BtorNodeMap *map = btor_new_node_map (mtor);
+  Btor *stor, *mtor;
+  BtorNode *s, *t, *a;
+  BtorSortId sort;
+  BtorNodeMap *map;
+
+  stor = btor_new_btor ();
+  mtor = btor_new_btor ();
+  sort = btor_bitvec_sort (stor, 32);
+  s    = btor_var_exp (stor, sort, "0");
+  t    = btor_var_exp (stor, sort, "1");
+  a    = btor_and_exp (stor, s, t);
+  map  = btor_new_node_map (mtor);
   // BtorNode * m;
   // m = btor_mapped_node (map, s);
+  btor_release_sort (stor, sort);
   btor_release_exp (stor, t);
   btor_release_exp (stor, s);
   btor_release_exp (stor, a);
   btor_delete_node_map (map);
   btor_delete_btor (stor);
-  btor_delete_btor (dtor);
   btor_delete_btor (mtor);
 }
 

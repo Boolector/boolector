@@ -428,14 +428,14 @@ create_function_inequality (Btor *btor, BtorNode *feq)
   BTOR_INIT_STACK (args);
 
   mm      = btor->mm;
-  funsort = btor_get_domain_fun_sort (btor, feq->e[0]->sort_id);
+  funsort = btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (feq->e[0]));
 
   btor_init_tuple_sort_iterator (&it, btor, funsort);
   while (btor_has_next_tuple_sort_iterator (&it))
   {
     sort = btor_next_tuple_sort_iterator (&it);
     assert (btor_is_bitvec_sort (btor, sort));
-    var = btor_var_exp (btor, btor_get_width_bitvec_sort (btor, sort), 0);
+    var = btor_var_exp (btor, sort, 0);
     BTOR_PUSH_STACK (mm, args, var);
   }
 
@@ -1177,7 +1177,7 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
   BtorArgsIterator it0, it1;
   btor = e0->btor;
 
-  if (e0->sort_id != e1->sort_id) return 1;
+  if (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1)) return 1;
 
   btor_init_args_iterator (&it0, e0);
   btor_init_args_iterator (&it1, e1);
@@ -1368,7 +1368,7 @@ add_symbolic_lemma (Btor *btor,
    *   encode premisses: \forall i <= n . /\ a_i = b_i */
   if (args1)
   {
-    assert (args0->sort_id == args1->sort_id);
+    assert (btor_exp_get_sort_id (args0) == btor_exp_get_sort_id (args1));
 
     btor_init_args_iterator (&it0, args0);
     btor_init_args_iterator (&it1, args1);

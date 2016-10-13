@@ -278,7 +278,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (btor_is_fun_node (node));
   btor_init_tuple_sort_iterator (
-      &iit, btor, btor_get_domain_fun_sort (btor, node->sort_id));
+      &iit, btor, btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (node)));
   x = 0;
   while (btor_has_next_tuple_sort_iterator (&iit))
   {
@@ -288,7 +288,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     x++;
   }
   fprintf (file, ") ");
-  sort = btor_get_codomain_fun_sort (btor, node->sort_id);
+  sort = btor_get_codomain_fun_sort (btor, btor_exp_get_sort_id (node));
   btor_dump_sort_smt (btor_get_sort_by_id (btor, sort), file);
   fprintf (file, "\n");
 

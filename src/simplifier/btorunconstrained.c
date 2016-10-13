@@ -69,11 +69,11 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
 
   if (btor_is_lambda_node (exp) || btor_is_fun_cond_node (exp))
   {
-    subst           = btor_uf_exp (btor, exp->sort_id, 0);
+    subst           = btor_uf_exp (btor, btor_exp_get_sort_id (exp), 0);
     subst->is_array = exp->is_array;
   }
   else
-    subst = btor_var_exp (btor, btor_get_exp_width (btor, exp), 0);
+    subst = btor_var_exp (btor, btor_exp_get_sort_id (exp), 0);
 
   btor_insert_substitution (btor, exp, subst, 0);
   btor_release_exp (btor, subst);

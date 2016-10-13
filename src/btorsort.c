@@ -442,7 +442,14 @@ btor_array_sort (Btor *btor, BtorSortId index_id, BtorSortId element_id)
   assert (index_id < BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort));
   assert (element_id < BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort));
 
-  BtorSort *res, **pos, pattern, *index, *element;
+  BtorSortId tup, res;
+
+  tup = btor_tuple_sort (btor, &index_id, 1);
+  res = btor_fun_sort (btor, tup, element_id);
+  btor_release_sort (btor, tup);
+  return res;
+#if 0
+  BtorSort * res, ** pos, pattern, *index, *element;
   BtorSortUniqueTable *table;
 
   table = &btor->sorts_unique_table;
@@ -457,27 +464,28 @@ btor_array_sort (Btor *btor, BtorSortId index_id, BtorSortId element_id)
   assert (element->table == table);
 
   BTOR_CLR (&pattern);
-  pattern.kind          = BTOR_ARRAY_SORT;
-  pattern.array.index   = index;
+  pattern.kind = BTOR_ARRAY_SORT;
+  pattern.array.index = index;
   pattern.array.element = element;
-  pos                   = find_sort (table, &pattern);
+  pos = find_sort (table, &pattern);
   assert (pos);
   res = *pos;
-  if (!res)
-  {
-    if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+  if (!res) 
     {
-      enlarge_sorts_unique_table (table);
-      pos = find_sort (table, &pattern);
-      assert (pos);
-      res = *pos;
-      assert (!res);
+      if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+	{
+	  enlarge_sorts_unique_table (table);
+	  pos = find_sort (table, &pattern);
+	  assert (pos);
+	  res = *pos;
+	  assert (!res);
+	}
+      res = create_sort (table, &pattern);
+      *pos = res;
     }
-    res  = create_sort (table, &pattern);
-    *pos = res;
-  }
   inc_sort_ref_counter (res);
   return res->id;
+#endif
 }
 
 BtorSortId

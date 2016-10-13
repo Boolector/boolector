@@ -1055,19 +1055,20 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
 
   /* create params from domain sort */
   btor_init_tuple_sort_iterator (
-      &iit, btor, btor_get_domain_fun_sort (btor, exp->sort_id));
+      &iit, btor, btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (exp)));
   while (btor_has_next_tuple_sort_iterator (&iit))
   {
     sort = btor_next_tuple_sort_iterator (&iit);
     p    = btor_param_exp (btor, btor_get_width_bitvec_sort (btor, sort), 0);
     BTOR_PUSH_STACK (btor->mm, params, p);
   }
-  uf   = btor_uf_exp (btor, exp->sort_id, 0);
+  uf   = btor_uf_exp (btor, btor_exp_get_sort_id (exp), 0);
   args = btor_args_exp (btor, params.start, BTOR_COUNT_STACK (params));
-  assert (args->sort_id = btor_get_domain_fun_sort (btor, uf->sort_id));
+  assert (btor_exp_get_sort_id (args)
+          == btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (uf)));
   e_else = btor_apply_exp (btor, uf, args);
-  assert (BTOR_REAL_ADDR_NODE (e_else)->sort_id
-          == btor_get_codomain_fun_sort (btor, uf->sort_id));
+  assert (btor_exp_get_sort_id (e_else)
+          == btor_get_codomain_fun_sort (btor, btor_exp_get_sort_id (uf)));
   btor_release_exp (btor, args);
   btor_release_exp (btor, uf);
 
@@ -1087,8 +1088,8 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     for (i = 0; i < args_tuple->arity; i++)
     {
       c = btor_const_exp (btor, args_tuple->bv[i]);
-      assert (BTOR_REAL_ADDR_NODE (c)->sort_id
-              == BTOR_PEEK_STACK (params, i)->sort_id);
+      assert (btor_exp_get_sort_id (c)
+              == btor_exp_get_sort_id (BTOR_PEEK_STACK (params, i)));
       BTOR_PUSH_STACK (btor->mm, consts, c);
     }
 
@@ -1151,6 +1152,6 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   }
   else
     ((BtorLambdaNode *) res)->static_rho = static_rho;
-  assert (res->sort_id == exp->sort_id);
+  assert (btor_exp_get_sort_id (res) == btor_exp_get_sort_id (exp));
   return res;
 }

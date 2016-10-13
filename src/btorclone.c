@@ -1513,19 +1513,18 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
         case BTOR_BV_VAR_NODE:
           symbol =
               btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
-          cur_clone =
-              btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
+          cur_clone = btor_var_exp (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_PARAM_NODE:
           symbol =
               btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
           cur_clone =
-              btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
+              btor_param_exp (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_UF_NODE:
           symbol =
               btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
-          cur_clone = btor_uf_exp (clone, cur->sort_id, symbol);
+          cur_clone = btor_uf_exp (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_SLICE_NODE:
           cur_clone = btor_slice_exp (clone,
