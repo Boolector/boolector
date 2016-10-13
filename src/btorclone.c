@@ -247,18 +247,21 @@ btor_clone_data_as_bv_ptr_htable (BtorMemMgr *mm,
 /*------------------------------------------------------------------------*/
 
 static void
-clone_sorts_unique_table (BtorMemMgr *mm,
-                          BtorSortUniqueTable *table,
-                          BtorSortUniqueTable *res)
+clone_sorts_unique_table (Btor *btor, Btor *clone)
 {
-  assert (mm);
-  assert (table);
-  assert (res);
+  assert (btor);
+  assert (clone);
 
   unsigned i, j;
   BtorSort *sort, *csort;
   BtorSortId cid;
   BtorSortIdStack elements;
+  BtorSortUniqueTable *table, *res;
+  BtorMemMgr *mm;
+
+  mm    = clone->mm;
+  table = &btor->sorts_unique_table;
+  res   = &clone->sorts_unique_table;
 
   BTOR_INIT_STACK (elements);
 
@@ -280,32 +283,33 @@ clone_sorts_unique_table (BtorMemMgr *mm,
 
     switch (sort->kind)
     {
-      case BTOR_BOOL_SORT: cid = btor_bool_sort (res); break;
+      case BTOR_BOOL_SORT: cid = btor_bool_sort (clone); break;
 
       case BTOR_BITVEC_SORT:
-        cid = btor_bitvec_sort (res, sort->bitvec.width);
+        cid = btor_bitvec_sort (clone, sort->bitvec.width);
         break;
 
       case BTOR_LST_SORT:
-        cid = btor_lst_sort (res, sort->lst.head->id, sort->lst.tail->id);
+        cid = btor_lst_sort (clone, sort->lst.head->id, sort->lst.tail->id);
         break;
 
       case BTOR_ARRAY_SORT:
         cid = btor_array_sort (
-            res, sort->array.index->id, sort->array.element->id);
+            clone, sort->array.index->id, sort->array.element->id);
         break;
 
       case BTOR_FUN_SORT:
         assert (BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id));
-        cid = btor_fun_sort (res, sort->fun.domain->id, sort->fun.codomain->id);
+        cid =
+            btor_fun_sort (clone, sort->fun.domain->id, sort->fun.codomain->id);
         break;
 
       case BTOR_TUPLE_SORT:
         BTOR_RESET_STACK (elements);
         for (j = 0; j < sort->tuple.num_elements; j++)
           BTOR_PUSH_STACK (mm, elements, sort->tuple.elements[j]->id);
-        cid =
-            btor_tuple_sort (res, elements.start, BTOR_COUNT_STACK (elements));
+        cid = btor_tuple_sort (
+            clone, elements.start, BTOR_COUNT_STACK (elements));
         break;
 
       default: cid = 0; break;
@@ -730,17 +734,19 @@ clone_nodes_id_table (Btor *btor,
 }
 
 static void
-clone_nodes_unique_table (BtorMemMgr *mm,
-                          BtorNodeUniqueTable *table,
-                          BtorNodeUniqueTable *res,
-                          BtorNodeMap *exp_map)
+clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
 {
-  assert (mm);
-  assert (table);
-  assert (res);
+  assert (btor);
+  assert (clone);
   assert (exp_map);
 
   int i;
+  BtorNodeUniqueTable *table, *res;
+  BtorMemMgr *mm;
+
+  mm    = clone->mm;
+  table = &btor->nodes_unique_table;
+  res   = &clone->nodes_unique_table;
 
   BTOR_CNEWN (mm, res->chains, table->size);
   res->size         = table->size;
@@ -981,8 +987,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   }
 
   BTORLOG_TIMESTAMP (delta);
-  clone_sorts_unique_table (
-      mm, &btor->sorts_unique_table, &clone->sorts_unique_table);
+  clone_sorts_unique_table (btor, clone);
   BTORLOG (
       1, "  clone sorts unique table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
@@ -1042,8 +1047,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert (clone->true_exp);
 
   BTORLOG_TIMESTAMP (delta);
-  clone_nodes_unique_table (
-      mm, &btor->nodes_unique_table, &clone->nodes_unique_table, emap);
+  clone_nodes_unique_table (btor, clone, emap);
   BTORLOG (
       1, "  clone nodes unique table: %.3f s", (btor_time_stamp () - delta));
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))

@@ -13,13 +13,12 @@
 
 #include "boolector.h"
 #include "btorcore.h"
+#include "btoropt.h"
+#include "btorsort.h"
 #include "utils/btormem.h"
 #include "utils/btorrng.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
-// FIXME (ma): external sort handling?
-#include "btoropt.h"
-#include "btorsort.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -2530,15 +2529,13 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 
     // FIXME (ma): sort workaround
     BtorSort *sort;
-    sort = btor_get_sort_by_id (&mbt->btor->sorts_unique_table,
-                                ((BtorNode *) fun)->sort_id);
+    sort = btor_get_sort_by_id (mbt->btor, ((BtorNode *) fun)->sort_id);
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
-      BTOR_PUSH_STACK (
-          mbt->mm,
-          param_widths,
-          btor_get_width_bitvec_sort (&mbt->btor->sorts_unique_table,
-                                      sort->fun.domain->tuple.elements[i]->id));
+      BTOR_PUSH_STACK (mbt->mm,
+                       param_widths,
+                       btor_get_width_bitvec_sort (
+                           mbt->btor, sort->fun.domain->tuple.elements[i]->id));
     }
   }
   else /* generate new function */
@@ -2713,9 +2710,6 @@ btormbt_bv_uf (BtorMBT *mbt)
   BoolectorSort sort;
   BoolectorNodePtrStack stack;
   BtorTupleSortIterator it;
-  BtorSortUniqueTable *sorts;
-
-  sorts = &mbt->btor->sorts_unique_table;
 
   /* use existing UF */
   if (BTOR_COUNT_STACK (mbt->uf->exps)
@@ -2737,11 +2731,13 @@ btormbt_bv_uf (BtorMBT *mbt)
   /* create apply with sort of UF */
   BTOR_INIT_STACK (stack);
   btor_init_tuple_sort_iterator (
-      &it, sorts, btor_get_domain_fun_sort (sorts, ((BtorNode *) uf)->sort_id));
+      &it,
+      mbt->btor,
+      btor_get_domain_fun_sort (mbt->btor, ((BtorNode *) uf)->sort_id));
   while (btor_has_next_tuple_sort_iterator (&it))
   {
     sortid = btor_next_tuple_sort_iterator (&it);
-    width  = btor_get_width_bitvec_sort (sorts, sortid);
+    width  = btor_get_width_bitvec_sort (mbt->btor, sortid);
     arg    = select_exp (mbt, BTORMBT_BB_T, 0);
     BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, arg, width));
   }

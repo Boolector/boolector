@@ -421,7 +421,6 @@ create_function_inequality (Btor *btor, BtorNode *feq)
 
   BtorMemMgr *mm;
   BtorNode *var, *app0, *app1, *eq, *arg;
-  BtorSortUniqueTable *sorts;
   BtorSortId funsort, sort;
   BtorNodePtrStack args;
   BtorTupleSortIterator it;
@@ -429,15 +428,14 @@ create_function_inequality (Btor *btor, BtorNode *feq)
   BTOR_INIT_STACK (args);
 
   mm      = btor->mm;
-  sorts   = &btor->sorts_unique_table;
-  funsort = btor_get_domain_fun_sort (sorts, feq->e[0]->sort_id);
+  funsort = btor_get_domain_fun_sort (btor, feq->e[0]->sort_id);
 
-  btor_init_tuple_sort_iterator (&it, sorts, funsort);
+  btor_init_tuple_sort_iterator (&it, btor, funsort);
   while (btor_has_next_tuple_sort_iterator (&it))
   {
     sort = btor_next_tuple_sort_iterator (&it);
-    assert (btor_is_bitvec_sort (sorts, sort));
-    var = btor_var_exp (btor, btor_get_width_bitvec_sort (sorts, sort), 0);
+    assert (btor_is_bitvec_sort (btor, sort));
+    var = btor_var_exp (btor, btor_get_width_bitvec_sort (btor, sort), 0);
     BTOR_PUSH_STACK (mm, args, var);
   }
 

@@ -254,9 +254,6 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorBitVector *assignment, *tmp;
   BtorSortId sort;
   BtorTupleSortIterator iit;
-  BtorSortUniqueTable *sorts;
-
-  sorts = &btor->sorts_unique_table;
 
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (
       btor, btor_simplify_exp (btor, node));
@@ -281,18 +278,18 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (btor_is_fun_node (node));
   btor_init_tuple_sort_iterator (
-      &iit, sorts, btor_get_domain_fun_sort (sorts, node->sort_id));
+      &iit, btor, btor_get_domain_fun_sort (btor, node->sort_id));
   x = 0;
   while (btor_has_next_tuple_sort_iterator (&iit))
   {
     sort = btor_next_tuple_sort_iterator (&iit);
     fprintf (file, "\n%3c", ' ');
-    print_param_smt2 (s, x, btor_get_sort_by_id (sorts, sort), file);
+    print_param_smt2 (s, x, btor_get_sort_by_id (btor, sort), file);
     x++;
   }
   fprintf (file, ") ");
-  sort = btor_get_codomain_fun_sort (sorts, node->sort_id);
-  btor_dump_sort_smt (btor_get_sort_by_id (sorts, sort), file);
+  sort = btor_get_codomain_fun_sort (btor, node->sort_id);
+  btor_dump_sort_smt (btor_get_sort_by_id (btor, sort), file);
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */

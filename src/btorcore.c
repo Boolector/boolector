@@ -793,7 +793,7 @@ release_all_ext_sort_refs (Btor *btor)
     btor->external_refs -= sort->ext_refs;
     assert (sort->refs > 0);
     sort->ext_refs = 0;
-    btor_release_sort (&btor->sorts_unique_table, sort->id);
+    btor_release_sort (btor, sort->id);
   }
 }
 
@@ -3816,14 +3816,12 @@ btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
 
   uint32_t i, pos = -1;
   BtorSortId sort;
-  BtorSortUniqueTable *sorts;
   BtorTupleSortIterator it;
 
-  sorts = &btor->sorts_unique_table;
-  assert (btor_is_tuple_sort (sorts,
-                              btor_get_domain_fun_sort (sorts, fun->sort_id)));
+  assert (
+      btor_is_tuple_sort (btor, btor_get_domain_fun_sort (btor, fun->sort_id)));
   btor_init_tuple_sort_iterator (
-      &it, sorts, btor_get_domain_fun_sort (sorts, fun->sort_id));
+      &it, btor, btor_get_domain_fun_sort (btor, fun->sort_id));
   for (i = 0; i < argc; i++)
   {
     assert (btor_has_next_tuple_sort_iterator (&it));

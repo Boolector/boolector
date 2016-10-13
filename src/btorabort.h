@@ -62,22 +62,22 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
                 #argnode);                                                 \
   } while (0)
 
-#define BTOR_ABORT_IS_BV(arg)                                             \
-  do                                                                      \
-  {                                                                       \
-    BTOR_ABORT (btor_is_bitvec_sort (&btor->sorts_unique_table,           \
-                                     BTOR_REAL_ADDR_NODE (arg)->sort_id), \
-                "'%s' must not be a bit-vector\n",                        \
-                #arg);                                                    \
+#define BTOR_ABORT_IS_BV(arg)                                           \
+  do                                                                    \
+  {                                                                     \
+    BTOR_ABORT (                                                        \
+        btor_is_bitvec_sort (btor, BTOR_REAL_ADDR_NODE (arg)->sort_id), \
+        "'%s' must not be a bit-vector\n",                              \
+        #arg);                                                          \
   } while (0)
 
-#define BTOR_ABORT_IS_NOT_BV(arg)                                          \
-  do                                                                       \
-  {                                                                        \
-    BTOR_ABORT (!btor_is_bitvec_sort (&btor->sorts_unique_table,           \
-                                      BTOR_REAL_ADDR_NODE (arg)->sort_id), \
-                "'%s' must be a bit-vector\n",                             \
-                #arg);                                                     \
+#define BTOR_ABORT_IS_NOT_BV(arg)                                        \
+  do                                                                     \
+  {                                                                      \
+    BTOR_ABORT (                                                         \
+        !btor_is_bitvec_sort (btor, BTOR_REAL_ADDR_NODE (arg)->sort_id), \
+        "'%s' must be a bit-vector\n",                                   \
+        #arg);                                                           \
   } while (0)
 
 #define BTOR_ABORT_BW_MISMATCH(argbw1, argbw2)                  \
