@@ -169,7 +169,7 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
 }
 
 void
-btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
+btor_clone_data_as_ptr_htable (BtorMemMgr *mm,
                                const void *map,
                                BtorHashTableData *data,
                                BtorHashTableData *cloned_data)
@@ -190,7 +190,7 @@ btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
 }
 
 void
-btor_clone_data_as_htable_int (BtorMemMgr *mm,
+btor_clone_data_as_int_htable (BtorMemMgr *mm,
                                const void *map,
                                BtorHashTableData *data,
                                BtorHashTableData *cloned_data)
@@ -224,7 +224,7 @@ btor_clone_data_as_htable_int (BtorMemMgr *mm,
 }
 
 void
-btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
+btor_clone_data_as_bv_ptr_htable (BtorMemMgr *mm,
                                   const void *map,
                                   BtorHashTableData *data,
                                   BtorHashTableData *cloned_data)
@@ -1147,7 +1147,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
             == clone->mm->allocated);
   }
 #endif
-  CLONE_PTR_HASH_TABLE_DATA (fun_model, btor_clone_data_as_bv_htable_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (fun_model, btor_clone_data_as_bv_ptr_htable);
 #ifndef NDEBUG
   if (btor->fun_model)
   {
@@ -1224,7 +1224,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       btor_clone_ptr_hash_table (mm,
                                  btor->parameterized,
                                  btor_clone_key_as_node,
-                                 btor_clone_data_as_htable_int,
+                                 btor_clone_data_as_int_htable,
                                  emap,
                                  emap);
   BTORLOG (

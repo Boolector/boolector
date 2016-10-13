@@ -70,7 +70,7 @@ clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
       res->score = btor_clone_ptr_hash_table (clone->mm,
                                               slv->score,
                                               btor_clone_key_as_node,
-                                              btor_clone_data_as_htable_ptr,
+                                              btor_clone_data_as_ptr_htable,
                                               exp_map,
                                               exp_map);
     }
