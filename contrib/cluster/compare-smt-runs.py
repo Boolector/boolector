@@ -536,9 +536,13 @@ def _normalize_data(data):
                 v = sorted(
                     [(data['time_time'][d][f], d) \
                         for d in g_args.dirs \
-                            if data['time_time'][d][f] is not None])
+                            if data['time_time'][d][f] is not None \
+                               and data['status'][d][f] == "ok"])
 
-                best_dir = v[0][1]
+                if len(v) == 0:
+                    best_dir = g_args.dirs[0]
+                else:
+                    best_dir = v[0][1]
                 for k in data.keys():
                     if vb_dir not in data[k]:
                         data[k][vb_dir] = {}
@@ -1306,7 +1310,8 @@ if __name__ == "__main__":
 
         for d in g_args.dirs:
             if not os.path.isdir(d):
-                raise CmpSMTException ("given smt run is not a directory")
+                raise CmpSMTException (
+                        "given smt run '{}' is not a directory".format(d))
 
         if g_args.columns is None:
             if g_args.g:
