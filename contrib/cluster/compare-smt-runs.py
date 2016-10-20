@@ -40,7 +40,7 @@ def _get_name_and_ext (fname):
 FILTER_LOG = {
   'lods':
       ['LODS', 
-       lambda x: b'LOD' in x, 
+       lambda x: b'LOD refinements' in x, 
        lambda x: x.split()[3], 
        lambda x: int(x),
        False],
@@ -199,7 +199,58 @@ FILTER_LOG = {
        lambda x: b'dual prop: failed applies:' in x,
        lambda x: x.split()[5],
        lambda x: int(x),
-       False]
+       False],
+
+  # CEGMS
+  'time_synth':
+      ['SYNTH',
+       lambda x: b'seconds synthesizing functions' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'time_exists':
+      ['CHCKGRND',
+       lambda x: b'seconds exists solver' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'time_forall':
+      ['CHCKMDL',
+       lambda x: b'seconds forall solver' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'num_ref':
+      ['REF',
+       lambda x: b'cegqi solver refinements' in x,
+       lambda x: x.split()[4],
+       lambda x: int(x),
+       False],
+
+  'time_dsynth':
+      ['DSYNTH',
+       lambda x: b'seconds dual synthesizing functions' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'time_dexists':
+      ['DCHCKGRND',
+       lambda x: b'seconds dual exists solver' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'time_dforall':
+      ['DCHCKMDL',
+       lambda x: b'seconds dual forall solver' in x,
+       lambda x: x.split()[1],
+       lambda x: float(x),
+       False],
+  'num_dref':
+      ['DREF',
+       lambda x: b'cegqi dual solver refinements' in x,
+       lambda x: x.split()[5],
+       lambda x: int(x),
+       False],
 }
 
 
@@ -327,6 +378,13 @@ TOTALS_FORMAT_ERR = {
   'time_real': lambda l: round(sum(l), 1),
   'time_time': lambda l: round(sum(l), 1),
   'space':     lambda l: round(sum(l), 1),
+
+  'time_synth': lambda l: round(sum(l), 1),
+  'time_forall': lambda l: round(sum(l), 1),
+  'time_exists': lambda l: round(sum(l), 1),
+  'time_dsynth': lambda l: round(sum(l), 1),
+  'time_dforall': lambda l: round(sum(l), 1),
+  'time_dexists': lambda l: round(sum(l), 1),
 }
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
@@ -460,7 +518,7 @@ def _normalize_data(data):
     if g_args.timeout:
         for d in data['time_time']:
             for f in data['time_time'][d]:
-                if data['time_time'][d][f] > g_args.timeout[d]:
+                if data['time_time'][d][f] >= g_args.timeout[d]:
                     data['time_time'][d][f] = g_args.timeout[d]
                     data['status'][d][f] = "time"
                     data['result'][d][f] = 1
@@ -468,6 +526,8 @@ def _normalize_data(data):
                         for k in ["g_total", "g_solved", "g_time",
                                   "g_mem", "g_err"]:
                             g_file_stats[k][d][f] = "time"
+                        for k in ["g_sat", "g_unsat"]:
+                            g_file_stats[k][d][f] = 1
 
     # normalize status ok, time, mem, err
     for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
