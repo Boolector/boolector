@@ -1608,24 +1608,24 @@ btor_synthesize_fun_constraints (Btor *btor,
     result = btor_copy_exp (btor, prev_synth_fun);
   else
   {
-    candidate = synthesize (btor,
-                            params,
-                            nparams,
-                            value_in,
-                            value_out,
-                            nvalues,
-                            ops,
-                            nops,
-                            consts,
-                            nconsts,
-                            constraints,
-                            nconstraints,
-                            value_in_map,
-                            max_checks,
-                            max_level);
+    result = synthesize (btor,
+                         params,
+                         nparams,
+                         value_in,
+                         value_out,
+                         nvalues,
+                         ops,
+                         nops,
+                         consts,
+                         nconsts,
+                         constraints,
+                         nconstraints,
+                         value_in_map,
+                         max_checks,
+                         max_level);
 
     /* create function from candidate expression */
-    if (candidate)
+    if (0 && candidate)
     {
       result = mk_fun (btor, params, nparams, candidate);
       btor_release_exp (btor, candidate);
