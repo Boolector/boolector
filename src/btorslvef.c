@@ -35,8 +35,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-//#define PRINT_DBG
-
 struct BtorEFGroundSolvers
 {
   Btor *forall; /* solver for checking the model */
@@ -58,10 +56,6 @@ struct BtorEFGroundSolvers
                                 vars of forall solver) */
   BtorNodeMap *exists_ufs;   /* UFs (non-skolem constants), map to UFs
                                 of forall solver */
-  BtorPtrHashTable *exists_evar_models;
-  BtorNodePtrStack exists_last_ref_exps;
-  BtorPtrHashTable *exists_refinements;
-
   BtorSolverResult result;
 
   BtorEFStats *statistics;
@@ -401,26 +395,6 @@ delete_model (BtorEFGroundSolvers *gslv)
   btor_delete_ptr_hash_table (gslv->forall_synth_model);
   gslv->forall_synth_model = 0;
 }
-
-#if 1
-static void
-reset_refinements (BtorEFGroundSolvers *gslv)
-{
-  BtorNode *cur;
-  BtorHashTableIterator it;
-
-  if (!gslv->exists_refinements) return;
-
-  btor_init_node_hash_table_iterator (&it, gslv->exists_refinements);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    cur = btor_next_node_hash_table_iterator (&it);
-    btor_release_exp (gslv->exists, cur);
-  }
-  btor_delete_ptr_hash_table (gslv->exists_refinements);
-  gslv->exists_refinements = 0;
-}
-#endif
 
 /* compute dependencies between existential variables and universal variables.
  * 'deps' maps existential variables to a list of universal variables by means
@@ -821,12 +795,10 @@ setup_efg_solvers (BtorEFSolver *slv,
   btor_set_opt (res->exists, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 
   /* create ground solver for exists */
-  res->exists->slv        = btor_new_fun_solver (res->exists);
-  res->exists_evars       = btor_new_node_map (res->exists);
-  res->exists_ufs         = btor_new_node_map (res->exists);
-  res->exists_refinements = btor_new_ptr_hash_table (res->exists->mm, 0, 0);
-  res->exists_evar_models = btor_new_ptr_hash_table (res->exists->mm, 0, 0);
-  sorts                   = &res->exists->sorts_unique_table;
+  res->exists->slv  = btor_new_fun_solver (res->exists);
+  res->exists_evars = btor_new_node_map (res->exists);
+  res->exists_ufs   = btor_new_node_map (res->exists);
+  sorts             = &res->exists->sorts_unique_table;
 
   /* map evars of exists solver to evars of forall solver */
   btor_init_node_hash_table_iterator (&it, res->forall->exists_vars);
@@ -881,34 +853,15 @@ setup_efg_solvers (BtorEFSolver *slv,
 static void
 delete_efg_solvers (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
 {
-  BtorHashTableIterator it, iit;
-  BtorPtrHashTable *m;
+  BtorHashTableIterator it;
   BtorBitVectorTuple *ce;
 
   /* delete exists solver */
   btor_delete_node_map (gslv->exists_evars);
   btor_delete_node_map (gslv->exists_ufs);
 
-  btor_init_hash_table_iterator (&it, gslv->exists_evar_models);
-  while (btor_has_next_hash_table_iterator (&it))
-  {
-    m = it.bucket->data.as_ptr;
-    (void) btor_next_hash_table_iterator (&it);
-    btor_init_hash_table_iterator (&iit, m);
-    while (btor_has_next_hash_table_iterator (&iit))
-    {
-      btor_free_bv (gslv->exists->mm, iit.bucket->data.as_ptr);
-      btor_free_bv_tuple (gslv->exists->mm,
-                          btor_next_hash_table_iterator (&iit));
-    }
-    btor_delete_ptr_hash_table (m);
-  }
-  btor_delete_ptr_hash_table (gslv->exists_evar_models);
-  BTOR_RELEASE_STACK (gslv->exists->mm, gslv->exists_last_ref_exps);
-
   /* delete forall solver */
   delete_model (gslv);
-  reset_refinements (gslv);
   btor_delete_node_map (gslv->forall_evars);
   btor_delete_node_map (gslv->forall_uvars);
   btor_delete_node_map (gslv->forall_evar_deps);
@@ -1066,45 +1019,6 @@ instantiate_args (Btor *btor, BtorNode *args, BtorNodeMap *map)
   return res;
 }
 
-static void
-collect_ref_exps (BtorEFGroundSolvers *gslv, BtorNode *root)
-{
-  uint32_t i;
-  Btor *e_solver;
-  BtorNode *cur;
-  BtorNodePtrStack visit;
-  BtorIntHashTable *mark;
-  BtorMemMgr *mm;
-
-  e_solver = gslv->exists;
-  mm       = e_solver->mm;
-
-  while (!BTOR_EMPTY_STACK (gslv->exists_last_ref_exps))
-    btor_release_exp (e_solver, BTOR_POP_STACK (gslv->exists_last_ref_exps));
-
-  mark = btor_new_int_hash_table (mm);
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, root);
-
-  while (!BTOR_EMPTY_STACK (visit))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
-
-    if (btor_contains_int_hash_table (mark, cur->id)) continue;
-
-    btor_add_int_hash_table (mark, cur->id);
-    BTOR_PUSH_STACK (
-        mm, gslv->exists_last_ref_exps, btor_copy_exp (e_solver, cur));
-
-    if (btor_is_apply_node (cur)) continue;
-
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
-  }
-
-  BTOR_RELEASE_STACK (mm, visit);
-  btor_delete_int_hash_table (mark);
-}
-
 static bool
 refine_exists_solver (BtorEFGroundSolvers *gslv)
 {
@@ -1204,7 +1118,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv)
   btor_add_ptr_hash_table (gslv->forall_ces, ce);
   gslv->forall_last_ce = ce;
 
-  collect_ref_exps (gslv, res);
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
   return true;
@@ -1952,6 +1865,39 @@ update_flat_model (BtorEFGroundSolvers *gslv,
   }
 }
 
+static void
+select_inputs (BtorEFGroundSolvers *gslv,
+               BtorNode *var,
+               BtorNodePtrStack *inputs)
+{
+  BtorNodeMapIterator nit;
+  BtorArgsIterator it;
+  BtorNode *args, *cur;
+  BtorMemMgr *mm;
+
+  mm = gslv->forall->mm;
+  if (btor_param_is_exists_var (var))
+  {
+    args = btor_mapped_node (gslv->forall_evar_deps, var);
+    btor_init_args_iterator (&it, args);
+    while (btor_has_next_args_iterator (&it))
+    {
+      cur = btor_next_args_iterator (&it);
+      BTOR_PUSH_STACK (mm, *inputs, cur);
+    }
+  }
+  else
+  {
+    assert (btor_param_is_forall_var (var));
+    btor_init_node_map_iterator (&nit, gslv->forall_evars);
+    while (btor_has_next_node_map_iterator (&nit))
+    {
+      cur = btor_next_node_map_iterator (&nit);
+      BTOR_PUSH_STACK (mm, *inputs, cur);
+    }
+  }
+}
+
 static BtorNode *
 synthesize (BtorEFGroundSolvers *gslv,
             BtorNode *evar,
@@ -1960,14 +1906,12 @@ synthesize (BtorEFGroundSolvers *gslv,
             BtorNode *prev_synth_fun)
 {
   uint32_t i, pos, opt_synth_mode;
-  BtorNode *cur, *par, *result = 0, *args;
+  BtorNode *cur, *par, *result = 0;
   BtorNodePtrStack visit;
   BtorMemMgr *mm;
   BtorIntHashTable *reachable, *cache, *value_in_map;
-  BtorPtrHashTable *inputs;
   BtorNodeIterator it;
-  BtorNodePtrStack constraints, params;
-  BtorArgsIterator ait;
+  BtorNodePtrStack constraints, inputs;
   BtorBitVectorTuplePtrStack value_in;
   BtorBitVectorPtrStack value_out;
   BtorNodeMapIterator nit;
@@ -1976,17 +1920,13 @@ synthesize (BtorEFGroundSolvers *gslv,
   reachable      = btor_new_int_hash_table (mm);
   cache          = btor_new_int_hash_table (mm);
   value_in_map   = btor_new_int_hash_map (mm);
-  inputs         = btor_new_ptr_hash_table (mm, 0, 0);
   opt_synth_mode = btor_get_opt (gslv->forall, BTOR_OPT_EF_SYNTH);
 
   BTOR_INIT_STACK (value_in);
   BTOR_INIT_STACK (value_out);
   BTOR_INIT_STACK (constraints);
   BTOR_INIT_STACK (visit);
-  BTOR_INIT_STACK (params);
-
-  args = btor_mapped_node (gslv->forall_evar_deps, evar);
-  assert (args);
+  BTOR_INIT_STACK (inputs);
 
   /* value_in_map maps variables to the position in the assignment vector
    * value_in[k] */
@@ -2003,12 +1943,9 @@ synthesize (BtorEFGroundSolvers *gslv,
     cur = btor_next_node_map_iterator (&nit);
     btor_add_int_hash_map (value_in_map, cur->id)->as_int = pos++;
   }
-  btor_init_args_iterator (&ait, args);
-  while (btor_has_next_args_iterator (&ait))
-  {
-    cur = btor_next_args_iterator (&ait);
-    BTOR_PUSH_STACK (mm, params, cur);
-  }
+
+  select_inputs (gslv, evar, &inputs);
+
   /* 'evar' is a special placeholder for constraint evaluation */
   btor_add_int_hash_map (value_in_map, evar->id)->as_int = -1;
 
@@ -2019,8 +1956,8 @@ synthesize (BtorEFGroundSolvers *gslv,
   {
     result =
         btor_synthesize_fun_constraints (gslv->forall,
-                                         params.start,
-                                         BTOR_COUNT_STACK (params),
+                                         inputs.start,
+                                         BTOR_COUNT_STACK (inputs),
                                          value_in.start,
                                          value_out.start,
                                          BTOR_COUNT_STACK (value_in),
@@ -2088,8 +2025,8 @@ synthesize (BtorEFGroundSolvers *gslv,
   {
     result =
         btor_synthesize_fun_constraints (gslv->forall,
-                                         params.start,
-                                         BTOR_COUNT_STACK (params),
+                                         inputs.start,
+                                         BTOR_COUNT_STACK (inputs),
                                          value_in.start,
                                          value_out.start,
                                          BTOR_COUNT_STACK (value_in),
@@ -2111,9 +2048,8 @@ synthesize (BtorEFGroundSolvers *gslv,
   while (!BTOR_EMPTY_STACK (value_out))
     btor_free_bv (mm, BTOR_POP_STACK (value_out));
 
-  BTOR_RELEASE_STACK (mm, params);
+  BTOR_RELEASE_STACK (mm, inputs);
 
-  btor_delete_ptr_hash_table (inputs);
   btor_delete_int_hash_map (value_in_map);
   btor_delete_int_hash_table (reachable);
   btor_delete_int_hash_table (cache);
