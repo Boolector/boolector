@@ -17,16 +17,6 @@
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 
-enum BtorSynthType
-{
-  BTOR_SYNTH_TYPE_NONE,
-  BTOR_SYNTH_TYPE_SK_VAR,
-  BTOR_SYNTH_TYPE_SK_UF,
-  BTOR_SYNTH_TYPE_UF,
-};
-
-typedef enum BtorSynthType BtorSynthType;
-
 BtorNode* btor_synthesize_fun (Btor* btor,
                                const BtorPtrHashTable* model,
                                BtorNode* prev_synth_fun,
