@@ -1763,11 +1763,10 @@ print_time_stats_sls_solver (BtorSLSSolver *slv)
             1,
             "%.2f seconds for updating cone (model gen)",
             slv->time.update_cone_model_gen);
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
-    BTOR_MSG (btor->msg,
-              1,
-              "%.2f seconds for updating cone (compute score)",
-              slv->time.update_cone_compute_score);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (compute score)",
+            slv->time.update_cone_compute_score);
   BTOR_MSG (btor->msg, 1, "");
 }
 
