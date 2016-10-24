@@ -1368,7 +1368,7 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
   uint32_t i;
   bool opt_synth_complete;
   BtorNode *uf;
-  BtorNode *res, *c, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args, *uvar;
+  BtorNode *res, *c, *cond, *e_if, *e_else, *tmp, *eq, *args, *uvar;
   BtorHashTableIterator it;
   BtorNodePtrStack params;
   BtorBitVector *value, *bv;
@@ -1407,7 +1407,6 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
   }
 
   /* generate ITEs */
-  ite = 0;
   res = 0;
   btor_init_hash_table_iterator (&it, gslv->forall_ces);
   while (btor_has_next_hash_table_iterator (&it))
@@ -1439,14 +1438,14 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
 
     /* create ITE */
     e_if = btor_const_exp (btor, value);
-    ite  = btor_cond_exp (btor, cond, e_if, e_else);
+    res  = btor_cond_exp (btor, cond, e_if, e_else);
 
     btor_release_exp (btor, cond);
     btor_release_exp (btor, e_if);
     btor_release_exp (btor, e_else);
-    e_else = ite;
+    e_else = res;
   }
-  assert (ite);
+  assert (res);
 
   BTOR_RELEASE_STACK (btor->mm, params);
   return res;
@@ -2131,15 +2130,14 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   uint32_t limit;
   uint32_t opt_synth_limit, opt_synth_mode;
   BtorPtrHashTable *synth_model, *prev_synth_model;
-  Btor *e_solver, *f_solver;
-  BtorNode *e_uf, *e_uf_fs, *prev_synth_fun, *candidate;
+  Btor *f_solver;
+  BtorNode *evar, *prev_synth_fun, *candidate;
   BtorNodeMapIterator it;
   const BtorBitVector *bv;
   SynthResult *synth_res, *prev_synth_res;
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
 
-  e_solver         = gslv->exists;
   f_solver         = gslv->forall;
   mm               = f_solver->mm;
   prev_synth_model = gslv->forall_synth_model;
@@ -2153,27 +2151,21 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   gslv->statistics->stats.synthesize_model_none  = 0;
 
   /* map existential variables to their resp. assignment */
-  btor_init_node_map_iterator (&it, gslv->exists_evars);
+  btor_init_node_map_iterator (&it, gslv->forall_evars);
   // TODO: no UFs supported for now
   //  btor_queue_node_map_iterator (&it, gslv->exists_ufs);
   while (btor_has_next_node_map_iterator (&it))
   {
-    e_uf_fs = it.it.bucket->data.as_ptr;
-    e_uf    = btor_next_node_map_iterator (&it);
-    assert (btor_is_uf_node (e_uf_fs) || btor_param_is_exists_var (e_uf_fs));
+    evar = btor_next_node_map_iterator (&it);
+    assert (btor_is_uf_node (evar) || btor_param_is_exists_var (evar));
 
     if (btor_terminate_btor (gslv->forall)) break;
 
+    synth_res = new_synth_result (mm);
     /* map skolem functions to resp. synthesized functions */
-    if (btor_mapped_node (gslv->forall_evar_deps, e_uf_fs)
-        || btor_is_uf_node (e_uf_fs))
+    if (btor_mapped_node (gslv->forall_evar_deps, evar)
+        || btor_is_uf_node (evar))
     {
-      /* 'e_uf_fs' is an existential variable */
-      assert (btor_is_fun_sort (&e_solver->sorts_unique_table,
-                                BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
-      assert (btor_is_uf_node (e_uf));
-
-      synth_res      = new_synth_result (mm);
       prev_synth_res = 0;
       prev_synth_fun = 0;
       candidate      = 0;
@@ -2183,7 +2175,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
 
         /* check previously synthesized function */
         if (prev_synth_model
-            && (b = btor_get_ptr_hash_table (prev_synth_model, e_uf_fs)))
+            && (b = btor_get_ptr_hash_table (prev_synth_model, evar)))
         {
           prev_synth_res = b->data.as_ptr;
           assert (prev_synth_res);
@@ -2199,22 +2191,21 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
         // TODO: set limit of UFs to 10000 fixed
         if (limit > opt_synth_limit * 10) limit = opt_synth_limit;
 
-        candidate =
-            synthesize (gslv, e_uf_fs, flat_model, limit, prev_synth_fun);
+        candidate = synthesize (gslv, evar, flat_model, limit, prev_synth_fun);
 #if 0
 	      if (candidate)
 		{
-		  printf ("found candidate for %s\n", node2string (e_uf_fs));
+		  printf ("found candidate for %s\n", node2string (evar));
 		  btor_dump_smt2_node (gslv->forall, stdout, candidate, -1);
 		}
 	      else
-		printf ("no candidate found for %s\n", node2string (e_uf_fs));
+		printf ("no candidate found for %s\n", node2string (evar));
 #endif
 
         synth_res->limit = limit;
       }
 
-      assert (!btor_is_uf_node (e_uf_fs));
+      assert (!btor_is_uf_node (evar));
       if (candidate)
       {
         synth_res->partial = false;
@@ -2226,21 +2217,18 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
       }
       else
       {
-        synth_res->value   = mk_concrete_ite_model (gslv, e_uf_fs, flat_model);
+        synth_res->value   = mk_concrete_ite_model (gslv, evar, flat_model);
         synth_res->partial = true;
         gslv->statistics->stats.synthesize_model_none++;
       }
-      btor_add_ptr_hash_table (synth_model, e_uf_fs)->data.as_ptr = synth_res;
     }
     else
     {
-      assert (btor_is_bitvec_sort (&e_solver->sorts_unique_table,
-                                   BTOR_REAL_ADDR_NODE (e_uf)->sort_id));
-      bv               = flat_model_get_value (flat_model, e_uf_fs, 0);
-      synth_res        = new_synth_result (mm);
+      bv               = flat_model_get_value (flat_model, evar, 0);
       synth_res->value = btor_const_exp (f_solver, (BtorBitVector *) bv);
-      btor_add_ptr_hash_table (synth_model, e_uf_fs)->data.as_ptr = synth_res;
     }
+    assert (synth_res->value);
+    btor_add_ptr_hash_table (synth_model, evar)->data.as_ptr = synth_res;
   }
 
   /* update overall synthesize statistics */
@@ -2317,6 +2305,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
           && model && (b = btor_get_ptr_hash_table (model, real_cur)))
       {
         synth_res = b->data.as_ptr;
+        assert (synth_res->value);
         BTOR_PUSH_STACK (
             mm, visit, BTOR_COND_INVERT_NODE (cur, synth_res->value));
         continue;
