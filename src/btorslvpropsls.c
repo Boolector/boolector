@@ -748,7 +748,11 @@ btor_propsls_update_cone (Btor *btor,
       if (btor_get_exp_width (btor, cur) != 1) continue;
 
       b = btor_get_ptr_hash_table (score, cur);
-      assert (b);
+      if (!b) /* not reachable from the roots */
+      {
+        assert (!btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (cur)));
+        continue;
+      }
       b->data.as_dbl =
           compute_sls_score_node (btor, bv_model, btor->fun_model, score, cur);
 
