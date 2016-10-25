@@ -2281,25 +2281,20 @@ instantiate_formula (BtorEFGroundSolvers *gslv, BtorPtrHashTable *model)
           else
           {
             assert (btor_param_is_exists_var (real_cur));
-            if (model && (b = btor_get_ptr_hash_table (model, real_cur)))
-            {
-              synth_res = b->data.as_ptr;
-              result    = btor_copy_exp (btor, synth_res->value);
-            }
+            /* exististential vars will be substituted while
+             * traversing down */
+            assert (!model || !btor_get_ptr_hash_table (model, real_cur));
             /* no model -> substitute with skolem constant */
-            else
+            fun = btor_mapped_node (skolem, real_cur);
+            assert (fun);
+            if ((a = btor_mapped_node (deps, real_cur)))
             {
-              fun = btor_mapped_node (skolem, real_cur);
-              assert (fun);
-              if ((a = btor_mapped_node (deps, real_cur)))
-              {
-                a      = instantiate_args (btor, a, uvar_map);
-                result = btor_apply_exp (btor, fun, a);
-                btor_release_exp (btor, a);
-              }
-              else
-                result = btor_copy_exp (btor, fun);
+              a      = instantiate_args (btor, a, uvar_map);
+              result = btor_apply_exp (btor, fun, a);
+              btor_release_exp (btor, a);
             }
+            else
+              result = btor_copy_exp (btor, fun);
           }
         }
         else
