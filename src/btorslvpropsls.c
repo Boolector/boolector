@@ -103,32 +103,32 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   return res;
 }
 
-// score
-//
-// Boolean variable:
-//   s (e[1], A) = A (e[1])
-//
-// bw m >= 1:
-//
-//   score (e0[bw] /\ e1[bw], A)    =
-//       1/2 * (score (e0[bw], A) + score (e1[bw], A))
-//
-//   score (-(-e0[bw] /\ ... /\ -e1[bw]), A) =
-//       max (score (-e0[bw], A), score (-e1[bw], A))
-//
-//   score (e0[bw] = e1[bw], A) =
-//       (A (e0) == A (e1))
-//	 ? 1.0
-//	 : c1 * (1 - (h (A(e0), A(e1)) / bw)
-//
-//   score (e0[bw] != e1[bw], A) =
-//       (A (e0) == A (e1) ? 0.0 : 1.0
-//
-//   s (e0[bw] < e1[bw], A) =
-//       (A (e0) < A (e1))
-//	 ? 1.0
-//	 : c1 * (1 - (min number of bits to flip s.t. e0[bw] < e1[bw]) / bw)
-//
+/* score
+ *
+ *  Boolean variable:
+ *    s (e[1], A) = A (e[1])
+ *
+ *  bw m >= 1:
+ *
+ *    score (e0[bw] /\ e1[bw], A)    =
+ *        1/2 * (score (e0[bw], A) + score (e1[bw], A))
+ *
+ *    score (-(-e0[bw] /\ ... /\ -e1[bw]), A) =
+ *        max (score (-e0[bw], A), score (-e1[bw], A))
+ *
+ *    score (e0[bw] = e1[bw], A) =
+ *        (A (e0) == A (e1))
+ *      ? 1.0
+ *      : c1 * (1 - (h (A(e0), A(e1)) / bw)
+ *
+ *    score (e0[bw] != e1[bw], A) =
+ *        (A (e0) == A (e1) ? 0.0 : 1.0
+ *
+ *    s (e0[bw] < e1[bw], A) =
+ *        (A (e0) < A (e1))
+ *      ? 1.0
+ *      : c1 * (1 - (min number of bits to flip s.t. e0[bw] < e1[bw]) / bw)
+ */
 static double
 compute_sls_score_node (Btor *btor,
                         BtorPtrHashTable *bv_model,
@@ -584,18 +584,6 @@ btor_propsls_update_cone (Btor *btor,
       BTOR_PUSH_STACK (mm, cone, cur);
     *stats_updates += 1;
 
-    //      // FIXME update score similarly to assignments
-    //      // (individually, do not remove from hash table)
-    //      //
-    //      /* reset previous score */
-    //      if (score)
-    //	{
-    //	  if ((b = btor_get_ptr_hash_table (score, cur)))
-    //	    btor_remove_ptr_hash_table (score, cur, 0, 0);
-    //	  if ((b = btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
-    //	    btor_remove_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
-    //	}
-
     /* push parents */
     btor_init_parent_iterator (&nit, cur);
     while (btor_has_next_parent_iterator (&nit))
@@ -773,13 +761,6 @@ btor_propsls_update_cone (Btor *btor,
   }
 
   BTOR_RELEASE_STACK (mm, cone);
-  //  if (score)
-  //    {
-  //      delta = btor_time_stamp ();
-  //      btor_propsls_compute_sls_scores (
-  //	  btor, bv_model, btor->fun_model, score);
-  //      *time_update_cone_compute_score += btor_time_stamp () - delta;
-  //    }
 
 #ifndef NDEBUG
   btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
