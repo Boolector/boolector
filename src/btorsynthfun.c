@@ -992,6 +992,8 @@ synthesize (Btor *btor,
                                   value_in[i],
                                   value_out[i],
                                   value_in_map);
+      assert (btor_get_opt (btor, BTOR_OPT_EF_SYNTH) != BTOR_EF_SYNTH_ELMR
+              || btor_is_ones_bv (bv));
       //	  btor_print_bv (bv);
       BTOR_PUSH_STACK (mm, sig_constraints, bv);
     }
