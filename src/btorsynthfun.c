@@ -236,7 +236,8 @@ eval_exp (Btor *btor,
             assert (value_out);
             assert (!candidate);
             result = btor_copy_bv (mm, value_out);
-            assert (btor_get_exp_width (btor, real_cur) == value_out->width);
+            assert (btor_get_exp_width (real_cur->btor, real_cur)
+                    == value_out->width);
           }
           else
             result = btor_copy_bv (mm, value_in->bv[pos]);
