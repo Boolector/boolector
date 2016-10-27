@@ -1018,7 +1018,8 @@ synthesize (Btor *btor,
                                        constraints,
                                        nconstraints,
                                        0);
-    add_consts (btor, btor_get_exp_width (btor, exp), &candidates, cache);
+    //      add_consts (btor, btor_get_exp_width (btor, exp), &candidates,
+    //      cache);
     num_checks++;
     if (num_checks % 10000 == 0)
       report_stats (btor, start, cur_level, num_checks, &candidates);
