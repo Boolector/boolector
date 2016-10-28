@@ -2680,37 +2680,39 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       if (!skip) BTOR_PUSH_STACK (mm, inputs, cur);
     }
 
-    if (BTOR_EMPTY_STACK (inputs)) continue;
+    result = 0;
+    if (!BTOR_EMPTY_STACK (inputs))
+    {
+      build_input_output_values_quant_inst (gslv, uvar, &value_in, &value_out);
+      d   = btor_get_int_hash_map (value_in_map, uvar->id);
+      pos = d->as_int;
+      //      printf ("%s set to -1\n", node2string (uvar));
+      /* 'uvar' is a special placeholder for constraint evaluation */
+      d->as_int = -1;
 
-    build_input_output_values_quant_inst (gslv, uvar, &value_in, &value_out);
-    d   = btor_get_int_hash_map (value_in_map, uvar->id);
-    pos = d->as_int;
-    //      printf ("%s set to -1\n", node2string (uvar));
-    /* 'uvar' is a special placeholder for constraint evaluation */
-    d->as_int = -1;
+      result = btor_synthesize_fun_constraints (f_solver,
+                                                inputs.start,
+                                                BTOR_COUNT_STACK (inputs),
+                                                value_in.start,
+                                                value_out.start,
+                                                BTOR_COUNT_STACK (value_in),
+                                                value_in_map,
+                                                0,
+                                                constraints.start,
+                                                BTOR_COUNT_STACK (constraints),
+                                                consts.start,
+                                                BTOR_COUNT_STACK (consts),
+                                                10000,
+                                                0);
 
-    result = btor_synthesize_fun_constraints (f_solver,
-                                              inputs.start,
-                                              BTOR_COUNT_STACK (inputs),
-                                              value_in.start,
-                                              value_out.start,
-                                              BTOR_COUNT_STACK (value_in),
-                                              value_in_map,
-                                              0,
-                                              constraints.start,
-                                              BTOR_COUNT_STACK (constraints),
-                                              consts.start,
-                                              BTOR_COUNT_STACK (consts),
-                                              10000,
-                                              0);
+      while (!BTOR_EMPTY_STACK (value_in))
+        btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
+      while (!BTOR_EMPTY_STACK (value_out))
+        btor_free_bv (mm, BTOR_POP_STACK (value_out));
+      /* restore position of 'uvar' */
+      d->as_int = pos;
+    }
 
-    while (!BTOR_EMPTY_STACK (value_in))
-      btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
-    while (!BTOR_EMPTY_STACK (value_out))
-      btor_free_bv (mm, BTOR_POP_STACK (value_out));
-
-    /* restore position of 'uvar' */
-    d->as_int = pos;
     if (result)
     {
       btor_map_node (map, uvar, result);
