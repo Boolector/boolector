@@ -1626,7 +1626,7 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
     fprintf (file, "null\n");
     goto CLEANUP;
   }
-  else if (btor_is_args_node (real_exp) || btor_is_param_node (real_exp))
+  else if (btor_is_args_node (real_exp))
   {
     fprintf (file, "%s_%d\n", g_kind2smt[real_exp->kind], real_exp->id);
     goto CLEANUP;
