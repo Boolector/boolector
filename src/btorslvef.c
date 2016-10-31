@@ -2694,7 +2694,6 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       while (btor_has_next_args_iterator (&ait))
       {
         cur = btor_next_args_iterator (&ait);
-        printf ("input: %s\n", node2string (cur));
         BTOR_PUSH_STACK (mm, inputs, cur);
       }
     }
