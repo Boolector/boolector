@@ -2648,7 +2648,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BtorBitVectorTuplePtrStack value_in;
   const BtorBitVector *bv;
   BtorBitVectorPtrStack value_out;
-  BtorNodeMapIterator it;
+  BtorNodeMapIterator it, iit;
   BtorHashTableData *d;
   BtorNodeMap *map;
   Btor *f_solver, *e_solver;
@@ -2696,6 +2696,13 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
         cur = btor_next_args_iterator (&ait);
         BTOR_PUSH_STACK (mm, inputs, cur);
       }
+    }
+    btor_init_node_map_iterator (&iit, gslv->forall_evars);
+    while (btor_has_next_node_map_iterator (&iit))
+    {
+      cur = btor_next_node_map_iterator (&iit);
+      if (!btor_mapped_node (gslv->forall_evar_deps, cur))
+        BTOR_PUSH_STACK (mm, inputs, cur);
     }
 
     result = 0;
