@@ -443,10 +443,13 @@ btor_array_sort (Btor *btor, BtorSortId index_id, BtorSortId element_id)
   assert (element_id < BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort));
 
   BtorSortId tup, res;
+  BtorSort *s;
 
   tup = btor_tuple_sort (btor, &index_id, 1);
   res = btor_fun_sort (btor, tup, element_id);
   btor_release_sort (btor, tup);
+  s               = btor_get_sort_by_id (btor, res);
+  s->fun.is_array = true;
   return res;
 #if 0
   BtorSort * res, ** pos, pattern, *index, *element;
@@ -722,7 +725,7 @@ btor_is_array_sort (Btor *btor, BtorSortId id)
   BtorSort *sort;
   sort = btor_get_sort_by_id (btor, id);
   assert (sort);
-  return sort->kind == BTOR_ARRAY_SORT;
+  return btor_is_fun_sort (btor, id) && sort->fun.is_array;
 }
 
 bool

@@ -63,6 +63,7 @@ struct BtorLstSort
 
 struct BtorFunSort
 {
+  bool is_array;
   uint32_t arity;
   BtorSort *domain;
   BtorSort *codomain;
