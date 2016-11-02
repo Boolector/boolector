@@ -781,6 +781,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "update current model w.r.t. synthesized skolem function");
+  init_opt (btor,
+            BTOR_OPT_EF_SYNTH_QI,
+            false,
+            true,
+            "ef:synthqi",
+            0,
+            1,
+            0,
+            1,
+            "synthesize quantifier instantiations from counterexamples");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,

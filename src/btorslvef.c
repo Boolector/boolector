@@ -2791,7 +2791,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
-  bool opt_underapprox, failed_refinement = false;
+  bool opt_underapprox, failed_refinement = false, opt_synth_qi;
   uint32_t opt_pmfind_mode;
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
@@ -2805,6 +2805,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   evar_map        = btor_new_node_map (gslv->forall);
   opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
   opt_pmfind_mode = btor_get_opt (gslv->forall, BTOR_OPT_EF_FINDPM_MODE);
+  opt_synth_qi    = btor_get_opt (gslv->forall, BTOR_OPT_EF_SYNTH_QI) == 1;
 
   /* initialize all universal variables with a bit-width of 1 */
   if (opt_underapprox)
@@ -2927,9 +2928,12 @@ UNDERAPPROX:
     goto RESTART;
   }
 
-  start = time_stamp ();
-  synthesize_quant_inst (gslv);
-  gslv->statistics->time.qinst += time_stamp () - start;
+  if (opt_synth_qi)
+  {
+    start = time_stamp ();
+    synthesize_quant_inst (gslv);
+    gslv->statistics->time.qinst += time_stamp () - start;
+  }
 
 DONE:
   btor_delete_node_map (evar_map);

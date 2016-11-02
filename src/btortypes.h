@@ -579,6 +579,7 @@ enum BtorOption
   BTOR_OPT_EF_SYNTH_LIMIT,
   BTOR_OPT_EF_SYNTH_ITE_COMPLETE,
   BTOR_OPT_EF_FIXSYNTH,
+  BTOR_OPT_EF_SYNTH_QI,
 
   /* internal options --------------------------------------------------- */
 
