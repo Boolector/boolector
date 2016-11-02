@@ -922,7 +922,6 @@ chkclone_tables (Btor *btor)
       assert (btor_has_next_int_hash_table_iterator (&ciit));
       assert (btor->fun_model->data[iit.cur_pos].as_ptr);
       assert (btor->clone->fun_model->data[ciit.cur_pos].as_ptr);
-      // FIXME BtorHashInt
       btor_init_ptr_hash_table_iterator (
           &npit, (BtorPtrHashTable *) btor->fun_model->data->as_ptr);
       btor_init_ptr_hash_table_iterator (

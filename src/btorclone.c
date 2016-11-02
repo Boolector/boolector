@@ -1175,7 +1175,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     {
       data  = btor_next_data_int_hash_table_iterator (&iit);
       cdata = btor_next_data_int_hash_table_iterator (&ciit);
-      // FIXME BtorIntHashTable
       assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->as_ptr)
               == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cdata->as_ptr));
       allocated += MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->as_ptr);

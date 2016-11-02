@@ -57,7 +57,6 @@ add_to_fun_model (Btor *btor,
   assert (t);
   assert (value);
 
-  // FIXME BtorPtrHashTable -> BtorIntHashTable
   BtorPtrHashTable *model;
   BtorHashTableData *d;
   BtorPtrHashBucket *b;
@@ -68,15 +67,12 @@ add_to_fun_model (Btor *btor,
     model = (BtorPtrHashTable *) d->as_ptr;
   else
   {
-    // FIXME
     model = btor_new_ptr_hash_table (btor->mm,
                                      (BtorHashPtr) btor_hash_bv_tuple,
                                      (BtorCmpPtr) btor_compare_bv_tuple);
-    ///
     btor_copy_exp (btor, exp);
     btor_add_int_hash_map (fun_model, exp->id)->as_ptr = model;
   }
-  // FIXME
   if ((b = btor_get_ptr_hash_table (model, t)))
   {
     assert (btor_compare_bv (b->data.as_ptr, value) == 0);
@@ -84,7 +80,6 @@ add_to_fun_model (Btor *btor,
   }
   b = btor_add_ptr_hash_table (model, btor_copy_bv_tuple (btor->mm, t));
   b->data.as_ptr = btor_copy_bv (btor->mm, value);
-  ///
 }
 
 /*------------------------------------------------------------------------*/
@@ -107,7 +102,6 @@ get_value_from_fun_model (Btor *btor,
 
   d = btor_get_int_hash_map (fun_model, exp->id);
   if (!d) return 0;
-  // FIXME BtorPtrHashTable -> BtorIntHashTable
   model = (BtorPtrHashTable *) d->as_ptr;
   b     = btor_get_ptr_hash_table (model, t);
   if (!b) return 0;
@@ -527,7 +521,6 @@ recursively_compute_function_model (Btor *btor,
   BtorNode *value, *args, *arg, *cur_fun, *cur;
   BtorArgsIterator ait;
   BtorPtrHashTableIterator it;
-  // FIXME model: BtorPtrHashTable -> BtorIntHashTable
   BtorPtrHashTable *model, *static_rho;
   BtorHashTableData *d;
   BtorBitVectorTuple *t;
@@ -780,7 +773,6 @@ delete_fun_model (Btor *btor, BtorIntHashTable **fun_model)
   BtorBitVector *value;
   BtorNode *cur;
   BtorIntHashTableIterator it1;
-  // FIXME -> BtorIntHashTable
   BtorPtrHashTable *t;
   BtorPtrHashTableIterator it2;
 
@@ -955,7 +947,6 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
   return btor_get_bv_model_aux (btor, btor->bv_model, btor->fun_model, exp);
 }
 
-// FIXME BtorIntHashTable
 const BtorPtrHashTable *
 btor_get_fun_model_aux (Btor *btor,
                         BtorIntHashTable *bv_model,

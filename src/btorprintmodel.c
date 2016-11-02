@@ -70,7 +70,6 @@ btor_get_fun_model_str_aux (Btor *btor,
   char *arg, *tmp, *bv;
   uint32_t i, j, len;
   BtorPtrHashTableIterator it;
-  // FIXME BtorPtrHashTable -> BtorIntHashTable
   const BtorPtrHashTable *model;
   BtorBitVector *value;
   BtorBitVectorTuple *t;
@@ -248,7 +247,6 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 
   char *s, *symbol;
   uint32_t i, x, n;
-  // FIXME BtorIntHashTable
   BtorPtrHashTable *fun_model;
   BtorPtrHashTableIterator it;
   BtorBitVectorTuple *args;

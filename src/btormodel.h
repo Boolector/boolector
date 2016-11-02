@@ -53,7 +53,6 @@ const BtorBitVector* btor_get_bv_model_aux (Btor* btor,
                                             BtorIntHashTable* fun_model,
                                             BtorNode* exp);
 
-// FIXME BtorIntHashTable
 const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
 const BtorPtrHashTable* btor_get_fun_model_aux (Btor* btor,
                                                 BtorIntHashTable* bv_model,
