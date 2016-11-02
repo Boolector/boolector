@@ -17,20 +17,35 @@
 #include "btorexp.h"
 #include "utils/btorhashint.h"
 
+/*------------------------------------------------------------------------*/
+
+BtorBitVector* btor_recursively_compute_assignment (Btor* btor,
+                                                    BtorIntHashTable* bv_model,
+                                                    BtorIntHashTable* fun_model,
+                                                    BtorNode* exp);
+
 void btor_generate_model (Btor* btor,
                           BtorIntHashTable* bv_model,
                           BtorIntHashTable* fun_model,
                           bool model_for_all_nodes);
 
-void btor_init_bv_model (Btor* btor, BtorIntHashTable** bv_model);
-void btor_init_fun_model (Btor* btor, BtorIntHashTable** fun_model);
+/*------------------------------------------------------------------------*/
 
 void btor_delete_model (Btor* btor);
 void btor_delete_bv_model (Btor* btor, BtorIntHashTable** bv_model);
 
+/*------------------------------------------------------------------------*/
+
+void btor_init_bv_model (Btor* btor, BtorIntHashTable** bv_model);
+void btor_init_fun_model (Btor* btor, BtorIntHashTable** fun_model);
+
+/*------------------------------------------------------------------------*/
+
 BtorIntHashTable* btor_clone_bv_model (Btor* btor, BtorIntHashTable* bv_model);
 BtorIntHashTable* btor_clone_fun_model (Btor* btor,
                                         BtorIntHashTable* fun_model);
+
+/*------------------------------------------------------------------------*/
 
 const BtorBitVector* btor_get_bv_model (Btor* btor, BtorNode* exp);
 const BtorBitVector* btor_get_bv_model_aux (Btor* btor,
@@ -38,12 +53,14 @@ const BtorBitVector* btor_get_bv_model_aux (Btor* btor,
                                             BtorIntHashTable* fun_model,
                                             BtorNode* exp);
 
-// FIXME
+// FIXME BtorIntHashTable
 const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
 const BtorPtrHashTable* btor_get_fun_model_aux (Btor* btor,
                                                 BtorIntHashTable* bv_model,
                                                 BtorIntHashTable* fun_model,
                                                 BtorNode* exp);
+
+/*------------------------------------------------------------------------*/
 
 void btor_add_to_bv_model (Btor* btor,
                            BtorIntHashTable* bv_model,
@@ -53,6 +70,8 @@ void btor_remove_from_bv_model (Btor* btor,
                                 BtorIntHashTable* bv_model,
                                 BtorNode* exp);
 
+/*------------------------------------------------------------------------*/
+
 #if 0
 BtorNode * btor_generate_lambda_model_from_fun_model (
 			   Btor * btor,
@@ -60,8 +79,4 @@ BtorNode * btor_generate_lambda_model_from_fun_model (
 			   const BtorIntHashTable * model);
 #endif
 
-BtorBitVector* btor_recursively_compute_assignment (Btor* btor,
-                                                    BtorIntHashTable* bv_model,
-                                                    BtorIntHashTable* fun_model,
-                                                    BtorNode* exp);
 #endif
