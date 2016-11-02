@@ -814,14 +814,14 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   } while (0)
 
 //#define CLONE_INT_HASH_MAP_DATA(table, data_func) \
-//  do { \
-//    BTORLOG_TIMESTAMP (delta); \
-//    clone->table = btor_clone_int_hash_map (\
-//	mm, btor->table, data_func, 0); \
-//    BTORLOG (1, "  clone "#table" table: %.3f s", \
-//	     (btor_time_stamp () - delta)); \
-//    CHKCLONE_MEM_INT_HASH_MAP(btor->table, clone->table); \
-//  } while (0)
+  do { \
+    BTORLOG_TIMESTAMP (delta); \
+    clone->table = btor_clone_int_hash_map (\
+	mm, btor->table, data_func, 0); \
+    BTORLOG (1, "  clone "#table" table: %.3f s", \
+	     (btor_time_stamp () - delta)); \
+    CHKCLONE_MEM_INT_HASH_MAP(btor->table, clone->table); \
+  } while (0)
 
 #define MEM_BITVEC(bv) \
   ((bv) ? sizeof (*(bv)) + bv->len * sizeof (BTOR_BV_TYPE) : 0)
