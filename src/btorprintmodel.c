@@ -12,12 +12,11 @@
 #include "btorprintmodel.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btorhashptr.h"
 
 const char *
 btor_get_bv_model_str_aux (Btor *btor,
-                           BtorPtrHashTable *bv_model,
-                           BtorPtrHashTable *fun_model,
+                           BtorIntHashTable *bv_model,
+                           BtorIntHashTable *fun_model,
                            BtorNode *exp)
 {
   assert (btor);
@@ -53,8 +52,8 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 
 void
 btor_get_fun_model_str_aux (Btor *btor,
-                            BtorPtrHashTable *bv_model,
-                            BtorPtrHashTable *fun_model,
+                            BtorIntHashTable *bv_model,
+                            BtorIntHashTable *fun_model,
                             BtorNode *exp,
                             char ***args,
                             char ***values,
@@ -71,6 +70,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   char *arg, *tmp, *bv;
   uint32_t i, j, len;
   BtorPtrHashTableIterator it;
+  // FIXME BtorPtrHashTable -> BtorIntHashTable
   const BtorPtrHashTable *model;
   BtorBitVector *value;
   BtorBitVectorTuple *t;
@@ -248,6 +248,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 
   char *s, *symbol;
   uint32_t i, x, n;
+  // FIXME BtorIntHashTable
   BtorPtrHashTable *fun_model;
   BtorPtrHashTableIterator it;
   BtorBitVectorTuple *args;

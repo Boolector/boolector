@@ -131,8 +131,8 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
  */
 static double
 compute_sls_score_node (Btor *btor,
-                        BtorPtrHashTable *bv_model,
-                        BtorPtrHashTable *fun_model,
+                        BtorIntHashTable *bv_model,
+                        BtorIntHashTable *fun_model,
                         BtorPtrHashTable *score,
                         BtorNode *exp)
 {
@@ -305,8 +305,8 @@ compute_sls_score_node (Btor *btor,
 
 static double
 recursively_compute_sls_score_node (Btor *btor,
-                                    BtorPtrHashTable *bv_model,
-                                    BtorPtrHashTable *fun_model,
+                                    BtorIntHashTable *bv_model,
+                                    BtorIntHashTable *fun_model,
                                     BtorPtrHashTable *score,
                                     BtorNode *exp)
 {
@@ -376,8 +376,8 @@ recursively_compute_sls_score_node (Btor *btor,
 
 void
 btor_propsls_compute_sls_scores (Btor *btor,
-                                 BtorPtrHashTable *bv_model,
-                                 BtorPtrHashTable *fun_model,
+                                 BtorIntHashTable *bv_model,
+                                 BtorIntHashTable *fun_model,
                                  BtorPtrHashTable *score)
 {
   assert (btor);
@@ -503,7 +503,7 @@ update_roots_table (Btor *btor,
  *           we do not update 'roots') */
 void
 btor_propsls_update_cone (Btor *btor,
-                          BtorPtrHashTable *bv_model,
+                          BtorIntHashTable *bv_model,
                           BtorIntHashTable *roots,
                           BtorPtrHashTable *score,
                           BtorIntHashTable *exps,
@@ -533,6 +533,7 @@ btor_propsls_update_cone (Btor *btor,
   BtorNodeIterator nit;
   BtorIntHashTableIterator iit;
   BtorPtrHashBucket *b;
+  BtorHashTableData *d;
   BtorNodePtrStack stack, cone;
   BtorIntHashTable *cache;
   BtorBitVector *bv, *e[3], *ass;
@@ -603,24 +604,59 @@ btor_propsls_update_cone (Btor *btor,
     ass = (BtorBitVector *) exps->data[iit.cur_pos].as_ptr;
     exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
 
+    ///* update model */
+    // b = btor_get_ptr_hash_table (bv_model, exp);
+    // assert (b);
+    // if (update_roots
+    //   && (exp->constraint
+    //       || btor_get_ptr_hash_table (btor->assumptions, exp)
+    //       || btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE
+    //       (exp)))
+    //   && btor_compare_bv (b->data.as_ptr, ass))
+    //  {
+    //    /* old assignment != new assignment */
+    //    update_roots_table (btor, roots, exp, ass);
+    //  }
+    // btor_free_bv (mm, b->data.as_ptr);
+    // b->data.as_ptr = btor_copy_bv (mm, ass);
+    // if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (exp))))
+    //  {
+    //    btor_free_bv (mm, b->data.as_ptr);
+    //    b->data.as_ptr = btor_not_bv (mm, ass);
+    //  }
+
+    ///* update score */
+    // if (score && btor_get_exp_width (btor, exp) == 1)
+    //  {
+    //    b = btor_get_ptr_hash_table (score, exp);
+    //    assert (b);
+    //    b->data.as_dbl = compute_sls_score_node (
+    //        btor, bv_model, btor->fun_model, score, exp);
+
+    //    b = btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (exp));
+    //    assert (b);
+    //    b->data.as_dbl = compute_sls_score_node (
+    //        btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (exp));
+    //}
+
     /* update model */
-    b = btor_get_ptr_hash_table (bv_model, exp);
-    assert (b);
+    d = btor_get_int_hash_map (bv_model, exp->id);
+    assert (d);
     if (update_roots
         && (exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
             || btor_get_ptr_hash_table (btor->assumptions,
                                         BTOR_INVERT_NODE (exp)))
-        && btor_compare_bv (b->data.as_ptr, ass))
+        && btor_compare_bv (d->as_ptr, ass))
     {
       /* old assignment != new assignment */
       update_roots_table (btor, roots, exp, ass);
     }
-    btor_free_bv (mm, b->data.as_ptr);
-    b->data.as_ptr = btor_copy_bv (mm, ass);
-    if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (exp))))
+    btor_free_bv (mm, d->as_ptr);
+    d->as_ptr = btor_copy_bv (mm, ass);
+    if ((d = btor_get_int_hash_map (bv_model, -exp->id)))
     {
-      btor_free_bv (mm, b->data.as_ptr);
-      b->data.as_ptr = btor_not_bv (mm, ass);
+      btor_free_bv (mm, d->as_ptr);
+      d->as_ptr = btor_not_bv (mm, ass);
     }
 
     /* update score */
@@ -661,16 +697,29 @@ btor_propsls_update_cone (Btor *btor,
       }
       else
       {
-        b = btor_get_ptr_hash_table (bv_model, BTOR_REAL_ADDR_NODE (cur->e[j]));
+        //      b = btor_get_ptr_hash_table (
+        //	  bv_model, BTOR_REAL_ADDR_NODE (cur->e[j]));
+        //      /* Note: generate model enabled branch for ite (and does not
+        //       * generate model for nodes in the branch, hence !b may happen
+        //       */
+        //      if (!b)
+        //	e[j] = btor_recursively_compute_assignment (
+        //	    btor, bv_model, btor->fun_model, cur->e[j]);
+        //      else
+        //	e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
+        //	  ? btor_not_bv (mm, b->data.as_ptr)
+        //	  : btor_copy_bv (mm, b->data.as_ptr);
+        d = btor_get_int_hash_map (bv_model,
+                                   BTOR_REAL_ADDR_NODE (cur->e[j])->id);
         /* Note: generate model enabled branch for ite (and does not
          * generate model for nodes in the branch, hence !b may happen */
-        if (!b)
+        if (!d)
           e[j] = btor_recursively_compute_assignment (
               btor, bv_model, btor->fun_model, cur->e[j]);
         else
           e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
-                     ? btor_not_bv (mm, b->data.as_ptr)
-                     : btor_copy_bv (mm, b->data.as_ptr);
+                     ? btor_not_bv (mm, d->as_ptr)
+                     : btor_copy_bv (mm, d->as_ptr);
       }
     }
     switch (cur->kind)
@@ -697,7 +746,8 @@ btor_propsls_update_cone (Btor *btor,
 
     /* update assignment */
 
-    b = btor_get_ptr_hash_table (bv_model, cur);
+    // b = btor_get_ptr_hash_table (bv_model, cur);
+    d = btor_get_int_hash_map (bv_model, cur->id);
 
     /* update roots table */
     if (update_roots
@@ -705,30 +755,49 @@ btor_propsls_update_cone (Btor *btor,
             || btor_get_ptr_hash_table (btor->assumptions,
                                         BTOR_INVERT_NODE (cur))))
     {
-      assert (b); /* must be contained, is root */
+      // assert (b);  /* must be contained, is root */
+      ///* old assignment != new assignment */
+      // if (btor_compare_bv (b->data.as_ptr, bv))
+      //  update_roots_table (btor, roots, cur, bv);
+      assert (d); /* must be contained, is root */
       /* old assignment != new assignment */
-      if (btor_compare_bv (b->data.as_ptr, bv))
+      if (btor_compare_bv (d->as_ptr, bv))
         update_roots_table (btor, roots, cur, bv);
     }
 
     /* update assignments */
     /* Note: generate model enabled branch for ite (and does not generate
      *       model for nodes in the branch, hence !b may happen */
-    if (!b)
+    // if (!b)
+    //  {
+    //    b = btor_add_ptr_hash_table (bv_model, btor_copy_exp (btor, cur));
+    //    b->data.as_ptr = bv;
+    //  }
+    // else
+    //  {
+    //    btor_free_bv (mm, b->data.as_ptr);
+    //    b->data.as_ptr = bv;
+    //  }
+    // if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
+    //  {
+    //    btor_free_bv (mm, b->data.as_ptr);
+    //    b->data.as_ptr = btor_not_bv (mm, bv);
+    //  }
+    if (!d)
     {
-      b = btor_add_ptr_hash_table (bv_model, btor_copy_exp (btor, cur));
-      b->data.as_ptr = bv;
+      btor_copy_exp (btor, cur);
+      btor_add_int_hash_map (bv_model, cur->id)->as_ptr = bv;
     }
     else
     {
-      btor_free_bv (mm, b->data.as_ptr);
-      b->data.as_ptr = bv;
+      btor_free_bv (mm, d->as_ptr);
+      d->as_ptr = bv;
     }
 
-    if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
+    if ((d = btor_get_int_hash_map (bv_model, -cur->id)))
     {
-      btor_free_bv (mm, b->data.as_ptr);
-      b->data.as_ptr = btor_not_bv (mm, bv);
+      btor_free_bv (mm, d->as_ptr);
+      d->as_ptr = btor_not_bv (mm, bv);
     }
     /* cleanup */
     for (j = 0; j < cur->arity; j++) btor_free_bv (mm, e[j]);

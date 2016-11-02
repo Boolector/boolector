@@ -238,7 +238,10 @@ static bool
 has_bv_assignment (Btor *btor, BtorNode *exp)
 {
   exp = BTOR_REAL_ADDR_NODE (exp);
-  return (btor->bv_model && btor_get_ptr_hash_table (btor->bv_model, exp) != 0)
+  //  return (btor->bv_model
+  //	  && btor_get_ptr_hash_table (btor->bv_model, exp) != 0)
+  return (btor->bv_model
+          && btor_contains_int_hash_map (btor->bv_model, exp->id))
          || BTOR_IS_SYNTH_NODE (exp) || btor_is_bv_const_node (exp);
 }
 
@@ -250,12 +253,15 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
 
   BtorNode *real_exp;
   BtorBitVector *bv, *result;
-  BtorPtrHashBucket *b;
+  // BtorPtrHashBucket *b;
+  BtorHashTableData *d;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  b        = btor_get_ptr_hash_table (btor->bv_model, real_exp);
-  if (b)
-    bv = btor_copy_bv (btor->mm, b->data.as_ptr);
+  // b = btor_get_ptr_hash_table (btor->bv_model, real_exp);
+  // if (b)
+  //  bv = btor_copy_bv (btor->mm, b->data.as_ptr);
+  if ((d = btor_get_int_hash_map (btor->bv_model, real_exp->id)))
+    bv = btor_copy_bv (btor->mm, d->as_ptr);
   else /* cache assignment to avoid querying the sat solver multiple times */
   {
     /* synthesized nodes are always encoded and have an assignment */
@@ -2016,7 +2022,8 @@ check_and_resolve_conflicts (Btor *btor,
   BtorNodePtrStack top_applies;
   BtorPtrHashTable *cleanup_table;
   BtorIntHashTable *apply_search_cache;
-  BtorPtrHashTableIterator it;
+  BtorPtrHashTableIterator pit;
+  BtorIntHashTableIterator iit;
 
   slv                = BTOR_FUN_SOLVER (btor);
   apply_search_cache = 0;
@@ -2052,10 +2059,10 @@ check_and_resolve_conflicts (Btor *btor,
    * propagation stack.
    * this also applies for don't care reasoning.
    */
-  btor_init_ptr_hash_table_iterator (&it, btor->var_rhs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&pit, btor->var_rhs);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
-    cur = btor_simplify_exp (btor, btor_next_ptr_hash_table_iterator (&it));
+    cur = btor_simplify_exp (btor, btor_next_ptr_hash_table_iterator (&pit));
     /* no parents -> is not reachable from the roots */
     if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) continue;
     push_applies_for_propagation (btor, cur, &prop_stack, apply_search_cache);
@@ -2097,19 +2104,27 @@ check_and_resolve_conflicts (Btor *btor,
    * model construction */
   if (!found_conflicts)
   {
-    btor_init_ptr_hash_table_iterator (&it, btor->bv_model);
-    while (btor_has_next_ptr_hash_table_iterator (&it))
+    //      btor_init_ptr_hash_table_iterator (&pit, btor->bv_model);
+    //      while (btor_has_next_ptr_hash_table_iterator (&pit))
+    //	{
+    //	  cur = btor_next_ptr_hash_table_iterator (&pit);
+    //	  if (btor_is_apply_node (cur) && !cur->propagated)
+    //	    btor_remove_from_bv_model (btor, btor->bv_model, cur);
+    //	}
+    btor_init_int_hash_table_iterator (&iit, btor->bv_model);
+    while (btor_has_next_int_hash_table_iterator (&iit))
     {
-      cur = btor_next_ptr_hash_table_iterator (&it);
+      cur =
+          btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
       if (btor_is_apply_node (cur) && !cur->propagated)
         btor_remove_from_bv_model (btor, btor->bv_model, cur);
     }
   }
 
-  btor_init_ptr_hash_table_iterator (&it, cleanup_table);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&pit, cleanup_table);
+  while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&pit);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (btor_is_apply_node (cur))
     {

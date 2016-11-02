@@ -22,6 +22,7 @@
 #include "btorslv.h"
 #include "btorsort.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 #include "utils/btormem.h"
 #include "utils/btorrng.h"
 
@@ -122,8 +123,8 @@ struct Btor
 
   BtorNode *true_exp;
 
-  BtorPtrHashTable *bv_model;
-  BtorPtrHashTable *fun_model;
+  BtorIntHashTable *bv_model;
+  BtorIntHashTable *fun_model;
   BtorNodePtrStack functions_with_model;
 
   uint32_t rec_rw_calls; /* calls for recursive rewriting */
