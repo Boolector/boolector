@@ -251,22 +251,6 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
   btor_delete_int_hash_table (mark);
 }
 
-// static void *
-// copy_node (BtorMemMgr * mm, const void * map, const void * key)
-//{
-//  assert (mm);
-//  assert (key);
-//
-//  BtorNode *cloned_exp;
-//
-//  (void) mm;
-//  (void) map;
-//  cloned_exp = (BtorNode *) key;
-//  cloned_exp = btor_copy_exp (
-//      BTOR_REAL_ADDR_NODE (cloned_exp)->btor, cloned_exp);
-//  return cloned_exp;
-//}
-
 static void *
 same_node (BtorMemMgr *mm, const void *map, const void *key)
 {
@@ -474,8 +458,6 @@ select_inc_dec_not_move (Btor *btor,
     mk = BTOR_SLS_MOVE_NOT;
   }
 
-  // bv_model = btor_clone_ptr_hash_table (
-  //    btor->mm, btor->bv_model, copy_node, btor_clone_data_as_bv_ptr, 0, 0);
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
   score    = btor_clone_ptr_hash_table (
       btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
@@ -531,8 +513,6 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
   mk = BTOR_SLS_MOVE_FLIP;
 
-  // bv_model = btor_clone_ptr_hash_table (
-  //    btor->mm, btor->bv_model, copy_node, btor_clone_data_as_bv_ptr, 0, 0);
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
   score    = btor_clone_ptr_hash_table (
       btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
@@ -594,8 +574,6 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
   mk = BTOR_SLS_MOVE_FLIP_RANGE;
 
-  // bv_model = btor_clone_ptr_hash_table (
-  //    btor->mm, btor->bv_model, copy_node, btor_clone_data_as_bv_ptr, 0, 0);
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
   score    = btor_clone_ptr_hash_table (
       btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
@@ -670,8 +648,6 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
   mk = BTOR_SLS_MOVE_FLIP_SEGMENT;
 
-  // bv_model = btor_clone_ptr_hash_table (
-  //    btor->mm, btor->bv_model, copy_node, btor_clone_data_as_bv_ptr, 0, 0);
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
   score    = btor_clone_ptr_hash_table (
       btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
@@ -754,8 +730,6 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
   mk = BTOR_SLS_MOVE_RAND;
 
-  // bv_model = btor_clone_ptr_hash_table (
-  //    btor->mm, btor->bv_model, copy_node, btor_clone_data_as_bv_ptr, 0, 0);
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
   score    = btor_clone_ptr_hash_table (
       btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);

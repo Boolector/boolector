@@ -238,8 +238,6 @@ static bool
 has_bv_assignment (Btor *btor, BtorNode *exp)
 {
   exp = BTOR_REAL_ADDR_NODE (exp);
-  //  return (btor->bv_model
-  //	  && btor_get_ptr_hash_table (btor->bv_model, exp) != 0)
   return (btor->bv_model
           && btor_contains_int_hash_map (btor->bv_model, exp->id))
          || BTOR_IS_SYNTH_NODE (exp) || btor_is_bv_const_node (exp);
@@ -253,13 +251,9 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
 
   BtorNode *real_exp;
   BtorBitVector *bv, *result;
-  // BtorPtrHashBucket *b;
   BtorHashTableData *d;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  // b = btor_get_ptr_hash_table (btor->bv_model, real_exp);
-  // if (b)
-  //  bv = btor_copy_bv (btor->mm, b->data.as_ptr);
   if ((d = btor_get_int_hash_map (btor->bv_model, real_exp->id)))
     bv = btor_copy_bv (btor->mm, d->as_ptr);
   else /* cache assignment to avoid querying the sat solver multiple times */
@@ -2104,13 +2098,6 @@ check_and_resolve_conflicts (Btor *btor,
    * model construction */
   if (!found_conflicts)
   {
-    //      btor_init_ptr_hash_table_iterator (&pit, btor->bv_model);
-    //      while (btor_has_next_ptr_hash_table_iterator (&pit))
-    //	{
-    //	  cur = btor_next_ptr_hash_table_iterator (&pit);
-    //	  if (btor_is_apply_node (cur) && !cur->propagated)
-    //	    btor_remove_from_bv_model (btor, btor->bv_model, cur);
-    //	}
     btor_init_int_hash_table_iterator (&iit, btor->bv_model);
     while (btor_has_next_int_hash_table_iterator (&iit))
     {
