@@ -283,7 +283,6 @@ btor_recursively_compute_assignment (Btor *btor,
   BtorNode *cur, *real_cur, *next, *cur_parent;
   BtorHashTableData *d, dd;
   BtorIntHashTable *assigned, *reset_st, *param_model_cache;
-  // BtorPtrHashTable *assigned, *reset_st, *param_model_cache;
   BtorBitVector *result = 0, *inv_result, **e;
   BtorBitVectorTuple *t;
   BtorIntHashTable *mark;
@@ -291,22 +290,15 @@ btor_recursively_compute_assignment (Btor *btor,
 
   mm = btor->mm;
 
-  //  assigned = btor_new_ptr_hash_table (mm,
-  //				      (BtorHashPtr) btor_hash_exp_by_id,
-  //				      (BtorCmpPtr) btor_compare_exp_by_id);
   assigned = btor_new_int_hash_map (mm);
 
   /* model cache for parameterized nodes */
-  // param_model_cache = btor_new_ptr_hash_table (mm, 0, 0);
   param_model_cache = btor_new_int_hash_map (mm);
 
   /* 'reset_st' remembers the stack position of 'reset' in case a lambda is
    * assigned. when the resp. lambda is unassigned, the 'eval_mark' flag of all
    * parameterized nodes up to the saved position of stack 'reset' will be
    * reset to 0. */
-  //  reset_st = btor_new_ptr_hash_table (mm,
-  //				      (BtorHashPtr) btor_hash_exp_by_id,
-  //				      (BtorCmpPtr) btor_compare_exp_by_id);
   reset_st = btor_new_int_hash_map (mm);
 
   mark = btor_new_int_hash_map (mm);
@@ -326,7 +318,6 @@ btor_recursively_compute_assignment (Btor *btor,
 
     if (btor_contains_int_hash_map (bv_model, real_cur->id)
         || btor_contains_int_hash_map (param_model_cache, real_cur->id))
-      //|| btor_get_ptr_hash_table (param_model_cache, real_cur))
       goto PUSH_CACHED;
 
     /* check if we already have an assignment for this function application */
@@ -334,8 +325,6 @@ btor_recursively_compute_assignment (Btor *btor,
         && btor_is_apply_node (cur_parent)
         /* if real_cur was assigned by cur_parent, we are not allowed to use
          * a cached result, but instead rebuild cur_parent */
-        //&& (!(b = btor_get_ptr_hash_table (assigned, real_cur))
-        //    || b->data.as_ptr != cur_parent))
         && (!(d = btor_get_int_hash_map (assigned, real_cur->id))
             || d->as_ptr != cur_parent))
     {
@@ -387,15 +376,10 @@ btor_recursively_compute_assignment (Btor *btor,
                && btor_is_apply_node (cur_parent))
       {
         btor_assign_args (btor, real_cur, cur_parent->e[1]);
-        //      assert (!btor_get_ptr_hash_table (assigned, real_cur));
-        //      btor_add_ptr_hash_table (assigned, real_cur)->data.as_ptr =
-        //	  cur_parent;
         assert (!btor_contains_int_hash_map (assigned, real_cur->id));
         btor_add_int_hash_map (assigned, real_cur->id)->as_ptr = cur_parent;
 
         /* save 'reset' stack position */
-        //      btor_add_ptr_hash_table (reset_st, real_cur)->data.as_int =
-        //	BTOR_COUNT_STACK (reset);
         btor_add_int_hash_map (reset_st, real_cur->id)->as_int =
             BTOR_COUNT_STACK (reset);
       }
@@ -552,15 +536,12 @@ btor_recursively_compute_assignment (Btor *btor,
           if (btor_is_lambda_node (real_cur) && cur_parent
               && btor_is_apply_node (cur_parent))
           {
-            // assert (btor_get_ptr_hash_table (assigned, real_cur));
             assert (btor_contains_int_hash_map (assigned, real_cur->id));
             btor_unassign_params (btor, real_cur);
-            // btor_remove_ptr_hash_table (assigned, real_cur, 0, 0);
             btor_remove_int_hash_map (assigned, real_cur->id, 0);
 
             /* reset 'eval_mark' of all parameterized nodes
              * instantiated by 'real_cur' */
-            // btor_remove_ptr_hash_table (reset_st, real_cur, 0, &dd);
             btor_remove_int_hash_map (reset_st, real_cur->id, &dd);
             pos = dd.as_int;
             while (BTOR_COUNT_STACK (reset) > pos)
@@ -569,8 +550,6 @@ btor_recursively_compute_assignment (Btor *btor,
               assert (BTOR_IS_REGULAR_NODE (next));
               assert (next->parameterized);
               btor_remove_int_hash_map (mark, next->id, 0);
-              // btor_remove_ptr_hash_table (
-              //    param_model_cache, next, 0, &dd);
               btor_remove_int_hash_map (param_model_cache, next->id, &dd);
               btor_free_bv (mm, dd.as_ptr);
             }
@@ -632,18 +611,12 @@ btor_recursively_compute_assignment (Btor *btor,
         /* temporarily cache model for paramterized nodes, is only
          * valid under current parameter assignment and will be reset
          * when parameters are unassigned */
-        //      assert (!btor_get_ptr_hash_table (
-        //		   param_model_cache, real_cur));
-        //      btor_add_ptr_hash_table (
-        //	  param_model_cache, real_cur)->data.as_ptr =
-        //	      btor_copy_bv (mm, result);
         assert (!btor_contains_int_hash_map (param_model_cache, real_cur->id));
         btor_add_int_hash_map (param_model_cache, real_cur->id)->as_ptr =
             btor_copy_bv (mm, result);
       }
       else
       {
-        // assert (!btor_get_ptr_hash_table (bv_model, real_cur));
         assert (!btor_contains_int_hash_map (bv_model, real_cur->id));
         btor_add_to_bv_model (btor, bv_model, real_cur, result);
       }
@@ -661,18 +634,6 @@ btor_recursively_compute_assignment (Btor *btor,
     {
       assert (md->as_int == 1);
     PUSH_CACHED:
-      // if (real_cur->parameterized)
-      //  {
-      //    b = btor_get_ptr_hash_table (param_model_cache, real_cur);
-      //    result = btor_copy_bv (mm, (BtorBitVector *) b->data.as_ptr);
-      //  }
-      // else
-      //  {
-      //    result = btor_copy_bv (
-      //        mm,
-      //        (BtorBitVector *) btor_get_int_hash_map (bv_model,
-      //        real_cur->id)->as_ptr);
-      //  }
       if (real_cur->parameterized)
         d = btor_get_int_hash_map (param_model_cache, real_cur->id);
       else
@@ -689,9 +650,6 @@ btor_recursively_compute_assignment (Btor *btor,
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, reset);
-  // btor_delete_ptr_hash_table (assigned);
-  // btor_delete_ptr_hash_table (reset_st);
-  // btor_delete_ptr_hash_table (param_model_cache);
   btor_delete_int_hash_map (assigned);
   btor_delete_int_hash_map (reset_st);
   btor_delete_int_hash_map (param_model_cache);
