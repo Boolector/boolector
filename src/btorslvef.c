@@ -2918,7 +2918,7 @@ UNDERAPPROX:
    * a previous call. in this case we produce a model using all refinements */
   start             = time_stamp ();
   failed_refinement = !refine_exists_solver (gslv, evar_map);
-  gslv->statistics->time.qinst += time_stamp () - start;
+  gslv->statistics->time.refine += time_stamp () - start;
   if (failed_refinement)
   {
     printf ("failed refinment\n");
@@ -2927,7 +2927,9 @@ UNDERAPPROX:
     goto RESTART;
   }
 
+  start = time_stamp ();
   synthesize_quant_inst (gslv);
+  gslv->statistics->time.qinst += time_stamp () - start;
 
 DONE:
   btor_delete_node_map (evar_map);
@@ -3356,6 +3358,10 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
             slv->statistics.time.findpm);
   BTOR_MSG (slv->btor->msg,
             1,
+            "%.2f seconds add refinement",
+            slv->statistics.time.refine);
+  BTOR_MSG (slv->btor->msg,
+            1,
             "%.2f seconds quantifier instantiation",
             slv->statistics.time.qinst);
   BTOR_MSG (slv->btor->msg,
@@ -3376,6 +3382,10 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
               1,
               "%.2f seconds dual synthesizing functions",
               slv->dual_statistics.time.synth);
+    BTOR_MSG (slv->btor->msg,
+              1,
+              "%.2f seconds dual add refinement",
+              slv->dual_statistics.time.refine);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual quantifier instantiation",

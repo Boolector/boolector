@@ -40,6 +40,7 @@ struct BtorEFStats
     double e_solver;
     double f_solver;
     double synth;
+    double refine;
     double qinst;
     double findpm;
     double checkinst;
