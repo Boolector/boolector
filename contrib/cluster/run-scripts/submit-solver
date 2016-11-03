@@ -67,19 +67,19 @@ benchmarks_file=$pwd/benchmarks_${benchmark_list[$i]}
 while true
 do
   echo -n "choose working directory: "
-  read working_dir
-  if [[ "$working_dir" == "" ]]; then
+  read wdir
+  if [[ "$wdir" == "" ]]; then
     msg "no working directory specified"
     continue
   fi
-  if [[ ! -d $working_dir ]]; then
+  if [[ ! -d $wdir ]]; then
     break
   fi
-  msg "directory '$working_dir' already exists"
+  msg "directory '$wdir' already exists"
 done
 
-working_dir=$pwd/$(basename $working_dir)
-mkdir -p $working_dir
+wdir=$pwd/$(basename $wdir)
+mkdir -p $wdir
 
 # configure solver 
 echo -n "choose '$binary_name' options (default: $default_options): "
@@ -128,17 +128,17 @@ done
 while true
 do
   echo -n "choose jobs per host (default: 1): " 
-  read jobs_per_host
+  read tickets
 
-  if [[ "$jobs_per_host" == "" ]]; then
-    jobs_per_host=1
+  if [[ "$tickets" == "" ]]; then
+    tickets=1
     break
   fi
-  if [[ ! $jobs_per_host =~ $re ]]; then
-    msg "jobs per host '$jobs_per_host' is not a number"
+  if [[ ! $tickets =~ $re ]]; then
+    msg "jobs per host '$tickets' is not a number"
     continue
   fi
-  if [[ $jobs_per_host -lt 1 || $jobs_per_host -gt 3 ]]; then
+  if [[ $tickets -lt 1 || $tickets -gt 3 ]]; then
     msg "jobs per host must be between 1 and 3"
     continue
   else
@@ -147,23 +147,57 @@ do
 done
 
 # save options, benchmarks file, solver
-cp $benchmarks_file $working_dir/benchmarks
-cp $solver $working_dir
-solver=$working_dir/$binary_name
-echo "time limit: $time_limit" > $working_dir/options
-echo "space limit: $space_limit" >> $working_dir/options
-echo "$options" >> $working_dir/options
+cp $benchmarks_file $wdir/benchmarks
+cp $solver $wdir
+solver=$wdir/$binary_name
+echo "time limit: $time_limit" > $wdir/options
+echo "space limit: $space_limit" >> $wdir/options
+echo "$options" >> $wdir/options
 
 ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
 prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1\/.*$/\1\n\1\//;D')
 
-((jobs_per_host = 6 / jobs_per_host))
+((tickets = 6 / tickets))
 
-qsub -l job_tickets=$jobs_per_host -t 1-$ntasks $HOME/bin/launch \
-  "$working_dir/benchmarks" \
-  "$prefix" \
-  "$working_dir" \
-  "--time-limit=$time_limit --space-limit=$space_limit" \
-  "$solver" \
-  "$options"
+runlim_ops="--time-limit=$time_limit --space-limit=$space_limit"
+
+# create qsub script
+cat > $wdir/launch.sh << EOF
+#!/bin/sh
+#$ -e /dev/null
+#$ -o /dev/null
+#$ -l job_tickets=$tickets
+#$ -t 1-$ntasks
+
+prefix="$prefix"
+wdir="$wdir"
+runlim_options="$runlim_options"
+solver="$solver"
+solver_options="$solver_options"
+benchmarks="\$wdir/benchmarks"
+
+# pick benchmark file from list of benchmarks
+benchmark=\`sed \${SGE_TASK_ID}'q;d' \$benchmarks\`
+out="\$(echo \${benchmark#\$prefix} | sed -e 's,/,-,g' -e 's,\.smt.*,,')"
+# set stdout log file
+log="\$wdir/\${out}.log"
+# set stderr log file
+err="\$wdir/\${out}.err"
+
+echo "c host: \`hostname\`" >> \$log
+echo "c start: \`date\`"
+echo "c benchmark: \$benchmark" >> \$log
+echo "c solver: \$solver" >> \$log
+echo "c solver options: \$solver_options" >> \$log
+
+\$HOME/bin/runlim \\
+  \$runlim_options \\
+  \$solver \\
+  \$solver_options \\
+  \$benchmark >> \$log 2> \$err
+
+echo "c launch: done" >> \$log
+EOF
+
+qsub $wdir/launch.sh
