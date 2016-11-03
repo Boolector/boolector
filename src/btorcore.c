@@ -3148,18 +3148,10 @@ btor_simplify (Btor *btor)
     }
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        /* FIXME: extraction not supported yet for extensional lambdas */
-        && btor->feqs->count == 0
-        /* FIXME: merging not supported yet for incremental due to
-         * extensionality*/
-        && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
-        //	  && !btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
         && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
       btor_extract_lambdas (btor);
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        /* merging lambdas not required if they get eliminated */
-        //	  && !btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
         && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
       btor_merge_lambdas (btor);
 
@@ -3168,10 +3160,6 @@ btor_simplify (Btor *btor)
 
     /* rewrite/beta-reduce applies on lambdas */
     if (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL))
-      //	  /* FIXME: full beta reduction may produce lambdas that do not
-      // have a
-      //	   * static_rho */
-      //	  && btor->feqs->count == 0)
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
