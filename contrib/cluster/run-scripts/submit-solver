@@ -160,7 +160,7 @@ prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1\/.*$/\1\n\1\//;D')
 
 ((tickets = 6 / tickets))
 
-runlim_ops="--time-limit=$time_limit --space-limit=$space_limit"
+runlim_options="--time-limit=$time_limit --space-limit=$space_limit"
 
 # create qsub script
 cat > $wdir/launch.sh << EOF
@@ -174,7 +174,7 @@ prefix="$prefix"
 wdir="$wdir"
 runlim_options="$runlim_options"
 solver="$solver"
-solver_options="$solver_options"
+solver_options="$options"
 benchmarks="\$wdir/benchmarks"
 
 # pick benchmark file from list of benchmarks
