@@ -149,10 +149,9 @@ done
 # save options, benchmarks file, solver
 cp $benchmarks_file $wdir/benchmarks
 cp $solver $wdir
-solver=$wdir/$binary_name
 echo "time limit: $time_limit" > $wdir/options
 echo "space limit: $space_limit" >> $wdir/options
-echo "$options" >> $wdir/options
+echo "solver options: $options" >> $wdir/options
 
 ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
@@ -173,7 +172,7 @@ cat > $wdir/launch.sh << EOF
 
 prefix="$prefix"
 runlim_options="$runlim_options"
-solver="$solver"
+solver="./$binary_name"
 solver_options="$options"
 benchmarks="./benchmarks"
 
