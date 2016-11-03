@@ -587,6 +587,8 @@ void btor_lambda_set_static_rho (BtorNode *lambda,
 
 BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
 
+void btor_lambda_delete_static_rho (Btor *btor, BtorNode *lambda);
+
 /*------------------------------------------------------------------------*/
 
 uint32_t btor_slice_get_upper (BtorNode *slice);

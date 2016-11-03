@@ -810,10 +810,9 @@ btor_delete_btor (Btor *btor)
 
   int i;
   BtorNodePtrStack stack;
-  BtorPtrHashTable *t;
   BtorMemMgr *mm;
   BtorNode *exp;
-  BtorPtrHashTableIterator it, iit;
+  BtorPtrHashTableIterator it;
 
   mm = btor->mm;
 
@@ -869,18 +868,7 @@ btor_delete_btor (Btor *btor)
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     exp = btor_next_ptr_hash_table_iterator (&it);
-    t   = btor_lambda_get_static_rho (exp);
-    if (t)
-    {
-      btor_init_ptr_hash_table_iterator (&iit, t);
-      while (btor_has_next_ptr_hash_table_iterator (&iit))
-      {
-        BTOR_PUSH_STACK (mm, stack, iit.bucket->data.as_ptr);
-        BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&iit));
-      }
-      btor_lambda_set_static_rho (exp, 0);
-      btor_delete_ptr_hash_table (t);
-    }
+    btor_lambda_delete_static_rho (btor, exp);
   }
 
   while (!BTOR_EMPTY_STACK (stack))

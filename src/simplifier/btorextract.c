@@ -1256,6 +1256,8 @@ extract_lambdas (Btor *btor,
           b->data.as_ptr = btor_copy_exp (btor, value);
         }
       }
+      if (btor_lambda_get_static_rho (subst))
+        btor_lambda_delete_static_rho (btor, subst);
       btor_lambda_set_static_rho (subst, static_rho);
     }
 

@@ -937,6 +937,25 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
   return static_rho;
 }
 
+void
+btor_lambda_delete_static_rho (Btor *btor, BtorNode *lambda)
+{
+  BtorPtrHashTable *static_rho;
+  BtorPtrHashTableIterator it;
+
+  static_rho = btor_lambda_get_static_rho (lambda);
+  if (!static_rho) return;
+
+  btor_init_ptr_hash_table_iterator (&it, static_rho);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+  {
+    btor_release_exp (btor, it.bucket->data.as_ptr);
+    btor_release_exp (btor, btor_next_ptr_hash_table_iterator (&it));
+  }
+  btor_delete_ptr_hash_table (static_rho);
+  btor_lambda_set_static_rho (lambda, 0);
+}
+
 /*------------------------------------------------------------------------*/
 
 uint32_t
