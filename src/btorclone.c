@@ -231,7 +231,6 @@ btor_clone_data_as_bv_ptr_htable (BtorMemMgr *mm,
                                   BtorHashTableData *cloned_data)
 {
   assert (mm);
-  assert (map);
   assert (data);
   assert (cloned_data);
 
@@ -1172,7 +1171,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     clone->fun_model = btor_clone_fun_model (clone, btor->fun_model);
 #ifndef NDEBUG
     btor_init_int_hash_table_iterator (&iit, btor->fun_model);
-    btor_init_int_hash_table_iterator (&ciit, btor->clone->fun_model);
+    btor_init_int_hash_table_iterator (&ciit, clone->fun_model);
     while (btor_has_next_int_hash_table_iterator (&iit))
     {
       data  = btor_next_data_int_hash_table_iterator (&iit);
@@ -1346,14 +1345,16 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
       BtorSLSSolver *cslv = BTOR_SLS_SOLVER (clone);
 
-      CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
-      CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+      CHKCLONE_MEM_INT_HASH_MAP (slv->roots, cslv->roots);
+      CHKCLONE_MEM_INT_HASH_MAP (slv->score, cslv->score);
+      CHKCLONE_MEM_INT_HASH_MAP (slv->weights, cslv->weights);
 
-      allocated += sizeof (BtorSLSSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
-                   + MEM_PTR_HASH_TABLE (cslv->score);
+      allocated += sizeof (BtorSLSSolver) + MEM_INT_HASH_MAP (cslv->roots)
+                   + MEM_INT_HASH_MAP (cslv->score)
+                   + MEM_INT_HASH_MAP (cslv->weights);
 
-      if (slv->roots)
-        allocated += slv->roots->count * sizeof (BtorSLSConstrData);
+      if (slv->weights)
+        allocated += slv->weights->count * sizeof (BtorSLSConstrData);
 
       assert (BTOR_SIZE_STACK (slv->moves) == BTOR_SIZE_STACK (cslv->moves));
       assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
@@ -1391,7 +1392,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       BtorPropSolver *cslv = BTOR_PROP_SOLVER (clone);
 
       CHKCLONE_MEM_INT_HASH_MAP (slv->roots, cslv->roots);
-      CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+      CHKCLONE_MEM_INT_HASH_MAP (slv->score, cslv->score);
 
       allocated += sizeof (BtorPropSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
                    + MEM_PTR_HASH_TABLE (cslv->score);

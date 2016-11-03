@@ -1082,9 +1082,9 @@ chkclone_slv (Btor *btor)
     BtorSLSSolver *cslv = BTOR_SLS_SOLVER (btor->clone);
 
     chkclone_int_hash_map (slv->roots, cslv->roots, cmp_data_as_int);
-    chkclone_node_ptr_hash_table (
+    chkclone_int_hash_map (
         slv->weights, cslv->weights, cmp_data_as_sls_constr_data_ptr);
-    chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
+    chkclone_int_hash_map (slv->score, cslv->score, cmp_data_as_dbl);
 
     assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
     for (i = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
@@ -1127,7 +1127,8 @@ chkclone_slv (Btor *btor)
     BtorPropSolver *slv  = BTOR_PROP_SOLVER (btor);
     BtorPropSolver *cslv = BTOR_PROP_SOLVER (btor->clone);
 
-    chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
+    chkclone_int_hash_map (slv->roots, cslv->roots, cmp_data_as_int);
+    chkclone_int_hash_map (slv->score, cslv->score, cmp_data_as_dbl);
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);

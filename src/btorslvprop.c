@@ -76,7 +76,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
 
     int *selected;
     double value, max_value, score;
-    BtorPtrHashBucket *b;
     max_value = 0.0;
     btor_init_int_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_int_hash_table_iterator (&it))
@@ -84,9 +83,12 @@ select_constraint (Btor *btor, uint32_t nmoves)
       selected = &slv->roots->data[it.cur_pos].as_int;
       cur = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
 
-      b = btor_get_ptr_hash_table (slv->score, cur);
-      assert (b);
-      score = b->data.as_dbl;
+      // b = btor_get_ptr_hash_table (slv->score, cur);
+      // assert (b);
+      // score = b->data.as_dbl;
+      assert (btor_contains_int_hash_map (slv->score, BTOR_GET_ID_NODE (cur)));
+      score =
+          btor_get_int_hash_map (slv->score, BTOR_GET_ID_NODE (cur))->as_dbl;
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
@@ -205,12 +207,10 @@ clone_prop_solver (Btor *clone, BtorPropSolver *slv, BtorNodeMap *exp_map)
 
   res->btor  = clone;
   res->roots = btor_clone_int_hash_map (clone->mm, slv->roots, 0, 0);
-  res->score = btor_clone_ptr_hash_table (clone->mm,
-                                          slv->score,
-                                          btor_clone_key_as_node,
-                                          btor_clone_data_as_dbl,
-                                          exp_map,
-                                          0);
+  // res->score = btor_clone_ptr_hash_table (clone->mm, slv->score,
+  //    btor_clone_key_as_node, btor_clone_data_as_dbl, exp_map, 0);
+  res->score = btor_clone_int_hash_map (
+      clone->mm, slv->score, btor_clone_data_as_dbl, 0);
 
   return res;
 }
@@ -223,7 +223,8 @@ delete_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  if (slv->score) btor_delete_ptr_hash_table (slv->score);
+  // if (slv->score) btor_delete_ptr_hash_table (slv->score);
+  if (slv->score) btor_delete_int_hash_map (slv->score);
   if (slv->roots) btor_delete_int_hash_map (slv->roots);
 
   BTOR_DELETE (slv->btor->mm, slv);
@@ -286,10 +287,11 @@ sat_prop_solver_aux (Btor *btor)
     }
 
     if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
-      slv->score =
-          btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
+      // slv->score = btor_new_ptr_hash_table (
+      //    btor->mm,
+      //    (BtorHashPtr) btor_hash_exp_by_id,
+      //    (BtorCmpPtr) btor_compare_exp_by_id);
+      slv->score = btor_new_int_hash_map (btor->mm);
 
     if (btor_terminate_btor (btor))
     {
@@ -337,11 +339,13 @@ sat_prop_solver_aux (Btor *btor)
     slv->roots = 0;
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
-      btor_delete_ptr_hash_table (slv->score);
-      slv->score =
-          btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
+      // btor_delete_ptr_hash_table (slv->score);
+      // slv->score = btor_new_ptr_hash_table (
+      //  btor->mm,
+      //  (BtorHashPtr) btor_hash_exp_by_id,
+      //  (BtorCmpPtr) btor_compare_exp_by_id);
+      btor_delete_int_hash_map (slv->score);
+      slv->score = btor_new_int_hash_map (btor->mm);
     }
     slv->stats.restarts += 1;
   }
@@ -362,7 +366,8 @@ DONE:
   }
   if (slv->score)
   {
-    btor_delete_ptr_hash_table (slv->score);
+    // btor_delete_ptr_hash_table (slv->score);
+    btor_delete_int_hash_map (slv->score);
     slv->score = 0;
   }
   return sat_result;

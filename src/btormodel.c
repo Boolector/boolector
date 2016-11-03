@@ -58,13 +58,10 @@ add_to_fun_model (Btor *btor,
   assert (value);
 
   BtorPtrHashTable *model;
-  BtorHashTableData *d;
   BtorPtrHashBucket *b;
 
-  d = btor_get_int_hash_map (fun_model, exp->id);
-
-  if (d)
-    model = (BtorPtrHashTable *) d->as_ptr;
+  if (btor_contains_int_hash_map (fun_model, exp->id))
+    model = btor_get_int_hash_map (fun_model, exp->id)->as_ptr;
   else
   {
     model = btor_new_ptr_hash_table (btor->mm,

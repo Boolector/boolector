@@ -78,7 +78,7 @@ btor_propsls_non_rec_conf (
 void btor_propsls_update_cone (Btor* btor,
                                BtorIntHashTable* bv_model,
                                BtorIntHashTable* roots,
-                               BtorPtrHashTable* score,
+                               BtorIntHashTable* score,
                                BtorIntHashTable* exps,
                                bool update_roots,
                                uint64_t* stats_updates,
@@ -94,7 +94,7 @@ uint64_t btor_propsls_select_move_prop (Btor* btor,
 void btor_propsls_compute_sls_scores (Btor* btor,
                                       BtorIntHashTable* bv_model,
                                       BtorIntHashTable* fun_model,
-                                      BtorPtrHashTable* score);
+                                      BtorIntHashTable* score);
 
 /*------------------------------------------------------------------------*/
 
