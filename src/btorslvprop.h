@@ -20,7 +20,7 @@ struct BtorPropSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorIntHashTable *roots;
+  BtorIntHashTable *roots; /* map: maintains 'selected' */
   BtorPtrHashTable *score;
 
   /* current probability for selecting the cond when either the

@@ -59,7 +59,8 @@ struct BtorSLSSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorIntHashTable *roots;
+  BtorIntHashTable *roots;   /* must be map (for common propsls funs)
+                                but does not maintain anything */
   BtorPtrHashTable *weights; /* also maintains assertion weights */
   BtorPtrHashTable *score;   /* sls score */
 
