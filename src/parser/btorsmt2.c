@@ -3293,6 +3293,7 @@ static int
 declare_fun_smt2 (BtorSMT2Parser *parser)
 {
   char *symbol;
+  uint32_t i;
   int tag;
   BoolectorSortStack args;
   BtorSMT2Node *fun;
@@ -3332,25 +3333,21 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     BTOR_RELEASE_STACK (parser->mem, args);
     return 0;
   }
-  if (boolector_is_array_sort (parser->btor, sort))
+  /* bit-vector/array variable */
+  if (BTOR_EMPTY_STACK (args))
   {
-    if (!BTOR_EMPTY_STACK (args))
+    if (boolector_is_fun_sort (parser->btor, sort))
     {
-      BTOR_RELEASE_STACK (parser->mem, args);
-      return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
+      fun->exp = boolector_array (parser->btor, sort, fun->name);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "declared bit-vector array '%s' at line %d column %d",
+                fun->name,
+                fun->coo.x,
+                fun->coo.y);
+      parser->need_functions = 1;
     }
-    fun->exp = boolector_array (parser->btor, sort, fun->name);
-    BTOR_MSG (boolector_get_btor_msg (parser->btor),
-              2,
-              "declared bit-vector array '%s' at line %d column %d",
-              fun->name,
-              fun->coo.x,
-              fun->coo.y);
-    parser->need_functions = 1;
-  }
-  else
-  {
-    if (BTOR_EMPTY_STACK (args))
+    else
     {
       symbol   = create_symbol_current_scope (parser, fun->name);
       fun->exp = boolector_var (parser->btor, sort, symbol);
@@ -3362,22 +3359,43 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
                 fun->coo.x,
                 fun->coo.y);
     }
-    else
+  }
+  else
+  {
+    /* check if arguments have bit-vector sort, all other sorts are not
+     * supported for uninterpreted functions */
+    for (i = 0; i < BTOR_COUNT_STACK (args); i++)
     {
-      s = boolector_fun_sort (
-          parser->btor, args.start, BTOR_COUNT_STACK (args), sort);
-      symbol   = create_symbol_current_scope (parser, fun->name);
-      fun->exp = boolector_uf (parser->btor, s, symbol);
-      boolector_release_sort (parser->btor, s);
-      btor_freestr (parser->mem, symbol);
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                2,
-                "declared '%s' as uninterpreted function at line %d column %d",
-                fun->name,
-                fun->coo.x,
-                fun->coo.y);
-      parser->need_functions = 1;
+      s = BTOR_PEEK_STACK (args, i);
+      if (!boolector_is_bitvec_sort (parser->btor, s))
+      {
+        BTOR_RELEASE_STACK (parser->mem, args);
+        return !perr_smt2 (parser,
+                           "only bit-vector sorts "
+                           "supported for arity > 0");
+      }
     }
+    if (!boolector_is_bitvec_sort (parser->btor, sort))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return !perr_smt2 (parser,
+                         "only bit-vector sorts supported as return sort "
+                         "for arity > 0");
+    }
+
+    s = boolector_fun_sort (
+        parser->btor, args.start, BTOR_COUNT_STACK (args), sort);
+    symbol   = create_symbol_current_scope (parser, fun->name);
+    fun->exp = boolector_uf (parser->btor, s, symbol);
+    boolector_release_sort (parser->btor, s);
+    btor_freestr (parser->mem, symbol);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              2,
+              "declared '%s' as uninterpreted function at line %d column %d",
+              fun->name,
+              fun->coo.x,
+              fun->coo.y);
+    parser->need_functions = 1;
   }
   (void) boolector_copy (parser->btor, fun->exp);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, fun->exp);

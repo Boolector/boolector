@@ -3650,6 +3650,46 @@ boolector_is_array_sort (Btor *btor, BoolectorSort sort)
   return res;
 }
 
+bool
+boolector_is_bitvec_sort (Btor *btor, BoolectorSort sort)
+{
+  bool res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (SORT_FMT, sort);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+
+  BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
+
+  res = btor_is_bitvec_sort (btor, s);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bitvec_sort, sort);
+#endif
+  return res;
+}
+
+bool
+boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
+{
+  bool res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (SORT_FMT, sort);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+
+  BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
+
+  res = btor_is_fun_sort (btor, s);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_fun_sort, sort);
+#endif
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 /* Note: no need to trace parse function calls!! */

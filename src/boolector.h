@@ -1965,6 +1965,24 @@ bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
  */
 bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
 
+/*!
+  Determine if ``sort`` is a bit-vector sort.
+
+  :param btor: Boolector instance.
+  :param sort: Sort.
+  :return: True if ``sort`` is a bit-vector sort, and false otherwise.
+ */
+bool boolector_is_bitvec_sort (Btor *btor, BoolectorSort sort);
+
+/*!
+  Determine if ``sort`` is a function sort.
+
+  :param btor: Boolector instance.
+  :param sort: Sort.
+  :return: True if ``sort`` is a function sort, and false otherwise.
+ */
+bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
+
 /*------------------------------------------------------------------------*/
 
 /*!
