@@ -978,10 +978,10 @@ extract_lambdas (Btor *btor,
   bool is_top_eq;
   BtorBitVector *inc;
   unsigned i_range, i_index, i_value, i_inc;
-  BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
+  BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper, *args;
   BtorNode *src_array, *src_addr, *dst_addr;
   BtorPtrHashTableIterator it, iit;
-  BtorPtrHashTable *t, *index_value_map;
+  BtorPtrHashTable *t, *index_value_map, *static_rho;
   BtorPtrHashBucket *b;
   BtorNodePtrStack ranges, indices, values, indices_itoi, indices_itoip1;
   BtorNodePtrStack indices_cpy, indices_rem, *stack;
@@ -1027,8 +1027,6 @@ extract_lambdas (Btor *btor,
                    &num_set_inc,
                    &size_set,
                    &size_set_inc);
-      BTOR_RELEASE_STACK (mm, *stack);
-      BTOR_DELETE (mm, stack);
       BTOR_PUSH_STACK (mm, ranges, 0);
       BTOR_PUSH_STACK (mm, indices, 0);
       BTOR_PUSH_STACK (mm, values, value);
@@ -1053,8 +1051,7 @@ extract_lambdas (Btor *btor,
     else
     {
       assert (btor_is_uf_array_node (array));
-      subst = btor_array_exp (btor, btor_exp_get_sort_id (array), 0);
-
+      subst     = btor_array_exp (btor, btor_exp_get_sort_id (array), 0);
       is_top_eq = true;
     }
 
@@ -1237,7 +1234,39 @@ extract_lambdas (Btor *btor,
     }
 
     assert ((is_top_eq || num_total > 0) || base == subst);
-    if (base != subst) btor_insert_substitution (btor, array, subst, 0);
+    if (base != subst)
+    {
+      btor_insert_substitution (btor, array, subst, 0);
+
+      /* store all indices in static_rho (required for model generation) */
+      static_rho =
+          btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+      btor_init_ptr_hash_table_iterator (&iit, t);
+      while (btor_has_next_ptr_hash_table_iterator (&iit))
+      {
+        stack = iit.bucket->data.as_ptr;
+        value = btor_next_ptr_hash_table_iterator (&iit);
+        for (i_index = 0; i_index < BTOR_COUNT_STACK (*stack); i_index++)
+        {
+          tmp            = BTOR_PEEK_STACK (*stack, i_index);
+          args           = btor_args_exp (btor, &tmp, 1);
+          b              = btor_add_ptr_hash_table (static_rho, args);
+          b->data.as_ptr = btor_copy_exp (btor, value);
+        }
+      }
+      btor_lambda_set_static_rho (subst, static_rho);
+    }
+
+    btor_init_ptr_hash_table_iterator (&iit, t);
+    while (btor_has_next_ptr_hash_table_iterator (&iit))
+    {
+      stack = iit.bucket->data.as_ptr;
+      (void) btor_next_ptr_hash_table_iterator (&iit);
+      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_DELETE (mm, stack);
+    }
     btor_release_exp (btor, subst);
 
     btor_delete_ptr_hash_table (index_value_map);
