@@ -1324,8 +1324,8 @@ PROP_INV_CONF_CONCAT_TESTS:
   {
     bws[0]   = btor_pick_rand_rng (&g_btor->rng, 1, bw - 1);
     bws[1]   = bw - bws[0];
-    sorts[0] = btor_bitvec_sort (g_btor, sorts[0]);
-    sorts[1] = btor_bitvec_sort (g_btor, sorts[1]);
+    sorts[0] = btor_bitvec_sort (g_btor, bw);
+    sorts[1] = btor_bitvec_sort (g_btor, bw);
     e[0]     = btor_var_exp (g_btor, sorts[0], 0);
     e[1]     = btor_var_exp (g_btor, sorts[1], 0);
     concat   = btor_concat_exp (g_btor, e[0], e[1]);
