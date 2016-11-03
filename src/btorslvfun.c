@@ -316,10 +316,6 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 0);
   btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
-#ifdef BTOR_CHECK_MODEL
-  /* cleanup dangling references when model validation is enabled */
-  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-#endif
 #ifndef NBTORLOG
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif

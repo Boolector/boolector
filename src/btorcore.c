@@ -3666,7 +3666,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
   {
     uclone = btor_clone_btor (btor);
-    btor_set_opt (uclone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
   }
 #endif
@@ -3679,7 +3678,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
   btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   inputs = map_inputs_check_model (btor, mclone);
-  btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
@@ -3690,8 +3688,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     dpclone = btor_clone_btor (btor);
     btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
     btor_set_opt (dpclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   }
 #endif
@@ -3702,8 +3698,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS))
   {
     faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
     btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     btor_set_opt (faclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);

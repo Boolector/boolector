@@ -883,8 +883,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   assert (allocated == clone->mm->allocated);
 
-  /* always auto cleanup external references (dangling, not held from extern) */
+  /* always auto cleanup internal and external references (may be dangling
+   * otherise) */
   btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 
   if (exp_layer_only)
   {
