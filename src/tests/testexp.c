@@ -495,7 +495,7 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
 
   init_exp_test ();
 
-  sort = btor_bitvec_sort (g_btor, 8);
+  sort = btor_bitvec_sort (g_btor, 32);
   exp1 = btor_var_exp (g_btor, sort, "v1");
   exp2 = btor_var_exp (g_btor, sort, "v2");
   exp3 = func (g_btor, exp1, exp2);
@@ -672,6 +672,7 @@ mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   btor_release_exp (g_btor, exp3);
   btor_release_exp (g_btor, exp4);
   btor_release_exp (g_btor, exp5);
+  btor_release_sort (g_btor, sort);
   finish_exp_test ();
 }
 
