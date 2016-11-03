@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -61,8 +61,8 @@ struct BtorSLSSolver
 
   BtorIntHashTable *roots;   /* must be map (for common propsls funs)
                                 but does not maintain anything */
-  BtorPtrHashTable *weights; /* also maintains assertion weights */
-  BtorPtrHashTable *score;   /* sls score */
+  BtorIntHashTable *weights; /* also maintains assertion weights */
+  BtorIntHashTable *score;   /* sls score */
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   uint32_t npropmoves;       /* record #no moves for prop moves */

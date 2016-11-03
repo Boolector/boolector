@@ -21,7 +21,7 @@ struct BtorPropSolver
   BTOR_SOLVER_STRUCT;
 
   BtorIntHashTable *roots; /* map: maintains 'selected' */
-  BtorPtrHashTable *score;
+  BtorIntHashTable *score;
 
   /* current probability for selecting the cond when either the
    * 'then' or 'else' branch is const (path selection) */
