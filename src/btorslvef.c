@@ -3151,7 +3151,7 @@ sat_ef_solver (BtorEFSolver *slv)
   //  double start;
   bool opt_dual_solver, skip_exists = true;
   BtorSolverResult res;
-  BtorNode *g;
+  BtorNode *g, *tmp;
   BtorEFGroundSolvers *gslv, *dual_gslv = 0;
   BtorNodeMap *var_map = 0, *dual_var_map = 0;
   /* 'var_map' maps existential/universal (gslv) to universal/existential
@@ -3168,10 +3168,19 @@ sat_ef_solver (BtorEFSolver *slv)
 
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
-  g             = btor_normalize_quantifiers (slv->btor);
-  BtorNode *tmp = btor_der_node (slv->btor, g);
-  btor_release_exp (slv->btor, g);
-  g    = tmp;
+  g = btor_normalize_quantifiers (slv->btor);
+  if (btor_get_opt (slv->btor, BTOR_OPT_EF_DER))
+  {
+    tmp = btor_der_node (slv->btor, g);
+    btor_release_exp (slv->btor, g);
+    g = tmp;
+  }
+  if (btor_get_opt (slv->btor, BTOR_OPT_EF_CER))
+  {
+    tmp = btor_cer_node (slv->btor, g);
+    btor_release_exp (slv->btor, g);
+    g = tmp;
+  }
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
   gslv->statistics = &slv->statistics;

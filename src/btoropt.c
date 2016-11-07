@@ -689,15 +689,27 @@ btor_init_opts (Btor *btor)
 	    "ef:dual-prop", "ef:dp",
 	    0, 0, 1,
 	    "dual propagation optimization for EF solver");
-  init_opt (btor, BTOR_OPT_EF_DER, false, true,
-	    "ef:der", 0,
-	    0, 0, 1,
-	    "destructive equality resolution for EF solver");
-  init_opt (btor, BTOR_OPT_EF_CER, false, true,
-	    "ef:cer", 0,
-	    0, 0, 1,
-	    "constructive equality resolution for EF solver");
 #endif
+  init_opt (btor,
+            BTOR_OPT_EF_DER,
+            false,
+            true,
+            "ef:der",
+            0,
+            0,
+            0,
+            1,
+            "apply destructive equality resolution (DER)");
+  init_opt (btor,
+            BTOR_OPT_EF_CER,
+            false,
+            true,
+            "ef:cer",
+            0,
+            0,
+            0,
+            1,
+            "apply constructive equality resolution (CER)");
   init_opt (btor,
             BTOR_OPT_EF_SYNTH,
             false,
