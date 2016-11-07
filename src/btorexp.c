@@ -2207,7 +2207,7 @@ btor_int_exp (Btor *btor, int32_t i, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_uint64_to_bv (btor->mm, i, width);
+  bv     = btor_int64_to_bv (btor->mm, i, width);
   result = btor_const_exp (btor, bv);
   btor_free_bv (btor->mm, bv);
   return result;
