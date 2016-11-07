@@ -900,7 +900,7 @@ btor_get_bv_model_aux (Btor *btor,
 
   /* Check if we already generated the assignment of exp
    * -> inverted if exp is inverted */
-  if ((d = btor_get_int_hash_map (bv_model, BTOR_GET_ID_NODE (exp))))
+  if ((d = btor_get_int_hash_map (bv_model, btor_exp_get_id (exp))))
     return d->as_ptr;
 
   /* If not, check if we already generated the assignment of non-inverted exp
@@ -930,7 +930,7 @@ btor_get_bv_model_aux (Btor *btor,
      * hash table queries and copying/freeing of the resulting bv */
     result = btor_not_bv (btor->mm, result);
     btor_copy_exp (btor, exp);
-    btor_add_int_hash_map (bv_model, BTOR_GET_ID_NODE (exp))->as_ptr = result;
+    btor_add_int_hash_map (bv_model, btor_exp_get_id (exp))->as_ptr = result;
   }
 
   return result;
@@ -993,7 +993,7 @@ btor_remove_from_bv_model (Btor *btor,
   BtorHashTableData d;
   uint32_t id;
 
-  id = BTOR_GET_ID_NODE (exp);
+  id = btor_exp_get_id (exp);
   assert (btor_contains_int_hash_map (bv_model, id));
   btor_remove_int_hash_map (bv_model, id, &d);
   btor_free_bv (btor->mm, d.as_ptr);

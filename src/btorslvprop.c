@@ -61,10 +61,9 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
     if (btor_is_false_bv (btor_get_bv_model (btor, root)))
-      assert (btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root)));
+      assert (btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
     else
-      assert (
-          !btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root)));
+      assert (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
   }
 #endif
 
@@ -86,9 +85,8 @@ select_constraint (Btor *btor, uint32_t nmoves)
       // b = btor_get_ptr_hash_table (slv->score, cur);
       // assert (b);
       // score = b->data.as_dbl;
-      assert (btor_contains_int_hash_map (slv->score, BTOR_GET_ID_NODE (cur)));
-      score =
-          btor_get_int_hash_map (slv->score, BTOR_GET_ID_NODE (cur))->as_dbl;
+      assert (btor_contains_int_hash_map (slv->score, btor_exp_get_id (cur)));
+      score = btor_get_int_hash_map (slv->score, btor_exp_get_id (cur))->as_dbl;
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
@@ -277,12 +275,12 @@ sat_prop_solver_aux (Btor *btor)
     {
       root = btor_next_ptr_hash_table_iterator (&it);
 
-      if (!btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root))
+      if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
           && btor_is_zero_bv (btor_get_bv_model (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_add_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root));
+        btor_add_int_hash_map (slv->roots, btor_exp_get_id (root));
       }
     }
 

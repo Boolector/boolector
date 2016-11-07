@@ -2714,7 +2714,7 @@ boolector_get_id (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  res = btor_get_id (btor, exp);
+  res = btor_exp_get_id (BTOR_REAL_ADDR_NODE (exp));
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, get_id, BTOR_CLONED_EXP (exp));

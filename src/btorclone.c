@@ -703,7 +703,7 @@ clone_nodes_id_table (Btor *btor,
   {
     tmp = BTOR_POP_STACK (parents);
     assert (*tmp);
-    tag  = BTOR_GET_TAG_NODE (*tmp);
+    tag  = btor_exp_get_tag (*tmp);
     *tmp = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (*tmp));
     assert (*tmp);
     *tmp = BTOR_TAG_NODE (*tmp, tag);

@@ -626,16 +626,6 @@ btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
     ((BtorUFNode *) real_exp)->btor_id = id;
 }
 
-int
-btor_get_id (Btor *btor, const BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
-  (void) btor;
-  return BTOR_REAL_ADDR_NODE (exp)->id;
-}
-
 BtorNode *
 btor_match_node_by_id (Btor *btor, int id)
 {
@@ -749,8 +739,8 @@ btor_compare_exp_by_id (const BtorNode *exp0, const BtorNode *exp1)
 
   int id0, id1;
 
-  id0 = BTOR_GET_ID_NODE (exp0);
-  id1 = BTOR_GET_ID_NODE (exp1);
+  id0 = btor_exp_get_id (exp0);
+  id1 = btor_exp_get_id (exp1);
   if (id0 < id1) return -1;
   if (id0 > id1) return 1;
   return 0;
@@ -777,7 +767,7 @@ unsigned int
 btor_hash_exp_by_id (const BtorNode *exp)
 {
   assert (exp);
-  return (unsigned int) BTOR_GET_ID_NODE (exp) * 7334147u;
+  return (unsigned int) btor_exp_get_id (exp) * 7334147u;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1026,8 +1016,8 @@ btor_new_exp_pair (Btor *btor, BtorNode *exp1, BtorNode *exp2)
   BtorNodePair *result;
 
   BTOR_NEW (btor->mm, result);
-  id1 = BTOR_GET_ID_NODE (exp1);
-  id2 = BTOR_GET_ID_NODE (exp2);
+  id1 = btor_exp_get_id (exp1);
+  id2 = btor_exp_get_id (exp2);
   if (id2 < id1)
   {
     result->exp1 = btor_copy_exp (btor, exp2);
@@ -1070,11 +1060,11 @@ btor_compare_exp_pair (const BtorNodePair *pair1, const BtorNodePair *pair2)
 
   int result;
 
-  result = BTOR_GET_ID_NODE (pair1->exp1);
-  result -= BTOR_GET_ID_NODE (pair2->exp1);
+  result = btor_exp_get_id (pair1->exp1);
+  result -= btor_exp_get_id (pair2->exp1);
   if (result != 0) return result;
-  result = BTOR_GET_ID_NODE (pair1->exp2);
-  result -= BTOR_GET_ID_NODE (pair2->exp2);
+  result = btor_exp_get_id (pair1->exp2);
+  result -= btor_exp_get_id (pair2->exp2);
   return result;
 }
 
@@ -1327,7 +1317,7 @@ hash_lambda_exp (Btor *btor,
 
     if (!real_cur->parameterized)
     {
-      hash += BTOR_GET_ID_NODE (cur);
+      hash += btor_exp_get_id (cur);
       continue;
     }
 
@@ -1434,7 +1424,7 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     first_parent = real_child->first_parent;
     assert (first_parent);
     parent->next_parent[pos] = first_parent;
-    tag                      = BTOR_GET_TAG_NODE (first_parent);
+    tag                      = btor_exp_get_tag (first_parent);
     BTOR_REAL_ADDR_NODE (first_parent)->prev_parent[tag] = tagged_parent;
     real_child->first_parent                             = tagged_parent;
   }
@@ -1444,7 +1434,7 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     last_parent = real_child->last_parent;
     assert (last_parent);
     parent->prev_parent[pos] = last_parent;
-    tag                      = BTOR_GET_TAG_NODE (last_parent);
+    tag                      = btor_exp_get_tag (last_parent);
     BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
     real_child->last_parent                             = tagged_parent;
   }
