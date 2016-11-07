@@ -173,6 +173,55 @@ test_uint64_to_bv_to_uint64_bitvec (void)
   }
 }
 
+static void
+test_int64_to_bv_bitvec (void)
+{
+  uint64_t i;
+  BtorBitVector *a;
+  char *str_a;
+  const char *s;
+  int64_t x[] = {
+      -1,
+      -2,
+      -3,
+      -123,
+      3,
+  };
+  const char *str_x[] = {
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111110",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "1111111111111111111111111111101",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111110000101",
+
+      "00000000000000000000000000000000"
+      "00000000000000000000000000000000"
+      "00000000000000000000000000000011",
+
+      0};
+
+  for (i = 0; str_x[i]; i++)
+  {
+    s     = str_x[i];
+    a     = btor_int64_to_bv (g_mm, x[i], strlen (s));
+    str_a = btor_bv_to_char_bv (g_mm, a);
+    assert (strcmp (str_a, s) == 0);
+    btor_free_bv (g_mm, a);
+    btor_freestr (g_mm, str_a);
+  }
+}
+
 /*------------------------------------------------------------------------*/
 
 static void
@@ -1915,6 +1964,7 @@ run_bitvec_tests (int argc, char **argv)
 
   BTOR_RUN_TEST (uint64_to_bitvec);
   BTOR_RUN_TEST (uint64_to_bv_to_uint64_bitvec);
+  BTOR_RUN_TEST (int64_to_bv_bitvec);
   BTOR_RUN_TEST (char_to_bitvec);
   BTOR_RUN_TEST (bv_to_char_bitvec);
   BTOR_RUN_TEST_CHECK_LOG (bv_to_hex_char_bitvec);

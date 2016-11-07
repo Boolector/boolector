@@ -33,9 +33,9 @@ rem_bits_zero_dbg (BtorBitVector *bv)
 }
 
 static int
-btor_check_bits_sll_dbg (const BtorBitVector *bv,
-                         const BtorBitVector *res,
-                         int shift)
+check_bits_sll_dbg (const BtorBitVector *bv,
+                    const BtorBitVector *res,
+                    int shift)
 {
   assert (bv);
   assert (res);
@@ -197,6 +197,33 @@ btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
     res->bits[res->len - 2] = (BTOR_BV_TYPE) (value >> BTOR_BV_TYPE_BW);
 
   set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
+btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
+{
+  assert (mm);
+  assert (bw > 0);
+
+  BtorBitVector *res, *tmp;
+
+  res = btor_new_bv (mm, bw);
+  assert (res->len > 0);
+
+  /* ensure that all bits > 64 are set to 1 in case of negative values */
+  if (value < 0 && bw > 64)
+  {
+    tmp = btor_not_bv (mm, res);
+    btor_free_bv (mm, res);
+    res = tmp;
+  }
+
+  res->bits[res->len - 1] = (BTOR_BV_TYPE) value;
+  if (res->width > 32)
+    res->bits[res->len - 2] = (BTOR_BV_TYPE) (value >> BTOR_BV_TYPE_BW);
+
   assert (rem_bits_zero_dbg (res));
   return res;
 }
@@ -942,7 +969,7 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, int shift)
   }
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
-  assert (btor_check_bits_sll_dbg (a, res, shift));
+  assert (check_bits_sll_dbg (a, res, shift));
   return res;
 }
 

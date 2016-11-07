@@ -59,6 +59,8 @@ BtorBitVector *btor_new_random_bit_range_bv (
 BtorBitVector *btor_char_to_bv (BtorMemMgr *mm, char *assignment);
 BtorBitVector *btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw);
 
+BtorBitVector *btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw);
+
 BtorBitVector *btor_get_assignment_bv (BtorMemMgr *mm,
                                        BtorNode *exp,
                                        bool init_x_values);
