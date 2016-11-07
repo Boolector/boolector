@@ -211,9 +211,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_REAL_ADDR_NODE(exp) \
   ((struct BtorNode *) (~3ul & (unsigned long int) (exp)))
 
-#define BTOR_GET_ID_NODE(exp) \
-  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : (exp)->id)
-
 #define BTOR_AIGVEC_NODE(btor, exp)                                     \
   (BTOR_IS_INVERTED_NODE (exp)                                          \
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
@@ -452,6 +449,16 @@ btor_is_array_or_bv_eq_node (const BtorNode *exp)
   return btor_is_fun_eq_node (exp) || btor_is_bv_eq_node (exp);
 }
 
+/*------------------------------------------------------------------------*/
+
+/* Get the id of an expression (negative if exp is inverted). */
+static inline int
+btor_exp_get_id (const BtorNode *exp)
+{
+  assert (exp);
+  return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
+}
+
 /*========================================================================*/
 
 /* Copies expression (increments reference counter). */
@@ -497,10 +504,8 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
+/* Set parsed id (BTOR format only, needed for model output). */
 void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
-
-/* Get the id of an expression. */
-int btor_get_id (Btor *btor, const BtorNode *exp);
 
 /* Get the exp (belonging to instance 'btor') that matches given id.
  * Note: The main difference to 'btor_match_node_by_id' is that this function

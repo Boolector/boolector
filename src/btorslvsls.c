@@ -1575,7 +1575,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     //	  d->weight = 1;  /* initial assertion weight */
     //	  b->data.as_ptr = d;
     //	}
-    id = BTOR_GET_ID_NODE (root);
+    id = btor_exp_get_id (root);
     if (!btor_contains_int_hash_map (slv->weights, id))
     {
       BTOR_CNEW (btor->mm, d);
@@ -1599,7 +1599,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     //	  d->weight = 1;  /* initial assertion weight */
     //	  b->data.as_ptr = d;
     //	}
-    id = BTOR_GET_ID_NODE (root);
+    id = btor_exp_get_id (root);
     if (!btor_contains_int_hash_map (slv->weights, id))
     {
       BTOR_CNEW (btor->mm, d);
@@ -1638,12 +1638,12 @@ sat_sls_solver (BtorSLSSolver *slv)
     while (btor_has_next_ptr_hash_table_iterator (&pit))
     {
       root = btor_next_ptr_hash_table_iterator (&pit);
-      if (!btor_contains_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root))
+      if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
           && btor_is_zero_bv (btor_get_bv_model (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_add_int_hash_map (slv->roots, BTOR_GET_ID_NODE (root));
+        btor_add_int_hash_map (slv->roots, btor_exp_get_id (root));
       }
     }
 
