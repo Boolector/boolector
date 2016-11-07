@@ -122,7 +122,6 @@ find_subst (BtorIntHashTable *map, BtorNode *node)
 
 static void
 map_subst_node (BtorIntHashTable *map,
-                BtorIntHashTable *subst_scope,
                 BtorNode *scope,
                 BtorNode *left,
                 BtorNode *right)
@@ -147,29 +146,12 @@ map_subst_node (BtorIntHashTable *map,
 
   //  assert (!btor_contains_int_hash_map (map, left->id));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
-
-#if 0
-  d = btor_get_int_hash_map (subst_scope, scope->id);
-
-  if (!d)
-    {
-      BTOR_CNEW (subst_scope->mm, substs);
-      BTOR_INIT_STACK (*substs);
-      d = btor_add_int_hash_map (subst_scope, scope->id);
-      d->as_ptr = substs;
-    }
-  else
-    substs = d->as_ptr;
-
-  BTOR_PUSH_STACK (subst_scope->mm, *substs, left);
-#endif
 }
 
 static void
 find_substitutions (Btor *btor,
                     BtorNode *root,
                     BtorIntHashTable *subst_map,
-                    BtorIntHashTable *subst_scope,
                     bool is_cer)
 {
   assert (btor);
@@ -188,10 +170,6 @@ find_substitutions (Btor *btor,
     return;
   }
 
-  //  if (is_cer && BTOR_IS_INVERTED_NODE (root))
-  //    return;
-  //  else if (!is_cer && !BTOR_IS_INVERTED_NODE (root))
-  //    return;
   if (is_cer)  // && !BTOR_IS_INVERTED_NODE (cur))
     top_and = BTOR_REAL_ADDR_NODE (root);
   else if (!is_cer && BTOR_IS_INVERTED_NODE (root))
@@ -221,117 +199,79 @@ find_substitutions (Btor *btor,
     else if (!BTOR_IS_INVERTED_NODE (cur) && btor_is_bv_eq_node (cur))
     {
       if (check_subst_cond (btor, cur->e[0], cur->e[1], is_cer))
-        map_subst_node (subst_map, subst_scope, top_and, cur->e[0], cur->e[1]);
+      {
+        map_subst_node (subst_map, top_and, cur->e[0], cur->e[1]);
+        printf ("add subst: %s -> %s\n",
+                node2string (cur->e[0]),
+                node2string (cur->e[1]));
+      }
       else if (check_subst_cond (btor, cur->e[1], cur->e[0], is_cer))
-        map_subst_node (subst_map, subst_scope, top_and, cur->e[1], cur->e[0]);
+      {
+        map_subst_node (subst_map, top_and, cur->e[1], cur->e[0]);
+        printf ("add subst: %s -> %s\n",
+                node2string (cur->e[1]),
+                node2string (cur->e[0]));
+      }
     }
   }
   BTOR_RELEASE_STACK (mm, visit);
   btor_delete_int_hash_table (cache);
 }
 
-// TODO: reset cached nodes after closing subst scope
 static BtorNode *
-der_cer_node (Btor *btor,
-              BtorNode *root,
-              bool is_cer,
-              BtorIntHashTable *node_map)
+der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
 {
   uint32_t i, num_quant_vars = 0, num_occ = 0;
   BtorNode *cur, *real_cur, *e[3], *result, *n;
-  BtorNodePtrStack visit, reset, *substs;
+  BtorNodePtrStack visit, *substs;
   BtorMemMgr *mm;
-  BtorIntHashTable *map, *subst_map, *subst_scope, *cache;
+  BtorIntHashTable *mark, *map;
   BtorHashTableData *cur_d, *d, d_s;
 
-  mm          = btor->mm;
-  map         = btor_new_int_hash_map (mm);
-  subst_map   = btor_new_int_hash_map (mm);
-  subst_scope = btor_new_int_hash_map (mm);
-  cache       = btor_new_int_hash_table (mm);
+  mm   = btor->mm;
+  mark = btor_new_int_hash_map (mm);
+  map  = btor_new_int_hash_map (mm);
 
-  BTOR_INIT_STACK (reset);
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (mm, visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    cur_d    = btor_get_int_hash_map (map, real_cur->id);
+    cur_d    = btor_get_int_hash_map (mark, real_cur->id);
 
     if (!cur_d)
     {
-      //	  printf ("_visit1: %s\n", node2string (cur));
-      btor_add_int_hash_map (map, real_cur->id);
+      btor_add_int_hash_map (mark, real_cur->id);
 
-      if (real_cur->arity > 0) BTOR_PUSH_STACK (mm, reset, real_cur);
-      //	  if (BTOR_IS_AND_NODE (real_cur))
       if (btor_is_quantifier_node (real_cur)
           && !btor_is_quantifier_node (real_cur->e[1]))
-      {
-        //	    printf ("find substs: %s\n", node2string (cur));
-        find_substitutions (
-            btor, real_cur->e[1], subst_map, subst_scope, is_cer);
-      }
-
-#if 0
-	  if (BTOR_IS_QUANTIFIER_NODE (real_cur)
-	      && !BTOR_IS_QUANTIFIER_NODE (
-		    BTOR_REAL_ADDR_NODE (real_cur->e[1])))
-	    {
-	    printf ("QUANT: %s\n", node2string (real_cur));
-	    find_substitutions (btor, real_cur->e[1], subst_map, subst_scope, is_cer);
-	    }
-#endif
+        find_substitutions (btor, real_cur->e[1], map, is_cer);
 
       if ((is_cer && btor_is_exists_node (real_cur))
           || (!is_cer && btor_is_forall_node (real_cur)))
         num_quant_vars++;
-
-#if 0
-	  if (!BTOR_IS_INVERTED_NODE (cur)
-	      && BTOR_IS_BV_EQ_NODE (real_cur)
-	      && (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0]))
-		  || BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[1]))))
-	    {
-	      if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0])))
-		printf ("%s (0: %d, %d)\n", node2string (cur),
-			btor_param_is_forall_var (real_cur->e[0]),
-			btor_param_is_exists_var (real_cur->e[0]));
-	      else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[1])))
-		printf ("%s (1: %d, %d)\n", node2string (cur),
-			btor_param_is_forall_var (real_cur->e[1]),
-			btor_param_is_exists_var (real_cur->e[1]));
-	    }
-#endif
 
       BTOR_PUSH_STACK (mm, visit, real_cur);
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
 
       /* we need to rebuild the substitution first */
-      if ((d = btor_get_int_hash_map (subst_map, real_cur->id)))
+      if ((d = btor_get_int_hash_map (map, real_cur->id)))
         BTOR_PUSH_STACK (mm, visit, d->as_ptr);
     }
     else if (!cur_d->as_ptr)
     {
-      //	  printf ("_visit2: %s\n", node2string (cur));
       for (i = 0; i < real_cur->arity; i++)
       {
-        e[i] = find_subst (subst_map, real_cur->e[i]);
-        //	      if (btor_contains_int_hash_map (subst_map,
-        // BTOR_REAL_ADDR_NODE (real_cur->e[i])->id))
-        //		printf ("----> subst: %s -> %s\n", node2string
-        //(real_cur->e[i]), node2string (e[i]));
-        d = btor_get_int_hash_map (map, BTOR_REAL_ADDR_NODE (e[i])->id);
+        e[i] = find_subst (map, real_cur->e[i]);
+        d    = btor_get_int_hash_map (mark, BTOR_REAL_ADDR_NODE (e[i])->id);
         assert (d);
         e[i] = BTOR_COND_INVERT_NODE (e[i], d->as_ptr);
       }
       if (real_cur->arity == 0)
       {
-        /* 'real_cur' get substituted anyway, so we don't need to create
-         * a new parameter */
-        if (btor_contains_int_hash_map (subst_map, real_cur->id))
+        if ((d = btor_get_int_hash_map (map, real_cur->id)))
         {
           assert (btor_is_param_node (real_cur));
           continue;
@@ -350,65 +290,15 @@ der_cer_node (Btor *btor,
                                  btor_slice_get_lower (real_cur));
       /* param of quantifier got substituted */
       else if (btor_is_quantifier_node (real_cur)
-               && btor_contains_int_hash_map (subst_map, real_cur->e[0]->id))
+               && btor_contains_int_hash_map (map, real_cur->e[0]->id))
         result = btor_copy_exp (btor, e[1]);
       else
-      {
         result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
-        //	    if (BTOR_IS_QUANTIFIER_NODE (real_cur)
-        //		&& !BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE
-        //(result))) 	      printf ("%s ::: %s\n", node2string (real_cur),
-        // node2string (result));
-      }
-      //	  printf ("  result: %s\n", node2string (result));
+
       cur_d->as_ptr = result;
-      if (node_map)
-      {
-        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
-        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
-            BTOR_REAL_ADDR_NODE (result)->id;
-      }
-
-#if 0
-	  d = btor_get_int_hash_map (subst_scope, real_cur->id);
-	  if (d)
-	    {
-//	      printf ("close scope: %s\n", node2string (real_cur));
-	      assert (btor_is_and_node (real_cur));
-	      substs = d->as_ptr;
-	      assert (substs);
-	      btor_remove_int_hash_map (subst_scope, real_cur->id, 0);
-
-	      while (!BTOR_EMPTY_STACK (*substs))
-		{
-		  n = BTOR_POP_STACK (*substs);
-//		  printf ("  remove: %s\n", node2string (n));
-		  assert (btor_contains_int_hash_map (subst_map, n->id));
-		  btor_remove_int_hash_map (subst_map, n->id, 0);
-		  num_occ++;
-		}
-	      BTOR_RELEASE_STACK (mm, *substs);
-	      BTOR_DELETE (mm, substs);
-
-	      /* reset cache for this substitution scope */
-	      n = BTOR_POP_STACK (reset);
-	      printf ("reset: %s\n", node2string (n));
-	      while (n != real_cur)
-		{
-		  printf ("reset: %s\n", node2string (n));
-		  btor_remove_int_hash_map (map, n->id, &d_s);
-		  assert (d_s.as_ptr);
-		  btor_release_exp (btor, d_s.as_ptr);
-		  assert (!BTOR_EMPTY_STACK (reset));
-		  n = BTOR_POP_STACK (reset);
-		}
-	    }
-#endif
     }
   }
-  assert (subst_scope->count == 0);
-  assert (subst_map->count == 0);
-  d = btor_get_int_hash_map (map, BTOR_REAL_ADDR_NODE (root)->id);
+  d = btor_get_int_hash_map (mark, BTOR_REAL_ADDR_NODE (root)->id);
   assert (d);
   assert (d->as_ptr);
   result = btor_copy_exp (btor, BTOR_COND_INVERT_NODE (root, d->as_ptr));
@@ -416,34 +306,31 @@ der_cer_node (Btor *btor,
           == BTOR_REAL_ADDR_NODE (root)->parameterized);
 
   printf ("substituted %u out of %u %s variables\n",
-          num_occ,  // subst_map->count,
+          num_occ,  // map->count,
           num_quant_vars,
           is_cer ? "existential" : "universal");
 
-  for (i = 0; i < map->size; i++)
+  for (i = 0; i < mark->size; i++)
   {
-    if (!map->data[i].as_ptr) continue;
-    btor_release_exp (btor, map->data[i].as_ptr);
+    if (!mark->data[i].as_ptr) continue;
+    btor_release_exp (btor, mark->data[i].as_ptr);
   }
+  btor_delete_int_hash_map (mark);
   btor_delete_int_hash_map (map);
-  btor_delete_int_hash_map (subst_map);
-  btor_delete_int_hash_map (subst_scope);
-  btor_delete_int_hash_table (cache);
   BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, reset);
   return result;
 }
 
 BtorNode *
-btor_der_node (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
+btor_der_node (Btor *btor, BtorNode *root)
 {
-  return der_cer_node (btor, root, false, node_map);
+  return der_cer_node (btor, root, false);
 }
 
 BtorNode *
-btor_cer_node (Btor *btor, BtorNode *root, BtorIntHashTable *node_map)
+btor_cer_node (Btor *btor, BtorNode *root)
 {
-  return der_cer_node (btor, root, true, node_map);
+  return der_cer_node (btor, root, true);
 }
 
 #if 0
