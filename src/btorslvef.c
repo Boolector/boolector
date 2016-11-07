@@ -3168,7 +3168,10 @@ sat_ef_solver (BtorEFSolver *slv)
 
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
-  g    = btor_normalize_quantifiers (slv->btor);
+  g             = btor_normalize_quantifiers (slv->btor);
+  BtorNode *tmp = btor_der_node (slv->btor, g, 0);
+  btor_release_exp (slv->btor, g);
+  g    = tmp;
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
   gslv->statistics = &slv->statistics;
