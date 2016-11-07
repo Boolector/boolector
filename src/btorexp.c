@@ -1424,7 +1424,7 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     first_parent = real_child->first_parent;
     assert (first_parent);
     parent->next_parent[pos] = first_parent;
-    tag                      = BTOR_GET_TAG_NODE (first_parent);
+    tag                      = btor_exp_get_tag (first_parent);
     BTOR_REAL_ADDR_NODE (first_parent)->prev_parent[tag] = tagged_parent;
     real_child->first_parent                             = tagged_parent;
   }
@@ -1434,7 +1434,7 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     last_parent = real_child->last_parent;
     assert (last_parent);
     parent->prev_parent[pos] = last_parent;
-    tag                      = BTOR_GET_TAG_NODE (last_parent);
+    tag                      = btor_exp_get_tag (last_parent);
     BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
     real_child->last_parent                             = tagged_parent;
   }

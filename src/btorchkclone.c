@@ -61,12 +61,12 @@
             == BTOR_IS_INVERTED_NODE (real_clone->field)); \
   } while (0)
 
-#define BTOR_CHKCLONE_EXPPTAG(field)                   \
-  do                                                   \
-  {                                                    \
-    BTOR_CHKCLONE_EXPPID (field);                      \
-    assert (BTOR_GET_TAG_NODE (real_exp->field)        \
-            == BTOR_GET_TAG_NODE (real_clone->field)); \
+#define BTOR_CHKCLONE_EXPPTAG(field)                  \
+  do                                                  \
+  {                                                   \
+    BTOR_CHKCLONE_EXPPID (field);                     \
+    assert (btor_exp_get_tag (real_exp->field)        \
+            == btor_exp_get_tag (real_clone->field)); \
   } while (0)
 
 /*------------------------------------------------------------------------*/

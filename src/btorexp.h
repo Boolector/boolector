@@ -219,8 +219,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
 
-#define BTOR_GET_TAG_NODE(exp) ((int) (3ul & (unsigned long int) (exp)))
-
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
@@ -457,6 +455,12 @@ btor_exp_get_id (const BtorNode *exp)
 {
   assert (exp);
   return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
+}
+
+static inline int
+btor_exp_get_tag (const BtorNode *exp)
+{
+  return (int) (3ul & (unsigned long int) (exp));
 }
 
 /*========================================================================*/
