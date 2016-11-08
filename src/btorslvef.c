@@ -2643,7 +2643,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BtorNode *cur, *uvar, *result           = 0, *uconst, *c;
   BtorNode *a;
   BtorMemMgr *mm;
-  BtorIntHashTable *value_in_map;
+  BtorIntHashTable *value_in_map, *input_cache;
   BtorNodePtrStack constraints, inputs, consts;
   BtorBitVectorTuplePtrStack value_in;
   const BtorBitVector *bv;
@@ -2687,6 +2687,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     uvar   = btor_next_node_map_iterator (&it);
     a      = btor_mapped_node (gslv->forall_uvar_deps, uvar);
 
+    input_cache = btor_new_int_hash_table (mm);
     BTOR_RESET_STACK (inputs);
     if (a)
     {
@@ -2694,6 +2695,9 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       while (btor_has_next_args_iterator (&ait))
       {
         cur = btor_next_args_iterator (&ait);
+        assert (BTOR_IS_REGULAR_NODE (cur));
+        assert (!btor_contains_int_hash_table (input_cache, cur->id));
+        btor_add_int_hash_table (input_cache, cur->id);
         BTOR_PUSH_STACK (mm, inputs, cur);
       }
     }
@@ -2701,9 +2705,14 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     while (btor_has_next_node_map_iterator (&iit))
     {
       cur = btor_next_node_map_iterator (&iit);
-      if (!btor_mapped_node (gslv->forall_evar_deps, cur))
+      if (!btor_mapped_node (gslv->forall_evar_deps, cur)
+          && !btor_contains_int_hash_table (input_cache, cur->id))
+      {
+        btor_add_int_hash_table (input_cache, cur->id);
         BTOR_PUSH_STACK (mm, inputs, cur);
+      }
     }
+    btor_delete_int_hash_table (input_cache);
 
     result = 0;
     if (!BTOR_EMPTY_STACK (inputs))
