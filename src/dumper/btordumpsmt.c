@@ -937,7 +937,7 @@ collect_shared_exps (BtorSMTDumpContext *sdc,
 
     if (btor_contains_int_hash_table (cache, cur->id)
         || btor_get_ptr_hash_table (sdc->dumped, cur)
-        || btor_is_lambda_node (cur))
+        || btor_is_binder_node (cur))
       continue;
 
     b = btor_get_ptr_hash_table (sdc->dump, cur);
