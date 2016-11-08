@@ -65,40 +65,6 @@ check_subst_cond (Btor *btor, BtorNode *param, BtorNode *subst, bool is_cer)
          && !occurs (btor, param, subst);
 }
 
-#if 0
-static void
-map_substitute_node (BtorNodeMap * map, BtorNode * left, BtorNode * right)
-{
-  bool inv = false;
-  BtorNode *mapped;
-
-  if (BTOR_IS_INVERTED_NODE (left))
-    {
-      inv = true;
-      left = BTOR_REAL_ADDR_NODE (left);
-    }
-
-  assert (BTOR_IS_REGULAR_NODE (left));
-  while ((mapped = btor_mapped_node (map, left)))
-    {
-      left = mapped;
-      if (BTOR_IS_INVERTED_NODE (left))
-	{
-	  inv = !inv;
-	  left = BTOR_REAL_ADDR_NODE (left);
-	}
-    }
-
-  if ((mapped = btor_mapped_node (map, right)))
-    right = mapped;
-
-  if (inv)
-    right = BTOR_INVERT_NODE (right);
-
-  btor_map_node (map, left, right);
-}
-#endif
-
 static BtorNode *
 find_subst (BtorIntHashTable *map, BtorNode *node)
 {
@@ -121,14 +87,8 @@ find_subst (BtorIntHashTable *map, BtorNode *node)
 }
 
 static void
-map_subst_node (BtorIntHashTable *map,
-                BtorNode *scope,
-                BtorNode *left,
-                BtorNode *right)
+map_subst_node (BtorIntHashTable *map, BtorNode *left, BtorNode *right)
 {
-  BtorNodePtrStack *substs;
-  BtorHashTableData *d;
-
   right = find_subst (map, right);
   if (BTOR_IS_INVERTED_NODE (left))
   {
@@ -141,10 +101,6 @@ map_subst_node (BtorIntHashTable *map,
   // TODO (ma): overwrite subst if substitution is "better"?
   if (btor_contains_int_hash_map (map, left->id)) return;
 
-  // printf ("subst: (%s) %s -> %s\n", node2string (scope), node2string (left),
-  // node2string (right));
-
-  //  assert (!btor_contains_int_hash_map (map, left->id));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
 }
 
@@ -164,11 +120,7 @@ find_substitutions (Btor *btor,
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
-  if (!btor_is_and_node (root))
-  {
-    //    printf ("skip %s\n", node2string (root));
-    return;
-  }
+  if (!btor_is_and_node (root)) return;
 
   if (is_cer && !BTOR_IS_INVERTED_NODE (root))
     top_and = BTOR_REAL_ADDR_NODE (root);
@@ -188,7 +140,6 @@ find_substitutions (Btor *btor,
 
     if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
 
-    //      printf ("visit: %s\n", node2string (cur));
     btor_add_int_hash_table (cache, real_cur->id);
 
     if (!BTOR_IS_INVERTED_NODE (cur) && btor_is_and_node (cur))
@@ -199,19 +150,9 @@ find_substitutions (Btor *btor,
     else if (!BTOR_IS_INVERTED_NODE (cur) && btor_is_bv_eq_node (cur))
     {
       if (check_subst_cond (btor, cur->e[0], cur->e[1], is_cer))
-      {
-        map_subst_node (subst_map, top_and, cur->e[0], cur->e[1]);
-        printf ("add subst: %s -> %s\n",
-                node2string (cur->e[0]),
-                node2string (cur->e[1]));
-      }
+        map_subst_node (subst_map, cur->e[0], cur->e[1]);
       else if (check_subst_cond (btor, cur->e[1], cur->e[0], is_cer))
-      {
-        map_subst_node (subst_map, top_and, cur->e[1], cur->e[0]);
-        printf ("add subst: %s -> %s\n",
-                node2string (cur->e[1]),
-                node2string (cur->e[0]));
-      }
+        map_subst_node (subst_map, cur->e[1], cur->e[0]);
     }
   }
   BTOR_RELEASE_STACK (mm, visit);
@@ -271,12 +212,12 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
       }
       if (real_cur->arity == 0)
       {
-        if ((d = btor_get_int_hash_map (map, real_cur->id)))
+        /* variables in 'map' get substitued */
+        if (btor_contains_int_hash_map (map, real_cur->id))
         {
           assert (btor_is_param_node (real_cur));
           continue;
         }
-
         if (btor_is_param_node (real_cur))
           result =
               btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
@@ -335,109 +276,3 @@ btor_cer_node (Btor *btor, BtorNode *root)
 {
   return der_cer_node (btor, root, true);
 }
-
-#if 0
-void
-btor_der (Btor * btor)
-{
-  BtorHashTableIterator it;
-  BtorNode *cur, *body, *subst, *tmp, *and;
-  BtorNodePtrStack quantifiers, leafs, visit;
-  BtorMemMgr *mm;
-  BtorNodeMap *map;
-
-  BTOR_INIT_STACK (quantifiers);
-  mm = btor->mm;
-  btor_init_node_hash_table_iterator (&it, btor->quantifiers);
-  while (btor_has_next_hash_table_iterator (&it))
-    {
-      cur = btor_next_node_hash_table_iterator (&it);
-      if (cur->parameterized) continue;
-      BTOR_PUSH_STACK (mm, quantifiers, cur);
-    }
-
-  btor_init_substitutions (btor);
-  while (!BTOR_EMPTY_STACK (quantifiers))
-    {
-      cur = BTOR_POP_STACK (quantifiers);
-//      printf ("%s\n", node2string (cur));
-      body = btor_binder_get_body (cur);
-
-      if (!BTOR_IS_INVERTED_NODE (body)
-	  || !BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (body)))
-	continue;
-
-      map = btor_new_node_map (btor);
-      BTOR_INIT_STACK (leafs);
-      BTOR_INIT_STACK (visit);
-      BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (body));
-      while (!BTOR_EMPTY_STACK (visit))
-	{
-	  cur = BTOR_POP_STACK (visit);
-
-	  if (!BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_AND_NODE (cur))
-	    {
-	      BTOR_PUSH_STACK (mm, visit, cur->e[0]);
-	      BTOR_PUSH_STACK (mm, visit, cur->e[1]);
-	    }
-	  else
-	    {
-	      if (!BTOR_IS_INVERTED_NODE (cur)
-		  && BTOR_IS_BV_EQ_NODE (cur)
-		  && (check_subst_cond (btor, cur->e[0], cur->e[1])
-		      || check_subst_cond (btor, cur->e[1], cur->e[0])))
-		{
-		  if (check_subst_cond (btor, cur->e[0], cur->e[1])) 
-		    {
-		      map_substitute_node (map, cur->e[0], cur->e[1]);
-//		      printf ("subst %s -> %s\n", node2string (cur->e[0]), node2string (cur->e[1]));
-		      continue;
-		    }
-		  else if (check_subst_cond (btor, cur->e[1], cur->e[0]))
-		    {
-		      map_substitute_node (map, cur->e[1], cur->e[0]);
-//		      printf ("subst %s -> %s\n", node2string (cur->e[1]), node2string (cur->e[0]));
-		      continue;
-		    }
-		}
-//	      printf ("push leaf: %s\n", node2string (cur));
-	      BTOR_PUSH_STACK (mm, leafs, cur);
-	    }
-	}
-      BTOR_RELEASE_STACK (mm, visit);
-
-      if (map->table->count > 0)
-	{
-	  subst = 0;
-
-//	  printf ("%d leafs\n", BTOR_COUNT_STACK (leafs));
-	  while (!BTOR_EMPTY_STACK (leafs))
-	    {
-	      cur = BTOR_POP_STACK (leafs);
-//	      printf ("############################\n");
-	      tmp = btor_substitute_terms (btor, cur, map);
-
-	      if (subst)
-		{
-		  and = btor_and_exp (btor, subst, tmp);
-		  btor_release_exp (btor, subst);
-		  btor_release_exp (btor, tmp);
-		  subst = and;
-		}
-	      else
-		subst = tmp;
-	    }
-
-	  assert (subst);
-	  btor_insert_substitution (btor, body, subst, 0);
-	  btor_release_exp (btor, subst);
-	}
-      btor_delete_node_map (map);
-      BTOR_RELEASE_STACK (mm, leafs);
-    }
-
-  btor_substitute_and_rebuild (btor, btor->substitutions);
-  btor_delete_substitutions (btor);
-  BTOR_RELEASE_STACK (mm, quantifiers);
-}
-#endif
