@@ -27,9 +27,8 @@
 static int
 rem_bits_zero_dbg (BtorBitVector *bv)
 {
-  assert (bv->width % BTOR_BV_TYPE_BW == 0
+  return (bv->width % BTOR_BV_TYPE_BW == 0
           || (bv->bits[0] >> (bv->width % BTOR_BV_TYPE_BW) == 0));
-  return 1;
 }
 
 static int
@@ -224,6 +223,7 @@ btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
   if (res->width > 32)
     res->bits[res->len - 2] = (BTOR_BV_TYPE) (value >> BTOR_BV_TYPE_BW);
 
+  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }
