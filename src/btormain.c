@@ -782,7 +782,7 @@ catch_sig (int sig)
   }
   reset_sig_handlers ();
   raise (sig);
-  exit (sig);
+  _exit (sig);
 }
 
 static void
@@ -811,16 +811,16 @@ catch_alarm (int sig)
   {
     btormain_msg ("ALARM TRIGGERED: time limit %d seconds reached",
                   g_set_alarm);
-    fputs ("unknown\n", stdout);
-    fflush (stdout);
     if (g_verbosity > 0)
     {
       boolector_print_stats (g_app->btor);
       print_static_stats (0);
     }
+    fputs ("unknown\n", stdout);
+    fflush (stdout);
   }
   reset_alarm ();
-  exit (0);
+  _exit (0);
 }
 
 static void

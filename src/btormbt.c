@@ -1369,7 +1369,7 @@ catch_sig (int sig)
   }
   reset_sig_handlers ();
   raise (sig);
-  exit (EXIT_ERROR);
+  _exit (EXIT_ERROR);
 }
 
 static void
@@ -1401,7 +1401,7 @@ catch_alarm (int sig)
     btormbt_print_stats (g_btormbt);
   }
   reset_alarm ();
-  exit (EXIT_TIMEOUT);
+  _exit (EXIT_TIMEOUT);
 }
 
 static void
