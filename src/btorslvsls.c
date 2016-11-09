@@ -58,10 +58,8 @@ compute_sls_score_formula (Btor *btor, BtorIntHashTable *score, bool *done)
   assert (score);
 
   double res, sc, weight;
-  // BtorNode *root;
   int32_t id;
   BtorSLSSolver *slv;
-  // BtorPtrHashTableIterator pit;
   BtorIntHashTableIterator it;
 
   slv = BTOR_SLS_SOLVER (btor);
@@ -71,16 +69,6 @@ compute_sls_score_formula (Btor *btor, BtorIntHashTable *score, bool *done)
 
   res = 0.0;
   if (done) *done = true;
-
-  // btor_init_ptr_hash_table_iterator (&pit, slv->weights);
-  // while (btor_has_next_ptr_hash_table_iterator (&pit))
-  //  {
-  //    weight = (double) ((BtorSLSConstrData *)
-  //    pit.bucket->data.as_ptr)->weight; root =
-  //    btor_next_ptr_hash_table_iterator (&pit); sc = btor_get_ptr_hash_table
-  //    (score, root)->data.as_dbl; if (done && sc < 1.0) *done = false; res +=
-  //    weight * sc;
-  //  }
 
   btor_init_int_hash_table_iterator (&it, slv->weights);
   while (btor_has_next_int_hash_table_iterator (&it))
@@ -103,7 +91,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
 
   double score;
   int32_t id;
-  BtorNode *res;  //, *cur;
+  BtorNode *res;
   BtorSLSSolver *slv;
   BtorIntHashTableIterator it;
 
@@ -123,16 +111,6 @@ select_candidate_constraint (Btor *btor, int nmoves)
     btor_init_int_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
-      //  cur = btor_get_node_by_id (
-      //      btor, btor_next_int_hash_table_iterator (&it));
-      //  assert (!btor_is_bv_const_node (cur)
-      //	  || !btor_is_zero_bv (btor_get_bv_model (btor, cur)));
-      // b = btor_get_ptr_hash_table (slv->weights, cur);
-      // assert (b);
-      // d = (BtorSLSConstrData *) b->data.as_ptr;
-      // sb = btor_get_ptr_hash_table (slv->score, cur);
-      // assert (sb);
-      // score = sb->data.as_dbl;
       id = btor_next_int_hash_table_iterator (&it);
       assert (!btor_is_bv_const_node (btor_get_node_by_id (btor, id))
               || !btor_is_zero_bv (
@@ -146,7 +124,6 @@ select_candidate_constraint (Btor *btor, int nmoves)
       value = score + BTOR_SLS_SELECT_CFACT * sqrt (log (d->selected) / nmoves);
       if (!res || value > max_value)
       {
-        // res = cur;
         res       = btor_get_node_by_id (btor, id);
         max_value = value;
         d->selected += 1;
@@ -163,15 +140,10 @@ select_candidate_constraint (Btor *btor, int nmoves)
     btor_init_int_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
-      id = btor_next_int_hash_table_iterator (&it);
-      // cur = btor_get_node_by_id (
-      //    btor, btor_next_int_hash_table_iterator (&it));
+      id  = btor_next_int_hash_table_iterator (&it);
       cur = btor_get_node_by_id (btor, id);
       assert (!btor_is_bv_const_node (cur)
               || !btor_is_zero_bv (btor_get_bv_model (btor, cur)));
-      // sb = btor_get_ptr_hash_table (slv->score, cur);
-      // assert (sb);
-      // score = sb->data.as_dbl;
       assert (btor_contains_int_hash_map (slv->score, id));
       score = btor_get_int_hash_map (slv->score, id)->as_dbl;
       assert (score < 1.0);
@@ -256,16 +228,6 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
                     &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
       }
     }
-    //      else if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) &&
-    //      btor_is_bv_cond_node (real_cur))
-    //	{
-    //	  BTOR_PUSH_STACK (mm, stack, real_cur->e[0]);
-    //	  bv = btor_get_bv_model (btor, real_cur->e[0]);
-    //	  if (btor_is_zero_bv (bv))
-    //	    BTOR_PUSH_STACK (mm, stack, real_cur->e[2]);
-    //	  else
-    //	    BTOR_PUSH_STACK (mm, stack, real_cur->e[1]);
-    //	}
     else
     {
     PUSH_CHILDREN:
@@ -300,8 +262,6 @@ update_assertion_weights (Btor *btor)
   int32_t id;
   BtorSLSConstrData *d;
   BtorIntHashTableIterator it;
-  //  BtorPtrHashBucket *b;
-  //  BtorPtrHashTableIterator pit;
   BtorSLSSolver *slv;
 
   slv = BTOR_SLS_SOLVER (btor);
@@ -309,17 +269,6 @@ update_assertion_weights (Btor *btor)
   if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SCORE_F))
   {
     /* decrease the weight of all satisfied assertions */
-    //      btor_init_ptr_hash_table_iterator (&pit, slv->weights);
-    //      while (btor_has_next_ptr_hash_table_iterator (&pit))
-    //	{
-    //	  b = pit.bucket;
-    //	  cur = btor_next_ptr_hash_table_iterator (&pit);
-    //	  if (btor_get_ptr_hash_table (
-    //		slv->score, cur)->data.as_dbl == 0.0)
-    //	    continue;
-    //	  if (((BtorSLSConstrData *) b->data.as_ptr)->weight > 1)
-    //	    ((BtorSLSConstrData *) b->data.as_ptr)->weight -= 1;
-    //	}
     btor_init_int_hash_table_iterator (&it, slv->weights);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
@@ -333,16 +282,6 @@ update_assertion_weights (Btor *btor)
   else
   {
     /* increase the weight of all unsatisfied assertions */
-    //      btor_init_ptr_hash_table_iterator (&pit, slv->weights);
-    //      while (btor_has_next_ptr_hash_table_iterator (&pit))
-    //	{
-    //	  b = pit.bucket;
-    //	  cur = btor_next_ptr_hash_table_iterator (&pit);
-    //	  if (btor_get_ptr_hash_table (
-    //		slv->score, cur)->data.as_dbl == 1.0)
-    //	    continue;
-    //	  ((BtorSLSConstrData *) b->data.as_ptr)->weight += 1;
-    //	}
     btor_init_int_hash_table_iterator (&it, slv->weights);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
@@ -510,8 +449,6 @@ select_inc_dec_not_move (Btor *btor,
   }
 
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
-  // score = btor_clone_ptr_hash_table (
-  //    btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
   score =
       btor_clone_int_hash_map (btor->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -541,7 +478,6 @@ select_inc_dec_not_move (Btor *btor,
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  // btor_delete_ptr_hash_table (score);
   btor_delete_int_hash_map (score);
   return done;
 }
@@ -567,8 +503,6 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   mk = BTOR_SLS_MOVE_FLIP;
 
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
-  // score = btor_clone_ptr_hash_table (
-  //    btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
   score =
       btor_clone_int_hash_map (btor->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -604,7 +538,6 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  // btor_delete_ptr_hash_table (score);
   btor_delete_int_hash_map (score);
   return done;
 }
@@ -630,8 +563,6 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   mk = BTOR_SLS_MOVE_FLIP_RANGE;
 
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
-  // score = btor_clone_ptr_hash_table (
-  //    btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
   score =
       btor_clone_int_hash_map (btor->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -680,7 +611,6 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  // btor_delete_ptr_hash_table (score);
   btor_delete_int_hash_map (score);
   return done;
 }
@@ -706,8 +636,6 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   mk = BTOR_SLS_MOVE_FLIP_SEGMENT;
 
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
-  // score = btor_clone_ptr_hash_table (
-  //    btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
   score =
       btor_clone_int_hash_map (btor->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -764,7 +692,6 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  // btor_delete_ptr_hash_table (score);
   btor_delete_int_hash_map (score);
   return done;
 }
@@ -790,8 +717,6 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   mk = BTOR_SLS_MOVE_RAND;
 
   bv_model = btor_clone_bv_model (btor, btor->bv_model);
-  // score = btor_clone_ptr_hash_table (
-  //    btor->mm, slv->score, same_node, btor_clone_data_as_dbl, 0, 0);
   score =
       btor_clone_int_hash_map (btor->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -840,7 +765,6 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  // btor_delete_ptr_hash_table (score);
   btor_delete_int_hash_map (score);
   return done;
 }
@@ -1414,8 +1338,6 @@ clone_sls_solver (Btor *clone, BtorSLSSolver *slv, BtorNodeMap *exp_map)
 
   res->btor  = clone;
   res->roots = btor_clone_int_hash_map (clone->mm, slv->roots, 0, 0);
-  // res->score = btor_clone_ptr_hash_table (clone->mm, slv->score,
-  //    btor_clone_key_as_node, btor_clone_data_as_dbl, exp_map, 0);
   res->score = btor_clone_int_hash_map (
       clone->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -1462,10 +1384,8 @@ delete_sls_solver (BtorSLSSolver *slv)
 
   btor = slv->btor;
 
-  // if (slv->score) btor_delete_ptr_hash_table (slv->score);
   if (slv->score) btor_delete_int_hash_map (slv->score);
   if (slv->roots) btor_delete_int_hash_map (slv->roots);
-  // if (slv->weights) btor_delete_ptr_hash_table (slv->weights);
   if (slv->weights)
   {
     btor_init_int_hash_table_iterator (&it, slv->weights);
@@ -1558,8 +1478,6 @@ sat_sls_solver (BtorSLSSolver *slv)
 
   /* init assertion weights of ALL roots */
   assert (!slv->weights);
-  // slv->weights = btor_new_ptr_hash_table (btor->mm,
-  //    (BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr) btor_compare_exp_by_id);
   slv->weights = btor_new_int_hash_map (btor->mm);
   assert (btor->synthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
@@ -1568,13 +1486,6 @@ sat_sls_solver (BtorSLSSolver *slv)
     root = btor_next_ptr_hash_table_iterator (&pit);
     assert (!btor_get_ptr_hash_table (btor->unsynthesized_constraints,
                                       BTOR_INVERT_NODE (root)));
-    //      if (!btor_get_ptr_hash_table (slv->weights, root))
-    //	{
-    //	  b = btor_add_ptr_hash_table (slv->weights, root);
-    //	  BTOR_CNEW (btor->mm, d);
-    //	  d->weight = 1;  /* initial assertion weight */
-    //	  b->data.as_ptr = d;
-    //	}
     id = btor_exp_get_id (root);
     if (!btor_contains_int_hash_map (slv->weights, id))
     {
@@ -1592,13 +1503,6 @@ sat_sls_solver (BtorSLSSolver *slv)
       goto UNSAT;
     if (btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)))
       goto UNSAT;
-    //      if (!btor_get_ptr_hash_table (slv->weights, root))
-    //	{
-    //	  b = btor_add_ptr_hash_table (slv->weights, root);
-    //	  BTOR_CNEW (btor->mm, d);
-    //	  d->weight = 1;  /* initial assertion weight */
-    //	  b->data.as_ptr = d;
-    //	}
     id = btor_exp_get_id (root);
     if (!btor_contains_int_hash_map (slv->weights, id))
     {
@@ -1608,10 +1512,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     }
   }
 
-  if (!slv->score)
-    // slv->score = btor_new_ptr_hash_table (btor->mm,
-    //  (BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr) btor_compare_exp_by_id);
-    slv->score = btor_new_int_hash_map (btor->mm);
+  if (!slv->score) slv->score = btor_new_int_hash_map (btor->mm);
 
   for (;;)
   {
@@ -1671,12 +1572,9 @@ sat_sls_solver (BtorSLSSolver *slv)
 
     /* restart */
     slv->api.generate_model ((BtorSolver *) slv, false, true);
-    // btor_delete_ptr_hash_table (slv->score);
     btor_delete_int_hash_map (slv->score);
     btor_delete_int_hash_map (slv->roots);
     slv->roots = 0;
-    //      slv->score = btor_new_ptr_hash_table (btor->mm,
-    //	(BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr) btor_compare_exp_by_id);
     slv->score = btor_new_int_hash_map (btor->mm);
     slv->stats.restarts += 1;
   }
@@ -1697,12 +1595,6 @@ DONE:
   }
   if (slv->weights)
   {
-    // btor_init_ptr_hash_table_iterator (&pit, slv->weights);
-    // while (btor_has_next_ptr_hash_table_iterator (&pit))
-    //  BTOR_DELETE (btor->mm, (BtorSLSConstrData *)
-    //      btor_next_data_ptr_hash_table_iterator (&pit)->as_ptr);
-    // btor_delete_ptr_hash_table (slv->weights);
-    // slv->weights = 0;
     btor_init_int_hash_table_iterator (&iit, slv->weights);
     while (btor_has_next_int_hash_table_iterator (&iit))
       BTOR_DELETE (
@@ -1714,7 +1606,6 @@ DONE:
   }
   if (slv->score)
   {
-    // btor_delete_ptr_hash_table (slv->score);
     btor_delete_int_hash_map (slv->score);
     slv->score = 0;
   }

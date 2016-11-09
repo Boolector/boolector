@@ -82,9 +82,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
       selected = &slv->roots->data[it.cur_pos].as_int;
       cur = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
 
-      // b = btor_get_ptr_hash_table (slv->score, cur);
-      // assert (b);
-      // score = b->data.as_dbl;
       assert (btor_contains_int_hash_map (slv->score, btor_exp_get_id (cur)));
       score = btor_get_int_hash_map (slv->score, btor_exp_get_id (cur))->as_dbl;
       assert (score < 1.0);
@@ -205,8 +202,6 @@ clone_prop_solver (Btor *clone, BtorPropSolver *slv, BtorNodeMap *exp_map)
 
   res->btor  = clone;
   res->roots = btor_clone_int_hash_map (clone->mm, slv->roots, 0, 0);
-  // res->score = btor_clone_ptr_hash_table (clone->mm, slv->score,
-  //    btor_clone_key_as_node, btor_clone_data_as_dbl, exp_map, 0);
   res->score = btor_clone_int_hash_map (
       clone->mm, slv->score, btor_clone_data_as_dbl, 0);
 
@@ -221,7 +216,6 @@ delete_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  // if (slv->score) btor_delete_ptr_hash_table (slv->score);
   if (slv->score) btor_delete_int_hash_map (slv->score);
   if (slv->roots) btor_delete_int_hash_map (slv->roots);
 
@@ -285,10 +279,6 @@ sat_prop_solver_aux (Btor *btor)
     }
 
     if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
-      // slv->score = btor_new_ptr_hash_table (
-      //    btor->mm,
-      //    (BtorHashPtr) btor_hash_exp_by_id,
-      //    (BtorCmpPtr) btor_compare_exp_by_id);
       slv->score = btor_new_int_hash_map (btor->mm);
 
     if (btor_terminate_btor (btor))
@@ -337,11 +327,6 @@ sat_prop_solver_aux (Btor *btor)
     slv->roots = 0;
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
-      // btor_delete_ptr_hash_table (slv->score);
-      // slv->score = btor_new_ptr_hash_table (
-      //  btor->mm,
-      //  (BtorHashPtr) btor_hash_exp_by_id,
-      //  (BtorCmpPtr) btor_compare_exp_by_id);
       btor_delete_int_hash_map (slv->score);
       slv->score = btor_new_int_hash_map (btor->mm);
     }
@@ -364,7 +349,6 @@ DONE:
   }
   if (slv->score)
   {
-    // btor_delete_ptr_hash_table (slv->score);
     btor_delete_int_hash_map (slv->score);
     slv->score = 0;
   }
