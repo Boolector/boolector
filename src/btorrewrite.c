@@ -2901,9 +2901,7 @@ static inline BtorNode *
 apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const1_and (btor, e0, e1));
-  // TODO (ma): this assertion may fail if pbr_rewrite_level = 0 (since rewrite
-  //            levels are mixed)
-  //  assert (!btor_is_bv_const_node (e0->e[1]));
+  assert (!btor_is_bv_const_node (e0->e[1]));
 
   BtorNode *tmp, *result;
 
