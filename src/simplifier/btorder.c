@@ -14,6 +14,39 @@
 #include "utils/btoriter.h"
 #include "utils/btorstack.h"
 
+static BtorNode *
+mk_param_with_symbol (Btor *btor, BtorNode *node)
+{
+  BtorMemMgr *mm;
+  BtorNode *result;
+  size_t len  = 0;
+  int32_t idx = 0;
+  char *sym, *buf = 0;
+
+  mm  = btor->mm;
+  sym = btor_get_symbol_exp (btor, node);
+  if (sym)
+  {
+    len = strlen (sym);
+    while (true)
+    {
+      len += 2 + btor_num_digits_util (idx);
+      BTOR_NEWN (mm, buf, len);
+      sprintf (buf, "%s!%d", sym, idx);
+      if (btor_get_ptr_hash_table (btor->symbols, buf))
+      {
+        BTOR_DELETEN (mm, buf, len);
+        idx += 1;
+      }
+      else
+        break;
+    }
+  }
+  result = btor_param_exp (btor, btor_get_exp_width (btor, node), buf);
+  if (buf) BTOR_DELETEN (mm, buf, len);
+  return result;
+}
+
 static bool
 occurs (Btor *btor, BtorNode *param, BtorNode *term)
 {
@@ -99,8 +132,14 @@ map_subst_node (BtorIntHashTable *map, BtorNode *left, BtorNode *right)
   assert (BTOR_IS_REGULAR_NODE (left));
 
   // TODO (ma): overwrite subst if substitution is "better"?
-  if (btor_contains_int_hash_map (map, left->id)) return;
+  if (btor_contains_int_hash_map (map, left->id))
+  {
+    //      printf ("skip add subst: %s -> %s\n", node2string (left),
+    //      node2string (right));
+    return;
+  }
 
+  //  printf ("add subst: %s -> %s\n", node2string (left), node2string (right));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
 }
 
@@ -219,8 +258,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
           continue;
         }
         if (btor_is_param_node (real_cur))
-          result =
-              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+          result = mk_param_with_symbol (btor, real_cur);
         else
           result = btor_copy_exp (btor, real_cur);
       }
