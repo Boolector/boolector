@@ -156,10 +156,7 @@ compute_sls_score_node (Btor *btor,
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
   BTORLOG (3, "");
-  BTORLOG (3,
-           "*** compute sls score for: %s(%s)",
-           BTOR_IS_INVERTED_NODE (exp) ? "-" : " ",
-           node2string (exp));
+  BTORLOG (3, "*** compute sls score for: %s", node2string (exp));
 
   if (btor_is_and_node (real_exp))
   {
@@ -435,9 +432,9 @@ btor_propsls_compute_sls_scores (Btor *btor,
       assert (d->as_int == 0);
       d->as_int = 1;
       if (btor_get_exp_width (btor, real_cur) != 1) continue;
-      recursively_compute_sls_score_node (
+      (void) recursively_compute_sls_score_node (
           btor, bv_model, fun_model, score, cur);
-      recursively_compute_sls_score_node (
+      (void) recursively_compute_sls_score_node (
           btor, bv_model, fun_model, score, BTOR_INVERT_NODE (cur));
     }
   }
@@ -601,8 +598,7 @@ btor_propsls_update_cone (Btor *btor,
 
   *time_update_cone_reset += btor_time_stamp () - delta;
 
-  /* update assignment and score of exps
-   * -------------------------------------------- */
+  /* update assignment and score of exps ----------------------------------- */
 
   btor_init_int_hash_table_iterator (&iit, exps);
   while (btor_has_next_int_hash_table_iterator (&iit))
@@ -639,7 +635,8 @@ btor_propsls_update_cone (Btor *btor,
 
       assert (btor_contains_int_hash_map (score, -btor_exp_get_id (exp)));
       btor_get_int_hash_map (score, -btor_exp_get_id (exp))->as_dbl =
-          compute_sls_score_node (btor, bv_model, btor->fun_model, score, exp);
+          compute_sls_score_node (
+              btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (exp));
     }
   }
 
