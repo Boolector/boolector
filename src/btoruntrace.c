@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "boolector.h"
 #include "btoropt.h"
 #include "utils/btorhashptr.h"
@@ -1653,7 +1654,7 @@ static void
 exitonsig (int sig)
 {
   BTORUNT_LOG ("exit on signal %d", sig);
-  exit (sig);
+  _exit (sig);
 }
 
 int
