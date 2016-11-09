@@ -1537,11 +1537,6 @@ select_path_cond (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
 
-  a = btor_bv_to_char_bv (mm, bvcond);
-  BTORLOG (2, "");
-  BTORLOG (2, "propagate: %s", a);
-  btor_freestr (mm, a);
-
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (cond));
   a = btor_bv_to_char_bv (mm, bve0);
@@ -1553,6 +1548,7 @@ select_path_cond (Btor *btor,
   a = btor_bv_to_char_bv (mm, btor_get_bv_model (btor, cond->e[2]));
   BTORLOG (2, "       e[2]: %s (%s)", node2string (cond->e[2]), a);
   btor_freestr (mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
 }
@@ -3670,7 +3666,7 @@ btor_propsls_select_move_prop (Btor *btor,
 
   bool b;
   int32_t i, nconst, eidx, idx;
-  uint64_t props;
+  uint64_t nprops;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
 #ifndef NBTORLOG
@@ -3679,27 +3675,31 @@ btor_propsls_select_move_prop (Btor *btor,
 
   *input      = 0;
   *assignment = 0;
-  props       = 0;
+  nprops      = 0;
 
   cur   = root;
   bvcur = btor_one_bv (btor->mm, 1);
 
-  if (btor_is_bv_var_node (cur))
+  for (;;)
   {
-    *input      = BTOR_REAL_ADDR_NODE (cur);
-    *assignment = BTOR_IS_INVERTED_NODE (cur) ? btor_not_bv (btor->mm, bvcur)
-                                              : btor_copy_bv (btor->mm, bvcur);
-  }
-  else
-  {
-    for (;;)
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+    if (btor_is_bv_var_node (cur))
     {
-      props += 1;
-      real_cur = BTOR_REAL_ADDR_NODE (cur);
-      assert (!btor_is_bv_cond_node (real_cur));
-      assert (!btor_is_bv_const_node (real_cur));
-      assert (!btor_is_bv_var_node (real_cur));
-      assert (real_cur->arity <= 2);
+      *input      = real_cur;
+      *assignment = BTOR_IS_INVERTED_NODE (cur)
+                        ? btor_not_bv (btor->mm, bvcur)
+                        : btor_copy_bv (btor->mm, bvcur);
+      break;
+    }
+    else if (btor_is_bv_const_node (cur))
+    {
+      break;
+    }
+    else
+    {
+      nprops += 1;
+      assert (!btor_is_bv_const_node (cur));
 
       if (BTOR_IS_INVERTED_NODE (cur))
       {
@@ -3708,7 +3708,7 @@ btor_propsls_select_move_prop (Btor *btor,
         btor_free_bv (btor->mm, tmp);
       }
 
-      /* conflict */
+      /* check if all paths are const, if yes -> conflict */
       for (i = 0, nconst = 0; i < real_cur->arity; i++)
       {
         bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
@@ -3722,6 +3722,7 @@ btor_propsls_select_move_prop (Btor *btor,
       BTORLOG (2, "propagate: %s", a);
       btor_freestr (btor->mm, a);
 #endif
+
       /* we either select a consistent or inverse value
        * as path assignment, depending on the given probability p
        * -> if b then inverse else consistent */
@@ -3801,70 +3802,35 @@ btor_propsls_select_move_prop (Btor *btor,
           bvenew = b ? inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx)
                      : cons_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
-        default:
-          assert (real_cur->kind == BTOR_SLICE_NODE);
+        case BTOR_SLICE_NODE:
           eidx = select_path_slice (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0),
               bvenew = b ? inv_slice_bv (btor, real_cur, bvcur, bve[0])
                          : cons_slice_bv (btor, real_cur, bvcur, bve[0]);
+          break;
+        default:
+          assert (btor_is_bv_cond_node (real_cur));
+          /* either assume that cond is fixed and propagate bvenew
+           * to enabled path, or flip condition */
+          tmp  = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
+          eidx = select_path_cond (btor, real_cur, bvcur, tmp);
+          /* flip condition */
+          if (eidx == 0) bvenew = btor_not_bv (btor->mm, tmp);
+          /* else continue propagating current bvenew down */
+          else
+            bvenew = btor_copy_bv (btor->mm, bvcur);
       }
 
       if (!bvenew) break; /* non-recoverable conflict */
 
       cur = real_cur->e[eidx];
-
-      /* found input and assignment */
-      if (btor_is_bv_var_node (real_cur->e[eidx]))
-      {
-      FOUND_RESULT:
-        *input      = BTOR_REAL_ADDR_NODE (cur);
-        *assignment = BTOR_IS_INVERTED_NODE (cur)
-                          ? btor_not_bv (btor->mm, bvenew)
-                          : btor_copy_bv (btor->mm, bvenew);
-        btor_free_bv (btor->mm, bvenew);
-        break;
-      }
-      else if (btor_is_bv_cond_node (real_cur->e[eidx]))
-      {
-        real_cur = BTOR_REAL_ADDR_NODE (cur);
-
-        do
-        {
-          /* either assume that cond is fixed and propagate bvenew
-           * to enabled path, or flip condition */
-
-          tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-
-          if ((eidx = select_path_cond (btor, real_cur, bvenew, tmp)) == 0)
-          {
-            /* flip condition */
-            btor_free_bv (btor->mm, bvenew);
-            bvenew = btor_not_bv (btor->mm, tmp);
-          }
-          /* else continue propagating current bvenew down */
-
-          cur = real_cur->e[eidx];
-          BTORLOG (2, "    * chose: %u", eidx);
-          real_cur = BTOR_REAL_ADDR_NODE (cur);
-        } while (btor_is_bv_cond_node (real_cur));
-
-        if (btor_is_bv_var_node (cur))
-        {
-          goto FOUND_RESULT;
-        }
-        else if (btor_is_bv_const_node (cur))
-        {
-          /* if input is const -> conflict */
-          btor_free_bv (btor->mm, bvenew);
-          break;
-        }
-      }
-
       btor_free_bv (btor->mm, bvcur);
       bvcur = bvenew;
     }
   }
+
   btor_free_bv (btor->mm, bvcur);
-  return props;
+
+  return nprops;
 }
