@@ -1634,7 +1634,7 @@ static void
 exitonsig (int sig)
 {
   BTORUNT_LOG ("exit on signal %d", sig);
-  _exit (sig);
+  raise (sig);
 }
 
 int
