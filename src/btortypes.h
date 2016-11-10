@@ -557,6 +557,15 @@ enum BtorOption
   BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
 
   /*!
+    * **BTOR_OPT_PROP_CONS_CONC_SLICE_PROB**
+
+     Set probability with which to use the corresponing slice of current
+    assignment with max. one of its bits flipped (rather than using the
+    corresponding slice of the down propagated assignment) as result.
+  */
+  BTOR_OPT_PROP_CONS_CONC_SLICE_PROB,
+
+  /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
 
     | Do not perform a propagation move when running into a conflict during

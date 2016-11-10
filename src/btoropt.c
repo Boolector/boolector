@@ -681,6 +681,18 @@ btor_init_opts (Btor *btor)
             "(rather than choosing the enabled branch) for ITE during path "
             "is decreased or increased");
   init_opt (btor,
+            BTOR_OPT_PROP_CONS_CONC_SLICE_PROB,
+            false,
+            false,
+            "prop:cons-conc-slice-prob",
+            0,
+            900,
+            0,
+            BTOR_PROB_MAX,
+            "probability for using slice of current assignment with max. "
+            "one of its bits flipped (rather than using slice of down "
+            "propagated assignment) (interpreted as <n>/1000)");
+  init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,
             true,
