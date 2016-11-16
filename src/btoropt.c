@@ -694,6 +694,20 @@ btor_init_opts (Btor *btor)
             "propagated assignment) as result of consistent value selction "
             "for concats (interpreted as <n>/1000)");
   init_opt (btor,
+            BTOR_OPT_PROP_PROB_EQ_FLIP,
+            false,
+            false,
+            "prop:prob-eq-flip",
+            0,
+            900,
+            0,
+            BTOR_PROB_MAX,
+            "probability for using the current assignment of the selected "
+            "node with one of its bits flipped (rather than using a fully "
+            "randomized node) in case of inequalities "
+            "(for both inverse and consistent value selection) "
+            "(interpreted as <n>/1000)");
+  init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,
             true,

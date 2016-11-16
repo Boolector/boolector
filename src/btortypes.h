@@ -567,6 +567,16 @@ enum BtorOption
   BTOR_OPT_PROP_PROB_CONC_FLIP,
 
   /*!
+    * **BTOR_OPT_PROP_PROB_EQ_FLIP**
+
+     Set probability with which the current assignment of the selected node with
+    one of its bits flipped (rather than a fully randomized bit-vector) is
+    down-propagated in case of an inequality (both for inverse and consistent
+    value selection).
+  */
+  BTOR_OPT_PROP_PROB_EQ_FLIP,
+
+  /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
 
     | Do not perform a propagation move when running into a conflict during

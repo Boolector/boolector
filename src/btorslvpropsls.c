@@ -1642,16 +1642,26 @@ cons_eq_bv (
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_is_bv_const_node (eq->e[eidx]));
 
-  (void) eq;
   (void) bveq;
-  (void) bve;
-  (void) eidx;
+
+  BtorBitVector *res;
 
 #ifndef NDEBUG
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_eq++;
 #endif
-  return btor_new_random_bv (btor->mm, &btor->rng, bve->width);
+
+  if (btor_pick_with_prob_rng (&btor->rng,
+                               btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
+  {
+    res = btor_copy_bv (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
+    btor_flip_bit_bv (res, btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+  }
+  else
+  {
+    res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
+  }
+  return res;
 }
 
 static inline BtorBitVector *
@@ -2322,9 +2332,6 @@ inv_eq_bv (
   BtorBitVector *res;
   BtorMemMgr *mm;
 
-  (void) eq;
-  (void) eidx;
-
 #ifndef NDEBUG
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_eq++;
@@ -2334,12 +2341,22 @@ inv_eq_bv (
   /* res != bveq -> choose random res != bveq */
   if (btor_is_zero_bv (bveq))
   {
-    res = 0;
-    do
+    if (btor_pick_with_prob_rng (
+            &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
     {
-      if (res) btor_free_bv (mm, res);
-      res = btor_new_random_bv (mm, &btor->rng, bve->width);
-    } while (!btor_compare_bv (res, bve));
+      res = btor_copy_bv (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
+      btor_flip_bit_bv (res,
+                        btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+    }
+    else
+    {
+      res = 0;
+      do
+      {
+        if (res) btor_free_bv (mm, res);
+        res = btor_new_random_bv (mm, &btor->rng, bve->width);
+      } while (!btor_compare_bv (res, bve));
+    }
   }
   /* res = bveq */
   else
