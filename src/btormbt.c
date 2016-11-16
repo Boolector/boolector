@@ -1394,7 +1394,7 @@ catch_alarm (int sig)
   (void) sig;
   assert (sig == SIGALRM);
 
-  if (g_set_alarm > 0)
+  if (g_btormbt->seeded && g_set_alarm > 0)
   {
     btormbt_msg ("ALARM TRIGGERED: time limit %d seconds reached", g_set_alarm);
     btormbt_print_stats (g_btormbt);
