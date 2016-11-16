@@ -470,10 +470,10 @@ btor_init_opts (Btor *btor)
             1,
             "do a random walk (with given probability)");
   init_opt (btor,
-            BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
+            BTOR_OPT_SLS_PROB_MOVE_RAND_WALK,
             false,
             false,
-            "sls:move-rand-walk-prob",
+            "sls:prob-move-rand-walk",
             0,
             100,
             0,
@@ -620,10 +620,10 @@ btor_init_opts (Btor *btor)
             BTOR_PROP_PATH_SEL_MAX,
             "path selection mode");
   init_opt (btor,
-            BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+            BTOR_OPT_PROP_PROB_USE_INV_VALUE,
             false,
             false,
-            "prop:use-inv-value-prob",
+            "prop:prob-use-inv-value",
             0,
             990,
             0,
@@ -631,10 +631,10 @@ btor_init_opts (Btor *btor)
             "probability for producing inverse rather than consistent values "
             "(interpreted as <n>/1000)");
   init_opt (btor,
-            BTOR_OPT_PROP_FLIP_COND_PROB,
+            BTOR_OPT_PROP_PROB_FLIP_COND,
             false,
             false,
-            "prop:flip-cond-prob",
+            "prop:prob-flip-cond",
             0,
             100,
             0,
@@ -643,10 +643,10 @@ btor_init_opts (Btor *btor)
             "choosing the enabled path) for ITE during path selection "
             "for prop moves (interpreted as <n>/1000)");
   init_opt (btor,
-            BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+            BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
             false,
             false,
-            "prop:flip-cond-const-prob",
+            "prop:prob-flip-cond-const",
             0,
             100,
             0,
@@ -681,10 +681,10 @@ btor_init_opts (Btor *btor)
             "(rather than choosing the enabled branch) for ITE during path "
             "is decreased or increased");
   init_opt (btor,
-            BTOR_OPT_PROP_CONC_FLIP_PROB,
+            BTOR_OPT_PROP_PROB_CONC_FLIP,
             false,
             false,
-            "prop:conc-flip-prob",
+            "prop:prob-conc-flip",
             0,
             900,
             0,

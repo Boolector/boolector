@@ -297,11 +297,11 @@ sat_prop_solver_aux (Btor *btor)
 
     /* init */
     slv->flip_cond_const_prob =
-        btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB);
+        btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->flip_cond_const_prob_delta =
         slv->flip_cond_const_prob > (BTOR_PROB_MAX / 2)
-            ? -BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA
-            : BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA;
+            ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
+            : BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA;
 
     /* move */
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);

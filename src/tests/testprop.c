@@ -35,7 +35,7 @@ static BtorRNG *g_rng;
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
     btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB, 1000); \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
     btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
     btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
     btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);                \

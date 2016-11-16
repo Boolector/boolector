@@ -1479,7 +1479,7 @@ select_path_cond (Btor *btor,
         && btor_pick_with_prob_rng (
                &btor->rng,
                (prob =
-                    btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB))))
+                    btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST))))
     {
       eidx = 0;
 
@@ -1496,7 +1496,7 @@ select_path_cond (Btor *btor,
                   ? 100
                   : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
           btor_set_opt (btor,
-                        BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+                        BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
                         prob + slv->flip_cond_const_prob_delta);
         }
       }
@@ -1513,13 +1513,13 @@ select_path_cond (Btor *btor,
                         : (prob == 1000 ? -100
                                         : slv->prop_flip_cond_const_prob_delta);
           btor_set_opt (btor,
-                        BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+                        BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
                         prob + slv->prop_flip_cond_const_prob_delta);
         }
       }
     }
     else if (btor_pick_with_prob_rng (
-                 &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
+                 &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND)))
     {
       eidx = 0;
     }
@@ -2096,7 +2096,7 @@ cons_concat_bv (Btor *btor,
 
   if (btor_is_bv_const_node (concat->e[idx])
       && btor_pick_with_prob_rng (
-             &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_CONC_FLIP_PROB)))
+             &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
     bvcur = btor_get_bv_model (btor, concat);
     res =
@@ -3750,7 +3750,7 @@ btor_propsls_select_move_prop (Btor *btor,
        * as path assignment, depending on the given probability p
        * -> if b then inverse else consistent */
       b = btor_pick_with_prob_rng (
-          &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB));
+          &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE));
 
       /* select path and determine path assignment */
       switch (real_cur->kind)

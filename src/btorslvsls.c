@@ -1169,7 +1169,7 @@ move (Btor *btor, uint32_t nmoves)
     if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_WALK)
         && btor_pick_with_prob_rng (
                &btor->rng,
-               btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)))
+               btor_get_opt (btor, BTOR_OPT_SLS_PROB_MOVE_RAND_WALK)))
     {
     SLS_MOVE_RAND_WALK:
       select_random_move (btor, &candidates);
@@ -1524,11 +1524,11 @@ sat_sls_solver (BtorSLSSolver *slv)
 
     /* init */
     slv->prop_flip_cond_const_prob =
-        btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_PROB);
+        btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->prop_flip_cond_const_prob_delta =
         slv->prop_flip_cond_const_prob > (BTOR_PROB_MAX / 2)
-            ? -BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA
-            : BTOR_PROPSLS_FLIP_COND_CONST_PROB_DELTA;
+            ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
+            : BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA;
 
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);

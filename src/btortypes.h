@@ -379,18 +379,18 @@ enum BtorOption
 
       Enable (``value``: 1) or disable (``value``: 0) random walk moves, where
     one out of all possible neighbors is randomly selected (with given
-    probability, see BTOR_OPT_SLS_MOVE_RAND_WALK_PROB) for a randomly selected
+    probability, see BTOR_OPT_SLS_PROB_MOVE_RAND_WALK) for a randomly selected
     candidate variable.
   */
   BTOR_OPT_SLS_MOVE_RAND_WALK,
 
   /*!
-    * **BTOR_OPT_SLS_MOVE_RAND_WALK_PROB**
+    * **BTOR_OPT_SLS_PROB_MOVE_RAND_WALK**
 
       Set the probability with which a random walk is chosen if random walks are
     enabled (see BTOR_OPT_SLS_MOVE_RAND_WALK).
   */
-  BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
+  BTOR_OPT_SLS_PROB_MOVE_RAND_WALK,
 
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_ALL**
@@ -513,35 +513,35 @@ enum BtorOption
   BTOR_OPT_PROP_PATH_SEL,
 
   /*!
-    * **BTOR_OPT_PROP_USE_INV_VALUE_PROB**
+    * **BTOR_OPT_PROP_PROB_USE_INV_VALUE**
 
      Set probabiality with which to choose inverse values over consistent
     values.
   */
-  BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+  BTOR_OPT_PROP_PROB_USE_INV_VALUE,
 
   /*!
-    * **BTOR_OPT_PROP_FLIP_COND_PROB**
+    * **BTOR_OPT_PROP_PROB_FLIP_COND**
 
      Set probability with which to select the path to the condition (in case of
     an if-then-else operation) rather than the enabled branch during down
     propagation.
   */
-  BTOR_OPT_PROP_FLIP_COND_PROB,
+  BTOR_OPT_PROP_PROB_FLIP_COND,
 
   /*!
-    * **BTOR_OPT_PROP_FLIP_COND_CONST_PROB**
+    * **BTOR_OPT_PROP_PROB_FLIP_COND_CONST**
 
      Set probbiality with which to select the path to the condition (in case of
     an if-then-else operation) rather than the enabled branch during down
     propagation if either of the 'then' or 'else' branch is constant.
   */
-  BTOR_OPT_PROP_FLIP_COND_CONST_PROB,
+  BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
 
   /*!
     * **BTOR_OPT_PROP_FLIP_COND_CONST_DELTA**
 
-     Set delta by which BTOR_OPT_PROP_FLIP_COND_CONST_PROB is decreased or
+     Set delta by which BTOR_OPT_PROP_PROB_FLIP_COND_CONST is decreased or
     increased after a limit BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL is reached.
   */
   BTOR_OPT_PROP_FLIP_COND_CONST_DELTA,
@@ -551,20 +551,20 @@ enum BtorOption
 
      Set the limit for how often the path to the condition (in case of an
     if-then-else operation) may be selected bevor
-    BTOR_OPT_PROP_FLIP_COND_CONST_PROB is decreased or increased by
-    BTOR_OPT_PROP_FLIP_COND_CONST_PROB_DELTA.
+    BTOR_OPT_PROP_PROB_FLIP_COND_CONST is decreased or increased by
+    BTOR_OPT_PROP_PROB_FLIP_COND_CONST_DELTA.
   */
   BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
 
   /*!
-    * **BTOR_OPT_PROP_CONC_FLIP_PROB**
+    * **BTOR_OPT_PROP_PROB_CONC_FLIP**
 
      Set probability with which to use the corresponing slice of current
     assignment with max. one of its bits flipped (rather than using the
     corresponding slice of the down propagated assignment) as result of
     consistent value selection for concats.
   */
-  BTOR_OPT_PROP_CONC_FLIP_PROB,
+  BTOR_OPT_PROP_PROB_CONC_FLIP,
 
   /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
