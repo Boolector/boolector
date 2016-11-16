@@ -557,6 +557,18 @@ btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit)
     bv->bits[bv->len - 1 - i] &= ~(1u << j);
 }
 
+void
+btor_flip_bit_bv (BtorBitVector *bv, uint32_t pos)
+{
+  assert (bv);
+  assert (bv->len > 0);
+  assert (pos < bv->width);
+
+  btor_set_bit_bv (bv, pos, btor_get_bit_bv (bv, pos) ? 0 : 1);
+}
+
+/*------------------------------------------------------------------------*/
+
 bool
 btor_is_true_bv (const BtorBitVector *bv)
 {

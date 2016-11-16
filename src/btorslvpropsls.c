@@ -2089,15 +2089,14 @@ cons_concat_bv (Btor *btor,
 
   idx = eidx ? 0 : 1;
 
-  /* If one operand is const, with BTOR_OPT_PROP_CONS_CONC_SLICE_PROB
+  /* If one operand is const, with BTOR_OPT_CONC_FLIP_PROB
    * either slice bits out of current assignment and flip max. one bit
    * randomly, or slice bits out of given assignment 'bve'.
    */
 
   if (btor_is_bv_const_node (concat->e[idx])
       && btor_pick_with_prob_rng (
-             &btor->rng,
-             btor_get_opt (btor, BTOR_OPT_PROP_CONS_CONC_SLICE_PROB)))
+             &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_CONC_FLIP_PROB)))
   {
     bvcur = btor_get_bv_model (btor, concat);
     res =
@@ -2105,7 +2104,7 @@ cons_concat_bv (Btor *btor,
                    btor->mm, bvcur, bvconcat->width - bve->width - 1, 0)
              : btor_slice_bv (btor->mm, bvcur, bvconcat->width - 1, bve->width);
     r = btor_pick_rand_rng (&btor->rng, 0, res->width);
-    if (r) btor_set_bit_bv (res, r - 1, btor_get_bit_bv (res, r - 1) ? 0 : 1);
+    if (r) btor_flip_bit_bv (res, r - 1);
   }
   else
   {

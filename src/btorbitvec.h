@@ -90,6 +90,8 @@ int btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos);
 /* index 0 is LSB, width - 1 is MSB */
 void btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t value);
 
+void btor_flip_bit_bv (BtorBitVector *bv, uint32_t pos);
+
 bool btor_is_true_bv (const BtorBitVector *bv);
 bool btor_is_false_bv (const BtorBitVector *bv);
 
