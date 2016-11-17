@@ -3638,7 +3638,7 @@ inv_slice_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
-  bool b;
+  bool bkeep, bflip;
 
 #ifndef NDEBUG
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
@@ -3648,30 +3648,47 @@ inv_slice_bv (Btor *btor,
   e  = slice->e[0];
   assert (e);
 
-  b = btor_pick_with_prob_rng (
-      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
+  bflip = btor_pick_with_prob_rng (
+      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_FLIP));
+
+  bkeep = bflip ? true
+                : btor_pick_with_prob_rng (
+                      &btor->rng,
+                      btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
   upper = btor_slice_get_upper (slice);
   lower = btor_slice_get_lower (slice);
 
   res = btor_new_bv (mm, btor_get_exp_width (btor, e));
+
   /* keep previous value for don't care bits or set randomly with prob
    * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
   for (i = 0; i < lower; i++)
     btor_set_bit_bv (res,
                      i,
-                     b ? btor_get_bit_bv (bve, i)
-                       : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+                     bkeep ? btor_get_bit_bv (bve, i)
+                           : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
     btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - lower));
+
   /* keep previous value for don't care bits or set randomly with prob
    * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
   for (i = upper + 1; i < res->width; i++)
     btor_set_bit_bv (res,
                      i,
-                     b ? btor_get_bit_bv (bve, i)
-                       : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+                     bkeep ? btor_get_bit_bv (bve, i)
+                           : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+
+  if (bflip)
+  {
+    if (lower)
+      btor_flip_bit_bv (res, btor_pick_rand_rng (&btor->rng, 0, lower - 1));
+    if (upper + 1 < res->width)
+      btor_flip_bit_bv (
+          res, btor_pick_rand_rng (&btor->rng, upper + 1, res->width - 1));
+  }
 
 #ifndef NDEBUG
   BtorBitVector *tmpdbg = btor_slice_bv (mm, res, upper, lower);

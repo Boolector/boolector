@@ -576,6 +576,16 @@ enum BtorOption
   BTOR_OPT_PROP_PROB_CONC_FLIP,
 
   /*!
+    * **BTOR_OPT_PROP_PROB_SLICE_FLIP**
+
+     Set probability with which to use the current assignment of the operand of
+    a slice operation with one of the don't care bits flipped (rather than fully
+    randomizing all of them, both for inverse and consistent value selection) if
+    their current assignment is not kept (see BTOR_OPT_PROP_PROB_SLICE_KEEP_DC).
+  */
+  BTOR_OPT_PROP_PROB_SLICE_FLIP,
+
+  /*!
     * **BTOR_OPT_PROP_PROB_EQ_FLIP**
 
      Set probability with which the current assignment of the selected node with

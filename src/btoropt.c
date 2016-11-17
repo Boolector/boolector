@@ -693,6 +693,7 @@ btor_init_opts (Btor *btor)
             "bits of the operand of a slice operation "
             "(rather than fully randomizing all of them, "
             "for both inverse and consistent value selection) "
+            "if their current value is not kept "
             "(interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_PROB_CONC_FLIP,
@@ -707,6 +708,20 @@ btor_init_opts (Btor *btor)
             "one of its bits flipped (rather than using slice of down "
             "propagated assignment) as result of consistent value selction "
             "for concats (interpreted as <n>/1000)");
+  init_opt (btor,
+            BTOR_OPT_PROP_PROB_SLICE_FLIP,
+            false,
+            false,
+            "prop:prob-slice-flip",
+            0,
+            900,
+            0,
+            BTOR_PROB_MAX,
+            "probability for using the current assignment of the operand "
+            "of a slice operation with max. one of its bits flipped "
+            "(rather than fully randomizing all of them) as a result of "
+            "inverse/consistent value selection "
+            "(interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_PROB_EQ_FLIP,
             false,
