@@ -3634,7 +3634,7 @@ inv_slice_bv (Btor *btor,
   assert (bvslice);
   assert (!btor_is_bv_const_node (slice->e[0]));
 
-  uint32_t i, upper, lower;
+  uint32_t i, upper, lower, rlower, rupper, rboth;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -3683,11 +3683,34 @@ inv_slice_bv (Btor *btor,
 
   if (bflip)
   {
+    rboth = 0;
     if (lower)
-      btor_flip_bit_bv (res, btor_pick_rand_rng (&btor->rng, 0, lower - 1));
+    {
+      rboth += 1;
+      rlower = btor_pick_rand_rng (&btor->rng, 0, lower - 1);
+    }
     if (upper + 1 < res->width)
-      btor_flip_bit_bv (
-          res, btor_pick_rand_rng (&btor->rng, upper + 1, res->width - 1));
+    {
+      rboth += 2;
+      rupper = btor_pick_rand_rng (&btor->rng, upper + 1, res->width - 1);
+    }
+    switch (rboth)
+    {
+      case 3:
+        assert (rupper >= upper + 1 && rupper < res->width);
+        assert (rlower < lower);
+        btor_flip_bit_bv (
+            res, btor_pick_with_prob_rng (&btor->rng, 500) ? rupper : rlower);
+        break;
+      case 2:
+        assert (rupper >= upper + 1 && rupper < res->width);
+        btor_flip_bit_bv (res, rupper);
+        break;
+      case 1:
+        assert (rlower < lower);
+        btor_flip_bit_bv (res, rlower);
+        break;
+    }
   }
 
 #ifndef NDEBUG
