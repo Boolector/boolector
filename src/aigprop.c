@@ -50,22 +50,6 @@ msg (char *fmt, ...)
 
 /*------------------------------------------------------------------------*/
 
-// bool
-// check_roots_mark_unset_dbg (BtorPtrHashTable * roots)
-//{
-//  assert (roots);
-//
-//  BtorPtrHashTableIterator it;
-//
-//  btor_init_ptr_hash_table_iterator (&it, roots);
-//  while (btor_has_next_ptr_hash_table_iterator (&it))
-//    if (((BtorAIG *) btor_next_ptr_hash_table_iterator (&it))->mark) return
-//    false;
-//  return true;
-//}
-
-/*------------------------------------------------------------------------*/
-
 int
 aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
 {
@@ -134,12 +118,11 @@ static double
 compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
-  // assert (check_roots_mark_unset_dbg (aprop->roots));
   assert (!BTOR_IS_CONST_AIG (aig));
 
   double res, s0, s1;
   BtorPtrHashBucket *b;
-  BtorAIGPtrStack stack;  //, unmark_stack;
+  BtorAIGPtrStack stack;
   BtorAIG *cur, *real_cur, *left, *right;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
@@ -154,7 +137,6 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   res = 0.0;
 
   BTOR_INIT_STACK (stack);
-  // BTOR_INIT_STACK (unmark_stack);
   mark = btor_new_int_hash_map (mm);
 
   BTOR_PUSH_STACK (mm, stack, aig);
@@ -165,15 +147,11 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 
     if (BTOR_IS_CONST_AIG (real_cur)) continue;
     if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
-    // if (real_cur->mark == 2) continue;
     d = btor_get_int_hash_map (mark, real_cur->id);
     if (d && d->as_int == 1) continue;
 
-    // if (real_cur->mark == 0)
     if (!d)
     {
-      // real_cur->mark = 1;
-      // BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
       btor_add_int_hash_map (mark, real_cur->id);
       assert (BTOR_IS_VAR_AIG (real_cur) || BTOR_IS_AND_AIG (real_cur));
       BTOR_PUSH_STACK (mm, stack, cur);
@@ -187,8 +165,6 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     }
     else
     {
-      // assert (real_cur->mark == 1);
-      // real_cur->mark = 2;
       assert (d->as_int == 0);
       d->as_int = 1;
       assert (aigprop_get_assignment_aig (aprop->model, cur) != 0);
@@ -281,13 +257,8 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     }
   }
 
-  ///* cleanup */
-  // while (!BTOR_EMPTY_STACK (unmark_stack))
-  //  BTOR_POP_STACK (unmark_stack)->mark = 0;
   btor_delete_int_hash_map (mark);
-
   BTOR_RELEASE_STACK (mm, stack);
-  // BTOR_RELEASE_STACK (mm, unmark_stack);
 
   assert (btor_get_ptr_hash_table (aprop->score, aig));
   assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig)));
@@ -356,7 +327,6 @@ compute_scores (AIGProp *aprop)
     else
     {
       compute_score_aig (aprop, cur);
-      //	  compute_score_aig (aprop, BTOR_INVERT_AIG (cur));
     }
   }
 
@@ -480,13 +450,12 @@ static void
 reset_cone (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
-  // assert (check_roots_mark_unset_dbg (aprop->roots));
 
   int i;
   BtorAIG *cur, *child;
   BtorPtrHashTableIterator it;
   BtorPtrHashBucket *b;
-  BtorAIGPtrStack stack;  //, unmark_stack;
+  BtorAIGPtrStack stack;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
   BtorMemMgr *mm;
@@ -496,7 +465,6 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
   mm = aprop->amgr->btor->mm;
 
   BTOR_INIT_STACK (stack);
-  // BTOR_INIT_STACK (unmark_stack);
   mark = btor_new_int_hash_map (mm);
 
   assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (aig)));
@@ -516,15 +484,10 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
     assert (!BTOR_IS_CONST_AIG (cur));
     d = btor_get_int_hash_map (mark, cur->id);
 
-    // if (cur->mark == 2) continue;
     if (d && d->as_int == 1) continue;
-    // if (cur->mark == 0)
     if (!d)
     {
-      // cur->mark = 1;
       d = btor_add_int_hash_map (mark, cur->id);
-      // BTOR_PUSH_STACK (mm, unmark_stack, cur);
-      // if (BTOR_IS_VAR_AIG (cur)) { cur->mark = 2; continue; }
       if (BTOR_IS_VAR_AIG (cur))
       {
         d->as_int = 1;
@@ -539,12 +502,10 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
     }
     else
     {
-      // assert (cur->mark == 1);
       assert (btor_get_ptr_hash_table (aprop->model, cur));
       assert (d->as_int == 0);
       d->as_int = 1;
 
-      // cur->mark = 2;
       for (i = 0; i < 2; i++)
       {
         child = BTOR_GET_AIG_BY_ID (aprop->amgr, cur->children[i]);
@@ -567,13 +528,9 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
     }
   }
 
-  ///* cleanup */
-  // while (!BTOR_EMPTY_STACK (unmark_stack))
-  //  BTOR_POP_STACK (unmark_stack)->mark = 0;
   btor_delete_int_hash_map (mark);
 
   BTOR_RELEASE_STACK (mm, stack);
-  // BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
 static void
