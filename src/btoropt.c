@@ -681,6 +681,20 @@ btor_init_opts (Btor *btor)
             "(rather than choosing the enabled branch) for ITE during path "
             "is decreased or increased");
   init_opt (btor,
+            BTOR_OPT_PROP_PROB_SLICE_KEEP_DC,
+            false,
+            false,
+            "prop:prob-slice-keep-dc",
+            0,
+            500,
+            0,
+            BTOR_PROB_MAX,
+            "probability for keeping the current value of the don't care "
+            "bits of the operand of a slice operation "
+            "(rather than fully randomizing all of them, "
+            "for both inverse and consistent value selection) "
+            "(interpreted as <n>/1000)");
+  init_opt (btor,
             BTOR_OPT_PROP_PROB_CONC_FLIP,
             false,
             false,

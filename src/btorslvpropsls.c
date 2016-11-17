@@ -3648,13 +3648,15 @@ inv_slice_bv (Btor *btor,
   e  = slice->e[0];
   assert (e);
 
-  b = btor_pick_with_prob_rng (&btor->rng, 500);
+  b = btor_pick_with_prob_rng (
+      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
   upper = btor_slice_get_upper (slice);
   lower = btor_slice_get_lower (slice);
 
   res = btor_new_bv (mm, btor_get_exp_width (btor, e));
-  /* keep previous value for don't care bits or set randomly with prob = 0.5 */
+  /* keep previous value for don't care bits or set randomly with prob
+   * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
   for (i = 0; i < lower; i++)
     btor_set_bit_bv (res,
                      i,
@@ -3663,7 +3665,8 @@ inv_slice_bv (Btor *btor,
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
     btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - lower));
-  /* keep previous value for don't care bits or set randomly with prob = 0.5 */
+  /* keep previous value for don't care bits or set randomly with prob
+   * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
   for (i = upper + 1; i < res->width; i++)
     btor_set_bit_bv (res,
                      i,

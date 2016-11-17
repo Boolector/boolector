@@ -557,6 +557,15 @@ enum BtorOption
   BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
 
   /*!
+    * **BTOR_OPT_PROP_PROB_SLICE_KEEP_DC**
+
+      Set probability with which to keep the current value of the don't care
+    bits of a slice operation (rather than fully randomizing all of them) when
+    selecting an inverse or consistent value.
+   */
+  BTOR_OPT_PROP_PROB_SLICE_KEEP_DC,
+
+  /*!
     * **BTOR_OPT_PROP_PROB_CONC_FLIP**
 
      Set probability with which to use the corresponing slice of current
