@@ -146,13 +146,13 @@ compute_sls_score_node (Btor *btor,
   double res, s0, s1;
   BtorNode *real_exp;
   BtorBitVector *bv0, *bv1;
-  BtorMemMgr *mm;
 #ifndef NBTORLOG
+  BtorMemMgr *mm;
   char *a0, *a1;
+  mm = btor->mm;
 #endif
 
   res      = 0.0;
-  mm       = btor->mm;
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
   BTORLOG (3, "");

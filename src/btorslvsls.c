@@ -1327,11 +1327,12 @@ clone_sls_solver (Btor *clone, BtorSLSSolver *slv, BtorNodeMap *exp_map)
   assert (clone);
   assert (slv);
   assert (slv->kind == BTOR_SLS_SOLVER_KIND);
-  assert (exp_map);
 
   int i;
   BtorSLSSolver *res;
   BtorSLSMove *m, *cm;
+
+  (void) exp_map;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorSLSSolver));

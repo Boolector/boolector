@@ -193,9 +193,10 @@ clone_prop_solver (Btor *clone, BtorPropSolver *slv, BtorNodeMap *exp_map)
   assert (clone);
   assert (slv);
   assert (slv->kind == BTOR_PROP_SOLVER_KIND);
-  assert (exp_map);
 
   BtorPropSolver *res;
+
+  (void) exp_map;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorPropSolver));

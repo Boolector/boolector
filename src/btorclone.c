@@ -841,7 +841,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   char *prefix, *clone_prefix;
   BtorNode *exp, *cloned_exp;
   BtorPtrHashTableIterator pit;
-  BtorIntHashTableIterator iit;
   BtorNodePtrStack rhos;
 #ifndef NDEBUG
   int h;
@@ -851,7 +850,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorBVAssignment *bvass;
   BtorArrayAssignment *arrass;
   BtorPtrHashTableIterator cpit, ncpit;
-  BtorIntHashTableIterator ciit;
+  BtorIntHashTableIterator iit, ciit;
   BtorSort *sort;
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
