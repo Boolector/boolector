@@ -596,6 +596,17 @@ enum BtorOption
   BTOR_OPT_PROP_PROB_EQ_FLIP,
 
   /*!
+    * **BTOR_OPT_PROP_PROB_AND_FLIP**
+
+     Set probability with which the current assignment of the don't care bits of
+    the selected node with max. one of its bits flipped (rather than fully
+    randomizing all of them) in case of an and operation (for both inverse and
+    consistent value selection).
+
+  */
+  BTOR_OPT_PROP_PROB_AND_FLIP,
+
+  /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
 
     | Do not perform a propagation move when running into a conflict during

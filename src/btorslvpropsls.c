@@ -1604,16 +1604,20 @@ cons_and_bv (Btor *btor,
 
   uint32_t i;
   BtorBitVector *res;
+  BtorUIntStack dcbits;
+  bool b;
 
-  (void) and;
   (void) bve;
-  (void) eidx;
 
 #ifndef NDEBUG
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_and++;
 #endif
-  res = btor_new_bv (btor->mm, bvand->width);
+  b = btor_pick_with_prob_rng (
+      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
+  BTOR_INIT_STACK (dcbits);
+
+  res = btor_copy_bv (btor->mm, btor_get_bv_model (btor, and->e[eidx]));
 
   /* bve & res = bvand
    * -> all bits set in bvand must be set in res
@@ -1622,10 +1626,20 @@ cons_and_bv (Btor *btor,
   {
     if (btor_get_bit_bv (bvand, i))
       btor_set_bit_bv (res, i, 1);
+    else if (b)
+      BTOR_PUSH_STACK (btor->mm, dcbits, i);
     else
       btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   }
 
+  if (b && BTOR_COUNT_STACK (dcbits))
+    btor_flip_bit_bv (
+        res,
+        BTOR_PEEK_STACK (
+            dcbits,
+            btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
+
+  BTOR_RELEASE_STACK (btor->mm, dcbits);
   return res;
 }
 
@@ -2251,6 +2265,9 @@ inv_and_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
+  BtorUIntStack dcbits;
+  bool b;
+
 #ifndef NDEBUG
   int iscon = 0;
 #endif
@@ -2263,7 +2280,11 @@ inv_and_bv (Btor *btor,
   e  = and->e[eidx ? 0 : 1];
   assert (e);
 
-  res = btor_new_bv (mm, bvand->width);
+  b = btor_pick_with_prob_rng (
+      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
+  BTOR_INIT_STACK (dcbits);
+
+  res = btor_copy_bv (mm, btor_get_bv_model (btor, and->e[eidx]));
 
   for (i = 0; i < bvand->width; i++)
   {
@@ -2300,15 +2321,25 @@ inv_and_bv (Btor *btor,
       btor_set_bit_bv (res, i, 1);
     else if (bite)
       btor_set_bit_bv (res, i, 0);
+    else if (b)
+      BTOR_PUSH_STACK (mm, dcbits, i);
     else
       btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   }
+
+  if (b && BTOR_COUNT_STACK (dcbits))
+    btor_flip_bit_bv (
+        res,
+        BTOR_PEEK_STACK (
+            dcbits,
+            btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
 
 #ifndef NDEBUG
   if (!iscon)
     check_result_binary_dbg (
         btor, btor_and_bv, and, bve, bvand, res, eidx, "AND");
 #endif
+  BTOR_RELEASE_STACK (mm, dcbits);
   return res;
 }
 

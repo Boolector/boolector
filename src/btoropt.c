@@ -736,6 +736,21 @@ btor_init_opts (Btor *btor)
             "randomized node) in case of inequalities "
             "(for both inverse and consistent value selection) "
             "(interpreted as <n>/1000)");
+  init_opt (
+      btor,
+      BTOR_OPT_PROP_PROB_AND_FLIP,
+      false,
+      false,
+      "prop:prob-and-flip",
+      0,
+      900,
+      0,
+      BTOR_PROB_MAX,
+      "probability for using the current assignment of the don't care "
+      "bits of the selected node with max. one of its bits flipped "
+      "(rather fully randomizing all of them) in case of an and operation "
+      "(for both inverse and consistent value selection) "
+      "(interpreted as <n>/1000)");
   init_opt (btor,
             BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
             false,
