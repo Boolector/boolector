@@ -808,10 +808,11 @@ all_roots_sat (AIGProp *aprop)
 
 // TODO termination callback?
 int
-aigprop_sat (AIGProp *aprop)
+aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
 {
   assert (aprop);
-  assert (aprop->roots);
+  // assert (aprop->roots);
+  assert (roots);
 
   double start;
   int j, max_steps, sat_result;
@@ -820,6 +821,8 @@ aigprop_sat (AIGProp *aprop)
   start      = btor_time_stamp ();
   sat_result = AIGPROP_UNKNOWN;
   nmoves     = 0;
+
+  aprop->roots = roots;
 
   /* generate initial model, all inputs are initialized with false */
   aigprop_generate_model (aprop, 1);
@@ -853,8 +856,11 @@ SAT:
 UNSAT:
   sat_result = AIGPROP_UNSAT;
 DONE:
+  if (aprop->roots) btor_delete_ptr_hash_table (aprop->roots);
+  aprop->roots = 0;
   if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
   aprop->score = 0;
+
   aprop->time.sat += btor_time_stamp () - start;
   return sat_result;
 }

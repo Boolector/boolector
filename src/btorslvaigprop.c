@@ -192,6 +192,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int sat_result;
+  BtorPtrHashTable *roots;
   BtorPtrHashTableIterator it;
   BtorNode *root;
   BtorAIG *aig;
@@ -255,10 +256,11 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  slv->aprop->roots =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_aig_by_id,
-                               (BtorCmpPtr) btor_compare_aig_by_id);
+  // slv->aprop->roots = btor_new_ptr_hash_table (btor->mm,
+  //    (BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr) btor_compare_aig_by_id);
+  roots = btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_aig_by_id,
+                                   (BtorCmpPtr) btor_compare_aig_by_id);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -272,21 +274,26 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
-    if (!btor_get_ptr_hash_table (slv->aprop->roots, aig))
-      (void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
+    //      if (!btor_get_ptr_hash_table (slv->aprop->roots, aig))
+    //	(void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
+    if (!btor_get_ptr_hash_table (roots, aig))
+      (void) btor_add_ptr_hash_table (roots, aig);
   }
 
-  if ((sat_result = aigprop_sat (slv->aprop)) == BTOR_RESULT_UNSAT) goto UNSAT;
+  if ((sat_result = aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)
+    goto UNSAT;
   generate_model_from_aig_model (btor);
   assert (sat_result == BTOR_RESULT_SAT);
   slv->stats.moves    = slv->aprop->stats.moves;
   slv->stats.restarts = slv->aprop->stats.restarts;
   slv->time.aprop_sat = slv->aprop->time.sat;
 DONE:
-  if (slv->aprop->roots)
+  // if (slv->aprop->roots)
+  //  { btor_delete_ptr_hash_table (slv->aprop->roots); slv->aprop->roots = 0; }
+  if (roots)
   {
-    btor_delete_ptr_hash_table (slv->aprop->roots);
-    slv->aprop->roots = 0;
+    btor_delete_ptr_hash_table (roots);
+    roots = 0;
   }
   if (slv->aprop->score)
   {

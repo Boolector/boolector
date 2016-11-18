@@ -57,7 +57,7 @@ void aigprop_delete_aigprop (AIGProp *aprop);
 int aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig);
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
-int aigprop_sat (AIGProp *aprop);
+int aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots);
 
 void aigprop_print_stats (AIGProp *aprop);
 void aigprop_print_time_stats (AIGProp *aprop);
