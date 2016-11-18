@@ -540,15 +540,23 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   assert (aig);
   assert (assignment == 1 || assignment == -1);
 
+  double start, delta;
   BtorAIG *real_aig;
   int real_ass;
 
+  start = btor_time_stamp ();
   reset_cone (aprop, aig);
+  aprop->time.update_cone_reset += btor_time_stamp () - start;
   real_aig = BTOR_REAL_ADDR_AIG (aig);
   real_ass = BTOR_IS_INVERTED_AIG (aig) ? -assignment : assignment;
   btor_add_ptr_hash_table (aprop->model, real_aig)->data.as_int = real_ass;
+  delta = btor_time_stamp ();
   aigprop_generate_model (aprop, 0);
+  aprop->time.update_cone_model_gen += btor_time_stamp () - delta;
+  delta = btor_time_stamp ();
   compute_scores (aprop);
+  aprop->time.update_cone_compute_score += btor_time_stamp () - delta;
+  aprop->time.update_cone += btor_time_stamp () - start;
 }
 
 /*------------------------------------------------------------------------*/

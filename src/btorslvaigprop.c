@@ -284,9 +284,15 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     goto UNSAT;
   generate_model_from_aig_model (btor);
   assert (sat_result == BTOR_RESULT_SAT);
-  slv->stats.moves    = slv->aprop->stats.moves;
-  slv->stats.restarts = slv->aprop->stats.restarts;
-  slv->time.aprop_sat = slv->aprop->time.sat;
+  slv->stats.moves                  = slv->aprop->stats.moves;
+  slv->stats.restarts               = slv->aprop->stats.restarts;
+  slv->time.aprop_sat               = slv->aprop->time.sat;
+  slv->time.aprop_update_cone       = slv->aprop->time.update_cone;
+  slv->time.aprop_update_cone_reset = slv->aprop->time.update_cone_reset;
+  slv->time.aprop_update_cone_model_gen =
+      slv->aprop->time.update_cone_model_gen;
+  slv->time.aprop_update_cone_compute_score =
+      slv->aprop->time.update_cone_compute_score;
 DONE:
   // if (slv->aprop->roots)
   //  { btor_delete_ptr_hash_table (slv->aprop->roots); slv->aprop->roots = 0; }
@@ -343,6 +349,24 @@ print_time_stats_aigprop_solver (BtorAIGPropSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
       btor->msg, 1, "%.2f seconds in AIG propagator", slv->time.aprop_sat);
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (total)",
+            slv->time.aprop_update_cone);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (reset)",
+            slv->time.aprop_update_cone_reset);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (model gen)",
+            slv->time.aprop_update_cone_model_gen);
+  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds for updating cone (compute score)",
+              slv->time.aprop_update_cone_compute_score);
   BTOR_MSG (btor->msg, 1, "");
 }
 
