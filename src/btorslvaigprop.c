@@ -296,11 +296,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
 DONE:
   // if (slv->aprop->roots)
   //  { btor_delete_ptr_hash_table (slv->aprop->roots); slv->aprop->roots = 0; }
-  if (roots)
-  {
-    btor_delete_ptr_hash_table (roots);
-    roots = 0;
-  }
   if (slv->aprop->score)
   {
     btor_delete_ptr_hash_table (slv->aprop->score);
