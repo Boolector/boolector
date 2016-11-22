@@ -860,6 +860,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   BTORLOG (1, "start cloning btor %p ...", btor);
   start = btor_time_stamp ();
+  btor->stats.clone_calls += 1;
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
@@ -1443,7 +1444,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
 
   btor->time.cloning += btor_time_stamp () - start;
-  btor->stats.clone_calls += 1;
   BTORLOG (1, "cloning total: %.3f s", btor->time.cloning);
   return clone;
 }
