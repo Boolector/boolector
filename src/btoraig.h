@@ -83,6 +83,10 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 #define BTOR_IS_CONST_AIG(aig) \
   (((aig) == BTOR_AIG_TRUE) || ((aig) == BTOR_AIG_FALSE))
 
+#define BTOR_IS_FALSE_AIG(aig) (((aig) == BTOR_AIG_FALSE))
+
+#define BTOR_IS_TRUE_AIG(aig) (((aig) == BTOR_AIG_TRUE))
+
 #define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
 
 #define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
@@ -95,19 +99,6 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_GET_AIG_BY_ID(amgr, id)                              \
-  (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
-          : BTOR_PEEK_STACK (amgr->id2aig, id))
-
-#define BTOR_LEFT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[0]))
-
-#define BTOR_RIGHT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[1]))
-
-#define BTOR_GET_ID_AIG(aig) \
-  (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
-
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \
   ((aig) == BTOR_AIG_TRUE                                                    \
        ? 1                                                                   \
@@ -118,6 +109,42 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 /*------------------------------------------------------------------------*/
 
+static inline int32_t
+btor_aig_get_id (const BtorAIG *aig)
+{
+  assert (aig);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id;
+}
+
+static inline BtorAIG *
+btor_aig_get_by_id (BtorAIGMgr *amgr, int32_t id)
+{
+  assert (amgr);
+
+  return id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id))
+                : BTOR_PEEK_STACK (amgr->id2aig, id);
+}
+
+static inline BtorAIG *
+btor_aig_get_left_child (BtorAIGMgr *amgr, const BtorAIG *aig)
+{
+  assert (amgr);
+  assert (aig);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[0]);
+}
+
+static inline BtorAIG *
+btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
+{
+  assert (amgr);
+  assert (aig);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[1]);
+}
+
+/*------------------------------------------------------------------------*/
 BtorAIGMgr *btor_new_aig_mgr (Btor *btor);
 BtorAIGMgr *btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr);
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
@@ -186,4 +213,5 @@ int btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1);
 uint32_t btor_hash_aig_by_id (const BtorAIG *aig);
 /* compare AIG by id */
 int btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
+int btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
 #endif

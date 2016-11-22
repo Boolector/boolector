@@ -11,6 +11,7 @@
 #define AIGPROP_H_INCLUDED
 
 #include "btoraig.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorrng.h"
 
@@ -22,6 +23,7 @@ struct AIGProp
 {
   BtorAIGMgr *amgr;
   BtorPtrHashTable *roots;
+  BtorIntHashTable *unsatroots;
   BtorPtrHashTable *score;
   BtorPtrHashTable *model;
 

@@ -200,10 +200,10 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     {
       assert (BTOR_IS_AND_AIG (aig));
 
-      right = BTOR_RIGHT_CHILD_AIG (amgr, aig);
+      right = btor_aig_get_right_child (amgr, aig);
       BTOR_PUSH_STACK (mm, stack, right);
 
-      aig = BTOR_LEFT_CHILD_AIG (amgr, aig);
+      aig = btor_aig_get_left_child (amgr, aig);
       goto CONTINUE_WITHOUT_POP;
     }
   }
@@ -257,10 +257,10 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
       BTOR_PUSH_STACK (mm, stack, aig);
       BTOR_PUSH_STACK (mm, stack, 0);
 
-      right = BTOR_RIGHT_CHILD_AIG (amgr, aig);
+      right = btor_aig_get_right_child (amgr, aig);
       BTOR_PUSH_STACK (mm, stack, right);
 
-      aig = BTOR_LEFT_CHILD_AIG (amgr, aig);
+      aig = btor_aig_get_left_child (amgr, aig);
       goto CONTINUE_WITH_NON_ZERO_AIG;
     }
     else
@@ -332,8 +332,8 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     assert (!BTOR_IS_INVERTED_AIG (aig));
     assert (BTOR_IS_AND_AIG (aig));
 
-    left  = BTOR_LEFT_CHILD_AIG (amgr, aig);
-    right = BTOR_RIGHT_CHILD_AIG (amgr, aig);
+    left  = btor_aig_get_left_child (amgr, aig);
+    right = btor_aig_get_right_child (amgr, aig);
 
     aig_id   = 2 * (unsigned) p->data.as_int;
     left_id  = aiger_encode_aig (table, left);
