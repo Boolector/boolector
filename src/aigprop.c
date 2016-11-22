@@ -987,6 +987,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
       root   = btor_aig_get_by_id (aprop->amgr, rootid);
       if (btor_aig_is_true (root)) continue;
       if (btor_aig_is_false (root)) goto UNSAT;
+      if (btor_contains_int_hash_table (aprop->roots, -rootid)) goto UNSAT;
       assert (aigprop_get_assignment_aig (aprop, root));
       if (!btor_contains_int_hash_map (aprop->unsatroots, rootid)
           && aigprop_get_assignment_aig (aprop, root) == -1)

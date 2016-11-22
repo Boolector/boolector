@@ -247,6 +247,7 @@ sat_prop_solver_aux (Btor *btor)
 
   nmoves = 0;
 
+  /* check for constraints occurring in both phases */
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
