@@ -359,7 +359,8 @@ chkclone_opts (Btor *btor)
     copt = &clone->options[o];
     assert (opt->internal == copt->internal);
     /* Note: auto_cleanup.val = 1 in clone! */
-    if (o != BTOR_OPT_AUTO_CLEANUP) assert (opt->val == copt->val);
+    if (o != BTOR_OPT_AUTO_CLEANUP && o != BTOR_OPT_AUTO_CLEANUP_INTERNAL)
+      assert (opt->val == copt->val);
     assert (opt->dflt == copt->dflt);
     assert (opt->min == copt->min);
     assert (opt->max == copt->max);
