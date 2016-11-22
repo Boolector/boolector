@@ -125,8 +125,8 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   assert (aprop);
   assert (!btor_aig_is_const (aig));
 
-  double res, s0, s1;
-  BtorPtrHashBucket *b;
+  int32_t curid, leftid, rightid;
+  double res, sleft, sright;
   BtorAIGPtrStack stack;
   BtorAIG *cur, *real_cur, *left, *right;
   BtorIntHashTable *mark;
@@ -136,7 +136,11 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   int a;
 #endif
 
-  if ((b = btor_get_ptr_hash_table (aprop->score, aig))) return b->data.as_dbl;
+  // if ((b = btor_get_ptr_hash_table (aprop->score, aig)))
+  //  return b->data.as_dbl;
+  curid = btor_aig_get_id (aig);
+  if (btor_contains_int_hash_map (aprop->score, curid))
+    return btor_get_int_hash_map (aprop->score, curid)->as_dbl;
 
   mm  = aprop->amgr->btor->mm;
   res = 0.0;
@@ -151,7 +155,11 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     real_cur = BTOR_REAL_ADDR_AIG (cur);
 
     if (btor_aig_is_const (real_cur)) continue;
-    if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
+    // if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
+
+    curid = btor_aig_get_id (cur);
+    if (btor_contains_int_hash_map (aprop->score, curid)) continue;
+
     d = btor_get_int_hash_map (mark, real_cur->id);
     if (d && d->as_int == 1) continue;
 
@@ -183,8 +191,10 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
                   real_cur->id,
                   a < 0 ? 0 : 1);
 #endif
-      assert (!btor_get_ptr_hash_table (aprop->score, cur));
-      assert (!btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
+      // assert (!btor_get_ptr_hash_table (aprop->score, cur));
+      // assert (!btor_get_ptr_hash_table (aprop->score,BTOR_INVERT_AIG(cur)));
+      assert (!btor_contains_int_hash_map (aprop->score, curid));
+      assert (!btor_contains_int_hash_map (aprop->score, -curid));
 
       if (btor_aig_is_var (real_cur))
       {
@@ -199,74 +209,98 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
                     BTOR_IS_INVERTED_AIG (cur) ? "" : "-",
                     real_cur->id,
                     res == 0.0 ? 1.0 : 0.0);
-        btor_add_ptr_hash_table (aprop->score, cur)->data.as_dbl = res;
-        btor_add_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur))
-            ->data.as_dbl = res == 0.0 ? 1.0 : 0.0;
+        //      btor_add_ptr_hash_table (
+        //	  aprop->score, cur)->data.as_dbl = res;
+        //      btor_add_ptr_hash_table (
+        //	  aprop->score,
+        //	  BTOR_INVERT_AIG (cur))->data.as_dbl = res == 0.0 ? 1.0 : 0.0;
+        btor_add_int_hash_map (aprop->score, curid)->as_dbl = res;
+        btor_add_int_hash_map (aprop->score, -curid)->as_dbl =
+            res == 0.0 ? 1.0 : 0.0;
       }
       else
       {
         assert (btor_aig_is_and (real_cur));
-        left  = btor_aig_get_left_child (aprop->amgr, real_cur);
-        right = btor_aig_get_right_child (aprop->amgr, real_cur);
-        assert (btor_aig_is_const (left)
-                || btor_get_ptr_hash_table (aprop->score, left));
-        assert (btor_aig_is_const (right)
-                || btor_get_ptr_hash_table (aprop->score, right));
-        assert (
-            btor_aig_is_const (left)
-            || btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (left)));
-        assert (
-            btor_aig_is_const (right)
-            || btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (right)));
 
-        s0 = btor_aig_is_const (left)
-                 ? (left == BTOR_AIG_TRUE ? 1.0 : 0.0)
-                 : btor_get_ptr_hash_table (aprop->score, left)->data.as_dbl;
-        s1 = btor_aig_is_const (right)
-                 ? (right == BTOR_AIG_TRUE ? 1.0 : 0.0)
-                 : btor_get_ptr_hash_table (aprop->score, right)->data.as_dbl;
-        res = (s0 + s1) / 2.0;
+        left    = btor_aig_get_left_child (aprop->amgr, real_cur);
+        right   = btor_aig_get_right_child (aprop->amgr, real_cur);
+        leftid  = btor_aig_get_id (left);
+        rightid = btor_aig_get_id (right);
+
+        assert (btor_aig_is_const (left)
+                || btor_contains_int_hash_map (aprop->score, leftid));
+        //|| btor_get_ptr_hash_table (aprop->score, left));
+        assert (btor_aig_is_const (right)
+                || btor_contains_int_hash_map (aprop->score, rightid));
+        //|| btor_get_ptr_hash_table (aprop->score, right));
+        assert (btor_aig_is_const (left)
+                || btor_contains_int_hash_map (aprop->score, -leftid));
+        //      || btor_get_ptr_hash_table (
+        //	     aprop->score, BTOR_INVERT_AIG (left)));
+        assert (btor_aig_is_const (right)
+                || btor_contains_int_hash_map (aprop->score, -rightid));
+        //      || btor_get_ptr_hash_table (
+        //	     aprop->score, BTOR_INVERT_AIG (right)));
+
+        sleft = btor_aig_is_const (left)
+                    ? (btor_aig_is_true (left) ? 1.0 : 0.0)
+                    : btor_get_int_hash_map (aprop->score, leftid)->as_dbl;
+        //: btor_get_ptr_hash_table (aprop->score, left)->data.as_dbl;
+        sright = btor_aig_is_const (right)
+                     ? (btor_aig_is_true (right) ? 1.0 : 0.0)
+                     : btor_get_int_hash_map (aprop->score, rightid)->as_dbl;
+        //: btor_get_ptr_hash_table (aprop->score, right)->data.as_dbl;
+        res = (sleft + sright) / 2.0;
         /* fix rounding errors (eg. (0.999+1.0)/2 = 1.0) ->
            choose minimum (else it might again result in 1.0) */
-        if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;
+        if (res == 1.0 && (sleft < 1.0 || sright < 1.0))
+          res = sleft < sright ? sleft : sright;
         assert (res >= 0.0 && res <= 1.0);
-        btor_add_ptr_hash_table (aprop->score, real_cur)->data.as_dbl = res;
+        btor_add_int_hash_map (aprop->score, real_cur->id)->as_dbl = res;
+        //      btor_add_ptr_hash_table (
+        //	  aprop->score, real_cur)->data.as_dbl = res;
 #ifndef NDEBUG
-        AIGPROP_LOG_COMPUTE_SCORE_AIG (real_cur, left, right, s0, s1, res);
+        AIGPROP_LOG_COMPUTE_SCORE_AIG (
+            real_cur, left, right, sleft, sright, res);
 #endif
-        s0 =
-            btor_aig_is_const (left)
-                ? (left == BTOR_AIG_TRUE ? 0.0 : 1.0)
-                : btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (left))
-                      ->data.as_dbl;
-        s1 = btor_aig_is_const (right)
-                 ? (right == BTOR_AIG_TRUE ? 0.0 : 1.0)
-                 : btor_get_ptr_hash_table (aprop->score,
-                                            BTOR_INVERT_AIG (right))
-                       ->data.as_dbl;
-        res = s0 > s1 ? s0 : s1;
+        sleft = btor_aig_is_const (left)
+                    ? (btor_aig_is_true (left) ? 0.0 : 1.0)
+                    : btor_get_int_hash_map (aprop->score, -leftid)->as_dbl;
+        //: btor_get_ptr_hash_table (
+        //    aprop->score, BTOR_INVERT_AIG (left))->data.as_dbl;
+        sright = btor_aig_is_const (right)
+                     ? (btor_aig_is_true (right) ? 0.0 : 1.0)
+                     : btor_get_int_hash_map (aprop->score, -rightid)->as_dbl;
+        //   : btor_get_ptr_hash_table (
+        //	 aprop->score, BTOR_INVERT_AIG (right))->data.as_dbl;
+        res = sleft > sright ? sleft : sright;
         assert (res >= 0.0 && res <= 1.0);
-        btor_add_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (real_cur))
-            ->data.as_dbl = res;
+        //      btor_add_ptr_hash_table (
+        //	  aprop->score, BTOR_INVERT_AIG (real_cur))->data.as_dbl = res;
+        btor_add_int_hash_map (aprop->score, -real_cur->id)->as_dbl = res;
 #ifndef NDEBUG
         AIGPROP_LOG_COMPUTE_SCORE_AIG (BTOR_INVERT_AIG (real_cur),
                                        BTOR_INVERT_AIG (left),
                                        BTOR_INVERT_AIG (right),
-                                       s0,
-                                       s1,
+                                       sleft,
+                                       sright,
                                        res);
 #endif
       }
-      assert (btor_get_ptr_hash_table (aprop->score, cur));
-      assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
+      // assert (btor_get_ptr_hash_table (aprop->score, cur));
+      // assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG(cur)));
+      assert (btor_contains_int_hash_map (aprop->score, curid));
+      assert (btor_contains_int_hash_map (aprop->score, -curid));
     }
   }
 
   btor_delete_int_hash_map (mark);
   BTOR_RELEASE_STACK (mm, stack);
 
-  assert (btor_get_ptr_hash_table (aprop->score, aig));
-  assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig)));
+  // assert (btor_get_ptr_hash_table (aprop->score, aig));
+  // assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig)));
+  assert (btor_contains_int_hash_map (aprop->score, btor_aig_get_id (aig)));
+  assert (btor_contains_int_hash_map (aprop->score, -btor_aig_get_id (aig)));
   return res;
 }
 
@@ -290,11 +324,9 @@ compute_scores (AIGProp *aprop)
   BTOR_INIT_STACK (stack);
   cache = btor_new_int_hash_table (mm);
 
-  if (!aprop->score)
-    aprop->score =
-        btor_new_ptr_hash_table (mm,
-                                 (BtorHashPtr) btor_hash_aig_by_id,
-                                 (BtorCmpPtr) btor_compare_aig_by_id);
+  if (!aprop->score) aprop->score = btor_new_int_hash_map (mm);
+  //    aprop->score = btor_new_ptr_hash_table (mm,
+  //	(BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr) btor_compare_aig_by_id);
 
   /* collect roots */
   // btor_init_ptr_hash_table_iterator (&it, aprop->roots);
@@ -314,7 +346,9 @@ compute_scores (AIGProp *aprop)
     real_cur = BTOR_REAL_ADDR_AIG (cur);
 
     if (btor_aig_is_const (real_cur)) continue;
-    if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
+    // if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
+    if (btor_contains_int_hash_map (aprop->score, btor_aig_get_id (cur)))
+      continue;
 
     if (!btor_contains_int_hash_table (cache, real_cur->id))
     {
@@ -519,12 +553,11 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   assert (btor_aig_is_var (aig));
   assert (assignment == 1 || assignment == -1);
 
-  int aleft, aright, ass;
+  int32_t aleft, aright, ass, leftid, rightid;
   uint32_t i;
-  double start, delta;
+  double start, delta, sleft, sright, s;
   BtorIntHashTable *cache, *tmpcone;
   BtorIntHashTableIterator it;
-  BtorPtrHashBucket *b;
   BtorHashTableData *d;
   BtorAIGPtrStack stack, cone;
   BtorAIG *cur, *left, *right, *child;
@@ -658,8 +691,12 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   /* update score */
   if (aprop->score)
   {
-    b              = btor_get_ptr_hash_table (aprop->score, aig);
-    b->data.as_dbl = assignment < 0 ? 0.0 : 1.0;
+    // b = btor_get_ptr_hash_table (aprop->score, aig);
+    // b->data.as_dbl = assignment < 0 ? 0.0 : 1.0;
+    d         = btor_get_int_hash_map (aprop->score, aig->id);
+    d->as_dbl = assignment < 0 ? 0.0 : 1.0;
+    d         = btor_get_int_hash_map (aprop->score, -aig->id);
+    d->as_dbl = assignment < 0 ? 1.0 : 0.0;
   }
 
   qsort (cone.start,
@@ -714,10 +751,40 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
       cur = BTOR_PEEK_STACK (cone, i);
       assert (BTOR_IS_REGULAR_AIG (cur));
       assert (btor_aig_is_and (cur));
-      assert (btor_get_ptr_hash_table (aprop->score, cur));
+      // assert (btor_get_ptr_hash_table (aprop->score, cur));
+      assert (btor_contains_int_hash_map (aprop->score, cur->id));
+      assert (btor_contains_int_hash_map (aprop->score, -cur->id));
 
-      b              = btor_get_ptr_hash_table (aprop->score, cur);
-      b->data.as_dbl = aigprop_get_assignment_aig (aprop, cur) < 0 ? 0.0 : 1.0;
+      left    = btor_aig_get_left_child (aprop->amgr, cur);
+      right   = btor_aig_get_right_child (aprop->amgr, cur);
+      leftid  = btor_aig_get_id (left);
+      rightid = btor_aig_get_id (right);
+
+      sleft = btor_aig_is_const (left)
+                  ? (btor_aig_is_true (left) ? 1.0 : 0.0)
+                  : btor_get_int_hash_map (aprop->score, leftid)->as_dbl;
+      sright = btor_aig_is_const (right)
+                   ? (btor_aig_is_true (right) ? 1.0 : 0.0)
+                   : btor_get_int_hash_map (aprop->score, rightid)->as_dbl;
+      s = (sleft + sright) / 2.0;
+      /* fix rounding errors (eg. (0.999+1.0)/2 = 1.0) ->
+         choose minimum (else it might again result in 1.0) */
+      if (s == 1.0 && (sleft < 1.0 || sright < 1.0))
+        s = sleft < sright ? sleft : sright;
+      assert (s >= 0.0 && s <= 1.0);
+      // b = btor_get_ptr_hash_table (aprop->score, cur);
+      // b->data.as_dbl =  ass < 0 ? 0.0 : 1.0;
+      btor_get_int_hash_map (aprop->score, cur->id)->as_dbl = s;
+
+      sleft = btor_aig_is_const (left)
+                  ? (btor_aig_is_true (left) ? 0.0 : 1.0)
+                  : btor_get_int_hash_map (aprop->score, -leftid)->as_dbl;
+      sright = btor_aig_is_const (right)
+                   ? (btor_aig_is_true (right) ? 1.0 : 0.0)
+                   : btor_get_int_hash_map (aprop->score, -rightid)->as_dbl;
+      s = sleft > sright ? sleft : sright;
+      assert (s >= 0.0 && s <= 1.0);
+      btor_get_int_hash_map (aprop->score, -cur->id)->as_dbl = s;
     }
     aprop->time.update_cone_compute_score += btor_time_stamp () - delta;
   }
@@ -779,7 +846,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   {
     int *selected;
     double value, max_value, score;
-    BtorPtrHashBucket *b;
+    BtorHashTableData *d;
 
     max_value = 0.0;
     btor_init_int_hash_table_iterator (&it, aprop->unsatroots);
@@ -790,9 +857,12 @@ select_root (AIGProp *aprop, uint32_t nmoves)
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
       assert (!btor_aig_is_const (cur));
-      b = btor_get_ptr_hash_table (aprop->score, cur);
-      assert (b);
-      score = b->data.as_dbl;
+      // b = btor_get_ptr_hash_table (aprop->score, cur);
+      // assert (b);
+      // score  = b->data.as_dbl;
+      d = btor_get_int_hash_map (aprop->score, btor_aig_get_id (cur));
+      assert (d);
+      score = d->as_dbl;
       assert (score < 1.0);
       if (!res)
       {
@@ -1028,7 +1098,8 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
 
     /* restart */
     aigprop_generate_model (aprop, 1);
-    btor_delete_ptr_hash_table (aprop->score);
+    // btor_delete_ptr_hash_table (aprop->score);
+    btor_delete_int_hash_map (aprop->score);
     aprop->score = 0;
     btor_delete_int_hash_map (aprop->unsatroots);
     aprop->unsatroots = 0;
@@ -1042,30 +1113,12 @@ UNSAT:
 DONE:
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
   aprop->unsatroots = 0;
-  if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
+  // if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
+  if (aprop->score) btor_delete_int_hash_map (aprop->score);
   aprop->score = 0;
 
   aprop->time.sat += btor_time_stamp () - start;
   return sat_result;
-}
-
-static void *
-clone_key_as_aig (BtorMemMgr *mm, const void *cloned_amgr, const void *key)
-{
-  assert (cloned_amgr);
-  assert (key);
-
-  BtorAIG *aig, *cloned_aig;
-  BtorAIGMgr *camgr;
-
-  (void) mm;
-
-  aig        = (BtorAIG *) key;
-  camgr      = (BtorAIGMgr *) cloned_amgr;
-  cloned_aig = btor_aig_get_by_id (camgr, BTOR_REAL_ADDR_AIG (aig)->id);
-  assert (cloned_aig);
-  if (BTOR_IS_INVERTED_AIG (aig)) cloned_aig = BTOR_INVERT_AIG (cloned_aig);
-  return cloned_aig;
 }
 
 AIGProp *
@@ -1087,8 +1140,10 @@ aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
   //	    clone_key_as_aig, btor_clone_data_as_int, clone, 0);
   res->unsatroots = btor_clone_int_hash_map (
       mm, aprop->unsatroots, btor_clone_data_as_int, 0);
-  res->score = btor_clone_ptr_hash_table (
-      mm, aprop->score, clone_key_as_aig, btor_clone_data_as_dbl, clone, 0);
+  // res->score = btor_clone_ptr_hash_table (mm, aprop->score,
+  //          clone_key_as_aig, btor_clone_data_as_dbl, clone, 0);
+  res->score =
+      btor_clone_int_hash_map (mm, aprop->score, btor_clone_data_as_dbl, 0);
   //  res->model = btor_clone_ptr_hash_table (mm, aprop->model,
   //	    clone_key_as_aig, btor_clone_data_as_int, clone, 0);
   res->model =
@@ -1122,7 +1177,8 @@ aigprop_delete_aigprop (AIGProp *aprop)
   assert (aprop);
 
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
-  if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
+  // if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
+  if (aprop->score) btor_delete_int_hash_map (aprop->score);
   // if (aprop->model) btor_delete_ptr_hash_table (aprop->model);
   if (aprop->model) btor_delete_int_hash_map (aprop->model);
   BTOR_DELETE (aprop->amgr->btor->mm, aprop);

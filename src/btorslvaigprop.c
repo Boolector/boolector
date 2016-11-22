@@ -290,11 +290,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->time.aprop_update_cone_compute_score =
       slv->aprop->time.update_cone_compute_score;
 DONE:
-  if (slv->aprop->score)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->score);
-    slv->aprop->score = 0;
-  }
+  // if (slv->aprop->score)
+  //  { btor_delete_ptr_hash_table (slv->aprop->score); slv->aprop->score = 0; }
   if (slv->aprop->model)
   {
     btor_delete_int_hash_map (slv->aprop->model);
