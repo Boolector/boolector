@@ -17,6 +17,7 @@
 #include "btorcore.h"
 #include "btoropt.h"
 #include "btorslv.h"
+#include "btorslvaigprop.h"
 #include "btorslvfun.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
@@ -290,10 +291,15 @@ chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (adds_normalized);
   BTOR_CHKCLONE_STATS (ands_normalized);
   BTOR_CHKCLONE_STATS (muls_normalized);
-  BTOR_CHKCLONE_STATS (apply_props_construct);
+  BTOR_CHKCLONE_STATS (muls_normalized);
+  BTOR_CHKCLONE_STATS (ackermann_constraints);
   BTOR_CHKCLONE_STATS (bv_uc_props);
   BTOR_CHKCLONE_STATS (fun_uc_props);
   BTOR_CHKCLONE_STATS (lambdas_merged);
+  BTOR_CHKCLONE_STATS (expressions);
+  BTOR_CHKCLONE_STATS (clone_calls);
+  BTOR_CHKCLONE_STATS (node_bytes_alloc);
+  BTOR_CHKCLONE_STATS (beta_reduce_calls);
 
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, varsubst);
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, embedded);
@@ -999,6 +1005,12 @@ btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
     assert (csolver->stats.field == solver->stats.field); \
   } while (0)
 
+#define BTOR_CHKCLONE_SLV_STATE(solver, csolver, field) \
+  do                                                    \
+  {                                                     \
+    assert (csolver->field == solver->field);           \
+  } while (0)
+
 static void
 chkclone_slv (Btor *btor)
 {
@@ -1060,6 +1072,8 @@ chkclone_slv (Btor *btor)
       assert (BTOR_PEEK_STACK (slv->stats.lemmas_size, i)
               == BTOR_PEEK_STACK (cslv->stats.lemmas_size, i));
 
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, dp_cmp_inputs);
+
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
@@ -1070,6 +1084,8 @@ chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_vars);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_applies);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_applies);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_eqs);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_eqs);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, eval_exp_calls);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations_down);
@@ -1097,7 +1113,18 @@ chkclone_slv (Btor *btor)
       chkclone_int_hash_map (m->cans, cm->cans, cmp_data_as_bv_ptr);
     }
 
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, npropmoves);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, nslsmoves);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, sum_score);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, prop_flip_cond_const_prob);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, prop_flip_cond_const_prob_delta);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, prop_nflip_cond_const);
+
     chkclone_int_hash_map (slv->max_cans, cslv->max_cans, cmp_data_as_bv_ptr);
+
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, max_score);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, max_move);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, max_gw);
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
@@ -1121,6 +1148,7 @@ chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_seg);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand_walk);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, updates);
   }
   else if (btor->slv->kind == BTOR_PROP_SOLVER_KIND)
   {
@@ -1129,6 +1157,10 @@ chkclone_slv (Btor *btor)
 
     chkclone_int_hash_map (slv->roots, cslv->roots, cmp_data_as_int);
     chkclone_int_hash_map (slv->score, cslv->score, cmp_data_as_dbl);
+
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, flip_cond_const_prob);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, flip_cond_const_prob_delta);
+    BTOR_CHKCLONE_SLV_STATE (slv, cslv, nflip_cond_const);
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
@@ -1161,6 +1193,29 @@ chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_concat);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, cons_slice);
 #endif
+  }
+  else if (btor->slv->kind == BTOR_AIGPROP_SOLVER_KIND)
+  {
+    BtorAIGPropSolver *slv  = BTOR_AIGPROP_SOLVER (btor);
+    BtorAIGPropSolver *cslv = BTOR_AIGPROP_SOLVER (btor->clone);
+
+    assert (slv->aprop != cslv->aprop);
+    assert (slv->aprop->roots == cslv->aprop->roots);
+
+    chkclone_int_hash_map (
+        slv->aprop->unsatroots, cslv->aprop->unsatroots, cmp_data_as_int);
+    chkclone_int_hash_map (
+        slv->aprop->model, cslv->aprop->model, cmp_data_as_int);
+    chkclone_int_hash_map (
+        slv->aprop->score, cslv->aprop->score, cmp_data_as_dbl);
+
+    BTOR_CHKCLONE_SLV_STATE (slv->aprop, cslv->aprop, loglevel);
+    BTOR_CHKCLONE_SLV_STATE (slv->aprop, cslv->aprop, seed);
+    BTOR_CHKCLONE_SLV_STATE (slv->aprop, cslv->aprop, use_restarts);
+    BTOR_CHKCLONE_SLV_STATE (slv->aprop, cslv->aprop, use_bandit);
+
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
   }
 }
 
