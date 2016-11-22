@@ -60,7 +60,7 @@ AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr,
 AIGProp *aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop);
 void aigprop_delete_aigprop (AIGProp *aprop);
 
-int aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig);
+int aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig);
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
 int aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots);
