@@ -1369,6 +1369,7 @@ catch_sig (int sig)
   }
   reset_sig_handlers ();
   raise (sig);
+  _exit (EXIT_ERROR);
 }
 
 static void
