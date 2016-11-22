@@ -71,7 +71,7 @@ get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (aig)))
+  if (!btor_contains_int_hash_map (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
   return aigprop_get_assignment_aig (aprop, aig);
 }
@@ -297,7 +297,7 @@ DONE:
   }
   if (slv->aprop->model)
   {
-    btor_delete_ptr_hash_table (slv->aprop->model);
+    btor_delete_int_hash_map (slv->aprop->model);
     slv->aprop->model = 0;
   }
   btor->valid_assignments = 1;

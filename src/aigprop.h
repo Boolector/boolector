@@ -25,7 +25,7 @@ struct AIGProp
   BtorPtrHashTable *roots;
   BtorIntHashTable *unsatroots;
   BtorPtrHashTable *score;
-  BtorPtrHashTable *model;
+  BtorIntHashTable *model;
 
   BtorRNG rng;
 
