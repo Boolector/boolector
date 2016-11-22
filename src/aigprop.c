@@ -58,8 +58,8 @@ aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   int res;
   int32_t id;
 
-  if (BTOR_IS_TRUE_AIG (aig)) return 1;
-  if (BTOR_IS_FALSE_AIG (aig)) return -1;
+  if (btor_aig_is_true (aig)) return 1;
+  if (btor_aig_is_false (aig)) return -1;
 
   // assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (aig)));
   // res = btor_get_ptr_hash_table (
@@ -123,7 +123,7 @@ static double
 compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
-  assert (!BTOR_IS_CONST_AIG (aig));
+  assert (!btor_aig_is_const (aig));
 
   double res, s0, s1;
   BtorPtrHashBucket *b;
@@ -150,7 +150,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_AIG (cur);
 
-    if (BTOR_IS_CONST_AIG (real_cur)) continue;
+    if (btor_aig_is_const (real_cur)) continue;
     if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
     d = btor_get_int_hash_map (mark, real_cur->id);
     if (d && d->as_int == 1) continue;
@@ -158,14 +158,14 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     if (!d)
     {
       btor_add_int_hash_map (mark, real_cur->id);
-      assert (BTOR_IS_VAR_AIG (real_cur) || BTOR_IS_AND_AIG (real_cur));
+      assert (btor_aig_is_var (real_cur) || btor_aig_is_and (real_cur));
       BTOR_PUSH_STACK (mm, stack, cur);
-      if (BTOR_IS_AND_AIG (real_cur))
+      if (btor_aig_is_and (real_cur))
       {
         left  = btor_aig_get_left_child (aprop->amgr, real_cur);
         right = btor_aig_get_right_child (aprop->amgr, real_cur);
-        if (!BTOR_IS_CONST_AIG (left)) BTOR_PUSH_STACK (mm, stack, left);
-        if (!BTOR_IS_CONST_AIG (right)) BTOR_PUSH_STACK (mm, stack, right);
+        if (!btor_aig_is_const (left)) BTOR_PUSH_STACK (mm, stack, left);
+        if (!btor_aig_is_const (right)) BTOR_PUSH_STACK (mm, stack, right);
       }
     }
     else
@@ -186,7 +186,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
       assert (!btor_get_ptr_hash_table (aprop->score, cur));
       assert (!btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
 
-      if (BTOR_IS_VAR_AIG (real_cur))
+      if (btor_aig_is_var (real_cur))
       {
         res = aigprop_get_assignment_aig (aprop, cur) < 0 ? 0.0 : 1.0;
         AIGPROPLOG (3,
@@ -205,24 +205,24 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
       }
       else
       {
-        assert (BTOR_IS_AND_AIG (real_cur));
+        assert (btor_aig_is_and (real_cur));
         left  = btor_aig_get_left_child (aprop->amgr, real_cur);
         right = btor_aig_get_right_child (aprop->amgr, real_cur);
-        assert (BTOR_IS_CONST_AIG (left)
+        assert (btor_aig_is_const (left)
                 || btor_get_ptr_hash_table (aprop->score, left));
-        assert (BTOR_IS_CONST_AIG (right)
+        assert (btor_aig_is_const (right)
                 || btor_get_ptr_hash_table (aprop->score, right));
         assert (
-            BTOR_IS_CONST_AIG (left)
+            btor_aig_is_const (left)
             || btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (left)));
         assert (
-            BTOR_IS_CONST_AIG (right)
+            btor_aig_is_const (right)
             || btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (right)));
 
-        s0 = BTOR_IS_CONST_AIG (left)
+        s0 = btor_aig_is_const (left)
                  ? (left == BTOR_AIG_TRUE ? 1.0 : 0.0)
                  : btor_get_ptr_hash_table (aprop->score, left)->data.as_dbl;
-        s1 = BTOR_IS_CONST_AIG (right)
+        s1 = btor_aig_is_const (right)
                  ? (right == BTOR_AIG_TRUE ? 1.0 : 0.0)
                  : btor_get_ptr_hash_table (aprop->score, right)->data.as_dbl;
         res = (s0 + s1) / 2.0;
@@ -235,11 +235,11 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
         AIGPROP_LOG_COMPUTE_SCORE_AIG (real_cur, left, right, s0, s1, res);
 #endif
         s0 =
-            BTOR_IS_CONST_AIG (left)
+            btor_aig_is_const (left)
                 ? (left == BTOR_AIG_TRUE ? 0.0 : 1.0)
                 : btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (left))
                       ->data.as_dbl;
-        s1 = BTOR_IS_CONST_AIG (right)
+        s1 = btor_aig_is_const (right)
                  ? (right == BTOR_AIG_TRUE ? 0.0 : 1.0)
                  : btor_get_ptr_hash_table (aprop->score,
                                             BTOR_INVERT_AIG (right))
@@ -313,23 +313,23 @@ compute_scores (AIGProp *aprop)
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_AIG (cur);
 
-    if (BTOR_IS_CONST_AIG (real_cur)) continue;
+    if (btor_aig_is_const (real_cur)) continue;
     if (btor_get_ptr_hash_table (aprop->score, cur)) continue;
 
     if (!btor_contains_int_hash_table (cache, real_cur->id))
     {
       btor_add_int_hash_table (cache, real_cur->id);
-      assert (BTOR_IS_VAR_AIG (real_cur) || BTOR_IS_AND_AIG (real_cur));
+      assert (btor_aig_is_var (real_cur) || btor_aig_is_and (real_cur));
       BTOR_PUSH_STACK (mm, stack, cur);
-      if (BTOR_IS_AND_AIG (real_cur))
+      if (btor_aig_is_and (real_cur))
       {
         left  = btor_aig_get_left_child (aprop->amgr, real_cur);
         right = btor_aig_get_right_child (aprop->amgr, real_cur);
-        if (!BTOR_IS_CONST_AIG (left)
+        if (!btor_aig_is_const (left)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (left)->id))
           BTOR_PUSH_STACK (mm, stack, left);
-        if (!BTOR_IS_CONST_AIG (right)
+        if (!btor_aig_is_const (right)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (right)->id))
           BTOR_PUSH_STACK (mm, stack, right);
@@ -361,7 +361,7 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
-  if (BTOR_IS_CONST_AIG (aig)) return;
+  if (btor_aig_is_const (aig)) return;
 
   mm = aprop->amgr->btor->mm;
 
@@ -373,11 +373,11 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   {
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_AIG (cur);
-    assert (!BTOR_IS_CONST_AIG (real_cur));
+    assert (!btor_aig_is_const (real_cur));
     // if (btor_get_ptr_hash_table (aprop->model, real_cur)) continue;
     if (btor_contains_int_hash_map (aprop->model, real_cur->id)) continue;
 
-    if (BTOR_IS_VAR_AIG (real_cur))
+    if (btor_aig_is_var (real_cur))
     {
       /* initialize with false */
       // btor_add_ptr_hash_table (aprop->model, real_cur)->data.as_int = -1;
@@ -385,7 +385,7 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
     }
     else
     {
-      assert (BTOR_IS_AND_AIG (real_cur));
+      assert (btor_aig_is_and (real_cur));
       left  = btor_aig_get_left_child (aprop->amgr, real_cur);
       right = btor_aig_get_right_child (aprop->amgr, real_cur);
 
@@ -393,11 +393,11 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
       {
         btor_add_int_hash_table (cache, real_cur->id);
         BTOR_PUSH_STACK (mm, stack, cur);
-        if (!BTOR_IS_CONST_AIG (left)
+        if (!btor_aig_is_const (left)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (left)->id))
           BTOR_PUSH_STACK (mm, stack, left);
-        if (!BTOR_IS_CONST_AIG (right)
+        if (!btor_aig_is_const (right)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (right)->id))
           BTOR_PUSH_STACK (mm, stack, right);
@@ -473,7 +473,7 @@ update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int assignment)
 {
   assert (aprop);
   assert (aig);
-  assert (!BTOR_IS_CONST_AIG (aig));
+  assert (!btor_aig_is_const (aig));
   //  assert (btor_get_ptr_hash_table (aprop->roots, aig)
   //	  || btor_get_ptr_hash_table (aprop->roots, BTOR_INVERT_AIG (aig)));
   assert (
@@ -516,7 +516,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   assert (aprop);
   assert (aig);
   assert (BTOR_IS_REGULAR_AIG (aig));
-  assert (BTOR_IS_VAR_AIG (aig));
+  assert (btor_aig_is_var (aig));
   assert (assignment == 1 || assignment == -1);
 
   int aleft, aright, ass;
@@ -544,7 +544,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     // root = btor_next_ptr_hash_table_iterator (&pit);
     root = btor_aig_get_by_id (aprop->amgr,
                                btor_next_int_hash_table_iterator (&it));
-    assert (!BTOR_IS_FALSE_AIG (root));
+    assert (!btor_aig_is_false (root));
     if ((!BTOR_IS_INVERTED_AIG (root)
          && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root)) == -1)
         || (BTOR_IS_INVERTED_AIG (root)
@@ -584,14 +584,14 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     // cur = btor_next_ptr_hash_table_iterator (&pit);
     cur = btor_aig_get_by_id (aprop->amgr,
                               btor_next_int_hash_table_iterator (&it));
-    assert (!BTOR_IS_CONST_AIG (cur));
+    assert (!btor_aig_is_const (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-    assert (!BTOR_IS_CONST_AIG (cur));
+    assert (!btor_aig_is_const (cur));
 
     if ((d = btor_get_int_hash_map (cache, cur->id)) && d->as_int == 1)
       continue;
@@ -599,7 +599,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     if (!d)
     {
       d = btor_add_int_hash_map (cache, cur->id);
-      if (BTOR_IS_VAR_AIG (cur))
+      if (btor_aig_is_var (cur))
       {
         d->as_int = 1;
         continue;
@@ -608,7 +608,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
       for (i = 0; i < 2; i++)
       {
         child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
-        if (!BTOR_IS_CONST_AIG (child)) BTOR_PUSH_STACK (mm, stack, child);
+        if (!btor_aig_is_const (child)) BTOR_PUSH_STACK (mm, stack, child);
       }
     }
     else
@@ -621,7 +621,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
       {
         child = BTOR_REAL_ADDR_AIG (
             btor_aig_get_by_id (aprop->amgr, cur->children[i]));
-        if (BTOR_IS_CONST_AIG (child)) continue;
+        if (btor_aig_is_const (child)) continue;
         if (btor_contains_int_hash_table (tmpcone, btor_aig_get_id (child))
             && !btor_contains_int_hash_table (tmpcone, cur->id))
         {
@@ -675,7 +675,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   {
     cur = BTOR_PEEK_STACK (cone, i);
     assert (BTOR_IS_REGULAR_AIG (cur));
-    assert (BTOR_IS_AND_AIG (cur));
+    assert (btor_aig_is_and (cur));
     // assert (btor_get_ptr_hash_table (aprop->model, cur));
     assert (btor_contains_int_hash_map (aprop->model, cur->id));
 
@@ -713,7 +713,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     {
       cur = BTOR_PEEK_STACK (cone, i);
       assert (BTOR_IS_REGULAR_AIG (cur));
-      assert (BTOR_IS_AND_AIG (cur));
+      assert (btor_aig_is_and (cur));
       assert (btor_get_ptr_hash_table (aprop->score, cur));
 
       b              = btor_get_ptr_hash_table (aprop->score, cur);
@@ -789,7 +789,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
       cur      = btor_aig_get_by_id (aprop->amgr,
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
-      assert (!BTOR_IS_CONST_AIG (cur));
+      assert (!btor_aig_is_const (cur));
       b = btor_get_ptr_hash_table (aprop->score, cur);
       assert (b);
       score = b->data.as_dbl;
@@ -820,7 +820,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
       cur = btor_aig_get_by_id (aprop->amgr,
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
-      assert (!BTOR_IS_CONST_AIG (cur));
+      assert (!btor_aig_is_const (cur));
       BTOR_PUSH_STACK (mm, stack, cur);
     }
     assert (BTOR_COUNT_STACK (stack));
@@ -844,7 +844,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
 {
   assert (aprop);
   assert (root);
-  assert (!BTOR_IS_CONST_AIG (root));
+  assert (!btor_aig_is_const (root));
   assert (input);
   assert (assignment);
 
@@ -858,7 +858,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
   cur    = root;
   asscur = 1;
 
-  if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (cur)))
+  if (btor_aig_is_var (BTOR_REAL_ADDR_AIG (cur)))
   {
     *input      = BTOR_REAL_ADDR_AIG (cur);
     *assignment = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
@@ -868,20 +868,20 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
     for (;;)
     {
       real_cur = BTOR_REAL_ADDR_AIG (cur);
-      assert (BTOR_IS_AND_AIG (real_cur));
+      assert (btor_aig_is_and (real_cur));
       asscur = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
       c[0]   = btor_aig_get_by_id (aprop->amgr, real_cur->children[0]);
       c[1]   = btor_aig_get_by_id (aprop->amgr, real_cur->children[1]);
 
       /* conflict */
-      if (BTOR_IS_AND_AIG (real_cur) && BTOR_IS_CONST_AIG (c[0])
-          && BTOR_IS_CONST_AIG (c[1]))
+      if (btor_aig_is_and (real_cur) && btor_aig_is_const (c[0])
+          && btor_aig_is_const (c[1]))
         break;
 
       /* select path and determine path assignment */
-      if (BTOR_IS_CONST_AIG (c[0]))
+      if (btor_aig_is_const (c[0]))
         eidx = 1;
-      else if (BTOR_IS_CONST_AIG (c[1]))
+      else if (btor_aig_is_const (c[1]))
         eidx = 0;
       else
       {
@@ -922,7 +922,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
       cur    = c[eidx];
       asscur = assnew;
 
-      if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (cur)))
+      if (btor_aig_is_var (BTOR_REAL_ADDR_AIG (cur)))
       {
         *input      = BTOR_REAL_ADDR_AIG (cur);
         *assignment = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
@@ -1004,8 +1004,8 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
       // root = btor_next_ptr_hash_table_iterator (&it);
       rootid = btor_next_int_hash_table_iterator (&it);
       root   = btor_aig_get_by_id (aprop->amgr, rootid);
-      if (BTOR_IS_TRUE_AIG (root)) continue;
-      if (BTOR_IS_FALSE_AIG (root)) goto UNSAT;
+      if (btor_aig_is_true (root)) continue;
+      if (btor_aig_is_false (root)) goto UNSAT;
       assert (aigprop_get_assignment_aig (aprop, root));
       if (!btor_contains_int_hash_map (aprop->unsatroots, rootid)
           && aigprop_get_assignment_aig (aprop, root) == -1)

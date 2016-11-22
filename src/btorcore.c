@@ -1679,7 +1679,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
   amgr = btor_get_aig_mgr_btor (btor);
   smgr = btor_get_sat_mgr_btor (btor);
 
-  if (BTOR_IS_CONST_AIG (aig))
+  if (btor_aig_is_const (aig))
   {
     res = smgr->true_lit;
     if (aig == BTOR_AIG_FALSE) sign *= -1;

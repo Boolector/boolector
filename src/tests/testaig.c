@@ -62,7 +62,7 @@ test_var_aig (void)
 {
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorAIG *var     = btor_var_aig (amgr);
-  assert (BTOR_IS_VAR_AIG (var));
+  assert (btor_aig_is_var (var));
   btor_dump_aig (amgr, 0, g_logfile, var);
   btor_release_aig (amgr, var);
   btor_delete_aig_mgr (amgr);

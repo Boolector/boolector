@@ -389,7 +389,7 @@ chkclone_opts (Btor *btor)
       assert (!real_clone->field);                         \
       break;                                               \
     }                                                      \
-    assert (BTOR_IS_CONST_AIG (real_aig->field)            \
+    assert (btor_aig_is_const (real_aig->field)            \
             || real_aig->field != real_clone->field);      \
     assert (real_aig->field->id == real_clone->field->id); \
   } while (0)

@@ -678,7 +678,7 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
   res  = new_aigvec (avmgr, av->len);
   for (i = 0; i < av->len; i++)
   {
-    if (BTOR_IS_CONST_AIG (av->aigs[i]))
+    if (btor_aig_is_const (av->aigs[i]))
       res->aigs[i] = av->aigs[i];
     else
     {
@@ -686,7 +686,7 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
       assert (BTOR_REAL_ADDR_AIG (aig)->id < BTOR_COUNT_STACK (amgr->id2aig));
       caig = BTOR_PEEK_STACK (amgr->id2aig, BTOR_REAL_ADDR_AIG (aig)->id);
       assert (caig);
-      assert (!BTOR_IS_CONST_AIG (caig));
+      assert (!btor_aig_is_const (caig));
       if (BTOR_IS_INVERTED_AIG (aig))
         res->aigs[i] = BTOR_INVERT_AIG (caig);
       else

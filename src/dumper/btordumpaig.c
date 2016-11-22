@@ -156,7 +156,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   for (i = nregs - 1; i >= 0; i--)
   {
     aig = regs[i];
-    assert (!BTOR_IS_CONST_AIG (aig));
+    assert (!btor_aig_is_const (aig));
     assert (!btor_get_ptr_hash_table (latches, aig));
     btor_add_ptr_hash_table (latches, aig);
   }
@@ -165,12 +165,12 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
   for (i = nregs - 1; i >= 0; i--)
   {
     aig = nexts[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
 
   M = 0;
@@ -181,14 +181,14 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
   CONTINUE_WITHOUT_POP:
 
-    assert (!BTOR_IS_CONST_AIG (aig));
+    assert (!btor_aig_is_const (aig));
     aig = BTOR_REAL_ADDR_AIG (aig);
 
     if (aig->mark) continue;
 
     aig->mark = 1;
 
-    if (BTOR_IS_VAR_AIG (aig))
+    if (btor_aig_is_var (aig))
     {
       if (btor_get_ptr_hash_table (latches, aig)) continue;
 
@@ -198,7 +198,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     }
     else
     {
-      assert (BTOR_IS_AND_AIG (aig));
+      assert (btor_aig_is_and (aig));
 
       right = btor_aig_get_right_child (amgr, aig);
       BTOR_PUSH_STACK (mm, stack, right);
@@ -211,7 +211,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   for (i = 0; i < nregs; i++)
   {
     aig = regs[i];
-    assert (!BTOR_IS_CONST_AIG (aig));
+    assert (!btor_aig_is_const (aig));
     assert (btor_get_ptr_hash_table (latches, aig));
     assert (!btor_get_ptr_hash_table (table, aig));
     p              = btor_add_ptr_hash_table (table, aig);
@@ -229,12 +229,12 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   for (i = nregs - 1; i >= 0; i--)
   {
     aig = nexts[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
@@ -245,14 +245,14 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     {
     CONTINUE_WITH_NON_ZERO_AIG:
 
-      assert (!BTOR_IS_CONST_AIG (aig));
+      assert (!btor_aig_is_const (aig));
       aig = BTOR_REAL_ADDR_AIG (aig);
 
       if (!aig->mark) continue;
 
       aig->mark = 0;
 
-      if (BTOR_IS_VAR_AIG (aig)) continue;
+      if (btor_aig_is_var (aig)) continue;
 
       BTOR_PUSH_STACK (mm, stack, aig);
       BTOR_PUSH_STACK (mm, stack, 0);
@@ -273,7 +273,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
       assert (aig);
       assert (BTOR_REAL_ADDR_AIG (aig) == aig);
-      assert (BTOR_IS_AND_AIG (aig));
+      assert (btor_aig_is_and (aig));
 
       p              = btor_add_ptr_hash_table (table, aig);
       p->data.as_int = ++M;
@@ -299,7 +299,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     assert (aig);
     assert (!BTOR_IS_INVERTED_AIG (aig));
 
-    if (!BTOR_IS_VAR_AIG (aig)) break;
+    if (!btor_aig_is_var (aig)) break;
 
     if (btor_get_ptr_hash_table (latches, aig)) continue;
 
@@ -330,7 +330,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
     assert (aig);
     assert (!BTOR_IS_INVERTED_AIG (aig));
-    assert (BTOR_IS_AND_AIG (aig));
+    assert (btor_aig_is_and (aig));
 
     left  = btor_aig_get_left_child (amgr, aig);
     right = btor_aig_get_right_child (amgr, aig);
@@ -378,7 +378,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     for (p = table->first; p; p = p->next)
     {
       aig = p->key;
-      if (!BTOR_IS_VAR_AIG (aig)) break;
+      if (!btor_aig_is_var (aig)) break;
 
       b = btor_get_ptr_hash_table (backannotation, aig);
 
