@@ -192,7 +192,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int sat_result;
-  BtorPtrHashTable *roots;
+  BtorIntHashTable *roots;
   BtorPtrHashTableIterator it;
   BtorNode *root;
   BtorAIG *aig;
@@ -256,9 +256,9 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  roots = btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_aig_by_id,
-                                   (BtorCmpPtr) btor_compare_aig_by_id);
+  // roots = btor_new_ptr_hash_table (btor->mm,
+  //    (BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr) btor_compare_aig_by_id);
+  roots = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -272,8 +272,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
-    if (!btor_get_ptr_hash_table (roots, aig))
-      (void) btor_add_ptr_hash_table (roots, aig);
+    if (!btor_contains_int_hash_table (roots, btor_aig_get_id (aig)))
+      (void) btor_add_int_hash_table (roots, btor_aig_get_id (aig));
   }
 
   if ((sat_result = aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)

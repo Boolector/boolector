@@ -22,7 +22,7 @@
 struct AIGProp
 {
   BtorAIGMgr *amgr;
-  BtorPtrHashTable *roots;
+  BtorIntHashTable *roots;
   BtorIntHashTable *unsatroots;
   BtorPtrHashTable *score;
   BtorIntHashTable *model;
@@ -63,7 +63,7 @@ void aigprop_delete_aigprop (AIGProp *aprop);
 int aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig);
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
-int aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots);
+int aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots);
 
 void aigprop_print_stats (AIGProp *aprop);
 void aigprop_print_time_stats (AIGProp *aprop);
