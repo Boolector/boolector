@@ -2269,13 +2269,10 @@ inv_and_bv (Btor *btor,
   bool b;
 
 #ifndef NDEBUG
-  int iscon = 0;
-#endif
-
-#ifndef NDEBUG
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_and++;
 #endif
+
   mm = btor->mm;
   e  = and->e[eidx ? 0 : 1];
   assert (e);
@@ -2285,6 +2282,7 @@ inv_and_bv (Btor *btor,
   BTOR_INIT_STACK (dcbits);
 
   res = btor_copy_bv (mm, btor_get_bv_model (btor, and->e[eidx]));
+  assert (res);
 
   for (i = 0; i < bvand->width; i++)
   {
@@ -2306,10 +2304,7 @@ inv_and_bv (Btor *btor,
         res = cons_and_bv (btor, and, bvand, bve, eidx);
         btor_propsls_rec_conf (btor);
       }
-#ifndef NDEBUG
-      iscon = 1;
-#endif
-      break;
+      goto DONE;
     }
     /* ^^--------------------------------------------------------------^^ */
 
@@ -2335,10 +2330,11 @@ inv_and_bv (Btor *btor,
             btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
 
 #ifndef NDEBUG
-  if (!iscon)
-    check_result_binary_dbg (
-        btor, btor_and_bv, and, bve, bvand, res, eidx, "AND");
+  check_result_binary_dbg (
+      btor, btor_and_bv, and, bve, bvand, res, eidx, "AND");
 #endif
+
+DONE:
   BTOR_RELEASE_STACK (mm, dcbits);
   return res;
 }
@@ -2367,6 +2363,7 @@ inv_eq_bv (
   if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_eq++;
 #endif
+
   mm = btor->mm;
 
   /* res != bveq -> choose random res != bveq */
@@ -2375,9 +2372,14 @@ inv_eq_bv (
     if (btor_pick_with_prob_rng (
             &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
     {
-      res = btor_copy_bv (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
-      btor_flip_bit_bv (res,
-                        btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+      res = 0;
+      do
+      {
+        if (res) btor_free_bv (btor->mm, res);
+        res = btor_copy_bv (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
+        btor_flip_bit_bv (res,
+                          btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+      } while (!btor_compare_bv (res, bve));
     }
     else
     {
@@ -2425,7 +2427,7 @@ inv_ult_bv (Btor *btor,
   BtorBitVector *res, *zero, *one, *bvmax, *tmp;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -2462,7 +2464,7 @@ inv_ult_bv (Btor *btor,
         btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
-      iscon = 1;
+      is_inv = false;
 #endif
     }
     /* ^^---------------------------------------------------------------^^ */
@@ -2504,7 +2506,7 @@ inv_ult_bv (Btor *btor,
   }
 
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_ult_bv, ult, bve, bvult, res, eidx, "<");
 #endif
@@ -2540,7 +2542,7 @@ inv_sll_bv (Btor *btor,
   BtorBitVector *res, *tmp, *bvmax;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -2597,7 +2599,7 @@ inv_sll_bv (Btor *btor,
             btor_propsls_rec_conf (btor);
           }
 #ifndef NDEBUG
-          iscon = 1;
+          is_inv = false;
 #endif
         }
         /* ^^------------------------------------------------------^^ */
@@ -2649,7 +2651,7 @@ inv_sll_bv (Btor *btor,
           res, res->width - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
   }
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_sll_bv, sll, bve, bvsll, res, eidx, "<<");
 #endif
@@ -2682,7 +2684,7 @@ inv_srl_bv (Btor *btor,
   BtorBitVector *res, *bvmax, *tmp;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -2739,7 +2741,7 @@ inv_srl_bv (Btor *btor,
             btor_propsls_rec_conf (btor);
           }
 #ifndef NDEBUG
-          iscon = 1;
+          is_inv = false;
 #endif
         }
         /* ^^------------------------------------------------------^^ */
@@ -2791,7 +2793,7 @@ inv_srl_bv (Btor *btor,
   }
 
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_srl_bv, srl, bve, bvsrl, res, eidx, ">>");
 #endif
@@ -2824,7 +2826,7 @@ inv_mul_bv (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *e;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -2885,7 +2887,7 @@ inv_mul_bv (Btor *btor,
         btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
-      iscon = 1;
+      is_inv = false;
 #endif
     }
     /* ^^-------------------------------------------------------------^^ */
@@ -2984,7 +2986,7 @@ inv_mul_bv (Btor *btor,
   }
 
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_mul_bv, mul, bve, bvmul, res, eidx, "*");
 #endif
@@ -3017,7 +3019,7 @@ inv_udiv_bv (Btor *btor,
   BtorMemMgr *mm;
   BtorRNG *rng;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -3088,7 +3090,7 @@ inv_udiv_bv (Btor *btor,
           btor_propsls_rec_conf (btor);
         }
 #ifndef NDEBUG
-        iscon = 1;
+        is_inv = false;
 #endif
       }
       /* ^^----------------------------------------------------------^^ */
@@ -3229,7 +3231,7 @@ inv_udiv_bv (Btor *btor,
   btor_free_bv (mm, bvmax);
   btor_free_bv (mm, one);
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_udiv_bv, udiv, bve, bvudiv, res, eidx, "/");
 #endif
@@ -3262,7 +3264,7 @@ inv_urem_bv (Btor *btor,
   BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *n, *mul, *up, *sub;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -3307,7 +3309,7 @@ inv_urem_bv (Btor *btor,
           btor_propsls_rec_conf (btor);
         }
 #ifndef NDEBUG
-        iscon = 1;
+        is_inv = false;
 #endif
       }
       /* ^^----------------------------------------------------------^^ */
@@ -3552,7 +3554,7 @@ inv_urem_bv (Btor *btor,
   btor_free_bv (mm, bvmax);
 
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_urem_bv, urem, bve, bvurem, res, eidx, "%");
 #endif
@@ -3582,7 +3584,7 @@ inv_concat_bv (Btor *btor,
   BtorBitVector *res, *tmp;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int iscon = 0;
+  bool is_inv = true;
 #endif
 
 #ifndef NDEBUG
@@ -3616,7 +3618,7 @@ inv_concat_bv (Btor *btor,
         btor_propsls_rec_conf (btor);
       }
 #ifndef NDEBUG
-      iscon = 1;
+      is_inv = false;
 #endif
     }
     /* ^^--------------------------------------------------------------^^ */
@@ -3642,7 +3644,7 @@ inv_concat_bv (Btor *btor,
   }
   btor_free_bv (mm, tmp);
 #ifndef NDEBUG
-  if (!iscon)
+  if (is_inv)
     check_result_binary_dbg (
         btor, btor_concat_bv, concat, bve, bvconcat, res, eidx, "o");
 #endif
