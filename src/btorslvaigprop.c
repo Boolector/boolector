@@ -256,8 +256,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  // roots = btor_new_ptr_hash_table (btor->mm,
-  //    (BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr) btor_compare_aig_by_id);
   roots = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -290,8 +288,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->time.aprop_update_cone_compute_score =
       slv->aprop->time.update_cone_compute_score;
 DONE:
-  // if (slv->aprop->score)
-  //  { btor_delete_ptr_hash_table (slv->aprop->score); slv->aprop->score = 0; }
   if (slv->aprop->model)
   {
     btor_delete_int_hash_map (slv->aprop->model);
