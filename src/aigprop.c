@@ -1023,6 +1023,7 @@ UNSAT:
 DONE:
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
   aprop->unsatroots = 0;
+  aprop->roots      = 0;
   if (aprop->score) btor_delete_int_hash_map (aprop->score);
   aprop->score = 0;
 

@@ -198,7 +198,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   BtorAIG *aig;
   Btor *btor;
 
-  btor = slv->btor;
+  btor  = slv->btor;
+  roots = 0;
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -293,6 +294,7 @@ DONE:
     btor_delete_int_hash_map (slv->aprop->model);
     slv->aprop->model = 0;
   }
+  if (roots) btor_delete_int_hash_table (roots);
   btor->valid_assignments = 1;
   btor->last_sat_result   = sat_result;
   return sat_result;
