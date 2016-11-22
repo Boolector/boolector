@@ -99,14 +99,6 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_GET_CNF_ID_AIG(aig)                                             \
-  ((aig) == BTOR_AIG_TRUE                                                    \
-       ? 1                                                                   \
-       : ((aig) == BTOR_AIG_FALSE ? -1                                       \
-                                  : (BTOR_IS_INVERTED_AIG (aig)              \
-                                         ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id \
-                                         : (aig)->cnf_id)))
-
 /*------------------------------------------------------------------------*/
 
 static inline int32_t
@@ -124,6 +116,16 @@ btor_aig_get_by_id (BtorAIGMgr *amgr, int32_t id)
 
   return id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id))
                 : BTOR_PEEK_STACK (amgr->id2aig, id);
+}
+
+static inline int32_t
+btor_aig_get_cnf_id (const BtorAIG *aig)
+{
+  assert (aig);
+  if (BTOR_IS_TRUE_AIG (aig)) return 1;
+  if (BTOR_IS_FALSE_AIG (aig)) return -1;
+  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id
+                                    : aig->cnf_id;
 }
 
 static inline BtorAIG *

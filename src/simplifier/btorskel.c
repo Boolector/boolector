@@ -41,7 +41,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
     res = -1;
   else
   {
-    id = BTOR_GET_CNF_ID_AIG (aig);
+    id = btor_aig_get_cnf_id (aig);
     if (!id) return 0;
     smgr = btor_get_sat_mgr_btor (btor);
     res  = btor_fixed_sat (smgr, id);

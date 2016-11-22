@@ -3551,8 +3551,8 @@ btor_add_again_assumptions (Btor *btor)
     if (aig == BTOR_AIG_TRUE) continue;
     if (btor_is_initialized_sat (smgr))
     {
-      assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
-      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      assert (btor_aig_get_cnf_id (aig) != 0);
+      btor_assume_sat (smgr, btor_aig_get_cnf_id (aig));
     }
     btor_release_aig (amgr, aig);
   }
