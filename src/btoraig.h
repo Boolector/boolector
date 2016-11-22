@@ -142,7 +142,6 @@ btor_aig_get_by_id (BtorAIGMgr *amgr, int32_t id)
 static inline int32_t
 btor_aig_get_cnf_id (const BtorAIG *aig)
 {
-  assert (aig);
   if (btor_aig_is_true (aig)) return 1;
   if (btor_aig_is_false (aig)) return -1;
   return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id
