@@ -446,120 +446,6 @@ aigprop_generate_model (AIGProp *aprop, int reset)
 
 /*------------------------------------------------------------------------*/
 
-#if 0
-static void
-reset_cone (AIGProp * aprop, BtorAIG * aig)
-{
-  assert (aprop);
-
-  int i;
-  BtorAIG *cur, *child;
-  BtorPtrHashTableIterator it;
-  BtorPtrHashBucket *b;
-  BtorAIGPtrStack stack;
-  BtorIntHashTable *mark;
-  BtorHashTableData *d;
-  BtorMemMgr *mm;
-
-  if (BTOR_IS_CONST_AIG (aig)) return;
-
-  mm = aprop->amgr->btor->mm;
-
-  BTOR_INIT_STACK (stack);
-  mark = btor_new_int_hash_map (mm);
-
-  assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (aig)));
-  btor_remove_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (aig), 0, 0);
-  assert (btor_get_ptr_hash_table (aprop->score, aig));
-  btor_remove_ptr_hash_table (aprop->score, aig, 0, 0);
-  assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig)));
-  btor_remove_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (aig), 0, 0);
-
-  btor_init_ptr_hash_table_iterator (&it, aprop->unsatroots);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm, stack, btor_next_ptr_hash_table_iterator (&it));
-
-  while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      assert (!BTOR_IS_CONST_AIG (cur));
-      d = btor_get_int_hash_map (mark, cur->id);
-
-      if (d && d->as_int == 1) continue;
-      if (!d)
-	{
-	  d = btor_add_int_hash_map (mark, cur->id);
-	  if (BTOR_IS_VAR_AIG (cur)) { d->as_int = 1; continue; }
-	  BTOR_PUSH_STACK (mm, stack, cur);
-	  for (i = 0; i < 2; i++)
-	    {
-	      child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
-	      if (!BTOR_IS_CONST_AIG (child))
-		BTOR_PUSH_STACK (mm, stack, child);
-	    }
-	}
-      else
-	{
-	  assert (btor_get_ptr_hash_table (aprop->model, cur));
-	  assert (d->as_int == 0);
-	  d->as_int = 1;
-
-	  for (i = 0; i < 2; i++)
-	    {
-	      child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
-	      b = btor_get_ptr_hash_table (
-		  aprop->model, BTOR_REAL_ADDR_AIG (child));
-	      if (!b)
-		{
-		  /* reset previous assignment */
-		  assert (btor_get_ptr_hash_table (aprop->model, cur));
-		  btor_remove_ptr_hash_table (aprop->model, cur, 0, 0);
-		  /* reset previous score */
-		  assert (btor_get_ptr_hash_table (aprop->score, cur));
-		  btor_remove_ptr_hash_table (aprop->score, cur, 0, 0);
-		  assert (btor_get_ptr_hash_table (
-			aprop->score, BTOR_INVERT_AIG (cur)));
-		  btor_remove_ptr_hash_table (
-		      aprop->score, BTOR_INVERT_AIG (cur), 0, 0);
-		  break;
-		}
-	    }
-	}
-    }
-
-  btor_delete_int_hash_map (mark);
-
-  BTOR_RELEASE_STACK (mm, stack);
-}
-
-static void
-update_cone (AIGProp * aprop, BtorAIG * aig, int assignment)
-{
-  assert (aprop);
-  assert (aig);
-  assert (assignment == 1 || assignment == -1);
-
-  double start, delta;
-  BtorAIG *real_aig;
-  int real_ass;
-
-  start = btor_time_stamp ();
-  reset_cone (aprop, aig);
-  aprop->time.update_cone_reset += btor_time_stamp () - start;
-  real_aig = BTOR_REAL_ADDR_AIG (aig);
-  real_ass = BTOR_IS_INVERTED_AIG (aig) ? -assignment : assignment;
-  btor_add_ptr_hash_table (
-      aprop->model, real_aig)->data.as_int = real_ass;
-  delta = btor_time_stamp ();
-  aigprop_generate_model (aprop, 0);
-  aprop->time.update_cone_model_gen += btor_time_stamp () - delta;
-  delta = btor_time_stamp ();
-  compute_scores (aprop);
-  aprop->time.update_cone_compute_score += btor_time_stamp () - delta;
-  aprop->time.update_cone += btor_time_stamp () - start;
-}
-#endif
-
 static inline void
 update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int assignment)
 {
@@ -667,15 +553,6 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   tmpcone = btor_new_int_hash_table (mm);
   btor_add_int_hash_table (tmpcone, btor_aig_get_id (aig));
 
-  // btor_init_int_hash_table_iterator (&it, aprop->roots);
-  // while (btor_has_next_int_hash_table_iterator (&it))
-  //  {
-  //    cur = btor_aig_get_by_id (
-  //        aprop->amgr, btor_next_int_hash_table_iterator (&it));
-  //    assert (!BTOR_IS_FALSE_AIG (cur));
-  //    assert (!BTOR_IS_TRUE_AIG (cur));
-  //    BTOR_PUSH_STACK (mm, stack, cur);
-  //  }
   btor_init_ptr_hash_table_iterator (&pit, aprop->roots);
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
@@ -864,23 +741,16 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     BtorPtrHashBucket *b;
 
     max_value = 0.0;
-    // btor_init_ptr_hash_table_iterator (&it, aprop->unsatroots);
     btor_init_int_hash_table_iterator (&it, aprop->unsatroots);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
-      // selected = &it.bucket->data.as_int;
       selected = &aprop->unsatroots->data[it.cur_pos].as_int;
-      // cur = btor_next_ptr_hash_table_iterator (&it);
-      cur = btor_aig_get_by_id (aprop->amgr,
+      cur      = btor_aig_get_by_id (aprop->amgr,
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop->model, cur) != 1);
       assert (!BTOR_IS_CONST_AIG (cur));
-      // if (cur == BTOR_AIG_FALSE)
-      //  return 0;  /* contains false root -> unsat */
-      // if (cur == BTOR_AIG_TRUE) continue;
       b = btor_get_ptr_hash_table (aprop->score, cur);
       assert (b);
-      // if ((score = b->data.as_dbl) >= 1.0) continue;
       score = b->data.as_dbl;
       assert (score < 1.0);
       if (!res)
@@ -906,18 +776,10 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     btor_init_int_hash_table_iterator (&it, aprop->unsatroots);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
-      // cur = btor_next_ptr_hash_table_iterator (&it);
       cur = btor_aig_get_by_id (aprop->amgr,
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop->model, cur) != 1);
       assert (!BTOR_IS_CONST_AIG (cur));
-      // if (cur == BTOR_AIG_FALSE)
-      //  {
-      //    BTOR_RELEASE_STACK (mm, stack);
-      //    return 0;  /* contains false root -> unsat */
-      //  }
-      // if (cur == BTOR_AIG_TRUE) continue;
-      // if (aigprop_get_assignment_aig (aprop->model, cur) == 1) continue;
       BTOR_PUSH_STACK (mm, stack, cur);
     }
     assert (BTOR_COUNT_STACK (stack));
@@ -1078,42 +940,11 @@ move (AIGProp *aprop, uint32_t nmoves)
 
 /*------------------------------------------------------------------------*/
 
-#if 0
-static bool
-all_roots_sat (AIGProp * aprop)
-{
-  assert (aprop);
-  assert (aprop->roots);
-
-  int ass;
-  bool res;
-  BtorAIG *root;
-  BtorPtrHashTableIterator it;
-
-  res = true;
-  btor_init_ptr_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    {
-      root = btor_next_ptr_hash_table_iterator (&it);
-      if (root == BTOR_AIG_FALSE) return false;
-      if (root == BTOR_AIG_TRUE) continue;
-      assert (btor_get_ptr_hash_table (
-	    aprop->model, BTOR_REAL_ADDR_AIG (root)));
-      ass = btor_get_ptr_hash_table (
-	  aprop->model, BTOR_REAL_ADDR_AIG (root))->data.as_int;
-      ass = BTOR_IS_INVERTED_AIG (root) ? -ass : ass;
-      if (ass == -1) { res = false; break; }
-    }
-  return res;
-}
-#endif
-
 // TODO termination callback?
 int
 aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
 {
   assert (aprop);
-  // assert (aprop->roots);
   assert (roots);
 
   double start;
@@ -1137,9 +968,6 @@ aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
   {
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!aprop->unsatroots);
-    //      aprop->unsatroots = btor_new_ptr_hash_table (
-    //	  mm, (BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr)
-    // btor_compare_aig_by_id);
     aprop->unsatroots = btor_new_int_hash_map (mm);
     btor_init_ptr_hash_table_iterator (&it, roots);
     while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -1148,9 +976,6 @@ aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
       if (BTOR_IS_TRUE_AIG (root)) continue;
       if (BTOR_IS_FALSE_AIG (root)) goto UNSAT;
       assert (aigprop_get_assignment_aig (aprop->model, root));
-      // if (!btor_get_ptr_hash_table (aprop->unsatroots, root)
-      //    && aigprop_get_assignment_aig (aprop->model, root) == -1)
-      //  btor_add_ptr_hash_table (aprop->unsatroots, root);
       if (!btor_contains_int_hash_map (aprop->unsatroots,
                                        btor_aig_get_id (root))
           && aigprop_get_assignment_aig (aprop->model, root) == -1)
@@ -1160,7 +985,6 @@ aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
     /* compute initial score */
     compute_scores (aprop);
 
-    // if (all_roots_sat (aprop)) goto SAT;
     if (!aprop->unsatroots->count) goto SAT;
 
     for (j = 0, max_steps = AIGPROP_MAXSTEPS (aprop->stats.restarts + 1);
@@ -1169,8 +993,6 @@ aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
     {
       if (!(move (aprop, nmoves))) goto UNSAT;
       nmoves += 1;
-      // if (all_roots_sat (aprop))
-      //  goto SAT;
       if (!aprop->unsatroots->count) goto SAT;
     }
 
@@ -1178,7 +1000,6 @@ aigprop_sat (AIGProp *aprop, BtorPtrHashTable *roots)
     aigprop_generate_model (aprop, 1);
     btor_delete_ptr_hash_table (aprop->score);
     aprop->score = 0;
-    // btor_delete_ptr_hash_table (aprop->unsatroots);
     btor_delete_int_hash_map (aprop->unsatroots);
     aprop->unsatroots = 0;
     aprop->stats.restarts += 1;
@@ -1189,7 +1010,6 @@ SAT:
 UNSAT:
   sat_result = AIGPROP_UNSAT;
 DONE:
-  // if (aprop->unsatroots) btor_delete_ptr_hash_table (aprop->unsatroots);
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
   aprop->unsatroots = 0;
   if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
@@ -1235,8 +1055,6 @@ aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
   res->amgr  = clone;
   res->roots = btor_clone_ptr_hash_table (
       mm, aprop->roots, clone_key_as_aig, btor_clone_data_as_int, clone, 0);
-  //  res->unsatroots = btor_clone_ptr_hash_table (mm, aprop->unsatroots,
-  //	    clone_key_as_aig, btor_clone_data_as_int, clone, 0);
   res->unsatroots = btor_clone_int_hash_map (
       mm, aprop->unsatroots, btor_clone_data_as_int, 0);
   res->score = btor_clone_ptr_hash_table (
@@ -1271,7 +1089,6 @@ aigprop_delete_aigprop (AIGProp *aprop)
 {
   assert (aprop);
 
-  // if (aprop->unsatroots) btor_delete_ptr_hash_table (aprop->unsatroots);
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
   if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
   if (aprop->model) btor_delete_ptr_hash_table (aprop->model);

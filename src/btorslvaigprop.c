@@ -17,7 +17,6 @@
 #include "btormodel.h"
 #include "btoropt.h"
 #include "btorslvprop.h"
-#include "btorslvsls.h"  // for score computation
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 
@@ -256,8 +255,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  // slv->aprop->roots = btor_new_ptr_hash_table (btor->mm,
-  //    (BtorHashPtr) btor_hash_aig_by_id, (BtorCmpPtr) btor_compare_aig_by_id);
   roots = btor_new_ptr_hash_table (btor->mm,
                                    (BtorHashPtr) btor_hash_aig_by_id,
                                    (BtorCmpPtr) btor_compare_aig_by_id);
@@ -274,8 +271,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
-    //      if (!btor_get_ptr_hash_table (slv->aprop->roots, aig))
-    //	(void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
     if (!btor_get_ptr_hash_table (roots, aig))
       (void) btor_add_ptr_hash_table (roots, aig);
   }
@@ -294,8 +289,6 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->time.aprop_update_cone_compute_score =
       slv->aprop->time.update_cone_compute_score;
 DONE:
-  // if (slv->aprop->roots)
-  //  { btor_delete_ptr_hash_table (slv->aprop->roots); slv->aprop->roots = 0; }
   if (slv->aprop->score)
   {
     btor_delete_ptr_hash_table (slv->aprop->score);
