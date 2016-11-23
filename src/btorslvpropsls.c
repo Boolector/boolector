@@ -3716,17 +3716,22 @@ inv_slice_bv (Btor *btor,
 
   if (bflip)
   {
-    rboth = 0;
+    rboth  = 0;
+    rupper = res->width - 1;
+    rlower = 0;
+
     if (lower)
     {
       rboth += 1;
       rlower = btor_pick_rand_rng (&btor->rng, 0, lower - 1);
     }
+
     if (upper + 1 < res->width)
     {
       rboth += 2;
       rupper = btor_pick_rand_rng (&btor->rng, upper + 1, res->width - 1);
     }
+
     switch (rboth)
     {
       case 3:
