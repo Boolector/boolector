@@ -467,8 +467,7 @@ clone_sorts_unique_table (BtorMemMgr * mm,
 #endif
 
 static BtorNode *
-clone_exp (Btor *btor,
-           Btor *clone,
+clone_exp (Btor *clone,
            BtorNode *exp,
            BtorNodePtrPtrStack *parents,
            BtorNodePtrPtrStack *nodes,
@@ -631,8 +630,7 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
 }
 
 static void
-clone_nodes_id_table (Btor *btor,
-                      Btor *clone,
+clone_nodes_id_table (Btor *clone,
                       BtorNodePtrStack *id_table,
                       BtorNodePtrStack *res,
                       BtorNodeMap *exp_map,
@@ -670,8 +668,7 @@ clone_nodes_id_table (Btor *btor,
     for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
     {
       exp           = id_table->start[i];
-      res->start[i] = exp ? clone_exp (btor,
-                                       clone,
+      res->start[i] = exp ? clone_exp (clone,
                                        exp,
                                        &parents,
                                        &nodes,
@@ -1021,8 +1018,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   BTOR_INIT_STACK (btor->mm, rhos);
   BTORLOG_TIMESTAMP (delta);
-  clone_nodes_id_table (btor,
-                        clone,
+  clone_nodes_id_table (clone,
                         &btor->nodes_id_table,
                         &clone->nodes_id_table,
                         emap,
