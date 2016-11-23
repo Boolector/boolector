@@ -436,9 +436,9 @@ get_children (BtorSMTDumpContext *sdc,
 
   if (btor_is_and_node (exp)) is_and = 1;
 
-  BTOR_INIT_QUEUE (visit);
+  BTOR_INIT_QUEUE (sdc->btor->mm, visit);
   for (i = 0; i < BTOR_REAL_ADDR_NODE (exp)->arity; i++)
-    BTOR_ENQUEUE (sdc->btor->mm, visit, BTOR_REAL_ADDR_NODE (exp)->e[i]);
+    BTOR_ENQUEUE (visit, BTOR_REAL_ADDR_NODE (exp)->e[i]);
 
   /* get children of multi-input and/or */
   while (!BTOR_EMPTY_QUEUE (visit))
@@ -459,10 +459,9 @@ get_children (BtorSMTDumpContext *sdc,
 
     assert (!btor_get_ptr_hash_table (sdc->dumped, real_cur));
     btor_add_ptr_hash_table (sdc->dumped, real_cur);
-    for (i = 0; i < real_cur->arity; i++)
-      BTOR_ENQUEUE (sdc->btor->mm, visit, real_cur->e[i]);
+    for (i = 0; i < real_cur->arity; i++) BTOR_ENQUEUE (visit, real_cur->e[i]);
   }
-  BTOR_RELEASE_QUEUE (sdc->btor->mm, visit);
+  BTOR_RELEASE_QUEUE (visit);
   btor_delete_ptr_hash_table (mark);
 }
 

@@ -1163,7 +1163,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   mm        = btor->mm;
   cache     = btor_new_int_hash_table (mm);
   real_left = BTOR_REAL_ADDR_NODE (left);
-  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_QUEUE (mm, queue);
 
   cur = BTOR_REAL_ADDR_NODE (right);
   goto OCCURRENCE_CHECK_ENTER_WITHOUT_POP;
@@ -1181,10 +1181,10 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
         is_cyclic = 1;
         break;
       }
-      for (i = cur->arity - 1; i >= 0; i--) BTOR_ENQUEUE (mm, queue, cur->e[i]);
+      for (i = cur->arity - 1; i >= 0; i--) BTOR_ENQUEUE (queue, cur->e[i]);
     }
   } while (!BTOR_EMPTY_QUEUE (queue));
-  BTOR_RELEASE_QUEUE (mm, queue);
+  BTOR_RELEASE_QUEUE (queue);
   btor_delete_int_hash_table (cache);
   return is_cyclic;
 }
@@ -2801,13 +2801,13 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   mark = btor_new_int_hash_map (mm);
   BTOR_INIT_STACK (mm, roots);
-  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_QUEUE (mm, queue);
 
   btor_init_ptr_hash_table_iterator (&hit, subst);
   while (btor_has_next_ptr_hash_table_iterator (&hit))
   {
     cur = BTOR_REAL_ADDR_NODE (btor_next_ptr_hash_table_iterator (&hit));
-    BTOR_ENQUEUE (mm, queue, cur);
+    BTOR_ENQUEUE (queue, cur);
   }
 
   /* mark cone and copy roots */
@@ -2827,7 +2827,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       while (btor_has_next_parent_iterator (&it))
       {
         cur_parent = btor_next_parent_iterator (&it);
-        BTOR_ENQUEUE (mm, queue, cur_parent);
+        BTOR_ENQUEUE (queue, cur_parent);
       }
     }
   }
@@ -2838,7 +2838,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
     cur = BTOR_REAL_ADDR_NODE (btor_next_ptr_hash_table_iterator (&hit));
     d   = btor_get_int_hash_map (mark, cur->id);
     assert (d);
-    BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
+    BTOR_ENQUEUE (queue, btor_copy_exp (btor, cur));
     d->as_int = 1; /* mark as enqueued */
   }
 
@@ -2873,7 +2873,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
         assert (!d || d->as_int == 0);
         if (!d) d = btor_add_int_hash_map (mark, cur_parent->id);
         d->as_int = 1;
-        BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
+        BTOR_ENQUEUE (queue, btor_copy_exp (btor, cur_parent));
       }
 
       if ((sub = btor_find_substitution (btor, cur)))
@@ -2897,10 +2897,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
     }
     /* not all children rebuilt, enqueue again */
     else
-      BTOR_ENQUEUE (mm, queue, cur);
+      BTOR_ENQUEUE (queue, cur);
   }
 
-  BTOR_RELEASE_QUEUE (mm, queue);
+  BTOR_RELEASE_QUEUE (queue);
 
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
   {
