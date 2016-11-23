@@ -930,9 +930,12 @@ chkclone_tables (Btor *btor)
       assert (btor->fun_model->data[iit.cur_pos].as_ptr);
       assert (btor->clone->fun_model->data[ciit.cur_pos].as_ptr);
       btor_init_ptr_hash_table_iterator (
-          &npit, (BtorPtrHashTable *) btor->fun_model->data->as_ptr);
+          &npit,
+          (BtorPtrHashTable *) btor->fun_model->data[iit.cur_pos].as_ptr);
       btor_init_ptr_hash_table_iterator (
-          &cnpit, (BtorPtrHashTable *) btor->clone->fun_model->data->as_ptr);
+          &cnpit,
+          (BtorPtrHashTable *) btor->clone->fun_model->data[ciit.cur_pos]
+              .as_ptr);
       while (btor_has_next_ptr_hash_table_iterator (&npit))
       {
         assert (btor_has_next_ptr_hash_table_iterator (&cnpit));
@@ -944,10 +947,10 @@ chkclone_tables (Btor *btor)
         (void) btor_next_ptr_hash_table_iterator (&cnpit);
       }
       assert (!btor_has_next_ptr_hash_table_iterator (&cnpit));
-      BTOR_CHKCLONE_EXPID (btor_next_ptr_hash_table_iterator (&pit),
-                           btor_next_ptr_hash_table_iterator (&cpit));
+      assert (btor_next_int_hash_table_iterator (&iit)
+              == btor_next_int_hash_table_iterator (&ciit));
     }
-    assert (!btor_has_next_ptr_hash_table_iterator (&cpit));
+    assert (!btor_has_next_int_hash_table_iterator (&ciit));
   }
   else
     assert (!btor->clone->fun_model);
