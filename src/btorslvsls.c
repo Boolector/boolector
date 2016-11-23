@@ -486,7 +486,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   int32_t i, n_endpos;
   uint32_t pos, cpos, sls_strat;
-  bool done;
+  bool done = false;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -546,7 +546,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   int32_t i, n_endpos;
   uint32_t up, cup, clo, sls_strat;
-  bool done;
+  bool done = false;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -619,7 +619,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   int32_t i, ctmp, n_endpos;
   uint32_t lo, clo, up, cup, seg, sls_strat;
-  bool done;
+  bool done = false;
   double sc;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -776,9 +776,9 @@ select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
   assert (gw >= 0);
 
   BtorSLSMoveKind mk;
-  bool done;
+  bool done = false;
 
-  for (mk = 0, done = false; mk < BTOR_SLS_MOVE_DONE; mk++)
+  for (mk = 0; mk < BTOR_SLS_MOVE_DONE; mk++)
   {
     switch (mk)
     {
