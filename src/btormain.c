@@ -558,11 +558,11 @@ print_opt (BtorMainApp *app,
     BTOR_CNEWN (app->mm, descstr, len + 1);
     sprintf (descstr, "%s", desc);
   }
-  BTOR_INIT_STACK (words);
+  BTOR_INIT_STACK (app->mm, words);
   word = strtok (descstr, " ");
   while (word)
   {
-    BTOR_PUSH_STACK (app->mm, words, btor_strdup (app->mm, word));
+    BTOR_PUSH_STACK (words, btor_strdup (app->mm, word));
     word = strtok (0, " ");
   }
   BTOR_DELETEN (app->mm, descstr, len + 1);
@@ -594,7 +594,7 @@ print_opt (BtorMainApp *app,
   /* cleanup */
   while (!BTOR_EMPTY_STACK (words))
     btor_freestr (app->mm, BTOR_POP_STACK (words));
-  BTOR_RELEASE_STACK (app->mm, words);
+  BTOR_RELEASE_STACK (words);
 }
 
 #define PRINT_MAIN_OPT(app, opt)                                           \
@@ -902,8 +902,8 @@ boolector_main (int argc, char **argv)
 
   mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
-  BTOR_INIT_STACK (opt);
-  BTOR_INIT_STACK (errarg);
+  BTOR_INIT_STACK (g_app->mm, opt);
+  BTOR_INIT_STACK (g_app->mm, errarg);
 
   for (i = 1; i < argc; i++)
   {
@@ -970,9 +970,8 @@ boolector_main (int argc, char **argv)
     BTOR_RESET_STACK (opt);
 
     /* save original option string (without arguments) for error messages */
-    for (j = 0; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, errarg, arg[j]);
-    BTOR_PUSH_STACK (g_app->mm, errarg, '\0');
+    for (j = 0; j < len && arg[j] != '='; j++) BTOR_PUSH_STACK (errarg, arg[j]);
+    BTOR_PUSH_STACK (errarg, '\0');
 
     /* extract option name */
     isshrt = arg[1] == '-' ? 0 : 1;
@@ -980,8 +979,8 @@ boolector_main (int argc, char **argv)
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
     for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, opt, arg[j]);
-    BTOR_PUSH_STACK (g_app->mm, opt, '\0');
+      BTOR_PUSH_STACK (opt, arg[j]);
+    BTOR_PUSH_STACK (opt, '\0');
 
     /* extract option argument (if any) */
     if (arg[j] == '=')
@@ -1564,8 +1563,8 @@ DONE:
     }
   }
 
-  BTOR_RELEASE_STACK (g_app->mm, errarg);
-  BTOR_RELEASE_STACK (g_app->mm, opt);
+  BTOR_RELEASE_STACK (errarg);
+  BTOR_RELEASE_STACK (opt);
   btormain_delete_btormain (g_app);
   reset_sig_handlers ();
 

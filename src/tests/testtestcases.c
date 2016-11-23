@@ -68,8 +68,8 @@ run_testcases_tests (int argc, char **argv)
 
   mem = btor_new_mem_mgr ();
 
-  BTOR_INIT_STACK (g_args);
-  BTOR_INIT_STACK (buffer);
+  BTOR_INIT_STACK (mem, g_args);
+  BTOR_INIT_STACK (mem, buffer);
 
   for (;;)
   {
@@ -90,20 +90,20 @@ run_testcases_tests (int argc, char **argv)
 
     do
     {
-      BTOR_PUSH_STACK (mem, buffer, ch);
+      BTOR_PUSH_STACK (buffer, ch);
       ch = fgetc (file);
     } while (ch != '\n' && ch != EOF);
-    BTOR_PUSH_STACK (mem, buffer, 0);
+    BTOR_PUSH_STACK (buffer, 0);
 
     assert (BTOR_EMPTY_STACK (g_args));
 
     token = strtok (buffer.start, " \t");
     while (token)
     {
-      BTOR_PUSH_STACK (mem, g_args, token);
+      BTOR_PUSH_STACK (g_args, token);
       token = strtok (0, " \t");
     }
-    if (g_rwreads) BTOR_PUSH_STACK (mem, g_args, "-bra");
+    if (g_rwreads) BTOR_PUSH_STACK (g_args, "-bra");
 
     BTOR_RESET_STACK (buffer);
 
@@ -114,8 +114,8 @@ run_testcases_tests (int argc, char **argv)
 
   fclose (file);
 
-  BTOR_RELEASE_STACK (mem, buffer);
-  BTOR_RELEASE_STACK (mem, g_args);
+  BTOR_RELEASE_STACK (buffer);
+  BTOR_RELEASE_STACK (g_args);
 
   btor_delete_mem_mgr (mem);
 }

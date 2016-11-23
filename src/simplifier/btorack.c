@@ -32,13 +32,13 @@ btor_add_ackermann_constraints (Btor *btor)
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     uf = btor_next_ptr_hash_table_iterator (&it);
-    BTOR_INIT_STACK (applies);
+    BTOR_INIT_STACK (btor->mm, applies);
     btor_init_apply_parent_iterator (&nit, uf);
     while (btor_has_next_apply_parent_iterator (&nit))
     {
       app_i = btor_next_apply_parent_iterator (&nit);
       if (app_i->parameterized) continue;
-      BTOR_PUSH_STACK (btor->mm, applies, app_i);
+      BTOR_PUSH_STACK (applies, app_i);
     }
 
     for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
@@ -78,7 +78,7 @@ btor_add_ackermann_constraints (Btor *btor)
         btor_release_exp (btor, imp);
       }
     }
-    BTOR_RELEASE_STACK (btor->mm, applies);
+    BTOR_RELEASE_STACK (applies);
   }
   BTOR_MSG (btor->msg,
             1,

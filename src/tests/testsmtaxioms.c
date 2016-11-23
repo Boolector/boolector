@@ -53,16 +53,16 @@ test_g_args_unsat (void)
 }
 
 static void
-test_smtaxiom (BtorMemMgr *mem, int argc, char **argv, char *p, int i)
+test_smtaxiom (int argc, char **argv, char *p, int i)
 {
   char *buffer, *name, *prefix = "smtaxiom";
 
-  BTOR_PUSH_STACK (mem, g_args, p);
+  BTOR_PUSH_STACK (g_args, p);
 
-  BTOR_PUSH_STACK (mem, g_args, "-o");
-  BTOR_PUSH_STACK (mem, g_args, "/dev/null");
+  BTOR_PUSH_STACK (g_args, "-o");
+  BTOR_PUSH_STACK (g_args, "/dev/null");
 
-  if (g_rwreads) BTOR_PUSH_STACK (mem, g_args, "-bra");
+  if (g_rwreads) BTOR_PUSH_STACK (g_args, "-bra");
 
   name =
       (char *) malloc (sizeof (char) * (strlen (prefix) + strlen (p) + 10 + 1));
@@ -70,7 +70,7 @@ test_smtaxiom (BtorMemMgr *mem, int argc, char **argv, char *p, int i)
 
   buffer = (char *) malloc (strlen (BTOR_LOG_DIR) + strlen (name) + 4 + 1);
   sprintf (buffer, "%s%s.smt", BTOR_LOG_DIR, name);
-  BTOR_PUSH_STACK (mem, g_args, buffer);
+  BTOR_PUSH_STACK (g_args, buffer);
 
   run_test_case (argc, argv, test_g_args_unsat, name, 0);
 
@@ -93,6 +93,8 @@ run_smtaxioms_tests (int argc, char **argv)
 
   mem = btor_new_mem_mgr ();
 
+  BTOR_INIT_STACK (mem, g_args);
+
   for (first = 1, p = axioms; first || *p; p++)
   {
     if (!*p)
@@ -101,17 +103,17 @@ run_smtaxioms_tests (int argc, char **argv)
       p++;
     }
 
-    for (i = 1; i <= 8; i++) test_smtaxiom (mem, argc, argv, *p, i);
+    for (i = 1; i <= 8; i++) test_smtaxiom (argc, argv, *p, i);
 
     if (first)
     {
-      test_smtaxiom (mem, argc, argv, *p, 16);
-      test_smtaxiom (mem, argc, argv, *p, 32);
-      test_smtaxiom (mem, argc, argv, *p, 64);
+      test_smtaxiom (argc, argv, *p, 16);
+      test_smtaxiom (argc, argv, *p, 32);
+      test_smtaxiom (argc, argv, *p, 64);
     }
   }
 
-  BTOR_RELEASE_STACK (mem, g_args);
+  BTOR_RELEASE_STACK (g_args);
   btor_delete_mem_mgr (mem);
 }
 

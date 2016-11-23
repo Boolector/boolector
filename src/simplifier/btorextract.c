@@ -562,7 +562,7 @@ add_to_index_map (Btor *btor,
   {
     b = btor_add_ptr_hash_table (t, value);
     BTOR_NEW (mm, indices);
-    BTOR_INIT_STACK (*indices);
+    BTOR_INIT_STACK (mm, *indices);
     b->data.as_ptr = indices;
   }
   else
@@ -578,7 +578,7 @@ add_to_index_map (Btor *btor,
     assert (btor_is_bv_const_node (offset));
   }
 
-  BTOR_PUSH_STACK (mm, *indices, index);
+  BTOR_PUSH_STACK (*indices, index);
 }
 
 static void
@@ -596,7 +596,7 @@ collect_indices_writes (Btor *btor,
   BtorMemMgr *mm;
 
   mm = btor->mm;
-  BTOR_INIT_STACK (lambdas);
+  BTOR_INIT_STACK (mm, lambdas);
   visit_cache = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
@@ -629,7 +629,7 @@ collect_indices_writes (Btor *btor,
 
     if (!is_top) continue;
 
-    BTOR_PUSH_STACK (mm, lambdas, lambda);
+    BTOR_PUSH_STACK (lambdas, lambda);
     while (!BTOR_EMPTY_STACK (lambdas))
     {
       lambda = BTOR_POP_STACK (lambdas);
@@ -692,7 +692,7 @@ collect_indices_writes (Btor *btor,
         /* use array as new start point */
         else
         {
-          BTOR_PUSH_STACK (mm, lambdas, array);
+          BTOR_PUSH_STACK (lambdas, array);
           break;
         }
 
@@ -710,13 +710,13 @@ collect_indices_writes (Btor *btor,
       // TODO (ma): can only be ite now
       if (is_array_ite_exp (cur, &array_if, &array_else))
       {
-        BTOR_PUSH_STACK (mm, lambdas, array_if);
-        BTOR_PUSH_STACK (mm, lambdas, array_else);
+        BTOR_PUSH_STACK (lambdas, array_if);
+        BTOR_PUSH_STACK (lambdas, array_else);
       }
     }
   }
   btor_delete_ptr_hash_table (visit_cache);
-  BTOR_RELEASE_STACK (mm, lambdas);
+  BTOR_RELEASE_STACK (lambdas);
 }
 
 static void
@@ -813,7 +813,7 @@ find_ranges (Btor *btor,
   if (cnt == 0) return;
 
   if (cnt == 1)
-    BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
+    BTOR_PUSH_STACK (*indices, BTOR_PEEK_STACK (index_stack, 0));
   else
   {
     assert (cnt > 1);
@@ -882,7 +882,7 @@ find_ranges (Btor *btor,
         /* push index */
         if (upper == lower)
         {
-          BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+          BTOR_PUSH_STACK (*indices, BTOR_PEEK_STACK (index_stack, lower));
 #ifndef NDEBUG
           num_indices++;
 #endif
@@ -900,8 +900,7 @@ find_ranges (Btor *btor,
           /* push all indices from lower until upper - 1 */
           for (; lower < upper; lower++)
           {
-            BTOR_PUSH_STACK (
-                mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+            BTOR_PUSH_STACK (*indices, BTOR_PEEK_STACK (index_stack, lower));
 #ifndef NDEBUG
             num_indices++;
 #endif
@@ -914,15 +913,14 @@ find_ranges (Btor *btor,
         else
         {
           assert (upper - lower > 0);
-          BTOR_PUSH_STACK (mm, *increments, prev_inc);
-          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, lower));
-          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, upper));
+          BTOR_PUSH_STACK (*increments, prev_inc);
+          BTOR_PUSH_STACK (*ranges, BTOR_PEEK_STACK (index_stack, lower));
+          BTOR_PUSH_STACK (*ranges, BTOR_PEEK_STACK (index_stack, upper));
           /* push all indices in range lower <= i <= upper onto
            * 'indices_ranges' stack */
           for (i = lower; i <= upper; i++)
-            BTOR_PUSH_STACK (
-                mm, *indices_ranges, BTOR_PEEK_STACK (index_stack, i));
-          BTOR_PUSH_STACK (mm, *indices_ranges, 0);
+            BTOR_PUSH_STACK (*indices_ranges, BTOR_PEEK_STACK (index_stack, i));
+          BTOR_PUSH_STACK (*indices_ranges, 0);
 #ifndef NDEBUG
           num_indices += upper - lower + 1;
 #endif
@@ -1044,15 +1042,15 @@ extract_lambdas (Btor *btor,
   unsigned size_set_itoip1 = 0, size_cpy = 0;
 
   mm = btor->mm;
-  BTOR_INIT_STACK (ranges);
-  BTOR_INIT_STACK (indices);
-  BTOR_INIT_STACK (indices_ranges);
-  BTOR_INIT_STACK (increments);
-  BTOR_INIT_STACK (values);
-  BTOR_INIT_STACK (indices_itoi);
-  BTOR_INIT_STACK (indices_itoip1);
-  BTOR_INIT_STACK (indices_cpy);
-  BTOR_INIT_STACK (indices_rem);
+  BTOR_INIT_STACK (mm, ranges);
+  BTOR_INIT_STACK (mm, indices);
+  BTOR_INIT_STACK (mm, indices_ranges);
+  BTOR_INIT_STACK (mm, increments);
+  BTOR_INIT_STACK (mm, values);
+  BTOR_INIT_STACK (mm, indices_itoi);
+  BTOR_INIT_STACK (mm, indices_itoip1);
+  BTOR_INIT_STACK (mm, indices_cpy);
+  BTOR_INIT_STACK (mm, indices_rem);
   btor_init_ptr_hash_table_iterator (&it, map_value_index);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
@@ -1078,9 +1076,9 @@ extract_lambdas (Btor *btor,
                    &num_set_inc,
                    &size_set,
                    &size_set_inc);
-      BTOR_PUSH_STACK (mm, ranges, 0);
-      BTOR_PUSH_STACK (mm, indices, 0);
-      BTOR_PUSH_STACK (mm, values, value);
+      BTOR_PUSH_STACK (ranges, 0);
+      BTOR_PUSH_STACK (indices, 0);
+      BTOR_PUSH_STACK (values, value);
       assert (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0
               || BTOR_COUNT_STACK (indices) - BTOR_COUNT_STACK (values) > 0);
       assert ((BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values)) % 2 == 0);
@@ -1160,15 +1158,15 @@ extract_lambdas (Btor *btor,
 
         /* pattern 1: index -> index */
         if (is_itoi_pattern (lower, value))
-          BTOR_PUSH_STACK (mm, indices_itoi, lower);
+          BTOR_PUSH_STACK (indices_itoi, lower);
         /* pattern 2: index -> index + 1 */
         else if (is_itoip1_pattern (lower, value))
-          BTOR_PUSH_STACK (mm, indices_itoip1, lower);
+          BTOR_PUSH_STACK (indices_itoip1, lower);
         /* pattern 3: memcopy pattern */
         else if (is_cpy_pattern (lower, value))
-          BTOR_PUSH_STACK (mm, indices_cpy, lower);
+          BTOR_PUSH_STACK (indices_cpy, lower);
         else /* no pattern found */
-          BTOR_PUSH_STACK (mm, indices_rem, lower);
+          BTOR_PUSH_STACK (indices_rem, lower);
       }
     }
 
@@ -1326,7 +1324,7 @@ extract_lambdas (Btor *btor,
     {
       stack = iit.bucket->data.as_ptr;
       (void) btor_next_ptr_hash_table_iterator (&iit);
-      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_RELEASE_STACK (*stack);
       BTOR_DELETE (mm, stack);
     }
     btor_release_exp (btor, subst);
@@ -1343,15 +1341,15 @@ extract_lambdas (Btor *btor,
     BTOR_RESET_STACK (indices_cpy);
     BTOR_RESET_STACK (indices_rem);
   }
-  BTOR_RELEASE_STACK (mm, ranges);
-  BTOR_RELEASE_STACK (mm, indices);
-  BTOR_RELEASE_STACK (mm, indices_ranges);
-  BTOR_RELEASE_STACK (mm, values);
-  BTOR_RELEASE_STACK (mm, increments);
-  BTOR_RELEASE_STACK (mm, indices_itoi);
-  BTOR_RELEASE_STACK (mm, indices_itoip1);
-  BTOR_RELEASE_STACK (mm, indices_cpy);
-  BTOR_RELEASE_STACK (mm, indices_rem);
+  BTOR_RELEASE_STACK (ranges);
+  BTOR_RELEASE_STACK (indices);
+  BTOR_RELEASE_STACK (indices_ranges);
+  BTOR_RELEASE_STACK (values);
+  BTOR_RELEASE_STACK (increments);
+  BTOR_RELEASE_STACK (indices_itoi);
+  BTOR_RELEASE_STACK (indices_itoip1);
+  BTOR_RELEASE_STACK (indices_cpy);
+  BTOR_RELEASE_STACK (indices_rem);
 
   BTOR_MSG (btor->msg,
             1,

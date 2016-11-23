@@ -105,8 +105,8 @@ btor_optimize_unconstrained (Btor *btor)
 
   start = btor_time_stamp ();
   mm    = btor->mm;
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (roots);
+  BTOR_INIT_STACK (mm, stack);
+  BTOR_INIT_STACK (mm, roots);
   uc[0] = uc[1] = uc[2] = ucp[0] = ucp[1] = ucp[2] = false;
 
   mark = btor_new_int_hash_map (mm);
@@ -131,7 +131,7 @@ btor_optimize_unconstrained (Btor *btor)
       if (btor_is_uf_node (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
-        BTOR_PUSH_STACK (mm, stack, cur_parent);
+        BTOR_PUSH_STACK (stack, cur_parent);
     }
   }
   while (!BTOR_EMPTY_STACK (stack))
@@ -142,19 +142,19 @@ btor_optimize_unconstrained (Btor *btor)
     {
       btor_add_int_hash_map (mark, cur->id);
       if (!cur->parents)
-        BTOR_PUSH_STACK (mm, roots, cur);
+        BTOR_PUSH_STACK (roots, cur);
       else
       {
         btor_init_parent_iterator (&pit, cur);
         while (btor_has_next_parent_iterator (&pit))
-          BTOR_PUSH_STACK (mm, stack, btor_next_parent_iterator (&pit));
+          BTOR_PUSH_STACK (stack, btor_next_parent_iterator (&pit));
       }
     }
   }
 
   /* identify unconstrained candidates */
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
-    BTOR_PUSH_STACK (mm, stack, BTOR_PEEK_STACK (roots, i));
+    BTOR_PUSH_STACK (stack, BTOR_PEEK_STACK (roots, i));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
@@ -171,9 +171,9 @@ btor_optimize_unconstrained (Btor *btor)
     if (d->as_int == 0)
     {
       d->as_int = 1;
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
       for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+        BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
     }
     else
     {
@@ -259,8 +259,8 @@ btor_optimize_unconstrained (Btor *btor)
   btor_delete_substitutions (btor);
   btor_delete_int_hash_table (ucs);
   btor_delete_int_hash_table (ucsp);
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, roots);
+  BTOR_RELEASE_STACK (stack);
+  BTOR_RELEASE_STACK (roots);
 
   delta = btor_time_stamp () - start;
   btor->time.ucopt += delta;

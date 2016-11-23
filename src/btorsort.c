@@ -385,7 +385,7 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
   }
   assert (res->kind);
   res->id = BTOR_COUNT_STACK (table->id2sort);
-  BTOR_PUSH_STACK (table->mm, table->id2sort, res);
+  BTOR_PUSH_STACK (table->id2sort, res);
   assert (BTOR_COUNT_STACK (table->id2sort) == res->id + 1);
   assert (BTOR_PEEK_STACK (table->id2sort, res->id) == res);
 

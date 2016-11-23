@@ -140,10 +140,10 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   mm  = aprop->amgr->btor->mm;
   res = 0.0;
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
   mark = btor_new_int_hash_map (mm);
 
-  BTOR_PUSH_STACK (mm, stack, aig);
+  BTOR_PUSH_STACK (stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -161,13 +161,13 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     {
       btor_add_int_hash_map (mark, real_cur->id);
       assert (btor_aig_is_var (real_cur) || btor_aig_is_and (real_cur));
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
       if (btor_aig_is_and (real_cur))
       {
         left  = btor_aig_get_left_child (aprop->amgr, real_cur);
         right = btor_aig_get_right_child (aprop->amgr, real_cur);
-        if (!btor_aig_is_const (left)) BTOR_PUSH_STACK (mm, stack, left);
-        if (!btor_aig_is_const (right)) BTOR_PUSH_STACK (mm, stack, right);
+        if (!btor_aig_is_const (left)) BTOR_PUSH_STACK (stack, left);
+        if (!btor_aig_is_const (right)) BTOR_PUSH_STACK (stack, right);
       }
     }
     else
@@ -264,7 +264,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   }
 
   btor_delete_int_hash_map (mark);
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 
   assert (btor_contains_int_hash_map (aprop->score, btor_aig_get_id (aig)));
   assert (btor_contains_int_hash_map (aprop->score, -btor_aig_get_id (aig)));
@@ -288,7 +288,7 @@ compute_scores (AIGProp *aprop)
 
   mm = aprop->amgr->btor->mm;
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
   cache = btor_new_int_hash_table (mm);
 
   if (!aprop->score) aprop->score = btor_new_int_hash_map (mm);
@@ -296,8 +296,7 @@ compute_scores (AIGProp *aprop)
   /* collect roots */
   btor_init_int_hash_table_iterator (&it, aprop->roots);
   while (btor_has_next_int_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (mm,
-                     stack,
+    BTOR_PUSH_STACK (stack,
                      btor_aig_get_by_id (
                          aprop->amgr, btor_next_int_hash_table_iterator (&it)));
 
@@ -315,7 +314,7 @@ compute_scores (AIGProp *aprop)
     {
       btor_add_int_hash_table (cache, real_cur->id);
       assert (btor_aig_is_var (real_cur) || btor_aig_is_and (real_cur));
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
       if (btor_aig_is_and (real_cur))
       {
         left  = btor_aig_get_left_child (aprop->amgr, real_cur);
@@ -323,11 +322,11 @@ compute_scores (AIGProp *aprop)
         if (!btor_aig_is_const (left)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (left)->id))
-          BTOR_PUSH_STACK (mm, stack, left);
+          BTOR_PUSH_STACK (stack, left);
         if (!btor_aig_is_const (right)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (right)->id))
-          BTOR_PUSH_STACK (mm, stack, right);
+          BTOR_PUSH_STACK (stack, right);
       }
     }
     else
@@ -337,7 +336,7 @@ compute_scores (AIGProp *aprop)
   }
 
   /* cleanup */
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
   btor_delete_int_hash_table (cache);
 }
 
@@ -361,8 +360,8 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   mm = aprop->amgr->btor->mm;
 
   cache = btor_new_int_hash_table (mm);
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, aig);
+  BTOR_INIT_STACK (mm, stack);
+  BTOR_PUSH_STACK (stack, aig);
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -385,15 +384,15 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
       if (!btor_contains_int_hash_table (cache, real_cur->id))
       {
         btor_add_int_hash_table (cache, real_cur->id);
-        BTOR_PUSH_STACK (mm, stack, cur);
+        BTOR_PUSH_STACK (stack, cur);
         if (!btor_aig_is_const (left)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (left)->id))
-          BTOR_PUSH_STACK (mm, stack, left);
+          BTOR_PUSH_STACK (stack, left);
         if (!btor_aig_is_const (right)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_AIG (right)->id))
-          BTOR_PUSH_STACK (mm, stack, right);
+          BTOR_PUSH_STACK (stack, right);
       }
       else
       {
@@ -410,7 +409,7 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   }
 
   btor_delete_int_hash_table (cache);
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 void
@@ -548,8 +547,8 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
 
   /* reset cone ----------------------------------------------------------- */
 
-  BTOR_INIT_STACK (cone);
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, cone);
+  BTOR_INIT_STACK (mm, stack);
   cache   = btor_new_int_hash_map (mm);
   tmpcone = btor_new_int_hash_table (mm);
   btor_add_int_hash_table (tmpcone, btor_aig_get_id (aig));
@@ -560,7 +559,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     cur = btor_aig_get_by_id (aprop->amgr,
                               btor_next_int_hash_table_iterator (&it));
     assert (!btor_aig_is_const (cur));
-    BTOR_PUSH_STACK (mm, stack, cur);
+    BTOR_PUSH_STACK (stack, cur);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
@@ -579,11 +578,11 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
         d->as_int = 1;
         continue;
       }
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
       for (i = 0; i < 2; i++)
       {
         child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
-        if (!btor_aig_is_const (child)) BTOR_PUSH_STACK (mm, stack, child);
+        if (!btor_aig_is_const (child)) BTOR_PUSH_STACK (stack, child);
       }
     }
     else
@@ -600,14 +599,14 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
             && !btor_contains_int_hash_table (tmpcone, cur->id))
         {
           btor_add_int_hash_table (tmpcone, cur->id);
-          BTOR_PUSH_STACK (mm, cone, cur);
+          BTOR_PUSH_STACK (cone, cur);
           break;
         }
       }
     }
   }
 
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
   btor_delete_int_hash_map (cache);
   btor_delete_int_hash_table (tmpcone);
 
@@ -714,7 +713,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     aprop->time.update_cone_compute_score += btor_time_stamp () - delta;
   }
 
-  BTOR_RELEASE_STACK (mm, cone);
+  BTOR_RELEASE_STACK (cone);
 
 #ifndef NDEBUG
   btor_init_int_hash_table_iterator (&it, aprop->roots);
@@ -802,7 +801,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   {
     uint32_t r;
     BtorAIGPtrStack stack;
-    BTOR_INIT_STACK (stack);
+    BTOR_INIT_STACK (mm, stack);
     btor_init_int_hash_table_iterator (&it, aprop->unsatroots);
     while (btor_has_next_int_hash_table_iterator (&it))
     {
@@ -810,12 +809,12 @@ select_root (AIGProp *aprop, uint32_t nmoves)
                                 btor_next_int_hash_table_iterator (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
       assert (!btor_aig_is_const (cur));
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
     }
     assert (BTOR_COUNT_STACK (stack));
     r   = btor_pick_rand_rng (&aprop->rng, 0, BTOR_COUNT_STACK (stack) - 1);
     res = stack.start[r];
-    BTOR_RELEASE_STACK (mm, stack);
+    BTOR_RELEASE_STACK (stack);
   }
 
   assert (res);

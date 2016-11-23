@@ -82,7 +82,7 @@ new_btorunt (void)
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
-  BTOR_INIT_STACK (res->btor_opts);
+  BTOR_INIT_STACK (mm, res->btor_opts);
   res->line = 1;
   return res;
 }
@@ -102,7 +102,7 @@ delete_btorunt (BtorUNT *unt)
     btor_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
-  BTOR_RELEASE_STACK (mm, unt->btor_opts);
+  BTOR_RELEASE_STACK (unt->btor_opts);
   BTOR_DELETE (mm, unt);
   btor_delete_mem_mgr (mm);
 }
@@ -373,9 +373,9 @@ parse (FILE *file)
 
   BTOR_CNEWN (g_btorunt->mm, buffer, buffer_len);
 
-  BTOR_INIT_STACK (arg_int);
-  BTOR_INIT_STACK (arg_str);
-  BTOR_INIT_STACK (sort_stack);
+  BTOR_INIT_STACK (g_btorunt->mm, arg_int);
+  BTOR_INIT_STACK (g_btorunt->mm, arg_str);
+  BTOR_INIT_STACK (g_btorunt->mm, sort_stack);
 
   BTOR_CNEWN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
 
@@ -1551,7 +1551,6 @@ NEXT:
     {
       while ((tok = strtok (0, " ")))
         BTOR_PUSH_STACK (
-            g_btorunt->mm,
             sort_stack,
             (BoolectorSort) (size_t) hmap_get (hmap, btor_str, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
@@ -1621,9 +1620,9 @@ NEXT:
 DONE:
   BTORUNT_LOG ("done %s", g_btorunt->filename);
   BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
-  BTOR_RELEASE_STACK (g_btorunt->mm, arg_int);
-  BTOR_RELEASE_STACK (g_btorunt->mm, arg_str);
-  BTOR_RELEASE_STACK (g_btorunt->mm, sort_stack);
+  BTOR_RELEASE_STACK (arg_int);
+  BTOR_RELEASE_STACK (arg_str);
+  BTOR_RELEASE_STACK (sort_stack);
   BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
@@ -1686,7 +1685,7 @@ main (int argc, char **argv)
       btoropt->kind = o;
       btoropt->name = btor_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
-      BTOR_PUSH_STACK (g_btorunt->mm, g_btorunt->btor_opts, btoropt);
+      BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }
     else if (argv[i][0] == '-')
       btorunt_error ("invalid command line option '%s' (try '-h')", argv[i]);

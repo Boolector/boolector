@@ -397,12 +397,12 @@ extract_store (BtorSMTDumpContext * sdc, BtorNode * exp,
 #define PUSH_DUMP_NODE(                                      \
     exp, expect_bv, expect_bool, add_space, zero_ext, depth) \
   {                                                          \
-    BTOR_PUSH_STACK (mm, dump, exp);                         \
-    BTOR_PUSH_STACK (mm, expect_bv_stack, expect_bv);        \
-    BTOR_PUSH_STACK (mm, expect_bool_stack, expect_bool);    \
-    BTOR_PUSH_STACK (mm, add_space_stack, add_space);        \
-    BTOR_PUSH_STACK (mm, zero_extend_stack, zero_ext);       \
-    BTOR_PUSH_STACK (mm, depth_stack, depth);                \
+    BTOR_PUSH_STACK (dump, exp);                             \
+    BTOR_PUSH_STACK (expect_bv_stack, expect_bv);            \
+    BTOR_PUSH_STACK (expect_bool_stack, expect_bool);        \
+    BTOR_PUSH_STACK (add_space_stack, add_space);            \
+    BTOR_PUSH_STACK (zero_extend_stack, zero_ext);           \
+    BTOR_PUSH_STACK (depth_stack, depth);                    \
   }
 
 static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
@@ -453,7 +453,7 @@ get_children (BtorSMTDumpContext *sdc,
     if (!btor_is_and_node (real_cur) || (b && b->data.as_int > 1)
         || (is_and && BTOR_IS_INVERTED_NODE (cur)))
     {
-      BTOR_PUSH_STACK (sdc->btor->mm, *children, cur);
+      BTOR_PUSH_STACK (*children, cur);
       continue;
     }
 
@@ -490,13 +490,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
   mm      = sdc->btor->mm;
   visited = btor_new_ptr_hash_table (mm, 0, 0);
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (dump);
-  BTOR_INIT_STACK (expect_bv_stack);
-  BTOR_INIT_STACK (expect_bool_stack);
-  BTOR_INIT_STACK (add_space_stack);
-  BTOR_INIT_STACK (zero_extend_stack);
-  BTOR_INIT_STACK (depth_stack);
+  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (mm, dump);
+  BTOR_INIT_STACK (mm, expect_bv_stack);
+  BTOR_INIT_STACK (mm, expect_bool_stack);
+  BTOR_INIT_STACK (mm, add_space_stack);
+  BTOR_INIT_STACK (mm, zero_extend_stack);
+  BTOR_INIT_STACK (mm, depth_stack);
 
   PUSH_DUMP_NODE (exp, expect_bv, 0, 0, 0, 0);
   while (!BTOR_EMPTY_STACK (dump))
@@ -620,7 +620,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           while (btor_has_next_args_iterator (&it))
           {
             arg = btor_next_args_iterator (&it);
-            BTOR_PUSH_STACK (mm, args, arg);
+            BTOR_PUSH_STACK (args, arg);
           }
           while (!BTOR_EMPTY_STACK (args))
           {
@@ -757,13 +757,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
     }
   }
   assert (BTOR_EMPTY_STACK (expect_bv_stack));
-  BTOR_RELEASE_STACK (mm, args);
-  BTOR_RELEASE_STACK (mm, dump);
-  BTOR_RELEASE_STACK (mm, expect_bv_stack);
-  BTOR_RELEASE_STACK (mm, expect_bool_stack);
-  BTOR_RELEASE_STACK (mm, add_space_stack);
-  BTOR_RELEASE_STACK (mm, zero_extend_stack);
-  BTOR_RELEASE_STACK (mm, depth_stack);
+  BTOR_RELEASE_STACK (args);
+  BTOR_RELEASE_STACK (dump);
+  BTOR_RELEASE_STACK (expect_bv_stack);
+  BTOR_RELEASE_STACK (expect_bool_stack);
+  BTOR_RELEASE_STACK (add_space_stack);
+  BTOR_RELEASE_STACK (zero_extend_stack);
+  BTOR_RELEASE_STACK (depth_stack);
   btor_delete_ptr_hash_table (visited);
 }
 
@@ -829,8 +829,8 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   mark = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  BTOR_INIT_STACK (visit);
-  BTOR_INIT_STACK (shared);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_INIT_STACK (mm, shared);
 
 #if 0
   extract_store (sdc, fun, &index, &value, &array);
@@ -846,7 +846,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 
   /* collect shared parameterized expressions in function body */
   fun_body = btor_lambda_get_body (fun);
-  BTOR_PUSH_STACK (mm, visit, fun_body);
+  BTOR_PUSH_STACK (visit, fun_body);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -867,10 +867,10 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
         && !btor_is_param_node (cur)
         /* constants are always printed */
         && !btor_is_bv_const_node (cur) && cur->parameterized && refs > 1)
-      BTOR_PUSH_STACK (mm, shared, cur);
+      BTOR_PUSH_STACK (shared, cur);
 
     btor_add_ptr_hash_table (mark, cur);
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
 
   /* dump function signature */
@@ -950,7 +950,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
           && !btor_get_ptr_hash_table (sdc->dumped, p)
           && btor_is_lambda_node (p))
       {
-        BTOR_PUSH_STACK (mm, visit, cur);
+        BTOR_PUSH_STACK (visit, cur);
         while (!BTOR_EMPTY_STACK (visit))
         {
           cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -964,16 +964,15 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
           if (btor_get_ptr_hash_table (sdc->dumped, cur))
             btor_remove_ptr_hash_table (sdc->dumped, cur, 0, 0);
 
-          for (i = 0; i < cur->arity; i++)
-            BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+          for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
         }
         break;
       }
     }
   }
 
-  BTOR_RELEASE_STACK (mm, shared);
-  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (shared);
+  BTOR_RELEASE_STACK (visit);
   btor_delete_ptr_hash_table (mark);
 }
 
@@ -1125,17 +1124,17 @@ dump_smt (BtorSMTDumpContext *sdc)
   BtorArgsIterator ait;
 
   mm = sdc->btor->mm;
-  BTOR_INIT_STACK (visit);
-  BTOR_INIT_STACK (shared);
-  BTOR_INIT_STACK (all);
-  BTOR_INIT_STACK (vars);
-  BTOR_INIT_STACK (ufs);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_INIT_STACK (mm, shared);
+  BTOR_INIT_STACK (mm, all);
+  BTOR_INIT_STACK (mm, vars);
+  BTOR_INIT_STACK (mm, ufs);
 
   btor_init_ptr_hash_table_iterator (&it, sdc->roots);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     cur = btor_next_ptr_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur));
+    BTOR_PUSH_STACK (visit, BTOR_REAL_ADDR_NODE (cur));
   }
 
   /* collect constants, variables, array variables and functions */
@@ -1148,18 +1147,18 @@ dump_smt (BtorSMTDumpContext *sdc)
     if (btor_get_ptr_hash_table (sdc->dump, cur)) continue;
 
     btor_add_ptr_hash_table (sdc->dump, cur)->data.as_int = 0;
-    BTOR_PUSH_STACK (mm, all, cur);
+    BTOR_PUSH_STACK (all, cur);
 
     if (btor_is_bv_var_node (cur))
-      BTOR_PUSH_STACK (mm, vars, cur);
+      BTOR_PUSH_STACK (vars, cur);
     else if (btor_is_uf_node (cur))
-      BTOR_PUSH_STACK (mm, ufs, cur);
+      BTOR_PUSH_STACK (ufs, cur);
     else if (btor_is_lambda_node (cur) && !cur->parameterized
              && !has_lambda_parents_only (cur))
-      BTOR_PUSH_STACK (mm, shared, cur);
+      BTOR_PUSH_STACK (shared, cur);
 
     for (j = 0; j < cur->arity; j++)
-      BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[j]));
+      BTOR_PUSH_STACK (visit, BTOR_REAL_ADDR_NODE (cur->e[j]));
   }
 
   /* compute reference counts of expressions (required for determining shared
@@ -1209,7 +1208,7 @@ dump_smt (BtorSMTDumpContext *sdc)
         || btor_is_args_node (cur))
       continue;
 
-    BTOR_PUSH_STACK (mm, shared, cur);
+    BTOR_PUSH_STACK (shared, cur);
   }
 
   /* collect boolean terms */
@@ -1284,11 +1283,11 @@ dump_smt (BtorSMTDumpContext *sdc)
   }
 #endif
 
-  BTOR_RELEASE_STACK (mm, shared);
-  BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, all);
-  BTOR_RELEASE_STACK (mm, vars);
-  BTOR_RELEASE_STACK (mm, ufs);
+  BTOR_RELEASE_STACK (shared);
+  BTOR_RELEASE_STACK (visit);
+  BTOR_RELEASE_STACK (all);
+  BTOR_RELEASE_STACK (vars);
+  BTOR_RELEASE_STACK (ufs);
 
   fputs ("(check-sat)\n", sdc->file);
   fputs ("(exit)\n", sdc->file);
@@ -1378,8 +1377,8 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  BTOR_INIT_STACK (all);
-  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (btor->mm, all);
+  BTOR_INIT_STACK (btor->mm, visit);
   sdc = new_smt_dump_context (btor, file);
 
   if (!exp)
@@ -1398,7 +1397,7 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
     goto CLEANUP;
   }
 
-  BTOR_PUSH_STACK (btor->mm, visit, exp);
+  BTOR_PUSH_STACK (visit, exp);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -1410,10 +1409,9 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
       btor_add_ptr_hash_table (sdc->dumped, cur);
 
     btor_add_ptr_hash_table (sdc->dump, cur);
-    BTOR_PUSH_STACK (btor->mm, all, cur);
+    BTOR_PUSH_STACK (all, cur);
 
-    for (i = 0; i < cur->arity; i++)
-      BTOR_PUSH_STACK (btor->mm, visit, cur->e[i]);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
 
   /* compute reference counts of expressions (required for determining shared
@@ -1453,6 +1451,6 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
   }
 CLEANUP:
   delete_smt_dump_context (sdc);
-  BTOR_RELEASE_STACK (btor->mm, all);
-  BTOR_RELEASE_STACK (btor->mm, visit);
+  BTOR_RELEASE_STACK (all);
+  BTOR_RELEASE_STACK (visit);
 }

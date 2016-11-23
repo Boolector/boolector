@@ -61,7 +61,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   int lazy_synthesize;
   BtorAIGPtrStack roots;
 
-  BTOR_INIT_STACK (roots);
+  BTOR_INIT_STACK (btor->mm, roots);
   amgr           = btor_get_aig_mgr_btor (btor);
   avmgr          = btor->avmgr;
   backannotation = btor_new_ptr_hash_table (btor->mm, 0, 0);
@@ -91,15 +91,15 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
       merged = tmp;
     }
     else
-      BTOR_PUSH_STACK (btor->mm, roots, btor_copy_aig (amgr, av->aigs[0]));
+      BTOR_PUSH_STACK (roots, btor_copy_aig (amgr, av->aigs[0]));
     btor_release_delete_aigvec (avmgr, av);
   }
   btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
-  if (merge_roots) BTOR_PUSH_STACK (btor->mm, roots, merged);
+  if (merge_roots) BTOR_PUSH_STACK (roots, merged);
 
   if (BTOR_EMPTY_STACK (roots))
-    BTOR_PUSH_STACK (
-        btor->mm, roots, btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
+    BTOR_PUSH_STACK (roots,
+                     btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
 
   btor_dump_seq_aiger (amgr,
                        is_binary,
@@ -113,7 +113,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 
   while (!BTOR_EMPTY_STACK (roots))
     btor_release_aig (amgr, BTOR_POP_STACK (roots));
-  BTOR_RELEASE_STACK (btor->mm, roots);
+  BTOR_RELEASE_STACK (roots);
 
   btor_init_ptr_hash_table_iterator (&it, backannotation);
   while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -161,16 +161,16 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     btor_add_ptr_hash_table (latches, aig);
   }
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (stack, aig);
   }
   for (i = nregs - 1; i >= 0; i--)
   {
     aig = nexts[i];
-    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (stack, aig);
   }
 
   M = 0;
@@ -201,7 +201,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
       assert (btor_aig_is_and (aig));
 
       right = btor_aig_get_right_child (amgr, aig);
-      BTOR_PUSH_STACK (mm, stack, right);
+      BTOR_PUSH_STACK (stack, right);
 
       aig = btor_aig_get_left_child (amgr, aig);
       goto CONTINUE_WITHOUT_POP;
@@ -229,12 +229,12 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   for (i = nregs - 1; i >= 0; i--)
   {
     aig = nexts[i];
-    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (stack, aig);
   }
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+    if (!btor_aig_is_const (aig)) BTOR_PUSH_STACK (stack, aig);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
@@ -254,11 +254,11 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
       if (btor_aig_is_var (aig)) continue;
 
-      BTOR_PUSH_STACK (mm, stack, aig);
-      BTOR_PUSH_STACK (mm, stack, 0);
+      BTOR_PUSH_STACK (stack, aig);
+      BTOR_PUSH_STACK (stack, 0);
 
       right = btor_aig_get_right_child (amgr, aig);
-      BTOR_PUSH_STACK (mm, stack, right);
+      BTOR_PUSH_STACK (stack, right);
 
       aig = btor_aig_get_left_child (amgr, aig);
       goto CONTINUE_WITH_NON_ZERO_AIG;
@@ -283,7 +283,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
   A = M - I - L;
 
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 
   O = naigs;
 

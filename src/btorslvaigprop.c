@@ -130,13 +130,13 @@ generate_model_from_aig_model (Btor *btor)
    * Note: we can only map inputs back, since other nodes might have partial
    *       assignments only (e.g. for a slice we may have AIGs for the sliced
    *       bits of its input only) */
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (btor->mm, stack, btor_next_ptr_hash_table_iterator (&it));
+    BTOR_PUSH_STACK (stack, btor_next_ptr_hash_table_iterator (&it));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -153,9 +153,9 @@ generate_model_from_aig_model (Btor *btor)
       btor_free_bv (btor->mm, bv);
     }
     for (i = 0; i < real_cur->arity; i++)
-      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+      BTOR_PUSH_STACK (stack, real_cur->e[i]);
   }
-  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (stack);
   btor_delete_int_hash_table (cache);
 }
 

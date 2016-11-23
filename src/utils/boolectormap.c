@@ -226,8 +226,8 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   mm   = btor->mm;
   mark = btor_new_int_hash_map (mm);
 
-  BTOR_INIT_STACK (working_stack);
-  BTOR_PUSH_STACK (mm, working_stack, eroot);
+  BTOR_INIT_STACK (mm, working_stack);
+  BTOR_PUSH_STACK (working_stack, eroot);
 
   while (!BTOR_EMPTY_STACK (working_stack))
   {
@@ -251,9 +251,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     else if (!d)
     {
       btor_add_int_hash_map (mark, node->id);
-      BTOR_PUSH_STACK (mm, working_stack, node);
+      BTOR_PUSH_STACK (working_stack, node);
       for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, working_stack, node->e[i]);
+        BTOR_PUSH_STACK (working_stack, node->e[i]);
     }
     else
     {
@@ -270,7 +270,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     assert (!BTOR_IS_INVERTED_NODE (node));
     btor_dec_exp_ext_ref_counter (node->btor, node);
   }
-  BTOR_RELEASE_STACK (mm, working_stack);
+  BTOR_RELEASE_STACK (working_stack);
   btor_delete_int_hash_map (mark);
   res = boolector_mapped_node (map, nroot);
   assert (res);

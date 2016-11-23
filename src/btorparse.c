@@ -159,7 +159,7 @@ btor_parse (Btor *btor,
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
   mem = btor_new_mem_mgr ();
-  BTOR_INIT_STACK (prefix);
+  BTOR_INIT_STACK (mem, prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
@@ -179,20 +179,20 @@ btor_parse (Btor *btor,
     for (;;)
     {
       ch = getc (infile);
-      BTOR_PUSH_STACK (mem, prefix, ch);
+      BTOR_PUSH_STACK (prefix, ch);
       if (!ch || ch == EOF) break;
       if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
       {
-        BTOR_PUSH_STACK (mem, prefix, ch);
+        BTOR_PUSH_STACK (prefix, ch);
       }
       else if (ch == ';')
       {
-        BTOR_PUSH_STACK (mem, prefix, ';');
+        BTOR_PUSH_STACK (prefix, ';');
         do
         {
           ch = getc (infile);
           if (ch == EOF) break;
-          BTOR_PUSH_STACK (mem, prefix, ch);
+          BTOR_PUSH_STACK (prefix, ch);
         } while (ch != '\n');
         if (ch == EOF) break;
       }
@@ -237,7 +237,7 @@ btor_parse (Btor *btor,
                         msg);
 
   /* cleanup */
-  BTOR_RELEASE_STACK (mem, prefix);
+  BTOR_RELEASE_STACK (prefix);
   btor_delete_mem_mgr (mem);
   BTOR_DELETEN (btor->mm, msg, len);
 

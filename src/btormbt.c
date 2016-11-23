@@ -589,7 +589,7 @@ btormbt_new_exp_stack (BtorMemMgr *mm)
   BtorMBTExpStack *res;
 
   BTOR_CNEW (mm, res);
-  BTOR_INIT_STACK (res->exps);
+  BTOR_INIT_STACK (mm, res->exps);
   return res;
 }
 
@@ -606,7 +606,7 @@ btormbt_push_exp_stack (BtorMemMgr *mm,
 
   BTOR_CNEW (mm, e);
   e->exp = exp;
-  BTOR_PUSH_STACK (mm, expstack->exps, e);
+  BTOR_PUSH_STACK (expstack->exps, e);
 }
 
 static BoolectorNode *
@@ -667,7 +667,7 @@ btormbt_release_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
     exp = BTOR_POP_STACK (expstack->exps);
     BTOR_DELETE (mm, exp);
   }
-  BTOR_RELEASE_STACK (mm, expstack->exps);
+  BTOR_RELEASE_STACK (expstack->exps);
   BTOR_DELETE (mm, expstack);
 }
 
@@ -692,7 +692,7 @@ btormbt_new_sort_stack (BtorMemMgr *mm)
   BoolectorSortStack *res;
 
   BTOR_CNEW (mm, res);
-  BTOR_INIT_STACK (*res);
+  BTOR_INIT_STACK (mm, *res);
   return res;
 }
 
@@ -705,7 +705,7 @@ btormbt_push_sort_stack (BtorMemMgr *mm,
   assert (sortstack);
   assert (sort);
 
-  BTOR_PUSH_STACK (mm, *sortstack, sort);
+  BTOR_PUSH_STACK (*sortstack, sort);
 }
 
 static void
@@ -714,7 +714,7 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
   assert (sortstack);
 
   if (!sortstack) return;
-  BTOR_RELEASE_STACK (mm, *sortstack);
+  BTOR_RELEASE_STACK (*sortstack);
   BTOR_DELETE (mm, sortstack);
 }
 
@@ -975,7 +975,7 @@ btormbt_new_btormbt (void)
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
-  BTOR_INIT_STACK (mbt->btor_opts);
+  BTOR_INIT_STACK (mm, mbt->btor_opts);
 
   /* retrieve all available boolector options */
   tmpbtor = boolector_new ();
@@ -992,7 +992,7 @@ btormbt_new_btormbt (void)
     /* disabling incremental not supported */
     if (opt == BTOR_OPT_INCREMENTAL) btoropt->min = btoropt->max;
     btoropt->set_by_cl = false;
-    BTOR_PUSH_STACK (mm, mbt->btor_opts, btoropt);
+    BTOR_PUSH_STACK (mbt->btor_opts, btoropt);
   }
   boolector_delete (tmpbtor);
 
@@ -1118,7 +1118,7 @@ btormbt_delete_btormbt (BtorMBT *mbt)
     if (opt->shrt) btor_freestr (mbt->mm, opt->shrt);
     BTOR_DELETE (mm, opt);
   }
-  BTOR_RELEASE_STACK (mm, mbt->btor_opts);
+  BTOR_RELEASE_STACK (mbt->btor_opts);
   BTOR_DELETE (mm, mbt);
   btor_delete_mem_mgr (mm);
 }
@@ -2353,7 +2353,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
   BoolectorSort s;
   BtorIntStack param_widths;
 
-  BTOR_INIT_STACK (param_widths);
+  BTOR_INIT_STACK (mbt->mm, param_widths);
   /* choose between apply on random existing and apply on new function */
   /* use existing function */
   if (btor_pick_with_prob_rng (&mbt->rng, mbt->p_apply_fun)
@@ -2380,8 +2380,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
                                 btor_exp_get_sort_id ((BtorNode *) fun));
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
-      BTOR_PUSH_STACK (mbt->mm,
-                       param_widths,
+      BTOR_PUSH_STACK (param_widths,
                        btor_get_width_bitvec_sort (
                            mbt->btor, sort->fun.domain->tuple.elements[i]->id));
     }
@@ -2417,7 +2416,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
       mbt->paramfun = btormbt_new_exp_stack (mbt->mm);
 
     /* choose function parameters */
-    BTOR_INIT_STACK (params);
+    BTOR_INIT_STACK (mbt->mm, params);
     // TODO (ma): make configurable
     for (i = 0; i < btor_pick_rand_rng (&mbt->rng, MIN_NPARAMS, MAX_NPARAMS);
          i++)
@@ -2428,9 +2427,8 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
       s   = boolector_bitvec_sort (mbt->btor, width);
       tmp = boolector_param (mbt->btor, s, 0);
       boolector_release_sort (mbt->btor, s);
-      BTOR_PUSH_STACK (mbt->mm, params, tmp);
-      BTOR_PUSH_STACK (
-          mbt->mm, param_widths, boolector_get_width (mbt->btor, tmp));
+      BTOR_PUSH_STACK (params, tmp);
+      BTOR_PUSH_STACK (param_widths, boolector_get_width (mbt->btor, tmp));
       btormbt_push_node (mbt, tmp);
       g_btormbtstats->num_ops[PARAM]++;
     }
@@ -2517,7 +2515,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     for (i = 0; i < BTOR_COUNT_STACK (mbt->paramfun->exps); i++)
       btormbt_release_node (mbt, mbt->paramfun->exps.start[i]->exp);
     btormbt_release_exp_stack (mbt->mm, mbt->paramfun);
-    BTOR_RELEASE_STACK (mbt->mm, params);
+    BTOR_RELEASE_STACK (params);
 
     /* reset scope for arguments to apply node */
     mbt->parambo  = tmpparambo;
@@ -2533,20 +2531,20 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
   assert (nlevel > 0 || !btormbt_is_parameterized (mbt, fun));
 
   /* generate apply expression with arguments within scope of apply */
-  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (mbt->mm, args);
   for (i = 0; i < BTOR_COUNT_STACK (param_widths); i++)
   {
     width = BTOR_PEEK_STACK (param_widths, i);
     // TODO (ma): if width == 1 select BTORMBT_BO_T
     tmp = select_exp (mbt, BTORMBT_BV_T, 0);
-    BTOR_PUSH_STACK (mbt->mm, args, modify_bv (mbt, tmp, width));
+    BTOR_PUSH_STACK (args, modify_bv (mbt, tmp, width));
   }
 
   tmp = boolector_apply (mbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
   btormbt_push_node (mbt, tmp);
   g_btormbtstats->num_ops[APPLY]++;
-  BTOR_RELEASE_STACK (mbt->mm, param_widths);
-  BTOR_RELEASE_STACK (mbt->mm, args);
+  BTOR_RELEASE_STACK (param_widths);
+  BTOR_RELEASE_STACK (args);
 }
 
 static void
@@ -2577,7 +2575,7 @@ btormbt_bv_uf (BtorMBT *mbt)
   }
 
   /* create apply with sort of UF */
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mbt->mm, stack);
   btor_init_tuple_sort_iterator (
       &it,
       mbt->btor,
@@ -2588,7 +2586,7 @@ btormbt_bv_uf (BtorMBT *mbt)
     sortid = btor_next_tuple_sort_iterator (&it);
     width  = btor_get_width_bitvec_sort (mbt->btor, sortid);
     arg    = select_exp (mbt, BTORMBT_BB_T, 0);
-    BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, arg, width));
+    BTOR_PUSH_STACK (stack, modify_bv (mbt, arg, width));
   }
 
   /* create apply on UF */
@@ -2598,7 +2596,7 @@ btormbt_bv_uf (BtorMBT *mbt)
   width = boolector_get_width (mbt->btor, apply);
   btormbt_push_node (mbt, apply);
   g_btormbtstats->num_ops[APPLY]++;
-  BTOR_RELEASE_STACK (mbt->mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 /*------------------------------------------------------------------------*/

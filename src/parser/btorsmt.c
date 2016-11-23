@@ -429,7 +429,7 @@ btor_recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
 
   assert (BTOR_EMPTY_STACK (parser->delete));
 
-  BTOR_PUSH_STACK (parser->mem, parser->delete, root);
+  BTOR_PUSH_STACK (parser->delete, root);
   while (!BTOR_EMPTY_STACK (parser->delete))
   {
     node = BTOR_POP_STACK (parser->delete);
@@ -445,8 +445,8 @@ btor_recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
     }
     else
     {
-      BTOR_PUSH_STACK (parser->mem, parser->delete, cdr (node));
-      BTOR_PUSH_STACK (parser->mem, parser->delete, car (node));
+      BTOR_PUSH_STACK (parser->delete, cdr (node));
+      BTOR_PUSH_STACK (parser->delete, car (node));
     }
 
     btor_delete_smt_node (parser, node);
@@ -549,11 +549,11 @@ btor_release_smt_internals (BtorSMTParser *parser)
   btor_release_smt_nodes (parser);
   btor_release_smt_symbols (parser);
 
-  BTOR_RELEASE_STACK (parser->mem, parser->stack);
-  BTOR_RELEASE_STACK (parser->mem, parser->work);
-  BTOR_RELEASE_STACK (parser->mem, parser->delete);
-  BTOR_RELEASE_STACK (parser->mem, parser->heads);
-  BTOR_RELEASE_STACK (parser->mem, parser->buffer);
+  BTOR_RELEASE_STACK (parser->stack);
+  BTOR_RELEASE_STACK (parser->work);
+  BTOR_RELEASE_STACK (parser->delete);
+  BTOR_RELEASE_STACK (parser->heads);
+  BTOR_RELEASE_STACK (parser->buffer);
 }
 
 static void
@@ -564,7 +564,7 @@ btor_release_smt_vars (BtorSMTParser *parser)
   for (p = parser->inputs.start; p < parser->inputs.top; p++)
     boolector_release (parser->btor, *p);
 
-  BTOR_RELEASE_STACK (parser->mem, parser->inputs);
+  BTOR_RELEASE_STACK (parser->inputs);
 }
 
 static void
@@ -582,7 +582,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
     boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (mm, parser->outputs);
+  BTOR_RELEASE_STACK (parser->outputs);
 
   BTOR_DELETE (mm, parser);
   btor_delete_mem_mgr (mm);
@@ -693,6 +693,14 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
 
   res->mem  = mem;
   res->btor = btor;
+
+  BTOR_INIT_STACK (mem, res->stack);
+  BTOR_INIT_STACK (mem, res->work);
+  BTOR_INIT_STACK (mem, res->delete);
+  BTOR_INIT_STACK (mem, res->heads);
+  BTOR_INIT_STACK (mem, res->buffer);
+  BTOR_INIT_STACK (mem, res->inputs);
+  BTOR_INIT_STACK (mem, res->outputs);
 
   res->required_logic = BTOR_LOGIC_QF_BV;
 
@@ -899,17 +907,17 @@ SKIP_WHITE_SPACE:
 
   if (type & BTOR_SMTCC_IDENTIFIER_START)
   {
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     while (int2type (parser, (ch = btor_nextch_smt (parser)))
            & BTOR_SMTCC_IDENTIFIER_MIDDLE)
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
 
     count = 0;
 
     if (ch == '[')
     {
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
 
       ch = btor_nextch_smt (parser);
 
@@ -917,11 +925,11 @@ SKIP_WHITE_SPACE:
       {
         if (int2type (parser, ch) & BTOR_SMTCC_NUMERAL_START)
         {
-          BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+          BTOR_PUSH_STACK (parser->buffer, ch);
 
           while (int2type (parser, (ch = btor_nextch_smt (parser)))
                  & BTOR_SMTCC_DIGIT)
-            BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+            BTOR_PUSH_STACK (parser->buffer, ch);
 
         COUNT_AND_CONTINUE_WITH_NEXT_INDEX:
 
@@ -931,12 +939,12 @@ SKIP_WHITE_SPACE:
 
           if (ch != ':') goto UNEXPECTED_CHARACTER;
 
-          BTOR_PUSH_STACK (parser->mem, parser->buffer, ':');
+          BTOR_PUSH_STACK (parser->buffer, ':');
           ch = btor_nextch_smt (parser);
         }
         else if (ch == '0')
         {
-          BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+          BTOR_PUSH_STACK (parser->buffer, ch);
           ch = btor_nextch_smt (parser);
           goto COUNT_AND_CONTINUE_WITH_NEXT_INDEX;
         }
@@ -947,7 +955,7 @@ SKIP_WHITE_SPACE:
       if (!count) return !btor_perr_smt (parser, "empty index list");
 
       assert (ch == ']');
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
     }
     else
     {
@@ -956,7 +964,7 @@ SKIP_WHITE_SPACE:
       btor_savech_smt (parser, ch);
     }
 
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
 
@@ -1004,22 +1012,22 @@ SKIP_WHITE_SPACE:
     assert ((ch == '$') == (res == BTOR_SMTOK_FVAR));
     assert ((ch == ':') == (res == BTOR_SMTOK_ATTR));
 
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     ch = btor_nextch_smt (parser);
     if (!(int2type (parser, ch) & BTOR_SMTCC_IDENTIFIER_START))
       return !btor_perr_smt (parser, "expected identifier after '%c'", res);
 
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     while (int2type (parser, (ch = btor_nextch_smt (parser)))
            & BTOR_SMTCC_IDENTIFIER_MIDDLE)
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
 
     if (!ch) goto UNEXPECTED_CHARACTER;
 
     btor_savech_smt (parser, ch);
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
 
@@ -1031,11 +1039,11 @@ SKIP_WHITE_SPACE:
 
   if (type & BTOR_SMTCC_NUMERAL_START)
   {
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     while (int2type (parser, (ch = btor_nextch_smt (parser)))
            & BTOR_SMTCC_DIGIT)
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
 
   CHECK_FOR_FRACTIONAL_PART:
 
@@ -1043,20 +1051,20 @@ SKIP_WHITE_SPACE:
     {
       res = BTOR_SMTOK_RATIONAL;
 
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
       ch = btor_nextch_smt (parser);
 
       if (int2type (parser, ch) & BTOR_SMTCC_NUMERAL_START)
       {
-        BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+        BTOR_PUSH_STACK (parser->buffer, ch);
 
         while (int2type (parser, (ch = btor_nextch_smt (parser)))
                & BTOR_SMTCC_NUMERAL_START)
-          BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+          BTOR_PUSH_STACK (parser->buffer, ch);
       }
       else if (ch == '0')
       {
-        BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+        BTOR_PUSH_STACK (parser->buffer, ch);
 
         ch = btor_nextch_smt (parser);
         if (int2type (parser, ch) & BTOR_SMTCC_DIGIT)
@@ -1071,7 +1079,7 @@ SKIP_WHITE_SPACE:
     if (!ch) goto UNEXPECTED_CHARACTER;
 
     btor_savech_smt (parser, ch);
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol        = insert_symbol (parser, parser->buffer.start);
     parser->symbol->token = res;
@@ -1081,7 +1089,7 @@ SKIP_WHITE_SPACE:
 
   if (ch == '0')
   {
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     ch = btor_nextch_smt (parser);
     if (int2type (parser, ch) & BTOR_SMTCC_DIGIT)
@@ -1095,15 +1103,15 @@ SKIP_WHITE_SPACE:
 
   if (type & BTOR_SMTCC_ARITHMETIC_OPERATOR)
   {
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     while (int2type (parser, (ch = btor_nextch_smt (parser)))
            & BTOR_SMTCC_ARITHMETIC_OPERATOR)
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
 
     if (!ch) goto UNEXPECTED_CHARACTER;
 
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
     if (parser->symbol->token == BTOR_SMTOK_IDENTIFIER)
@@ -1122,7 +1130,7 @@ SKIP_WHITE_SPACE:
 
   if (ch == '{')
   {
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, ch);
 
     while ((ch = btor_nextch_smt (parser)) != '}')
     {
@@ -1130,18 +1138,18 @@ SKIP_WHITE_SPACE:
 
       if (ch == '\\')
       {
-        BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+        BTOR_PUSH_STACK (parser->buffer, ch);
         ch = btor_nextch_smt (parser);
       }
 
       if (ch == EOF) return !btor_perr_smt (parser, "unexpected EOF after '{'");
 
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
     }
 
     assert (ch == '}');
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, ch);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol        = insert_symbol (parser, parser->buffer.start);
     parser->symbol->token = BTOR_SMTOK_USERVAL;
@@ -1155,17 +1163,17 @@ SKIP_WHITE_SPACE:
     {
       if (ch == '\\')
       {
-        BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+        BTOR_PUSH_STACK (parser->buffer, ch);
         ch = btor_nextch_smt (parser);
       }
 
       if (ch == EOF)
         return !btor_perr_smt (parser, "unexpected EOF after '\"'");
 
-      BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+      BTOR_PUSH_STACK (parser->buffer, ch);
     }
 
-    BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
+    BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol        = insert_symbol (parser, parser->buffer.start);
     parser->symbol->token = BTOR_SMTOK_STRING;
@@ -1216,8 +1224,7 @@ static void
 push_input (BtorSMTParser *parser, BoolectorNode *v)
 {
   if (parser->model)
-    BTOR_PUSH_STACK (
-        parser->mem, parser->inputs, boolector_copy (parser->btor, v));
+    BTOR_PUSH_STACK (parser->inputs, boolector_copy (parser->btor, v));
 }
 
 static const char *
@@ -2286,7 +2293,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   assert (BTOR_EMPTY_STACK (parser->stack));
 
   assert (root);
-  BTOR_PUSH_STACK (parser->mem, parser->stack, root);
+  BTOR_PUSH_STACK (parser->stack, root);
 
   while (!BTOR_EMPTY_STACK (parser->stack))
   {
@@ -2300,7 +2307,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       }
       else if (car (node) == parser->bind)
       {
-        BTOR_PUSH_STACK (parser->mem, parser->work, node);
+        BTOR_PUSH_STACK (parser->work, node);
       }
       else if (is_let_or_flet (car (node)))
       {
@@ -2317,21 +2324,20 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
         body = car (cdr (cdr (node)));
 
-        BTOR_PUSH_STACK (parser->mem, parser->stack, node);
-        BTOR_PUSH_STACK (parser->mem, parser->stack, 0);
+        BTOR_PUSH_STACK (parser->stack, node);
+        BTOR_PUSH_STACK (parser->stack, 0);
 
-        BTOR_PUSH_STACK (parser->mem, parser->stack, body);
+        BTOR_PUSH_STACK (parser->stack, body);
 
-        BTOR_PUSH_STACK (parser->mem,
-                         parser->stack,
+        BTOR_PUSH_STACK (parser->stack,
                          cons (parser, parser->bind, assignment));
 
-        BTOR_PUSH_STACK (parser->mem, parser->stack, car (cdr (assignment)));
+        BTOR_PUSH_STACK (parser->stack, car (cdr (assignment)));
       }
       else
       {
-        BTOR_PUSH_STACK (parser->mem, parser->stack, node);
-        BTOR_PUSH_STACK (parser->mem, parser->stack, 0);
+        BTOR_PUSH_STACK (parser->stack, node);
+        BTOR_PUSH_STACK (parser->stack, 0);
 
         start = BTOR_COUNT_STACK (parser->stack);
 
@@ -2339,7 +2345,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         {
           child = car (p);
           assert (child);
-          BTOR_PUSH_STACK (parser->mem, parser->stack, child);
+          BTOR_PUSH_STACK (parser->stack, child);
         }
 
         end = BTOR_COUNT_STACK (parser->stack);
@@ -2370,7 +2376,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       assert (node);
       assert (!isleaf (node));
 
-      BTOR_PUSH_STACK (parser->mem, parser->work, node);
+      BTOR_PUSH_STACK (parser->work, node);
     }
   }
 
@@ -2821,7 +2827,7 @@ translate_benchmark (BtorSMTParser *parser,
         }
         else
         {
-          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+          BTOR_PUSH_STACK (parser->outputs, exp);
         }
 
         parser->assumptions.handled++;
@@ -2845,7 +2851,7 @@ translate_benchmark (BtorSMTParser *parser,
 
         if (!parser->incremental)
         {
-          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+          BTOR_PUSH_STACK (parser->outputs, exp);
         }
         else
           btor_smt_parser_inc_add_release_sat (parser, res, exp);
@@ -2933,7 +2939,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
 
   assert (BTOR_EMPTY_STACK (parser->stack));
 
-  BTOR_PUSH_STACK (parser->mem, parser->stack, top);
+  BTOR_PUSH_STACK (parser->stack, top);
   while (!BTOR_EMPTY_STACK (parser->stack))
   {
     n = BTOR_POP_STACK (parser->stack);
@@ -2945,7 +2951,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
     if (t)
     {
       assert (!isleaf (t));
-      BTOR_PUSH_STACK (parser->mem, parser->stack, t);
+      BTOR_PUSH_STACK (parser->stack, t);
     }
 
     assert (h);
@@ -2959,7 +2965,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
       }
     }
     else
-      BTOR_PUSH_STACK (parser->mem, parser->stack, h);
+      BTOR_PUSH_STACK (parser->stack, h);
   }
 
   btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
@@ -3008,7 +3014,7 @@ NEXT_TOKEN:
   if (token == BTOR_SMTOK_LP)
   {
     head = BTOR_COUNT_STACK (parser->stack);
-    BTOR_PUSH_STACK (parser->mem, parser->heads, head);
+    BTOR_PUSH_STACK (parser->heads, head);
     goto NEXT_TOKEN;
   }
 
@@ -3025,7 +3031,7 @@ NEXT_TOKEN:
     while (first < p) node = cons (parser, *--p, node);
 
     parser->stack.top = first;
-    BTOR_PUSH_STACK (parser->mem, parser->stack, node);
+    BTOR_PUSH_STACK (parser->stack, node);
 
     if (!BTOR_EMPTY_STACK (parser->heads)) goto NEXT_TOKEN;
 
@@ -3081,7 +3087,7 @@ NEXT_TOKEN:
     return btor_perr_smt (parser, "expected '('");
 
   assert (parser->symbol);
-  BTOR_PUSH_STACK (parser->mem, parser->stack, leaf (parser->symbol));
+  BTOR_PUSH_STACK (parser->stack, leaf (parser->symbol));
 
   goto NEXT_TOKEN;
 }

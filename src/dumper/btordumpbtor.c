@@ -72,6 +72,12 @@ btor_new_dump_context (Btor *btor)
   if (!btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT))
     res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
 
+  BTOR_INIT_STACK (btor->mm, res->outputs);
+  BTOR_INIT_STACK (btor->mm, res->bads);
+  BTOR_INIT_STACK (btor->mm, res->constraints);
+  BTOR_INIT_STACK (btor->mm, res->roots);
+  BTOR_INIT_STACK (btor->mm, res->work);
+
   return res;
 }
 
@@ -80,23 +86,23 @@ btor_delete_dump_context (BtorDumpContext *bdc)
 {
   BtorPtrHashTableIterator it;
 
-  BTOR_RELEASE_STACK (bdc->btor->mm, bdc->work);
+  BTOR_RELEASE_STACK (bdc->work);
 
   while (!BTOR_EMPTY_STACK (bdc->roots))
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->roots));
-  BTOR_RELEASE_STACK (bdc->btor->mm, bdc->roots);
+  BTOR_RELEASE_STACK (bdc->roots);
 
   while (!BTOR_EMPTY_STACK (bdc->outputs))
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->outputs));
-  BTOR_RELEASE_STACK (bdc->btor->mm, bdc->outputs);
+  BTOR_RELEASE_STACK (bdc->outputs);
 
   while (!BTOR_EMPTY_STACK (bdc->bads))
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->bads));
-  BTOR_RELEASE_STACK (bdc->btor->mm, bdc->bads);
+  BTOR_RELEASE_STACK (bdc->bads);
 
   while (!BTOR_EMPTY_STACK (bdc->constraints))
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->constraints));
-  BTOR_RELEASE_STACK (bdc->btor->mm, bdc->constraints);
+  BTOR_RELEASE_STACK (bdc->constraints);
 
   btor_init_ptr_hash_table_iterator (&it, bdc->inputs);
   while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -187,28 +193,28 @@ void
 btor_add_bad_to_dump_context (BtorDumpContext *bdc, BtorNode *bad)
 {
   (void) btor_copy_exp (bdc->btor, bad);
-  BTOR_PUSH_STACK (bdc->btor->mm, bdc->bads, bad);
+  BTOR_PUSH_STACK (bdc->bads, bad);
 }
 
 void
 btor_add_output_to_dump_context (BtorDumpContext *bdc, BtorNode *output)
 {
   (void) btor_copy_exp (bdc->btor, output);
-  BTOR_PUSH_STACK (bdc->btor->mm, bdc->outputs, output);
+  BTOR_PUSH_STACK (bdc->outputs, output);
 }
 
 void
 btor_add_root_to_dump_context (BtorDumpContext *bdc, BtorNode *root)
 {
   (void) btor_copy_exp (bdc->btor, root);
-  BTOR_PUSH_STACK (bdc->btor->mm, bdc->roots, root);
+  BTOR_PUSH_STACK (bdc->roots, root);
 }
 
 void
 btor_add_constraint_to_dump_context (BtorDumpContext *bdc, BtorNode *constraint)
 {
   (void) btor_copy_exp (bdc->btor, constraint);
-  BTOR_PUSH_STACK (bdc->btor->mm, bdc->constraints, constraint);
+  BTOR_PUSH_STACK (bdc->constraints, constraint);
 }
 
 static int
@@ -283,8 +289,8 @@ mark_no_dump (BtorDumpContext *bdc, BtorNode *node)
   BtorMemMgr *mm;
 
   mm = bdc->btor->mm;
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, node);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, node);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -293,9 +299,9 @@ mark_no_dump (BtorDumpContext *bdc, BtorNode *node)
       continue;
 
     btor_add_ptr_hash_table (bdc->no_dump, cur);
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
-  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (visit);
 }
 
 static void
@@ -576,9 +582,9 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   mark_sorts = btor_new_ptr_hash_table (mm, 0, 0);
 
-  BTOR_INIT_STACK (sorts);
-  BTOR_INIT_STACK (work);
-  BTOR_PUSH_STACK (mm, work, start);
+  BTOR_INIT_STACK (mm, sorts);
+  BTOR_INIT_STACK (mm, work);
+  BTOR_PUSH_STACK (work, start);
 
   while (!BTOR_EMPTY_STACK (work))
   {
@@ -594,10 +600,10 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
           || btor_get_ptr_hash_table (mark_sorts, sort)))
     {
       (void) btor_add_ptr_hash_table (mark_sorts, sort);
-      BTOR_PUSH_STACK (mm, sorts, sort);
+      BTOR_PUSH_STACK (sorts, sort);
     }
 
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, work, cur->e[i]);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (work, cur->e[i]);
   }
 
   qsort (sorts.start,
@@ -613,8 +619,8 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 
   btor_delete_ptr_hash_table (mark_nodes);
   btor_delete_ptr_hash_table (mark_sorts);
-  BTOR_RELEASE_STACK (mm, sorts);
-  BTOR_RELEASE_STACK (mm, work);
+  BTOR_RELEASE_STACK (sorts);
+  BTOR_RELEASE_STACK (work);
 }
 
 static void
@@ -627,7 +633,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 
   assert (BTOR_EMPTY_STACK (bdc->work));
 
-  BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, start);
+  BTOR_PUSH_STACK (bdc->work, start);
   while (!BTOR_EMPTY_STACK (bdc->work))
   {
     node = BTOR_POP_STACK (bdc->work);
@@ -635,14 +641,13 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
     {
       node = BTOR_REAL_ADDR_NODE (node);
       if (btor_get_ptr_hash_table (bdc->idtab, node)) continue;
-      BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, node);
-      BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, 0);
+      BTOR_PUSH_STACK (bdc->work, node);
+      BTOR_PUSH_STACK (bdc->work, 0);
 
       for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, node->e[i]);
+        BTOR_PUSH_STACK (bdc->work, node->e[i]);
 
-      if (node->simplified)
-        BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, node->simplified);
+      if (node->simplified) BTOR_PUSH_STACK (bdc->work, node->simplified);
     }
     else
     {

@@ -88,7 +88,7 @@ process_skeleton_tseitin (Btor *btor,
   BtorNode *exp;
   BtorHashTableData *d;
 
-  BTOR_PUSH_STACK (btor->mm, *work_stack, root);
+  BTOR_PUSH_STACK (*work_stack, root);
 
   do
   {
@@ -101,9 +101,9 @@ process_skeleton_tseitin (Btor *btor,
     {
       btor_add_int_hash_map (mark, exp->id);
 
-      BTOR_PUSH_STACK (btor->mm, *work_stack, exp);
+      BTOR_PUSH_STACK (*work_stack, exp);
       for (i = exp->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (btor->mm, *work_stack, exp->e[i]);
+        BTOR_PUSH_STACK (*work_stack, exp->e[i]);
     }
     else if (d->as_int == 0)
     {
@@ -249,7 +249,7 @@ btor_process_skeleton (Btor *btor)
 
   count = 0;
 
-  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (mm, work_stack);
   mark = btor_new_int_hash_map (mm);
 
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -264,7 +264,7 @@ btor_process_skeleton (Btor *btor)
     lgladd (lgl, 0);
   }
 
-  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (work_stack);
   btor_delete_int_hash_map (mark);
 
   BTOR_MSG (btor->msg,

@@ -143,12 +143,12 @@ btor_recursively_compute_assignment (Btor *btor,
   reset_st = btor_new_int_hash_map (mm);
 
   mark = btor_new_int_hash_map (mm);
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (arg_stack);
-  BTOR_INIT_STACK (reset);
+  BTOR_INIT_STACK (mm, work_stack);
+  BTOR_INIT_STACK (mm, arg_stack);
+  BTOR_INIT_STACK (mm, reset);
 
-  BTOR_PUSH_STACK (mm, work_stack, exp);
-  BTOR_PUSH_STACK (mm, work_stack, 0);
+  BTOR_PUSH_STACK (work_stack, exp);
+  BTOR_PUSH_STACK (work_stack, 0);
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
@@ -204,8 +204,8 @@ btor_recursively_compute_assignment (Btor *btor,
         next = btor_param_get_assigned_exp (real_cur);
         assert (next);
         next = BTOR_COND_INVERT_NODE (cur, next);
-        BTOR_PUSH_STACK (mm, work_stack, next);
-        BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+        BTOR_PUSH_STACK (work_stack, next);
+        BTOR_PUSH_STACK (work_stack, cur_parent);
         continue;
       }
       else if (btor_is_fun_eq_node (real_cur))
@@ -225,8 +225,8 @@ btor_recursively_compute_assignment (Btor *btor,
             BTOR_COUNT_STACK (reset);
       }
 
-      BTOR_PUSH_STACK (mm, work_stack, cur);
-      BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+      BTOR_PUSH_STACK (work_stack, cur);
+      BTOR_PUSH_STACK (work_stack, cur_parent);
       md = btor_add_int_hash_map (mark, real_cur->id);
 
       /* special handling for conditionals:
@@ -236,15 +236,15 @@ btor_recursively_compute_assignment (Btor *btor,
       if (btor_is_cond_node (real_cur))
       {
         md->as_int = 2;
-        BTOR_PUSH_STACK (mm, work_stack, real_cur->e[0]);
-        BTOR_PUSH_STACK (mm, work_stack, real_cur);
+        BTOR_PUSH_STACK (work_stack, real_cur->e[0]);
+        BTOR_PUSH_STACK (work_stack, real_cur);
       }
       else
       {
         for (i = 0; i < real_cur->arity; i++)
         {
-          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
-          BTOR_PUSH_STACK (mm, work_stack, real_cur);
+          BTOR_PUSH_STACK (work_stack, real_cur->e[i]);
+          BTOR_PUSH_STACK (work_stack, real_cur);
         }
       }
     }
@@ -407,12 +407,12 @@ btor_recursively_compute_assignment (Btor *btor,
           {
             /* select branch w.r.t. condition */
             next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
-            BTOR_PUSH_STACK (mm, work_stack, cur);
-            BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+            BTOR_PUSH_STACK (work_stack, cur);
+            BTOR_PUSH_STACK (work_stack, cur_parent);
             /* for function conditionals we push the function and the
              * apply */
-            BTOR_PUSH_STACK (mm, work_stack, next);
-            BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+            BTOR_PUSH_STACK (work_stack, next);
+            BTOR_PUSH_STACK (work_stack, cur_parent);
             btor_free_bv (mm, e[0]);
             /* no result yet, we need to evaluate the selected function
              */
@@ -448,7 +448,7 @@ btor_recursively_compute_assignment (Btor *btor,
       /* remember parameterized nodes for resetting 'eval_mark' later */
       if (real_cur->parameterized)
       {
-        BTOR_PUSH_STACK (mm, reset, real_cur);
+        BTOR_PUSH_STACK (reset, real_cur);
         /* temporarily cache model for paramterized nodes, is only
          * valid under current parameter assignment and will be reset
          * when parameters are unassigned */
@@ -469,7 +469,7 @@ btor_recursively_compute_assignment (Btor *btor,
         btor_free_bv (mm, result);
         result = inv_result;
       }
-      BTOR_PUSH_STACK (mm, arg_stack, result);
+      BTOR_PUSH_STACK (arg_stack, result);
     }
     else
     {
@@ -488,9 +488,9 @@ btor_recursively_compute_assignment (Btor *btor,
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
 
-  BTOR_RELEASE_STACK (mm, work_stack);
-  BTOR_RELEASE_STACK (mm, arg_stack);
-  BTOR_RELEASE_STACK (mm, reset);
+  BTOR_RELEASE_STACK (work_stack);
+  BTOR_RELEASE_STACK (arg_stack);
+  BTOR_RELEASE_STACK (reset);
   btor_delete_int_hash_map (assigned);
   btor_delete_int_hash_map (reset_st);
   btor_delete_int_hash_map (param_model_cache);
@@ -595,8 +595,8 @@ recursively_compute_function_model (Btor *btor,
     {
       if (btor_lambda_get_static_rho (cur_fun))
       {
-        BTOR_INIT_STACK (stack);
-        BTOR_PUSH_STACK (mm, stack, btor_lambda_get_body (cur_fun));
+        BTOR_INIT_STACK (mm, stack);
+        BTOR_PUSH_STACK (stack, btor_lambda_get_body (cur_fun));
         cur_fun = 0;
         while (!BTOR_EMPTY_STACK (stack))
         {
@@ -610,10 +610,9 @@ recursively_compute_function_model (Btor *btor,
 
           if (!cur->parameterized || !cur->apply_below) continue;
 
-          for (i = 0; i < cur->arity; i++)
-            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+          for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (stack, cur->e[i]);
         }
-        BTOR_RELEASE_STACK (mm, stack);
+        BTOR_RELEASE_STACK (stack);
       }
       else
       {
@@ -672,7 +671,7 @@ btor_generate_model (Btor *btor,
 
   start = btor_time_stamp ();
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (btor->mm, stack);
 
   /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
   btor_init_ptr_hash_table_iterator (&it, btor->fun_rhs);
@@ -685,7 +684,7 @@ btor_generate_model (Btor *btor,
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     cur = btor_simplify_exp (btor, btor_next_ptr_hash_table_iterator (&it));
-    BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
+    BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
   if (model_for_all_nodes)
@@ -696,7 +695,7 @@ btor_generate_model (Btor *btor,
       if (!cur || btor_is_args_node (cur) || btor_is_proxy_node (cur)
           || cur->parameterized)
         continue;
-      BTOR_PUSH_STACK (btor->mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
     }
   }
   else /* push roots only */
@@ -707,7 +706,7 @@ btor_generate_model (Btor *btor,
     while (btor_has_next_ptr_hash_table_iterator (&it))
     {
       cur = btor_next_ptr_hash_table_iterator (&it);
-      BTOR_PUSH_STACK (btor->mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
     }
   }
 
@@ -729,7 +728,7 @@ btor_generate_model (Btor *btor,
       btor_free_bv (btor->mm, bv);
     }
   }
-  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (stack);
 
   btor->time.model_gen += btor_time_stamp () - start;
 }

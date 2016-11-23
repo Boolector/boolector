@@ -124,11 +124,11 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
   count = 0;
 
   mm = btor->mm;
-  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (mm, vars);
   for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
   {
     var = (BtorNode *) b_var->key;
-    BTOR_PUSH_STACK (mm, vars, var);
+    BTOR_PUSH_STACK (vars, var);
   }
 
   while (!BTOR_EMPTY_STACK (vars))
@@ -298,7 +298,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (vars);
 
   delta = btor_time_stamp () - start;
   btor->time.slicing += delta;

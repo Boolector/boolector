@@ -75,7 +75,7 @@ setup_aig_and_add_to_id_table (BtorAIGMgr *amgr, BtorAIG *aig)
   BTOR_ABORT (id == INT_MAX, "AIG id overflow");
   aig->refs = 1;
   aig->id   = id;
-  BTOR_PUSH_STACK (amgr->btor->mm, amgr->id2aig, aig);
+  BTOR_PUSH_STACK (amgr->id2aig, aig);
   assert (BTOR_COUNT_STACK (amgr->id2aig) == aig->id + 1);
   assert (BTOR_PEEK_STACK (amgr->id2aig, aig->id) == aig);
 }
@@ -315,7 +315,7 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
     else
     {
       assert (cur->refs == 1u);
-      BTOR_INIT_STACK (stack);
+      BTOR_INIT_STACK (mm, stack);
       goto BTOR_RELEASE_AIG_WITHOUT_POP;
 
       while (!BTOR_EMPTY_STACK (stack))
@@ -336,15 +336,15 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
             assert (btor_aig_is_and (cur));
             l = btor_aig_get_left_child (amgr, cur);
             r = btor_aig_get_right_child (amgr, cur);
-            BTOR_PUSH_STACK (mm, stack, r);
-            BTOR_PUSH_STACK (mm, stack, l);
+            BTOR_PUSH_STACK (stack, r);
+            BTOR_PUSH_STACK (stack, l);
             delete_aig_nodes_unique_table_entry (amgr, cur);
           }
 
           delete_aig_node (amgr, cur);
         }
       }
-      BTOR_RELEASE_STACK (mm, stack);
+      BTOR_RELEASE_STACK (stack);
     }
   }
 }
@@ -792,12 +792,12 @@ btor_new_aig_mgr (Btor *btor)
   amgr->btor = btor;
   BTOR_INIT_AIG_UNIQUE_TABLE (btor->mm, amgr->table);
   amgr->smgr = btor_new_sat_mgr (btor->mm, amgr->btor->msg);
-  BTOR_INIT_STACK (amgr->id2aig);
-  BTOR_PUSH_STACK (btor->mm, amgr->id2aig, BTOR_AIG_FALSE);
-  BTOR_PUSH_STACK (btor->mm, amgr->id2aig, BTOR_AIG_TRUE);
+  BTOR_INIT_STACK (btor->mm, amgr->id2aig);
+  BTOR_PUSH_STACK (amgr->id2aig, BTOR_AIG_FALSE);
+  BTOR_PUSH_STACK (amgr->id2aig, BTOR_AIG_TRUE);
   assert ((size_t) BTOR_AIG_FALSE == 0);
   assert ((size_t) BTOR_AIG_TRUE == 1);
-  BTOR_INIT_STACK (amgr->cnfid2aig);
+  BTOR_INIT_STACK (btor->mm, amgr->cnfid2aig);
   return amgr;
 }
 
@@ -835,7 +835,7 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
   mm = clone->btor->mm;
 
   /* clone id2aig table */
-  BTOR_INIT_STACK (clone->id2aig);
+  BTOR_INIT_STACK (mm, clone->id2aig);
   size = BTOR_SIZE_STACK (amgr->id2aig);
   if (size)
   {
@@ -858,7 +858,7 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
           amgr->table.size * sizeof (int32_t));
 
   /* clone cnfid2aig table */
-  BTOR_INIT_STACK (clone->cnfid2aig);
+  BTOR_INIT_STACK (mm, clone->cnfid2aig);
   size = BTOR_SIZE_STACK (amgr->cnfid2aig);
   if (size)
   {
@@ -909,8 +909,8 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
   mm = amgr->btor->mm;
   BTOR_RELEASE_AIG_UNIQUE_TABLE (mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);
-  BTOR_RELEASE_STACK (mm, amgr->id2aig);
-  BTOR_RELEASE_STACK (mm, amgr->cnfid2aig);
+  BTOR_RELEASE_STACK (amgr->id2aig);
+  BTOR_RELEASE_STACK (amgr->cnfid2aig);
   BTOR_DELETE (mm, amgr);
 }
 
@@ -945,8 +945,8 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 
   if (ll == BTOR_INVERT_AIG (rl) && lr == BTOR_INVERT_AIG (rr))
   {
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, rr);
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, ll);
+    BTOR_PUSH_STACK (*leafs, rr);
+    BTOR_PUSH_STACK (*leafs, ll);
     return 1;
   }
 
@@ -996,33 +996,33 @@ btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   if (BTOR_INVERT_AIG (lr) == rl)
   {
     // aig == (!rl -> !ll)(rl -> !rr) = rl ? !rr : !ll
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (ll));  // else
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (rr));  // then
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, rl);                    // cond
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (ll));  // else
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (rr));  // then
+    BTOR_PUSH_STACK (*leafs, rl);                    // cond
     return 1;
   }
   if (BTOR_INVERT_AIG (ll) == rl)
   {
     // aig == (!rl -> !lr)(rl -> !rr)
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (lr));  // else
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (rr));  // then
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, rl);                    // cond
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (lr));  // else
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (rr));  // then
+    BTOR_PUSH_STACK (*leafs, rl);                    // cond
     return 1;
   }
   if (BTOR_INVERT_AIG (lr) == rr)
   {
     // aig == (!rr -> !ll)(rr -> !rl)
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (ll));  // else
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (rl));  // then
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, rr);                    // cond
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (ll));  // else
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (rl));  // then
+    BTOR_PUSH_STACK (*leafs, rr);                    // cond
     return 1;
   }
   if (BTOR_INVERT_AIG (ll) == rr)
   {
     // aig == (!rr -> !lr)(rr -> !rl)
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (lr));  // else
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, BTOR_INVERT_AIG (rl));  // then
-    BTOR_PUSH_STACK (amgr->btor->mm, *leafs, rr);                    // cond
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (lr));  // else
+    BTOR_PUSH_STACK (*leafs, BTOR_INVERT_AIG (rl));  // then
+    BTOR_PUSH_STACK (*leafs, rr);                    // cond
     return 1;
   }
 
@@ -1042,7 +1042,7 @@ btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
   assert (!root->cnf_id);
   root->cnf_id = btor_next_cnf_id_sat_mgr (amgr->smgr);
   assert (root->cnf_id > 0);
-  BTOR_FIT_STACK (amgr->btor->mm, amgr->cnfid2aig, (size_t) root->cnf_id);
+  BTOR_FIT_STACK (amgr->cnfid2aig, (size_t) root->cnf_id);
   amgr->cnfid2aig.start[root->cnf_id] = root->id;
   assert (amgr->cnfid2aig.start[root->cnf_id] == root->id);
   amgr->num_cnf_vars++;
@@ -1068,9 +1068,9 @@ btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
   mm   = amgr->btor->mm;
   root = BTOR_REAL_ADDR_AIG (root);
 
-  BTOR_INIT_STACK (tree);
-  BTOR_PUSH_STACK (mm, tree, btor_aig_get_right_child (amgr, root));
-  BTOR_PUSH_STACK (mm, tree, btor_aig_get_left_child (amgr, root));
+  BTOR_INIT_STACK (mm, tree);
+  BTOR_PUSH_STACK (tree, btor_aig_get_right_child (amgr, root));
+  BTOR_PUSH_STACK (tree, btor_aig_get_left_child (amgr, root));
 
   while (!BTOR_EMPTY_STACK (tree))
   {
@@ -1087,12 +1087,12 @@ btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
 
     if (!BTOR_IS_INVERTED_AIG (cur) && btor_aig_is_and (real_cur))
     {
-      BTOR_PUSH_STACK (mm, tree, btor_aig_get_right_child (amgr, real_cur));
-      BTOR_PUSH_STACK (mm, tree, btor_aig_get_left_child (amgr, real_cur));
+      BTOR_PUSH_STACK (tree, btor_aig_get_right_child (amgr, real_cur));
+      BTOR_PUSH_STACK (tree, btor_aig_get_left_child (amgr, real_cur));
     }
     else
     {
-      BTOR_PUSH_STACK (mm, *leafs, cur);
+      BTOR_PUSH_STACK (*leafs, cur);
       real_cur->mark = 1;
     }
   }
@@ -1104,7 +1104,7 @@ btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
     BTOR_REAL_ADDR_AIG (cur)->mark = 0;
   }
 
-  BTOR_RELEASE_STACK (mm, tree);
+  BTOR_RELEASE_STACK (tree);
   return 1;
 }
 #endif
@@ -1122,18 +1122,18 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 
   if (btor_aig_is_const (start)) return;
 
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (tree);
-  BTOR_INIT_STACK (leafs);
-  BTOR_INIT_STACK (marked);
-
   assert (amgr);
 
   smgr = amgr->smgr;
   mm   = amgr->btor->mm;
 
+  BTOR_INIT_STACK (mm, stack);
+  BTOR_INIT_STACK (mm, tree);
+  BTOR_INIT_STACK (mm, leafs);
+  BTOR_INIT_STACK (mm, marked);
+
   start = BTOR_REAL_ADDR_AIG (start);
-  BTOR_PUSH_STACK (mm, stack, start);
+  BTOR_PUSH_STACK (stack, start);
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -1168,8 +1168,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     if (!isxor && !isite)
     {
 #ifdef BTOR_AIG_TO_CNF_NARY_AND
-      BTOR_PUSH_STACK (mm, tree, btor_aig_get_right_child (amgr, root));
-      BTOR_PUSH_STACK (mm, tree, btor_aig_get_left_child (amgr, root));
+      BTOR_PUSH_STACK (tree, btor_aig_get_right_child (amgr, root));
+      BTOR_PUSH_STACK (tree, btor_aig_get_left_child (amgr, root));
 
       while (!BTOR_EMPTY_STACK (tree))
       {
@@ -1178,17 +1178,17 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
         if (BTOR_IS_INVERTED_AIG (cur) || btor_aig_is_var (cur)
             || cur->refs > 1u || cur->cnf_id)
         {
-          BTOR_PUSH_STACK (mm, leafs, cur);
+          BTOR_PUSH_STACK (leafs, cur);
         }
         else
         {
-          BTOR_PUSH_STACK (mm, tree, btor_aig_get_right_child (amgr, cur));
-          BTOR_PUSH_STACK (mm, tree, btor_aig_get_left_child (amgr, cur));
+          BTOR_PUSH_STACK (tree, btor_aig_get_right_child (amgr, cur));
+          BTOR_PUSH_STACK (tree, btor_aig_get_left_child (amgr, cur));
         }
       }
 #else
-      BTOR_PUSH_STACK (mm, leafs, btor_aig_get_left_child (amgr, root));
-      BTOR_PUSH_STACK (mm, leafs, btor_aig_get_right_child (amgr, root));
+      BTOR_PUSH_STACK (leafs, btor_aig_get_left_child (amgr, root));
+      BTOR_PUSH_STACK (leafs, btor_aig_get_right_child (amgr, root));
 #endif
     }
 
@@ -1198,9 +1198,9 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
       assert (root->refs >= 1);
       assert (!root->local);
       root->local = 1;
-      BTOR_PUSH_STACK (mm, marked, root);
-      BTOR_PUSH_STACK (mm, stack, root);
-      for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (mm, stack, *p);
+      BTOR_PUSH_STACK (marked, root);
+      BTOR_PUSH_STACK (stack, root);
+      for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (stack, *p);
     }
     else
     {
@@ -1297,9 +1297,9 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     }
     BTOR_RESET_STACK (leafs);
   }
-  BTOR_RELEASE_STACK (mm, stack);
-  BTOR_RELEASE_STACK (mm, leafs);
-  BTOR_RELEASE_STACK (mm, tree);
+  BTOR_RELEASE_STACK (stack);
+  BTOR_RELEASE_STACK (leafs);
+  BTOR_RELEASE_STACK (tree);
 
   while (!BTOR_EMPTY_STACK (marked))
   {
@@ -1317,7 +1317,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     if (cur->refs > local) continue;
     btor_release_cnf_id_aig_mgr (amgr, cur);
   }
-  BTOR_RELEASE_STACK (mm, marked);
+  BTOR_RELEASE_STACK (marked);
 }
 
 static void
@@ -1373,7 +1373,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     return;
   }
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
   aig = root;
   goto BTOR_ADD_TOPLEVEL_AIG_TO_SAT_WITHOUT_POP;
 
@@ -1383,13 +1383,13 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
   BTOR_ADD_TOPLEVEL_AIG_TO_SAT_WITHOUT_POP:
     if (!BTOR_IS_INVERTED_AIG (aig) && btor_aig_is_and (aig))
     {
-      BTOR_PUSH_STACK (mm, stack, btor_aig_get_right_child (amgr, aig));
-      BTOR_PUSH_STACK (mm, stack, btor_aig_get_left_child (amgr, aig));
+      BTOR_PUSH_STACK (stack, btor_aig_get_right_child (amgr, aig));
+      BTOR_PUSH_STACK (stack, btor_aig_get_left_child (amgr, aig));
     }
     else
     {
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
-      BTOR_INIT_STACK (leafs);
+      BTOR_INIT_STACK (mm, leafs);
       if (btor_is_or_aig (amgr, aig, &leafs))
       {
         assert (BTOR_COUNT_STACK (leafs) > 1);
@@ -1418,7 +1418,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
         amgr->num_cnf_literals++;
         amgr->num_cnf_clauses++;
       }
-      BTOR_RELEASE_STACK (mm, leafs);
+      BTOR_RELEASE_STACK (leafs);
 #else
       real_aig = BTOR_REAL_ADDR_AIG (aig);
       if (BTOR_IS_INVERTED_AIG (aig) && btor_aig_is_and (real_aig))
@@ -1444,7 +1444,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 #endif
     }
   }
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 #else
   if (root == BTOR_AIG_TRUE) return;
 

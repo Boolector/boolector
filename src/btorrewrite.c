@@ -731,7 +731,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
           && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
       {
         BTOR_INC_REC_RW_CALL (btor);
-        BTOR_INIT_STACK (stack);
+        BTOR_INIT_STACK (btor->mm, stack);
         if (BTOR_IS_INVERTED_NODE (e0))
           bv = btor_not_bv (btor->mm, btor_const_get_bits (real_e0));
         else
@@ -759,10 +759,8 @@ apply_special_const_lhs_binary_exp (Btor *btor,
             if (tmpstr[0] == '0')
             {
               tmp3 = btor_zero_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp1, tmp3));
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp2, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp1, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp2, tmp3));
               btor_release_exp (btor, tmp3);
             }
             else
@@ -770,8 +768,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
               assert (tmpstr[0] == '1');
               tmp3 = btor_or_exp (btor, tmp1, tmp2);
               tmp4 = btor_ones_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp3, tmp4));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_release_exp (btor, tmp3);
               btor_release_exp (btor, tmp4);
             }
@@ -799,10 +796,8 @@ apply_special_const_lhs_binary_exp (Btor *btor,
             if (tmpstr[0] == '1')
             {
               tmp3 = btor_ones_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp1, tmp3));
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp2, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp1, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp2, tmp3));
               btor_release_exp (btor, tmp3);
             }
             else
@@ -810,8 +805,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
               assert (tmpstr[0] == '0');
               tmp3 = rewrite_and_exp (btor, tmp1, tmp2);
               tmp4 = btor_zero_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp3, tmp4));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_release_exp (btor, tmp3);
               btor_release_exp (btor, tmp4);
             }
@@ -833,7 +827,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
           btor_release_exp (btor, tmp1);
         } while (!BTOR_EMPTY_STACK (stack));
         btor_free_bv (btor->mm, bv);
-        BTOR_RELEASE_STACK (btor->mm, stack);
+        BTOR_RELEASE_STACK (stack);
         BTOR_DEC_REC_RW_CALL (btor);
       }
       break;
@@ -1004,7 +998,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
           && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
       {
         BTOR_INC_REC_RW_CALL (btor);
-        BTOR_INIT_STACK (stack);
+        BTOR_INIT_STACK (btor->mm, stack);
         if (BTOR_IS_INVERTED_NODE (e1))
           bv = btor_not_bv (btor->mm, btor_const_get_bits (real_e1));
         else
@@ -1032,10 +1026,8 @@ apply_special_const_rhs_binary_exp (Btor *btor,
             if (tmpstr[0] == '0')
             {
               tmp3 = btor_zero_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp1, tmp3));
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp2, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp1, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp2, tmp3));
               btor_release_exp (btor, tmp3);
             }
             else
@@ -1043,8 +1035,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
               assert (tmpstr[0] == '1');
               tmp3 = btor_or_exp (btor, tmp1, tmp2);
               tmp4 = btor_ones_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp3, tmp4));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_release_exp (btor, tmp3);
               btor_release_exp (btor, tmp4);
             }
@@ -1072,10 +1063,8 @@ apply_special_const_rhs_binary_exp (Btor *btor,
             if (tmpstr[0] == '1')
             {
               tmp3 = btor_ones_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp1, tmp3));
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp2, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp1, tmp3));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp2, tmp3));
               btor_release_exp (btor, tmp3);
             }
             else
@@ -1083,8 +1072,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
               assert (tmpstr[0] == '0');
               tmp3 = rewrite_and_exp (btor, tmp1, tmp2);
               tmp4 = btor_zero_exp (btor, sort);
-              BTOR_PUSH_STACK (
-                  btor->mm, stack, rewrite_eq_exp (btor, tmp3, tmp4));
+              BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_release_exp (btor, tmp3);
               btor_release_exp (btor, tmp4);
             }
@@ -1106,7 +1094,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
           btor_release_exp (btor, tmp1);
         } while (!BTOR_EMPTY_STACK (stack));
         btor_free_bv (btor->mm, bv);
-        BTOR_RELEASE_STACK (btor->mm, stack);
+        BTOR_RELEASE_STACK (stack);
         BTOR_DEC_REC_RW_CALL (btor);
       }
       break;
@@ -5097,8 +5085,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
   cache = btor_new_int_hash_table (mm);
 
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, e0);
+  BTOR_INIT_STACK (mm, stack);
+  BTOR_PUSH_STACK (stack, e0);
   do
   {
     cur = BTOR_POP_STACK (stack);
@@ -5106,12 +5094,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     {
       if (btor_contains_int_hash_table (cache, cur->id))
       {
-        BTOR_RELEASE_STACK (mm, stack);
+        BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
       btor_add_int_hash_table (cache, cur->id);
-      BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      BTOR_PUSH_STACK (stack, cur->e[1]);
+      BTOR_PUSH_STACK (stack, cur->e[0]);
     }
     else
     {
@@ -5125,7 +5113,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   btor_delete_int_hash_table (cache);
   cache = btor_new_int_hash_table (mm);
 
-  BTOR_PUSH_STACK (mm, stack, e1);
+  BTOR_PUSH_STACK (stack, e1);
   do
   {
     cur = BTOR_POP_STACK (stack);
@@ -5133,12 +5121,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     {
       if (btor_contains_int_hash_table (cache, cur->id))
       {
-        BTOR_RELEASE_STACK (mm, stack);
+        BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
       btor_add_int_hash_table (cache, cur->id);
-      BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      BTOR_PUSH_STACK (stack, cur->e[1]);
+      BTOR_PUSH_STACK (stack, cur->e[0]);
     }
     else
     {
@@ -5174,7 +5162,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
       }
     }
   } while (!BTOR_EMPTY_STACK (stack));
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 
   /* no operand or only one operand in common? leave everything as it is */
   if (comm->count < 2u)
@@ -5203,12 +5191,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
   assert (comm->count >= 2u);
 
   /* normalize common nodes */
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
   b = comm->first;
   while (b)
   {
     cur = b->key;
-    for (i = 0; i < b->data.as_int; i++) BTOR_PUSH_STACK (mm, stack, cur);
+    for (i = 0; i < b->data.as_int; i++) BTOR_PUSH_STACK (stack, cur);
     b = b->next;
   }
 
@@ -5223,7 +5211,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     btor_release_exp (btor, common);
     common = temp;
   }
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
 
 #if 0
   /* normalize left side */
@@ -5629,24 +5617,22 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
   if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_is_concat_node (e1))
   {
-    BTOR_INIT_STACK (po_stack);
-    BTOR_PUSH_STACK (mm, po_stack, e0);
+    BTOR_INIT_STACK (mm, po_stack);
+    BTOR_PUSH_STACK (po_stack, e0);
 
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, e1);
+    BTOR_INIT_STACK (mm, stack);
+    BTOR_PUSH_STACK (stack, e1);
     do
     {
       cur      = BTOR_POP_STACK (stack);
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       if (btor_is_concat_node (real_cur))
       {
-        BTOR_PUSH_STACK (
-            mm, stack, BTOR_COND_INVERT_NODE (cur, real_cur->e[1]));
-        BTOR_PUSH_STACK (
-            mm, stack, BTOR_COND_INVERT_NODE (cur, real_cur->e[0]));
+        BTOR_PUSH_STACK (stack, BTOR_COND_INVERT_NODE (cur, real_cur->e[1]));
+        BTOR_PUSH_STACK (stack, BTOR_COND_INVERT_NODE (cur, real_cur->e[0]));
       }
       else
-        BTOR_PUSH_STACK (mm, po_stack, cur);
+        BTOR_PUSH_STACK (po_stack, cur);
     } while (!BTOR_EMPTY_STACK (stack));
 
     BTOR_INC_REC_RW_CALL (btor);
@@ -5670,8 +5656,8 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
     e0 = concat;
     e1 = btor_copy_exp (btor, BTOR_TOP_STACK (po_stack));
 
-    BTOR_RELEASE_STACK (mm, stack);
-    BTOR_RELEASE_STACK (mm, po_stack);
+    BTOR_RELEASE_STACK (stack);
+    BTOR_RELEASE_STACK (po_stack);
   }
 
   *left  = e0;

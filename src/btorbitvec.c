@@ -460,7 +460,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
     return res;
   }
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
 
   if (bv->width < 4)
   {
@@ -484,14 +484,14 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
     }
     assert (ch < 10);
     ch += '0';
-    BTOR_PUSH_STACK (mm, stack, ch);
+    BTOR_PUSH_STACK (stack, ch);
     btor_free_bv (mm, rem);
     btor_free_bv (mm, tmp);
     tmp = div;
   }
   btor_free_bv (mm, tmp);
   btor_free_bv (mm, ten);
-  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mm, stack, '0');
+  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (stack, '0');
   BTOR_NEWN (mm, res, BTOR_COUNT_STACK (stack) + 1);
   q = res;
   p = stack.top;
@@ -499,7 +499,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (res + BTOR_COUNT_STACK (stack) == q);
   *q = 0;
   assert ((uint32_t) BTOR_COUNT_STACK (stack) == strlen (res));
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
   return res;
 }
 
