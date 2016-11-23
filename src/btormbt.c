@@ -697,11 +697,8 @@ btormbt_new_sort_stack (BtorMemMgr *mm)
 }
 
 static void
-btormbt_push_sort_stack (BtorMemMgr *mm,
-                         BoolectorSortStack *sortstack,
-                         BoolectorSort sort)
+btormbt_push_sort_stack (BoolectorSortStack *sortstack, BoolectorSort sort)
 {
-  assert (mm);
   assert (sortstack);
   assert (sort);
 
@@ -2163,7 +2160,7 @@ btormbt_bv_sort (BtorMBT *mbt)
     bv    = mbt->bv->exps.start[rand]->exp;
     width = boolector_get_width (mbt->btor, bv);
     sort  = boolector_bitvec_sort (mbt->btor, width);
-    btormbt_push_sort_stack (mbt->mm, mbt->bv_sorts, sort);
+    btormbt_push_sort_stack (mbt->bv_sorts, sort);
   }
   return sort;
 }
@@ -2175,7 +2172,7 @@ init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
 
   if (btor_pick_with_prob_rng (&mbt->rng, mbt->p_sort_fun_unary))
   {
-    btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt));
+    btormbt_push_sort_stack (sortstack, btormbt_bv_sort (mbt));
     return;
   }
 
@@ -2183,7 +2180,7 @@ init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
       &mbt->rng, mbt->min_sort_fun_arity, mbt->max_sort_fun_arity);
 
   for (i = 0; i < arity; i++)
-    btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt));
+    btormbt_push_sort_stack (sortstack, btormbt_bv_sort (mbt));
 }
 
 static BoolectorSort
@@ -2209,7 +2206,7 @@ btormbt_fun_sort (BtorMBT *mbt)
     codomain = btormbt_bv_sort (mbt);
     sort     = boolector_fun_sort (
         mbt->btor, domain->start, BTOR_COUNT_STACK (*domain), codomain);
-    btormbt_push_sort_stack (mbt->mm, mbt->fun_sorts, sort);
+    btormbt_push_sort_stack (mbt->fun_sorts, sort);
     btormbt_release_sort_stack (mbt->mm, domain);
   }
   return sort;
