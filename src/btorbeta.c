@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2016 Aina Niemetz.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -634,6 +634,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
                /* if it is nested, its parameter is already assigned */
                && !btor_param_get_assigned_exp (real_cur->e[0]))
       {
+        // TODO: there are no nested lambdas anymore is this still possible?
         args = BTOR_TOP_STACK (arg_stack);
         assert (btor_is_args_node (args));
         btor_assign_args (btor, real_cur, args);
