@@ -14,6 +14,7 @@ main (int argc, char **argv)
   BoolectorNode *no_diff_element, *formula, *index, *old_element;
   BoolectorNode *num_elements_exp, *start, *top, *one, *range_index;
   BoolectorNode *implies, *i_pos, *j_pos, *cur_element, *min_element;
+  BoolectorSort isort, esort, asort;
   if (argc != 2)
   {
     printf ("Usage: ./selectionsortmem <num-elements>\n");
@@ -28,17 +29,20 @@ main (int argc, char **argv)
 
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
-  one = boolector_one (btor, 32);
+  isort = boolector_bitvec_sort (btor, 32);
+  esort = boolector_bitvec_sort (btor, 8);
+  asort = boolector_array_sort (btor, isort, esort);
+  one   = boolector_one (btor, isort);
 
-  mem = boolector_array (btor, 8, 32, "array");
+  mem = boolector_array (btor, asort, "array");
   /* first index */
-  start            = boolector_var (btor, 32, "start");
-  num_elements_exp = boolector_unsigned_int (btor, num_elements, 32);
+  start            = boolector_var (btor, isort, "start");
+  num_elements_exp = boolector_unsigned_int (btor, num_elements, isort);
   /* last index + 1 */
   top = boolector_add (btor, start, num_elements_exp);
 
   /* read at an arbitrary index inside the sequence (needed later): */
-  index       = boolector_var (btor, 32, "index");
+  index       = boolector_var (btor, isort, "index");
   ugte        = boolector_ugte (btor, index, start);
   ult         = boolector_ult (btor, index, top);
   range_index = boolector_and (btor, ugte, ult);
@@ -175,6 +179,9 @@ main (int argc, char **argv)
   boolector_release (btor, top);
   boolector_release (btor, num_elements_exp);
   boolector_release (btor, one);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   return 0;
 }

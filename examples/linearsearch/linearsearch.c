@@ -11,6 +11,7 @@ main (int argc, char **argv)
   Btor *btor;
   BoolectorNode **indices, *array, *eq;
   BoolectorNode *temp, *read, *formula, *val, *index, *found;
+  BoolectorSort isort, esort, asort;
   if (argc != 3)
   {
     printf ("Usage: ./linearsearch <num-bits> <num-elements>\n");
@@ -37,12 +38,15 @@ main (int argc, char **argv)
   btor           = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
+  isort   = boolector_bitvec_sort (btor, num_bits_index);
+  esort   = boolector_bitvec_sort (btor, num_bits);
+  asort   = boolector_array_sort (btor, isort, esort);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index, "array");
+    indices[i] = boolector_int (btor, i, isort);
+  array = boolector_array (btor, asort, "array");
   /* we write arbitrary search value into array at an arbitrary index */
-  val   = boolector_var (btor, num_bits, "search_val");
-  index = boolector_var (btor, num_bits_index, "search_index");
+  val   = boolector_var (btor, esort, "search_val");
+  index = boolector_var (btor, isort, "search_index");
   temp  = boolector_write (btor, array, index, val);
   boolector_release (btor, array);
   array = temp;
@@ -68,6 +72,9 @@ main (int argc, char **argv)
   boolector_release (btor, val);
   boolector_release (btor, found);
   boolector_release (btor, array);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   free (indices);
   return 0;

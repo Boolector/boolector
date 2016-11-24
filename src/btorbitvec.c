@@ -159,7 +159,7 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_char_to_bv (BtorMemMgr *mm, char *assignment)
+btor_char_to_bv (BtorMemMgr *mm, const char *assignment)
 {
   assert (mm);
   assert (assignment);

@@ -12,6 +12,7 @@ swap_with_xor (Btor *btor,
                BoolectorNode *start1,
                BoolectorNode *start2)
 {
+  BoolectorSort s;
   BoolectorNode *x, *y, *result, *temp, *xor, *pos1, *pos2, *one;
   int i;
   assert (btor != NULL);
@@ -22,7 +23,9 @@ swap_with_xor (Btor *btor,
   result = mem;
   pos1   = boolector_copy (btor, start1);
   pos2   = boolector_copy (btor, start2);
-  one    = boolector_one (btor, 32);
+  s      = boolector_bitvec_sort (btor, 32);
+  one    = boolector_one (btor, s);
+  boolector_release_sort (btor, s);
   for (i = 0; i < num_elements; i++)
   {
     /* we can swap two elements without a temporay variable
@@ -76,6 +79,7 @@ main (int argc, char **argv)
 {
   int num_elements, overlap;
   Btor *btor;
+  BoolectorSort isort, esort, asort;
   BoolectorNode *mem, *orig_mem, *formula, *start1, *start2, *num_elements_exp;
   BoolectorNode *add1, *add2, *ugte1, *ugte2, *temp, * or, *uaddo1, *uaddo2;
   BoolectorNode *not_uaddo1, *not_uaddo2, *premisse_part1, *premisse_part2;
@@ -102,10 +106,14 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  mem      = boolector_array (btor, 8, 32, "mem");
+  esort = boolector_bitvec_sort (btor, 8);
+  isort = boolector_bitvec_sort (btor, 32);
+  asort = boolector_array_sort (btor, isort, esort);
+
+  mem      = boolector_array (btor, asort, "mem");
   orig_mem = boolector_copy (btor, mem);
-  start1   = boolector_var (btor, 32, "start1");
-  start2   = boolector_var (btor, 32, "start2");
+  start1   = boolector_var (btor, isort, "start1");
+  start2   = boolector_var (btor, isort, "start2");
   mem      = swap_with_xor (btor, mem, num_elements, start1, start2);
   mem      = swap_with_xor (btor, mem, num_elements, start1, start2);
   /* memory has to be equal */
@@ -115,7 +123,7 @@ main (int argc, char **argv)
   if (!overlap)
   {
     /* we do not allow that two locations overlap */
-    num_elements_exp = boolector_unsigned_int (btor, num_elements, 32);
+    num_elements_exp = boolector_unsigned_int (btor, num_elements, isort);
 
     add1       = boolector_add (btor, start1, num_elements_exp);
     ugte1      = boolector_ugte (btor, start2, add1);
@@ -166,6 +174,9 @@ main (int argc, char **argv)
   boolector_release (btor, start1);
   boolector_release (btor, start2);
   boolector_release (btor, orig_mem);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   return 0;
 }

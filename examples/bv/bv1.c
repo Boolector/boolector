@@ -19,13 +19,14 @@ main (void)
 {
   Btor *btor;
   BoolectorNode *x, *y, *temp, *old_x, *old_y, *eq1, *eq2, *and, *formula;
-  BoolectorSort sort;
+  BoolectorSort s;
   int result;
 
   btor = boolector_new ();
-  sort = boolector_bitvec_sort (btor, BV1_EXAMPLE_NUM_BITS);
-  x    = boolector_var (btor, sort, NULL);
-  y    = boolector_var (btor, sort, NULL);
+  s    = boolector_bitvec_sort (btor, BV1_EXAMPLE_NUM_BITS);
+  x    = boolector_var (btor, s, NULL);
+  y    = boolector_var (btor, s, NULL);
+
   /* remember initial values of x and y */
   old_x = boolector_copy (btor, x);
   old_y = boolector_copy (btor, y);
@@ -71,7 +72,7 @@ main (void)
   boolector_release (btor, eq2);
   boolector_release (btor, and);
   boolector_release (btor, formula);
-  boolector_release_sort (btor, sort);
+  boolector_release_sort (btor, s);
   assert (boolector_get_refs (btor) == 0);
   boolector_delete (btor);
   return 0;
