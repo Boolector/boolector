@@ -4,7 +4,7 @@
 #include "boolector.h"
 #include "btoropt.h"
 
-#define ARRAY2_EXAMPLE_VALUE_BW 8
+#define ARRAY2_EXAMPLE_ELEM_BW 8
 #define ARRAY2_EXAMPLE_INDEX_BW 1
 
 /* We demonstrate Boolector's ability to obtain Array models.
@@ -18,20 +18,22 @@ main (void)
   Btor *btor;
   BoolectorNode *array1, *array2, *zero, *one, *val1, *val2;
   BoolectorNode *write1, *write2, *formula;
+  BoolectorSort sort_index, sort_elem, sort_array;
   char **indices, **values;
   int result, size, i;
 
-  btor = boolector_new ();
+  btor       = boolector_new ();
+  sort_index = boolector_bitvec_sort (btor, ARRAY2_EXAMPLE_INDEX_BW);
+  sort_elem  = boolector_bitvec_sort (btor, ARRAY2_EXAMPLE_ELEM_BW);
+  sort_array = boolector_array_sort (btor, sort_index, sort_elem);
   boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
-  zero   = boolector_zero (btor, ARRAY2_EXAMPLE_INDEX_BW);
-  one    = boolector_one (btor, ARRAY2_EXAMPLE_INDEX_BW);
-  val1   = boolector_int (btor, 3, ARRAY2_EXAMPLE_VALUE_BW);
-  val2   = boolector_int (btor, 5, ARRAY2_EXAMPLE_VALUE_BW);
-  array1 = boolector_array (
-      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, NULL);
-  array2 = boolector_array (
-      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, NULL);
+  zero   = boolector_zero (btor, sort_index);
+  one    = boolector_one (btor, sort_index);
+  val1   = boolector_int (btor, 3, sort_elem);
+  val2   = boolector_int (btor, 5, sort_elem);
+  array1 = boolector_array (btor, sort_array, 0);
+  array2 = boolector_array (btor, sort_array, 0);
   write1 = boolector_write (btor, array1, zero, val1);
   write2 = boolector_write (btor, array2, one, val2);
   /* Note: we compare two arrays for equality ---> needs extensional theory */
@@ -90,6 +92,9 @@ main (void)
   boolector_release (btor, val2);
   boolector_release (btor, zero);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_array);
+  boolector_release_sort (btor, sort_index);
+  boolector_release_sort (btor, sort_elem);
   assert (boolector_get_refs (btor) == 0);
   boolector_delete (btor);
   return 0;

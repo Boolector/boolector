@@ -14,6 +14,7 @@ main (int argc, char **argv)
   BoolectorNode *no_diff_element, *formula, *index, *old_element;
   BoolectorNode *num_elements_exp, *start, *top, *one, *range_index;
   BoolectorNode *implies;
+  BoolectorSort sort_elem, sort_index, sort_array;
   if (argc != 2)
   {
     printf ("Usage: ./bubblesortmem <num-elements>\n");
@@ -26,19 +27,21 @@ main (int argc, char **argv)
     return 1;
   }
 
-  btor = boolector_new ();
+  btor       = boolector_new ();
+  sort_elem  = boolector_bitvec_sort (btor, 8);
+  sort_index = boolector_bitvec_sort (btor, 32);
+  sort_array = boolector_array_sort (btor, sort_index, sort_elem);
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
-  one = boolector_one (btor, 32);
-
-  mem = boolector_array (btor, 8, 32, "mem");
+  one = boolector_one (btor, sort_index);
+  mem = boolector_array (btor, sort_array, "mem");
   /* first index */
-  start            = boolector_var (btor, 32, "start");
-  num_elements_exp = boolector_unsigned_int (btor, num_elements, 32);
+  start            = boolector_var (btor, sort_index, "start");
+  num_elements_exp = boolector_unsigned_int (btor, num_elements, sort_index);
   /* last index + 1 */
   top = boolector_add (btor, start, num_elements_exp);
 
   /* read at an arbitrary index inside the sequence (needed later): */
-  index       = boolector_var (btor, 32, "index");
+  index       = boolector_var (btor, sort_index, "index");
   ugte        = boolector_ugte (btor, index, start);
   ult         = boolector_ult (btor, index, top);
   range_index = boolector_and (btor, ugte, ult);
@@ -156,6 +159,9 @@ main (int argc, char **argv)
   boolector_release (btor, top);
   boolector_release (btor, num_elements_exp);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_index);
+  boolector_release_sort (btor, sort_elem);
+  boolector_release_sort (btor, sort_array);
   boolector_delete (btor);
   return 0;
 }
