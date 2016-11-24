@@ -19,15 +19,17 @@ main (void)
   Btor *btor;
   BoolectorNode *v1, *v2, *add, *zero, *vars_sgt_zero, *impl;
   BoolectorNode *v1_sgt_zero, *v2_sgt_zero, *add_sgt_zero, *formula;
+  BoolectorSort s;
   const char *assignments[10];
   int result, i;
 
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
-  v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
-  v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
-  zero = boolector_zero (btor, BV2_EXAMPLE_NUM_BITS);
+  s    = boolector_bitvec_sort (btor, BV2_EXAMPLE_NUM_BITS);
+  v1   = boolector_var (btor, s, NULL);
+  v2   = boolector_var (btor, s, NULL);
+  zero = boolector_zero (btor, s);
 
   v1_sgt_zero   = boolector_sgt (btor, v1, zero);
   v2_sgt_zero   = boolector_sgt (btor, v2, zero);
@@ -89,6 +91,7 @@ main (void)
   boolector_release (btor, v2_sgt_zero);
   boolector_release (btor, vars_sgt_zero);
   boolector_release (btor, add_sgt_zero);
+  boolector_release_sort (btor, s);
   assert (boolector_get_refs (btor) == 0);
   boolector_delete (btor);
   return 0;
