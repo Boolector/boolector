@@ -41,6 +41,7 @@ main (int argc, char **argv)
   BoolectorNode *mem, *assumption, *alternative, *cmp, *root, *v;
   int i, len, havelen, overlapping, signed_size_t;
   BoolectorNode *old, *new;
+  BoolectorSort isort, esort, asort;
   Btor *btor;
 
   len           = 0;
@@ -88,17 +89,20 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  mem = boolector_array (btor, 8, 32, "mem");
+  isort = boolector_bitvec_sort (btor, 32);
+  esort = boolector_bitvec_sort (btor, 8);
+  asort = boolector_array_sort (btor, isort, esort);
+  mem   = boolector_array (btor, asort, "mem");
 
-  src = boolector_var (btor, 32, "src");
-  dst = boolector_var (btor, 32, "dst");
+  src = boolector_var (btor, isort, "src");
+  dst = boolector_var (btor, isort, "dst");
 
-  n = boolector_unsigned_int (btor, len, 32);
+  n = boolector_unsigned_int (btor, len, isort);
 
-  j = boolector_var (btor, 32, "j");
+  j = boolector_var (btor, isort, "j");
 
-  zero = boolector_zero (btor, 32);
-  one  = boolector_one (btor, 32);
+  zero = boolector_zero (btor, isort);
+  one  = boolector_one (btor, isort);
 
   eos = boolector_add (btor, src, n);
   eod = boolector_add (btor, dst, n);
@@ -198,6 +202,9 @@ main (int argc, char **argv)
   boolector_release (btor, dst);
   boolector_release (btor, src);
   boolector_release (btor, mem);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
 
   return 0;
