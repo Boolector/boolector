@@ -503,11 +503,12 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   int32_t aleft, aright, ass, leftid, rightid;
   uint32_t i;
   double start, delta, sleft, sright, s;
-  BtorIntHashTable *cache, *tmpcone;
+  BtorIntHashTable *cache;
   BtorIntHashTableIterator it;
   BtorHashTableData *d;
   BtorAIGPtrStack stack, cone;
-  BtorAIG *cur, *left, *right, *child;
+  BtorIntStack *parents;
+  BtorAIG *cur, *left, *right;
   BtorMemMgr *mm;
 
   start = btor_time_stamp ();
@@ -549,66 +550,24 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
 
   BTOR_INIT_STACK (mm, cone);
   BTOR_INIT_STACK (mm, stack);
-  cache   = btor_new_int_hash_map (mm);
-  tmpcone = btor_new_int_hash_table (mm);
-  btor_add_int_hash_table (tmpcone, btor_aig_get_id (aig));
-
-  btor_init_int_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_int_hash_table_iterator (&it))
-  {
-    cur = btor_aig_get_by_id (aprop->amgr,
-                              btor_next_int_hash_table_iterator (&it));
-    assert (!btor_aig_is_const (cur));
-    BTOR_PUSH_STACK (stack, cur);
-  }
-
+  cache = btor_new_int_hash_table (mm);
+  BTOR_PUSH_STACK (stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
   {
-    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-    assert (!btor_aig_is_const (cur));
-
-    if ((d = btor_get_int_hash_map (cache, cur->id)) && d->as_int == 1)
-      continue;
-
-    if (!d)
-    {
-      d = btor_add_int_hash_map (cache, cur->id);
-      if (btor_aig_is_var (cur))
-      {
-        d->as_int = 1;
-        continue;
-      }
-      BTOR_PUSH_STACK (stack, cur);
-      for (i = 0; i < 2; i++)
-      {
-        child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
-        if (!btor_aig_is_const (child)) BTOR_PUSH_STACK (stack, child);
-      }
-    }
-    else
-    {
-      assert (btor_contains_int_hash_map (aprop->model, cur->id));
-      assert (d->as_int == 0);
-      d->as_int = 1;
-      for (i = 0; i < 2; i++)
-      {
-        child = BTOR_REAL_ADDR_AIG (
-            btor_aig_get_by_id (aprop->amgr, cur->children[i]));
-        if (btor_aig_is_const (child)) continue;
-        if (btor_contains_int_hash_table (tmpcone, btor_aig_get_id (child))
-            && !btor_contains_int_hash_table (tmpcone, cur->id))
-        {
-          btor_add_int_hash_table (tmpcone, cur->id);
-          BTOR_PUSH_STACK (cone, cur);
-          break;
-        }
-      }
-    }
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_AIG (cur));
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+    btor_add_int_hash_table (cache, cur->id);
+    if (cur != aig) BTOR_PUSH_STACK (cone, cur);
+    assert (btor_contains_int_hash_map (aprop->parents, cur->id));
+    parents = btor_get_int_hash_map (aprop->parents, cur->id)->as_ptr;
+    for (i = 0; i < BTOR_COUNT_STACK (*parents); i++)
+      BTOR_PUSH_STACK (
+          stack,
+          btor_aig_get_by_id (aprop->amgr, BTOR_PEEK_STACK (*parents, i)));
   }
-
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_map (cache);
-  btor_delete_int_hash_table (tmpcone);
+  btor_delete_int_hash_table (cache);
 
   aprop->time.update_cone_reset += btor_time_stamp () - start;
 
@@ -958,11 +917,15 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
   assert (roots);
 
   double start;
-  int32_t j, max_steps, sat_result, rootid;
+  int32_t i, j, max_steps, sat_result, rootid, childid;
   uint32_t nmoves;
   BtorMemMgr *mm;
+  BtorIntHashTable *cache;
   BtorIntHashTableIterator it;
-  BtorAIG *root;
+  BtorHashTableData *d;
+  BtorAIGPtrStack stack;
+  BtorIntStack *childparents;
+  BtorAIG *root, *cur, *child;
 
   start      = btor_time_stamp ();
   sat_result = AIGPROP_UNKNOWN;
@@ -970,6 +933,64 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
 
   mm           = aprop->amgr->btor->mm;
   aprop->roots = roots;
+
+  /* collect parents (for cone computation) */
+  BTOR_INIT_STACK (mm, stack);
+  cache = btor_new_int_hash_map (mm);
+  assert (!aprop->parents);
+  aprop->parents = btor_new_int_hash_map (mm);
+
+  btor_init_int_hash_table_iterator (&it, roots);
+  while (btor_has_next_int_hash_table_iterator (&it))
+  {
+    cur = btor_aig_get_by_id (aprop->amgr,
+                              btor_next_int_hash_table_iterator (&it));
+    if (btor_aig_is_const (cur)) continue;
+    BTOR_PUSH_STACK (stack, cur);
+  }
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    assert (!btor_aig_is_const (cur));
+
+    if ((d = btor_get_int_hash_map (cache, cur->id)) && d->as_int == 1)
+      continue;
+
+    if (!d)
+    {
+      btor_add_int_hash_map (cache, cur->id);
+      BTOR_NEW (mm, childparents);
+      BTOR_INIT_STACK (mm, *childparents);
+      btor_add_int_hash_map (aprop->parents, cur->id)->as_ptr = childparents;
+      if (btor_aig_is_and (cur))
+      {
+        for (i = 0; i < 2; i++)
+        {
+          child = btor_aig_get_by_id (aprop->amgr, cur->children[i]);
+          if (!btor_aig_is_const (child)) BTOR_PUSH_STACK (stack, child);
+        }
+      }
+    }
+    else
+    {
+      assert (d->as_int == 0);
+      d->as_int = 1;
+      if (btor_aig_is_var (cur)) continue;
+      for (i = 0; i < 2; i++)
+      {
+        if (btor_aig_is_const (
+                btor_aig_get_by_id (aprop->amgr, cur->children[i])))
+          continue;
+        childid = cur->children[i] < 0 ? -cur->children[i] : cur->children[i];
+        assert (btor_contains_int_hash_map (aprop->parents, childid));
+        childparents = btor_get_int_hash_map (aprop->parents, childid)->as_ptr;
+        assert (childparents);
+        BTOR_PUSH_STACK (*childparents, cur->id);
+      }
+    }
+  }
+  btor_delete_int_hash_map (cache);
 
   /* generate initial model, all inputs are initialized with false */
   aigprop_generate_model (aprop, 1);
@@ -1021,6 +1042,16 @@ SAT:
 UNSAT:
   sat_result = AIGPROP_UNSAT;
 DONE:
+  btor_init_int_hash_table_iterator (&it, aprop->parents);
+  while (btor_has_next_int_hash_table_iterator (&it))
+  {
+    childparents = btor_next_data_int_hash_table_iterator (&it)->as_ptr;
+    assert (childparents);
+    BTOR_RELEASE_STACK (*childparents);
+    BTOR_DELETE (mm, childparents);
+  }
+  btor_delete_int_hash_map (aprop->parents);
+  aprop->parents = 0;
   if (aprop->unsatroots) btor_delete_int_hash_map (aprop->unsatroots);
   aprop->unsatroots = 0;
   aprop->roots      = 0;
