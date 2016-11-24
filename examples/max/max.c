@@ -10,6 +10,7 @@ main (int argc, char **argv)
   int num_bits, num_bits_index, num_elements, i;
   Btor *btor;
   BoolectorNode **indices, *array, *ugt, *temp, *read, *formula, *max, *index;
+  BoolectorSort isort, esort, asort;
   if (argc != 3)
   {
     printf ("Usage: ./max <num-bits> <num-elements>\n");
@@ -36,9 +37,12 @@ main (int argc, char **argv)
   btor           = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
+  isort   = boolector_bitvec_sort (btor, num_bits_index);
+  esort   = boolector_bitvec_sort (btor, num_bits);
+  asort   = boolector_array_sort (btor, isort, esort);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index, "array");
+    indices[i] = boolector_int (btor, i, isort);
+  array = boolector_array (btor, asort, "array");
   /* current maximum is first element of array */
   max = boolector_read (btor, array, indices[0]);
   /* compute maximum of array */
@@ -53,7 +57,7 @@ main (int argc, char **argv)
     boolector_release (btor, ugt);
   }
   /* show that maximum is really the maximum */
-  index = boolector_var (btor, num_bits_index, "index");
+  index = boolector_var (btor, isort, "index");
   read  = boolector_read (btor, array, index);
   /* there is no arbitrary read value which is greater than the maximum */
   formula = boolector_ult (btor, max, read);
@@ -65,6 +69,9 @@ main (int argc, char **argv)
   boolector_release (btor, index);
   boolector_release (btor, max);
   boolector_release (btor, array);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   free (indices);
   return 0;
