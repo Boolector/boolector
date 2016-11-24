@@ -12,8 +12,8 @@ matrix_mult (Btor *btor,
              BoolectorNode *m1,
              BoolectorNode *m2,
              int size,
-             int num_bits,
-             int num_bits_index,
+             BoolectorSort esort,
+             BoolectorSort asort,
              const char *symbol)
 {
   int i, j, k;
@@ -22,12 +22,10 @@ matrix_mult (Btor *btor,
   assert (m1 != NULL);
   assert (m2 != NULL);
   assert (size > 1);
-  assert (num_bits >= 1);
-  assert (num_bits_index >= 1);
   assert (symbol != NULL);
-  result = boolector_array (btor, num_bits, num_bits_index, symbol);
+  result = boolector_array (btor, asort, symbol);
   /* initialize result matrix with zeroes */
-  zero = boolector_zero (btor, num_bits);
+  zero = boolector_zero (btor, esort);
   for (i = 0; i < size * size; i++)
   {
     temp = boolector_write (btor, result, indices[i], zero);
@@ -64,6 +62,7 @@ main (int argc, char **argv)
   int num_bits, num_bits_index, size, i, num_elements;
   Btor *btor;
   BoolectorNode *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
+  BoolectorSort isort, esort, asort;
   if (argc != 3)
   {
     printf ("Usage: ./matrixmultass <num-bits> <size>\n");
@@ -86,15 +85,18 @@ main (int argc, char **argv)
   btor           = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
+  isort   = boolector_bitvec_sort (btor, num_bits_index);
+  esort   = boolector_bitvec_sort (btor, num_bits);
+  asort   = boolector_array_sort (btor, isort, esort);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  A      = boolector_array (btor, num_bits, num_bits_index, "A");
-  B      = boolector_array (btor, num_bits, num_bits_index, "B");
-  C      = boolector_array (btor, num_bits, num_bits_index, "C");
-  A_x_B  = matrix_mult (btor, A, B, size, num_bits, num_bits_index, "AxB");
-  B_x_C  = matrix_mult (btor, B, C, size, num_bits, num_bits_index, "BxC");
-  AB_x_C = matrix_mult (btor, A_x_B, C, size, num_bits, num_bits_index, "ABxC");
-  A_x_BC = matrix_mult (btor, A, B_x_C, size, num_bits, num_bits_index, "AxBC");
+    indices[i] = boolector_int (btor, i, isort);
+  A       = boolector_array (btor, asort, "A");
+  B       = boolector_array (btor, asort, "B");
+  C       = boolector_array (btor, asort, "C");
+  A_x_B   = matrix_mult (btor, A, B, size, esort, asort, "AxB");
+  B_x_C   = matrix_mult (btor, B, C, size, esort, asort, "BxC");
+  AB_x_C  = matrix_mult (btor, A_x_B, C, size, esort, asort, "ABxC");
+  A_x_BC  = matrix_mult (btor, A, B_x_C, size, esort, asort, "AxBC");
   formula = boolector_eq (btor, AB_x_C, A_x_BC);
   /* we negate the formula and try to show that it is unsatisfiable
    * if size is a power of 2, then the instance is UNSAT, else SAT */
@@ -112,6 +114,9 @@ main (int argc, char **argv)
   boolector_release (btor, B_x_C);
   boolector_release (btor, AB_x_C);
   boolector_release (btor, A_x_BC);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   free (indices);
   return 0;
