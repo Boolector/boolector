@@ -63,7 +63,7 @@ SMT solver 'bin/boolector'.  To compile the python API use
   ./configure.sh -python
   make
 
-For further details on the python API see 'api/python/README'.
+For further details on the python API see 'src/api/python/README'.
 
 In the 'examples' sub-directory you find two examples for using
 the API, which are also described in the API documentation.
@@ -83,9 +83,5 @@ A more recent version of Boolector might be found at
 This site may also contain more information.
 
 
-Armin Biere,
-Robert Daniel Brummayer,
-Aina Niemetz,
-Mathias Preiner
 Institute for Formal Models and Verification
 Johannes Kepler University, Linz, Austria
