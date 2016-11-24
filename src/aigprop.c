@@ -504,7 +504,6 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   uint32_t i;
   double start, delta, sleft, sright, s;
   BtorIntHashTable *cache;
-  BtorIntHashTableIterator it;
   BtorHashTableData *d;
   BtorAIGPtrStack stack, cone;
   BtorIntStack *parents;
@@ -516,6 +515,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   mm = aprop->amgr->btor->mm;
 
 #ifndef NDEBUG
+  BtorIntHashTableIterator it;
   BtorAIG *root;
   btor_init_int_hash_table_iterator (&it, aprop->roots);
   while (btor_has_next_int_hash_table_iterator (&it))
