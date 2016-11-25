@@ -1,5 +1,28 @@
+news for release 2.3.0 since 2.2.0
+--------------------------------------
+* new QF_BV engines
+  + SLS engine
+  + PROP engine
+  + AIGPROP engine
+* fixed an issue with model generation and lambda extraction
+  (thanks to Tim Blazytko)
+* fixed an issue in boolector_int
+  (thanks to Niklas)
+* fixed issue with printing BTOR models
 * improved and extended option handling
-    + boolector_get_opt_val -> boolector_get_opt
+  + boolector_get_opt_val -> boolector_get_opt
+* many under-the-hood changes and refactorings
+* API changes:
+  + the following functions now take BoolectorSort
+    instead of int as argument:
+    boolector_zero,
+    boolector_ones,
+    boolector_one,
+    boolector_int,
+    boolector_array,
+    boolector_param
+* new API:
+  + boolector_unsigned_int
 
 news for release 2.2.0 since 2.1.1
 --------------------------------------
