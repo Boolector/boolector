@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2014-2016 Mathias Preiner.
  *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -28,7 +28,7 @@ void
 btor_add_to_bv_model (Btor *btor,
                       BtorIntHashTable *bv_model,
                       BtorNode *exp,
-                      BtorBitVector *assignment)
+                      const BtorBitVector *assignment)
 {
   assert (btor);
   assert (bv_model);
@@ -829,7 +829,7 @@ btor_init_fun_model (Btor *btor, BtorIntHashTable **fun_model)
 /*------------------------------------------------------------------------*/
 
 BtorIntHashTable *
-btor_clone_bv_model (Btor *btor, BtorIntHashTable *bv_model)
+btor_clone_bv_model (Btor *btor, BtorIntHashTable *bv_model, bool inc_ref_cnt)
 {
   assert (btor);
   assert (bv_model);
@@ -846,13 +846,13 @@ btor_clone_bv_model (Btor *btor, BtorIntHashTable *bv_model)
   {
     exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
     assert (exp);
-    btor_copy_exp (btor, exp);
+    if (inc_ref_cnt) btor_copy_exp (btor, exp);
   }
   return res;
 }
 
 BtorIntHashTable *
-btor_clone_fun_model (Btor *btor, BtorIntHashTable *fun_model)
+btor_clone_fun_model (Btor *btor, BtorIntHashTable *fun_model, bool inc_ref_cnt)
 {
   assert (btor);
   assert (fun_model);
@@ -869,7 +869,7 @@ btor_clone_fun_model (Btor *btor, BtorIntHashTable *fun_model)
   {
     exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
     assert (exp);
-    btor_copy_exp (btor, exp);
+    if (inc_ref_cnt) btor_copy_exp (btor, exp);
   }
   return res;
 }
