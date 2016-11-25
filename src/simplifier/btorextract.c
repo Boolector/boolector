@@ -988,8 +988,7 @@ create_static_rho (Btor *btor,
   {
     for (i = 0; indices[i]; i++)
     {
-      idx = indices[i];
-      if (!idx) break;
+      idx            = indices[i];
       args           = btor_args_exp (btor, &idx, 1);
       b              = btor_add_ptr_hash_table (static_rho, args);
       b->data.as_ptr = btor_copy_exp (btor, value);
@@ -1001,8 +1000,7 @@ create_static_rho (Btor *btor,
     for (i = 0; indices[i]; i++)
     {
       idx = indices[i];
-      if (!idx) break;
-      b = btor_get_ptr_hash_table (index_value_map, idx);
+      b   = btor_get_ptr_hash_table (index_value_map, idx);
       assert (b);
       value          = b->data.as_ptr;
       args           = btor_args_exp (btor, &idx, 1);
@@ -1139,6 +1137,8 @@ extract_lambdas (Btor *btor,
         static_rho = create_static_rho (
             btor, indices_ranges.start + i_index_r, value, 0);
         i_index_r += static_rho->count + 1;
+        if (btor_lambda_get_static_rho (subst))
+          btor_lambda_delete_static_rho (btor, subst);
         btor_lambda_set_static_rho (subst, static_rho);
       }
 
@@ -1205,6 +1205,8 @@ extract_lambdas (Btor *btor,
         static_rho = create_static_rho (
             btor, indices_ranges.start + i_index_r, 0, index_value_map);
         i_index_r += static_rho->count + 1;
+        if (btor_lambda_get_static_rho (subst))
+          btor_lambda_delete_static_rho (btor, subst);
         btor_lambda_set_static_rho (subst, static_rho);
       }
     }
@@ -1244,6 +1246,8 @@ extract_lambdas (Btor *btor,
         static_rho = create_static_rho (
             btor, indices_ranges.start + i_index_r, 0, index_value_map);
         i_index_r += static_rho->count + 1;
+        if (btor_lambda_get_static_rho (subst))
+          btor_lambda_delete_static_rho (btor, subst);
         btor_lambda_set_static_rho (subst, static_rho);
       }
     }
@@ -1290,6 +1294,8 @@ extract_lambdas (Btor *btor,
         static_rho = create_static_rho (
             btor, indices_ranges.start + i_index_r, 0, index_value_map);
         i_index_r += static_rho->count + 1;
+        if (btor_lambda_get_static_rho (subst))
+          btor_lambda_delete_static_rho (btor, subst);
         btor_lambda_set_static_rho (subst, static_rho);
       }
     }
