@@ -887,7 +887,8 @@ btor_delete_btor (Btor *btor)
       if (!exp) continue;
       if (btor_is_proxy_node (exp)) exp->simplified = 0;
       assert (exp->refs);
-      exp->refs     = 1;
+      exp->refs = 1;
+      btor->external_refs -= exp->ext_refs;
       exp->ext_refs = 0;
       btor_release_exp (btor, exp);
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
