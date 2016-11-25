@@ -960,6 +960,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
     if (!d)
     {
       btor_add_int_hash_map (cache, cur->id);
+      BTOR_PUSH_STACK (stack, cur);
       BTOR_NEW (mm, childparents);
       BTOR_INIT_STACK (mm, *childparents);
       btor_add_int_hash_map (aprop->parents, cur->id)->as_ptr = childparents;
@@ -991,6 +992,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
     }
   }
   btor_delete_int_hash_map (cache);
+  BTOR_RELEASE_STACK (stack);
 
   /* generate initial model, all inputs are initialized with false */
   aigprop_generate_model (aprop, 1);
