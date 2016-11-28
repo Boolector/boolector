@@ -925,7 +925,6 @@ struct BtorMBT
   BtorMBTExpStack *assumptions;
   BtorMBTExpStack *bo, *bv, *arr, *fun, *uf;
   BtorMBTExpStack *parambo, *parambv, *paramarr, *paramfun;
-  BtorMBTExpStack *cnf;
   BoolectorSortStack *bv_sorts, *fun_sorts;
 
   /* Note: no global settings after this point! Do not change order! */
@@ -1648,46 +1647,6 @@ btormbt_array (BtorMBT *mbt)
   boolector_release_sort (mbt->btor, as);
   g_btormbtstats->num_ops[ARRAY]++;
 }
-
-#if 0
-/* randomly select variables from bo within the range ifrom - ito */
-static BoolectorNode *
-btormbt_clause (BtorMBT * mbt, int ifrom, int ito)
-{
-  int i, idx;
-  BoolectorNode *e0, *e1;
-  BtorMBTExpStack *expstack;
-  
-  expstack = mbt->bo;
-  e0 = NULL;
-  /* make clause with 3 boolean expressions */
-  for (i = 0; i < 3; i++)
-    {
-      idx = btor_pick_rand_rng (&mbt->rng, ifrom, ito);
-      if (e0 == NULL)
-	{
-	  e0 = expstack->exps.start[idx]->exp;
-	  if (btor_pick_with_prob_rng (&mbt->rng, 500))
-	    {
-	      e0 = boolector_not (mbt->btor, e0);
-	      btormbt_push_exp_stack (mbt->mm, mbt->cnf, e0);
-	    }
-	}
-      else
-	{
-	  e1 = expstack->exps.start[idx]->exp;
-	  if (btor_pick_with_prob_rng (&mbt->rng, 500))
-	    {
-	      e1 = boolector_not (mbt->btor, e1);
-	      btormbt_push_exp_stack (mbt->mm, mbt->cnf, e1);
-	    }
-	  e0 = boolector_or (mbt->btor, e0, e1);
-	  btormbt_push_exp_stack (mbt->mm, mbt->cnf, e0);
-	}
-    }
-  return e0;
-}
-#endif
 
 static BoolectorNode *
 btormbt_constraint (BtorMBT *mbt)
@@ -3094,17 +3053,8 @@ btormbt_state_assume_assert (BtorMBT *mbt)
 {
   BoolectorNode *node;
 
-#if 0
-  int lower;
-  /* select from init layer with lower probability */
-  lower = mbt->bo->init_layer_size
-    && BTOR_COUNT_STACK (mbt->bo->exps) > mbt->bo->init_layer_size
-    && btor_pick_with_prob_rng (&mbt->rng, 800) ?  mbt->bo->init_layer_size - 1 : 0;
-  node = btormbt_clause (mbt, &mbt->rng, lower, BTOR_COUNT_STACK (mbt->bo->exps) - 1);
-  assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
-#else
   node = btormbt_constraint (mbt);
-#endif
+
   if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_assume))
   {
     boolector_assume (mbt->btor, node);
@@ -3246,13 +3196,6 @@ btormbt_state_model_gen (BtorMBT *mbt)
 static void *
 btormbt_state_model_inc (BtorMBT *mbt)
 {
-  int i;
-
-  /* release cnf expressions */
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->cnf->exps); i++)
-    btormbt_release_node (mbt, mbt->cnf->exps.start[i]->exp);
-  btormbt_reset_exp_stack (mbt->mm, mbt->cnf);
-
   if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
   {
     mbt->inc++;
@@ -3315,7 +3258,6 @@ btormbt_state_delete (BtorMBT *mbt)
   RELEASE_EXP_STACK (arr);
   RELEASE_EXP_STACK (fun);
   RELEASE_EXP_STACK (uf);
-  RELEASE_EXP_STACK (cnf);
   RELEASE_EXP_STACK (assumptions);
 
   RELEASE_SORT_STACK (bv_sorts);
@@ -3343,7 +3285,6 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->arr);
   assert (!mbt->fun);
   assert (!mbt->uf);
-  assert (!mbt->cnf);
   assert (!mbt->parambo);
   assert (!mbt->parambv);
   assert (!mbt->paramarr);
@@ -3359,7 +3300,6 @@ reset_round_data (BtorMBT *mbt)
   mbt->arr         = btormbt_new_exp_stack (mbt->mm);
   mbt->fun         = btormbt_new_exp_stack (mbt->mm);
   mbt->uf          = btormbt_new_exp_stack (mbt->mm);
-  mbt->cnf         = btormbt_new_exp_stack (mbt->mm);
   mbt->bv_sorts    = btormbt_new_sort_stack (mbt->mm);
   mbt->fun_sorts   = btormbt_new_sort_stack (mbt->mm);
   mbt->rng.z = mbt->rng.w = mbt->seed;
