@@ -2572,7 +2572,7 @@ static void *btormbt_state_assume_assert (BtorMBT *);
 static void *btormbt_state_sat (BtorMBT *);
 static void *btormbt_state_dump (BtorMBT *);
 static void *btormbt_state_model_gen (BtorMBT *);
-static void *btormbt_state_model_inc (BtorMBT *);
+static void *btormbt_state_inc (BtorMBT *);
 static void *btormbt_state_delete (BtorMBT *);
 
 static void *
@@ -3154,7 +3154,7 @@ btormbt_state_sat (BtorMBT *mbt)
   btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
 
   return mbt->mgen && res == BOOLECTOR_SAT ? btormbt_state_model_gen
-                                           : btormbt_state_model_inc;
+                                           : btormbt_state_inc;
 }
 
 static void *
@@ -3190,11 +3190,11 @@ btormbt_state_model_gen (BtorMBT *mbt)
     if (size > 0)
       boolector_free_uf_assignment (mbt->btor, indices, values, size);
   }
-  return btormbt_state_model_inc;
+  return btormbt_state_inc;
 }
 
 static void *
-btormbt_state_model_inc (BtorMBT *mbt)
+btormbt_state_inc (BtorMBT *mbt)
 {
   if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
   {
