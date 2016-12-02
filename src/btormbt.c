@@ -3101,18 +3101,25 @@ btormbt_state_dump (BtorMBT *mbt)
   }
   else
   {
-    uint32_t r = btor_pick_rand_rng (&mbt->btor->rng, 0, 100);
-    /* pick btor and smt2 with 30% probability, aag and aig with 20% */
-    if (r < 300 && !BTOR_COUNT_STACK (mbt->uf->exps))
-      boolector_dump_btor (mbt->btor, stdout);
-    else if (r < 600)
-      boolector_dump_smt2 (mbt->btor, stdout);
-    else if (r < 800)
-      boolector_dump_aiger_ascii (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+    if (!BTOR_COUNT_STACK (mbt->uf->exps) && !BTOR_COUNT_STACK (mbt->fun->exps)
+        && !BTOR_COUNT_STACK (mbt->arr->exps)
+        && btor_pick_with_prob_rng (&mbt->btor->rng, 330))
+    {
+      if (btor_pick_with_prob_rng (&mbt->btor->rng, 500))
+        boolector_dump_aiger_ascii (
+            mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+      else
+        boolector_dump_aiger_binary (
+            mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+    }
     else
-      boolector_dump_aiger_binary (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+    {
+      if (!BTOR_COUNT_STACK (mbt->uf->exps)
+          && btor_pick_with_prob_rng (&mbt->btor->rng, 500))
+        boolector_dump_btor (mbt->btor, stdout);
+      else
+        boolector_dump_smt2 (mbt->btor, stdout);
+    }
   }
   return btormbt_state_delete;
 }
