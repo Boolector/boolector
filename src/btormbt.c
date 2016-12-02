@@ -361,7 +361,7 @@
                                       BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
   "\n other options:\n" \
   "  --output-format <string>         force dump/model output format\n" \
-  "                                   available formats are: btor,smt2\n"
+  "                                   available formats are: btor,smt2,aag,aig\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -483,7 +483,7 @@ const char *const g_op2str[] = {
     "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",     "nor",
     "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",   "smod",
     "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",   "read",
-    "write",   "apply",
+    "WRITe",   "apply",
 };
 
 static int
@@ -533,6 +533,7 @@ is_array_op (Op op)
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorMBT BtorMBT;
+
 static void btormbt_release_node (BtorMBT *mbt, BoolectorNode *node);
 
 struct BtorMBTBtorOpt
@@ -3085,14 +3086,33 @@ btormbt_state_dump (BtorMBT *mbt)
       boolector_dump_btor (mbt->btor, stdout);
     else if (!strcmp (mbt->output_format, "smt2"))
       boolector_dump_smt2 (mbt->btor, stdout);
+    else if (!strcmp (mbt->output_format, "aag")
+             && !BTOR_COUNT_STACK (mbt->uf->exps)
+             && !BTOR_COUNT_STACK (mbt->fun->exps)
+             && !BTOR_COUNT_STACK (mbt->arr->exps))
+      boolector_dump_aiger_ascii (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+    else if (!strcmp (mbt->output_format, "aig")
+             && !BTOR_COUNT_STACK (mbt->uf->exps)
+             && !BTOR_COUNT_STACK (mbt->fun->exps)
+             && !BTOR_COUNT_STACK (mbt->arr->exps))
+      boolector_dump_aiger_binary (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
   }
   else
   {
-    if (btor_pick_with_prob_rng (&mbt->rng, 500)
-        && !BTOR_COUNT_STACK (mbt->uf->exps))
+    uint32_t r = btor_pick_rand_rng (&mbt->btor->rng, 0, 100);
+    /* pick btor and smt2 with 30% probability, aag and aig with 20% */
+    if (r < 300 && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else
+    else if (r < 600)
       boolector_dump_smt2 (mbt->btor, stdout);
+    else if (r < 800)
+      boolector_dump_aiger_ascii (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
+    else
+      boolector_dump_aiger_binary (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
   }
   return btormbt_state_delete;
 }
@@ -4227,7 +4247,8 @@ main (int argc, char **argv)
     {
       if (++i == argc)
         btormbt_error ("argument to '--output-format' missing (try '-h')");
-      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2"))
+      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2")
+          && strcmp (argv[i], "aag") && strcmp (argv[i], "aig"))
         btormbt_error ("argument to '--output-format' is invalid (try '-h')");
       g_btormbt->output_format = argv[i];
     }
