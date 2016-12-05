@@ -82,12 +82,9 @@
 
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
-#ifdef BTOR_CHECK_MODEL
+#ifndef NDEBUG
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
-#endif
-
-#ifndef NDEBUG
 static void check_failed_assumptions (Btor *);
 #endif
 /*------------------------------------------------------------------------*/
@@ -3632,9 +3629,10 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
   assert (btor->slv);
 
-#ifdef BTOR_CHECK_UNCONSTRAINED
+#ifndef NDEBUG
   Btor *uclone = 0;
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor_get_opt (btor, BTOR_OPT_CHK_UNCONSTRAINED)
       && btor_get_opt (btor, BTOR_OPT_UCOPT)
       && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
@@ -3643,16 +3641,18 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     uclone = btor_clone_btor (btor);
     btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
   }
-#endif
 
-#ifdef BTOR_CHECK_MODEL
   Btor *mclone             = 0;
   BtorPtrHashTable *inputs = 0;
-  mclone                   = btor_clone_exp_layer (btor, 0);
-  btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
-  btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
-  inputs = map_inputs_check_model (btor, mclone);
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor_get_opt (btor, BTOR_OPT_CHK_MODEL))
+  {
+    mclone = btor_clone_exp_layer (btor, 0);
+    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
+    btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
+    inputs = map_inputs_check_model (btor, mclone);
+  }
 #endif
 
 #ifndef NBTORLOG
@@ -3660,18 +3660,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
   res = btor->slv->api.sat (btor->slv);
   btor->btor_sat_btor_called++;
-
-#ifdef BTOR_CHECK_UNCONSTRAINED
-  if (uclone)
-  {
-    assert (btor_get_opt (btor, BTOR_OPT_UCOPT));
-    assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
-    assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
-    assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
-    BtorSolverResult ucres = uclone->slv->api.sat (uclone->slv);
-    assert (res == ucres);
-  }
-#endif
 
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN) && res == BTOR_RESULT_SAT)
   {
@@ -3689,7 +3677,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
   }
 
-#ifdef BTOR_CHECK_MODEL
+#ifndef NDEBUG
+  if (uclone)
+  {
+    assert (btor_get_opt (btor, BTOR_OPT_UCOPT));
+    assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
+    assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+    assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
+    BtorSolverResult ucres = uclone->slv->api.sat (uclone->slv);
+    assert (res == ucres);
+  }
+
   if (mclone)
   {
     assert (inputs);
@@ -3839,7 +3837,7 @@ btor_release_bv_assignment_str (Btor *btor, char *assignment)
   btor_freestr (btor->mm, assignment);
 }
 
-#ifdef BTOR_CHECK_MODEL
+#ifndef NDEBUG
 BtorPtrHashTable *
 map_inputs_check_model (Btor *btor, Btor *clone)
 {

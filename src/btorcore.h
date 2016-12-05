@@ -30,11 +30,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-#define BTOR_CHECK_UNCONSTRAINED
-#define BTOR_CHECK_MODEL
-#endif
-
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif

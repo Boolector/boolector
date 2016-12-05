@@ -847,6 +847,17 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0);
+  init_opt (btor, BTOR_OPT_CHK_MODEL, true, true, "chk-model", 0, 1, 0, 1, 0);
+  init_opt (btor,
+            BTOR_OPT_CHK_UNCONSTRAINED,
+            true,
+            true,
+            "chk-unconstrained",
+            0,
+            1,
+            0,
+            1,
+            0);
 #endif
   init_opt (btor,
             BTOR_OPT_PARSE_INTERACTIVE,
