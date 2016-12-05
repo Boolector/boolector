@@ -33,7 +33,6 @@
 #if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
 #define BTOR_CHECK_UNCONSTRAINED
 #define BTOR_CHECK_MODEL
-#define BTOR_CHECK_DUAL_PROP
 #endif
 
 #ifndef BTOR_USE_LINGELING

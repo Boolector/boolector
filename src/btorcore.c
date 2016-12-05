@@ -87,10 +87,6 @@ static void check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #endif
 
-#ifdef BTOR_CHECK_DUAL_PROP
-static void check_dual_prop (Btor *, Btor *);
-#endif
-
 #ifndef NDEBUG
 static void check_failed_assumptions (Btor *);
 #endif
@@ -3659,18 +3655,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   inputs = map_inputs_check_model (btor, mclone);
 #endif
 
-#ifdef BTOR_CHECK_DUAL_PROP
-  Btor *dpclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
-  {
-    dpclone = btor_clone_btor (btor);
-    btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (dpclone, BTOR_OPT_FUN_DUAL_PROP, 0);
-  }
-#endif
-
 #ifndef NBTORLOG
   btor_log_opts (btor);
 #endif
@@ -3738,14 +3722,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     btor_delete_ptr_hash_table (inputs);
     btor_delete_btor (mclone);
-  }
-#endif
-
-#ifdef BTOR_CHECK_DUAL_PROP
-  if (dpclone && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
-  {
-    check_dual_prop (btor, dpclone);
-    btor_delete_btor (dpclone);
   }
 #endif
 
@@ -4057,19 +4033,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
   BTOR_ABORT (ret == BTOR_RESULT_UNSAT, "invalid model");
-}
-#endif
-
-#ifdef BTOR_CHECK_DUAL_PROP
-static void
-check_dual_prop (Btor *btor, Btor *clone)
-{
-  assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP));
-  assert (clone);
-
-  clone->slv->api.sat (clone->slv);
-  assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
 
