@@ -91,8 +91,8 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 static void check_dual_prop (Btor *, Btor *);
 #endif
 
-#ifdef BTOR_CHECK_FAILED
-static void check_failed_assumptions (Btor *, Btor *);
+#ifndef NDEBUG
+static void check_failed_assumptions (Btor *);
 #endif
 /*------------------------------------------------------------------------*/
 
@@ -3677,19 +3677,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   res = btor->slv->api.sat (btor->slv);
   btor->btor_sat_btor_called++;
 
-#ifdef BTOR_CHECK_FAILED
-  Btor *faclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS))
-  {
-    faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (faclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-    btor_set_opt (faclone, BTOR_OPT_FUN_DUAL_PROP, 0);
-  }
-#endif
-
 #ifdef BTOR_CHECK_UNCONSTRAINED
   if (uclone)
   {
@@ -3762,13 +3749,10 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
-#ifdef BTOR_CHECK_FAILED
-  if (faclone && btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS))
-  {
-    if (!btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
-      check_failed_assumptions (btor, faclone);
-    btor_delete_btor (faclone);
-  }
+#ifndef NDEBUG
+  if (btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS)
+      && !btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
+    check_failed_assumptions (btor);
 #endif
   return res;
 }
@@ -4089,15 +4073,24 @@ check_dual_prop (Btor *btor, Btor *clone)
 }
 #endif
 
-#ifdef BTOR_CHECK_FAILED
+#ifndef NDEBUG
 static void
-check_failed_assumptions (Btor *btor, Btor *clone)
+check_failed_assumptions (Btor *btor)
 {
   assert (btor);
   assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
 
+  Btor *clone;
   BtorNode *ass, *cass;
   BtorPtrHashTableIterator it;
+
+  if (!btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))) return;
+  clone = btor_clone_btor (btor);
+  if (!clone) return;
+  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_opt (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+  btor_set_opt (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
   /* assert failed assumptions */
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -4123,5 +4116,6 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   assert (clone->slv->api.sat (clone->slv) == BTOR_RESULT_UNSAT);
+  btor_delete_btor (clone);
 }
 #endif

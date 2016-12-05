@@ -305,7 +305,6 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
-    [ $debug = yes ] && CFLAGS="$CFLAGS -DBTOR_CHECK_FAILED"
     LIBS="${LIBS}-L$ROOT/../lingeling -llgl"
     LDEPS="${LDEPS}$ROOT/../lingeling/liblgl.a"
     LIBM=yes

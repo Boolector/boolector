@@ -836,7 +836,7 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0);
-#ifdef BTOR_CHECK_FAILED
+#ifndef NDEBUG
   init_opt (btor,
             BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
             true,
