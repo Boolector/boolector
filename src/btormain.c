@@ -1466,6 +1466,8 @@ boolector_main (int argc, char **argv)
   /* we don't dump formula(s) in incremental mode */
   else if (dump)
   {
+    (void) boolector_simplify (g_app->btor);
+
     switch (dump)
     {
       case BTOR_OUTPUT_FORMAT_BTOR:

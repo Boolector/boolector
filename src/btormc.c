@@ -1267,6 +1267,8 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
   BtorDumpContext *bdc;
   int i;
 
+  (void) boolector_simplify (mc->btor);
+
   bdc = btor_new_dump_context (mc->btor);
 
   btor_init_ptr_hash_table_iterator (&it, mc->inputs);

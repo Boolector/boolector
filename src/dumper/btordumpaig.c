@@ -66,8 +66,6 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   avmgr          = btor->avmgr;
   backannotation = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
-  (void) btor_simplify (btor);
-
   BTOR_ABORT (
       btor->ops[BTOR_UF_NODE].cur > 0 || btor->ops[BTOR_LAMBDA_NODE].cur > 0,
       "cannot dump to AIGER format if formula contains "

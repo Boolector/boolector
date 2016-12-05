@@ -830,36 +830,36 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   assert (version == 1 || version == 2);
   // FIXME: why do we not allow these flags?
   //        inc_enabled -> ok if no assumptions
-  //        model_gen -> ??
   //  assert (!btor->inc_enabled);
-  //  assert (!btor->model_gen);
   (void) version;
 
-  int ret;
-  BtorNode *temp;
+  BtorNode *tmp;
   BtorDumpContext *bdc;
   BtorPtrHashTableIterator it;
 
-  ret          = btor_simplify (btor);
   bdc          = btor_new_dump_context (btor);
   bdc->version = 1;  // NOTE: version 2 not yet supported
 
-  if (ret == BTOR_RESULT_UNKNOWN)
+  if (btor->inconsistent)
   {
-    btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&it, btor->embedded_constraints);
-    while (btor_has_next_ptr_hash_table_iterator (&it))
-      btor_add_root_to_dump_context (bdc,
-                                     btor_next_ptr_hash_table_iterator (&it));
+    tmp = btor_false_exp (btor);
+    btor_add_root_to_dump_context (bdc, tmp);
+    btor_release_exp (btor, tmp);
+  }
+  else if (btor->unsynthesized_constraints->count == 0
+           && btor->synthesized_constraints->count == 0)
+  {
+    tmp = btor_true_exp (btor);
+    btor_add_root_to_dump_context (bdc, tmp);
+    btor_release_exp (btor, tmp);
   }
   else
   {
-    assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
-    temp =
-        (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
-    btor_add_root_to_dump_context (bdc, temp);
-    btor_release_exp (btor, temp);
+    btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+    btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
+      btor_add_root_to_dump_context (bdc,
+                                     btor_next_ptr_hash_table_iterator (&it));
   }
 
   btor_dump_btor_bdc (bdc, file);

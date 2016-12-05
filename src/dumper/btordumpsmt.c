@@ -1299,11 +1299,9 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (btor);
   assert (file);
   assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
-  //  assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
 
-  BtorSolverResult ret;
   int i;
-  BtorNode *temp, *tmp_roots[nroots];
+  BtorNode *tmp, *tmp_roots[nroots];
   BtorPtrHashTableIterator it;
   BtorSMTDumpContext *sdc;
 
@@ -1318,24 +1316,26 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   }
   else
   {
-    ret = btor_simplify (btor);
-
-    if (ret == BTOR_RESULT_UNKNOWN)
+    if (btor->inconsistent)
     {
-      btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-      btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-      btor_queue_ptr_hash_table_iterator (&it, btor->embedded_constraints);
-      while (btor_has_next_ptr_hash_table_iterator (&it))
-        add_root_to_smt_dump_context (sdc,
-                                      btor_next_ptr_hash_table_iterator (&it));
+      tmp = btor_false_exp (btor);
+      add_root_to_smt_dump_context (sdc, tmp);
+      btor_release_exp (btor, tmp);
+    }
+    else if (btor->unsynthesized_constraints->count == 0
+             && btor->synthesized_constraints->count == 0)
+    {
+      tmp = btor_true_exp (btor);
+      add_root_to_smt_dump_context (sdc, tmp);
+      btor_release_exp (btor, tmp);
     }
     else
     {
-      assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
-      temp = (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor)
-                                      : btor_false_exp (btor);
-      add_root_to_smt_dump_context (sdc, temp);
-      btor_release_exp (btor, temp);
+      btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+      btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+      while (btor_has_next_ptr_hash_table_iterator (&it))
+        add_root_to_smt_dump_context (sdc,
+                                      btor_next_ptr_hash_table_iterator (&it));
     }
   }
 

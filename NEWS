@@ -23,6 +23,11 @@ news for release 2.3.0 since 2.2.0
     boolector_param
 * new API:
   + boolector_unsigned_int
+* dumping: new behavior:
+  + boolector_dump_* does not simplify the formula before dumping anymore
+    (call boolector_simplify prior to dumping explicitely if necessary)
+  + when dumping via the CL, the observable dumping behavior did not change
+    (formula is simplified prior to dumping)
 
 news for release 2.2.0 since 2.1.1
 --------------------------------------
