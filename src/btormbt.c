@@ -3163,7 +3163,7 @@ btormbt_state_sat (BtorMBT *mbt)
   if (res == BOOLECTOR_UNSAT
       && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_FUN)
   {
-    /* check failed assumptions */
+    /* log failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)
     {
       ass = BTOR_PEEK_STACK (mbt->assumptions->exps, i)->exp;

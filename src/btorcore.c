@@ -41,8 +41,6 @@
 
 #include <limits.h>
 
-#undef BTOR_CHECK_FAILED
-
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
@@ -1772,6 +1770,8 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
   mark = btor_new_int_hash_table (btor->mm);
+  smgr = btor_get_sat_mgr_btor (btor);
+  assert (smgr);
 
   if (btor->inconsistent)
   {
@@ -1782,6 +1782,10 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
     res = false;
   }
   else if (exp == BTOR_INVERT_NODE (btor->true_exp))
+  {
+    res = true;
+  }
+  else if (!btor_is_initialized_sat (smgr))
   {
     res = true;
   }
@@ -1812,8 +1816,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       }
       else
       {
-        smgr = btor_get_sat_mgr_btor (btor);
-        lit  = exp_to_cnf_lit (btor, exp);
+        lit = exp_to_cnf_lit (btor, exp);
         if (abs (lit) == smgr->true_lit)
           res = lit < 0;
         else
@@ -1856,7 +1859,6 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       }
     }
 
-    smgr = btor_get_sat_mgr_btor (btor);
     while (!BTOR_EMPTY_STACK (assumptions))
     {
       cur = BTOR_POP_STACK (assumptions);
@@ -3669,6 +3671,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
+#ifndef NBTORLOG
+  btor_log_opts (btor);
+#endif
+  res = btor->slv->api.sat (btor->slv);
+  btor->btor_sat_btor_called++;
+
 #ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
@@ -3681,12 +3689,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (faclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   }
 #endif
-
-#ifndef NBTORLOG
-  btor_log_opts (btor);
-#endif
-  res = btor->slv->api.sat (btor->slv);
-  btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   if (uclone)
@@ -4094,7 +4096,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
   assert (btor);
   assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
 
-  BtorNode *ass;
+  BtorNode *ass, *cass;
   BtorPtrHashTableIterator it;
 
   /* assert failed assumptions */
@@ -4104,9 +4106,9 @@ check_failed_assumptions (Btor *btor, Btor *clone)
     ass = btor_next_ptr_hash_table_iterator (&it);
     if (btor_failed_exp (btor, ass))
     {
-      ass = btor_match_node (clone, ass);
-      assert (ass);
-      btor_assert_exp (clone, ass);
+      cass = btor_match_node (clone, ass);
+      assert (cass);
+      btor_assert_exp (clone, cass);
     }
   }
 
