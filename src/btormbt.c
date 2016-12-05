@@ -3121,7 +3121,8 @@ btormbt_state_dump (BtorMBT *mbt)
         boolector_dump_smt2 (mbt->btor, stdout);
     }
   }
-  return btormbt_state_delete;
+  return btor_pick_with_prob_rng (&mbt->btor->rng, 500) ? btormbt_state_delete
+                                                        : btormbt_state_main;
 }
 
 static void *
