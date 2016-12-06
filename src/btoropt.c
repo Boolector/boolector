@@ -714,7 +714,7 @@ btor_init_opts (Btor *btor)
             false,
             "prop:prob-slice-flip",
             0,
-            900,
+            0,
             0,
             BTOR_PROB_MAX,
             "probability for using the current assignment of the operand "
@@ -728,7 +728,7 @@ btor_init_opts (Btor *btor)
             false,
             "prop:prob-eq-flip",
             0,
-            900,
+            0,
             0,
             BTOR_PROB_MAX,
             "probability for using the current assignment of the selected "
@@ -743,7 +743,7 @@ btor_init_opts (Btor *btor)
       false,
       "prop:prob-and-flip",
       0,
-      900,
+      0,
       0,
       BTOR_PROB_MAX,
       "probability for using the current assignment of the don't care "
