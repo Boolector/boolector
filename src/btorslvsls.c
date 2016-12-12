@@ -371,7 +371,7 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
   do                                                                          \
   {                                                                           \
     if (done                                                                  \
-        || (sls_strat != BTOR_SLS_STRAT_PROB_RAND_WALK                        \
+        || (sls_strat != BTOR_SLS_STRAT_RAND_WALK                             \
             && ((sc) > slv->max_score                                         \
                 || (sls_strat == BTOR_SLS_STRAT_BEST_SAME_MOVE                \
                     && (sc) == slv->max_score))))                             \
@@ -394,7 +394,7 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
       slv->max_cans = cans;                                                   \
       if (done || sls_strat == BTOR_SLS_STRAT_FIRST_BEST_MOVE) goto DONE;     \
     }                                                                         \
-    else if (sls_strat == BTOR_SLS_STRAT_PROB_RAND_WALK)                      \
+    else if (sls_strat == BTOR_SLS_STRAT_RAND_WALK)                           \
     {                                                                         \
       BTOR_NEW (btor->mm, m);                                                 \
       m->cans = cans;                                                         \
@@ -864,8 +864,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   /* select probabilistic random walk move
    * (weighted by score; the higher the score, the higher the probability
    * that a move gets chosen) */
-  if (btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY)
-      == BTOR_SLS_STRAT_PROB_RAND_WALK)
+  if (btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY) == BTOR_SLS_STRAT_RAND_WALK)
   {
     assert (slv->max_cans->count == 0);
     assert (BTOR_COUNT_STACK (slv->moves));
@@ -875,12 +874,11 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
            sizeof (BtorSLSMove *),
            cmp_sls_moves_qsort);
 
-    rd  = btor_pick_rand_dbl_rng (&btor->rng, 0, slv->sum_score);
-    m   = BTOR_PEEK_STACK (slv->moves, 0);
-    sum = m->sc;
-    for (i = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
+    rd = btor_pick_rand_dbl_rng (&btor->rng, 0, slv->sum_score);
+    m  = BTOR_PEEK_STACK (slv->moves, 0);
+    for (i = 0, sum = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
     {
-      sum += BTOR_PEEK_STACK (slv->moves, i)->sc;
+      sum += m->sc;
       if (sum > rd) break;
       m = BTOR_PEEK_STACK (slv->moves, i);
     }

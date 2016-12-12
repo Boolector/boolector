@@ -329,7 +329,7 @@ enum BtorOption
       | Boolector uses BTOR_SLS_STRAT_BEST_MOVE by default.
 
       * BTOR_SLS_STRAT_BEST_MOVE (0): always choose best score improving move
-      * BTOR_SLS_STRAT_PROB_RAND_WALK (1): always choose random walk weighted by
+      * BTOR_SLS_STRAT_RAND_WALK (1): always choose random walk weighted by
     score
       * BTOR_SLS_STRAT_FIRST_BEST_MOVE (2): always choose first best move (no
     matter if any other move is better)
