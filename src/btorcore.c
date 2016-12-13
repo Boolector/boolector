@@ -620,6 +620,12 @@ btor_new_btor (void)
   btor->msg = btor_new_btor_msg (btor);
   btor_set_msg_prefix_btor (btor, "btor");
 
+  BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
+  BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
+  BTOR_INIT_STACK (btor->mm, btor->nodes_id_table);
+  BTOR_PUSH_STACK (btor->nodes_id_table, 0);
+  BTOR_INIT_STACK (btor->mm, btor->functions_with_model);
+
   btor_init_opts (btor);
 
   btor->avmgr = btor_new_aigvec_mgr (btor);
@@ -628,9 +634,6 @@ btor_new_btor (void)
 
   btor->bv_assignments  = btor_new_bv_assignment_list (mm);
   btor->fun_assignments = btor_new_array_assignment_list (mm);
-
-  BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
-  BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
   btor->symbols = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
@@ -656,9 +659,6 @@ btor_new_btor (void)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->valid_assignments = 1;
-
-  BTOR_INIT_STACK (btor->mm, btor->nodes_id_table);
-  BTOR_PUSH_STACK (btor->nodes_id_table, 0);
 
   btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
@@ -694,8 +694,6 @@ btor_new_btor (void)
   btor->stats.rw_rules_applied = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 #endif
-
-  BTOR_INIT_STACK (btor->mm, btor->functions_with_model);
 
   btor->true_exp = btor_true_exp (btor);
 
