@@ -111,7 +111,6 @@ cp -p \
   makefile.in \
   ibv.mk \
   mbt.mk \
-  python.mk \
 $dir/
 
 date=`date`
