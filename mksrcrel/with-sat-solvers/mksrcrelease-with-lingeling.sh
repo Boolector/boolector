@@ -28,7 +28,10 @@ tar=${tmp}.tar.bz2
 rm -rf $tmp $tar $log
 mkdir $tmp || exit 1
 cp makefile.lingeling $tmp/makefile
-cp README.lingeling $tmp/README
+date=`date`
+sed -e 's,@VERSION@,'"$btorversion," \
+    -e 's,@DATE@,'"$date," \
+README.lingeling > $tmp/README
 mkdir $tmp/archives || exit 1
 cd ../..
 ./mksrcrel/mksrcrelease.sh >> $log || exit 1

@@ -1,4 +1,8 @@
-This is a source release of Boolector together with supported SAT solvers.  
+Boolector @VERSION@
+
+@DATE@
+
+Source code release of Boolector together with supported SAT solvers.  
 
 The default license does not allow this software to be used in a commercial
 context nor as part of a submission to a competition or a similar event.
