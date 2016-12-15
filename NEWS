@@ -11,7 +11,7 @@ news for release 2.3.0 since 2.2.0
 * fixed issue with printing BTOR models
 * improved and extended option handling
   + boolector_get_opt_val -> boolector_get_opt
-* many under-the-hood changes and refactorings
+* many under-the-hood changes, refactoring, improvements
 * API changes:
   + the following functions now take BoolectorSort
     instead of int as argument:
