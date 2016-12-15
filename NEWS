@@ -45,7 +45,7 @@ news for release 2.3.0 since 2.2.0
   + the following options now return BtorOption instead of const char *
      - boolector_first_opt
      - boolector_next_opt
-* new API:
+* new API functions:
   + boolector_unsigned_int
   + boolector_get_sort
   + boolector_fun_get_domain_sort
