@@ -13,16 +13,48 @@ news for release 2.3.0 since 2.2.0
   + boolector_get_opt_val -> boolector_get_opt
 * many under-the-hood changes, refactoring, improvements
 * API changes:
-  + the following functions now take BoolectorSort
+  + boolector_*_opt* now takes enum BtorOption instead of char* as argument
+  + renamed:
+     - boolector_get_opt_val -> boolector_get_opt
+  + the following functions now take BoolectorSort:
     instead of int as argument:
-    boolector_zero,
-    boolector_ones,
-    boolector_one,
-    boolector_int,
-    boolector_array,
-    boolector_param
+     - boolector_zero,
+     - boolector_ones,
+     - boolector_one,
+     - boolector_int,
+     - boolector_array,
+     - boolector_param
+  + the following functions now return uint32_t instead of int:
+     - boolector_get_width
+     - boolector_get_index_width
+     - boolector_get_fun_arity
+     - boolector_get_opt (was boolector_get_opt_val)
+     - boolector_get_opt_min
+     - boolector_get_opt_max
+     - boolector_get_opt_dflt
+  + the following functions now return bool instead of int:
+     - boolector_is_const
+     - boolector_is_var
+     - boolector_is_array
+     - boolector_is_array_var
+     - boolector_is_param
+     - boolector_is_bound_param
+     - boolector_is_fun
+     - boolector_is_equal_sort
+     - boolector_failed
+  + the following options now return BtorOption instead of const char *
+     - boolector_first_opt
+     - boolector_next_opt
 * new API:
   + boolector_unsigned_int
+  + boolector_get_sort
+  + boolector_fun_get_domain_sort
+  + boolector_fun_get_codomain_sort
+  + boolector_match_node_by_symbol
+  + boolector_is_array_sort
+  + boolector_is_bitvec_sort
+  + boolector_is_fun_sort
+  + boolector_has_opt
 * dumping: new behavior:
   + boolector_dump_* does not simplify the formula before dumping anymore
     (call boolector_simplify prior to dumping explicitely if necessary)
