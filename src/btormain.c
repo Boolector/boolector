@@ -689,21 +689,21 @@ print_copyright (BtorMainApp *app)
 
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
-  fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2007-2016 Armin Biere\n");
   fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
   fprintf (out, "\n");
   fprintf (out, "This software is linked against Lingeling\n");
-  fprintf (out, "Copyright (c) 2010-2014 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2010-2016 Armin Biere\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
 #ifdef BTOR_USE_PICOSAT
   fprintf (out, "\n");
   fprintf (out, "This software is linked against PicoSAT\n");
-  fprintf (out, "Copyright (c) 2006-2014 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2006-2016 Armin Biere\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
