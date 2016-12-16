@@ -213,7 +213,7 @@ LDEPS="$BUILDIR/libboolector.a"
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
-RPATHS="-rpath=$ROOT/$BUILDIR"
+RPATHS="-rpath\,$ROOT/$BUILDIR"
 if [ $shared = yes ]
 then
   LDEPS="$BUILDIR/libboolector.so"
@@ -256,7 +256,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
+    RPATHS="${RPATHS}\,-rpath\,$ROOT/../picosat/"
     if [ $shared = yes ]		
     then
       LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
@@ -414,7 +414,7 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}$BUILDIR/btorminisat.o"
-    RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
+    RPATHS="${RPATHS}\,-rpath\,$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
       LIBS="${LIBS}-L$ROOT/../minisat/build/dynamic/lib -lminisat"
@@ -511,7 +511,7 @@ ext_modules=[
               library_dirs=[s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-       extra_link_args=["-Wl,-rpath="+":".join([s for s in "$py_library_dirs".split()])]
+       extra_link_args=["-Wl,-rpath,"+":".join([s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
