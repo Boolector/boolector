@@ -458,7 +458,6 @@ print_bv_value (Btor *btor,
     btor_dump_const_value_smt (btor, ass, base, file);
     fprintf (file, ")");
   }
-  btor_release_bv_assignment_str (btor, (char *) ass);
 }
 
 static void
