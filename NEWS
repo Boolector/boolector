@@ -1,3 +1,8 @@
+news for release 2.3.1 since 2.3.0
+--------------------------------------
+* fixed an issue with model printing (get-value)
+  (thanks to Levent Erkok)
+
 news for release 2.3.0 since 2.2.0
 --------------------------------------
 * new QF_BV engines
