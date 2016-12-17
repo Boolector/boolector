@@ -29,7 +29,11 @@ log=$tmp.log
 tar=${tmp}.tar.gz
 rm -rf $tmp $tar $log
 mkdir $tmp || exit 1
-cp build.sh clean.sh makefile README $tmp
+cp build.sh clean.sh makefile $tmp
+date=`date`
+sed -e 's,@VERSION@,'"$version," \
+    -e 's,@DATE@,'"$date," \
+README > $tmp/README
 mkdir $tmp/archives || exit 1
 cd ../..
 ./mksrcrel/mksrcrelease.sh >> $log || exit 1
