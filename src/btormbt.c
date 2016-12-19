@@ -3081,6 +3081,11 @@ btormbt_state_dump (BtorMBT *mbt)
   assert (!mbt->inc);
   assert (!mbt->mgen);
 
+  Btor *tmpbtor;
+  FILE *outfile;
+  int32_t len, pstat, pres;
+  char *outfilename, *emsg;
+
   // TODO (ma): UF support in BTOR format not yet implemented
   if (mbt->output_format)
   {
@@ -3117,11 +3122,37 @@ btormbt_state_dump (BtorMBT *mbt)
     }
     else
     {
+      len = 40 + strlen ("/tmp/btormbt-bug-.")
+            + btor_num_digits_util (g_btormbt->seed);
+      BTOR_NEWN (g_btormbt->mm, outfilename, len);
+
       if (!BTOR_COUNT_STACK (mbt->uf->exps)
           && btor_pick_with_prob_rng (&mbt->btor->rng, 500))
-        boolector_dump_btor (mbt->btor, stdout);
+      {
+        sprintf (
+            outfilename, "/tmp/btormbt-bug-%d.%s", g_btormbt->seed, "btor");
+        outfile = fopen (outfilename, "w");
+        assert (outfile);
+        boolector_dump_btor (mbt->btor, outfile);
+      }
       else
-        boolector_dump_smt2 (mbt->btor, stdout);
+      {
+        sprintf (
+            outfilename, "/tmp/btormbt-bug-%d.%s", g_btormbt->seed, "smt2");
+        outfile = fopen (outfilename, "w");
+        assert (outfile);
+        boolector_dump_smt2 (mbt->btor, outfile);
+      }
+      fclose (outfile);
+      outfile = fopen (outfilename, "r");
+      tmpbtor = boolector_new ();
+      pres    = boolector_parse (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
+      boolector_delete (tmpbtor);
+      fclose (outfile);
+      unlink (outfilename);
+      BTOR_DELETEN (mbt->mm, outfilename, len);
     }
   }
   return btor_pick_with_prob_rng (&mbt->btor->rng, 500) ? btormbt_state_delete
