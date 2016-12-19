@@ -931,10 +931,12 @@ struct BtorMBT
   /* Note: no global settings after this point! Do not change order! */
 
   bool is_init;
-  int inc;
+  bool inc;
   bool mgen;
   bool dump;
   bool print_model;
+
+  uint32_t ninc;
 
   /* prob. distribution of variables, constants, arrays in current round */
   uint32_t p_var, p_const, p_array;
@@ -2572,7 +2574,7 @@ static void *btormbt_state_release (BtorMBT *);
 static void *btormbt_state_assume_assert (BtorMBT *);
 static void *btormbt_state_sat (BtorMBT *);
 static void *btormbt_state_dump (BtorMBT *);
-static void *btormbt_state_model_gen (BtorMBT *);
+static void *btormbt_state_query_model (BtorMBT *);
 static void *btormbt_state_inc (BtorMBT *);
 static void *btormbt_state_delete (BtorMBT *);
 
@@ -2646,10 +2648,11 @@ btormbt_state_opt (BtorMBT *mbt)
 
   /* reset every round */
   mbt->dump        = false;
-  mbt->inc         = 0;
+  mbt->inc         = false;
   mbt->mgen        = false;
   mbt->print_model = false;
   mbt->ext         = false;
+  mbt->ninc        = 0;
 
   /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
@@ -2724,7 +2727,7 @@ btormbt_state_opt (BtorMBT *mbt)
 
     /* set some mbt specific options */
     if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
-      mbt->inc = 1;
+      mbt->inc = true;
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
       mbt->mgen = true;
@@ -3149,13 +3152,6 @@ btormbt_state_sat (BtorMBT *mbt)
   {
     BTORMBT_LOG (1, "sat");
     g_btormbtstats->num_sat++;
-    if (mbt->print_model)
-    {
-      if (btor_pick_with_prob_rng (&mbt->rng, mbt->p_model_format))
-        boolector_print_model (mbt->btor, "btor", stdout);
-      else
-        boolector_print_model (mbt->btor, "smt2", stdout);
-    }
   }
   else
     BTORMBT_LOG (1, "sat call returned %d", res);
@@ -3172,27 +3168,29 @@ btormbt_state_sat (BtorMBT *mbt)
       BTORMBT_LOG (1, "assumption %p failed: %d", ass, failed);
     }
   }
-  /* release assumptions */
-  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
-  {
-    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
-    assert (ass);
-    btormbt_release_node (mbt, ass);
-  }
-  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
 
-  return mbt->mgen && res == BOOLECTOR_SAT ? btormbt_state_model_gen
-                                           : btormbt_state_inc;
+  if (mbt->mgen && res == BOOLECTOR_SAT) return btormbt_state_query_model;
+  if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
+    return btormbt_state_inc;
+  return btormbt_state_delete;
 }
 
 static void *
-btormbt_state_model_gen (BtorMBT *mbt)
+btormbt_state_query_model (BtorMBT *mbt)
 {
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
   assert (mbt->mgen);
+
+  if (mbt->print_model)
+  {
+    if (btor_pick_with_prob_rng (&mbt->rng, mbt->p_model_format))
+      boolector_print_model (mbt->btor, "btor", stdout);
+    else
+      boolector_print_model (mbt->btor, "smt2", stdout);
+  }
 
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
   {
@@ -3218,61 +3216,69 @@ btormbt_state_model_gen (BtorMBT *mbt)
     if (size > 0)
       boolector_free_uf_assignment (mbt->btor, indices, values, size);
   }
-  return btormbt_state_inc;
+  if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
+    return btormbt_state_inc;
+  return btormbt_state_delete;
 }
 
 static void *
 btormbt_state_inc (BtorMBT *mbt)
 {
-  if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
+  BoolectorNode *ass;
+
+  mbt->ninc++;
+
+  /* release assumptions */
+  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
   {
-    mbt->inc++;
-    mbt->ops         = 0; /* reset */
-    mbt->max_ass_cur = mbt->max_ass_cur - mbt->asserts;
-    mbt->assumes     = 0; /* reset */
-    mbt->asserts     = 0;
-
-    mbt->max_ops_cur =
-        btor_pick_rand_rng (&mbt->rng, mbt->min_ops_inc, mbt->max_ops_inc);
-
-    init_pd_inputs (
-        mbt,
-        btor_pick_rand_rng (&mbt->rng, mbt->min_vars_inc, mbt->max_vars_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_consts_inc, mbt->max_consts_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
-
-    init_pd_ops (
-        mbt,
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
-
-    init_pd_add (
-        mbt,
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_arrayops_inc, mbt->max_add_arrayops_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_bitvecops_inc, mbt->max_add_bitvecops_inc),
-        btor_pick_rand_rng (
-            &mbt->rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
-
-    BTORMBT_LOG (1,
-                 "inc: pick %u ops (add:rel=%0.1f%%:%0.1f%%)",
-                 mbt->max_ops_cur,
-                 (double) mbt->p_add / 10,
-                 (double) mbt->p_release / 10);
-    if (mbt->inc) BTORMBT_LOG (1, "number of increments: %u", mbt->inc - 1);
-
-    return btormbt_state_main;
+    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
+    assert (ass);
+    btormbt_release_node (mbt, ass);
   }
-  return btormbt_state_delete;
+  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
+
+  /* reset / reinit */
+  mbt->ops         = 0;
+  mbt->max_ass_cur = mbt->max_ass_cur - mbt->asserts;
+  mbt->assumes     = 0;
+  mbt->asserts     = 0;
+
+  mbt->max_ops_cur =
+      btor_pick_rand_rng (&mbt->rng, mbt->min_ops_inc, mbt->max_ops_inc);
+
+  init_pd_inputs (
+      mbt,
+      btor_pick_rand_rng (&mbt->rng, mbt->min_vars_inc, mbt->max_vars_inc),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_consts_inc, mbt->max_consts_inc),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
+
+  init_pd_ops (
+      mbt,
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
+
+  init_pd_add (
+      mbt,
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_arrayops_inc, mbt->max_add_arrayops_inc),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_bitvecops_inc, mbt->max_add_bitvecops_inc),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
+
+  BTORMBT_LOG (1,
+               "inc: pick %u ops (add:rel=%0.1f%%:%0.1f%%)",
+               mbt->max_ops_cur,
+               (double) mbt->p_add / 10,
+               (double) mbt->p_release / 10);
+  BTORMBT_LOG (1, "number of increments: %u", mbt->ninc);
+
+  return btormbt_state_main;
 }
 
 static void *
