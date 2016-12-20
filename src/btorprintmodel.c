@@ -12,6 +12,11 @@
 #include "btorprintmodel.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
+#include "utils/btormisc.h"
+
+/*========================================================================*/
+/* BV model                                                               */
+/*========================================================================*/
 
 const char *
 btor_get_bv_model_str_aux (Btor *btor,
@@ -49,6 +54,79 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 
   return btor_get_bv_model_str_aux (btor, btor->bv_model, btor->fun_model, exp);
 }
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_fmt_bv_model_btor (Btor *btor,
+                         int base,
+                         const BtorBitVector *assignment,
+                         FILE *file)
+{
+  assert (btor);
+  assert (assignment);
+  assert (file);
+
+  char *ass;
+
+  if (base == BTOR_OUTPUT_BASE_HEX)
+    ass = btor_bv_to_hex_char_bv (btor->mm, assignment);
+  else if (base == BTOR_OUTPUT_BASE_DEC)
+    ass = btor_bv_to_dec_char_bv (btor->mm, assignment);
+  else
+    ass = btor_bv_to_char_bv (btor->mm, assignment);
+  fprintf (file, "%s", ass);
+  btor_freestr (btor->mm, ass);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
+{
+  assert (btor);
+  assert (format);
+  assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+
+  int id;
+  char *symbol;
+  const BtorBitVector *ass;
+
+  ass    = btor_get_bv_model (btor, btor_simplify_exp (btor, node));
+  symbol = btor_get_symbol_exp (btor, node);
+
+  if (!strcmp (format, "btor"))
+  {
+    id = ((BtorBVVarNode *) node)->btor_id;
+    fprintf (file, "%d ", id ? id : node->id);
+    print_fmt_bv_model_btor (btor, base, ass, file);
+    fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
+  }
+  else
+  {
+    if (symbol)
+      fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
+    else
+      fprintf (file,
+               "%2c(define-fun v%d () ",
+               ' ',
+               ((BtorBVVarNode *) node)->btor_id
+                   ? ((BtorBVVarNode *) node)->btor_id
+                   : node->id);
+
+    btor_dump_sort_smt_node (node, file);
+    fprintf (file, " ");
+    btor_dump_const_value_smt (btor, ass, base, file);
+    fprintf (file, ")\n");
+  }
+}
+
+/*------------------------------------------------------------------------*/
+
+/*========================================================================*/
+/* Fun model                                                               */
+/*========================================================================*/
 
 void
 btor_get_fun_model_str_aux (Btor *btor,
@@ -138,27 +216,7 @@ btor_get_fun_model_str (
       btor, btor->bv_model, btor->fun_model, exp, args, values, size);
 }
 
-static void
-print_fmt_bv_model_btor (Btor *btor,
-                         int base,
-                         const BtorBitVector *assignment,
-                         FILE *file)
-{
-  assert (btor);
-  assert (assignment);
-  assert (file);
-
-  char *ass;
-
-  if (base == BTOR_OUTPUT_BASE_HEX)
-    ass = btor_bv_to_hex_char_bv (btor->mm, assignment);
-  else if (base == BTOR_OUTPUT_BASE_DEC)
-    ass = btor_bv_to_dec_char_bv (btor->mm, assignment);
-  else
-    ass = btor_bv_to_char_bv (btor->mm, assignment);
-  fprintf (file, "%s", ass);
-  btor_freestr (btor->mm, ass);
-}
+/*------------------------------------------------------------------------*/
 
 static void
 print_fmt_bv_model_tuple_btor (Btor *btor,
@@ -184,46 +242,7 @@ print_fmt_bv_model_tuple_btor (Btor *btor,
     print_fmt_bv_model_btor (btor, base, assignments->bv[0], file);
 }
 
-static void
-print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
-{
-  assert (btor);
-  assert (format);
-  assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
-
-  int id;
-  char *symbol;
-  const BtorBitVector *ass;
-
-  ass    = btor_get_bv_model (btor, btor_simplify_exp (btor, node));
-  symbol = btor_get_symbol_exp (btor, node);
-
-  if (!strcmp (format, "btor"))
-  {
-    id = ((BtorBVVarNode *) node)->btor_id;
-    fprintf (file, "%d ", id ? id : node->id);
-    print_fmt_bv_model_btor (btor, base, ass, file);
-    fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
-  }
-  else
-  {
-    if (symbol)
-      fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
-    else
-      fprintf (file,
-               "%2c(define-fun v%d () ",
-               ' ',
-               ((BtorBVVarNode *) node)->btor_id
-                   ? ((BtorBVVarNode *) node)->btor_id
-                   : node->id);
-
-    btor_dump_sort_smt_node (node, file);
-    fprintf (file, " ");
-    btor_dump_const_value_smt (btor, ass, base, file);
-    fprintf (file, ")\n");
-  }
-}
+/*------------------------------------------------------------------------*/
 
 static void
 print_param_smt2 (char *symbol, int param_index, BtorSort *sort, FILE *file)
@@ -340,6 +359,8 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   if (!symbol) BTOR_DELETEN (btor->mm, s, 40);
 }
 
+/*------------------------------------------------------------------------*/
+
 static void
 print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
 {
@@ -377,6 +398,8 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   }
 }
 
+/*------------------------------------------------------------------------*/
+
 static void
 print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 {
@@ -391,6 +414,8 @@ print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   else
     print_fun_model_smt2 (btor, node, base, file);
 }
+
+/*========================================================================*/
 
 void
 btor_print_model (Btor *btor, char *format, FILE *file)
@@ -422,6 +447,8 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
 }
+
+/*========================================================================*/
 
 static void
 print_bv_value (Btor *btor,
