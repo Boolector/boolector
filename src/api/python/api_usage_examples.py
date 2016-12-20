@@ -333,14 +333,6 @@ if __name__ == "__main__":
         # Get model and print to file 'model.out'
 #        b.Print_model("model.out")
 
-        # Print value
-        _var.Print_value()
-        _var.Print_value(format="smt2")
-        _add4 = _var + _var
-        _add4.Print_value(symbol="v+v", format="smt2")
-        _add4.Print_value(symbol="v+v", format="btor")
-        _add4.Print_value()
-
          # Query assignments
 #        print("Query assignments:")
 #        print("{} {}".format(_var.symbol, _var.assignment))

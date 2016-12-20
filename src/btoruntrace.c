@@ -44,6 +44,7 @@
 void boolector_chkclone (Btor *);
 void boolector_set_btor_id (Btor *, BoolectorNode *, int);
 void boolector_get_btor_msg (Btor *);
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT BtorUNT;

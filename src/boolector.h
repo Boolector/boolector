@@ -1881,29 +1881,6 @@ void boolector_free_uf_assignment (Btor *btor,
 */
 void boolector_print_model (Btor *btor, char *format, FILE *file);
 
-/*!
-  Print value of given expression to output file.
-  This function evaluates and prints the value for a given expression to
-  the output file ``file''.
-  Note that in case that no prior call to boolector_sat has been issued,
-  all inputs are initialized with 0.
-  Supported output formats are
-
-  * **btor**
-  * **smt2**
-
-  :param btor: Boolector instance.
-  :param node: Boolector node.
-  :param symbol_str: An alternative symbol string to be used when printing the value (may be 0).
-  :param format: A string identifying the output format.
-  :param file: Output file.
-*/
-void boolector_print_value (Btor *btor,
-                            BoolectorNode *node,
-                            char *symbol_str,
-                            char *format,
-                            FILE *file);
-
 /*------------------------------------------------------------------------*/
 
 /*!

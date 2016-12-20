@@ -28,6 +28,10 @@
 
 /*------------------------------------------------------------------------*/
 
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+
+/*------------------------------------------------------------------------*/
+
 typedef enum BtorSMT2TagClass
 {
   BTOR_CLASS_BITS_SMT2 = 6,
