@@ -420,7 +420,7 @@ cdef class BoolectorNode:
             elif os.path.isdir(outfile):
                 raise BoolectorException(
                         "Outfile '{}' is a directory".format(outfile)) 
-                c_file = fopen(_ChPtr(outfile)._c_str, "w")
+            c_file = fopen(_ChPtr(outfile)._c_str, "w")
        
         if format.lower() != "btor" and format.lower() != "smt2":
             raise BoolectorException("Invalid format '{}'",format(format))
