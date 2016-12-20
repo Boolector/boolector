@@ -727,6 +727,7 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
   } while (0)
 
 /*------------------------------------------------------------------------*/
+
 struct BtorMBTStatistics
 {
   /* total numbers for all rounds */
