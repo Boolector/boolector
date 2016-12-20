@@ -2943,7 +2943,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   bvass = btor_new_bv_assignment (btor->bv_assignments, bits);
   btor_freestr (btor->mm, bits);
   res = btor_get_bv_assignment_str (bvass);
-  BTOR_TRAPI_RETURN_STR (res);
+  BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
   if (btor->clone)
   {
