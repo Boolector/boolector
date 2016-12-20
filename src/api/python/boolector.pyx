@@ -407,30 +407,6 @@ cdef class BoolectorNode:
             raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
             fclose(c_file)
-
-    def Print_value(self, str symbol = None, format = "btor", outfile = None):
-        cdef FILE * c_file
-        
-        if outfile is None:
-            c_file = stdout
-        else:
-            if os.path.isfile(outfile):
-                raise BoolectorException(
-                        "Outfile '{}' already exists".format(outfile)) 
-            elif os.path.isdir(outfile):
-                raise BoolectorException(
-                        "Outfile '{}' is a directory".format(outfile)) 
-                c_file = fopen(_ChPtr(outfile)._c_str, "w")
-       
-        if format.lower() != "btor" and format.lower() != "smt2":
-            raise BoolectorException("Invalid format '{}'",format(format))
-
-        btorapi.boolector_print_value(
-                self.btor._c_btor, self._c_node, _ChPtr(symbol)._c_str, 
-                _ChPtr(format)._c_str, c_file)
-
-        if outfile is not None:
-            fclose(c_file)
                                           
 
 

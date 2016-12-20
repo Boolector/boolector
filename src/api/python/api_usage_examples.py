@@ -1,3 +1,4 @@
+import os
 import boolector
 from boolector import Boolector
 
@@ -304,7 +305,7 @@ if __name__ == "__main__":
 
     # Set SAT solver (can only be done before the first Sat() call)
     # Lingeling is the default SAT solver
-    b.Set_sat_solver("MiniSAT")
+    #b.Set_sat_solver("MiniSAT")
     
     # Assert formulas
     b.Assert(_cond0[1])
@@ -332,11 +333,6 @@ if __name__ == "__main__":
         # Get model and print to file 'model.out'
 #        b.Print_model("model.out")
 
-        # Print value
-        _var.Print_value()
-        _add4 = _var + _var
-        _add4.Print_value(symbol="v+v")
-
          # Query assignments
 #        print("Query assignments:")
 #        print("{} {}".format(_var.symbol, _var.assignment))
@@ -356,3 +352,4 @@ if __name__ == "__main__":
         bb.Failed(~_cond0_matched[1])
         bb.Failed(_cond0_matched[2])
 
+    os.remove("dump.btor") 

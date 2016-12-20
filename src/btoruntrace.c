@@ -44,6 +44,7 @@
 void boolector_chkclone (Btor *);
 void boolector_set_btor_id (Btor *, BoolectorNode *, int);
 void boolector_get_btor_msg (Btor *);
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT BtorUNT;
@@ -1349,9 +1350,9 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       if (!g_btorunt->skip)
       {
-        ret_str = (char *) boolector_get_bits (
+        ret_ptr = (char *) boolector_get_bits (
             btor, hmap_get (hmap, btor_str, arg1_str));
-        exp_ret = RET_CHARPTR;
+        exp_ret = RET_VOIDPTR;
       }
       else
         exp_ret = RET_SKIP;
