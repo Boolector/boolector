@@ -426,7 +426,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 static void
 print_bv_value (Btor *btor,
                 BtorNode *node,
-                char *exp_str,
+                char *symbol_str,
                 char *format,
                 int base,
                 FILE *file)
@@ -440,7 +440,7 @@ print_bv_value (Btor *btor,
   const BtorBitVector *ass;
 
   ass    = btor_get_bv_model (btor, node);
-  symbol = exp_str ? exp_str : btor_get_symbol_exp (btor, node);
+  symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
     print_bv_model (btor, node, format, base, file);
@@ -462,7 +462,7 @@ print_bv_value (Btor *btor,
 
 static void
 print_fun_value_smt2 (
-    Btor *btor, BtorNode *node, char *exp_str, int base, FILE *file)
+    Btor *btor, BtorNode *node, char *symbol_str, int base, FILE *file)
 {
   assert (btor);
   assert (node);
@@ -479,8 +479,8 @@ print_fun_value_smt2 (
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
   if (!fun_model) return;
 
-  if (exp_str)
-    symbol = exp_str;
+  if (symbol_str)
+    symbol = symbol_str;
   else if ((symbol = btor_get_symbol_exp (btor, node)))
     s = symbol;
   else
@@ -532,7 +532,7 @@ print_fun_value_btor (Btor *btor, BtorNode *node, int base, FILE *file)
 static void
 print_fun_value (Btor *btor,
                  BtorNode *node,
-                 char *exp_str,
+                 char *symbol_str,
                  char *format,
                  int base,
                  FILE *file)
@@ -546,12 +546,12 @@ print_fun_value (Btor *btor,
     print_fun_value_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
   else
     print_fun_value_smt2 (
-        btor, BTOR_REAL_ADDR_NODE (node), exp_str, base, file);
+        btor, BTOR_REAL_ADDR_NODE (node), symbol_str, base, file);
 }
 
 void
 btor_print_value (
-    Btor *btor, BtorNode *exp, char *exp_str, char *format, FILE *file)
+    Btor *btor, BtorNode *exp, char *symbol_str, char *format, FILE *file)
 {
   assert (btor);
   assert (btor->last_sat_result == BTOR_RESULT_SAT);
@@ -564,7 +564,7 @@ btor_print_value (
 
   base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
-    print_fun_value (btor, exp, exp_str, format, base, file);
+    print_fun_value (btor, exp, symbol_str, format, base, file);
   else
-    print_bv_value (btor, exp, exp_str, format, base, file);
+    print_bv_value (btor, exp, symbol_str, format, base, file);
 }

@@ -178,13 +178,13 @@ boolector_get_btor_msg (Btor *btor)
 
 void
 boolector_print_value (
-    Btor *btor, BoolectorNode *node, char *node_str, char *format, FILE *file)
+    Btor *btor, BoolectorNode *node, char *symbol_str, char *format, FILE *file)
 {
   BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%s %s", node_str, format);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s %s", symbol_str, format);
   BTOR_ABORT_ARG_NULL (format);
   BTOR_ABORT_ARG_NULL (file);
   BTOR_ABORT (strcmp (format, "btor") && strcmp (format, "smt2"),
@@ -193,10 +193,10 @@ boolector_print_value (
   BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_print_value (btor, exp, node_str, format, file);
+  btor_print_value (btor, exp, symbol_str, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (
-      print_value, BTOR_CLONED_EXP (exp), node_str, format, file);
+      print_value, BTOR_CLONED_EXP (exp), symbol_str, format, file);
 #endif
 }
 
