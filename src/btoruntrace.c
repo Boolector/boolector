@@ -23,6 +23,7 @@
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -352,6 +353,11 @@ parse (FILE *file)
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
   BoolectorSortStack sort_stack;
+
+  Btor *tmpbtor;
+  FILE *outfile;
+  int32_t flen, pstat, pres;
+  char *outfilename, *emsg;
 
   BTORUNT_LOG ("parsing %s", g_btorunt->filename);
 
@@ -1595,21 +1601,44 @@ NEXT:
       boolector_dump_btor_node (
           btor, stdout, hmap_get (hmap, btor_str, arg1_str));
     }
-    else if (!strcmp (tok, "dump_btor"))
-    {
-      PARSE_ARGS0 (tok);
-      boolector_dump_btor (btor, stdout);
-    }
     else if (!strcmp (tok, "dump_smt2_node"))
     {
       PARSE_ARGS1 (tok, str);
       boolector_dump_smt2_node (
           btor, stdout, hmap_get (hmap, btor_str, arg1_str));
     }
-    else if (!strcmp (tok, "dump_smt2"))
+    else if (!strcmp (tok, "dump_btor") || !strcmp (tok, "dump_smt2"))
     {
       PARSE_ARGS0 (tok);
-      boolector_dump_smt2 (btor, stdout);
+
+      flen = 40 + strlen ("/tmp/") + strlen (g_btorunt->filename);
+      BTOR_NEWN (g_btorunt->mm, outfilename, flen);
+
+      if (!strcmp (tok, "dump_btor"))
+      {
+        sprintf (outfilename, "/tmp/%s.%s", g_btorunt->filename, "btor");
+        outfile = fopen (outfilename, "w");
+        assert (outfile);
+        boolector_dump_btor (btor, outfile);
+      }
+      else
+      {
+        sprintf (outfilename, "/tmp/%s.%s", g_btorunt->filename, "smt2");
+        outfile = fopen (outfilename, "w");
+        assert (outfile);
+        boolector_dump_smt2 (btor, outfile);
+      }
+
+      fclose (outfile);
+      outfile = fopen (outfilename, "r");
+      tmpbtor = boolector_new ();
+      pres    = boolector_parse (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
+      boolector_delete (tmpbtor);
+      fclose (outfile);
+      unlink (outfilename);
+      BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
     }
     else
       btorunt_parse_error ("invalid command '%s'", tok);

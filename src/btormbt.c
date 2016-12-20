@@ -3122,23 +3122,21 @@ btormbt_state_dump (BtorMBT *mbt)
     }
     else
     {
-      len = 40 + strlen ("/tmp/btormbt-bug-.")
-            + btor_num_digits_util (g_btormbt->seed);
-      BTOR_NEWN (g_btormbt->mm, outfilename, len);
+      len =
+          40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
+      BTOR_NEWN (mbt->mm, outfilename, len);
 
       if (!BTOR_COUNT_STACK (mbt->uf->exps)
           && btor_pick_with_prob_rng (&mbt->btor->rng, 500))
       {
-        sprintf (
-            outfilename, "/tmp/btormbt-bug-%d.%s", g_btormbt->seed, "btor");
+        sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
         outfile = fopen (outfilename, "w");
         assert (outfile);
         boolector_dump_btor (mbt->btor, outfile);
       }
       else
       {
-        sprintf (
-            outfilename, "/tmp/btormbt-bug-%d.%s", g_btormbt->seed, "smt2");
+        sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "smt2");
         outfile = fopen (outfilename, "w");
         assert (outfile);
         boolector_dump_smt2 (mbt->btor, outfile);
