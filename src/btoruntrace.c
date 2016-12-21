@@ -1549,16 +1549,14 @@ NEXT:
       PARSE_ARGS2 (tok, str, str);
       ret_ptr = (void *) (size_t) boolector_array_sort (
           btor,
-          (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str),
-          (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg2_str));
+          get_sort (hmap, btor_str, arg1_str),
+          get_sort (hmap, btor_str, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))
     {
       while ((tok = strtok (0, " ")))
-        BTOR_PUSH_STACK (
-            sort_stack,
-            (BoolectorSort) (size_t) hmap_get (hmap, btor_str, tok));
+        BTOR_PUSH_STACK (sort_stack, get_sort (hmap, btor_str, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
       ret_ptr = (void *) (size_t) boolector_fun_sort (
           btor,
@@ -1570,8 +1568,7 @@ NEXT:
     else if (!strcmp (tok, "release_sort"))
     {
       PARSE_ARGS1 (tok, str);
-      boolector_release_sort (
-          btor, (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str));
+      boolector_release_sort (btor, get_sort (hmap, btor_str, arg1_str));
     }
     else if (!strcmp (tok, "is_equal_sort"))
     {
@@ -1615,8 +1612,8 @@ NEXT:
     else if (!strcmp (tok, "get_sort"))
     {
       PARSE_ARGS1 (tok, str);
-      ret_bool = boolector_get_sort (btor, hmap_get (hmap, btor_str, arg1_str));
-      exp_ret  = RET_VOIDPTR;
+      ret_ptr = boolector_get_sort (btor, hmap_get (hmap, btor_str, arg1_str));
+      exp_ret = RET_VOIDPTR;
     }
     /* dumping */
     else if (!strcmp (tok, "dump_btor_node"))
