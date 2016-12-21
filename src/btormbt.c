@@ -1904,6 +1904,7 @@ btormbt_array_op (BtorMBT *mbt,
   else
   {
     assert (boolector_is_array (mbt->btor, e0));
+    assert (boolector_is_array (mbt->btor, e1));
     assert (boolector_is_equal_sort (mbt->btor, e0, e1));
 
     if (op == EQ)
