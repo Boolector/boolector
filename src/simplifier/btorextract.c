@@ -612,7 +612,7 @@ collect_indices_writes (Btor *btor,
     if (btor_get_ptr_hash_table (map_value_index, lambda)) continue;
 
     /* we only consider writes */
-    if (btor_get_fun_arity (btor, lambda) > 1) continue;
+    if (!lambda->is_array || !btor_lambda_get_static_rho (lambda)) continue;
 
     is_top = 0;
     btor_init_apply_parent_iterator (&pit, lambda);
@@ -1055,6 +1055,7 @@ extract_lambdas (Btor *btor,
     t     = it.bucket->data.as_ptr;
     array = btor_next_ptr_hash_table_iterator (&it);
     assert (t);
+    assert (array->is_array);
 
     /* find memset patterns, the remaining unused indices are pushed onto
      * stack 'indices' */
