@@ -1822,14 +1822,17 @@ generate_table (Btor *btor, BtorNode *fun)
 
     btor_add_int_hash_table (cache, cur->id);
 
+    /* NOTE: all encountered lambda nodes need to be arrays,
+     *       in any other case we fully support equality over UFs and
+     *       conditionals. */
     if (btor_is_fun_node (cur))
     {
-      assert (cur->is_array);
       rho        = cur->rho;
       static_rho = 0;
 
       if (btor_is_lambda_node (cur))
       {
+        assert (cur->is_array);
         static_rho = btor_lambda_get_static_rho (cur);
         assert (static_rho);
       }
@@ -1865,6 +1868,7 @@ generate_table (Btor *btor, BtorNode *fun)
         }
       }
 
+      /* child already pushed w.r.t. evaluation of condition */
       if (btor_is_fun_cond_node (cur)) continue;
     }
 
@@ -1916,8 +1920,6 @@ add_extensionality_lemmas (Btor *btor)
   {
     cur = BTOR_POP_STACK (feqs);
     assert (btor_is_fun_eq_node (cur));
-    assert (cur->e[0]->is_array);
-    assert (cur->e[1]->is_array);
 
     evalbv = get_bv_assignment (btor, cur);
     assert (evalbv);
