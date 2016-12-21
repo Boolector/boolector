@@ -4057,6 +4057,7 @@ check_failed_assumptions (Btor *btor)
       cass = btor_match_node (clone, ass);
       assert (cass);
       btor_assert_exp (clone, cass);
+      btor_release_exp (clone, cass);
     }
   }
 
