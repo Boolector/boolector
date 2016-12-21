@@ -1588,6 +1588,30 @@ NEXT:
           boolector_is_array_sort (btor, get_sort (hmap, btor_str, arg1_str));
       exp_ret = RET_BOOL;
     }
+    else if (!strcmp (tok, "is_fun_sort"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool =
+            boolector_is_fun_sort (btor, get_sort (hmap, btor_str, arg1_str));
+        exp_ret = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "is_bitvec_sort"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool = boolector_is_bitvec_sort (
+            btor, get_sort (hmap, btor_str, arg1_str));
+        exp_ret = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
     else if (!strcmp (tok, "get_sort"))
     {
       PARSE_ARGS1 (tok, str);
