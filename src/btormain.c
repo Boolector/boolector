@@ -1271,20 +1271,22 @@ boolector_main (int argc, char **argv)
             case BTOR_OPT_FUN_DUAL_PROP:
               if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
               {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
+                btormain_error (
+                    g_app,
+                    "can only set one out of '--%s' and '--%s'",
+                    boolector_get_opt_lng (g_app->btor, BTOR_OPT_FUN_DUAL_PROP),
+                    boolector_get_opt_lng (g_app->btor, BTOR_OPT_FUN_JUST));
                 goto DONE;
               }
               goto DEFAULT;
             case BTOR_OPT_FUN_JUST:
               if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP))
               {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
+                btormain_error (
+                    g_app,
+                    "can only set one out of '--%s' and '--%s'",
+                    boolector_get_opt_lng (g_app->btor, BTOR_OPT_FUN_DUAL_PROP),
+                    boolector_get_opt_lng (g_app->btor, BTOR_OPT_FUN_JUST));
                 goto DONE;
               }
               goto DEFAULT;
