@@ -2644,7 +2644,7 @@ btormbt_state_new (BtorMBT *mbt)
 static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
-  int i, set_sat_solver = 1;
+  int i;
   uint32_t opt_engine;
   BtorMBTBtorOpt *btoropt;
 
@@ -2656,29 +2656,6 @@ btormbt_state_opt (BtorMBT *mbt)
   mbt->ext         = false;
   mbt->ninc        = 0;
   if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
-
-    /* set random sat solver */
-#ifdef BTOR_USE_LINGELING
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-  {
-    boolector_set_sat_solver_lingeling (mbt->btor, 0, 0);
-    set_sat_solver = 0;
-  }
-#endif
-#ifdef BTOR_USE_PICOSAT
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-  {
-    boolector_set_sat_solver_picosat (mbt->btor);
-    set_sat_solver = 0;
-  }
-#endif
-#ifdef BTOR_USE_MINISAT
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-    boolector_set_sat_solver_minisat (mbt->btor);
-#endif
 
   /* set random options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
