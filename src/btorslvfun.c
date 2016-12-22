@@ -498,10 +498,11 @@ add_function_inequality_constraints (Btor *btor)
        * sat call */
       if (b->data.as_int) continue;
       BTOR_PUSH_STACK (feqs, cur);
+      /* if the lambdas are not arrays, we cannot handle equalities */
       BTOR_ABORT (
-          (!cur->e[0]->is_array || !cur->e[1]->is_array)
-              && (!btor_is_uf_node (cur->e[0]) || !btor_is_uf_node (cur->e[1])),
-          "equality over lambda not supported yet");
+          (btor_is_lambda_node (cur->e[0]) && !cur->e[0]->is_array)
+              || (btor_is_lambda_node (cur->e[1]) && !cur->e[1]->is_array),
+          "equality over non-array lambdas not supported yet");
     }
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
