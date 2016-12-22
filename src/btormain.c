@@ -238,7 +238,7 @@ btormain_init_opts (BtorMainApp *app)
                  BTOR_ENGINE_MAX,
                  false,
                  BTORMAIN_OPT_ARG_STR,
-                 "set engine (core sls) [core]");
+                 "set engine (core sls prop aigprop) [core]");
   init_main_opt (
       app,
       BTORMAIN_OPT_SAT_ENGINE,
