@@ -324,9 +324,6 @@ TOTALS_FORMAT_ERR = {
   'g_err':     lambda l: l.count('err'),
   'g_sat':     lambda l: l.count(10),
   'g_unsat':   lambda l: l.count(20),
-  'time_real': lambda l: round(sum(l), 1),
-  'time_time': lambda l: round(sum(l), 1),
-  'space':     lambda l: round(sum(l), 1),
 }
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
@@ -881,6 +878,8 @@ def _get_group_totals():
                     val = fmt_stat(stats[group][d][stat])
                 else:
                     val = sum(stats[group][d][stat])
+                    if isinstance(val, float):
+                        val = round(val, 1)
                 totals[stat][d][group] = val 
 
     return totals, stats.keys()
