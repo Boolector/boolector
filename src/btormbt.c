@@ -3086,7 +3086,7 @@ btormbt_state_dump (BtorMBT *mbt)
   Btor *tmpbtor;
   FILE *outfile;
   int32_t len, pstat, pres;
-  char *outfilename, *emsg;
+  char *outfilename, *emsg, *envname = 0;
 
   // TODO (ma): UF support in BTOR format not yet implemented
   if (mbt->output_format)
@@ -3145,6 +3145,8 @@ btormbt_state_dump (BtorMBT *mbt)
       }
       fclose (outfile);
       outfile = fopen (outfilename, "r");
+      if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
+
       tmpbtor = boolector_new ();
       pres    = boolector_parse (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
@@ -3153,6 +3155,7 @@ btormbt_state_dump (BtorMBT *mbt)
       fclose (outfile);
       unlink (outfilename);
       BTOR_DELETEN (mbt->mm, outfilename, len);
+      if (envname) setenv ("BTORAPITRACE", envname, 1);
     }
   }
   return btor_pick_with_prob_rng (&mbt->btor->rng, 500) ? btormbt_state_delete
