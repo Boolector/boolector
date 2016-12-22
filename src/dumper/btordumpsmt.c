@@ -427,30 +427,34 @@ collect_and_children (BtorSMTDumpContext *sdc,
   assert (BTOR_EMPTY_STACK (*children));
   assert (btor_is_and_node (exp));
 
-  int i;
+  bool skip;
+  int i, id;
   BtorNode *cur, *real_cur;
-  BtorPtrHashTable *mark;
   BtorNodePtrQueue visit;
   BtorPtrHashBucket *b;
+  BtorIntHashTable *cache;
 
-  mark = btor_new_ptr_hash_table (sdc->btor->mm, 0, 0);
+  cache = btor_new_int_hash_table (sdc->btor->mm);
 
   /* get children of multi-input and */
   BTOR_INIT_QUEUE (sdc->btor->mm, visit);
-  BTOR_ENQUEUE (visit, BTOR_REAL_ADDR_NODE (exp));
+  for (i = 0; i < BTOR_REAL_ADDR_NODE (exp)->arity; i++)
+    BTOR_ENQUEUE (visit, BTOR_REAL_ADDR_NODE (exp)->e[i]);
   while (!BTOR_EMPTY_QUEUE (visit))
   {
     cur      = BTOR_DEQUEUE (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    id       = btor_exp_get_id (cur);
 
-    if (!btor_get_ptr_hash_table (mark, cur))
+    skip = btor_contains_int_hash_table (cache, id);
+    if (!skip)
     {
-      btor_add_ptr_hash_table (mark, cur);
+      btor_add_int_hash_table (cache, id);
       b = btor_get_ptr_hash_table (sdc->dump, real_cur);
     }
 
     if (!btor_is_and_node (real_cur) || (b && b->data.as_int > 1)
-        || BTOR_IS_INVERTED_NODE (cur) || !btor_get_ptr_hash_table (mark, cur))
+        || BTOR_IS_INVERTED_NODE (cur) || skip)
     {
       BTOR_PUSH_STACK (*children, cur);
       continue;
@@ -461,7 +465,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
     for (i = 0; i < real_cur->arity; i++) BTOR_ENQUEUE (visit, real_cur->e[i]);
   }
   BTOR_RELEASE_QUEUE (visit);
-  btor_delete_ptr_hash_table (mark);
+  btor_delete_int_hash_table (cache);
 }
 
 static void
