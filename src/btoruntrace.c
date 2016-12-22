@@ -1655,11 +1655,11 @@ NEXT:
       tmpbtor = boolector_new ();
       pres    = boolector_parse (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
-      assert (pres != BOOLECTOR_PARSE_ERROR);
       boolector_delete (tmpbtor);
       fclose (outfile);
       unlink (outfilename);
       BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
     }
     else
       btorunt_parse_error ("invalid command '%s'", tok);
