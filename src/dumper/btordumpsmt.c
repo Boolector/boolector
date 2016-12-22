@@ -419,14 +419,15 @@ static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_UF_NODE] = "uf",           [BTOR_PROXY_NODE] = "proxy"};
 
 static void
-get_children (BtorSMTDumpContext *sdc,
-              BtorNode *exp,
-              BtorNodePtrStack *children)
+collect_and_children (BtorSMTDumpContext *sdc,
+                      BtorNode *exp,
+                      BtorNodePtrStack *children)
 {
   assert (children);
   assert (BTOR_EMPTY_STACK (*children));
+  assert (btor_is_and_node (exp));
 
-  int i, is_and = 0;
+  int i;
   BtorNode *cur, *real_cur;
   BtorPtrHashTable *mark;
   BtorNodePtrQueue visit;
@@ -434,24 +435,22 @@ get_children (BtorSMTDumpContext *sdc,
 
   mark = btor_new_ptr_hash_table (sdc->btor->mm, 0, 0);
 
-  if (btor_is_and_node (exp)) is_and = 1;
-
+  /* get children of multi-input and */
   BTOR_INIT_QUEUE (sdc->btor->mm, visit);
-  for (i = 0; i < BTOR_REAL_ADDR_NODE (exp)->arity; i++)
-    BTOR_ENQUEUE (visit, BTOR_REAL_ADDR_NODE (exp)->e[i]);
-
-  /* get children of multi-input and/or */
+  BTOR_ENQUEUE (visit, BTOR_REAL_ADDR_NODE (exp));
   while (!BTOR_EMPTY_QUEUE (visit))
   {
     cur      = BTOR_DEQUEUE (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (btor_get_ptr_hash_table (mark, real_cur)) continue;
+    if (!btor_get_ptr_hash_table (mark, cur))
+    {
+      btor_add_ptr_hash_table (mark, cur);
+      b = btor_get_ptr_hash_table (sdc->dump, real_cur);
+    }
 
-    b = btor_get_ptr_hash_table (sdc->dump, real_cur);
-    btor_add_ptr_hash_table (mark, real_cur);
     if (!btor_is_and_node (real_cur) || (b && b->data.as_int > 1)
-        || (is_and && BTOR_IS_INVERTED_NODE (cur)))
+        || BTOR_IS_INVERTED_NODE (cur) || !btor_get_ptr_hash_table (mark, cur))
     {
       BTOR_PUSH_STACK (*children, cur);
       continue;
@@ -692,7 +691,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           if (btor_is_and_node (real_exp) && is_bool)
           {
             assert (BTOR_EMPTY_STACK (args));
-            get_children (sdc, exp, &args);
+            collect_and_children (sdc, exp, &args);
+            assert (BTOR_COUNT_STACK (args) >= 2);
             for (i = 0; i < BTOR_COUNT_STACK (args); i++)
             {
               arg = BTOR_PEEK_STACK (args, i);
