@@ -52,7 +52,6 @@ struct BtorParseOpt
   BtorParseMode incremental;
   int verbosity;
   int need_model;
-  int window;
   int interactive;
 };
 
