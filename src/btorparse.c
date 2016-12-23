@@ -60,12 +60,13 @@ btor_parse_aux (Btor *btor,
   int i, root_len, res;
   char *emsg;
 
-  res                   = BOOLECTOR_UNKNOWN;
-  *error_msg            = 0;
-  parse_opt.verbosity   = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
-  parse_opt.interactive = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
-  parse_opt.need_model  = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  res                        = BOOLECTOR_UNKNOWN;
+  *error_msg                 = 0;
+  parse_opt.verbosity        = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental      = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.incremental_smt1 = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
+  parse_opt.interactive      = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
+  parse_opt.need_model       = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);

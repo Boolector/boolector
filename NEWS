@@ -1,3 +1,6 @@
++ command line option changes:
+  - --incremental-all -> --incremental-smt1
+
 news for release 2.3.1 since 2.3.0
 --------------------------------------
 * fixed an issue with model printing (get-value)

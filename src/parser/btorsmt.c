@@ -186,6 +186,7 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
+  BtorParseMode incremental_smt1;
   int model;
 
   struct
@@ -675,19 +676,18 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity   = opts->verbosity;
-  res->incremental = opts->incremental;
-  res->model       = opts->need_model;
+  res->verbosity        = opts->verbosity;
+  res->incremental      = opts->incremental;
+  res->incremental_smt1 = opts->incremental_smt1;
+  res->model            = opts->need_model;
 
   btor_smt_message (res, 2, "initializing SMT parser");
-  if (opts->incremental
-      & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
-         | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE))
+  if (opts->incremental)
   {
     btor_smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (opts->incremental & BTOR_PARSE_MODE_BASIC_INCREMENTAL)
+    if (opts->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
       btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+    else if (opts->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
       btor_smt_message (res, 2, "check all ':formula' for satisfiability");
   }
 
@@ -2662,7 +2662,9 @@ static int
 continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
   if (res->result != BOOLECTOR_SAT) return 1;
-  return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
+  return parser->incremental
+         && parser->incremental_smt1
+                == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
 static char *

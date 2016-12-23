@@ -1242,20 +1242,6 @@ boolector_main (int argc, char **argv)
         {
           switch (k)
           {
-            case BTOR_OPT_INCREMENTAL:
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-              boolector_set_opt (g_app->btor, k, inc);
-              break;
-            case BTOR_OPT_INCREMENTAL_ALL:
-              boolector_set_opt (
-                  g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-              boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-              break;
             case BTOR_OPT_MODEL_GEN:
               if (READ_ARG_IS_INT (readval) && val == 0)
               {

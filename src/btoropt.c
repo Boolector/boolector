@@ -18,6 +18,7 @@
 #include "btorcore.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btorparse.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorrng.h"
 
@@ -129,15 +130,15 @@ btor_init_opts (Btor *btor)
             1,
             "incremental usage");
   init_opt (btor,
-            BTOR_OPT_INCREMENTAL_ALL,
+            BTOR_OPT_INCREMENTAL_SMT1,
             false,
-            true,
-            "incremental-all",
+            false,
+            "incremental-smt1",
             "I",
-            0,
-            0,
-            1,
-            "incremental, solve all (SMT1 only)");
+            BTOR_PARSE_MODE_BASIC_INCREMENTAL,
+            BTOR_PARSE_MODE_BASIC_INCREMENTAL,
+            BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE,
+            "incremental mode for SMT1");
   init_opt (btor,
             BTOR_OPT_INPUT_FORMAT,
             false,
