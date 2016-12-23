@@ -604,47 +604,58 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d %s %d", opt, btor_get_opt_lng (btor, opt), val);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
+  BTOR_ABORT (
+      val < btor_get_opt_min (btor, opt) || val > btor_get_opt_max (btor, opt),
+      "invalid option value '%u' for option '%s'",
+      val,
+      btor_get_opt_lng (btor, opt));
 
-  if (opt == BTOR_OPT_INCREMENTAL)
+  if (val)
   {
-    BTOR_ABORT (btor->btor_sat_btor_called > 0,
-                "enabling/disabling incremental usage must be done "
-                "before calling 'boolector_sat'");
+    if (opt == BTOR_OPT_INCREMENTAL)
+    {
+      BTOR_ABORT (btor->btor_sat_btor_called > 0,
+                  "enabling/disabling incremental usage must be done "
+                  "before calling 'boolector_sat'");
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+                  "incremental solving cannot be enabled "
+                  "if unconstrained optimization is enabled");
+    }
+    else if (opt == BTOR_OPT_MODEL_GEN)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+                  "model generation cannot be enabled "
+                  "if unconstrained optimization is enabled");
+    }
+    else if (opt == BTOR_OPT_UCOPT)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+                  "Unconstrained optimization cannot be enabled "
+                  "if model generation is enabled");
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+                  "Unconstrained optimization cannot be enabled "
+                  "in incremental mode");
+    }
+    else if (opt == BTOR_OPT_FUN_DUAL_PROP)
+    {
+      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
+                  "enabling multiple optimization techniques is not allowed");
+    }
+    else if (opt == BTOR_OPT_FUN_JUST)
+    {
+      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
+                  "enabling multiple optimization techniques is not allowed");
+    }
+    else if (opt == BTOR_OPT_UCOPT)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+                  "Unconstrained optimization cannot be enabled "
+                  "if model generation is enabled");
+    }
   }
-  else if (opt == BTOR_OPT_MODEL_GEN)
+
+  if (opt == BTOR_OPT_REWRITE_LEVEL)
   {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-  }
-  else if (opt == BTOR_OPT_UCOPT)
-  {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
-                "Unconstrained optimization cannot be enabled "
-                "in incremental mode");
-  }
-  else if (opt == BTOR_OPT_FUN_DUAL_PROP)
-  {
-    BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
-                "enabling multiple optimization techniques is not allowed");
-  }
-  else if (opt == BTOR_OPT_FUN_JUST)
-  {
-    BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
-                "enabling multiple optimization techniques is not allowed");
-  }
-  else if (opt == BTOR_OPT_UCOPT)
-  {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-  }
-  else if (opt == BTOR_OPT_REWRITE_LEVEL)
-  {
-    BTOR_ABORT (val > 3, "'rewrite_level' must be in [0,3]");
     BTOR_ABORT (
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
