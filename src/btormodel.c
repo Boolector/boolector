@@ -159,7 +159,14 @@ btor_get_bv_model_aux (Btor *btor,
    *       as non-inverted nodes. Their inverted assignments, however,
    *       are cached (when requested) on demand (see below)! */
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Do not use btor_simplify_exp here! btor_simplify_exp always simplifies
+   * constraints to true (regardless of the actual input assignments).
+   * However, when querying assignments, we want to get the actual assignments,
+   * depending on the current input assignments. In particular during local
+   * search (engines PROP, AIGPROP, SLS), assignment queries may be issued
+   * when the current model is non satisfying (all intermediate models during
+   * local search are non-satisfying). */
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* Check if we already generated the assignment of exp
    * -> inverted if exp is inverted */
@@ -515,7 +522,15 @@ btor_get_fun_model_aux (Btor *btor,
 
   BtorHashTableData *d;
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Do not use btor_simplify_exp here! btor_simplify_exp always simplifies
+   * constraints to true (regardless of the actual input assignments).
+   * However, when querying assignments, we want to get the actual assignments,
+   * depending on the current input assignments. In particular during local
+   * search (engines PROP, AIGPROP, SLS), assignment queries may be issued
+   * when the current model is non satisfying (all intermediate models during
+   * local search are non-satisfying). */
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+
   assert (btor_is_fun_node (exp));
   d = btor_get_int_hash_map (fun_model, exp->id);
 
@@ -969,7 +984,8 @@ btor_generate_model (Btor *btor,
   }
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_simplify_exp (btor, btor_next_ptr_hash_table_iterator (&it));
+    cur = btor_pointer_chase_simplified_exp (
+        btor, btor_next_ptr_hash_table_iterator (&it));
     BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
