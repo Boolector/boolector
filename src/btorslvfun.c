@@ -2172,11 +2172,9 @@ sat_fun_solver (BtorFunSolver *slv)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
-  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0)
   {
     BtorSolver *propslv;
-    BTOR_ABORT (btor->ufs->count,
-                "combination of prop and fun engine supports QF_BV only!");
     if (btor->lambdas->count) btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
     propslv   = btor_new_prop_solver (btor);
     btor->slv = propslv;
