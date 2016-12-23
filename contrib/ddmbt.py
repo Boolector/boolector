@@ -558,6 +558,7 @@ def ddmbt_main():
     g_golden_runtime = time.time() - start
     _log(1, "golden exit code: {0:d} in {1:.3f} seconds".format(
             g_golden_exit_code, g_golden_runtime))
+    _log(1, "golden err msg: {}".format(g_golden_err_msg))
 
     rounds = 0
     last_num_lines = last_num_substs = last_num_swaps = 0
