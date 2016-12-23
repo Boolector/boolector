@@ -956,6 +956,7 @@ struct BtorMBT
   uint32_t max_ass_cur;    /* max number of ass(erts|umes) in current round */
 
   uint32_t tot_asserts; /* total number of asserts in current round */
+  uint32_t num_ite_fun;
 
   BtorRNG rng;
 };
@@ -1915,6 +1916,7 @@ btormbt_array_op (BtorMBT *mbt,
     {
       assert (op == COND);
       node = boolector_cond (mbt->btor, e2, e0, e1);
+      mbt->num_ite_fun++;
     }
   }
   assert (node);
@@ -3122,7 +3124,8 @@ btormbt_state_dump (BtorMBT *mbt)
         boolector_dump_aiger_binary (
             mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
     }
-    else
+    // TODO (ma): we cannot dump ite over functions to smt2 right now
+    else if (mbt->num_ite_fun == 0)
     {
       len =
           40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
@@ -3143,6 +3146,7 @@ btormbt_state_dump (BtorMBT *mbt)
         assert (outfile);
         boolector_dump_smt2 (mbt->btor, outfile);
       }
+
       fclose (outfile);
       outfile = fopen (outfilename, "r");
       if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
