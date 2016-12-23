@@ -72,6 +72,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   assert (btor);
   assert (format);
   assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
 
   int id;
   char *symbol;
@@ -82,7 +83,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 
   if (!strcmp (format, "btor"))
   {
-    id = btor_exp_get_btor_id (node);
+    id = ((BtorBVVarNode *) node)->btor_id;
     fprintf (file, "%d ", id ? id : btor_exp_get_id (node));
     print_fmt_bv_model_btor (btor, base, ass, file);
     fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
@@ -93,11 +94,11 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
       fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
     else
     {
-      id = btor_exp_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+      id = ((BtorBVVarNode *) node)->btor_id;
       fprintf (file,
                "%2c(define-fun v%d () ",
                ' ',
-               id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
+               id ? id : btor_exp_get_id (node));
     }
 
     btor_dump_sort_smt_node (node, file);
@@ -333,7 +334,12 @@ print_bv_value (Btor *btor,
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
-    print_bv_model (btor, node, format, base, file);
+  {
+    id = btor_exp_get_btor_id (node);
+    fprintf (file, "%d ", id ? id : btor_exp_get_id (node));
+    print_fmt_bv_model_btor (btor, base, ass, file);
+    fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
+  }
   else
   {
     if (symbol)
