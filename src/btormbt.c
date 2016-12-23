@@ -40,6 +40,10 @@
 
 /*------------------------------------------------------------------------*/
 
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+
+/*------------------------------------------------------------------------*/
+
 #define MIN_BITWIDTH 2   /* must be >= 2 */
 #define MAX_BITWIDTH 128 /* must be >= 2 */
 #define MIN_INDEXWIDTH 1
@@ -3192,7 +3196,8 @@ btormbt_state_query_model (BtorMBT *mbt)
 {
   int i, size = 0;
   const char *bv = NULL;
-  char **indices = NULL, **values = NULL;
+  char **indices = NULL, **values = NULL, *symbol;
+  BoolectorNode *exp;
 
   assert (mbt->mgen);
 
@@ -3204,32 +3209,69 @@ btormbt_state_query_model (BtorMBT *mbt)
       boolector_print_model (mbt->btor, "smt2", stdout);
   }
 
+  BTOR_CNEWN (mbt->mm, symbol, 20);
+
+  sprintf (symbol, "bv");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
   {
-    bv = boolector_bv_assignment (mbt->btor, mbt->bo->exps.start[i]->exp);
+    exp = mbt->bo->exps.start[i]->exp;
+    bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
   {
-    bv = boolector_bv_assignment (mbt->btor, mbt->bv->exps.start[i]->exp);
+    exp = mbt->bv->exps.start[i]->exp;
+    bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  sprintf (symbol, "arr");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->arr->exps); i++)
   {
-    boolector_array_assignment (
-        mbt->btor, mbt->arr->exps.start[i]->exp, &indices, &values, &size);
+    exp = mbt->arr->exps.start[i]->exp;
+    boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_array_assignment (mbt->btor, indices, values, size);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  sprintf (symbol, "uf");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->uf->exps); i++)
   {
-    boolector_uf_assignment (
-        mbt->btor, mbt->uf->exps.start[i]->exp, &indices, &values, &size);
+    exp = mbt->uf->exps.start[i]->exp;
+    boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_uf_assignment (mbt->btor, indices, values, size);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+
   if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
     return btormbt_state_inc;
+
   return btormbt_state_delete;
 }
 
