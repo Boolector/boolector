@@ -14,47 +14,8 @@
 #include "dumper/btordumpsmt.h"
 #include "utils/btormisc.h"
 
-/*========================================================================*/
-/* BV model                                                               */
-/*========================================================================*/
-
-const char *
-btor_get_bv_model_str_aux (Btor *btor,
-                           BtorIntHashTable *bv_model,
-                           BtorIntHashTable *fun_model,
-                           BtorNode *exp)
-{
-  assert (btor);
-  assert (bv_model);
-  assert (fun_model);
-  assert (exp);
-
-  char *res;
-  uint32_t width;
-  const BtorBitVector *bv;
-
-  exp = btor_simplify_exp (btor, exp);
-  if ((bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
-    res = btor_bv_to_char_bv (btor->mm, bv);
-  else
-  {
-    width = btor_get_exp_width (btor, exp);
-    BTOR_NEWN (btor->mm, res, width + 1);
-    memset (res, 'x', width);
-    res[width] = 0;
-  }
-  return res;
-}
-
-const char *
-btor_get_bv_model_str (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  return btor_get_bv_model_str_aux (btor, btor->bv_model, btor->fun_model, exp);
-}
-
+/*------------------------------------------------------------------------*/
+/* print model                                                            */
 /*------------------------------------------------------------------------*/
 
 static void
@@ -79,6 +40,30 @@ print_fmt_bv_model_btor (Btor *btor,
   btor_freestr (btor->mm, ass);
 }
 
+static void
+print_fmt_bv_model_tuple_btor (Btor *btor,
+                               int base,
+                               const BtorBitVectorTuple *assignments,
+                               FILE *file)
+{
+  assert (btor);
+  assert (assignments);
+  assert (file);
+
+  uint32_t i;
+
+  if (assignments->arity > 1)
+  {
+    for (i = 0; i < assignments->arity; i++)
+    {
+      if (i > 0) fprintf (file, " ");
+      print_fmt_bv_model_btor (btor, base, assignments->bv[i], file);
+    }
+  }
+  else
+    print_fmt_bv_model_btor (btor, base, assignments->bv[0], file);
+}
+
 /*------------------------------------------------------------------------*/
 
 static void
@@ -93,7 +78,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   char *symbol;
   const BtorBitVector *ass;
 
-  ass    = btor_get_bv_model (btor, btor_simplify_exp (btor, node));
+  ass    = btor_get_bv_model (btor, node);
   symbol = btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
@@ -120,126 +105,6 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
     btor_dump_const_value_smt (btor, ass, base, file);
     fprintf (file, ")\n");
   }
-}
-
-/*------------------------------------------------------------------------*/
-
-/*========================================================================*/
-/* Fun model                                                               */
-/*========================================================================*/
-
-void
-btor_get_fun_model_str_aux (Btor *btor,
-                            BtorIntHashTable *bv_model,
-                            BtorIntHashTable *fun_model,
-                            BtorNode *exp,
-                            char ***args,
-                            char ***values,
-                            int *size)
-{
-  assert (btor);
-  assert (fun_model);
-  assert (exp);
-  assert (args);
-  assert (values);
-  assert (size);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  char *arg, *tmp, *bv;
-  uint32_t i, j, len;
-  BtorPtrHashTableIterator it;
-  const BtorPtrHashTable *model;
-  BtorBitVector *value;
-  BtorBitVectorTuple *t;
-
-  exp = btor_simplify_exp (btor, exp);
-  assert (btor_is_fun_node (exp));
-
-  model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
-
-  if ((btor_is_lambda_node (exp) && btor_get_fun_arity (btor, exp) > 1)
-      || !fun_model || !model)
-  {
-    *size = 0;
-    return;
-  }
-
-  assert (model->count > 0);
-
-  *size = (int) model->count;
-  BTOR_NEWN (btor->mm, *args, *size);
-  BTOR_NEWN (btor->mm, *values, *size);
-
-  i = 0;
-  btor_init_ptr_hash_table_iterator (&it, (BtorPtrHashTable *) model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-  {
-    value = (BtorBitVector *) it.bucket->data.as_ptr;
-
-    /* build assignment string for all arguments */
-    t   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it);
-    len = t->arity;
-    for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
-    BTOR_NEWN (btor->mm, arg, len);
-    tmp = arg;
-
-    bv = (char *) btor_bv_to_char_bv (btor->mm, t->bv[0]);
-    strcpy (tmp, bv);
-    btor_release_bv_assignment_str (btor, bv);
-
-    for (j = 1; j < t->arity; j++)
-    {
-      bv = (char *) btor_bv_to_char_bv (btor->mm, t->bv[j]);
-      strcat (tmp, " ");
-      strcat (tmp, bv);
-      btor_release_bv_assignment_str (btor, bv);
-    }
-    assert (strlen (arg) == len - 1);
-
-    (*args)[i]   = arg;
-    (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
-    i++;
-  }
-}
-
-void
-btor_get_fun_model_str (
-    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
-{
-  assert (btor);
-  assert (exp);
-  assert (args);
-  assert (values);
-  assert (size);
-
-  btor_get_fun_model_str_aux (
-      btor, btor->bv_model, btor->fun_model, exp, args, values, size);
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-print_fmt_bv_model_tuple_btor (Btor *btor,
-                               int base,
-                               const BtorBitVectorTuple *assignments,
-                               FILE *file)
-{
-  assert (btor);
-  assert (assignments);
-  assert (file);
-
-  uint32_t i;
-
-  if (assignments->arity > 1)
-  {
-    for (i = 0; i < assignments->arity; i++)
-    {
-      if (i > 0) fprintf (file, " ");
-      print_fmt_bv_model_btor (btor, base, assignments->bv[i], file);
-    }
-  }
-  else
-    print_fmt_bv_model_btor (btor, base, assignments->bv[0], file);
 }
 
 /*------------------------------------------------------------------------*/
@@ -359,8 +224,6 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   if (!symbol) BTOR_DELETEN (btor->mm, s, 40);
 }
 
-/*------------------------------------------------------------------------*/
-
 static void
 print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
 {
@@ -398,8 +261,6 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   }
 }
 
-/*------------------------------------------------------------------------*/
-
 static void
 print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 {
@@ -415,7 +276,7 @@ print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
     print_fun_model_smt2 (btor, node, base, file);
 }
 
-/*========================================================================*/
+/*------------------------------------------------------------------------*/
 
 void
 btor_print_model (Btor *btor, char *format, FILE *file)
@@ -448,7 +309,9 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
 }
 
-/*========================================================================*/
+/*------------------------------------------------------------------------*/
+/* print value                                                            */
+/*------------------------------------------------------------------------*/
 
 static void
 print_bv_value (Btor *btor,
@@ -486,6 +349,8 @@ print_bv_value (Btor *btor,
     fprintf (file, ")");
   }
 }
+
+/*------------------------------------------------------------------------*/
 
 static void
 print_fun_value_smt2 (
@@ -575,6 +440,8 @@ print_fun_value (Btor *btor,
     print_fun_value_smt2 (
         btor, BTOR_REAL_ADDR_NODE (node), symbol_str, base, file);
 }
+
+/*------------------------------------------------------------------------*/
 
 void
 btor_print_value (

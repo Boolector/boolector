@@ -15,24 +15,9 @@
 #include "btorcore.h"
 #include "btorexp.h"
 
-const char* btor_get_bv_model_str (Btor* btor, BtorNode* exp);
-const char* btor_get_bv_model_str_aux (Btor* btor,
-                                       BtorIntHashTable* bv_model,
-                                       BtorIntHashTable* fun_model,
-                                       BtorNode* exp);
-
-void btor_get_fun_model_str (
-    Btor* btor, BtorNode* exp, char*** args, char*** values, int* size);
-void btor_get_fun_model_str_aux (Btor* btor,
-                                 BtorIntHashTable* bv_model,
-                                 BtorIntHashTable* fun_model,
-                                 BtorNode* exp,
-                                 char*** args,
-                                 char*** values,
-                                 int* size);
-
 void btor_print_model (Btor* btor, char* format, FILE* file);
+
 void btor_print_value (
-    Btor* btor, BtorNode* exp, char* exp_str, char* format, FILE* file);
+    Btor* btor, BtorNode* exp, char* symbol_str, char* format, FILE* file);
 
 #endif

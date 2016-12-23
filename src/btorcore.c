@@ -3825,14 +3825,6 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   return result;
 }
 
-void
-btor_release_bv_assignment_str (Btor *btor, char *assignment)
-{
-  assert (btor);
-  assert (assignment);
-  btor_freestr (btor->mm, assignment);
-}
-
 #ifndef NDEBUG
 BtorPtrHashTable *
 map_inputs_check_model (Btor *btor, Btor *clone)

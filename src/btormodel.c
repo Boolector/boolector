@@ -150,7 +150,6 @@ btor_get_bv_model_aux (Btor *btor,
   assert (bv_model);
   assert (fun_model);
   assert (exp);
-  assert (!btor_is_proxy_node (exp));
 
   BtorBitVector *result;
   BtorHashTableData *d;
@@ -518,7 +517,6 @@ btor_get_fun_model_aux (Btor *btor,
   assert (btor);
   assert (fun_model);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (!btor_is_proxy_node (exp));
 
   BtorHashTableData *d;
 

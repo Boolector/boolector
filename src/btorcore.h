@@ -300,9 +300,6 @@ void btor_synthesize_exp (Btor *btor,
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
-/* Frees BV assignment obtained by calling 'btor_assignment_exp' */
-void btor_release_bv_assignment_str (Btor *btor, char *assignment);
-
 void btor_release_all_ext_refs (Btor *btor);
 
 void btor_init_substitutions (Btor *);

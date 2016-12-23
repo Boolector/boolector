@@ -1111,17 +1111,20 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 #if 0
 		  case BTOR_BCOND_NODE:
 		    BTOR_PUSH_STACK (stack, cur->e[0]);
-		    c = bv_assignment_str_exp (btor, cur->e[0]);
-		    if (c[0] == '1')  // then
+		    a = BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[0]))
+			? btor_get_assignment_aig (
+			    amgr, BTOR_REAL_ADDR_NODE (cur->e[0])->av->aigs[0])
+			: 0;  // 'x';
+		    if (BTOR_IS_INVERTED_NODE (cur->e[0])) a *= -1;
+		    if (a == 1)  // then
 		      BTOR_PUSH_STACK (stack, cur->e[1]);
-		    else if (c[0] == '0')
+		    else if (a == -1)
 		      BTOR_PUSH_STACK (stack, cur->e[2]);
 		    else                   // else
 		      {
 			BTOR_PUSH_STACK (stack, cur->e[1]);
 			BTOR_PUSH_STACK (stack, cur->e[2]);
 		      }
-		    btor_release_bv_assignment_str (btor, c);
 		    break;
 #endif
 

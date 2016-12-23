@@ -174,10 +174,14 @@ compute_sls_score_node (Btor *btor,
 #ifndef NBTORLOG
       if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
       {
-        a0 = (char *) btor_get_bv_model_str_aux (
-            btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0]));
-        a1 = (char *) btor_get_bv_model_str_aux (
-            btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1]));
+        a0 = btor_bv_to_char_bv (
+            btor->mm,
+            btor_get_bv_model_aux (
+                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+        a1 = btor_bv_to_char_bv (
+            btor->mm,
+            btor_get_bv_model_aux (
+                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
         btor_freestr (mm, a0);
@@ -202,10 +206,14 @@ compute_sls_score_node (Btor *btor,
 #ifndef NBTORLOG
       if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
       {
-        a0 = (char *) btor_get_bv_model_str_aux (
-            btor, bv_model, fun_model, real_exp->e[0]);
-        a1 = (char *) btor_get_bv_model_str_aux (
-            btor, bv_model, fun_model, real_exp->e[1]);
+        a0 = btor_bv_to_char_bv (
+            btor->mm,
+            btor_get_bv_model_aux (
+                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+        a1 = btor_bv_to_char_bv (
+            btor->mm,
+            btor_get_bv_model_aux (
+                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
         btor_freestr (mm, a0);
@@ -230,10 +238,14 @@ compute_sls_score_node (Btor *btor,
 #ifndef NBTORLOG
     if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
-      a0 = (char *) btor_get_bv_model_str_aux (
-          btor, bv_model, fun_model, real_exp->e[0]);
-      a1 = (char *) btor_get_bv_model_str_aux (
-          btor, bv_model, fun_model, real_exp->e[1]);
+      a0 = btor_bv_to_char_bv (
+          btor->mm,
+          btor_get_bv_model_aux (
+              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+      a1 = btor_bv_to_char_bv (
+          btor->mm,
+          btor_get_bv_model_aux (
+              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
       btor_freestr (mm, a0);
@@ -260,10 +272,14 @@ compute_sls_score_node (Btor *btor,
 #ifndef NBTORLOG
     if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
-      a0 = (char *) btor_get_bv_model_str_aux (
-          btor, bv_model, fun_model, real_exp->e[0]);
-      a1 = (char *) btor_get_bv_model_str_aux (
-          btor, bv_model, fun_model, real_exp->e[1]);
+      a0 = btor_bv_to_char_bv (
+          btor->mm,
+          btor_get_bv_model_aux (
+              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+      a1 = btor_bv_to_char_bv (
+          btor->mm,
+          btor_get_bv_model_aux (
+              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
       btor_freestr (mm, a0);
@@ -289,7 +305,10 @@ compute_sls_score_node (Btor *btor,
 #ifndef NBTORLOG
     if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
-      a0 = (char *) btor_get_bv_model_str_aux (btor, bv_model, fun_model, exp);
+      a0 = btor_bv_to_char_bv (
+          btor->mm,
+          btor_get_bv_model_aux (
+              btor, bv_model, fun_model, BTOR_INVERT_NODE (exp)));
       BTORLOG (3, "      assignment : %s", a0);
       btor_freestr (mm, a0);
     }
