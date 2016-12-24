@@ -50,7 +50,8 @@ hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 
 // TODO find a better heuristic this might be too expensive
 // this is not necessarily the actual minimum, but the minimum if you flip
-// bits in bv1 s.t. bv1 < bv2 (if bv2 is 0, we need to flip 1 bit in bv2, too)
+// bits in bv1 s.t. bv1 < bv2 (if bv2 is 0, we need to flip 1 bit in bv2, too,
+// which we do not consider to prevent negative scores)
 static int
 min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
@@ -63,11 +64,11 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   BtorBitVector *tmp;
 
   if (btor_is_zero_bv (bv2))
-    res = hamming_distance (btor, bv1, bv2) + 1;
+    res = hamming_distance (btor, bv1, bv2);
   else
   {
     tmp = btor_copy_bv (btor->mm, bv1);
-    for (res = 1, i = tmp->width - 1; i >= 0; i--)
+    for (res = 0, i = tmp->width - 1; i >= 0; i--)
     {
       if (!btor_get_bit_bv (tmp, i)) continue;
       res += 1;
@@ -77,6 +78,7 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
     if (btor_is_zero_bv (bv2)) res += 1;
     btor_free_bv (btor->mm, tmp);
   }
+  assert (res <= bv1->width);
   return res;
 }
 
@@ -92,7 +94,7 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   BtorBitVector *tmp;
 
   tmp = btor_copy_bv (btor->mm, bv1);
-  for (res = 1, i = tmp->width - 1; i >= 0; i--)
+  for (res = 0, i = tmp->width - 1; i >= 0; i--)
   {
     if (btor_get_bit_bv (tmp, i)) continue;
     res += 1;
@@ -319,6 +321,7 @@ compute_sls_score_node (Btor *btor,
   }
 
   BTORLOG (3, "      sls score : %f", res);
+  assert (res >= 0.0 && res <= 1.0);
   return res;
 }
 
