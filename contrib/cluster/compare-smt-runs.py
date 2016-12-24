@@ -684,33 +684,40 @@ def _pick_data(benchmarks, data):
         sort_reverse = True 
         f_cmp = lambda x, y: x > y
 
-    best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-    diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+    best_stats = {}
+    diff_stats = {}
 
+    k = g_args.cmp_col
     for f in benchmarks:
-        for k in data.keys():
-            v = sorted(\
-                [(data[k][d][f], d) \
-                    for d in g_args.dirs if data[k][d][f] is not None],
-                reverse=sort_reverse)
+        v = sorted(\
+            [(data[k][d][f], d) \
+                for d in g_args.dirs if data[k][d][f] is not None],
+            reverse=sort_reverse)
 
-            # strings are not considered for diff/best values
-            if len(v) == 0 or isinstance(v[0][0], str):
-                best_stats[k][f] = None
-                diff_stats[k][f] = None
-                continue
+        # strings are not considered for diff/best values
+        if len(v) == 0 or isinstance(v[0][0], str):
+            best_stats[f] = None
+            diff_stats[f] = None
+            continue
 
-            best_dir = v[0][1]
+        best_dir = v[0][1]
 
-            if len(set([t[0] for t in v])) <= 1:
-                best_stats[k][f] = None
-            else:
-                best_stats[k][f] = best_dir
+        if len(set([t[0] for t in v])) <= 1:
+            best_stats[f] = None
+            if g_args.cmp_col == 'g_solved':
+                x = sorted(\
+                    [(data['time_time'][d][f], d) \
+                        for d in g_args.dirs \
+                            if data['time_time'][d][f] is not None])
+                if len(set([t[0] for t in x])) > 1:
+                    best_stats[f] = x[0][1]
+        else:
+            best_stats[f] = best_dir
 
-            if best_stats[k][f] is None or not f_cmp(v[0][0], v[1][0]):
-                diff_stats[k][f] = None
-            else:
-                diff_stats[k][f] = best_dir
+        if best_stats[f] is None or not f_cmp(v[0][0], v[1][0]):
+            diff_stats[f] = None
+        else:
+            diff_stats[f] = best_dir
 
     assert(diff_stats.keys() == best_stats.keys())
     return diff_stats, best_stats
@@ -819,13 +826,10 @@ def _get_column_name(key):
 
 def _get_color(f, d, diff_stats, best_stats):
     global g_args
-
-    for k in diff_stats.keys():
-        if g_args.cmp_col == k:
-            if diff_stats[k][f] == d:
-                return COLOR_DIFF
-            elif best_stats[k][f] == d:
-                return COLOR_BEST
+    if diff_stats[f] == d:
+        return COLOR_DIFF
+    elif best_stats[f] == d:
+        return COLOR_BEST
     return COLOR_NOCOLOR
 
 
