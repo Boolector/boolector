@@ -64,13 +64,14 @@ enum BtorOption
   BTOR_OPT_INCREMENTAL,
 
   /*!
-    * **BTOR_OPT_INCREMENTAL_ALL**
+    * **BTOR_OPT_INCREMENTAL_SMT1**
 
-      | Enable (``value``: 1) or disable (``value``: 0) incremental solving of
-    all formulas when parsing an input file. | Note that currently, incremental
-    mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
+      | Incremental mode for SMT1. Stop after first satisfiable formula
+    (``value``: 1) or solve all formulas (``value``: 2). | Note that currently,
+    incremental mode while parsing an input file is only supported for `SMT-LIB
+    v1`_ input.
   */
-  BTOR_OPT_INCREMENTAL_ALL,
+  BTOR_OPT_INCREMENTAL_SMT1,
 
   /*!
     * **BTOR_OPT_INPUT_FORMAT**

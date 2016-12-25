@@ -238,7 +238,7 @@ btormain_init_opts (BtorMainApp *app)
                  BTOR_ENGINE_MAX,
                  false,
                  BTORMAIN_OPT_ARG_STR,
-                 "set engine (core sls) [core]");
+                 "set engine (core sls prop aigprop) [core]");
   init_main_opt (
       app,
       BTORMAIN_OPT_SAT_ENGINE,
@@ -1242,20 +1242,6 @@ boolector_main (int argc, char **argv)
         {
           switch (k)
           {
-            case BTOR_OPT_INCREMENTAL:
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-              boolector_set_opt (g_app->btor, k, inc);
-              break;
-            case BTOR_OPT_INCREMENTAL_ALL:
-              boolector_set_opt (
-                  g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-              boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-              break;
             case BTOR_OPT_MODEL_GEN:
               if (READ_ARG_IS_INT (readval) && val == 0)
               {
@@ -1268,26 +1254,6 @@ boolector_main (int argc, char **argv)
                 pmodel = 1;
               }
               break;
-            case BTOR_OPT_FUN_DUAL_PROP:
-              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
-              {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
-                goto DONE;
-              }
-              goto DEFAULT;
-            case BTOR_OPT_FUN_JUST:
-              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP))
-              {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
-                goto DONE;
-              }
-              goto DEFAULT;
 #ifndef NBTORLOG
             case BTOR_OPT_VERBOSITY:
             case BTOR_OPT_LOGLEVEL:

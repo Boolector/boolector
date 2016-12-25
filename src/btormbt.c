@@ -40,6 +40,10 @@
 
 /*------------------------------------------------------------------------*/
 
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+
+/*------------------------------------------------------------------------*/
+
 #define MIN_BITWIDTH 2   /* must be >= 2 */
 #define MAX_BITWIDTH 128 /* must be >= 2 */
 #define MIN_INDEXWIDTH 1
@@ -127,7 +131,7 @@
 #define MAX_NRELOPS_INC 5
 
 #define MAX_NOPS_LOWER 50
-#define MIN_NASSERTS_LOWER 5
+#define MIN_NASSERTS_LOWER 0
 #define MAX_NASSERTS_LOWER 25
 #define MIN_NASSERTS_UPPER 20
 #define MAX_NASSERTS_UPPER 30
@@ -2646,7 +2650,7 @@ btormbt_state_new (BtorMBT *mbt)
 static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
-  int i, set_sat_solver = 1;
+  int i;
   uint32_t opt_engine;
   BtorMBTBtorOpt *btoropt;
 
@@ -2657,29 +2661,7 @@ btormbt_state_opt (BtorMBT *mbt)
   mbt->print_model = false;
   mbt->ext         = false;
   mbt->ninc        = 0;
-
-  /* set random sat solver */
-#ifdef BTOR_USE_LINGELING
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-  {
-    boolector_set_sat_solver_lingeling (mbt->btor, 0, 0);
-    set_sat_solver = 0;
-  }
-#endif
-#ifdef BTOR_USE_PICOSAT
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-  {
-    boolector_set_sat_solver_picosat (mbt->btor);
-    set_sat_solver = 0;
-  }
-#endif
-#ifdef BTOR_USE_MINISAT
-  if (!mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 500)
-      && set_sat_solver)
-    boolector_set_sat_solver_minisat (mbt->btor);
-#endif
+  if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
 
   /* set random options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
@@ -3218,7 +3200,8 @@ btormbt_state_query_model (BtorMBT *mbt)
 {
   int i, size = 0;
   const char *bv = NULL;
-  char **indices = NULL, **values = NULL;
+  char **indices = NULL, **values = NULL, *symbol;
+  BoolectorNode *exp;
 
   assert (mbt->mgen);
 
@@ -3230,32 +3213,69 @@ btormbt_state_query_model (BtorMBT *mbt)
       boolector_print_model (mbt->btor, "smt2", stdout);
   }
 
+  BTOR_CNEWN (mbt->mm, symbol, 20);
+
+  sprintf (symbol, "bv");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
   {
-    bv = boolector_bv_assignment (mbt->btor, mbt->bo->exps.start[i]->exp);
+    exp = mbt->bo->exps.start[i]->exp;
+    bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
   {
-    bv = boolector_bv_assignment (mbt->btor, mbt->bv->exps.start[i]->exp);
+    exp = mbt->bv->exps.start[i]->exp;
+    bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  sprintf (symbol, "arr");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->arr->exps); i++)
   {
-    boolector_array_assignment (
-        mbt->btor, mbt->arr->exps.start[i]->exp, &indices, &values, &size);
+    exp = mbt->arr->exps.start[i]->exp;
+    boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_array_assignment (mbt->btor, indices, values, size);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  sprintf (symbol, "uf");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->uf->exps); i++)
   {
-    boolector_uf_assignment (
-        mbt->btor, mbt->uf->exps.start[i]->exp, &indices, &values, &size);
+    exp = mbt->uf->exps.start[i]->exp;
+    boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_uf_assignment (mbt->btor, indices, values, size);
+    boolector_print_value (
+        mbt->btor,
+        exp,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? symbol : 0,
+        btor_pick_with_prob_rng (&mbt->rng, 500) ? "btor" : "smt2",
+        stdout);
   }
+
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+
   if (mbt->inc && btor_pick_with_prob_rng (&mbt->rng, mbt->p_inc))
     return btormbt_state_inc;
+
   return btormbt_state_delete;
 }
 

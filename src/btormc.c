@@ -883,7 +883,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  btor_release_bv_assignment_str (f->btor, a);
+	  btor_freestr (f->btor->mm, a);
 	}
     }
   fflush (stdout);

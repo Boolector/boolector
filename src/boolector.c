@@ -604,47 +604,58 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d %s %d", opt, btor_get_opt_lng (btor, opt), val);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
+  BTOR_ABORT (
+      val < btor_get_opt_min (btor, opt) || val > btor_get_opt_max (btor, opt),
+      "invalid option value '%u' for option '%s'",
+      val,
+      btor_get_opt_lng (btor, opt));
 
-  if (opt == BTOR_OPT_INCREMENTAL)
+  if (val)
   {
-    BTOR_ABORT (btor->btor_sat_btor_called > 0,
-                "enabling/disabling incremental usage must be done "
-                "before calling 'boolector_sat'");
+    if (opt == BTOR_OPT_INCREMENTAL)
+    {
+      BTOR_ABORT (btor->btor_sat_btor_called > 0,
+                  "enabling/disabling incremental usage must be done "
+                  "before calling 'boolector_sat'");
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+                  "incremental solving cannot be enabled "
+                  "if unconstrained optimization is enabled");
+    }
+    else if (opt == BTOR_OPT_MODEL_GEN)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+                  "model generation cannot be enabled "
+                  "if unconstrained optimization is enabled");
+    }
+    else if (opt == BTOR_OPT_UCOPT)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+                  "Unconstrained optimization cannot be enabled "
+                  "if model generation is enabled");
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+                  "Unconstrained optimization cannot be enabled "
+                  "in incremental mode");
+    }
+    else if (opt == BTOR_OPT_FUN_DUAL_PROP)
+    {
+      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
+                  "enabling multiple optimization techniques is not allowed");
+    }
+    else if (opt == BTOR_OPT_FUN_JUST)
+    {
+      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
+                  "enabling multiple optimization techniques is not allowed");
+    }
+    else if (opt == BTOR_OPT_UCOPT)
+    {
+      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+                  "Unconstrained optimization cannot be enabled "
+                  "if model generation is enabled");
+    }
   }
-  else if (opt == BTOR_OPT_MODEL_GEN)
+
+  if (opt == BTOR_OPT_REWRITE_LEVEL)
   {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-  }
-  else if (opt == BTOR_OPT_UCOPT)
-  {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
-                "Unconstrained optimization cannot be enabled "
-                "in incremental mode");
-  }
-  else if (opt == BTOR_OPT_FUN_DUAL_PROP)
-  {
-    BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
-                "enabling multiple optimization techniques is not allowed");
-  }
-  else if (opt == BTOR_OPT_FUN_JUST)
-  {
-    BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
-                "enabling multiple optimization techniques is not allowed");
-  }
-  else if (opt == BTOR_OPT_UCOPT)
-  {
-    BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-                "Unconstrained optimization cannot be enabled "
-                "if model generation is enabled");
-  }
-  else if (opt == BTOR_OPT_REWRITE_LEVEL)
-  {
-    BTOR_ABORT (val > 3, "'rewrite_level' must be in [0,3]");
     BTOR_ABORT (
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
@@ -3182,25 +3193,25 @@ boolector_fun_sort_check (Btor *btor,
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {
-  const char *ass;
+  char *ass;
   const char *res;
   BtorNode *exp;
   BtorBVAssignment *bvass;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+              "cannot retrieve model if input formula is not SAT");
+  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+              "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
-              "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-              "model generation has not been enabled");
-  ass   = btor_get_bv_model_str (btor, exp);
-  bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
-  btor_release_bv_assignment_str (btor, (char *) ass);
+  ass   = btor_bv_to_char_bv (btor->mm, btor_get_bv_model (btor, exp));
+  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
+  btor_freestr (btor->mm, ass);
   res = btor_get_bv_assignment_str (bvass);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
@@ -3234,6 +3245,74 @@ boolector_free_bv_assignment (Btor *btor, const char *assignment)
 }
 
 static void
+generate_fun_model_str (
+    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+{
+  assert (btor);
+  assert (exp);
+  assert (args);
+  assert (values);
+  assert (size);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  char *arg, *tmp, *bv;
+  uint32_t i, j, len;
+  BtorPtrHashTableIterator it;
+  const BtorPtrHashTable *model;
+  BtorBitVector *value;
+  BtorBitVectorTuple *t;
+
+  exp = btor_simplify_exp (btor, exp);
+  assert (btor_is_fun_node (exp));
+
+  model = btor_get_fun_model_aux (btor, btor->bv_model, btor->fun_model, exp);
+
+  if ((btor_is_lambda_node (exp) && btor_get_fun_arity (btor, exp) > 1)
+      || !btor->fun_model || !model)
+  {
+    *size = 0;
+    return;
+  }
+
+  assert (model->count > 0);
+
+  *size = (int) model->count;
+  BTOR_NEWN (btor->mm, *args, *size);
+  BTOR_NEWN (btor->mm, *values, *size);
+
+  i = 0;
+  btor_init_ptr_hash_table_iterator (&it, (BtorPtrHashTable *) model);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+  {
+    value = (BtorBitVector *) it.bucket->data.as_ptr;
+
+    /* build assignment string for all arguments */
+    t   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it);
+    len = t->arity;
+    for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
+    BTOR_NEWN (btor->mm, arg, len);
+    tmp = arg;
+
+    bv = btor_bv_to_char_bv (btor->mm, t->bv[0]);
+    strcpy (tmp, bv);
+    btor_freestr (btor->mm, bv);
+
+    for (j = 1; j < t->arity; j++)
+    {
+      bv = btor_bv_to_char_bv (btor->mm, t->bv[j]);
+      strcat (tmp, " ");
+      strcat (tmp, bv);
+      btor_freestr (btor->mm, bv);
+    }
+    assert (strlen (arg) == len - 1);
+
+    (*args)[i]   = arg;
+    (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
+    i++;
+  }
+}
+
+static void
 fun_assignment (Btor *btor,
                 BtorNode *n,
                 char ***args,
@@ -3252,15 +3331,15 @@ fun_assignment (Btor *btor,
   char **a = 0, **v = 0;
 
   *ass = 0;
-  btor_get_fun_model_str (btor, n, &a, &v, size);
+  generate_fun_model_str (btor, n, &a, &v, size);
 
   if (*size)
   {
     *ass = btor_new_array_assignment (btor->fun_assignments, a, v, *size);
     for (i = 0; i < *size; i++)
     {
-      btor_release_bv_assignment_str (btor, a[i]);
-      btor_release_bv_assignment_str (btor, v[i]);
+      btor_freestr (btor->mm, a[i]);
+      btor_freestr (btor->mm, v[i]);
     }
     btor_free (btor->mm, a, *size * sizeof (*a));
     btor_free (btor->mm, v, *size * sizeof (*v));
@@ -3281,7 +3360,9 @@ boolector_array_assignment (Btor *btor,
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
-              "cannot retrieve assignment if input formula is not SAT");
+              "cannot retrieve model if input formula is not SAT");
+  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+              "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (e_array);
   BTOR_TRAPI_UNFUN (e_array);
   BTOR_ABORT_ARG_NULL (indices);
@@ -3290,8 +3371,6 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_REFS_NOT_POS (e_array);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_array);
   BTOR_ABORT_IS_BV (e_array);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-              "model generation has not been enabled");
 
   fun_assignment (btor, e_array, indices, values, size, &ass);
 
@@ -3367,7 +3446,9 @@ boolector_uf_assignment (
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
-              "cannot retrieve assignment if input formula is not SAT");
+              "cannot retrieve model if input formula is not SAT");
+  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+              "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (e_uf);
   BTOR_TRAPI_UNFUN (e_uf);
   BTOR_ABORT_ARG_NULL (args);
@@ -3376,8 +3457,6 @@ boolector_uf_assignment (
   BTOR_ABORT_REFS_NOT_POS (e_uf);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_uf);
   BTOR_ABORT_IS_BV (e_uf);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
-              "model generation has not been enabled");
 
   fun_assignment (btor, e_uf, args, values, size, &ass);
 
@@ -3450,6 +3529,8 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
   BTOR_ABORT (strcmp (format, "btor") && strcmp (format, "smt2"),
               "invalid model output format: %s",
               format);
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+              "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   btor_print_model (btor, format, file);

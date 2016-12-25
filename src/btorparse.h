@@ -49,10 +49,10 @@ typedef enum BtorParseMode BtorParseMode;
 
 struct BtorParseOpt
 {
-  BtorParseMode incremental;
+  int incremental;
+  BtorParseMode incremental_smt1; /* smt v1 only */
   int verbosity;
   int need_model;
-  int window;
   int interactive;
 };
 

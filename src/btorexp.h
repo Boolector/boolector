@@ -458,6 +458,23 @@ btor_exp_get_id (const BtorNode *exp)
 }
 
 static inline int
+btor_exp_get_btor_id (const BtorNode *exp)
+{
+  assert (exp);
+
+  BtorNode *real_exp;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+
+  if (btor_is_bv_var_node (exp))
+    return BTOR_IS_INVERTED_NODE (exp) ? -((BtorBVVarNode *) real_exp)->btor_id
+                                       : ((BtorBVVarNode *) real_exp)->btor_id;
+  else if (btor_is_uf_node (exp))
+    return ((BtorUFNode *) real_exp)->btor_id;
+  return 0;
+}
+
+static inline int
 btor_exp_get_tag (const BtorNode *exp)
 {
   return (int) (3ul & (unsigned long int) (exp));

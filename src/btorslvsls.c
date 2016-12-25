@@ -78,6 +78,7 @@ compute_sls_score_formula (Btor *btor, BtorIntHashTable *score, bool *done)
             ->weight;
     id = btor_next_int_hash_table_iterator (&it);
     sc = btor_get_int_hash_map (score, id)->as_dbl;
+    assert (sc >= 0.0 && sc <= 1.0);
     if (done && sc < 1.0) *done = false;
     res += weight * sc;
   }

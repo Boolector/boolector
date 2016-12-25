@@ -1111,17 +1111,20 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 #if 0
 		  case BTOR_BCOND_NODE:
 		    BTOR_PUSH_STACK (stack, cur->e[0]);
-		    c = bv_assignment_str_exp (btor, cur->e[0]);
-		    if (c[0] == '1')  // then
+		    a = BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[0]))
+			? btor_get_assignment_aig (
+			    amgr, BTOR_REAL_ADDR_NODE (cur->e[0])->av->aigs[0])
+			: 0;  // 'x';
+		    if (BTOR_IS_INVERTED_NODE (cur->e[0])) a *= -1;
+		    if (a == 1)  // then
 		      BTOR_PUSH_STACK (stack, cur->e[1]);
-		    else if (c[0] == '0')
+		    else if (a == -1)
 		      BTOR_PUSH_STACK (stack, cur->e[2]);
 		    else                   // else
 		      {
 			BTOR_PUSH_STACK (stack, cur->e[1]);
 			BTOR_PUSH_STACK (stack, cur->e[2]);
 		      }
-		    btor_release_bv_assignment_str (btor, c);
 		    break;
 #endif
 
@@ -2169,11 +2172,9 @@ sat_fun_solver (BtorFunSolver *slv)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
-  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0)
   {
     BtorSolver *propslv;
-    BTOR_ABORT (btor->ufs->count,
-                "combination of prop and fun engine supports QF_BV only!");
     if (btor->lambdas->count) btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
     propslv   = btor_new_prop_solver (btor);
     btor->slv = propslv;
