@@ -52,7 +52,7 @@ hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 // this is not necessarily the actual minimum, but the minimum if you flip
 // bits in bv1 s.t. bv1 < bv2 (if bv2 is 0, we need to flip 1 bit in bv2, too,
 // which we do not consider to prevent negative scores)
-static int
+static uint32_t
 min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
@@ -60,7 +60,7 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1->width == bv2->width);
   assert (bv1->len == bv2->len);
 
-  int i, res;
+  uint32_t i, j, res;
   BtorBitVector *tmp;
 
   if (btor_is_zero_bv (bv2))
@@ -68,11 +68,11 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   else
   {
     tmp = btor_copy_bv (btor->mm, bv1);
-    for (res = 0, i = tmp->width - 1; i >= 0; i--)
+    for (res = 0, i = 0, j = tmp->width - 1; i < tmp->width; i++, j--)
     {
-      if (!btor_get_bit_bv (tmp, i)) continue;
+      if (!btor_get_bit_bv (tmp, j)) continue;
       res += 1;
-      btor_set_bit_bv (tmp, i, 0);
+      btor_set_bit_bv (tmp, j, 0);
       if (btor_compare_bv (tmp, bv2) < 0) break;
     }
     if (btor_is_zero_bv (bv2)) res += 1;
@@ -82,7 +82,7 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   return res;
 }
 
-static int
+static uint32_t
 min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
@@ -90,15 +90,15 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1->width == bv2->width);
   assert (bv1->len == bv2->len);
 
-  int i, res;
+  uint32_t i, j, res;
   BtorBitVector *tmp;
 
   tmp = btor_copy_bv (btor->mm, bv1);
-  for (res = 0, i = tmp->width - 1; i >= 0; i--)
+  for (res = 0, i = 0, j = tmp->width - 1; i < tmp->width; i++, j--)
   {
-    if (btor_get_bit_bv (tmp, i)) continue;
+    if (btor_get_bit_bv (tmp, j)) continue;
     res += 1;
-    btor_set_bit_bv (tmp, i, 1);
+    btor_set_bit_bv (tmp, j, 1);
     if (btor_compare_bv (tmp, bv2) >= 0) break;
   }
   btor_free_bv (btor->mm, tmp);

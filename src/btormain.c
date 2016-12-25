@@ -1268,7 +1268,6 @@ boolector_main (int argc, char **argv)
               break;
             default:
               assert (k != BTOR_OPT_NUM_OPTS);
-            DEFAULT:
               if (READ_ARG_IS_INT (readval))
                 boolector_set_opt (g_app->btor, k, val);
               else
