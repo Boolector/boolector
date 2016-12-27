@@ -3427,7 +3427,7 @@ reset_round_data (BtorMBT *mbt)
   mbt->uf          = btormbt_new_exp_stack (mbt->mm);
   mbt->bv_sorts    = btormbt_new_sort_stack (mbt->mm);
   mbt->fun_sorts   = btormbt_new_sort_stack (mbt->mm);
-  mbt->rng.z = mbt->rng.w = mbt->seed;
+  btor_init_rng (&mbt->rng, mbt->seed);
 }
 
 static int
