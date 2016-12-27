@@ -814,7 +814,6 @@ def _print_html_footer():
 def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
 
-
 def _get_column_name(key):
     if key in FILTER_LOG:
         return FILTER_LOG[key][0]
@@ -855,7 +854,7 @@ def _get_group_totals():
             if d not in stats['totals']:
                 stats['totals'][d] = {}
 
-            for stat in g_args.columns:
+            for stat in g_file_stats:
                 if stat not in group[d]:
                     group[d][stat] = []
                 if stat not in stats['totals'][d]:
@@ -868,7 +867,7 @@ def _get_group_totals():
                     stats['totals'][d][stat].append(val)
 
     # compute group totals
-    for stat in g_args.columns:
+    for stat in g_file_stats:
         assert(stat not in totals)
         totals[stat] = {}
         for d in g_args.dirs:
@@ -1073,7 +1072,8 @@ def _print_data ():
         # highlight row if status is not the same or solvers are disagreeing
         color = COLOR_STAT \
                 if not g_args.vbsd and s is not None and len(set(s)) > 1 \
-                else (COLOR_DISC if ((not g_args.vbsd \
+                else (COLOR_DISC if (not g_args.g
+                                     and (not g_args.vbsd \
                                       or (g_args.vbsd \
                                           and (s is None or len(set(s)) <= 1)))\
                                      and r is not None \
@@ -1096,6 +1096,20 @@ def _print_data ():
 
     if g_args.html:
         _print_html_footer()
+
+
+def _filter_common(data):
+    global g_benchmarks
+
+    remove = []
+
+    for f in g_benchmarks:
+        s = set([data['status'][d][f] for d in g_args.dirs])
+        if 'ok' not in s or len(s) != 1:
+            remove.append(f)
+
+    for f in remove:
+        g_benchmarks.remove(f)
 
 
 if __name__ == "__main__":
@@ -1269,6 +1283,12 @@ if __name__ == "__main__":
                 help="plain mode, only show columns and " \
                      "filename (for gnuplot data files)"
               )
+        aparser.add_argument \
+              (
+                "-common",
+                dest="common", action="store_true",
+                help="show commonly solved instances only"
+              )
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -1344,8 +1364,8 @@ if __name__ == "__main__":
                 g_args.columns.remove(c)
 
         # disable comparison if cmp_col is not in the columns list
-        if g_args.cmp_col not in g_args.columns:
-            g_args.cmp_col = None
+#        if g_args.cmp_col not in g_args.columns:
+#            g_args.cmp_col = None
 
         if g_args.no_colors:
             COLOR_BEST = ''
@@ -1371,6 +1391,9 @@ if __name__ == "__main__":
                 if g_args.filter not in str(f):
                     g_benchmarks.remove(f)
 
+        if g_args.common:
+            _filter_common (g_file_stats)
+
         if len(g_file_stats.keys()) > 0:
             #assert(len(g_file_stats.keys()) == len(g_args.columns))
             _init_missing_files (g_file_stats)
@@ -1378,7 +1401,7 @@ if __name__ == "__main__":
 
             if g_args.g and 'result' in g_args.columns:
                 g_args.columns.remove('result')
-                del(g_file_stats['result'])
+#                del(g_file_stats['result'])
             _print_data ()
         else:
             if g_args.filter:
