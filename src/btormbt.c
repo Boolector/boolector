@@ -176,23 +176,21 @@ void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
   "  -h, --help                  print this message and exit\n"                \
-  "  -ha, --help-advanced        print all options\n"                          \
+  "  -ha                         print all options\n"                          \
   "\n"                                                                         \
-  "  -v, --verbose               be extra verbose\n"                           \
-  "  -q, --quiet                 be extra quiet (stats only)\n"                \
-  "  -k, --keep-lines            do not clear output lines\n"                  \
+  "  -v                          be extra verbose\n"                           \
+  "  -q                          be extra quiet (stats only)\n"                \
   "\n"                                                                         \
   "  -s <val>                    enable/disable shadow clone testing\n"        \
   "                              (0: disable, 1: enable)\n"                    \
-  "  -o, --out                   output directory for saving traces\n"         \
-  "  -f, --quit-after-first      quit after first bug encountered\n"           \
+  "  -o                          output directory for saving traces\n"         \
+  "  -f                          quit after first bug encountered\n"           \
   "  -m <maxruns>                quit after <maxruns> rounds\n"                \
   "  -t <seconds>                set time limit for calls to boolector\n"      \
   "\n"                                                                         \
   "  --logic <logic>             generate <logic> formulas only, available\n"  \
   "                              logics are: QF_BV,QF_UFBV,QF_ABV, QF_AUFBV\n" \
   "                              (default: QF_AUFBV)\n"                        \
-  "  -e, --extensionality        use extensionality\n"                         \
   "  -b <btoropt> <val>          set boolector option <btoropt> to <val>\n"
 
 /*------------------------------------------------------------------------*/
@@ -3503,24 +3501,20 @@ main (int argc, char **argv)
       exitcode = EXIT_OK;
       goto EXIT;
     }
-    else if (!strcmp (argv[i], "-ha") || !strcmp (argv[i], "--help-advanced"))
+    else if (!strcmp (argv[i], "-ha"))
     {
       printf ("%s", BTORMBT_USAGE);
       printf ("%s", BTORMBT_USAGE_ADVANCED);
       exitcode = EXIT_OK;
       goto EXIT;
     }
-    else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
+    else if (!strcmp (argv[i], "-v"))
     {
       g_btormbt->verbosity++;
     }
-    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+    else if (!strcmp (argv[i], "-q"))
     {
       g_btormbt->quiet = true;
-    }
-    else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
-    {
-      g_btormbt->terminal = false;
     }
     else if (!strcmp (argv[i], "-s"))
     {
@@ -3534,7 +3528,7 @@ main (int argc, char **argv)
       g_btormbt->fshadow =
           g_btormbt->fshadow ? FORCE_SHADOW_TRUE : FORCE_SHADOW_FALSE;
     }
-    else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
+    else if (!strcmp (argv[i], "-o"))
     {
       if (++i == argc) btormbt_error ("argument to '-o' missing (try '-h')");
       if (argv[i][0] == '-')
@@ -3546,7 +3540,7 @@ main (int argc, char **argv)
       else
         btormbt_error ("given output directory does not exist");
     }
-    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
+    else if (!strcmp (argv[i], "-f"))
     {
       g_btormbt->quit_after_first = true;
     }
@@ -3598,10 +3592,6 @@ main (int argc, char **argv)
       {
         btormbt_error ("invalid argument to '--logic' (try '-h')");
       }
-    }
-    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
-    {
-      g_btormbt->ext = true;
     }
     /* boolector options */
     else if (!strcmp (argv[i], "-b"))
