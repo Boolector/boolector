@@ -1661,6 +1661,16 @@ NEXT:
       unlink (outfilename);
       BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
     }
+    else if (!strcmp (tok, "dump_aiger_ascii"))
+    {
+      PARSE_ARGS1 (tok, int);
+      boolector_dump_aiger_ascii (btor, stdout, arg1_int);
+    }
+    else if (!strcmp (tok, "dump_aiger_binary"))
+    {
+      PARSE_ARGS1 (tok, int);
+      boolector_dump_aiger_binary (btor, stdout, arg1_int);
+    }
     else
       btorunt_parse_error ("invalid command '%s'", tok);
   }
