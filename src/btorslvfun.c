@@ -2339,15 +2339,14 @@ sat_fun_solver (BtorFunSolver *slv)
 
     if (btor_get_opt (btor, BTOR_OPT_VERBOSITY))
     {
-      fprintf (stdout,
-               "\r[btorcore] %d iterations, %d lemmas, %d ext. lemmas, "
-               "vars %d, applies %d\r",
-               slv->stats.refinement_iterations,
-               slv->stats.lod_refinements,
-               slv->stats.extensionality_lemmas,
-               btor->ops[BTOR_BV_VAR_NODE].cur,
-               btor->ops[BTOR_APPLY_NODE].cur);
-      fflush (stdout);
+      printf (
+          "[btorcore] %d iterations, %d lemmas, %d ext. lemmas, "
+          "vars %d, applies %d\n",
+          slv->stats.refinement_iterations,
+          slv->stats.lod_refinements,
+          slv->stats.extensionality_lemmas,
+          btor->ops[BTOR_BV_VAR_NODE].cur,
+          btor->ops[BTOR_APPLY_NODE].cur);
     }
 
     /* may be set via insert_unsythesized_constraint
