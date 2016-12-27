@@ -159,6 +159,10 @@ void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
 #define EXIT_SIGNALED 3
 #define EXIT_UNKNOWN 4
 
+#define FORCE_SHADOW_NONE 0
+#define FORCE_SHADOW_TRUE 1
+#define FORCE_SHADOW_FALSE -1
+
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_STR(str) #str
@@ -171,27 +175,25 @@ void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
   "\n"                                                                         \
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
-  "  -h, --help                       print this message and exit\n"           \
-  "  -ha, --help-advanced             print all options\n"                     \
+  "  -h, --help                  print this message and exit\n"                \
+  "  -ha, --help-advanced        print all options\n"                          \
   "\n"                                                                         \
-  "  -v, --verbose                    be extra verbose\n"                      \
-  "  -q, --quiet                      be extra quiet (stats only)\n"           \
-  "  -k, --keep-lines                 do not clear output lines\n"             \
+  "  -v, --verbose               be extra verbose\n"                           \
+  "  -q, --quiet                 be extra quiet (stats only)\n"                \
+  "  -k, --keep-lines            do not clear output lines\n"                  \
   "\n"                                                                         \
-  "  -s, --shadow                     create and check shadow clone\n"         \
-  "  -o, --out                        output directory for saving traces\n"    \
-  "  -f, --quit-after-first           quit after first bug encountered\n"      \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
-  "  -t <seconds>                     set time limit for calls to boolector\n" \
+  "  -s <val>                    enable/disable shadow clone testing\n"        \
+  "                              (0: disable, 1: enable)\n"                    \
+  "  -o, --out                   output directory for saving traces\n"         \
+  "  -f, --quit-after-first      quit after first bug encountered\n"           \
+  "  -m <maxruns>                quit after <maxruns> rounds\n"                \
+  "  -t <seconds>                set time limit for calls to boolector\n"      \
   "\n"                                                                         \
-  "  --logic <logic>                  generate <logic> formulas only, "        \
-  "available\n"                                                                \
-  "                                   logics are: QF_BV,QF_UFBV,QF_ABV,"       \
-  "QF_AUFBV\n"                                                                 \
-  "                                   (default: QF_AUFBV)\n"                   \
-  "  -e, --extensionality             use extensionality\n"                    \
-  "  -b <btoropt> <val>               set boolector option <btoropt> to "      \
-  "<val>\n"
+  "  --logic <logic>             generate <logic> formulas only, available\n"  \
+  "                              logics are: QF_BV,QF_UFBV,QF_ABV, QF_AUFBV\n" \
+  "                              (default: QF_AUFBV)\n"                        \
+  "  -e, --extensionality        use extensionality\n"                         \
+  "  -b <btoropt> <val>          set boolector option <btoropt> to <val>\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -766,6 +768,7 @@ struct BtorMBT
   bool quit_after_first;
   bool ext;
   bool shadow;
+  int32_t fshadow;
   char *out;
   bool create_funs;
   bool create_ufs;
@@ -2643,13 +2646,6 @@ btormbt_state_new (BtorMBT *mbt)
 
   mbt->btor = boolector_new ();
   assert (mbt->btor);
-  // TODO (ma): move to opt
-  if (mbt->shadow)
-  {
-    BTORMBT_LOG (1, "initial shadow clone...");
-    /* cleanup done by boolector */
-    boolector_chkclone (mbt->btor);
-  }
 
   return btormbt_state_opt;
 }
@@ -2668,10 +2664,27 @@ btormbt_state_opt (BtorMBT *mbt)
   mbt->print_model = false;
   mbt->ext         = false;
   mbt->ninc        = 0;
-  mbt->shadow      = false;
 
-  /* enable shadow clone testing randomly */
-  if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
+  /* enable / disable shadow clone testing */
+  if (mbt->fshadow)
+  {
+    /* force (no) shadow clone testing */
+    mbt->shadow = mbt->fshadow == FORCE_SHADOW_TRUE ? true : false;
+  }
+  else
+  {
+    mbt->shadow = false;
+    /* enable shadow clone testing randomly */
+    if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
+  }
+
+  /* create initial shadow clone */
+  if (mbt->shadow)
+  {
+    BTORMBT_LOG (1, "initial shadow clone...");
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+  }
 
   /* set random options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
@@ -3509,9 +3522,17 @@ main (int argc, char **argv)
     {
       g_btormbt->terminal = false;
     }
-    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
+    else if (!strcmp (argv[i], "-s"))
     {
-      g_btormbt->shadow = true;
+      if (++i == argc) btormbt_error ("argument to '-s' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error ("argument '%s' to '-s' is not a number (try '-h')",
+                       argv[i]);
+      g_btormbt->fshadow = atoi (argv[i]);
+      if (g_btormbt->fshadow != 0 && g_btormbt->fshadow != 1)
+        btormbt_error ("invalid argument to '-s' (try '-h')");
+      g_btormbt->fshadow =
+          g_btormbt->fshadow ? FORCE_SHADOW_TRUE : FORCE_SHADOW_FALSE;
     }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
     {
