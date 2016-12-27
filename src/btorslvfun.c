@@ -1842,6 +1842,7 @@ propagate (Btor *btor,
     /* stop at first conflict */
     if (restart && conflict) break;
   }
+  btor_delete_int_hash_table (conf_apps);
 }
 
 /* generate hash table for function 'fun' consisting of all rho and static_rho
