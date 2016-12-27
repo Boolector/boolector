@@ -2668,6 +2668,9 @@ btormbt_state_opt (BtorMBT *mbt)
   mbt->print_model = false;
   mbt->ext         = false;
   mbt->ninc        = 0;
+  mbt->shadow      = false;
+
+  /* enable shadow clone testing randomly */
   if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
 
   /* set random options */
