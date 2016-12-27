@@ -961,6 +961,7 @@ struct BtorMBT
 
   uint32_t tot_asserts; /* total number of asserts in current round */
   uint32_t num_ite_fun;
+  uint32_t num_eq_fun;
 
   BtorRNG rng;
 };
@@ -1913,9 +1914,15 @@ btormbt_array_op (BtorMBT *mbt,
     assert (boolector_is_equal_sort (mbt->btor, e0, e1));
 
     if (op == EQ)
+    {
       node = boolector_eq (mbt->btor, e0, e1);
+      mbt->num_eq_fun++;
+    }
     else if (op == NE)
+    {
       node = boolector_ne (mbt->btor, e0, e1);
+      mbt->num_eq_fun++;
+    }
     else
     {
       assert (op == COND);
@@ -3106,14 +3113,15 @@ btormbt_state_dump (BtorMBT *mbt)
         boolector_dump_aiger_binary (
             mbt->btor, stdout, btor_pick_rand_rng (&mbt->btor->rng, 0, 1));
     }
-    // TODO (ma): we cannot dump ite over functions to smt2 right now
+    // TODO (ma): we cannot dump ite over functions to smt2/btor right now
     else if (mbt->num_ite_fun == 0)
     {
       len =
           40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
       BTOR_NEWN (mbt->mm, outfilename, len);
 
-      if (!BTOR_COUNT_STACK (mbt->uf->exps)
+      // TODO: we cannot parse UF, equality over lambdas in btor right now
+      if (!BTOR_COUNT_STACK (mbt->uf->exps) && mbt->num_eq_fun == 0
           && btor_pick_with_prob_rng (&mbt->btor->rng, 500))
       {
         sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
