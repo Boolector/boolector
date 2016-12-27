@@ -44,7 +44,7 @@
 void boolector_chkclone (Btor *);
 void boolector_set_btor_id (Btor *, BoolectorNode *, int);
 void boolector_get_btor_msg (Btor *);
-void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT BtorUNT;
@@ -1524,12 +1524,9 @@ NEXT:
     }
     else if (!strcmp (tok, "print_value"))
     {
-      PARSE_ARGS3 (tok, str, str, str);
-      boolector_print_value (btor,
-                             hmap_get (hmap, btor_str, arg1_str),
-                             arg2_str,
-                             arg3_str,
-                             stdout);
+      PARSE_ARGS2 (tok, str, str);
+      boolector_print_value_smt2 (
+          btor, hmap_get (hmap, btor_str, arg1_str), arg2_str, stdout);
     }
     /* sorts */
     else if (!strcmp (tok, "bool_sort"))
@@ -1660,6 +1657,16 @@ NEXT:
       fclose (outfile);
       unlink (outfilename);
       BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
+    }
+    else if (!strcmp (tok, "dump_aiger_ascii"))
+    {
+      PARSE_ARGS1 (tok, int);
+      boolector_dump_aiger_ascii (btor, stdout, arg1_int);
+    }
+    else if (!strcmp (tok, "dump_aiger_binary"))
+    {
+      PARSE_ARGS1 (tok, int);
+      boolector_dump_aiger_binary (btor, stdout, arg1_int);
     }
     else
       btorunt_parse_error ("invalid command '%s'", tok);

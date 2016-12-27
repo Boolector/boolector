@@ -723,3 +723,5 @@ exactlyone -o src/tests/log/exactlyone.log src/tests/log/exactlyone.btor
 normalize_add_incomplete -db -o src/tests/log/normalize_add_incomplete.log src/tests/log/normalize_add_incomplete.btor
 normalize_mul_incomplete -db -o src/tests/log/normalize_mul_incomplete.log src/tests/log/normalize_mul_incomplete.btor
 normalize_and_incomplete -db -o src/tests/log/normalize_and_incomplete.log src/tests/log/normalize_and_incomplete.btor
+getvalue1 -o src/tests/log/getvalue1.log src/tests/log/getvalue1.smt2
+getvalue2 -o src/tests/log/getvalue2.log src/tests/log/getvalue2.smt2

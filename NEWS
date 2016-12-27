@@ -1,3 +1,5 @@
++ fixed another issue with get-value (thanks to Praveen Gundaram)
++ refactored model printing
 + command line option changes:
   - --incremental-all -> --incremental-smt1
 

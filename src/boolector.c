@@ -177,26 +177,24 @@ boolector_get_btor_msg (Btor *btor)
 }
 
 void
-boolector_print_value (
-    Btor *btor, BoolectorNode *node, char *symbol_str, char *format, FILE *file)
+boolector_print_value_smt2 (Btor *btor,
+                            BoolectorNode *node,
+                            char *symbol_str,
+                            FILE *file)
 {
   BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%s %s", symbol_str, format);
-  BTOR_ABORT_ARG_NULL (format);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol_str);
   BTOR_ABORT_ARG_NULL (file);
-  BTOR_ABORT (strcmp (format, "btor") && strcmp (format, "smt2"),
-              "invalid model output format: %s",
-              format);
   BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_print_value (btor, exp, symbol_str, format, file);
+  btor_print_value_smt2 (btor, exp, symbol_str, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (
-      print_value, BTOR_CLONED_EXP (exp), symbol_str, format, file);
+      print_value_smt2, BTOR_CLONED_EXP (exp), symbol_str, file);
 #endif
 }
 
@@ -3891,7 +3889,7 @@ boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   btor_dump_btor_node (btor, file, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_btor_node, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_btor_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3909,7 +3907,7 @@ boolector_dump_btor (Btor *btor, FILE *file)
               "'incremental' is enabled");
   btor_dump_btor (btor, file, 1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_btor, file);
+  BTOR_CHKCLONE_NORES (dump_btor, stdout);
 #endif
 }
 
@@ -3941,7 +3939,7 @@ boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   btor_dump_smt2_nodes (btor, file, &exp, 1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt2_node, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_smt2_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3956,7 +3954,7 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
               "'incremental' is enabled");
   btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt2, file);
+  BTOR_CHKCLONE_NORES (dump_smt2, stdout);
 #endif
 }
 
@@ -3970,7 +3968,7 @@ boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
               "dumping to ASCII AIGER is supported for QF_BV only");
   btor_dump_aiger (btor, file, false, merge_roots);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_aiger_ascii, file, merge_roots);
+  BTOR_CHKCLONE_NORES (dump_aiger_ascii, stdout, merge_roots);
 #endif
 }
 
@@ -3984,6 +3982,6 @@ boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
               "dumping to binary AIGER is supported for QF_BV only");
   btor_dump_aiger (btor, file, true, merge_roots);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_aiger_binary, file, merge_roots);
+  BTOR_CHKCLONE_NORES (dump_aiger_binary, stdout, merge_roots);
 #endif
 }

@@ -449,21 +449,18 @@ print_fun_value (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 void
-btor_print_value (
-    Btor *btor, BtorNode *exp, char *symbol_str, char *format, FILE *file)
+btor_print_value_smt2 (Btor *btor, BtorNode *exp, char *symbol_str, FILE *file)
 {
   assert (btor);
   assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (exp);
-  assert (format);
-  assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
   assert (file);
 
   int base;
 
   base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
-    print_fun_value (btor, exp, symbol_str, format, base, file);
+    print_fun_value (btor, exp, symbol_str, "smt2", base, file);
   else
-    print_bv_value (btor, exp, symbol_str, format, base, file);
+    print_bv_value (btor, exp, symbol_str, "smt2", base, file);
 }

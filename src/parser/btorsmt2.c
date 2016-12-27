@@ -28,7 +28,7 @@
 
 /*------------------------------------------------------------------------*/
 
-void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
@@ -4015,8 +4015,8 @@ read_command_smt2 (BtorSMT2Parser *parser)
         return 0;
       }
       fprintf (parser->outfile, "(");
-      boolector_print_value (
-          parser->btor, exp, tokens.start, "smt2", parser->outfile);
+      boolector_print_value_smt2 (
+          parser->btor, exp, tokens.start, parser->outfile);
       BTOR_RESET_STACK (tokens);
       boolector_release (parser->btor, exp);
       tag = read_token_smt2 (parser);
@@ -4028,8 +4028,8 @@ read_command_smt2 (BtorSMT2Parser *parser)
           return 0;
         }
         fprintf (parser->outfile, "\n ");
-        boolector_print_value (
-            parser->btor, exp, tokens.start, "smt2", parser->outfile);
+        boolector_print_value_smt2 (
+            parser->btor, exp, tokens.start, parser->outfile);
         BTOR_RESET_STACK (tokens);
         boolector_release (parser->btor, exp);
         tag = read_token_smt2 (parser);

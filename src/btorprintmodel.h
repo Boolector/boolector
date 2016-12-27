@@ -17,7 +17,9 @@
 
 void btor_print_model (Btor* btor, char* format, FILE* file);
 
-void btor_print_value (
-    Btor* btor, BtorNode* exp, char* symbol_str, char* format, FILE* file);
+void btor_print_value_smt2 (Btor* btor,
+                            BtorNode* exp,
+                            char* symbol_str,
+                            FILE* file);
 
 #endif
