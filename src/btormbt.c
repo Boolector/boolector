@@ -737,6 +737,7 @@ struct BtorMBTStatistics
   /* total numbers for all rounds */
   uint32_t num_sat;
   uint32_t num_unsat;
+  uint32_t num_clone;
   Op num_ops[BTORMBT_NUM_OPS];
 
   /* avg. numbers per round */
@@ -765,7 +766,6 @@ struct BtorMBT
   bool terminal;
   bool quit_after_first;
   bool ext;
-  bool shadow;
   int32_t fshadow;
   char *out;
   bool create_funs;
@@ -941,8 +941,10 @@ struct BtorMBT
   bool mgen;
   bool dump;
   bool print_model;
+  bool shadow;
 
   uint32_t ninc;
+  bool has_shadow;
 
   /* prob. distribution of variables, constants, arrays in current round */
   uint32_t p_var, p_const, p_array;
@@ -1345,6 +1347,7 @@ btormbt_print_stats (BtorMBT *mbt)
       "%d bugs = %0.2f bugs per second", mbt->bugs, average (mbt->bugs, t));
   btormbt_msg ("%u sat calls", g_btormbtstats->num_sat);
   btormbt_msg ("%u unsat calls", g_btormbtstats->num_unsat);
+  btormbt_msg ("%u shadow clone calls", g_btormbtstats->num_clone);
 
   /* print total number of created ops */
   if (mbt->verbosity > 1)
@@ -2662,6 +2665,7 @@ btormbt_state_opt (BtorMBT *mbt)
   mbt->print_model = false;
   mbt->ext         = false;
   mbt->ninc        = 0;
+  mbt->has_shadow  = false;
 
   /* enable / disable shadow clone testing */
   if (mbt->fshadow)
@@ -2676,12 +2680,16 @@ btormbt_state_opt (BtorMBT *mbt)
     if (btor_pick_with_prob_rng (&mbt->rng, 100)) mbt->shadow = true;
   }
 
-  /* create initial shadow clone */
-  if (mbt->shadow)
+  /* create initial shadow clone with prob=0.2 (do not create shadow clone
+   * prior to issuing any other API calls by default, we want to test the
+   * cloning feature at various points in time) */
+  if (mbt->shadow && btor_pick_with_prob_rng (&mbt->rng, 100))
   {
     BTORMBT_LOG (1, "initial shadow clone...");
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_clone += 1;
+    mbt->has_shadow = true;
   }
 
   /* set random options */
@@ -3176,11 +3184,14 @@ btormbt_state_sat (BtorMBT *mbt)
   int i, res, failed;
   BoolectorNode *ass;
 
-  if (mbt->shadow && !btor_pick_with_prob_rng (&mbt->rng, 20))
+  if (mbt->shadow
+      && (!mbt->has_shadow || !btor_pick_with_prob_rng (&mbt->rng, 20)))
   {
     BTORMBT_LOG (1, "cloning...");
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_clone += 1;
+    mbt->has_shadow = true;
   }
 
   BTORMBT_LOG (1, "calling sat...");
@@ -3188,12 +3199,12 @@ btormbt_state_sat (BtorMBT *mbt)
   if (res == BOOLECTOR_UNSAT)
   {
     BTORMBT_LOG (1, "unsat");
-    g_btormbtstats->num_unsat++;
+    g_btormbtstats->num_unsat += 1;
   }
   else if (res == BOOLECTOR_SAT)
   {
     BTORMBT_LOG (1, "sat");
-    g_btormbtstats->num_sat++;
+    g_btormbtstats->num_sat += 1;
   }
   else
     BTORMBT_LOG (1, "sat call returned %d", res);
