@@ -40,7 +40,7 @@
 
 /*------------------------------------------------------------------------*/
 
-void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
+void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
@@ -3287,11 +3287,10 @@ btormbt_state_query_model (BtorMBT *mbt)
     exp = mbt->bo->exps.start[i]->exp;
     bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
-    boolector_print_value (
+    boolector_print_value_smt2 (
         mbt->btor,
         exp,
         btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? "btor" : "smt2",
         stdout);
   }
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
@@ -3299,11 +3298,10 @@ btormbt_state_query_model (BtorMBT *mbt)
     exp = mbt->bv->exps.start[i]->exp;
     bv  = boolector_bv_assignment (mbt->btor, exp);
     boolector_free_bv_assignment (mbt->btor, (char *) bv);
-    boolector_print_value (
+    boolector_print_value_smt2 (
         mbt->btor,
         exp,
         btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? "btor" : "smt2",
         stdout);
   }
 
@@ -3314,11 +3312,10 @@ btormbt_state_query_model (BtorMBT *mbt)
     boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_array_assignment (mbt->btor, indices, values, size);
-    boolector_print_value (
+    boolector_print_value_smt2 (
         mbt->btor,
         exp,
         btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? "btor" : "smt2",
         stdout);
   }
 
@@ -3329,11 +3326,10 @@ btormbt_state_query_model (BtorMBT *mbt)
     boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
       boolector_free_uf_assignment (mbt->btor, indices, values, size);
-    boolector_print_value (
+    boolector_print_value_smt2 (
         mbt->btor,
         exp,
         btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? "btor" : "smt2",
         stdout);
   }
 
