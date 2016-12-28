@@ -158,7 +158,7 @@ ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 prefix=$(
 python - <<EOF
 import os
-prefix = os.path.commonprefix(open('$1').readlines())
+prefix = os.path.commonprefix(open('$benchmarks_file').readlines())
 path = os.path.dirname(prefix)
 if len(path) > 0:
     print('{}/'.format(path))
