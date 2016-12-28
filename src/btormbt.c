@@ -3281,6 +3281,7 @@ btormbt_state_dump (BtorMBT *mbt)
   int32_t len, pstat, pres;
   char *outfilename, *emsg, *envname = 0;
   uint32_t outformat;
+  BoolectorNode *node;
 
   // TODO (ma): UF support in BTOR format not yet implemented
 
@@ -3376,6 +3377,60 @@ btormbt_state_dump (BtorMBT *mbt)
       unlink (outfilename);
       BTOR_DELETEN (mbt->mm, outfilename, len);
       if (envname) setenv ("BTORAPITRACE", envname, 1);
+
+      /* dump some random nodes, one per exp type */
+      if (BTOR_COUNT_STACK (mbt->bo->exps))
+      {
+        node =
+            BTOR_PEEK_STACK (
+                mbt->bo->exps,
+                btor_pick_rand_rng (
+                    &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bo->exps) - 1))
+                ->exp;
+        if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+          boolector_dump_btor_node (mbt->btor, stdout, node);
+        else
+          boolector_dump_smt2_node (mbt->btor, stdout, node);
+      }
+      if (BTOR_COUNT_STACK (mbt->bv->exps))
+      {
+        node =
+            BTOR_PEEK_STACK (
+                mbt->bv->exps,
+                btor_pick_rand_rng (
+                    &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bv->exps) - 1))
+                ->exp;
+        if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+          boolector_dump_btor_node (mbt->btor, stdout, node);
+        else
+          boolector_dump_smt2_node (mbt->btor, stdout, node);
+      }
+      if (BTOR_COUNT_STACK (mbt->arr->exps))
+      {
+        node =
+            BTOR_PEEK_STACK (
+                mbt->arr->exps,
+                btor_pick_rand_rng (
+                    &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->arr->exps) - 1))
+                ->exp;
+        if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+          boolector_dump_btor_node (mbt->btor, stdout, node);
+        else
+          boolector_dump_smt2_node (mbt->btor, stdout, node);
+      }
+      if (BTOR_COUNT_STACK (mbt->uf->exps))
+      {
+        node =
+            BTOR_PEEK_STACK (
+                mbt->uf->exps,
+                btor_pick_rand_rng (
+                    &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->uf->exps) - 1))
+                ->exp;
+        if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+          boolector_dump_btor_node (mbt->btor, stdout, node);
+        else
+          boolector_dump_smt2_node (mbt->btor, stdout, node);
+      }
     }
   }
 

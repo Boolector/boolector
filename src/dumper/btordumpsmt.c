@@ -1371,7 +1371,6 @@ void
 btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 {
   assert (btor);
-  assert (depth);
 
   int i;
   BtorNode *cur, *real_exp;

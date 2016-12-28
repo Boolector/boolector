@@ -3957,7 +3957,7 @@ boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_dump_smt2_nodes (btor, file, &exp, 1);
+  btor_dump_smt2_node (btor, file, exp, 0);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
