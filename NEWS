@@ -1,3 +1,5 @@
++ dumping smt2 nodes in incremental mode is now also possible if Boolector
+  compiled with assertions
 + fixed another issue with get-value (thanks to Praveen Gundaram)
 + refactored model printing
 + command line option changes:
