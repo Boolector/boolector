@@ -3280,6 +3280,7 @@ btormbt_state_dump (BtorMBT *mbt)
   FILE *outfile;
   int32_t len, pstat, pres;
   char *outfilename, *emsg, *envname = 0;
+  bool isbtor;
 
   // TODO (ma): UF support in BTOR format not yet implemented
   if (mbt->output_format)
@@ -3321,11 +3322,13 @@ btormbt_state_dump (BtorMBT *mbt)
       len =
           40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
       BTOR_NEWN (mbt->mm, outfilename, len);
+      isbtor = false;
 
       // TODO: we cannot parse UF, equality over lambdas in btor right now
       if (!BTOR_COUNT_STACK (mbt->uf->exps) && mbt->round.num_eq_fun == 0
           && btor_pick_with_prob_rng (&mbt->round.rng, 500))
       {
+        isbtor = true;
         sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
         outfile = fopen (outfilename, "w");
         assert (outfile);
@@ -3344,8 +3347,15 @@ btormbt_state_dump (BtorMBT *mbt)
       if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
 
       tmpbtor = boolector_new ();
-      pres    = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        pres = boolector_parse (
+            tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      else if (isbtor)
+        pres = boolector_parse_btor (
+            tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      else
+        pres = boolector_parse_smt2 (
+            tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
       assert (pres != BOOLECTOR_PARSE_ERROR);
       boolector_delete (tmpbtor);
       fclose (outfile);
