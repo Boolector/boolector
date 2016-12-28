@@ -396,7 +396,7 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
-typedef enum Op
+typedef enum BtorMBTOperator
 {
   /* PARAM must be the first */
   PARAM,
@@ -476,7 +476,7 @@ typedef enum Op
   APPLY,
   /* do not remove */
   BTORMBT_NUM_OPS
-} Op;
+} BtorMBTOperator;
 
 const char *const g_op2str[] = {
     "param",   "fun",   "uf",    "const", "zero",  "false",  "ones",   "true",
@@ -487,11 +487,11 @@ const char *const g_op2str[] = {
     "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",     "nor",
     "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",   "smod",
     "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",   "read",
-    "WRITe",   "apply",
+    "write",   "apply",
 };
 
 static int
-is_unary_op (Op op)
+is_unary_op (BtorMBTOperator op)
 {
   return op >= NOT && op <= REDAND;
 }
@@ -499,14 +499,14 @@ is_unary_op (Op op)
 #if 0
 // NOTE (ma): not required right now
 static int
-is_boolean_unary_op (Op op)
+is_boolean_unary_op (BtorMBTOperator op)
 {
   return (op >= REDOR && op <= REDAND);
 }
 #endif
 
 static int
-is_binary_op (Op op)
+is_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= CONCAT);
 }
@@ -514,7 +514,7 @@ is_binary_op (Op op)
 #if 0
 // NOTE (ma): not required right now
 static int
-is_boolean_binary_op (Op op)
+is_boolean_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= IFF);
 }
@@ -522,13 +522,13 @@ is_boolean_binary_op (Op op)
 
 #ifndef NDEBUG
 static int
-is_ternary_op (Op op)
+is_ternary_op (BtorMBTOperator op)
 {
   return op == COND;
 }
 
 static int
-is_array_op (Op op)
+is_array_op (BtorMBTOperator op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
@@ -739,7 +739,7 @@ struct BtorMBTStatistics
   uint32_t num_unsat;
   uint32_t num_inc;
   uint32_t num_clone;
-  Op num_ops[BTORMBT_NUM_OPS];
+  BtorMBTOperator num_ops[BTORMBT_NUM_OPS];
 
   /* avg. numbers per round */
 };
@@ -1571,7 +1571,7 @@ btormbt_const (BtorMBT *mbt)
   int width, val, i;
   BoolectorNode *node;
   //  BtorMBTNodeAttr attr;
-  Op op;
+  BtorMBTOperator op;
   BoolectorSort s;
 
   op    = btor_pick_rand_rng (&mbt->round.rng, CONST, INT);
@@ -1715,7 +1715,7 @@ btormbt_constraint (BtorMBT *mbt)
 }
 
 static void
-btormbt_unary_op (BtorMBT *mbt, Op op, BoolectorNode *e)
+btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
@@ -1754,7 +1754,10 @@ btormbt_unary_op (BtorMBT *mbt, Op op, BoolectorNode *e)
 }
 
 static void
-btormbt_binary_op (BtorMBT *mbt, Op op, BoolectorNode *e0, BoolectorNode *e1)
+btormbt_binary_op (BtorMBT *mbt,
+                   BtorMBTOperator op,
+                   BoolectorNode *e0,
+                   BoolectorNode *e1)
 {
   assert (is_binary_op (op));
 
@@ -1860,7 +1863,7 @@ btormbt_binary_op (BtorMBT *mbt, Op op, BoolectorNode *e0, BoolectorNode *e1)
 
 static void
 btormbt_ternary_op (BtorMBT *mbt,
-                    Op op,
+                    BtorMBTOperator op,
                     BoolectorNode *e0,
                     BoolectorNode *e1,
                     BoolectorNode *e2)
@@ -1893,7 +1896,7 @@ btormbt_ternary_op (BtorMBT *mbt,
  */
 static BtorMBTExp *
 btormbt_array_op (BtorMBT *mbt,
-                  Op op,
+                  BtorMBTOperator op,
                   BoolectorNode *e0,
                   BoolectorNode *e1,
                   BoolectorNode *e2)
@@ -2207,7 +2210,7 @@ btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
 {
   uint32_t i, rand;
   BoolectorNode *e[3];
-  Op op;
+  BtorMBTOperator op;
 
   assert (op_from >= NOT && op_from <= COND);
   assert (op_to >= NOT && op_to <= COND);
@@ -2253,7 +2256,7 @@ btormbt_param_array_op (BtorMBT *mbt)
   bool force_param;
   uint32_t rand;
   BoolectorNode *e0, *e1, *e2;
-  Op op;
+  BtorMBTOperator op;
 
   /* if there are no parameterized arrays yet, we have to create at least
    * one */
@@ -2957,7 +2960,7 @@ btormbt_state_bv_op (BtorMBT *mbt)
 {
   BoolectorNode *e0, *e1, *e2;
 
-  Op op = btor_pick_rand_rng (&mbt->round.rng, NOT, COND);
+  BtorMBTOperator op = btor_pick_rand_rng (&mbt->round.rng, NOT, COND);
 
   if (is_unary_op (op))
   {
@@ -2988,7 +2991,7 @@ static void *
 btormbt_state_arr_op (BtorMBT *mbt)
 {
   uint32_t e0w, e0iw;
-  Op op;
+  BtorMBTOperator op;
   BoolectorNode *e0, *e1, *e2;
 
   e0   = select_exp (mbt, BTORMBT_ARR_T, 0);
