@@ -72,8 +72,9 @@ enum BtorNodeKind
   BTOR_COND_NODE     = 18, /* conditional on bit vectors */
   BTOR_ARGS_NODE     = 19,
   BTOR_UF_NODE       = 20,
-  BTOR_PROXY_NODE    = 21, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE  = 22
+  BTOR_UPDATE_NODE   = 21,
+  BTOR_PROXY_NODE    = 22, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE  = 23
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -407,10 +408,17 @@ btor_is_lambda_node (const BtorNode *exp)
 }
 
 static inline bool
+btor_is_update_node (const BtorNode *exp)
+{
+  assert (exp);
+  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UPDATE_NODE;
+}
+
+static inline bool
 btor_is_fun_node (const BtorNode *exp)
 {
   return btor_is_lambda_node (exp) || btor_is_uf_node (exp)
-         || btor_is_fun_cond_node (exp);
+         || btor_is_fun_cond_node (exp) || btor_is_update_node (exp);
 }
 
 static inline bool

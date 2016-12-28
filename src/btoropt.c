@@ -407,6 +407,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "eager lemma generation");
+  init_opt (btor,
+            BTOR_OPT_FUN_STORE_LAMBDAS,
+            false,
+            true,
+            "fun:store-lambdas",
+            "fun:sl",
+            0,
+            0,
+            1,
+            "represent array store as lambda");
 
   /* SLS engine ---------------------------------------------------------- */
   init_opt (btor,

@@ -3127,11 +3127,13 @@ btor_simplify (Btor *btor)
     }
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
+        && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS)
+        && btor_get_opt (btor, BTOR_OPT_FUN_STORE_LAMBDAS))
       btor_extract_lambdas (btor);
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
+        && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS)
+        && btor_get_opt (btor, BTOR_OPT_FUN_STORE_LAMBDAS))
       btor_merge_lambdas (btor);
 
     if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
