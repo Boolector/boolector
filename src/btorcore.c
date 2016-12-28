@@ -2251,23 +2251,8 @@ rebuild_exp (Btor *btor, BtorNode *exp)
                              exp->e[0],
                              btor_slice_get_upper (exp),
                              btor_slice_get_lower (exp));
-    case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_BV_EQ_NODE:
-    case BTOR_FUN_EQ_NODE: return btor_eq_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ADD_NODE: return btor_add_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_MUL_NODE: return btor_mul_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ULT_NODE: return btor_ult_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_SLL_NODE: return btor_sll_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_SRL_NODE: return btor_srl_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_UDIV_NODE: return btor_udiv_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_UREM_NODE: return btor_urem_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
-    case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->e, exp->arity);
-    default:
-      assert (btor_is_cond_node (exp));
-      return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
+    default: return btor_create_exp (btor, exp->kind, exp->e, exp->arity);
   }
 }
 

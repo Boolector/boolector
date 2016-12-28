@@ -1597,6 +1597,44 @@ push_applies_for_propagation (Btor *btor,
   slv->time.find_prop_app += btor_time_stamp () - start;
 }
 
+static bool
+check_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
+{
+  bool res = false;
+  uint32_t i;
+  BtorIntHashTable *cache;
+  BtorMemMgr *mm;
+  BtorNodePtrStack visit;
+  BtorNode *cur;
+
+  mm    = btor->mm;
+  cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, app->e[0]);
+  //  BTOR_PUSH_STACK (visit, app->e[1]);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (!cur->apply_below || btor_contains_int_hash_table (cache, cur->id))
+      continue;
+    btor_add_int_hash_table (cache, cur->id);
+    if (btor_contains_int_hash_table (conf_apps, cur->id))
+    {
+      //	  printf ("found conflicting app %s for %s\n",
+      //		  node2string (cur),
+      //		  node2string (app));
+      res = true;
+      break;
+    }
+
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
+  }
+  btor_delete_int_hash_table (cache);
+  BTOR_RELEASE_STACK (visit);
+  return res;
+}
+
 static void
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
@@ -1610,7 +1648,7 @@ propagate (Btor *btor,
   assert (cleanup_table);
   assert (apply_search_cache);
 
-  bool prop_down, conflict;
+  bool opt_eager_lemmas, prop_down, conflict, restart;
   BtorBitVector *bv;
   BtorMemMgr *mm;
   BtorFunSolver *slv;
@@ -1619,9 +1657,12 @@ propagate (Btor *btor,
   BtorPtrHashBucket *b;
   BtorPtrHashTableIterator it;
   BtorPtrHashTable *conds;
+  BtorIntHashTable *conf_apps;
 
-  mm  = btor->mm;
-  slv = BTOR_FUN_SOLVER (btor);
+  mm               = btor->mm;
+  slv              = BTOR_FUN_SOLVER (btor);
+  conf_apps        = btor_new_int_hash_table (mm);
+  opt_eager_lemmas = btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS) == 1;
 
   BTORLOG (1, "");
   BTORLOG (1, "*** %s", __FUNCTION__);
@@ -1638,6 +1679,7 @@ propagate (Btor *btor,
     assert (app->refs - app->ext_refs > 0);
 
     conflict = false;
+    restart  = !opt_eager_lemmas;
 
     if (app->propagated) continue;
 
@@ -1684,11 +1726,16 @@ propagate (Btor *btor,
           BTORLOG (1, "  app1: %s", node2string (hashed_app));
           BTORLOG (1, "  app2: %s", node2string (app));
           BTORLOG (1, "\e[0;39m");
+          if (opt_eager_lemmas)
+          {
+            btor_add_int_hash_table (conf_apps, app->id);
+            restart = check_conflict_app (btor, app, conf_apps);
+          }
           slv->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
           conflict = true;
           /* stop at first conflict */
-          if (!btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS)) break;
+          if (restart) break;
         }
         continue;
       }
@@ -1729,7 +1776,6 @@ propagate (Btor *btor,
     btor_unassign_params (btor, fun);
 
     prop_down = false;
-    // TODO: how can we still propagate negated applies down?
     if (!BTOR_IS_INVERTED_NODE (fun_value) && btor_is_apply_node (fun_value))
       prop_down = fun_value->e[1] == args;
 
@@ -1750,6 +1796,11 @@ propagate (Btor *btor,
       BTORLOG (1, "  fun: %s", node2string (fun));
       BTORLOG (1, "  app: %s", node2string (app));
       BTORLOG (1, "\e[0;39m");
+      if (opt_eager_lemmas)
+      {
+        btor_add_int_hash_table (conf_apps, app->id);
+        restart = check_conflict_app (btor, app, conf_apps);
+      }
       slv->stats.beta_reduction_conflicts++;
       add_lemma (btor, fun, app, 0);
       conflict = true;
@@ -1789,8 +1840,9 @@ propagate (Btor *btor,
     btor_release_exp (btor, fun_value);
 
     /* stop at first conflict */
-    if (!btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS) && conflict) break;
+    if (restart && conflict) break;
   }
+  btor_delete_int_hash_table (conf_apps);
 }
 
 /* generate hash table for function 'fun' consisting of all rho and static_rho
@@ -2287,15 +2339,14 @@ sat_fun_solver (BtorFunSolver *slv)
 
     if (btor_get_opt (btor, BTOR_OPT_VERBOSITY))
     {
-      fprintf (stdout,
-               "\r[btorcore] %d iterations, %d lemmas, %d ext. lemmas, "
-               "vars %d, applies %d\r",
-               slv->stats.refinement_iterations,
-               slv->stats.lod_refinements,
-               slv->stats.extensionality_lemmas,
-               btor->ops[BTOR_BV_VAR_NODE].cur,
-               btor->ops[BTOR_APPLY_NODE].cur);
-      fflush (stdout);
+      printf (
+          "[btorcore] %d iterations, %d lemmas, %d ext. lemmas, "
+          "vars %d, applies %d\n",
+          slv->stats.refinement_iterations,
+          slv->stats.lod_refinements,
+          slv->stats.extensionality_lemmas,
+          btor->ops[BTOR_BV_VAR_NODE].cur,
+          btor->ops[BTOR_APPLY_NODE].cur);
     }
 
     /* may be set via insert_unsythesized_constraint

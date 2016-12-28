@@ -452,6 +452,8 @@ collect_and_children (BtorSMTDumpContext *sdc,
       btor_add_int_hash_table (cache, id);
       b = btor_get_ptr_hash_table (sdc->dump, real_cur);
     }
+    else
+      b = 0;
 
     if (!btor_is_and_node (real_cur) || (b && b->data.as_int > 1)
         || BTOR_IS_INVERTED_NODE (cur) || skip)
