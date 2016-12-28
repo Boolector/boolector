@@ -758,9 +758,6 @@ enum BtorMBTLogic
 
 typedef enum BtorMBTLogic BtorMBTLogic;
 
-#define BTORMBT_LOGIC_MIN BTORMBT_LOGIC_QF_AUFBV
-#define BTORMBT_LOGIC_MAX BTORMBT_LOGIC_QF_UFBV
-
 /*------------------------------------------------------------------------*/
 
 struct BtorMBT
@@ -2705,8 +2702,20 @@ btormbt_state_opt (BtorMBT *mbt)
   if (mbt->is_flogic)
     mbt->round.logic = mbt->flogic;
   else
-    mbt->round.logic = btor_pick_rand_rng (
-        &mbt->round.rng, BTORMBT_LOGIC_MIN, BTORMBT_LOGIC_MAX);
+  {
+    BTOR_INIT_STACK (mbt->mm, stack);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_ABV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_AUFBV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_UFBV);
+    mbt->round.logic = BTOR_PEEK_STACK (
+        stack,
+        btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+    BTOR_RELEASE_STACK (stack);
+  }
 
   BTORMBT_LOG (
       1,
@@ -2763,46 +2772,19 @@ btormbt_state_opt (BtorMBT *mbt)
     }
     else /* pick option randomly */
     {
-      if (btoropt->kind == BTOR_OPT_INCREMENTAL
-          || btoropt->kind == BTOR_OPT_MODEL_GEN)
+      /* skip with prob = 0.5 */
+      if ((btoropt->kind == BTOR_OPT_INCREMENTAL
+           || btoropt->kind == BTOR_OPT_MODEL_GEN
+           || (btoropt->kind == BTOR_OPT_FUN_PREPROP
+               && mbt->round.logic == BTORMBT_LOGIC_QF_BV))
+          && btor_pick_with_prob_rng (&mbt->round.rng, 500))
       {
-        if (btor_pick_with_prob_rng (&mbt->round.rng, 500)) continue;
+        continue;
       }
-      else if (btoropt->kind == BTOR_OPT_FUN_PREPROP
-               && mbt->round.logic == BTORMBT_LOGIC_QF_BV)
+      /* skip with prob = 0.1 */
+      else if (btor_pick_with_prob_rng (&mbt->round.rng, 900))
       {
-        /* choose with higher probability if logic is QF_BV
-         * since it is only available for QF_BV */
-        if (btor_pick_with_prob_rng (&mbt->round.rng, 700)) continue;
-      }
-      else
-      {
-        if (btoropt->kind == BTOR_OPT_ENGINE)
-        {
-          /* choose Boolector engine corresponding to supported logic */
-          BTOR_INIT_STACK (mbt->mm, stack);
-          BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
-          if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
-          {
-            BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
-            BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
-            BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
-          }
-          btoropt->val = BTOR_PEEK_STACK (
-              stack,
-              btor_pick_rand_rng (
-                  &mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
-          BTOR_RELEASE_STACK (stack);
-          BTORMBT_LOG (1,
-                       "opt: set boolector option '%s' to '%d'",
-                       btoropt->name,
-                       btoropt->val);
-          continue;
-        }
-        else if (btor_pick_with_prob_rng (&mbt->round.rng, 900))
-        {
-          continue;
-        }
+        continue;
       }
 
       /* avoid invalid option combinations */
@@ -2812,21 +2794,53 @@ btormbt_state_opt (BtorMBT *mbt)
       if (btoropt->kind == BTOR_OPT_UCOPT
           && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
               || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
+      {
         continue;
-      if ((btoropt->kind == BTOR_OPT_MODEL_GEN
-           || btoropt->kind == BTOR_OPT_INCREMENTAL)
-          && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
+      }
+      else if ((btoropt->kind == BTOR_OPT_MODEL_GEN
+                || btoropt->kind == BTOR_OPT_INCREMENTAL)
+               && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
+      {
         continue;
+      }
       /* do not enable justification if dual propagation is enabled */
-      if (btoropt->kind == BTOR_OPT_FUN_JUST
-          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+      else if (btoropt->kind == BTOR_OPT_FUN_JUST
+               && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+      {
         continue;
-      if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
-          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
+      }
+      else if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+               && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
+      {
         continue;
+      }
 
-      btoropt->val =
-          btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+      /* choose Boolector engine corresponding to supported logic */
+      if (btoropt->kind == BTOR_OPT_ENGINE)
+      {
+        BTOR_INIT_STACK (mbt->mm, stack);
+        BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
+        if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
+        {
+          BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
+          BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
+          BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
+        }
+        btoropt->val = BTOR_PEEK_STACK (
+            stack,
+            btor_pick_rand_rng (
+                &mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+        BTOR_RELEASE_STACK (stack);
+        BTORMBT_LOG (1,
+                     "opt: set boolector option '%s' to '%d'",
+                     btoropt->name,
+                     btoropt->val);
+      }
+      else
+      {
+        btoropt->val =
+            btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+      }
     }
 
     BTORMBT_LOG (1,
@@ -2855,9 +2869,6 @@ btormbt_state_opt (BtorMBT *mbt)
   opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
   assert (opt_engine == BTOR_ENGINE_FUN
           || mbt->round.logic == BTORMBT_LOGIC_QF_BV);
-  if (mbt->round.logic != BTORMBT_LOGIC_QF_BV && opt_engine == BTOR_ENGINE_FUN
-      && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP))
-    boolector_set_opt (mbt->btor, BTOR_OPT_FUN_PREPROP, 0);
 
   /* configure logic */
   switch (mbt->round.logic)
