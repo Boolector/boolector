@@ -746,11 +746,29 @@ struct BtorMBTStatistics
 
 typedef struct BtorMBTStatistics BtorMBTStatistics;
 
+/*------------------------------------------------------------------------*/
+
+enum BtorMBTLogic
+{
+  BTORMBT_LOGIC_QF_AUFBV = 0, /* default: all */
+  BTORMBT_LOGIC_QF_BV,
+  BTORMBT_LOGIC_QF_ABV,
+  BTORMBT_LOGIC_QF_UFBV,
+};
+
+typedef enum BtorMBTLogic BtorMBTLogic;
+
+#define BTORMBT_LOGIC_MIN BTORMBT_LOGIC_QF_AUFBV
+#define BTORMBT_LOGIC_MAX BTORMBT_LOGIC_QF_UFBV
+
+/*------------------------------------------------------------------------*/
+
 struct BtorMBT
 {
   BtorMemMgr *mm;
 
   Btor *btor;
+
   BtorMBTBtorOptPtrStack btor_opts; /* maintains all available boolector opts */
 
   double start_time;
@@ -768,6 +786,8 @@ struct BtorMBT
   bool quit_after_first;
   bool ext;
   int32_t fshadow;
+  int32_t flogic;
+  bool is_flogic;
   char *out;
   bool create_funs;
   bool create_ufs;
@@ -937,6 +957,8 @@ struct BtorMBT
 
   struct
   {
+    BtorMBTLogic logic;
+
     bool is_init;
     bool inc;
     bool mgen;
@@ -2618,6 +2640,7 @@ btormbt_state_new (BtorMBT *mbt)
   /* number of initial inputs */
   mbt->round.max_inputs_cur =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_inputs, mbt->max_inputs);
+
   /* number of initial operations */
   mbt->round.max_ops_cur = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_ops_init, mbt->max_ops_init);
@@ -2676,6 +2699,24 @@ btormbt_state_opt (BtorMBT *mbt)
   int i;
   uint32_t opt_engine;
   BtorMBTBtorOpt *btoropt;
+  BtorUIntStack stack;
+
+  /* choose logic */
+  if (mbt->is_flogic)
+    mbt->round.logic = mbt->flogic;
+  else
+    mbt->round.logic = btor_pick_rand_rng (
+        &mbt->round.rng, BTORMBT_LOGIC_MIN, BTORMBT_LOGIC_MAX);
+
+  BTORMBT_LOG (
+      1,
+      "opt: set logic to '%s'",
+      mbt->round.logic == BTORMBT_LOGIC_QF_AUFBV
+          ? "QF_AUFBV"
+          : (mbt->round.logic == BTORMBT_LOGIC_QF_ABV
+                 ? "QF_ABV"
+                 : (mbt->round.logic == BTORMBT_LOGIC_QF_UFBV ? "QF_UFBV"
+                                                              : "QF_BV")));
 
   /* enable / disable shadow clone testing */
   if (mbt->fshadow)
@@ -2703,25 +2744,68 @@ btormbt_state_opt (BtorMBT *mbt)
     mbt->round.has_shadow = true;
   }
 
-  /* set random options */
+  /* set Boolector options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
   {
     btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
-    if (!btoropt->set_by_cl)
+
+    if (btoropt->set_by_cl) /* option forced via command line */
     {
-      /* choose options with probability 0.5 */
+      if (btoropt->kind == BTOR_OPT_ENGINE
+          && (btoropt->val == BTOR_ENGINE_AIGPROP
+              || btoropt->val == BTOR_ENGINE_PROP
+              || btoropt->val == BTOR_ENGINE_SLS
+              || (btoropt->val == BTOR_ENGINE_FUN
+                  && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP))))
+      {
+        mbt->round.logic = BTORMBT_LOGIC_QF_BV;
+      }
+    }
+    else /* pick option randomly */
+    {
       if (btoropt->kind == BTOR_OPT_INCREMENTAL
           || btoropt->kind == BTOR_OPT_MODEL_GEN)
       {
         if (btor_pick_with_prob_rng (&mbt->round.rng, 500)) continue;
       }
-      else /* choose other options with probability 0.1 */
+      else if (btoropt->kind == BTOR_OPT_FUN_PREPROP
+               && mbt->round.logic == BTORMBT_LOGIC_QF_BV)
       {
-        if (btor_pick_with_prob_rng (&mbt->round.rng, 900)) continue;
+        /* choose with higher probability if logic is QF_BV
+         * since it is only available for QF_BV */
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 700)) continue;
+      }
+      else
+      {
+        if (btoropt->kind == BTOR_OPT_ENGINE)
+        {
+          /* choose Boolector engine corresponding to supported logic */
+          BTOR_INIT_STACK (mbt->mm, stack);
+          BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
+          if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
+          {
+            BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
+            BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
+            BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
+          }
+          btoropt->val = BTOR_PEEK_STACK (
+              stack,
+              btor_pick_rand_rng (
+                  &mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+          BTOR_RELEASE_STACK (stack);
+          BTORMBT_LOG (1,
+                       "opt: set boolector option '%s' to '%d'",
+                       btoropt->name,
+                       btoropt->val);
+          continue;
+        }
+        else if (btor_pick_with_prob_rng (&mbt->round.rng, 900))
+        {
+          continue;
+        }
       }
 
       /* avoid invalid option combinations */
-
       // FIXME remove as soon as ucopt works with mgen
       /* do not enable unconstrained optimization if either model
        * generation or incremental is enabled */
@@ -2744,17 +2828,21 @@ btormbt_state_opt (BtorMBT *mbt)
       btoropt->val =
           btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
     }
+
     BTORMBT_LOG (1,
                  "opt: set boolector option '%s' to '%d'",
                  btoropt->name,
                  btoropt->val);
+
     /* if an option is set via command line the value is saved in
      * btoropt->val */
     boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
 
     /* set some mbt specific options */
     if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
+    {
       mbt->round.inc = true;
+    }
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
       mbt->round.mgen = true;
@@ -2763,20 +2851,42 @@ btormbt_state_opt (BtorMBT *mbt)
     }
   }
 
-  /* prop, sls and aigprop engine only support QF_BV */
+  /* option may have been forced by command line, fix logic setting */
   opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
-  if (opt_engine == BTOR_ENGINE_AIGPROP || opt_engine == BTOR_ENGINE_PROP
-      || opt_engine == BTOR_ENGINE_SLS
-      || (opt_engine == BTOR_ENGINE_FUN
-          && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+  assert (opt_engine == BTOR_ENGINE_FUN
+          || mbt->round.logic == BTORMBT_LOGIC_QF_BV);
+  if (mbt->round.logic != BTORMBT_LOGIC_QF_BV && opt_engine == BTOR_ENGINE_FUN
+      && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP))
+    boolector_set_opt (mbt->btor, BTOR_OPT_FUN_PREPROP, 0);
+
+  /* configure logic */
+  switch (mbt->round.logic)
   {
-    g_btormbt->create_funs   = false;
-    g_btormbt->create_ufs    = false;
-    g_btormbt->create_arrays = false;
+    case BTORMBT_LOGIC_QF_BV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = false;
+      g_btormbt->create_arrays = false;
+      break;
+    case BTORMBT_LOGIC_QF_UFBV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = true;
+      g_btormbt->create_arrays = false;
+      break;
+    case BTORMBT_LOGIC_QF_ABV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = false;
+      g_btormbt->create_arrays = true;
+      break;
+    default:
+      assert (mbt->round.logic == BTORMBT_LOGIC_QF_AUFBV);
+      g_btormbt->create_funs   = true;
+      g_btormbt->create_ufs    = true;
+      g_btormbt->create_arrays = true;
   }
 
-  if (!mbt->round.inc && !mbt->round.mgen
-      && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
+  /* we currently do not allow to dump assumptions, hence dumping the
+   * formula when incremental mode is enabled is not supported */
+  if (!mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
   {
     mbt->round.dump = true;
   }
@@ -3129,7 +3239,6 @@ static void *
 btormbt_state_dump (BtorMBT *mbt)
 {
   assert (!mbt->round.inc);
-  assert (!mbt->round.mgen);
 
   Btor *tmpbtor;
   FILE *outfile;
@@ -3615,30 +3724,15 @@ main (int argc, char **argv)
     {
       if (++i == argc)
         btormbt_error ("argument to '--logic' missing (try '-h')");
+      g_btormbt->is_flogic = true;
       if (!strcmp (argv[i], "QF_BV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = false;
-        g_btormbt->create_arrays = false;
-      }
-      else if (!strcmp (argv[i], "QF_UFBV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = true;
-        g_btormbt->create_arrays = false;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_BV;
       else if (!strcmp (argv[i], "QF_ABV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = false;
-        g_btormbt->create_arrays = true;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_ABV;
       else if (!strcmp (argv[i], "QF_AUFBV"))
-      {
-        g_btormbt->create_funs   = true;
-        g_btormbt->create_ufs    = true;
-        g_btormbt->create_arrays = true;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_AUFBV;
+      else if (!strcmp (argv[i], "QF_UFBV"))
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_UFBV;
       else
       {
         btormbt_error ("invalid argument to '--logic' (try '-h')");
