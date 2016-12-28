@@ -545,11 +545,14 @@ struct BtorMBTBtorOpt
   BtorOption kind;
   char *name;
   char *shrt;
-  uint32_t val; /* only used for options specified via command line */
+  uint32_t val;
   uint32_t min;
   uint32_t max;
-  bool set_by_cl; /* if option is already set by command line, we do not
-                     choose a random value for this option */
+
+  bool is_engine_opt;
+  uint32_t engine;
+
+  bool forced_by_cl;
 };
 
 typedef struct BtorMBTBtorOpt BtorMBTBtorOpt;
@@ -1022,7 +1025,24 @@ btormbt_new_btormbt (void)
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
     /* disabling incremental not supported */
     if (opt == BTOR_OPT_INCREMENTAL) btoropt->min = btoropt->max;
-    btoropt->set_by_cl = false;
+    /* check if opt is an engine opt */
+    if (strchr (btoropt->name, ':'))
+    {
+      btoropt->is_engine_opt = true;
+      if (strstr (btoropt->name, "fun:"))
+        btoropt->engine = BTOR_ENGINE_FUN;
+      else if (strstr (btoropt->name, "aigprop:"))
+        btoropt->engine = BTOR_ENGINE_AIGPROP;
+      else if (strstr (btoropt->name, "prop:"))
+        btoropt->engine = BTOR_ENGINE_PROP;
+      else
+      {
+        assert (strstr (btoropt->name, "sls:"));
+        btoropt->engine = BTOR_ENGINE_SLS;
+      }
+    }
+    /* check if opt was set (forced) via the command line */
+    btoropt->forced_by_cl = false;
     BTOR_PUSH_STACK (mbt->btor_opts, btoropt);
   }
   boolector_delete (tmpbtor);
@@ -2693,8 +2713,7 @@ static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
   int i;
-  uint32_t opt_engine;
-  BtorMBTBtorOpt *btoropt;
+  BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
 
   /* choose logic */
@@ -2716,6 +2735,40 @@ btormbt_state_opt (BtorMBT *mbt)
     BTOR_RELEASE_STACK (stack);
   }
 
+  /* set Boolector engine */
+  btoropt_engine = mbt->btor_opts.start[BTOR_OPT_ENGINE];
+  if (btoropt_engine->forced_by_cl)
+  {
+    if (btoropt_engine->val == BTOR_ENGINE_AIGPROP
+        || btoropt_engine->val == BTOR_ENGINE_PROP
+        || btoropt_engine->val == BTOR_ENGINE_SLS
+        || (btoropt_engine->val == BTOR_ENGINE_FUN
+            && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+    {
+      /* reset if forced engine does not support QF_(AUF)BV */
+      mbt->round.logic = BTORMBT_LOGIC_QF_BV;
+    }
+  }
+  else
+  {
+    /* choose Boolector engine corresponding to supported logic */
+    BTOR_INIT_STACK (mbt->mm, stack);
+    BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
+    if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
+    {
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
+    }
+    btoropt_engine->val = BTOR_PEEK_STACK (
+        stack,
+        btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+    BTOR_RELEASE_STACK (stack);
+  }
+  assert (btoropt_engine->val == BTOR_ENGINE_FUN
+          || mbt->round.logic == BTORMBT_LOGIC_QF_BV);
+  boolector_set_opt (mbt->btor, BTOR_OPT_ENGINE, btoropt_engine->val);
+
   BTORMBT_LOG (
       1,
       "opt: set logic to '%s'",
@@ -2725,6 +2778,11 @@ btormbt_state_opt (BtorMBT *mbt)
                  ? "QF_ABV"
                  : (mbt->round.logic == BTORMBT_LOGIC_QF_UFBV ? "QF_UFBV"
                                                               : "QF_BV")));
+
+  BTORMBT_LOG (1,
+               "opt: set boolector option '%s' to '%d'",
+               btoropt_engine->name,
+               btoropt_engine->val);
 
   /* enable / disable shadow clone testing */
   if (mbt->fshadow)
@@ -2757,31 +2815,28 @@ btormbt_state_opt (BtorMBT *mbt)
   {
     btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
 
-    if (btoropt->set_by_cl) /* option forced via command line */
+    /* pick option randomly */
+    if (!btoropt->forced_by_cl)
     {
-      if (btoropt->kind == BTOR_OPT_ENGINE
-          && (btoropt->val == BTOR_ENGINE_AIGPROP
-              || btoropt->val == BTOR_ENGINE_PROP
-              || btoropt->val == BTOR_ENGINE_SLS
-              || (btoropt->val == BTOR_ENGINE_FUN
-                  && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP))))
+      /* skip engine option (has already been set) */
+      if (btoropt->kind == BTOR_OPT_ENGINE)
       {
-        mbt->round.logic = BTORMBT_LOGIC_QF_BV;
+        continue;
       }
-    }
-    else /* pick option randomly */
-    {
+
       /* skip with prob = 0.5 */
       if ((btoropt->kind == BTOR_OPT_INCREMENTAL
-           || btoropt->kind == BTOR_OPT_MODEL_GEN
-           || (btoropt->kind == BTOR_OPT_FUN_PREPROP
-               && mbt->round.logic == BTORMBT_LOGIC_QF_BV))
+           || btoropt->kind == BTOR_OPT_MODEL_GEN)
           && btor_pick_with_prob_rng (&mbt->round.rng, 500))
       {
         continue;
       }
-      /* skip with prob = 0.1 */
-      else if (btor_pick_with_prob_rng (&mbt->round.rng, 900))
+      /* skip with prob = 0.1
+       * note: do not skip engine options (value is picked between min and
+       * max anyway, increases probability to enable engine options) */
+      else if ((!btoropt->is_engine_opt
+                || btoropt->engine != btoropt_engine->val)
+               && btor_pick_with_prob_rng (&mbt->round.rng, 900))
       {
         continue;
       }
@@ -2814,32 +2869,8 @@ btormbt_state_opt (BtorMBT *mbt)
         continue;
       }
 
-      /* choose Boolector engine corresponding to supported logic */
-      if (btoropt->kind == BTOR_OPT_ENGINE)
-      {
-        BTOR_INIT_STACK (mbt->mm, stack);
-        BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
-        if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
-        {
-          BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
-          BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
-          BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
-        }
-        btoropt->val = BTOR_PEEK_STACK (
-            stack,
-            btor_pick_rand_rng (
-                &mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
-        BTOR_RELEASE_STACK (stack);
-        BTORMBT_LOG (1,
-                     "opt: set boolector option '%s' to '%d'",
-                     btoropt->name,
-                     btoropt->val);
-      }
-      else
-      {
-        btoropt->val =
-            btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
-      }
+      btoropt->val =
+          btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
     }
 
     BTORMBT_LOG (1,
@@ -2863,11 +2894,6 @@ btormbt_state_opt (BtorMBT *mbt)
         mbt->round.print_model = true;
     }
   }
-
-  /* option may have been forced by command line, fix logic setting */
-  opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
-  assert (opt_engine == BTOR_ENGINE_FUN
-          || mbt->round.logic == BTORMBT_LOGIC_QF_BV);
 
   /* configure logic */
   switch (mbt->round.logic)
@@ -3768,8 +3794,8 @@ main (int argc, char **argv)
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
       val = (uint32_t) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
-      btoropt->val       = val;
-      btoropt->set_by_cl = true;
+      btoropt->val          = val;
+      btoropt->forced_by_cl = true;
     }
 
     /* advanced options */
