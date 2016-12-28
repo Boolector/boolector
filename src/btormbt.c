@@ -3280,28 +3280,27 @@ btormbt_state_dump (BtorMBT *mbt)
   FILE *outfile;
   int32_t len, pstat, pres;
   char *outfilename, *emsg, *envname = 0;
-  bool isbtor;
+  uint32_t outformat;
 
   // TODO (ma): UF support in BTOR format not yet implemented
+
   if (mbt->output_format)
   {
     if (!strcmp (mbt->output_format, "btor")
         && !BTOR_COUNT_STACK (mbt->uf->exps))
-      boolector_dump_btor (mbt->btor, stdout);
+      outformat = BTOR_OUTPUT_FORMAT_BTOR;
     else if (!strcmp (mbt->output_format, "smt2"))
-      boolector_dump_smt2 (mbt->btor, stdout);
+      outformat = BTOR_OUTPUT_FORMAT_SMT2;
     else if (!strcmp (mbt->output_format, "aag")
              && !BTOR_COUNT_STACK (mbt->uf->exps)
              && !BTOR_COUNT_STACK (mbt->fun->exps)
              && !BTOR_COUNT_STACK (mbt->arr->exps))
-      boolector_dump_aiger_ascii (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+      outformat = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
     else if (!strcmp (mbt->output_format, "aig")
              && !BTOR_COUNT_STACK (mbt->uf->exps)
              && !BTOR_COUNT_STACK (mbt->fun->exps)
              && !BTOR_COUNT_STACK (mbt->arr->exps))
-      boolector_dump_aiger_binary (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+      outformat = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
   }
   else
   {
@@ -3310,25 +3309,40 @@ btormbt_state_dump (BtorMBT *mbt)
         && btor_pick_with_prob_rng (&mbt->round.rng, 330))
     {
       if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        boolector_dump_aiger_ascii (
-            mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+        outformat = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
       else
-        boolector_dump_aiger_binary (
-            mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+        outformat = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
     }
-    // TODO (ma): we cannot dump ite over functions to smt2/btor right now
     else if (mbt->round.num_ite_fun == 0)
+    {
+      // TODO: we cannot dump ite over functions to smt2/btor right now
+      // TODO: we cannot parse UF, equality over lambdas in btor right now
+      if (!BTOR_COUNT_STACK (mbt->uf->exps) && mbt->round.num_eq_fun == 0
+          && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        outformat = BTOR_OUTPUT_FORMAT_BTOR;
+      else
+        outformat = BTOR_OUTPUT_FORMAT_SMT2;
+    }
+
+    if (outformat == BTOR_OUTPUT_FORMAT_AIGER_ASCII)
+    {
+      boolector_dump_aiger_ascii (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+    }
+    else if (outformat == BTOR_OUTPUT_FORMAT_AIGER_BINARY)
+    {
+      boolector_dump_aiger_binary (
+          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+    }
+    else if (outformat == BTOR_OUTPUT_FORMAT_BTOR
+             || outformat == BTOR_OUTPUT_FORMAT_SMT2)
     {
       len =
           40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
       BTOR_NEWN (mbt->mm, outfilename, len);
-      isbtor = false;
 
-      // TODO: we cannot parse UF, equality over lambdas in btor right now
-      if (!BTOR_COUNT_STACK (mbt->uf->exps) && mbt->round.num_eq_fun == 0
-          && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
       {
-        isbtor = true;
         sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
         outfile = fopen (outfilename, "w");
         assert (outfile);
@@ -3350,7 +3364,7 @@ btormbt_state_dump (BtorMBT *mbt)
       if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
         pres = boolector_parse (
             tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
-      else if (isbtor)
+      else if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
         pres = boolector_parse_btor (
             tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
       else
@@ -3364,6 +3378,7 @@ btormbt_state_dump (BtorMBT *mbt)
       if (envname) setenv ("BTORAPITRACE", envname, 1);
     }
   }
+
   return btor_pick_with_prob_rng (&mbt->round.rng, 500) ? btormbt_state_delete
                                                         : btormbt_state_main;
 }
