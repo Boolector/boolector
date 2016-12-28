@@ -3030,6 +3030,9 @@ btormbt_state_main (BtorMBT *mbt)
   assert (BTOR_COUNT_STACK (mbt->bv->exps) > 0);
   assert (!mbt->create_arrays || BTOR_COUNT_STACK (mbt->arr->exps) > 0);
 
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+    (void) boolector_simplify (mbt->btor);
+
   /* main operations */
   if (mbt->round.ops < mbt->round.max_ops_cur)
   {
