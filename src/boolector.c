@@ -3873,7 +3873,7 @@ boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_dump_btor_node (btor, file, exp);
+  btor_dump_btor_node (btor, file, btor_simplify_exp (btor, exp));
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
@@ -3923,7 +3923,7 @@ boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_dump_smt2_node (btor, file, exp, 0);
+  btor_dump_smt2_node (btor, file, btor_simplify_exp (btor, exp), 0);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
