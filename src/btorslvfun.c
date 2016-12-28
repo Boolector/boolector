@@ -2450,10 +2450,6 @@ print_stats_fun_solver (BtorFunSolver *slv)
   BTOR_MSG (btor->msg, 1, "propagations: %lld", slv->stats.propagations);
   BTOR_MSG (
       btor->msg, 1, "propagations down: %lld", slv->stats.propagations_down);
-  BTOR_MSG (btor->msg,
-            1,
-            "partial beta reduction restarts: %lld",
-            slv->stats.partial_beta_reduction_restarts);
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
@@ -2533,18 +2529,8 @@ print_time_stats_fun_solver (BtorFunSolver *slv)
   BTOR_MSG (btor->msg, 1, "%.2f seconds lemma generation", slv->time.lemma_gen);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds not encoded apply search",
-            slv->time.find_nenc_app);
-  BTOR_MSG (btor->msg,
-            1,
             "%.2f seconds propagation apply search",
             slv->time.find_prop_app);
-
-  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
-    BTOR_MSG (btor->msg,
-              1,
-              "%.2f seconds propagation apply in conds search",
-              slv->time.find_cond_prop_app);
 
   BTOR_MSG (btor->msg, 1, "%.2f seconds in pure SAT solving", slv->time.sat);
   BTOR_MSG (btor->msg, 1, "");

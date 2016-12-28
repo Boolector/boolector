@@ -553,10 +553,6 @@ btor_print_stats_btor (Btor *btor)
   BTOR_MSG (btor->msg, 1, "%.2f seconds for cloning", btor->time.cloning);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds beta reduction probing",
-            btor->time.br_probing);
-  BTOR_MSG (btor->msg,
-            1,
             "%.2f seconds substitute and rebuild",
             btor->time.subst_rebuild);
   if (btor_get_opt (btor, BTOR_OPT_UCOPT))

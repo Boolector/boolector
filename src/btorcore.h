@@ -209,7 +209,6 @@ struct Btor
     double cloning;
     double synth_exp;
     double model_gen;
-    double br_probing;
     double ucopt;
   } time;
 };
