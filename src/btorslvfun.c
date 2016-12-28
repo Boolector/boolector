@@ -2072,11 +2072,10 @@ check_and_resolve_conflicts (Btor *btor,
   BtorPtrHashTableIterator pit;
   BtorIntHashTableIterator iit;
 
-  slv                = BTOR_FUN_SOLVER (btor);
-  apply_search_cache = 0;
-  found_conflicts    = false;
-  mm                 = btor->mm;
-  slv                = BTOR_FUN_SOLVER (btor);
+  slv             = BTOR_FUN_SOLVER (btor);
+  found_conflicts = false;
+  mm              = btor->mm;
+  slv             = BTOR_FUN_SOLVER (btor);
 
   /* initialize new bit vector model, which will be constructed while
    * consistency checking. this also deletes the model from the previous run */
@@ -2089,14 +2088,7 @@ check_and_resolve_conflicts (Btor *btor,
   BTOR_INIT_STACK (mm, prop_stack);
   BTOR_INIT_STACK (mm, top_applies);
 
-  /* cache applies that were visited while searching for applies to propagate.
-   * applies added to this cache will be skipped in the apply search the next
-   * time they are visited.
-   * Note: the id of the resp. apply will be added to 'apply_search_cache',
-   *       hence, we don't have to ensure that these applies still exist in
-   *       memory.
-   */
-  if (!apply_search_cache) apply_search_cache = btor_new_int_hash_table (mm);
+  apply_search_cache = btor_new_int_hash_table (mm);
 
   /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
    * top level equality). if terms containing applies do not occur in the
@@ -2137,6 +2129,7 @@ check_and_resolve_conflicts (Btor *btor,
   propagate (btor, &prop_stack, cleanup_table, apply_search_cache);
   found_conflicts = BTOR_COUNT_STACK (slv->cur_lemmas) > 0;
 
+  /* check consistency of array/uf equalities */
   if (!found_conflicts && btor->feqs->count > 0)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
@@ -2195,9 +2188,7 @@ check_and_resolve_conflicts (Btor *btor,
   btor_delete_ptr_hash_table (cleanup_table);
   BTOR_RELEASE_STACK (prop_stack);
   BTOR_RELEASE_STACK (top_applies);
-
   btor_delete_int_hash_table (apply_search_cache);
-  apply_search_cache = 0;
 }
 
 static BtorSolverResult
