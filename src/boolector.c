@@ -3124,6 +3124,26 @@ boolector_is_bound_param (Btor *btor, BoolectorNode *node)
 }
 
 bool
+boolector_is_uf (Btor *btor, BoolectorNode *node)
+{
+  bool res;
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  res = btor_is_uf_node (btor_simplify_exp (btor, exp));
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_uf, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
 boolector_is_fun (Btor *btor, BoolectorNode *node)
 {
   bool res;

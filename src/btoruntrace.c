@@ -1445,6 +1445,17 @@ NEXT:
       else
         exp_ret = RET_SKIP;
     }
+    else if (!strcmp (tok, "is_uf"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool = boolector_is_uf (btor, hmap_get (hmap, btor_str, arg1_str));
+        exp_ret  = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
     else if (!strcmp (tok, "is_fun"))
     {
       PARSE_ARGS1 (tok, str);

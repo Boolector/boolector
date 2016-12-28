@@ -1182,8 +1182,7 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
   is_parameterized = btormbt_is_parameterized (mbt, node);
   if (boolector_is_array (mbt->btor, node))
     stack = is_parameterized ? mbt->paramarr : mbt->arr;
-  // TODO (ma): workaround need API for querying if UF
-  else if (btor_is_uf_node ((BtorNode *) node))
+  else if (boolector_is_uf (mbt->btor, node))
     stack = mbt->uf;
   else if (boolector_is_fun (mbt->btor, node))
     stack = is_parameterized ? mbt->paramfun : mbt->fun;

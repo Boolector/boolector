@@ -1691,6 +1691,15 @@ bool boolector_is_param (Btor *btor, BoolectorNode *node);
 bool boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 
 /*!
+  Determine if given node is an uninterpreted function node.
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is an uninterpreted function, and false otherwise.
+*/
+bool boolector_is_uf (Btor *btor, BoolectorNode *node);
+
+/*!
   Determine if given node is a function node.
 
   :param btor: Boolector instance.
