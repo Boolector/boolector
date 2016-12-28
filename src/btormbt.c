@@ -3564,7 +3564,7 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
 
-  g_btormbtstats += mbt->round.ninc;
+  g_btormbtstats->num_inc += mbt->round.ninc;
 
   memset (&mbt->round, 0, sizeof (mbt->round));
 
