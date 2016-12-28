@@ -98,6 +98,28 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
   real_exp->refs++;
 }
 
+void
+btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
+  BTOR_ABORT (real_exp->ext_refs == INT_MAX, "Node reference counter overflow");
+  real_exp->ext_refs += 1;
+  btor->external_refs += 1;
+}
+
+void
+btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BTOR_REAL_ADDR_NODE (exp)->ext_refs -= 1;
+  btor->external_refs -= 1;
+}
+
 BtorNode *
 btor_copy_exp (Btor *btor, BtorNode *exp)
 {
