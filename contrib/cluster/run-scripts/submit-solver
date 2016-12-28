@@ -155,7 +155,15 @@ echo "solver options: $options" >> $wdir/options
 
 ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
-prefix=$(python -c "import os; print(os.path.dirname(os.path.commonprefix(open('$benchmarks_file').readlines())))")
+prefix=$(
+python - <<EOF
+import os
+prefix = os.path.commonprefix(open('$1').readlines())
+path = os.path.dirname(prefix)
+if len(path) > 0:
+    print('{}/'.format(path))
+EOF
+)
 
 ((tickets = 6 / tickets))
 
