@@ -189,7 +189,11 @@ boolector_clone (Btor *btor)
   clone = btor_clone_btor (btor);
   BTOR_TRAPI_RETURN_PTR (clone);
 #ifndef NDEBUG
-  if (btor->clone) boolector_clone (btor->clone);
+  if (btor->clone)
+  {
+    boolector_clone (btor->clone);
+    btor_chkclone (btor);
+  }
 #endif
   return clone;
 }
@@ -2918,9 +2922,11 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
 #ifndef NDEBUG
   if (btor->clone)
   {
-    const char *cloned_res =
+    const char *cloneres =
         boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
-    assert (!strcmp (cloned_res, res));
+    assert (!strcmp (cloneres, res));
+    bvass->cloned_assignment = cloneres;
+    btor_chkclone (btor);
   }
 #endif
   return res;
@@ -2939,7 +2945,7 @@ boolector_free_bits (Btor *btor, const char *bits)
 #endif
   btor_release_bv_assignment (btor->bv_assignments, bits);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (free_bv_assignment, cass);
+  BTOR_CHKCLONE_NORES (free_bits, cass);
 #endif
 }
 

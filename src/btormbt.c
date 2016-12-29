@@ -1637,6 +1637,7 @@ static void
 btormbt_const (BtorMBT *mbt)
 {
   char *bits;
+  const char *sbits;
   int width, val, i;
   BoolectorNode *node;
   //  BtorMBTNodeAttr attr;
@@ -1685,6 +1686,12 @@ btormbt_const (BtorMBT *mbt)
         bits[i] = btor_pick_with_prob_rng (&mbt->round.rng, 500) ? '1' : '0';
       bits[width] = '\0';
       node        = boolector_const (mbt->btor, bits);
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+      {
+        sbits = boolector_get_bits (mbt->btor, node);
+        assert (!strcmp (bits, sbits));
+        boolector_free_bits (mbt->btor, sbits);
+      }
       BTOR_DELETEN (mbt->mm, bits, width + 1);
       break;
     case ZERO: node = boolector_zero (mbt->btor, s); break;
