@@ -548,6 +548,8 @@ struct BtorMBTBtorOpt
   uint32_t val;
   uint32_t min;
   uint32_t max;
+  uint32_t dflt;
+  const char *desc;
 
   bool is_engine_opt;
   uint32_t engine;
@@ -1025,6 +1027,8 @@ btormbt_new_btormbt (void)
     btoropt->val  = boolector_get_opt (tmpbtor, opt);
     btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
+    btoropt->dflt = boolector_get_opt_dflt (tmpbtor, opt);
+    btoropt->desc = boolector_get_opt_desc (tmpbtor, opt);
     /* disabling incremental not supported */
     if (opt == BTOR_OPT_INCREMENTAL) btoropt->min = btoropt->max;
     /* check if opt is an engine opt */
@@ -2864,6 +2868,7 @@ btormbt_state_opt (BtorMBT *mbt)
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
   {
     btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
+    assert (boolector_has_opt (mbt->btor, btoropt->kind));
 
     /* pick option randomly */
     if (!btoropt->forced_by_cl)
