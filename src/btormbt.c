@@ -3195,11 +3195,13 @@ btormbt_state_main (BtorMBT *mbt)
                  btor_pick_rand_rng (
                      &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bo->exps) - 1))
                  ->exp;
+      assert (boolector_get_btor (node) == mbt->btor);
       id     = boolector_get_id (mbt->btor, node);
       symbol = boolector_get_symbol (mbt->btor, node);
       sort   = boolector_get_sort (mbt->btor, node);
 
-      cnode   = boolector_match_node (clone, node);
+      cnode = boolector_match_node (clone, node);
+      assert (boolector_get_btor (cnode) == clone);
       cid     = boolector_get_id (clone, cnode);
       csymbol = boolector_get_symbol (clone, cnode);
       csort   = boolector_get_sort (clone, cnode);
@@ -3215,7 +3217,8 @@ btormbt_state_main (BtorMBT *mbt)
       }
       boolector_release (clone, cnode);
 
-      cnode   = boolector_match_node_by_id (clone, id < 0 ? -id : id);
+      cnode = boolector_match_node_by_id (clone, id < 0 ? -id : id);
+      assert (boolector_get_btor (cnode) == clone);
       csymbol = boolector_get_symbol (clone, cnode);
       csort   = boolector_get_sort (clone, cnode);
       assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
@@ -3232,6 +3235,7 @@ btormbt_state_main (BtorMBT *mbt)
       if (symbol)
       {
         cnode = boolector_match_node_by_symbol (clone, symbol);
+        assert (boolector_get_btor (cnode) == clone);
         cid   = boolector_get_id (clone, cnode);
         csort = boolector_get_sort (clone, cnode);
         assert (id == cid);
