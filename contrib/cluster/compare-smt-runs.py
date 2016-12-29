@@ -335,20 +335,20 @@ def _filter_data(d, file, filters):
     global g_file_stats, g_dir_stats
     
     dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-    with open(os.path.join(d, file), 'r') as infile:
-        (f_name, f_ext) = _get_name_and_ext(file)
+    (f_name, f_ext) = _get_name_and_ext(file)
 
-        if os.stat(os.path.join(d, file)).st_size == 0:
-            for k in filters:
-                if k not in g_file_stats:
-                    g_file_stats[k] = {}
-                if d not in g_file_stats[k]:
-                    g_file_stats[k][d] = {}
-                if f_name not in g_file_stats[k][d]:
-                    g_file_stats[k][d][f_name] = None
-            return
-        
-        used_filters = set()
+    if os.stat(os.path.join(d, file)).st_size == 0:
+        for k in filters:
+            if k not in g_file_stats:
+                g_file_stats[k] = {}
+            if d not in g_file_stats[k]:
+                g_file_stats[k][d] = {}
+            if f_name not in g_file_stats[k][d]:
+                g_file_stats[k][d][f_name] = None
+        return
+
+    used_filters = set()
+    with open(os.path.join(d, file), 'r') as infile:
         lines = infile.readlines()
         for line in reversed(lines):
             line = line.strip()
@@ -996,8 +996,6 @@ def _print_data ():
         for k in g_dir_stats:
             columns = [_get_column_name(k)]
             for d in g_args.dirs:
-                print(d)
-                print(g_dir_stats)
                 columns.append(" ".join(g_dir_stats[k][d]))
             _print_row (columns, widths, colspans=colspans, classes=classes)
 
