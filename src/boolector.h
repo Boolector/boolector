@@ -1561,13 +1561,13 @@ BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
   Get the symbol of an expression.
 
   :param btor: Boolector instance.
-  :param var: Array or bit vector variable, parameter, uninterpreted function.
+  :param node: Boolector node.
   :return: Symbol of expression.
 
   .. seealso::
     boolector_var, boolector_array, boolector_uf, boolector_param
 */
-const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
+const char *boolector_get_symbol (Btor *btor, BoolectorNode *node);
 
 /*!
   Set the symbol of an expression.
