@@ -1623,7 +1623,8 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
   }
   s   = boolector_bitvec_sort (mbt->btor, width);
   var = boolector_var (mbt->btor, s, 0);
-  id  = boolector_get_id (mbt->btor, var);
+  assert (boolector_is_var (mbt->btor, var));
+  id = boolector_get_id (mbt->btor, var);
   BTOR_NEWN (mbt->mm, symbol, 20);
   sprintf (symbol, "var%u", id);
   boolector_set_symbol (mbt->btor, var, symbol);
@@ -1740,7 +1741,9 @@ btormbt_array (BtorMBT *mbt)
   is    = boolector_bitvec_sort (mbt->btor, iw);
   as    = boolector_array_sort (mbt->btor, is, es);
   array = boolector_array (mbt->btor, as, 0);
-  id    = boolector_get_id (mbt->btor, array);
+  assert (boolector_is_array (mbt->btor, array));
+  assert (boolector_is_array_var (mbt->btor, array));
+  id = boolector_get_id (mbt->btor, array);
   BTOR_NEWN (mbt->mm, symbol, 20);
   sprintf (symbol, "arr%u", id);
   boolector_set_symbol (mbt->btor, array, symbol);
@@ -2504,7 +2507,8 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
           &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
       s   = boolector_bitvec_sort (mbt->btor, width);
       tmp = boolector_param (mbt->btor, s, 0);
-      id  = boolector_get_id (mbt->btor, tmp);
+      assert (boolector_is_param (mbt->btor, tmp));
+      id = boolector_get_id (mbt->btor, tmp);
       BTOR_NEWN (mbt->mm, symbol, 20);
       sprintf (symbol, "param%u", id);
       boolector_set_symbol (mbt->btor, tmp, symbol);
@@ -2656,7 +2660,8 @@ btormbt_bv_uf (BtorMBT *mbt)
   {
     sort = btormbt_fun_sort (mbt);
     uf   = boolector_uf (mbt->btor, sort, 0);
-    id   = boolector_get_id (mbt->btor, uf);
+    assert (boolector_is_uf (mbt->btor, uf));
+    id = boolector_get_id (mbt->btor, uf);
     BTOR_NEWN (mbt->mm, symbol, 20);
     sprintf (symbol, "uf%u", id);
     boolector_set_symbol (mbt->btor, uf, symbol);

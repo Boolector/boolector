@@ -3004,7 +3004,7 @@ boolector_is_var (Btor *btor, BoolectorNode *node)
   res = btor_is_bv_var_node (btor_simplify_exp (btor, exp));
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_BOOL (res, is_const, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_BOOL (res, is_var, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
