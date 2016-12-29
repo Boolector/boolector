@@ -3153,7 +3153,7 @@ btormbt_state_main (BtorMBT *mbt)
                    * BTOR_PROB_MAX))
     {
       /* pick with prob=0.0001 */
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 1)
+      if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, 1)
           && btor_pick_with_prob_rng (&mbt->round.rng, 10))
       {
         if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
@@ -3557,14 +3557,20 @@ btormbt_state_dump (BtorMBT *mbt)
         // TODO: we cannot parse equality over lambdas in btor right now
         && mbt->round.num_eq_fun == 0)
     {
-      sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
+      sprintf (outfilename,
+               "/tmp/btormbt-bug-%d%s",
+               mbt->seed,
+               btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".btor" : "");
       outfile = fopen (outfilename, "w");
       assert (outfile);
       boolector_dump_btor (mbt->btor, outfile);
     }
     else
     {
-      sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "smt2");
+      sprintf (outfilename,
+               "/tmp/btormbt-bug-%d%s",
+               mbt->seed,
+               btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".smt2" : "");
       outfile = fopen (outfilename, "w");
       assert (outfile);
       boolector_dump_smt2 (mbt->btor, outfile);
