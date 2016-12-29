@@ -3843,6 +3843,8 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt->paramarr == NULL);
   assert (mbt->paramfun == NULL);
 
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+    boolector_release_all (mbt->btor);
   boolector_delete (mbt->btor);
   mbt->btor = NULL;
   return 0;
