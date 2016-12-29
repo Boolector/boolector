@@ -3199,6 +3199,12 @@ btormbt_state_main (BtorMBT *mbt)
   {
     g_btormbtstats->num_clone += 1;
     clone = boolector_clone (mbt->btor);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_reset_stats (clone);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_reset_time (clone);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_print_stats (clone);
 
     for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
     {
