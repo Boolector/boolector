@@ -2924,13 +2924,51 @@ btormbt_state_opt (BtorMBT *mbt)
     }
 
     BTORMBT_LOG (1,
-                 "opt: set boolector option '%s' to '%d'",
+                 "opt: set boolector option '%s' to '%u'",
                  btoropt->name,
                  btoropt->val);
 
     /* if an option is set via command line the value is saved in
      * btoropt->val */
-    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+    if (btoropt->kind == BTOR_OPT_SAT_ENGINE
+        && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      {
+#ifdef BTOR_USE_LINGELING
+        if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+          boolector_set_sat_solver (mbt->btor, "lingeling");
+#endif
+#ifdef BTOR_USE_PICOSAT
+        else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+          boolector_set_sat_solver (mbt->btor, "picosat");
+#endif
+#ifdef BTOR_USE_MINISAT
+        else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+          boolector_set_sat_solver (mbt->btor, "minisat");
+#endif
+      }
+      else
+      {
+#ifdef BTOR_USE_LINGELING
+        if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+          boolector_set_sat_solver_lingeling (
+              mbt->btor, 0, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+#endif
+#ifdef BTOR_USE_PICOSAT
+        else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+          boolector_set_sat_solver_picosat (mbt->btor);
+#endif
+#ifdef BTOR_USE_MINISAT
+        else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+          boolector_set_sat_solver_minisat (mbt->btor);
+#endif
+      }
+    }
+    else
+    {
+      boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+    }
 
     /* set some mbt specific options */
     if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
