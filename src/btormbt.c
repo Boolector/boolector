@@ -888,17 +888,17 @@ struct BtorMBT
   uint32_t min_release_ops_inc;  /* min release ops (reinit inc step) */
   uint32_t max_release_ops_inc;  /* max release ops (reinit inc step) */
 
-  uint32_t max_ops_lower; /* lower bound for current max_ops_cur
-                             for determining max_ass_cur */
+  uint32_t max_ops_lower; /* lower bound for max_ops in current round
+                             for determining round.max_ass */
 
   uint32_t min_asserts_lower; /* min number of assertions in a round
-                                 for max_ops_cur < max_ops_lower */
+                                 for round.max_ops < max_ops_lower */
   uint32_t max_asserts_lower; /* max number of assertions in a round
-                                 for max_ops_cur < max_ops_lower */
+                                 for round.max_ops < max_ops_lower */
   uint32_t min_asserts_upper; /* min number of assertions in a round
-                                 for max_ops_cur >= max_ops_lower */
+                                 for round.max_ops >= max_ops_lower */
   uint32_t max_asserts_upper; /* max number of assertions in a round
-                                 for max_ops_cur >= max_ops_lower */
+                                 for round.max_ops >= max_ops_lower */
 
   /* propability options */
 
@@ -984,11 +984,11 @@ struct BtorMBT
     uint32_t asserts; /* number of produced asserts in current round */
     uint32_t assumes; /* number of produced assumes in current round */
 
-    uint32_t max_inputs_cur; /* max number of inputs in current round */
-    uint32_t max_ops_cur;    /* max number of operations in current round */
-    uint32_t max_ass_cur;    /* max number of ass(erts|umes) in current round */
+    uint32_t max_inputs; /* max number of inputs in current round */
+    uint32_t max_ops;    /* max number of operations in current round */
+    uint32_t max_ass;    /* max number of ass(erts|umes) in current round */
 
-    uint32_t tot_asserts; /* total number of asserts in current round */
+    uint32_t asserts_tot; /* total number of asserts in current round */
     uint32_t num_ite_fun;
     uint32_t num_eq_fun;
 
@@ -1233,6 +1233,20 @@ btormbt_copy_exp_stack (BtorMBT *mbt, BtorMBTExpStack *expstack)
   res->init_layer_size  = expstack->init_layer_size;
   res->last_pos_parents = expstack->last_pos_parents;
   return res;
+}
+
+static void
+btormbt_reset_assumptions (BtorMBT *mbt)
+{
+  BoolectorNode *ass;
+
+  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
+  {
+    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
+    assert (ass);
+    btormbt_release_node (mbt, ass);
+  }
+  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2396,7 +2410,7 @@ static void
 btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 {
   int32_t id;
-  uint32_t i, n, width, max_ops_cur, rand;
+  uint32_t i, n, width, max_param_exps, rand;
   char *symbol;
   BtorMBTExpStack *expstack;
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
@@ -2533,9 +2547,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     }
 
     /* generate parameterized expressions */
-    max_ops_cur = btor_pick_rand_rng (&mbt->round.rng, 0, MAX_NPARAMOPS);
-    n           = 0;
-    while (n++ < max_ops_cur)
+    max_param_exps = btor_pick_rand_rng (&mbt->round.rng, 0, MAX_NPARAMOPS);
+    n              = 0;
+    while (n++ < max_param_exps)
     {
       rand = btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_PROB_MAX - 1);
       if (rand < mbt->round.p_bitvec_fun)
@@ -2690,11 +2704,11 @@ static void *
 btormbt_state_new (BtorMBT *mbt)
 {
   /* number of initial inputs */
-  mbt->round.max_inputs_cur =
+  mbt->round.max_inputs =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_inputs, mbt->max_inputs);
 
   /* number of initial operations */
-  mbt->round.max_ops_cur = btor_pick_rand_rng (
+  mbt->round.max_ops = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_ops_init, mbt->max_ops_init);
 
   // TODO (ma): UFs
@@ -2734,10 +2748,10 @@ btormbt_state_new (BtorMBT *mbt)
 
   BTORMBT_LOG (1,
                "new: pick %u ops (add:rel=%0.1f%%:%0.1f%%), %u inputs",
-               mbt->round.max_ops_cur,
+               mbt->round.max_ops,
                (double) mbt->round.p_add / 10,
                (double) mbt->round.p_release / 10,
-               mbt->round.max_inputs_cur);
+               mbt->round.max_inputs);
 
   mbt->btor = boolector_new ();
   assert (mbt->btor);
@@ -2975,7 +2989,7 @@ btormbt_state_init (BtorMBT *mbt)
   // TODO (ma): UFs?
   if (BTOR_COUNT_STACK (mbt->bo->exps) + BTOR_COUNT_STACK (mbt->bv->exps)
           + BTOR_COUNT_STACK (mbt->arr->exps)
-      < mbt->round.max_inputs_cur)
+      < mbt->round.max_inputs)
   {
     return btormbt_state_input;
   }
@@ -2988,7 +3002,7 @@ btormbt_state_init (BtorMBT *mbt)
   if (mbt->create_arrays && BTOR_COUNT_STACK (mbt->arr->exps) < 1)
     btormbt_array (mbt);
 
-  if (mbt->round.ops < mbt->round.max_ops_cur)
+  if (mbt->round.ops < mbt->round.max_ops)
   {
     mbt->round.ops++;
     BTORMBT_LOG_STATUS (2, "init");
@@ -3005,21 +3019,21 @@ btormbt_state_init (BtorMBT *mbt)
 
   /* adapt paramters for main */
   mbt->round.ops = 0;
-  mbt->round.max_ops_cur =
+  mbt->round.max_ops =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_ops, mbt->max_ops);
   /* how many operations should be assertions?
-   * -> max_ops_cur and nass should be in relation (the more ops, the more
+   * -> round.max_ops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  if (mbt->round.max_ops_cur < mbt->max_ops_lower)
+  if (mbt->round.max_ops < mbt->max_ops_lower)
   {
-    mbt->round.max_ass_cur = BTORMBT_MIN (
-        mbt->round.max_ops_cur,
+    mbt->round.max_ass = BTORMBT_MIN (
+        mbt->round.max_ops,
         btor_pick_rand_rng (
             &mbt->round.rng, mbt->min_asserts_lower, mbt->max_asserts_lower));
   }
   else
   {
-    mbt->round.max_ass_cur = btor_pick_rand_rng (
+    mbt->round.max_ass = btor_pick_rand_rng (
         &mbt->round.rng, mbt->min_asserts_upper, mbt->max_asserts_upper);
   }
 
@@ -3050,10 +3064,10 @@ btormbt_state_init (BtorMBT *mbt)
   BTORMBT_LOG (
       1,
       "main: pick %u ops (add:rel=%0.1f%%:%0.1f%%), ~%u asserts/assumes",
-      mbt->round.max_ops_cur,
+      mbt->round.max_ops,
       (double) mbt->round.p_add / 10,
       (double) mbt->round.p_release / 10,
-      mbt->round.max_ass_cur);
+      mbt->round.max_ass);
 
   mbt->round.is_init = true;
   return btormbt_state_main;
@@ -3073,16 +3087,35 @@ btormbt_state_main (BtorMBT *mbt)
   int32_t i, id, cid;
 
   /* main operations */
-  if (mbt->round.ops < mbt->round.max_ops_cur)
+  if (mbt->round.ops < mbt->round.max_ops)
   {
     mbt->round.ops++;
     BTORMBT_LOG_STATUS (2, "main");
-    if (mbt->round.max_ass_cur > mbt->round.max_ops_cur
+    if (mbt->round.max_ass > mbt->round.max_ops
         || btor_pick_with_prob_rng (
                &mbt->round.rng,
-               ((double) mbt->round.max_ass_cur / mbt->round.max_ops_cur)
+               ((double) mbt->round.max_ass / mbt->round.max_ops)
                    * BTOR_PROB_MAX))
     {
+      /* pick with prob=0.0001 */
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 1)
+          && btor_pick_with_prob_rng (&mbt->round.rng, 10))
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        {
+          mbt->round.asserts += mbt->round.assumes;
+          mbt->round.asserts_tot += mbt->round.assumes;
+          boolector_fixate_assumptions (mbt->btor);
+          btormbt_reset_assumptions (mbt);
+        }
+        else
+        {
+          boolector_reset_assumptions (mbt->btor);
+          btormbt_reset_assumptions (mbt);
+        }
+        mbt->round.assumes = 0;
+      }
+
       return btormbt_state_assume_assert;
     }
     else if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->round.p_add))
@@ -3098,7 +3131,7 @@ btormbt_state_main (BtorMBT *mbt)
   BTORMBT_LOG_STATUS (1, "main");
   BTORMBT_LOG (1,
                "main: asserts %d, assumes %d",
-               mbt->round.tot_asserts,
+               mbt->round.asserts_tot,
                mbt->round.assumes);
 
   if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
@@ -3381,7 +3414,7 @@ btormbt_state_assume_assert (BtorMBT *mbt)
     boolector_assert (mbt->btor, node);
     btormbt_release_node (mbt, node);
     mbt->round.asserts++;
-    mbt->round.tot_asserts++;
+    mbt->round.asserts_tot++;
   }
   return btormbt_state_main;
 }
@@ -3691,27 +3724,18 @@ btormbt_state_query_model (BtorMBT *mbt)
 static void *
 btormbt_state_inc (BtorMBT *mbt)
 {
-  BoolectorNode *ass;
-
   mbt->round.ninc += 1;
   g_btormbtstats->num_inc += 1;
 
-  /* release assumptions */
-  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
-  {
-    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
-    assert (ass);
-    btormbt_release_node (mbt, ass);
-  }
-  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
+  btormbt_reset_assumptions (mbt);
 
   /* reset / reinit */
-  mbt->round.ops         = 0;
-  mbt->round.max_ass_cur = mbt->round.max_ass_cur - mbt->round.asserts;
-  mbt->round.assumes     = 0;
-  mbt->round.asserts     = 0;
+  mbt->round.ops     = 0;
+  mbt->round.max_ass = mbt->round.max_ass - mbt->round.asserts;
+  mbt->round.assumes = 0;
+  mbt->round.asserts = 0;
 
-  mbt->round.max_ops_cur =
+  mbt->round.max_ops =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_ops_inc, mbt->max_ops_inc);
 
   init_pd_inputs (
@@ -3747,7 +3771,7 @@ btormbt_state_inc (BtorMBT *mbt)
 
   BTORMBT_LOG (1,
                "inc: pick %u ops (add:rel=%0.1f%%:%0.1f%%)",
-               mbt->round.max_ops_cur,
+               mbt->round.max_ops,
                (double) mbt->round.p_add / 10,
                (double) mbt->round.p_release / 10);
   BTORMBT_LOG (1, "number of increments: %u", mbt->round.ninc);

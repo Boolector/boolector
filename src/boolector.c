@@ -183,11 +183,9 @@ Btor *
 boolector_clone (Btor *btor)
 {
   Btor *clone;
-  BtorSATMgr *smgr;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  smgr  = btor_get_sat_mgr_btor (btor);
   clone = btor_clone_btor (btor);
   BTOR_TRAPI_RETURN_PTR (clone);
 #ifndef NDEBUG
