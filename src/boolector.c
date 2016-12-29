@@ -2677,7 +2677,7 @@ boolector_get_btor (BoolectorNode *node)
   return btor;
 }
 
-int
+int32_t
 boolector_get_id (Btor *btor, BoolectorNode *node)
 {
   int res;
@@ -2776,7 +2776,7 @@ boolector_match_node_by_id (Btor *btor, int id)
 }
 
 BoolectorNode *
-boolector_match_node_by_symbol (Btor *btor, char *symbol)
+boolector_match_node_by_symbol (Btor *btor, const char *symbol)
 {
   BtorNode *res;
   BTOR_ABORT_ARG_NULL (btor);

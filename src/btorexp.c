@@ -713,18 +713,18 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
 }
 
 BtorNode *
-btor_get_node_by_symbol (Btor *btor, char *sym)
+btor_get_node_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
   BtorPtrHashBucket *b;
-  b = btor_get_ptr_hash_table (btor->symbols, sym);
+  b = btor_get_ptr_hash_table (btor->symbols, (char *) sym);
   if (!b) return 0;
   return b->data.as_ptr;
 }
 
 BtorNode *
-btor_match_node_by_symbol (Btor *btor, char *sym)
+btor_match_node_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);

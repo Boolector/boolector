@@ -543,11 +543,11 @@ void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
 /* Get the exp (belonging to instance 'btor') that matches given symbol.
  * Note: does NOT increase the ref counter */
-BtorNode *btor_get_node_by_symbol (Btor *btor, char *sym);
+BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
 
 /* Retrieve the exp (belonging to instance 'btor') that matches given symbol.
  * Note: increases ref counter of returned match! */
-BtorNode *btor_match_node_by_symbol (Btor *btor, char *sym);
+BtorNode *btor_match_node_by_symbol (Btor *btor, const char *sym);
 
 /*------------------------------------------------------------------------*/
 

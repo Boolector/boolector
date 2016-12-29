@@ -1538,7 +1538,7 @@ BoolectorNode *boolector_match_node_by_id (Btor *btor, int id);
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
 */
-BoolectorNode *boolector_match_node_by_symbol (Btor *btor, char *symbol);
+BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
 
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
