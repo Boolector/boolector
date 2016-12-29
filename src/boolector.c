@@ -187,14 +187,12 @@ boolector_clone (Btor *btor)
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  smgr = btor_get_sat_mgr_btor (btor);
-  BTOR_ABORT (
-      btor->btor_sat_btor_called > 0 && !btor_has_clone_support_sat_mgr (smgr),
-      "Cannot clone Boolector after 'boolector_sat' call since SAT solver '%s' "
-      "does not support cloning",
-      smgr->name);
+  smgr  = btor_get_sat_mgr_btor (btor);
   clone = btor_clone_btor (btor);
   BTOR_TRAPI_RETURN_PTR (clone);
+#ifndef NDEBUG
+  if (btor->clone) boolector_clone (btor->clone);
+#endif
   return clone;
 }
 

@@ -741,7 +741,9 @@ struct BtorMBTStatistics
   uint32_t num_sat;
   uint32_t num_unsat;
   uint32_t num_inc;
+  uint32_t num_shadow_clone;
   uint32_t num_clone;
+  uint32_t num_simp;
   BtorMBTOperator num_ops[BTORMBT_NUM_OPS];
 
   /* avg. numbers per round */
@@ -1389,7 +1391,9 @@ btormbt_print_stats (BtorMBT *mbt)
   btormbt_msg ("%u sat calls", g_btormbtstats->num_sat);
   btormbt_msg ("%u unsat calls", g_btormbtstats->num_unsat);
   btormbt_msg ("%u incremental calls", g_btormbtstats->num_inc);
-  btormbt_msg ("%u shadow clone calls", g_btormbtstats->num_clone);
+  btormbt_msg ("%u shadow clone calls", g_btormbtstats->num_shadow_clone);
+  btormbt_msg ("%u clone calls", g_btormbtstats->num_clone);
+  btormbt_msg ("%u simplify calls", g_btormbtstats->num_simp);
 
   /* print total number of created ops */
   if (mbt->verbosity > 1)
@@ -1584,8 +1588,11 @@ modify_bv (BtorMBT *mbt, BoolectorNode *e, uint32_t new_width)
 static void
 btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
 {
-  int width;
+  int32_t id;
+  uint32_t width;
   BoolectorSort s;
+  BoolectorNode *var;
+  char *symbol;
 
   if (type == BTORMBT_BO_T)
     width = 1;
@@ -1596,8 +1603,14 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
     assert (type = BTORMBT_BB_T);
     width = btor_pick_rand_rng (&mbt->round.rng, 1, mbt->max_bw);
   }
-  s = boolector_bitvec_sort (mbt->btor, width);
-  btormbt_push_node (mbt, boolector_var (mbt->btor, s, 0));
+  s   = boolector_bitvec_sort (mbt->btor, width);
+  var = boolector_var (mbt->btor, s, 0);
+  id  = boolector_get_id (mbt->btor, var);
+  BTOR_NEWN (mbt->mm, symbol, 20);
+  sprintf (symbol, "var%u", id);
+  boolector_set_symbol (mbt->btor, var, symbol);
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+  btormbt_push_node (mbt, var);
   boolector_release_sort (mbt->btor, s);
   g_btormbtstats->num_ops[VAR]++;
 }
@@ -1687,18 +1700,27 @@ btormbt_const (BtorMBT *mbt)
 static void
 btormbt_array (BtorMBT *mbt)
 {
-  int ew, iw;
+  int32_t id;
+  uint32_t ew, iw;
+  BoolectorNode *array;
   BoolectorSort es, is, as;
+  char *symbol;
 
   // TODO (ma): remove ite here and use min_bw
   ew = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
   iw = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_index_bw, mbt->max_index_bw);
-  es = boolector_bitvec_sort (mbt->btor, ew);
-  is = boolector_bitvec_sort (mbt->btor, iw);
-  as = boolector_array_sort (mbt->btor, is, es);
-  btormbt_push_node (mbt, boolector_array (mbt->btor, as, 0));
+  es    = boolector_bitvec_sort (mbt->btor, ew);
+  is    = boolector_bitvec_sort (mbt->btor, iw);
+  as    = boolector_array_sort (mbt->btor, is, es);
+  array = boolector_array (mbt->btor, as, 0);
+  id    = boolector_get_id (mbt->btor, array);
+  BTOR_NEWN (mbt->mm, symbol, 20);
+  sprintf (symbol, "arr%u", id);
+  boolector_set_symbol (mbt->btor, array, symbol);
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+  btormbt_push_node (mbt, array);
   boolector_release_sort (mbt->btor, es);
   boolector_release_sort (mbt->btor, is);
   boolector_release_sort (mbt->btor, as);
@@ -2373,7 +2395,9 @@ btormbt_param_array_op (BtorMBT *mbt)
 static void
 btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 {
+  int32_t id;
   uint32_t i, n, width, max_ops_cur, rand;
+  char *symbol;
   BtorMBTExpStack *expstack;
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
@@ -2455,6 +2479,11 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
           &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
       s   = boolector_bitvec_sort (mbt->btor, width);
       tmp = boolector_param (mbt->btor, s, 0);
+      id  = boolector_get_id (mbt->btor, tmp);
+      BTOR_NEWN (mbt->mm, symbol, 20);
+      sprintf (symbol, "param%u", id);
+      boolector_set_symbol (mbt->btor, tmp, symbol);
+      BTOR_DELETEN (mbt->mm, symbol, 20);
       boolector_release_sort (mbt->btor, s);
       BTOR_PUSH_STACK (params, tmp);
       BTOR_PUSH_STACK (param_widths, boolector_get_width (mbt->btor, tmp));
@@ -2581,7 +2610,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 static void
 btormbt_bv_uf (BtorMBT *mbt)
 {
+  int32_t id;
   uint32_t width, rand;
+  char *symbol;
   BoolectorNode *uf, *arg, *apply;
   BtorSortId sortid;
   BoolectorSort sort;
@@ -2600,6 +2631,11 @@ btormbt_bv_uf (BtorMBT *mbt)
   {
     sort = btormbt_fun_sort (mbt);
     uf   = boolector_uf (mbt->btor, sort, 0);
+    id   = boolector_get_id (mbt->btor, uf);
+    BTOR_NEWN (mbt->mm, symbol, 20);
+    sprintf (symbol, "uf%u", id);
+    boolector_set_symbol (mbt->btor, uf, symbol);
+    BTOR_DELETEN (mbt->mm, symbol, 20);
     //      btormbt_push_exp_stack (mbt->mm, mbt->uf, uf);
     btormbt_push_node (mbt, uf);
     g_btormbtstats->num_ops[UF]++;
@@ -2806,7 +2842,7 @@ btormbt_state_opt (BtorMBT *mbt)
     BTORMBT_LOG (1, "initial shadow clone...");
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_clone += 1;
+    g_btormbtstats->num_shadow_clone += 1;
     mbt->round.has_shadow = true;
   }
 
@@ -3030,8 +3066,11 @@ btormbt_state_main (BtorMBT *mbt)
   assert (BTOR_COUNT_STACK (mbt->bv->exps) > 0);
   assert (!mbt->create_arrays || BTOR_COUNT_STACK (mbt->arr->exps) > 0);
 
-  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
-    (void) boolector_simplify (mbt->btor);
+  Btor *clone;
+  BoolectorNode *node, *cnode;
+  BoolectorSort sort, csort;
+  const char *symbol, *csymbol;
+  int32_t i, id, cid;
 
   /* main operations */
   if (mbt->round.ops < mbt->round.max_ops_cur)
@@ -3061,6 +3100,79 @@ btormbt_state_main (BtorMBT *mbt)
                "main: asserts %d, assumes %d",
                mbt->round.tot_asserts,
                mbt->round.assumes);
+
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    g_btormbtstats->num_simp += 1;
+    (void) boolector_simplify (mbt->btor);
+  }
+
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    g_btormbtstats->num_clone += 1;
+    clone = boolector_clone (mbt->btor);
+
+    for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
+    {
+      node = BTOR_PEEK_STACK (
+                 mbt->bo->exps,
+                 btor_pick_rand_rng (
+                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bo->exps) - 1))
+                 ->exp;
+      id     = boolector_get_id (mbt->btor, node);
+      symbol = boolector_get_symbol (mbt->btor, node);
+      sort   = boolector_get_sort (mbt->btor, node);
+
+      cnode   = boolector_match_node (clone, node);
+      cid     = boolector_get_id (clone, cnode);
+      csymbol = boolector_get_symbol (clone, cnode);
+      csort   = boolector_get_sort (clone, cnode);
+      assert (id == cid);
+      assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+      assert (sort == csort);
+      if (boolector_is_fun (mbt->btor, node))
+      {
+        assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                == boolector_fun_get_domain_sort (clone, cnode));
+        assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                == boolector_fun_get_codomain_sort (clone, cnode));
+      }
+      boolector_release (clone, cnode);
+
+      cnode   = boolector_match_node_by_id (clone, id < 0 ? -id : id);
+      csymbol = boolector_get_symbol (clone, cnode);
+      csort   = boolector_get_sort (clone, cnode);
+      assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+      assert (sort == csort);
+      if (boolector_is_fun (mbt->btor, node))
+      {
+        assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                == boolector_fun_get_domain_sort (clone, cnode));
+        assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                == boolector_fun_get_codomain_sort (clone, cnode));
+      }
+      boolector_release (clone, cnode);
+
+      if (symbol)
+      {
+        cnode = boolector_match_node_by_symbol (clone, symbol);
+        cid   = boolector_get_id (clone, cnode);
+        csort = boolector_get_sort (clone, cnode);
+        assert (id == cid);
+        assert (sort == csort);
+        if (boolector_is_fun (mbt->btor, node))
+        {
+          assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                  == boolector_fun_get_domain_sort (clone, cnode));
+          assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                  == boolector_fun_get_codomain_sort (clone, cnode));
+        }
+        boolector_release (clone, cnode);
+      }
+    }
+
+    boolector_delete (clone);
+  }
 
   if (mbt->round.dump) return btormbt_state_dump;
 
@@ -3458,7 +3570,7 @@ btormbt_state_sat (BtorMBT *mbt)
     BTORMBT_LOG (1, "cloning...");
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_clone += 1;
+    g_btormbtstats->num_shadow_clone += 1;
     mbt->round.has_shadow = true;
   }
 
@@ -3582,6 +3694,7 @@ btormbt_state_inc (BtorMBT *mbt)
   BoolectorNode *ass;
 
   mbt->round.ninc += 1;
+  g_btormbtstats->num_inc += 1;
 
   /* release assumptions */
   while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
@@ -3686,8 +3799,6 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->paramfun);
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
-
-  g_btormbtstats->num_inc += mbt->round.ninc;
 
   memset (&mbt->round, 0, sizeof (mbt->round));
 
