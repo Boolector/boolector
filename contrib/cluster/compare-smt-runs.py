@@ -34,193 +34,203 @@ HTML_CLASS = {
 def _get_name_and_ext (fname):
     return ("".join(fname.rpartition('.')[:-2]), fname.rpartition('.')[-1])
 
+def _is_number(s):
+    return s.lstrip('-').replace('.', '', 1).isdigit()
+
+# compatibility for older boolector versions with different statistics format
+def select_column(line, old_pos):
+    cols = line.split()
+    # check if there is a number at 'old_pos'
+    if _is_number(cols[old_pos]):
+        return cols[old_pos]
+    return cols[1]
 
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
 FILTER_LOG = {
   'lods':
       ['LODS', 
-       lambda x: b'LOD' in x, 
-       lambda x: x.split()[3], 
+       lambda x: 'LOD refinements' in x,
+       lambda x: select_column(x, 3),
        lambda x: int(x),
        False],
   'lods_avg':
       ['LODS avg',
-       lambda x: b'average lemma size' in x,
-       lambda x: x.split()[4],
+       lambda x: 'average lemma size' in x,
+       lambda x: select_column(x, 4),
        lambda x: float(x),
        False],
   'lods_fc':
       ['LODS FC',
-       lambda x: b'function congruence conf' in x,
-       lambda x: x.split()[4],
+       lambda x: 'function congruence conf' in x,
+       lambda x: select_column(x, 4),
        lambda x: int(x),
        False],
   'lods_br':
       ['LODS BR',
-       lambda x: b'beta reduction conf' in x,
-       lambda x: x.split()[4],
+       lambda x: 'beta reduction conf' in x,
+       lambda x: select_column(x, 4),
        lambda x: int(x),
        False],
   'calls':
       ['CALLS', 
-       lambda x: b'SAT calls' in x, 
-       lambda x: x.split()[1], 
+       lambda x: 'SAT calls' in x, 
+       lambda x: select_column(x, 1),
        lambda x: int(x),
        False],
   'time_sat':
       ['SAT[s]', 
-       lambda x: b'pure SAT' in x, 
-       lambda x: x.split()[1], 
+       lambda x: 'pure SAT' in x, 
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_rw':
       ['RW[s]', 
-       lambda x: b'rewriting engine' in x, 
-       lambda x: x.split()[1],
+       lambda x: 'rewriting engine' in x, 
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_beta':
       ['BETA[s]', 
-       lambda x: b'beta-reduction' in x, 
-       lambda x: x.split()[1],
+       lambda x: 'beta-reduction' in x, 
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_eval':
       ['EVAL[s]', 
-       lambda x: b'seconds expression evaluation' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'seconds expression evaluation' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_lle':
       ['LLE[s]', 
-       lambda x: b'lazy lambda encoding' in x,
-       lambda x: float(x.split()[1]), 
+       lambda x: 'lazy lambda encoding' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_pas':
       ['PAS[s]', 
-       lambda x: b'propagation apply search' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'propagation apply search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_pacs':
       ['PAS[s]',
-       lambda x: b'propagation apply in conds search' in x,
-       lambda x: x.split()[1],
+       lambda x: 'propagation apply in conds search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_neas':
       ['NEAS[s]', 
-       lambda x: b'not encoded apply search' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'not encoded apply search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'num_beta':
       ['BETA', 
-       lambda x: b'beta reductions:' in x,
-       lambda x: x.split()[3], 
+       lambda x: 'beta reductions' in x and 'partial' not in x,
+       lambda x: select_column(x, 3),
        lambda x: int(x),
        False],
   'num_eval':
       ['EVAL', 
-       lambda x: b'evaluations:' in x,
-       lambda x: x.split()[3], 
+       lambda x: 'evaluations' in x,
+       lambda x: select_column(x, 3),
        lambda x: int(x),
        False],
   'num_prop':
       ['PROP', 
-       lambda x: b'propagations:' in x,
-       lambda x: x.split()[2], 
+       lambda x: 'slvfun' in x and 'propagations' in x and 'down' not in x,
+       lambda x: select_column(x, 2),
        lambda x: int(x),
        False],
   'num_propd':
       ['PROPD', 
-       lambda x: b'propagations down:' in x,
-       lambda x: x.split()[3], 
+       lambda x: 'propagations down' in x,
+       lambda x: select_column(x, 3),
        lambda x: int(x),
        False],
   'time_clapp':
       ['CLONE[s]', 
-       lambda x: b'cloning for initial applies search' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'cloning for initial applies search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_sapp':
       ['SATDP[s]', 
-       lambda x: b'SAT solving for initial applies search' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'SAT solving for initial applies search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_app':
       ['APP[s]', 
-       lambda x: b'seconds initial applies search' in x,
-       lambda x: x.split()[1], 
+       lambda x: 'seconds initial applies search' in x,
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'time_coll': 
       ['COL[s]', 
-       lambda x: b'collecting initial applies' in x, 
-       lambda x: x.split()[1], 
+       lambda x: 'collecting initial applies' in x, 
+       lambda x: select_column(x, 1),
        lambda x: float(x),
        False],
   'num_moves': 
       ['MOVES',
-       lambda x: b'moves:' in x,
-       lambda x: x.split()[2],
+       lambda x: 'moves' in x,
+       lambda x: select_column(x, 2),
        lambda x: int(x),
        False],
   'num_props':
       ['PROPS',
-       lambda x: b'propagation (steps):' in x,
-       lambda x: x.split()[3],
+       lambda x: 'propagation (steps)' in x,
+       lambda x: select_column(x, 3),
        lambda x: int(x),
        False],
   'num_conf_rec': 
       ['CONF(REC)',
-       lambda x: b'propagation move conflicts (recoverable):' in x,
-       lambda x: x.split()[5],
+       lambda x: 'propagation move conflicts (recoverable)' in x,
+       lambda x: select_column(x, 5),
        lambda x: int(x),
        False],
   'num_conf_non_rec': 
       ['CONF(NON-REC)',
-       lambda x: b'propagation move conflicts (non-recoverable):' in x,
-       lambda x: x.split()[5],
+       lambda x: 'propagation move conflicts (non-recoverable)' in x,
+       lambda x: select_column(x, 5),
        lambda x: int(x),
        False],
   'num_fvars': 
       ['FVAR',
-       lambda x: b'dual prop: failed vars:' in x,
-       lambda x: x.split()[5],
+       lambda x: 'dual prop: failed vars' in x,
+       lambda x: select_column(x, 5),
        lambda x: int(x),
        False],
   'num_fapps':
       ['FAPP',
-       lambda x: b'dual prop: failed applies:' in x,
-       lambda x: x.split()[5],
+       lambda x: 'dual prop: failed applies' in x,
+       lambda x: select_column(x, 5),
        lambda x: int(x),
        False]
 }
 
 
 def err_extract_status(line):
-    status = line.split(b':')[1].strip()
-    if b'ok' in status:
+    status = line.split(':')[1].strip()
+    if 'ok' in status:
         return 'ok'
-    elif b'time' in status:
+    elif 'time' in status:
         return 'time'
-    elif b'memory' in status:
+    elif 'memory' in status:
         return 'mem'
-    elif b'segmentation' in status:
+    elif 'segmentation' in status:
         return 'segf'
-    elif b'signal' in status:
+    elif 'signal' in status:
         return 'sig'
     else:
-        raise CmpSMTException("invalid status: '{}'".format(status.decode()))
+        raise CmpSMTException("invalid status: '{}'".format(status))
 
 
 def err_extract_opts(line):
-    opt = line.split()[2].decode()
+    opt = line.split()[2]
     if opt[0] == '-':
         return opt
     return None 
@@ -230,79 +240,79 @@ def err_extract_opts(line):
 FILTER_ERR = {
   'status':
       ['STAT', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_solved':
       ['SLVD', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_total':
       ['TOT', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_time':
       ['TOUTS', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_mem':
       ['MOUTS', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_err':
       ['ERR', 
-       lambda x: b'runlim' in x and b'status:' in x,
+       lambda x: 'runlim' in x and 'status:' in x,
        err_extract_status,
        lambda x: str(x),
        False],
   'g_sat':
       ['SAT', 
-       lambda x: b'runlim' in x and b'result:' in x,
+       lambda x: 'runlim' in x and 'result:' in x,
        lambda x: x.split()[2],
        lambda x: int(x),
        False],
   'g_unsat':
       ['UNSAT', 
-       lambda x: b'runlim' in x and b'result:' in x,
+       lambda x: 'runlim' in x and 'result:' in x,
        lambda x: x.split()[2],
        lambda x: int(x),
        False],
   'result':
       ['RES', 
-       lambda x: b'runlim' in x and b'result:' in x,
+       lambda x: 'runlim' in x and 'result:' in x,
        lambda x: x.split()[2],
        lambda x: int(x),
        False],
   'time_real':
       ['REAL[s]', 
-       lambda x: b'runlim' in x and b'real:' in x,
+       lambda x: 'runlim' in x and 'real:' in x,
        lambda x: x.split()[2],
        lambda x: float(x),
        False],
   'time_time':
       ['TIME[s]', 
-       lambda x: b'runlim' in x and b'time:' in x,
+       lambda x: 'runlim' in x and 'time:' in x,
        lambda x: x.split()[2],
        lambda x: float(x),
        False],
   'space':
       ['SPACE[MB]', 
-       lambda x: b'runlim' in x and b'space:' in x,
+       lambda x: 'runlim' in x and 'space:' in x,
        lambda x: x.split()[2],
        lambda x: float(x),
        False],
 #  'opts':
 #     ['OPTIONS', 
-#      lambda x: b'runlim' in x and b'argv' in x,
+#      lambda x: 'runlim' in x and 'argv' in x,
 #      err_extract_opts,
 #      lambda x: str(x),
 #      True] 
@@ -328,8 +338,8 @@ TOTALS_FORMAT_ERR = {
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_OUT = {
-  'models_arr':  ['MARR', lambda x: b'[' in x, lambda x: 1, False],
-  'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
+  'models_arr':  ['MARR', lambda x: '[' in x, lambda x: 1, False],
+  'models_bvar': ['MVAR', lambda x: '[' not in x, lambda x: 1, False]
 }
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
@@ -352,7 +362,7 @@ def _filter_data(d, file, filters):
     global g_file_stats, g_dir_stats
     
     dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-    with open(os.path.join(d, file), 'rb') as infile:
+    with open(os.path.join(d, file), 'r') as infile:
         (f_name, f_ext) = _get_name_and_ext(file)
 
         if os.stat(os.path.join(d, file)).st_size == 0:
@@ -412,7 +422,7 @@ def _filter_data(d, file, filters):
                         g_file_stats[k][d][f_name] = None
 
                     if f_ext == 'out' \
-                       and line in (b'sat', b'unsat', b'unknown'): 
+                       and line in ('sat', 'unsat', 'unknown'): 
                            continue
             
                     if val is not None:
@@ -1015,6 +1025,8 @@ def _print_data ():
         for k in g_dir_stats:
             columns = [_get_column_name(k)]
             for d in g_args.dirs:
+                print(d)
+                print(g_dir_stats)
                 columns.append(" ".join(g_dir_stats[k][d]))
             _print_row (columns, widths, colspans=colspans, classes=classes)
 
