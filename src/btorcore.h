@@ -189,6 +189,7 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+    long long betap_reduce_calls;
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif

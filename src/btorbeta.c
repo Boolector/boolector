@@ -585,7 +585,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
     return btor_copy_exp (btor, exp);
 
   start = btor_time_stamp ();
-  btor->stats.beta_reduce_calls++;
+  btor->stats.betap_reduce_calls++;
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, stack);

@@ -2429,26 +2429,26 @@ print_stats_fun_solver (BtorFunSolver *slv)
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
   BTOR_MSG (btor->msg,
             1,
-            " refinement iterations: %d",
+            "%4d refinement iterations",
             slv->stats.refinement_iterations);
-  BTOR_MSG (btor->msg, 1, " LOD refinements: %d", slv->stats.lod_refinements);
+  BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
   if (slv->stats.lod_refinements)
   {
     BTOR_MSG (btor->msg,
               1,
-              " function congruence conflicts: %d",
+              "  %4d function congruence conflicts",
               slv->stats.function_congruence_conflicts);
     BTOR_MSG (btor->msg,
               1,
-              " beta reduction conflicts: %d",
+              "  %4d beta reduction conflicts",
               slv->stats.beta_reduction_conflicts);
     BTOR_MSG (btor->msg,
               1,
-              " extensionality lemmas: %d",
+              "  %4d extensionality lemmas",
               slv->stats.extensionality_lemmas);
     BTOR_MSG (btor->msg,
               1,
-              " average lemma size: %.1f",
+              "  %.1f average lemma size",
               BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
                                  slv->stats.lod_refinements));
     for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
@@ -2456,28 +2456,33 @@ print_stats_fun_solver (BtorFunSolver *slv)
       if (!slv->stats.lemmas_size.start[i]) continue;
       BTOR_MSG (btor->msg,
                 1,
-                "   lemmas of size %d: %d",
-                i,
-                slv->stats.lemmas_size.start[i]);
+                "    %4d lemmas of size %d",
+                slv->stats.lemmas_size.start[i],
+                i);
     }
   }
 
+  BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
-      btor->msg, 1, "expression evaluations: %lld", slv->stats.eval_exp_calls);
-  BTOR_MSG (btor->msg, 1, "propagations: %lld", slv->stats.propagations);
+      btor->msg, 1, "%6lld expression evaluations", slv->stats.eval_exp_calls);
+  BTOR_MSG (btor->msg,
+            1,
+            "%6lld partial beta reductions",
+            btor->stats.betap_reduce_calls);
+  BTOR_MSG (btor->msg, 1, "%6lld propagations", slv->stats.propagations);
   BTOR_MSG (
-      btor->msg, 1, "propagations down: %lld", slv->stats.propagations_down);
+      btor->msg, 1, "%6lld propagations down", slv->stats.propagations_down);
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
-              "dual prop. vars (failed/assumed): %d/%d",
+              "%d/%d dual prop. vars (failed/assumed)",
               slv->stats.dp_failed_vars,
               slv->stats.dp_assumed_vars);
     BTOR_MSG (btor->msg,
               1,
-              "dual prop. applies (failed/assumed): %d/%d",
+              "%d/%d dual prop. applies (failed/assumed)",
               slv->stats.dp_failed_applies,
               slv->stats.dp_assumed_applies);
   }
