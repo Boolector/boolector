@@ -74,6 +74,12 @@ struct BtorFunSolver
     double search_init_apps_collect_fa_cone;
     double lemma_gen;
     double find_prop_app;
+    double check_consistency;
+    double prop;
+    double betap;
+    double find_conf_app;
+    double check_extensionality;
+    double prop_cleanup;
   } time;
 };
 

@@ -870,7 +870,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
            __FUNCTION__,
            node2string (result),
            BTOR_IS_INVERTED_NODE (result));
-  btor->time.beta += btor_time_stamp () - start;
+  btor->time.betap += btor_time_stamp () - start;
 
   return result;
 }

@@ -20,7 +20,7 @@ btor_add_ackermann_constraints (Btor *btor)
   assert (btor);
 
   int i, j, num_constraints = 0;
-  double start;
+  double start, delta;
   BtorNode *uf, *app_i, *app_j, *p, *c, *imp, *a_i, *a_j, *eq, *tmp;
   BtorNode *cur;
   BtorArgsIterator ait_i, ait_j;
@@ -107,9 +107,11 @@ btor_add_ackermann_constraints (Btor *btor)
     BTOR_RELEASE_STACK (applies);
   }
   btor_delete_int_hash_table (cache);
+  delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
             "added %d ackermann constraints in %.3f seconds",
             num_constraints,
-            btor_time_stamp () - start);
+            delta);
+  btor->time.ack += delta;
 }

@@ -274,4 +274,5 @@ btor_merge_lambdas (Btor *btor)
             "merged %d lambdas in %.2f seconds",
             num_merged_lambdas,
             delta);
+  btor->time.merge += delta;
 }

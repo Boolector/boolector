@@ -1418,4 +1418,5 @@ btor_extract_lambdas (Btor *btor)
   delta = btor_time_stamp () - start;
   BTOR_MSG (
       btor->msg, 1, "extracted %u lambdas in %.3f seconds", num_lambdas, delta);
+  btor->time.extract += delta;
 }

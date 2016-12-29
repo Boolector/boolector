@@ -555,46 +555,71 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds substitute and rebuild",
             btor->time.subst_rebuild);
-  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
-    BTOR_MSG (btor->msg,
-              1,
-              "%.2f seconds for unconstrained optimization",
-              btor->time.ucopt);
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
     BTOR_MSG (
         btor->msg, 1, "%.2f seconds model generation", btor->time.model_gen);
+
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (
-      btor->msg, 1, "%.2f seconds in rewriting engine", btor->time.rewrite);
+  BTOR_MSG (btor->msg, 1, "%.2f seconds rewriting engine", btor->time.simplify);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in variable substitution during rewriting (%.0f%%)",
+            "  %.2f seconds variable substitution (%.0f%%)",
             btor->time.subst,
-            percent (btor->time.subst, btor->time.rewrite));
-  BTOR_MSG (
-      btor->msg,
-      1,
-      "%.2f seconds in embedded constraint replacing during rewriting (%.0f%%)",
-      btor->time.embedded,
-      percent (btor->time.embedded, btor->time.rewrite));
+            percent (btor->time.subst, btor->time.simplify));
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in apply elimination during rewriting (%.0f%%)",
-            btor->time.elimapplies,
-            percent (btor->time.elimapplies, btor->time.rewrite));
+            "  %.2f seconds embedded substitution (%.0f%%)",
+            btor->time.embedded,
+            percent (btor->time.embedded, btor->time.simplify));
+
   if (btor_get_opt (btor, BTOR_OPT_ELIMINATE_SLICES))
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds in slicing during rewriting (%.0f%%)",
+              "  %.2f seconds variable slicing (%.0f%%)",
               btor->time.slicing,
-              percent (btor->time.slicing, btor->time.rewrite));
+              percent (btor->time.slicing, btor->time.simplify));
+
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds skeleton preprocessing during rewriting (%.0f%%)",
+            "  %.2f seconds skeleton preprocessing (%.0f%%)",
             btor->time.skel,
-            percent (btor->time.skel, btor->time.rewrite));
+            percent (btor->time.skel, btor->time.simplify));
 #endif
+
+  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds unconstrained optimization",
+              btor->time.ucopt);
+
+  if (btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds lambda extraction (%.0f%%)",
+              btor->time.extract,
+              percent (btor->time.extract, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds lambda merging (%.0f%%)",
+              btor->time.merge,
+              percent (btor->time.merge, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds apply elimination (%.0f%%)",
+              btor->time.elimapplies,
+              percent (btor->time.elimapplies, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_ACKERMANN))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds ackermann constraints (%.0f%%)",
+              btor->time.ack,
+              percent (btor->time.ack, btor->time.simplify));
 
   if (btor->slv) btor->slv->api.print_time_stats (btor->slv);
 
@@ -3145,7 +3170,7 @@ btor_simplify (Btor *btor)
 
 DONE:
   delta = btor_time_stamp () - start;
-  btor->time.rewrite += delta;
+  btor->time.simplify += delta;
   BTOR_MSG (btor->msg, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
   if (btor->inconsistent)
