@@ -1572,17 +1572,14 @@ const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
 /*!
   Set the symbol of an expression.
 
-  Expression must be either an array or
-  bit vector variable, a parameter, or an uninterpreted function).
-
   :param btor: Boolector instance.
-  :param var: Array or bit vector variable, parameter, uninterpreted function.
+  :param node: Boolector node.
   :param symbol: The symbol to be set.
 
   .. seealso::
     boolector_var, boolector_array, boolector_uf, boolector_param
 */
-void boolector_set_symbol (Btor *btor, BoolectorNode *var, const char *symbol);
+void boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol);
 
 /*!
   Get the bit width of an expression.
