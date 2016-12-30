@@ -2464,14 +2464,14 @@ print_stats_fun_solver (BtorFunSolver *slv)
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
-      btor->msg, 1, "%6lld expression evaluations", slv->stats.eval_exp_calls);
+      btor->msg, 1, "%7lld expression evaluations", slv->stats.eval_exp_calls);
   BTOR_MSG (btor->msg,
             1,
-            "%6lld partial beta reductions",
+            "%7lld partial beta reductions",
             btor->stats.betap_reduce_calls);
-  BTOR_MSG (btor->msg, 1, "%6lld propagations", slv->stats.propagations);
+  BTOR_MSG (btor->msg, 1, "%7lld propagations", slv->stats.propagations);
   BTOR_MSG (
-      btor->msg, 1, "%6lld propagations down", slv->stats.propagations_down);
+      btor->msg, 1, "%7lld propagations down", slv->stats.propagations_down);
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
