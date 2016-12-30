@@ -681,14 +681,17 @@ btormbt_release_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
   BTOR_DELETE (mm, expstack);
 }
 
-#define RELEASE_EXP_STACK(stack)                                  \
-  do                                                              \
-  {                                                               \
-    int i;                                                        \
-    for (i = 0; i < BTOR_COUNT_STACK (mbt->stack->exps); i++)     \
-      btormbt_release_node (mbt, mbt->stack->exps.start[i]->exp); \
-    btormbt_release_exp_stack (mbt->mm, mbt->stack);              \
-    mbt->stack = 0;                                               \
+#define RELEASE_EXP_STACK(stack, dorelease)                         \
+  do                                                                \
+  {                                                                 \
+    int i;                                                          \
+    if (dorelease)                                                  \
+    {                                                               \
+      for (i = 0; i < BTOR_COUNT_STACK (mbt->stack->exps); i++)     \
+        btormbt_release_node (mbt, mbt->stack->exps.start[i]->exp); \
+    }                                                               \
+    btormbt_release_exp_stack (mbt->mm, mbt->stack);                \
+    mbt->stack = 0;                                                 \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -3856,12 +3859,16 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt);
   assert (mbt->btor);
 
-  RELEASE_EXP_STACK (bo);
-  RELEASE_EXP_STACK (bv);
-  RELEASE_EXP_STACK (arr);
-  RELEASE_EXP_STACK (fun);
-  RELEASE_EXP_STACK (uf);
-  RELEASE_EXP_STACK (assumptions);
+  bool release_all;
+
+  release_all = btor_pick_with_prob_rng (&mbt->round.rng, 100);
+
+  RELEASE_EXP_STACK (bo, !release_all);
+  RELEASE_EXP_STACK (bv, !release_all);
+  RELEASE_EXP_STACK (arr, !release_all);
+  RELEASE_EXP_STACK (fun, !release_all);
+  RELEASE_EXP_STACK (uf, !release_all);
+  RELEASE_EXP_STACK (assumptions, !release_all);
 
   RELEASE_SORT_STACK (bv_sorts);
   RELEASE_SORT_STACK (fun_sorts);
@@ -3871,8 +3878,7 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt->paramarr == NULL);
   assert (mbt->paramfun == NULL);
 
-  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
-    boolector_release_all (mbt->btor);
+  if (release_all) boolector_release_all (mbt->btor);
   boolector_delete (mbt->btor);
   mbt->btor = NULL;
   return 0;
