@@ -319,7 +319,7 @@ copy_sort (BtorSort *sort)
 }
 
 static BtorSort *
-create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
+create_sort (Btor *btor, BtorSortUniqueTable *table, BtorSort *pattern)
 {
   assert (table);
   assert (pattern);
@@ -328,6 +328,10 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
   BtorSort *res;
 
   BTOR_CNEW (table->mm, res);
+
+#ifndef NDEBUG
+  res->btor = btor;
+#endif
 
   switch (pattern->kind)
   {
@@ -428,7 +432,7 @@ btor_bitvec_sort (Btor *btor, unsigned width)
       res = *pos;
       assert (!res);
     }
-    res  = create_sort (table, &pattern);
+    res  = create_sort (btor, table, &pattern);
     *pos = res;
   }
   inc_sort_ref_counter (res);
@@ -483,7 +487,7 @@ btor_array_sort (Btor *btor, BtorSortId index_id, BtorSortId element_id)
 	  res = *pos;
 	  assert (!res);
 	}
-      res = create_sort (table, &pattern);
+      res = create_sort (btor, table, &pattern);
       *pos = res;
     }
   inc_sort_ref_counter (res);
@@ -529,7 +533,7 @@ btor_lst_sort (Btor *btor, BtorSortId head_id, BtorSortId tail_id)
       res = *pos;
       assert (!res);
     }
-    res  = create_sort (table, &pattern);
+    res  = create_sort (btor, table, &pattern);
     *pos = res;
   }
   inc_sort_ref_counter (res);
@@ -574,7 +578,7 @@ btor_fun_sort (Btor *btor, BtorSortId domain_id, BtorSortId codomain_id)
       res = *pos;
       assert (!res);
     }
-    res            = create_sort (table, &pattern);
+    res            = create_sort (btor, table, &pattern);
     res->fun.arity = domain->tuple.num_elements;
     *pos           = res;
   }
@@ -620,7 +624,7 @@ btor_tuple_sort (Btor *btor, BtorSortId *element_ids, size_t num_elements)
       res = *pos;
       assert (!res);
     }
-    res  = create_sort (table, &pattern);
+    res  = create_sort (btor, table, &pattern);
     *pos = res;
   }
   inc_sort_ref_counter (res);
