@@ -917,20 +917,20 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 static void
-search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
+search_initial_applies_bv_skeleton (Btor *btor,
+                                    BtorNodePtrStack *applies,
+                                    BtorIntHashTable *cache)
 {
   assert (btor);
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (applies);
-  assert (BTOR_EMPTY_STACK (*applies));
 
   double start;
   int i;
   BtorNode *cur;
   BtorNodePtrStack stack;
   BtorPtrHashTableIterator it;
-  BtorIntHashTable *mark;
   BtorMemMgr *mm;
 
   start = btor_time_stamp ();
@@ -940,7 +940,6 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, stack);
-  mark = btor_new_int_hash_table (mm);
 
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -953,9 +952,9 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
 
-      if (btor_contains_int_hash_table (mark, cur->id)) continue;
+      if (btor_contains_int_hash_table (cache, cur->id)) continue;
 
-      btor_add_int_hash_table (mark, cur->id);
+      btor_add_int_hash_table (cache, cur->id);
 
       if (btor_is_apply_node (cur) && !cur->parameterized)
       {
@@ -970,8 +969,6 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_table (mark);
-
   BTOR_FUN_SOLVER (btor)->time.search_init_apps += btor_time_stamp () - start;
 }
 
@@ -2067,7 +2064,9 @@ static void
 check_and_resolve_conflicts (Btor *btor,
                              Btor *clone,
                              BtorNode *clone_root,
-                             BtorNodeMap *exp_map)
+                             BtorNodeMap *exp_map,
+                             BtorNodePtrStack *init_apps,
+                             BtorIntHashTable *init_apps_cache)
 {
   assert (btor);
   assert (btor->slv);
@@ -2075,6 +2074,7 @@ check_and_resolve_conflicts (Btor *btor,
 
   double start, start_cleanup;
   bool found_conflicts;
+  int32_t i;
   BtorMemMgr *mm;
   BtorFunSolver *slv;
   BtorNode *app, *cur;
@@ -2122,16 +2122,22 @@ check_and_resolve_conflicts (Btor *btor,
   }
 
   if (clone)
+  {
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
+    init_apps = &top_applies;
+  }
   else if (btor_get_opt (btor, BTOR_OPT_FUN_JUST))
-    search_initial_applies_just (btor, &top_applies);
-  else
-    search_initial_applies_bv_skeleton (btor, &top_applies);
-
-  while (!BTOR_EMPTY_STACK (top_applies))
   {
-    app = BTOR_POP_STACK (top_applies);
+    search_initial_applies_just (btor, &top_applies);
+    init_apps = &top_applies;
+  }
+  else
+    search_initial_applies_bv_skeleton (btor, init_apps, init_apps_cache);
+
+  for (i = BTOR_COUNT_STACK (*init_apps) - 1; i >= 0; i--)
+  {
+    app = BTOR_PEEK_STACK (*init_apps, i);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (btor_is_apply_node (app));
     assert (!app->parameterized);
@@ -2222,9 +2228,16 @@ sat_fun_solver (BtorFunSolver *slv)
   Btor *btor, *clone;
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
+  BtorIntHashTable *init_apps_cache;
+  BtorNodePtrStack init_apps;
 
   start = btor_time_stamp ();
   btor  = slv->btor;
+
+  /* make initial applies in bv skeleton global in order to prevent
+   * traversing the whole formula every refinement round */
+  BTOR_INIT_STACK (btor->mm, init_apps);
+  init_apps_cache = btor_new_int_hash_table (btor->mm);
 
   clone      = 0;
   clone_root = 0;
@@ -2328,7 +2341,8 @@ sat_fun_solver (BtorFunSolver *slv)
 
     if (btor->ufs->count == 0 && btor->lambdas->count == 0) break;
 
-    check_and_resolve_conflicts (btor, clone, clone_root, exp_map);
+    check_and_resolve_conflicts (
+        btor, clone, clone_root, exp_map, &init_apps, init_apps_cache);
     if (BTOR_EMPTY_STACK (slv->cur_lemmas)) break;
     slv->stats.refinement_iterations++;
 
@@ -2363,11 +2377,11 @@ sat_fun_solver (BtorFunSolver *slv)
   }
 
 DONE:
-  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY) && slv->stats.lod_refinements > 0)
-    fprintf (stdout, "\n");
-
   btor->valid_assignments = 1;
   btor->last_sat_result   = result;
+
+  BTOR_RELEASE_STACK (init_apps);
+  btor_delete_int_hash_table (init_apps_cache);
 
   if (clone)
   {
