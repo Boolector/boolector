@@ -1598,8 +1598,9 @@ push_applies_for_propagation (Btor *btor,
 }
 
 static bool
-check_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
+find_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
 {
+  double start;
   bool res = false;
   uint32_t i;
   BtorIntHashTable *cache;
@@ -1607,6 +1608,7 @@ check_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
   BtorNodePtrStack visit;
   BtorNode *cur;
 
+  start = btor_time_stamp ();
   mm    = btor->mm;
   cache = btor_new_int_hash_table (mm);
   BTOR_INIT_STACK (mm, visit);
@@ -1632,6 +1634,7 @@ check_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
   }
   btor_delete_int_hash_table (cache);
   BTOR_RELEASE_STACK (visit);
+  BTOR_FUN_SOLVER (btor)->time.find_conf_app += btor_time_stamp () - start;
   return res;
 }
 
@@ -1648,6 +1651,7 @@ propagate (Btor *btor,
   assert (cleanup_table);
   assert (apply_search_cache);
 
+  double start;
   bool opt_eager_lemmas, prop_down, conflict, restart;
   BtorBitVector *bv;
   BtorMemMgr *mm;
@@ -1659,6 +1663,7 @@ propagate (Btor *btor,
   BtorPtrHashTable *conds;
   BtorIntHashTable *conf_apps;
 
+  start            = btor_time_stamp ();
   mm               = btor->mm;
   slv              = BTOR_FUN_SOLVER (btor);
   conf_apps        = btor_new_int_hash_table (mm);
@@ -1729,7 +1734,7 @@ propagate (Btor *btor,
           if (opt_eager_lemmas)
           {
             btor_add_int_hash_table (conf_apps, app->id);
-            restart = check_conflict_app (btor, app, conf_apps);
+            restart = find_conflict_app (btor, app, conf_apps);
           }
           slv->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
@@ -1799,7 +1804,7 @@ propagate (Btor *btor,
       if (opt_eager_lemmas)
       {
         btor_add_int_hash_table (conf_apps, app->id);
-        restart = check_conflict_app (btor, app, conf_apps);
+        restart = find_conflict_app (btor, app, conf_apps);
       }
       slv->stats.beta_reduction_conflicts++;
       add_lemma (btor, fun, app, 0);
@@ -1843,6 +1848,7 @@ propagate (Btor *btor,
     if (restart && conflict) break;
   }
   btor_delete_int_hash_table (conf_apps);
+  slv->time.prop += btor_time_stamp () - start;
 }
 
 /* generate hash table for function 'fun' consisting of all rho and static_rho
@@ -1944,6 +1950,7 @@ add_extensionality_lemmas (Btor *btor)
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
 
+  double start, delta;
   bool skip;
   BtorBitVector *evalbv;
   unsigned num_lemmas = 0;
@@ -1955,6 +1962,8 @@ add_extensionality_lemmas (Btor *btor)
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
   BtorFunSolver *slv;
+
+  start = btor_time_stamp ();
 
   BTORLOG (1, "");
   BTORLOG (1, "*** %s", __FUNCTION__);
@@ -2048,7 +2057,10 @@ add_extensionality_lemmas (Btor *btor)
   }
   BTOR_RELEASE_STACK (feqs);
 
-  BTORLOG (1, "  added %u extensionality lemmas", num_lemmas);
+  delta = btor_time_stamp () - start;
+  BTORLOG (
+      1, "  added %u extensionality lemma in %.2f seconds", num_lemmas, delta);
+  slv->time.check_extensionality += delta;
 }
 
 static void
@@ -2061,6 +2073,7 @@ check_and_resolve_conflicts (Btor *btor,
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
 
+  double start, start_cleanup;
   bool found_conflicts;
   BtorMemMgr *mm;
   BtorFunSolver *slv;
@@ -2072,11 +2085,11 @@ check_and_resolve_conflicts (Btor *btor,
   BtorPtrHashTableIterator pit;
   BtorIntHashTableIterator iit;
 
-  slv                = BTOR_FUN_SOLVER (btor);
-  apply_search_cache = 0;
-  found_conflicts    = false;
-  mm                 = btor->mm;
-  slv                = BTOR_FUN_SOLVER (btor);
+  start           = btor_time_stamp ();
+  slv             = BTOR_FUN_SOLVER (btor);
+  found_conflicts = false;
+  mm              = btor->mm;
+  slv             = BTOR_FUN_SOLVER (btor);
 
   /* initialize new bit vector model, which will be constructed while
    * consistency checking. this also deletes the model from the previous run */
@@ -2089,14 +2102,7 @@ check_and_resolve_conflicts (Btor *btor,
   BTOR_INIT_STACK (mm, prop_stack);
   BTOR_INIT_STACK (mm, top_applies);
 
-  /* cache applies that were visited while searching for applies to propagate.
-   * applies added to this cache will be skipped in the apply search the next
-   * time they are visited.
-   * Note: the id of the resp. apply will be added to 'apply_search_cache',
-   *       hence, we don't have to ensure that these applies still exist in
-   *       memory.
-   */
-  if (!apply_search_cache) apply_search_cache = btor_new_int_hash_table (mm);
+  apply_search_cache = btor_new_int_hash_table (mm);
 
   /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
    * top level equality). if terms containing applies do not occur in the
@@ -2137,6 +2143,7 @@ check_and_resolve_conflicts (Btor *btor,
   propagate (btor, &prop_stack, cleanup_table, apply_search_cache);
   found_conflicts = BTOR_COUNT_STACK (slv->cur_lemmas) > 0;
 
+  /* check consistency of array/uf equalities */
   if (!found_conflicts && btor->feqs->count > 0)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
@@ -2161,6 +2168,7 @@ check_and_resolve_conflicts (Btor *btor,
     }
   }
 
+  start_cleanup = btor_time_stamp ();
   btor_init_ptr_hash_table_iterator (&pit, cleanup_table);
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
@@ -2192,12 +2200,12 @@ check_and_resolve_conflicts (Btor *btor,
       }
     }
   }
+  slv->time.prop_cleanup += btor_time_stamp () - start_cleanup;
   btor_delete_ptr_hash_table (cleanup_table);
   BTOR_RELEASE_STACK (prop_stack);
   BTOR_RELEASE_STACK (top_applies);
-
   btor_delete_int_hash_table (apply_search_cache);
-  apply_search_cache = 0;
+  slv->time.check_consistency += btor_time_stamp () - start;
 }
 
 static BtorSolverResult
@@ -2421,26 +2429,26 @@ print_stats_fun_solver (BtorFunSolver *slv)
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
   BTOR_MSG (btor->msg,
             1,
-            " refinement iterations: %d",
+            "%4d refinement iterations",
             slv->stats.refinement_iterations);
-  BTOR_MSG (btor->msg, 1, " LOD refinements: %d", slv->stats.lod_refinements);
+  BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
   if (slv->stats.lod_refinements)
   {
     BTOR_MSG (btor->msg,
               1,
-              " function congruence conflicts: %d",
+              "  %4d function congruence conflicts",
               slv->stats.function_congruence_conflicts);
     BTOR_MSG (btor->msg,
               1,
-              " beta reduction conflicts: %d",
+              "  %4d beta reduction conflicts",
               slv->stats.beta_reduction_conflicts);
     BTOR_MSG (btor->msg,
               1,
-              " extensionality lemmas: %d",
+              "  %4d extensionality lemmas",
               slv->stats.extensionality_lemmas);
     BTOR_MSG (btor->msg,
               1,
-              " average lemma size: %.1f",
+              "  %.1f average lemma size",
               BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
                                  slv->stats.lod_refinements));
     for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
@@ -2448,32 +2456,33 @@ print_stats_fun_solver (BtorFunSolver *slv)
       if (!slv->stats.lemmas_size.start[i]) continue;
       BTOR_MSG (btor->msg,
                 1,
-                "   lemmas of size %d: %d",
-                i,
-                slv->stats.lemmas_size.start[i]);
+                "    %4d lemmas of size %d",
+                slv->stats.lemmas_size.start[i],
+                i);
     }
   }
 
+  BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
-      btor->msg, 1, "expression evaluations: %lld", slv->stats.eval_exp_calls);
-  BTOR_MSG (btor->msg, 1, "propagations: %lld", slv->stats.propagations);
-  BTOR_MSG (
-      btor->msg, 1, "propagations down: %lld", slv->stats.propagations_down);
+      btor->msg, 1, "%6lld expression evaluations", slv->stats.eval_exp_calls);
   BTOR_MSG (btor->msg,
             1,
-            "partial beta reduction restarts: %lld",
-            slv->stats.partial_beta_reduction_restarts);
+            "%6lld partial beta reductions",
+            btor->stats.betap_reduce_calls);
+  BTOR_MSG (btor->msg, 1, "%6lld propagations", slv->stats.propagations);
+  BTOR_MSG (
+      btor->msg, 1, "%6lld propagations down", slv->stats.propagations_down);
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
-              "dual prop. vars (failed/assumed): %d/%d",
+              "%d/%d dual prop. vars (failed/assumed)",
               slv->stats.dp_failed_vars,
               slv->stats.dp_assumed_vars);
     BTOR_MSG (btor->msg,
               1,
-              "dual prop. applies (failed/assumed): %d/%d",
+              "%d/%d dual prop. applies (failed/assumed)",
               slv->stats.dp_failed_applies,
               slv->stats.dp_assumed_applies);
   }
@@ -2492,10 +2501,13 @@ print_time_stats_fun_solver (BtorFunSolver *slv)
   btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "%.2f seconds expression evaluation", slv->time.eval);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds initial applies search",
+            "%.2f seconds consistency checking",
+            slv->time.check_consistency);
+  BTOR_MSG (btor->msg,
+            1,
+            "  %.2f seconds initial applies search",
             slv->time.search_init_apps);
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_JUST)
@@ -2503,57 +2515,64 @@ print_time_stats_fun_solver (BtorFunSolver *slv)
   {
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds compute scores for initial applies search",
+              "    %.2f seconds compute scores",
               slv->time.search_init_apps_compute_scores);
-    BTOR_MSG (
-        btor->msg,
-        1,
-        "%.2f seconds merge applies in compute scores for init apps search",
-        slv->time.search_init_apps_compute_scores_merge_applies);
+    BTOR_MSG (btor->msg,
+              1,
+              "      %.2f seconds merge applies",
+              slv->time.search_init_apps_compute_scores_merge_applies);
   }
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds cloning for initial applies search",
+              "    %.2f seconds cloning",
               slv->time.search_init_apps_cloning);
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds SAT solving for initial applies search",
+              "    %.2f seconds SAT solving",
               slv->time.search_init_apps_sat);
-    BTOR_MSG (
-        btor->msg,
-        1,
-        "%.2f seconds collecting bv vars and apps for initial applies search",
-        slv->time.search_init_apps_collect_var_apps);
-    BTOR_MSG (
-        btor->msg,
-        1,
-        "%.2f seconds collecting initial applies via failed assumptions (FA)",
-        slv->time.search_init_apps_collect_fa);
-    BTOR_MSG (
-        btor->msg,
-        1,
-        "%.2f seconds cone traversal when collecting initial applies via FA",
-        slv->time.search_init_apps_collect_fa_cone);
-  }
-
-  BTOR_MSG (btor->msg, 1, "%.2f seconds lemma generation", slv->time.lemma_gen);
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds not encoded apply search",
-            slv->time.find_nenc_app);
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds propagation apply search",
-            slv->time.find_prop_app);
-
-  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds propagation apply in conds search",
-              slv->time.find_cond_prop_app);
+              "    %.2f seconds collecting bv vars and apps",
+              slv->time.search_init_apps_collect_var_apps);
+    BTOR_MSG (btor->msg,
+              1,
+              "    %.2f seconds collecting initial applies (FA)",
+              slv->time.search_init_apps_collect_fa);
+    BTOR_MSG (btor->msg,
+              1,
+              "      %.2f seconds cone traversal",
+              slv->time.search_init_apps_collect_fa_cone);
+  }
+
+  BTOR_MSG (btor->msg, 1, "  %.2f seconds propagation", slv->time.prop);
+  BTOR_MSG (
+      btor->msg, 1, "    %.2f seconds expression evaluation", slv->time.eval);
+  BTOR_MSG (btor->msg,
+            1,
+            "    %.2f seconds partial beta reduction",
+            btor->time.betap);
+  BTOR_MSG (
+      btor->msg, 1, "    %.2f seconds lemma generation", slv->time.lemma_gen);
+  BTOR_MSG (btor->msg,
+            1,
+            "    %.2f seconds propagation apply search",
+            slv->time.find_prop_app);
+  BTOR_MSG (btor->msg,
+            1,
+            "    %.2f seconds conflict apply search",
+            slv->time.find_conf_app);
+  if (btor->feqs->count > 0)
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds check extensionality",
+              slv->time.check_extensionality);
+  BTOR_MSG (btor->msg,
+            1,
+            "  %.2f seconds propagation cleanup",
+            slv->time.prop_cleanup);
 
   BTOR_MSG (btor->msg, 1, "%.2f seconds in pure SAT solving", slv->time.sat);
   BTOR_MSG (btor->msg, 1, "");

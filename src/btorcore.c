@@ -410,48 +410,25 @@ btor_print_stats_btor (Btor *btor)
   verbosity = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
 
   report_constraint_stats (btor, 1);
-  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
-  {
-    BTOR_MSG (
-        btor->msg, 1, "unconstrained bv props: %d", btor->stats.bv_uc_props);
-    BTOR_MSG (btor->msg,
-              1,
-              "unconstrained array props: %d",
-              btor->stats.fun_uc_props);
-    BTOR_MSG (btor->msg,
-              1,
-              "unconstrained parameterized props: %d",
-              btor->stats.param_uc_props);
-  }
-  BTOR_MSG (btor->msg,
-            1,
-            "variable substitutions: %d",
-            btor->stats.var_substitutions);
-  BTOR_MSG (btor->msg,
-            1,
-            "uninterpreted function substitutions: %d",
-            btor->stats.uf_substitutions);
-  BTOR_MSG (btor->msg,
-            1,
-            "embedded constraint substitutions: %d",
-            btor->stats.ec_substitutions);
-  BTOR_MSG (btor->msg, 1, "assumptions: %u", btor->assumptions->count);
+
+  BTOR_MSG (btor->msg, 1, "%u assumptions", btor->assumptions->count);
 
   if (verbosity > 0)
   {
-    BTOR_MSG (btor->msg, 2, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
+    BTOR_MSG (btor->msg, 1, "");
+    BTOR_MSG (btor->msg, 2, "%5d max rec. RW", btor->stats.max_rec_rw_calls);
     BTOR_MSG (btor->msg,
               2,
-              "number of expressions ever created: %lld",
+              "%5lld number of expressions ever created",
               btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
     assert (num_final_ops >= 0);
-    BTOR_MSG (btor->msg, 2, "number of final expressions: %d", num_final_ops);
+    BTOR_MSG (btor->msg, 2, "%5d number of final expressions", num_final_ops);
     assert (sizeof g_btor_op2str / sizeof *g_btor_op2str == BTOR_NUM_OPS_NODE);
 
     BTOR_MSG (btor->msg,
               1,
-              "memory allocated for nodes: %.2f MB",
+              "%.2f MB allocated for nodes",
               btor->stats.node_bytes_alloc / (double) (1 << 20));
     if (num_final_ops > 0)
       for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++)
@@ -462,81 +439,109 @@ btor_print_stats_btor (Btor *btor)
                     g_btor_op2str[i],
                     btor->ops[i].cur,
                     btor->ops[i].max);
+    BTOR_MSG (btor->msg, 1, "");
   }
 
-  BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "bit blasting statistics:");
+  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
+  {
+    BTOR_MSG (
+        btor->msg, 1, "%5d unconstrained bv props", btor->stats.bv_uc_props);
+    BTOR_MSG (btor->msg,
+              1,
+              "%5d unconstrained array props",
+              btor->stats.fun_uc_props);
+    BTOR_MSG (btor->msg,
+              1,
+              "%5d unconstrained parameterized props",
+              btor->stats.param_uc_props);
+  }
   BTOR_MSG (btor->msg,
             1,
-            " AIG vectors (cur/max): %lld/%lld",
-            btor->avmgr ? btor->avmgr->cur_num_aigvecs : 0,
-            btor->avmgr ? btor->avmgr->max_num_aigvecs : 0);
+            "%5d variable substitutions",
+            btor->stats.var_substitutions);
   BTOR_MSG (btor->msg,
             1,
-            " AIG ANDs (cur/max): %lld/%lld",
-            btor->avmgr ? btor->avmgr->amgr->cur_num_aigs : 0,
-            btor->avmgr ? btor->avmgr->amgr->max_num_aigs : 0);
+            "%5d uninterpreted function substitutions",
+            btor->stats.uf_substitutions);
   BTOR_MSG (btor->msg,
             1,
-            " AIG variables: %lld",
-            btor->avmgr ? btor->avmgr->amgr->max_num_aig_vars : 0);
-  BTOR_MSG (btor->msg,
-            1,
-            " CNF variables: %lld",
-            btor->avmgr ? btor->avmgr->amgr->num_cnf_vars : 0);
-  BTOR_MSG (btor->msg,
-            1,
-            " CNF clauses: %lld",
-            btor->avmgr ? btor->avmgr->amgr->num_cnf_clauses : 0);
-  BTOR_MSG (btor->msg,
-            1,
-            " CNF literals: %lld",
-            btor->avmgr ? btor->avmgr->amgr->num_cnf_literals : 0);
+            "%5d embedded constraint substitutions",
+            btor->stats.ec_substitutions);
 
-  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d linear constraint equations",
+            btor->stats.linear_equations);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d gaussian eliminations in linear equations",
+            btor->stats.gaussian_eliminations);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d eliminated sliced variables",
+            btor->stats.eliminated_slices);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d extracted skeleton constraints",
+            btor->stats.skeleton_constraints);
+  BTOR_MSG (
+      btor->msg, 1, "%5d and normalizations", btor->stats.ands_normalized);
+  BTOR_MSG (
+      btor->msg, 1, "%5d add normalizations", btor->stats.adds_normalized);
+  BTOR_MSG (
+      btor->msg, 1, "%5d mul normalizations", btor->stats.muls_normalized);
+  BTOR_MSG (btor->msg, 1, "%5lld lambdas merged", btor->stats.lambdas_merged);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d applies propagated during construction",
+            btor->stats.apply_props_construct);
+  BTOR_MSG (
+      btor->msg, 1, "%5lld beta reductions", btor->stats.beta_reduce_calls);
+  BTOR_MSG (btor->msg, 1, "%5lld clone calls", btor->stats.clone_calls);
+
 #ifndef NDEBUG
   BtorPtrHashTableIterator it;
   char *rule;
   int num = 0;
+  BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "applied rewriting rules:");
   btor_init_ptr_hash_table_iterator (&it, btor->stats.rw_rules_applied);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     num  = it.bucket->data.as_int;
     rule = btor_next_ptr_hash_table_iterator (&it);
-    BTOR_MSG (btor->msg, 1, "  %s: %d", rule, num);
+    BTOR_MSG (btor->msg, 1, "  %5d %s", num, rule);
   }
 #endif
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "bit blasting statistics:");
   BTOR_MSG (btor->msg,
             1,
-            "linear constraint equations: %d",
-            btor->stats.linear_equations);
+            "  %7lld AIG vectors (%lld max)",
+            btor->avmgr ? btor->avmgr->cur_num_aigvecs : 0,
+            btor->avmgr ? btor->avmgr->max_num_aigvecs : 0);
   BTOR_MSG (btor->msg,
             1,
-            "gaussian elimination in linear equations: %d",
-            btor->stats.gaussian_eliminations);
+            "  %7lld AIG ANDs (%lld max)",
+            btor->avmgr ? btor->avmgr->amgr->cur_num_aigs : 0,
+            btor->avmgr ? btor->avmgr->amgr->max_num_aigs : 0);
   BTOR_MSG (btor->msg,
             1,
-            "eliminated sliced variables: %d",
-            btor->stats.eliminated_slices);
+            "  %7lld AIG variables",
+            btor->avmgr ? btor->avmgr->amgr->max_num_aig_vars : 0);
   BTOR_MSG (btor->msg,
             1,
-            "extracted skeleton constraints: %d",
-            btor->stats.skeleton_constraints);
-  BTOR_MSG (
-      btor->msg, 1, "and normalizations: %d", btor->stats.ands_normalized);
-  BTOR_MSG (
-      btor->msg, 1, "add normalizations: %d", btor->stats.adds_normalized);
-  BTOR_MSG (
-      btor->msg, 1, "mul normalizations: %d", btor->stats.muls_normalized);
-  BTOR_MSG (btor->msg, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
+            "  %7lld CNF variables",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_vars : 0);
   BTOR_MSG (btor->msg,
             1,
-            "apply propagation during construction: %d",
-            btor->stats.apply_props_construct);
-  BTOR_MSG (
-      btor->msg, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
-  BTOR_MSG (btor->msg, 1, "clone calls: %lld", btor->stats.clone_calls);
+            "  %7lld CNF clauses",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_clauses : 0);
+  BTOR_MSG (btor->msg,
+            1,
+            "  %7lld CNF literals",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_literals : 0);
 
   if (btor->slv) btor->slv->api.print_stats (btor->slv);
 
@@ -553,52 +558,73 @@ btor_print_stats_btor (Btor *btor)
   BTOR_MSG (btor->msg, 1, "%.2f seconds for cloning", btor->time.cloning);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds beta reduction probing",
-            btor->time.br_probing);
-  BTOR_MSG (btor->msg,
-            1,
             "%.2f seconds substitute and rebuild",
             btor->time.subst_rebuild);
-  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
-    BTOR_MSG (btor->msg,
-              1,
-              "%.2f seconds for unconstrained optimization",
-              btor->time.ucopt);
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
     BTOR_MSG (
         btor->msg, 1, "%.2f seconds model generation", btor->time.model_gen);
+
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (
-      btor->msg, 1, "%.2f seconds in rewriting engine", btor->time.rewrite);
+  BTOR_MSG (btor->msg, 1, "%.2f seconds rewriting engine", btor->time.simplify);
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in variable substitution during rewriting (%.0f%%)",
+            "  %.2f seconds variable substitution (%.0f%%)",
             btor->time.subst,
-            percent (btor->time.subst, btor->time.rewrite));
-  BTOR_MSG (
-      btor->msg,
-      1,
-      "%.2f seconds in embedded constraint replacing during rewriting (%.0f%%)",
-      btor->time.embedded,
-      percent (btor->time.embedded, btor->time.rewrite));
+            percent (btor->time.subst, btor->time.simplify));
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in apply elimination during rewriting (%.0f%%)",
-            btor->time.elimapplies,
-            percent (btor->time.elimapplies, btor->time.rewrite));
+            "  %.2f seconds embedded substitution (%.0f%%)",
+            btor->time.embedded,
+            percent (btor->time.embedded, btor->time.simplify));
+
   if (btor_get_opt (btor, BTOR_OPT_ELIMINATE_SLICES))
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds in slicing during rewriting (%.0f%%)",
+              "  %.2f seconds variable slicing (%.0f%%)",
               btor->time.slicing,
-              percent (btor->time.slicing, btor->time.rewrite));
+              percent (btor->time.slicing, btor->time.simplify));
+
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds skeleton preprocessing during rewriting (%.0f%%)",
+            "  %.2f seconds skeleton preprocessing (%.0f%%)",
             btor->time.skel,
-            percent (btor->time.skel, btor->time.rewrite));
+            percent (btor->time.skel, btor->time.simplify));
 #endif
+
+  if (btor_get_opt (btor, BTOR_OPT_UCOPT))
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds unconstrained optimization",
+              btor->time.ucopt);
+
+  if (btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds lambda extraction (%.0f%%)",
+              btor->time.extract,
+              percent (btor->time.extract, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds lambda merging (%.0f%%)",
+              btor->time.merge,
+              percent (btor->time.merge, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds apply elimination (%.0f%%)",
+              btor->time.elimapplies,
+              percent (btor->time.elimapplies, btor->time.simplify));
+
+  if (btor_get_opt (btor, BTOR_OPT_ACKERMANN))
+    BTOR_MSG (btor->msg,
+              1,
+              "  %.2f seconds ackermann constraints (%.0f%%)",
+              btor->time.ack,
+              percent (btor->time.ack, btor->time.simplify));
 
   if (btor->slv) btor->slv->api.print_time_stats (btor->slv);
 
@@ -3149,7 +3175,7 @@ btor_simplify (Btor *btor)
 
 DONE:
   delta = btor_time_stamp () - start;
-  btor->time.rewrite += delta;
+  btor->time.simplify += delta;
   BTOR_MSG (btor->msg, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
   if (btor->inconsistent)

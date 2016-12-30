@@ -1102,7 +1102,6 @@ chkclone_slv (Btor *btor, Btor *clone)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, eval_exp_calls);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations_down);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, partial_beta_reduction_restarts);
   }
   else if (btor->slv->kind == BTOR_SLS_SOLVER_KIND)
   {

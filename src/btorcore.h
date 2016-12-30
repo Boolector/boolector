@@ -189,6 +189,7 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+    long long betap_reduce_calls;
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif
@@ -196,7 +197,7 @@ struct Btor
 
   struct
   {
-    double rewrite;
+    double simplify;
     double subst;
     double subst_rebuild;
     double elimapplies;
@@ -205,12 +206,15 @@ struct Btor
     double skel;
     double propagate;
     double beta;
+    double betap;
     double failed;
     double cloning;
     double synth_exp;
     double model_gen;
-    double br_probing;
     double ucopt;
+    double merge;
+    double extract;
+    double ack;
   } time;
 };
 
