@@ -1610,7 +1610,7 @@ find_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
   cache = btor_new_int_hash_table (mm);
   BTOR_INIT_STACK (mm, visit);
   BTOR_PUSH_STACK (visit, app->e[0]);
-  //  BTOR_PUSH_STACK (visit, app->e[1]);
+  BTOR_PUSH_STACK (visit, app->e[1]);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -1620,9 +1620,6 @@ find_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
     btor_add_int_hash_table (cache, cur->id);
     if (btor_contains_int_hash_table (conf_apps, cur->id))
     {
-      //	  printf ("found conflicting app %s for %s\n",
-      //		  node2string (cur),
-      //		  node2string (app));
       res = true;
       break;
     }
