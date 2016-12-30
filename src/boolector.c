@@ -90,7 +90,7 @@ boolector_chkclone (Btor *btor)
   assert (btor->clone->mm);
   assert ((!btor->avmgr && !btor->clone->avmgr)
           || (btor->avmgr && btor->clone->avmgr));
-  btor_chkclone (btor);
+  btor_chkclone (btor, btor->clone);
 #endif
 }
 
@@ -191,8 +191,8 @@ boolector_clone (Btor *btor)
 #ifndef NDEBUG
   if (btor->clone)
   {
-    boolector_clone (btor->clone);
-    btor_chkclone (btor);
+    Btor *cshadow = boolector_clone (btor->clone);
+    btor_chkclone (btor->clone, cshadow);
   }
 #endif
   return clone;
@@ -2671,7 +2671,7 @@ boolector_get_btor (BoolectorNode *node)
   {
     Btor *clone = boolector_get_btor (BTOR_CLONED_EXP (exp));
     assert (clone == btor->clone);
-    btor_chkclone (btor);
+    btor_chkclone (btor, btor->clone);
   }
 #endif
   return btor;
@@ -2926,7 +2926,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
         boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
     assert (!strcmp (cloneres, res));
     bvass->cloned_assignment = cloneres;
-    btor_chkclone (btor);
+    btor_chkclone (btor, btor->clone);
   }
 #endif
   return res;
@@ -3207,7 +3207,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
         boolector_bv_assignment (btor->clone, BTOR_CLONED_EXP (exp));
     assert (!strcmp (cloneres, res));
     bvass->cloned_assignment = cloneres;
-    btor_chkclone (btor);
+    btor_chkclone (btor, btor->clone);
   }
 #endif
   return res;
@@ -3382,7 +3382,7 @@ boolector_array_assignment (Btor *btor,
       ass->cloned_indices = cindices;
       ass->cloned_values  = cvalues;
     }
-    btor_chkclone (btor);
+    btor_chkclone (btor, btor->clone);
   }
 #endif
 }
@@ -3468,7 +3468,7 @@ boolector_uf_assignment (
       ass->cloned_indices = cargs;
       ass->cloned_values  = cvalues;
     }
-    btor_chkclone (btor);
+    btor_chkclone (btor, btor->clone);
   }
 #endif
 }

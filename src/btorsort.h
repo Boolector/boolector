@@ -79,13 +79,14 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 
 struct BtorSort
 {
-  BtorSortKind kind;  // what kind of sort
-  BtorSortId id;      // fixed id
-  int refs;           // reference counter
-  int ext_refs;       // reference counter for API references
-  BtorSort *next;     // collision chain for unique table
+  BtorSortKind kind;
+  BtorSortId id;
+  int refs;       /* reference counter */
+  int ext_refs;   /* reference counter for API references */
+  BtorSort *next; /* collision chain for unique table */
   BtorSortUniqueTable *table;
 #ifndef NDEBUG
+  Btor *btor;
   int parents;
 #endif
   union
