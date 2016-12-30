@@ -40,6 +40,11 @@
 
 /*------------------------------------------------------------------------*/
 
+BTOR_DECLARE_STACK (BtorConstCharPtr, const char *);
+BTOR_DECLARE_STACK (BtorCharPtrPtr, char **);
+
+/*------------------------------------------------------------------------*/
+
 void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
@@ -2867,10 +2872,7 @@ btormbt_state_opt (BtorMBT *mbt)
       mbt->round.shadow = true;
   }
 
-  /* create initial shadow clone with prob=0.2 (do not create shadow clone
-   * prior to issuing any other API calls by default, we want to test the
-   * cloning feature at various points in time) */
-  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 300))
   {
     BTORMBT_LOG (1, "initial shadow clone...");
     /* cleanup done by boolector */
@@ -3191,6 +3193,17 @@ btormbt_state_main (BtorMBT *mbt)
                "main: asserts %d, assumes %d",
                mbt->round.asserts_tot,
                mbt->round.assumes);
+
+  if (mbt->round.shadow
+      && (!mbt->round.has_shadow
+          || !btor_pick_with_prob_rng (&mbt->round.rng, 100)))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+    mbt->round.has_shadow = true;
+  }
 
   if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
   {
@@ -3670,17 +3683,6 @@ btormbt_state_sat (BtorMBT *mbt)
   int i, res, failed;
   BoolectorNode *ass;
 
-  if (mbt->round.shadow
-      && (!mbt->round.has_shadow
-          || !btor_pick_with_prob_rng (&mbt->round.rng, 20)))
-  {
-    BTORMBT_LOG (1, "cloning...");
-    /* cleanup done by boolector */
-    boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_shadow_clone += 1;
-    mbt->round.has_shadow = true;
-  }
-
   BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (mbt->btor);
   if (res == BOOLECTOR_UNSAT)
@@ -3709,6 +3711,15 @@ btormbt_state_sat (BtorMBT *mbt)
     }
   }
 
+  if (mbt->round.shadow && !btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    assert (mbt->round.has_shadow == true);
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+  }
+
   if (mbt->round.mgen && res == BOOLECTOR_SAT) return btormbt_state_query_model;
   if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
     return btormbt_state_inc;
@@ -3718,12 +3729,21 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int i, size = 0;
-  const char *bv = NULL;
+  int32_t i, j, size = 0;
+  const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;
+  BtorConstCharPtrStack bvass_stack;
+  BtorCharPtrPtrStack arrass_stack, ufass_stack;
+  BtorIntStack arrsize_stack, ufsize_stack;
 
   assert (mbt->round.mgen);
+
+  BTOR_INIT_STACK (mbt->mm, bvass_stack);
+  BTOR_INIT_STACK (mbt->mm, arrass_stack);
+  BTOR_INIT_STACK (mbt->mm, ufass_stack);
+  BTOR_INIT_STACK (mbt->mm, arrsize_stack);
+  BTOR_INIT_STACK (mbt->mm, ufsize_stack);
 
   if (mbt->round.print_model)
   {
@@ -3735,12 +3755,12 @@ btormbt_state_query_model (BtorMBT *mbt)
 
   BTOR_CNEWN (mbt->mm, symbol, 20);
 
-  sprintf (symbol, "bv");
+  sprintf (symbol, "ass");
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
   {
     exp = mbt->bo->exps.start[i]->exp;
-    bv  = boolector_bv_assignment (mbt->btor, exp);
-    boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    ass = boolector_bv_assignment (mbt->btor, exp);
+    BTOR_PUSH_STACK (bvass_stack, ass);
     boolector_print_value_smt2 (
         mbt->btor,
         exp,
@@ -3750,8 +3770,8 @@ btormbt_state_query_model (BtorMBT *mbt)
   for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
   {
     exp = mbt->bv->exps.start[i]->exp;
-    bv  = boolector_bv_assignment (mbt->btor, exp);
-    boolector_free_bv_assignment (mbt->btor, (char *) bv);
+    ass = boolector_bv_assignment (mbt->btor, exp);
+    BTOR_PUSH_STACK (bvass_stack, ass);
     boolector_print_value_smt2 (
         mbt->btor,
         exp,
@@ -3765,7 +3785,11 @@ btormbt_state_query_model (BtorMBT *mbt)
     exp = mbt->arr->exps.start[i]->exp;
     boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
-      boolector_free_array_assignment (mbt->btor, indices, values, size);
+    {
+      BTOR_PUSH_STACK (arrsize_stack, size);
+      BTOR_PUSH_STACK (arrass_stack, indices);
+      BTOR_PUSH_STACK (arrass_stack, values);
+    }
     boolector_print_value_smt2 (
         mbt->btor,
         exp,
@@ -3779,7 +3803,11 @@ btormbt_state_query_model (BtorMBT *mbt)
     exp = mbt->uf->exps.start[i]->exp;
     boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
     if (size > 0)
-      boolector_free_uf_assignment (mbt->btor, indices, values, size);
+    {
+      BTOR_PUSH_STACK (ufsize_stack, size);
+      BTOR_PUSH_STACK (ufass_stack, indices);
+      BTOR_PUSH_STACK (ufass_stack, values);
+    }
     boolector_print_value_smt2 (
         mbt->btor,
         exp,
@@ -3788,6 +3816,39 @@ btormbt_state_query_model (BtorMBT *mbt)
   }
 
   BTOR_DELETEN (mbt->mm, symbol, 20);
+
+  if (mbt->round.shadow && !btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    assert (mbt->round.has_shadow == true);
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+  }
+
+  /* release assignments */
+  while (!BTOR_EMPTY_STACK (bvass_stack))
+    boolector_free_bv_assignment (mbt->btor, BTOR_POP_STACK (bvass_stack));
+  BTOR_RELEASE_STACK (bvass_stack);
+  for (i = 0, j = 0; i < BTOR_COUNT_STACK (arrsize_stack); i++, j += 2)
+  {
+    printf ("i %u  j %u\n", i, j);
+    size    = BTOR_PEEK_STACK (arrsize_stack, i);
+    indices = BTOR_PEEK_STACK (arrass_stack, j);
+    values  = BTOR_PEEK_STACK (arrass_stack, j + 1);
+    boolector_free_array_assignment (mbt->btor, indices, values, size);
+  }
+  BTOR_RELEASE_STACK (arrass_stack);
+  BTOR_RELEASE_STACK (arrsize_stack);
+  for (i = 0, j = 0; i < BTOR_COUNT_STACK (ufsize_stack); i++, j += 2)
+  {
+    size    = BTOR_PEEK_STACK (ufsize_stack, i);
+    indices = BTOR_PEEK_STACK (ufass_stack, j);
+    values  = BTOR_PEEK_STACK (ufass_stack, j + 1);
+    boolector_free_uf_assignment (mbt->btor, indices, values, size);
+  }
+  BTOR_RELEASE_STACK (ufass_stack);
+  BTOR_RELEASE_STACK (ufsize_stack);
 
   if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
     return btormbt_state_inc;
