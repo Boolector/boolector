@@ -1304,7 +1304,6 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
 
   int i;
   BtorNode *tmp, *tmp_roots[nroots];
@@ -1364,6 +1363,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
   dump_smt_aux (btor, file, 0, 0);
 }
 
@@ -1371,7 +1371,6 @@ void
 btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 {
   assert (btor);
-  assert (depth);
 
   int i;
   BtorNode *cur, *real_exp;

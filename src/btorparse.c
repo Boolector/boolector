@@ -35,15 +35,15 @@ has_compressed_suffix (const char *str, const char *suffix)
 
 /* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
 static int
-btor_parse_aux (Btor *btor,
-                FILE *infile,
-                BtorCharStack *prefix,
-                const char *infile_name,
-                FILE *outfile,
-                const BtorParserAPI *parser_api,
-                char **error_msg,
-                int *status,
-                char *msg)
+parse_aux (Btor *btor,
+           FILE *infile,
+           BtorCharStack *prefix,
+           const char *infile_name,
+           FILE *outfile,
+           const BtorParserAPI *parser_api,
+           char **error_msg,
+           int *status,
+           char *msg)
 {
   assert (btor);
   assert (infile);
@@ -227,15 +227,15 @@ btor_parse (Btor *btor,
     }
   }
 
-  res = btor_parse_aux (btor,
-                        infile,
-                        &prefix,
-                        infile_name,
-                        outfile,
-                        parser_api,
-                        error_msg,
-                        status,
-                        msg);
+  res = parse_aux (btor,
+                   infile,
+                   &prefix,
+                   infile_name,
+                   outfile,
+                   parser_api,
+                   error_msg,
+                   status,
+                   msg);
 
   /* cleanup */
   BTOR_RELEASE_STACK (prefix);
@@ -262,7 +262,7 @@ btor_parse_btor (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_btor_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
@@ -283,7 +283,7 @@ btor_parse_smt1 (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
@@ -304,6 +304,6 @@ btor_parse_smt2 (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt2_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
