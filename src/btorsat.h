@@ -80,7 +80,9 @@ struct BtorSATMgr
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
-    int (*variables) (BtorSATMgr *);
+#if 0
+      int (*variables) (BtorSATMgr*);
+#endif
     void *(*clone) (BtorSATMgr *, BtorMemMgr *);
     void (*setterm) (BtorSATMgr *);
   } api;

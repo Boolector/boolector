@@ -182,12 +182,12 @@ btor_minisat_inc_max_var (BtorSATMgr *smgr)
   return solver->inc ();
 }
 
-int
-btor_minisat_variables (BtorSATMgr *smgr)
-{
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+#if 0
+int btor_minisat_variables (BtorSATMgr * smgr) {
+  BtorMiniSAT * solver = (BtorMiniSAT*) BTOR_GET_SOLVER_SAT (smgr);
   return solver->nVars ();
 }
+#endif
 
 void
 btor_minisat_assume (BtorSATMgr *smgr, int lit)

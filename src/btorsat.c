@@ -435,11 +435,13 @@ btor_picosat_inc_max_var (BtorSATMgr *smgr)
   return picosat_inc_max_var (smgr->solver);
 }
 
+#if 0
 static int
-btor_picosat_variables (BtorSATMgr *smgr)
+btor_picosat_variables (BtorSATMgr * smgr)
 {
   return picosat_variables (smgr->solver);
 }
+#endif
 
 static void
 btor_picosat_stats (BtorSATMgr *smgr)
@@ -512,7 +514,9 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->api.set_output = btor_picosat_set_output;
   smgr->api.set_prefix = btor_picosat_set_prefix;
   smgr->api.stats      = btor_picosat_stats;
-  smgr->api.variables  = btor_picosat_variables;
+#if 0
+  smgr->api.variables = btor_picosat_variables;
+#endif
 
   BTOR_MSG (
       smgr->msg, 1, "PicoSAT allows both incremental and non-incremental mode");
@@ -822,12 +826,14 @@ btor_lingeling_inc_max_var (BtorSATMgr *smgr)
   return res;
 }
 
+#if 0
 static int
-btor_lingeling_variables (BtorSATMgr *smgr)
+btor_lingeling_variables (BtorSATMgr * smgr)
 {
-  BtorLGL *blgl = smgr->solver;
+  BtorLGL * blgl = smgr->solver;
   return lglmaxvar (blgl->lgl);
 }
+#endif
 
 static void
 btor_lingeling_stats (BtorSATMgr *smgr)
@@ -948,9 +954,11 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
   smgr->api.set_output = btor_lingeling_set_output;
   smgr->api.set_prefix = btor_lingeling_set_prefix;
   smgr->api.stats      = btor_lingeling_stats;
-  smgr->api.variables  = btor_lingeling_variables;
-  smgr->api.clone      = btor_lingeling_clone;
-  smgr->api.setterm    = btor_lingeling_setterm;
+#if 0
+  smgr->api.variables = btor_lingeling_variables;
+#endif
+  smgr->api.clone   = btor_lingeling_clone;
+  smgr->api.setterm = btor_lingeling_setterm;
 
   BTOR_MSG (smgr->msg,
             1,
@@ -1000,7 +1008,9 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->api.set_output = btor_minisat_set_output;
   smgr->api.set_prefix = btor_minisat_set_prefix;
   smgr->api.stats      = btor_minisat_stats;
-  smgr->api.variables  = btor_minisat_variables;
+#if 0
+  smgr->api.variables = btor_minisat_variables;
+#endif
 
   BTOR_MSG (
       smgr->msg, 1, "MiniSAT allows both incremental and non-incremental mode");
