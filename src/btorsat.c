@@ -202,7 +202,9 @@ btor_init_sat (BtorSATMgr *smgr)
   assert (!smgr->initialized);
   BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 
-  smgr->solver       = smgr->api.init (smgr);
+  smgr->solver = smgr->api.init (smgr);
+  smgr->api.enable_verbosity (
+      smgr, btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY));
   smgr->initialized  = true;
   smgr->inc_required = true;
   smgr->sat_time     = 0;
@@ -356,7 +358,6 @@ static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
   PicoSAT *res;
-  uint32_t verb;
 
   BTOR_MSG (smgr->msg, 1, "PicoSAT Version %s", picosat_version ());
 
@@ -366,8 +367,6 @@ btor_picosat_init (BtorSATMgr *smgr)
                        (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
-  verb = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
-  if (verb >= 2) picosat_set_verbosity (res, verb - 1);
 
   return res;
 }
@@ -427,7 +426,7 @@ btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 static void
 btor_picosat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
-  picosat_set_verbosity (smgr->solver, level >= 1);
+  if (level >= 2) picosat_set_verbosity (smgr->solver, level - 1);
 }
 
 static int
@@ -637,7 +636,6 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
-  uint32_t verb;
 
   if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
   {
@@ -650,11 +648,6 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-  verb     = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
-  if (verb <= 0)
-    lglsetopt (res->lgl, "verbose", -1);
-  else if (verb >= 2)
-    lglsetopt (res->lgl, "verbose", verb - 1);
 
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
@@ -814,7 +807,10 @@ static void
 btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", level ? level - 1 : 0);
+  if (level <= 0)
+    lglsetopt (blgl->lgl, "verb", -1);
+  else if (level >= 2)
+    lglsetopt (blgl->lgl, "verb", level - 1);
 }
 
 static int

@@ -125,9 +125,8 @@ class BtorMiniSAT : public SimpSolver
 void *
 btor_minisat_init (BtorSATMgr *smgr)
 {
+  (void) smgr;
   BtorMiniSAT *res = new BtorMiniSAT ();
-  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 2)
-    res->verbosity = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) - 1;
   return res;
 }
 
@@ -224,11 +223,9 @@ btor_minisat_set_prefix (BtorSATMgr *, const char *)
 void
 btor_minisat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  if (solver->verbosity >= 0)
-    solver->verbosity = level;
-  else
-    solver->verbosity = 0;
+  (void) smgr;
+  if (level >= 2)
+    ((BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr))->verbosity = level - 1;
 }
 
 void
