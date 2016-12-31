@@ -279,6 +279,18 @@ enum BtorOption
   BTOR_OPT_FUN_DUAL_PROP,
 
   /*!
+    * **BTOR_OPT_FUN_DUAL_PROP_QSORT**
+
+      | Set order in which inputs are assumed in dual propagation clone.
+      | Boolector uses BTOR_DP_QSORT_JUST by default.
+
+      * BTOR_DP_QSORT_JUST (0): order by score, highest score first
+      * BTOR_DP_QSORT_ASC (1): order by input id, ascending
+      * BTOR_DP_QSORT_DESC (2): order by input id, descending
+  */
+  BTOR_OPT_FUN_DUAL_PROP_QSORT,
+
+  /*!
     * **BTOR_OPT_FUN_JUST**
 
       Enable (``value``: 1) or disable (``value``: 0) justification
