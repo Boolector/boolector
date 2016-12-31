@@ -249,17 +249,11 @@ btor_minisat_stats (BtorSATMgr *smgr)
   fflush (stdout);
 }
 
-int
-btor_minisat_changed (BtorSATMgr *)
-{
-  return 1;
-}
+#if 0
+int btor_minisat_changed (BtorSATMgr *) { return 1; }
 
-int
-btor_minisat_inconsistent (BtorSATMgr *)
-{
-  return 0;
-}
+int btor_minisat_inconsistent (BtorSATMgr *) { return 0; }
+#endif
 };
 
 #endif

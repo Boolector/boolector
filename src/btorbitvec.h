@@ -200,11 +200,13 @@ bool btor_is_umulo_bv (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
-BtorBitVector *btor_gcd_ext_bv (Btor *btor,
-                                const BtorBitVector *bv1,
-                                const BtorBitVector *bv2,
-                                BtorBitVector **fx,
-                                BtorBitVector **fy);
+#if 0
+BtorBitVector * btor_gcd_ext_bv (Btor * btor,
+				 const BtorBitVector * bv1,
+				 const BtorBitVector * bv2,
+				 BtorBitVector ** fx,
+				 BtorBitVector ** fy);
+#endif
 
 BtorBitVector *btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv);
 
