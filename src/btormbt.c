@@ -1028,7 +1028,7 @@ btormbt_new_btormbt (void)
   for (opt = boolector_first_opt (tmpbtor); opt < BTOR_OPT_NUM_OPTS;
        opt = boolector_next_opt (tmpbtor, opt))
   {
-    BTOR_NEW (mm, btoropt);
+    BTOR_CNEW (mm, btoropt);
     btoropt->kind = opt;
     btoropt->name = btor_strdup (mm, boolector_get_opt_lng (tmpbtor, opt));
     btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
