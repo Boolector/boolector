@@ -73,7 +73,15 @@ boolector_chkclone (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
+
 #ifndef NDEBUG
+  BtorBVAssignment *bvass, *cbvass;
+  BtorBVAssignmentList *bvasslist, *cbvasslist;
+  BtorArrayAssignment *arrass, *carrass;
+  BtorArrayAssignmentList *arrasslist, *carrasslist;
+  char **indices, **values, **cindices, **cvalues;
+  int32_t i;
+
   if (btor->clone)
   {
     /* force auto cleanup (might have been disabled via btormbt) */
@@ -90,6 +98,36 @@ boolector_chkclone (Btor *btor)
   assert (btor->clone->mm);
   assert ((!btor->avmgr && !btor->clone->avmgr)
           || (btor->avmgr && btor->clone->avmgr));
+  /* update assignment lists */
+  bvasslist  = btor->bv_assignments;
+  cbvasslist = btor->clone->bv_assignments;
+  for (bvass = bvasslist->first, cbvass = cbvasslist->first; bvass;
+       bvass = bvass->next, cbvass = cbvass->next)
+  {
+    assert (cbvass);
+    assert (!strcmp (btor_get_bv_assignment_str (bvass),
+                     btor_get_bv_assignment_str (cbvass)));
+    bvass->cloned_assignment = btor_get_bv_assignment_str (cbvass);
+  }
+  arrasslist  = btor->fun_assignments;
+  carrasslist = btor->clone->fun_assignments;
+  for (arrass = arrasslist->first, carrass = carrasslist->first; arrass;
+       arrass = arrass->next, carrass = carrass->next)
+  {
+    assert (carrass);
+    assert (arrass->size == carrass->size);
+    btor_get_array_assignment_indices_values (
+        arrass, &indices, &values, arrass->size);
+    btor_get_array_assignment_indices_values (
+        carrass, &cindices, &cvalues, carrass->size);
+    for (i = 0; i < arrass->size; i++)
+    {
+      assert (!strcmp (indices[i], cindices[i]));
+      assert (!strcmp (values[i], cvalues[i]));
+    }
+    arrass->cloned_indices = cindices;
+    arrass->cloned_values  = cvalues;
+  }
   btor_chkclone (btor, btor->clone);
 #endif
 }
