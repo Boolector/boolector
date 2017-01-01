@@ -3144,7 +3144,10 @@ btormbt_state_main (BtorMBT *mbt)
   BoolectorNode *node, *cnode;
   BoolectorSort sort, csort;
   const char *symbol, *csymbol;
-  int32_t i, id, cid;
+  int32_t i, j, id, cid;
+  BtorMBTExpStack *exp_stack;
+  BtorMBTExpStack *exp_stacks[5] = {
+      mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
 
   /* main operations */
   if (mbt->round.ops < mbt->round.max_ops)
@@ -3214,7 +3217,9 @@ btormbt_state_main (BtorMBT *mbt)
   if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
   {
     g_btormbtstats->num_clone += 1;
+
     clone = boolector_clone (mbt->btor);
+
     if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
       boolector_reset_stats (clone);
     if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
@@ -3222,66 +3227,74 @@ btormbt_state_main (BtorMBT *mbt)
     if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
       boolector_print_stats (clone);
 
-    for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
     {
-      node = BTOR_PEEK_STACK (
-                 mbt->bo->exps,
-                 btor_pick_rand_rng (
-                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bo->exps) - 1))
-                 ->exp;
-      assert (boolector_get_btor (node) == mbt->btor);
-      id     = boolector_get_id (mbt->btor, node);
-      symbol = boolector_get_symbol (mbt->btor, node);
-      sort   = boolector_get_sort (mbt->btor, node);
-
-      cnode = boolector_match_node (clone, node);
-      assert (boolector_get_btor (cnode) == clone);
-      cid     = boolector_get_id (clone, cnode);
-      csymbol = boolector_get_symbol (clone, cnode);
-      csort   = boolector_get_sort (clone, cnode);
-      assert (id == cid);
-      assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
-      assert (sort == csort);
-      if (boolector_is_fun (mbt->btor, node))
+      for (j = 0; j < 5; j++)
       {
-        assert (boolector_fun_get_domain_sort (mbt->btor, node)
-                == boolector_fun_get_domain_sort (clone, cnode));
-        assert (boolector_fun_get_codomain_sort (mbt->btor, node)
-                == boolector_fun_get_codomain_sort (clone, cnode));
-      }
-      boolector_release (clone, cnode);
-
-      cnode = boolector_match_node_by_id (clone, id < 0 ? -id : id);
-      assert (boolector_get_btor (cnode) == clone);
-      csymbol = boolector_get_symbol (clone, cnode);
-      csort   = boolector_get_sort (clone, cnode);
-      assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
-      assert (sort == csort);
-      if (boolector_is_fun (mbt->btor, node))
-      {
-        assert (boolector_fun_get_domain_sort (mbt->btor, node)
-                == boolector_fun_get_domain_sort (clone, cnode));
-        assert (boolector_fun_get_codomain_sort (mbt->btor, node)
-                == boolector_fun_get_codomain_sort (clone, cnode));
-      }
-      boolector_release (clone, cnode);
-
-      if (symbol)
-      {
-        cnode = boolector_match_node_by_symbol (clone, symbol);
-        assert (boolector_get_btor (cnode) == clone);
-        cid   = boolector_get_id (clone, cnode);
-        csort = boolector_get_sort (clone, cnode);
-        assert (id == cid);
-        assert (sort == csort);
-        if (boolector_is_fun (mbt->btor, node))
+        exp_stack = exp_stacks[j];
+        for (i = 0; i < BTOR_COUNT_STACK (exp_stack->exps); i++)
         {
-          assert (boolector_fun_get_domain_sort (mbt->btor, node)
-                  == boolector_fun_get_domain_sort (clone, cnode));
-          assert (boolector_fun_get_codomain_sort (mbt->btor, node)
-                  == boolector_fun_get_codomain_sort (clone, cnode));
+          node = BTOR_PEEK_STACK (exp_stack->exps,
+                                  btor_pick_rand_rng (
+                                      &mbt->round.rng,
+                                      0,
+                                      BTOR_COUNT_STACK (exp_stack->exps) - 1))
+                     ->exp;
+          assert (boolector_get_btor (node) == mbt->btor);
+          id     = boolector_get_id (mbt->btor, node);
+          symbol = boolector_get_symbol (mbt->btor, node);
+          sort   = boolector_get_sort (mbt->btor, node);
+
+          cnode = boolector_match_node (clone, node);
+          assert (boolector_get_btor (cnode) == clone);
+          cid     = boolector_get_id (clone, cnode);
+          csymbol = boolector_get_symbol (clone, cnode);
+          csort   = boolector_get_sort (clone, cnode);
+          assert (id == cid);
+          assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+          assert (sort == csort);
+          if (boolector_is_fun (mbt->btor, node))
+          {
+            assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                    == boolector_fun_get_domain_sort (clone, cnode));
+            assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                    == boolector_fun_get_codomain_sort (clone, cnode));
+          }
+          boolector_release (clone, cnode);
+
+          cnode = boolector_match_node_by_id (clone, id < 0 ? -id : id);
+          assert (boolector_get_btor (cnode) == clone);
+          csymbol = boolector_get_symbol (clone, cnode);
+          csort   = boolector_get_sort (clone, cnode);
+          assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+          assert (sort == csort);
+          if (boolector_is_fun (mbt->btor, node))
+          {
+            assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                    == boolector_fun_get_domain_sort (clone, cnode));
+            assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                    == boolector_fun_get_codomain_sort (clone, cnode));
+          }
+          boolector_release (clone, cnode);
+
+          if (symbol)
+          {
+            cnode = boolector_match_node_by_symbol (clone, symbol);
+            assert (boolector_get_btor (cnode) == clone);
+            cid   = boolector_get_id (clone, cnode);
+            csort = boolector_get_sort (clone, cnode);
+            assert (id == cid);
+            assert (sort == csort);
+            if (boolector_is_fun (mbt->btor, node))
+            {
+              assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                      == boolector_fun_get_domain_sort (clone, cnode));
+              assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                      == boolector_fun_get_codomain_sort (clone, cnode));
+            }
+            boolector_release (clone, cnode);
+          }
         }
-        boolector_release (clone, cnode);
       }
     }
 
@@ -3729,13 +3742,16 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int32_t i, j, size = 0;
+  int32_t i, j, k, size = 0;
   const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;
   BtorConstCharPtrStack bvass_stack;
   BtorCharPtrPtrStack arrass_stack, ufass_stack;
   BtorIntStack arrsize_stack, ufsize_stack;
+  BtorMBTExpStack *exp_stack;
+  BtorMBTExpStack *exp_stacks[5] = {
+      mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
 
   assert (mbt->round.mgen);
 
@@ -3754,67 +3770,54 @@ btormbt_state_query_model (BtorMBT *mbt)
   }
 
   BTOR_CNEWN (mbt->mm, symbol, 20);
+  for (k = 0; k < 5; k++)
+  {
+    exp_stack = exp_stacks[k];
+    if (exp_stack == mbt->bo || exp_stack == mbt->bv)
+      sprintf (symbol, "ass");
+    else if (exp_stack == mbt->arr)
+      sprintf (symbol, "arr");
+    else if (exp_stack == mbt->fun)
+      sprintf (symbol, "fun");
+    else if (exp_stack == mbt->uf)
+      sprintf (symbol, "uf");
 
-  sprintf (symbol, "ass");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
-  {
-    exp = mbt->bo->exps.start[i]->exp;
-    ass = boolector_bv_assignment (mbt->btor, exp);
-    BTOR_PUSH_STACK (bvass_stack, ass);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
-  {
-    exp = mbt->bv->exps.start[i]->exp;
-    ass = boolector_bv_assignment (mbt->btor, exp);
-    BTOR_PUSH_STACK (bvass_stack, ass);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
-
-  sprintf (symbol, "arr");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->arr->exps); i++)
-  {
-    exp = mbt->arr->exps.start[i]->exp;
-    boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
-    if (size > 0)
+    for (i = 0; i < BTOR_COUNT_STACK (exp_stack->exps); i++)
     {
-      BTOR_PUSH_STACK (arrsize_stack, size);
-      BTOR_PUSH_STACK (arrass_stack, indices);
-      BTOR_PUSH_STACK (arrass_stack, values);
+      exp = exp_stack->exps.start[i]->exp;
+      if (exp_stack == mbt->bo || exp_stack == mbt->bv)
+      {
+        ass = boolector_bv_assignment (mbt->btor, exp);
+        BTOR_PUSH_STACK (bvass_stack, ass);
+      }
+      else if (exp_stack == mbt->arr)
+      {
+        boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
+        if (size > 0)
+        {
+          BTOR_PUSH_STACK (arrsize_stack, size);
+          BTOR_PUSH_STACK (arrass_stack, indices);
+          BTOR_PUSH_STACK (arrass_stack, values);
+        }
+      }
+      else
+      {
+        assert (exp_stack == mbt->fun || exp_stack == mbt->uf);
+        boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
+        if (size > 0)
+        {
+          BTOR_PUSH_STACK (ufsize_stack, size);
+          BTOR_PUSH_STACK (ufass_stack, indices);
+          BTOR_PUSH_STACK (ufass_stack, values);
+        }
+      }
+      boolector_print_value_smt2 (
+          mbt->btor,
+          exp,
+          btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
+          stdout);
     }
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
   }
-
-  sprintf (symbol, "uf");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->uf->exps); i++)
-  {
-    exp = mbt->uf->exps.start[i]->exp;
-    boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
-    if (size > 0)
-    {
-      BTOR_PUSH_STACK (ufsize_stack, size);
-      BTOR_PUSH_STACK (ufass_stack, indices);
-      BTOR_PUSH_STACK (ufass_stack, values);
-    }
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
-
   BTOR_DELETEN (mbt->mm, symbol, 20);
 
   if (mbt->round.shadow && !btor_pick_with_prob_rng (&mbt->round.rng, 100))
@@ -3832,7 +3835,6 @@ btormbt_state_query_model (BtorMBT *mbt)
   BTOR_RELEASE_STACK (bvass_stack);
   for (i = 0, j = 0; i < BTOR_COUNT_STACK (arrsize_stack); i++, j += 2)
   {
-    printf ("i %u  j %u\n", i, j);
     size    = BTOR_PEEK_STACK (arrsize_stack, i);
     indices = BTOR_PEEK_STACK (arrass_stack, j);
     values  = BTOR_PEEK_STACK (arrass_stack, j + 1);
