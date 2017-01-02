@@ -2640,7 +2640,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     tmp = select_exp (mbt, BTORMBT_BV_T, 0);
     BTOR_PUSH_STACK (args, modify_bv (mbt, tmp, width));
   }
-
+  assert (boolector_fun_sort_check (
+              mbt->btor, args.start, BTOR_COUNT_STACK (args), fun)
+          == -1);
   tmp = boolector_apply (mbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
   btormbt_push_node (mbt, tmp);
   g_btormbtstats->num_ops[APPLY]++;
