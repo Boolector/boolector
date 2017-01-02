@@ -2592,8 +2592,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
     for (i = 0; i < BTOR_COUNT_STACK (params); i++)
-      assert (
-          boolector_is_bound_param (mbt->btor, BTOR_PEEK_STACK (params, i)));
+      boolector_is_bound_param (mbt->btor, BTOR_PEEK_STACK (params, i));
 
     /* cleanup */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->parambo->exps); i++)
