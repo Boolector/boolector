@@ -1695,6 +1695,7 @@ btormbt_const (BtorMBT *mbt)
         bits[i] = btor_pick_with_prob_rng (&mbt->round.rng, 500) ? '1' : '0';
       bits[width] = '\0';
       node        = boolector_const (mbt->btor, bits);
+      assert (boolector_is_const (mbt->btor, node));
       if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
       {
         sbits = boolector_get_bits (mbt->btor, node);
@@ -2598,6 +2599,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     tmp = BTOR_PEEK_STACK (expstack->exps, rand)->exp;
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
+    for (i = 0; i < BTOR_COUNT_STACK (params); i++)
+      assert (
+          boolector_is_bound_param (mbt->btor, BTOR_PEEK_STACK (params, i)));
 
     /* cleanup */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->parambo->exps); i++)
