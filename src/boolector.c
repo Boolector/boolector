@@ -231,6 +231,7 @@ boolector_clone (Btor *btor)
   {
     Btor *cshadow = boolector_clone (btor->clone);
     btor_chkclone (btor->clone, cshadow);
+    btor_delete_btor (cshadow);
   }
 #endif
   return clone;
