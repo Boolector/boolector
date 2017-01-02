@@ -1578,7 +1578,8 @@ propagate (Btor *btor,
   assert (apply_search_cache);
 
   double start;
-  bool opt_eager_lemmas, prop_down, conflict, restart;
+  uint32_t opt_eager_lemmas;
+  bool prop_down, conflict, restart;
   BtorBitVector *bv;
   BtorMemMgr *mm;
   BtorFunSolver *slv;
@@ -1593,7 +1594,7 @@ propagate (Btor *btor,
   mm               = btor->mm;
   slv              = BTOR_FUN_SOLVER (btor);
   conf_apps        = btor_new_int_hash_table (mm);
-  opt_eager_lemmas = btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS) == 1;
+  opt_eager_lemmas = btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS);
 
   BTORLOG (1, "");
   BTORLOG (1, "*** %s", __FUNCTION__);
@@ -1610,7 +1611,7 @@ propagate (Btor *btor,
     assert (app->refs - app->ext_refs > 0);
 
     conflict = false;
-    restart  = !opt_eager_lemmas;
+    restart  = true;
 
     if (app->propagated) continue;
 
@@ -1657,11 +1658,13 @@ propagate (Btor *btor,
           BTORLOG (1, "  app1: %s", node2string (hashed_app));
           BTORLOG (1, "  app2: %s", node2string (app));
           BTORLOG (1, "\e[0;39m");
-          if (opt_eager_lemmas)
+          if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
           {
             btor_add_int_hash_table (conf_apps, app->id);
             restart = find_conflict_app (btor, app, conf_apps);
           }
+          else if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_ALL)
+            restart = false;
           slv->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
           conflict = true;
@@ -1727,11 +1730,13 @@ propagate (Btor *btor,
       BTORLOG (1, "  fun: %s", node2string (fun));
       BTORLOG (1, "  app: %s", node2string (app));
       BTORLOG (1, "\e[0;39m");
-      if (opt_eager_lemmas)
+      if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
       {
         btor_add_int_hash_table (conf_apps, app->id);
         restart = find_conflict_app (btor, app, conf_apps);
       }
+      else if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_ALL)
+        restart = false;
       slv->stats.beta_reduction_conflicts++;
       add_lemma (btor, fun, app, 0);
       conflict = true;

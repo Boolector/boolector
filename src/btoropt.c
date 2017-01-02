@@ -410,12 +410,12 @@ btor_init_opts (Btor *btor)
   init_opt (btor,
             BTOR_OPT_FUN_EAGER_LEMMAS,
             false,
-            true,
+            false,
             "fun:eager-lemmas",
             "fun:el",
-            1,
-            0,
-            1,
+            BTOR_FUN_EAGER_LEMMAS_DFLT,
+            BTOR_FUN_EAGER_LEMMAS_MIN,
+            BTOR_FUN_EAGER_LEMMAS_MAX,
             "eager lemma generation");
 
   /* SLS engine ---------------------------------------------------------- */
