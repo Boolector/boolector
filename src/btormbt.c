@@ -1448,7 +1448,7 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
   assert (boolector_is_var (mbt->btor, var));
   id = boolector_get_id (mbt->btor, var);
   BTOR_NEWN (mbt->mm, symbol, 20);
-  sprintf (symbol, "var%u", id);
+  sprintf (symbol, "mbtvar%u", id);
   boolector_set_symbol (mbt->btor, var, symbol);
   BTOR_DELETEN (mbt->mm, symbol, 20);
   btormbt_push_node (mbt, var);
@@ -1568,7 +1568,7 @@ btormbt_array (BtorMBT *mbt)
   assert (boolector_is_array_var (mbt->btor, array));
   id = boolector_get_id (mbt->btor, array);
   BTOR_NEWN (mbt->mm, symbol, 20);
-  sprintf (symbol, "arr%u", id);
+  sprintf (symbol, "mbtarr%u", id);
   boolector_set_symbol (mbt->btor, array, symbol);
   BTOR_DELETEN (mbt->mm, symbol, 20);
   btormbt_push_node (mbt, array);
@@ -2333,7 +2333,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
       assert (boolector_is_param (mbt->btor, tmp));
       id = boolector_get_id (mbt->btor, tmp);
       BTOR_NEWN (mbt->mm, symbol, 20);
-      sprintf (symbol, "param%u", id);
+      sprintf (symbol, "mbtparam%u", id);
       boolector_set_symbol (mbt->btor, tmp, symbol);
       BTOR_DELETEN (mbt->mm, symbol, 20);
       boolector_release_sort (mbt->btor, s);
@@ -2490,7 +2490,7 @@ btormbt_bv_uf (BtorMBT *mbt)
     assert (boolector_is_uf (mbt->btor, uf));
     id = boolector_get_id (mbt->btor, uf);
     BTOR_NEWN (mbt->mm, symbol, 20);
-    sprintf (symbol, "uf%u", id);
+    sprintf (symbol, "mbtuf%u", id);
     boolector_set_symbol (mbt->btor, uf, symbol);
     BTOR_DELETEN (mbt->mm, symbol, 20);
     //      btormbt_push_exp_stack (mbt->mm, mbt->uf, uf);
@@ -3584,13 +3584,13 @@ btormbt_state_query_model (BtorMBT *mbt)
   {
     exp_stack = exp_stacks[k];
     if (exp_stack == mbt->bo || exp_stack == mbt->bv)
-      sprintf (symbol, "ass");
+      sprintf (symbol, "mbtass");
     else if (exp_stack == mbt->arr)
-      sprintf (symbol, "arr");
+      sprintf (symbol, "mbtarr");
     else if (exp_stack == mbt->fun)
-      sprintf (symbol, "fun");
+      sprintf (symbol, "mbtfun");
     else if (exp_stack == mbt->uf)
-      sprintf (symbol, "uf");
+      sprintf (symbol, "mbtuf");
 
     for (i = 0; i < BTOR_COUNT_STACK (exp_stack->exps); i++)
     {
