@@ -367,10 +367,7 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "  --p-print-model <val>            print model [" \
                                       BTORMBT_M2STR (P_PRINT_MODEL) "]\n" \
   "  --p-model-format <val>           model format (btor:smt2) [" \
-                                      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
-  "\n other options:\n" \
-  "  --output-format <string>         force dump/model output format\n" \
-  "                                   available formats are: btor,smt2,aag,aig\n"
+                                      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -942,9 +939,6 @@ struct BtorMBT
   uint32_t p_print_model;
   /* use btor over smt2 format when printing a model */
   uint32_t p_model_format;
-
-  /* other options */
-  char *output_format; /* force output format for dumping/printing models */
 
   /* round counters */
   /* number of add ops wrt to number of release ops (initial layer) */
@@ -2791,7 +2785,7 @@ static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
   int i;
-  BtorMBTBtorOpt *btoropt, *btoropt_engine;
+  BtorMBTBtorOpt *btoropt, *btoropt_engine, *btoropt_output_format;
   BtorUIntStack stack;
 
   /* choose logic */
@@ -2862,6 +2856,26 @@ btormbt_state_opt (BtorMBT *mbt)
                btoropt_engine->name,
                btoropt_engine->val);
 
+  /* set output format for dumping */
+  btoropt_output_format = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
+  if (!btoropt_output_format->forced_by_cl)
+  {
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
+    {
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+      else
+        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+    }
+    else
+    {
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_BTOR;
+      else
+        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_SMT2;
+    }
+  }
+
   /* enable / disable shadow clone testing */
   if (mbt->fshadow)
   {
@@ -2894,8 +2908,9 @@ btormbt_state_opt (BtorMBT *mbt)
     /* pick option randomly */
     if (!btoropt->forced_by_cl)
     {
-      /* skip engine option (has already been set) */
-      if (btoropt->kind == BTOR_OPT_ENGINE)
+      /* skip, has already been set */
+      if (btoropt->kind == BTOR_OPT_ENGINE
+          || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT)
       {
         continue;
       }
@@ -3530,37 +3545,7 @@ btormbt_state_dump (BtorMBT *mbt)
   uint32_t outformat;
   BoolectorNode *node;
 
-  if (mbt->output_format)
-  {
-    if (!strcmp (mbt->output_format, "btor"))
-      outformat = BTOR_OUTPUT_FORMAT_BTOR;
-    else if (!strcmp (mbt->output_format, "smt2"))
-      outformat = BTOR_OUTPUT_FORMAT_SMT2;
-    else if (!strcmp (mbt->output_format, "aag"))
-      outformat = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
-    else
-    {
-      assert (!strcmp (mbt->output_format, "aig"));
-      outformat = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
-    }
-  }
-  else
-  {
-    if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
-    {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        outformat = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
-      else
-        outformat = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
-    }
-    else
-    {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        outformat = BTOR_OUTPUT_FORMAT_BTOR;
-      else
-        outformat = BTOR_OUTPUT_FORMAT_SMT2;
-    }
-  }
+  outformat = boolector_get_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT);
 
   if (outformat == BTOR_OUTPUT_FORMAT_AIGER_ASCII
       && !BTOR_COUNT_STACK (mbt->uf->exps) && !BTOR_COUNT_STACK (mbt->fun->exps)
@@ -4876,15 +4861,6 @@ main (int argc, char **argv)
       g_btormbt->p_model_format = atof (argv[i]) * BTOR_PROB_MAX;
       if (g_btormbt->p_print_model > BTOR_PROB_MAX)
         btormbt_error ("argument to '--p-model-format' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--output-format"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--output-format' missing (try '-h')");
-      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2")
-          && strcmp (argv[i], "aag") && strcmp (argv[i], "aig"))
-        btormbt_error ("argument to '--output-format' is invalid (try '-h')");
-      g_btormbt->output_format = argv[i];
     }
     else if (!isnumstr (argv[i]))
     {
