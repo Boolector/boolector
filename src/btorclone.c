@@ -887,11 +887,15 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     clone->last_sat_result      = 0;
     btor_reset_time_btor (clone);
 #ifndef NDEBUG
+    /* we need to explicitely reset the pointer to the table, since
+     * it is the memcpy-ied pointer of btor->stats.rw_rules_applied */
     clone->stats.rw_rules_applied = 0;
 #endif
     btor_reset_stats_btor (clone);
-    assert ((allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied))
-            == clone->mm->allocated);
+#ifndef NDEBUG
+    allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied);
+    assert (allocated == clone->mm->allocated);
+#endif
   }
 
   clone->msg = btor_new_btor_msg (clone);
