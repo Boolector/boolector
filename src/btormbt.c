@@ -2609,6 +2609,28 @@ btormbt_state_opt (BtorMBT *mbt)
   BtorMBTBtorOpt *btoropt, *btoropt_engine, *btoropt_output_format;
   BtorUIntStack stack;
 
+  /* enable / disable shadow clone testing */
+  if (mbt->fshadow)
+  {
+    /* force (no) shadow clone testing */
+    mbt->round.shadow = mbt->fshadow == FORCE_SHADOW_TRUE ? true : false;
+  }
+  else
+  {
+    mbt->round.shadow = false;
+    /* enable shadow clone testing randomly */
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+      mbt->round.shadow = true;
+  }
+  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 300))
+  {
+    BTORMBT_LOG (1, "initial shadow clone...");
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+    mbt->round.has_shadow = true;
+  }
+
   /* choose logic */
   if (mbt->is_flogic)
     mbt->round.logic = mbt->flogic;
@@ -2695,29 +2717,6 @@ btormbt_state_opt (BtorMBT *mbt)
       else
         btoropt_output_format->val = BTOR_OUTPUT_FORMAT_SMT2;
     }
-  }
-
-  /* enable / disable shadow clone testing */
-  if (mbt->fshadow)
-  {
-    /* force (no) shadow clone testing */
-    mbt->round.shadow = mbt->fshadow == FORCE_SHADOW_TRUE ? true : false;
-  }
-  else
-  {
-    mbt->round.shadow = false;
-    /* enable shadow clone testing randomly */
-    if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
-      mbt->round.shadow = true;
-  }
-
-  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 300))
-  {
-    BTORMBT_LOG (1, "initial shadow clone...");
-    /* cleanup done by boolector */
-    boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_shadow_clone += 1;
-    mbt->round.has_shadow = true;
   }
 
   /* set Boolector options */
