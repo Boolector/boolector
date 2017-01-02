@@ -137,9 +137,9 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 #define MAX_NOPS_LOWER 50
 #define MIN_NASSERTS_LOWER 0
-#define MAX_NASSERTS_LOWER 25
-#define MIN_NASSERTS_UPPER 20
-#define MAX_NASSERTS_UPPER 30
+#define MAX_NASSERTS_LOWER 10
+#define MIN_NASSERTS_UPPER 5
+#define MAX_NASSERTS_UPPER 15
 
 #define MIN_INC_CALLS 0
 #define MAX_INC_CALLS 10
