@@ -267,8 +267,7 @@ chkclone_stats (Btor *btor, Btor *clone)
   BTOR_CHKCLONE_CONSTRAINTSTATS (oldconstraints, synthesized);
 
 #ifndef NDEBUG
-  assert ((!btor->stats.rw_rules_applied && !clone->stats.rw_rules_applied)
-          || (btor->stats.rw_rules_applied && clone->stats.rw_rules_applied));
+  assert (btor->stats.rw_rules_applied && clone->stats.rw_rules_applied);
   assert (btor->stats.rw_rules_applied->size
           == clone->stats.rw_rules_applied->size);
   assert (btor->stats.rw_rules_applied->count
