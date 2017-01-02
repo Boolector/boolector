@@ -3161,8 +3161,7 @@ btormbt_state_main (BtorMBT *mbt)
                    * BTOR_PROB_MAX))
     {
       /* pick with prob=0.0001 */
-      if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, 1)
-          && btor_pick_with_prob_rng (&mbt->round.rng, 10))
+      if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, 100))
       {
         if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
         {
