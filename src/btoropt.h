@@ -118,6 +118,13 @@ enum BtorOptSatEngines
 #define BTOR_PROP_PATH_SEL_MIN 0
 #define BTOR_PROP_PATH_SEL_MAX 2
 
+#define BTOR_FUN_EAGER_LEMMAS_NONE 0
+#define BTOR_FUN_EAGER_LEMMAS_CONF 1
+#define BTOR_FUN_EAGER_LEMMAS_ALL 2
+#define BTOR_FUN_EAGER_LEMMAS_DFLT BTOR_FUN_EAGER_LEMMAS_CONF
+#define BTOR_FUN_EAGER_LEMMAS_MIN BTOR_FUN_EAGER_LEMMAS_NONE
+#define BTOR_FUN_EAGER_LEMMAS_MAX BTOR_FUN_EAGER_LEMMAS_ALL
+
 /*------------------------------------------------------------------------*/
 
 void btor_init_opts (Btor *btor);
