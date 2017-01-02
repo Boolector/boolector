@@ -435,6 +435,9 @@ boolector_fixate_assumptions (Btor *btor)
       !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_fixate_assumptions (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (fixate_assumptions);
+#endif
 }
 
 void
@@ -446,6 +449,9 @@ boolector_reset_assumptions (Btor *btor)
       !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_reset_assumptions (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_assumptions);
+#endif
 }
 
 int
@@ -2748,7 +2754,7 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   res = btor_exp_get_sort_id (exp);
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
+  BTOR_CHKCLONE_RES_SORT (res, get_sort, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
@@ -2770,7 +2776,7 @@ boolector_fun_get_domain_sort (Btor *btor, const BoolectorNode *node)
             .domain->id;
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (res, fun_get_domain_sort, node);
+  BTOR_CHKCLONE_RES_SORT (res, fun_get_domain_sort, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
@@ -2792,7 +2798,7 @@ boolector_fun_get_codomain_sort (Btor *btor, const BoolectorNode *node)
             .codomain->id;
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (res, fun_get_codomain_sort, node);
+  BTOR_CHKCLONE_RES_SORT (res, fun_get_codomain_sort, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
@@ -2842,7 +2848,7 @@ boolector_match_node (Btor *btor, BoolectorNode *node)
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, match_node, node);
+  BTOR_CHKCLONE_RES_PTR (res, match_node, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
