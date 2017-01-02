@@ -435,6 +435,9 @@ boolector_fixate_assumptions (Btor *btor)
       !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_fixate_assumptions (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (fixate_assumptions);
+#endif
 }
 
 void
@@ -446,6 +449,9 @@ boolector_reset_assumptions (Btor *btor)
       !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_reset_assumptions (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_assumptions);
+#endif
 }
 
 int
