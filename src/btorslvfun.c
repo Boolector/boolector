@@ -29,15 +29,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#define DP_QSORT_JUST 0
-#define DP_QSORT_ASC 1
-#define DP_QSORT_DESC 2
-#define DP_QSORT_ASC_DESC_FIRST 3
-#define DP_QSORT_ASC_DESC_ALW 4
-#define DP_QSORT DP_QSORT_JUST
-
-/*------------------------------------------------------------------------*/
-
 static BtorFunSolver *
 clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
 {
@@ -683,8 +674,7 @@ set_up_dual_and_collect (Btor *btor,
                          BtorNode *clone_root,
                          BtorNodeMap *exp_map,
                          BtorNodePtrStack *inputs,
-                         BtorNodePtrStack *top_applies,
-                         int (*dp_cmp_inputs) (const void *, const void *))
+                         BtorNodePtrStack *top_applies)
 {
   assert (btor);
   assert (btor->slv);
@@ -694,7 +684,6 @@ set_up_dual_and_collect (Btor *btor,
   assert (exp_map);
   assert (inputs);
   assert (top_applies);
-  assert (dp_cmp_inputs);
 
   double delta;
   BtorFunSolver *slv;
@@ -711,10 +700,29 @@ set_up_dual_and_collect (Btor *btor,
 
   /* assume assignments of bv vars and applies, partial assignments are
    * assumed as partial assignment (as slice on resp. var/apply) */
-  qsort (inputs->start,
-         BTOR_COUNT_STACK (*inputs),
-         sizeof (BtorNode *),
-         dp_cmp_inputs);
+  switch (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP_QSORT))
+  {
+    case BTOR_DP_QSORT_ASC:
+      qsort (inputs->start,
+             BTOR_COUNT_STACK (*inputs),
+             sizeof (BtorNode *),
+             btor_compare_exp_by_id_qsort_asc);
+      break;
+    case BTOR_DP_QSORT_DESC:
+      qsort (inputs->start,
+             BTOR_COUNT_STACK (*inputs),
+             sizeof (BtorNode *),
+             btor_compare_exp_by_id_qsort_desc);
+      break;
+    default:
+      assert (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP_QSORT)
+              == BTOR_DP_QSORT_JUST);
+      btor_compute_scores_dual_prop (btor);
+      qsort (inputs->start,
+             BTOR_COUNT_STACK (*inputs),
+             sizeof (BtorNode *),
+             btor_compare_scores_qsort);
+  }
   assume_inputs (btor, clone, inputs, exp_map, key_map, assumptions);
   slv->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
@@ -803,84 +811,8 @@ search_initial_applies_dual_prop (Btor *btor,
 
   (void) btor_compare_exp_by_id_qsort_asc;
 
-#if DP_QSORT == DP_QSORT_JUST
-  btor_compute_scores_dual_prop (btor);
-  set_up_dual_and_collect (btor,
-                           clone,
-                           clone_root,
-                           exp_map,
-                           &inputs,
-                           top_applies,
-                           btor_compare_scores_qsort);
-#elif DP_QSORT == DP_QSORT_ASC
-  set_up_dual_and_collect (btor,
-                           clone,
-                           clone_root,
-                           exp_map,
-                           &inputs,
-                           top_applies,
-                           btor_compare_exp_by_id_qsort_asc);
-#elif DP_QSORT == DP_QSORT_DESC
-  set_up_dual_and_collect (btor,
-                           clone,
-                           clone_root,
-                           exp_map,
-                           &inputs,
-                           top_applies,
-                           btor_compare_exp_by_id_qsort_desc);
-#else
-
-#if DP_QSORT_ASC_DESC_FIRST
-  if (!slv->dp_cmp_inputs)
-#endif
-  {
-    /* try different strategies and determine best */
-    BtorNodePtrStack tmp_asc, tmp_desc;
-    BTOR_INIT_STACK (mm, tmp_asc);
-    BTOR_INIT_STACK (mm, tmp_desc);
-
-    set_up_dual_and_collect (btor,
-                             clone,
-                             clone_root,
-                             exp_map,
-                             &inputs,
-                             &tmp_desc,
-                             btor_compare_exp_by_id_qsort_desc);
-    set_up_dual_and_collect (btor,
-                             clone,
-                             clone_root,
-                             exp_map,
-                             &inputs,
-                             &tmp_asc,
-                             btor_compare_exp_by_id_qsort_asc);
-
-    if (BTOR_COUNT_STACK (tmp_asc) < BTOR_COUNT_STACK (tmp_desc))
-    {
-      slv->dp_cmp_inputs = btor_compare_exp_by_id_qsort_asc;
-      for (i = 0; i < BTOR_COUNT_STACK (tmp_asc); i++)
-        BTOR_PUSH_STACK (*top_applies, BTOR_PEEK_STACK (tmp_asc, i));
-    }
-    else
-    {
-      slv->dp_cmp_inputs = btor_compare_exp_by_id_qsort_desc;
-      for (i = 0; i < BTOR_COUNT_STACK (tmp_desc); i++)
-        BTOR_PUSH_STACK (*top_applies, BTOR_PEEK_STACK (tmp_desc, i));
-    }
-
-    BTOR_RELEASE_STACK (tmp_asc);
-    BTOR_RELEASE_STACK (tmp_desc);
-  }
-#if DP_QSORT_ASC_DESC_FIRST
-  else
-    set_up_dual_and_collect (btor,
-                             clone,
-                             clone_root,
-                             exp_map,
-                             &inputs,
-                             top_applies,
-                             slv->dp_cmp_inputs);
-#endif
-#endif
+  set_up_dual_and_collect (
+      btor, clone, clone_root, exp_map, &inputs, top_applies);
 
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (inputs);

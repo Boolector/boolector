@@ -368,6 +368,16 @@ btor_init_opts (Btor *btor)
             1,
             "dual propagation optimization");
   init_opt (btor,
+            BTOR_OPT_FUN_DUAL_PROP_QSORT,
+            false,
+            false,
+            "fun:dual-prop-qsort",
+            0,
+            BTOR_DP_QSORT_DFLT,
+            BTOR_DP_QSORT_MIN,
+            BTOR_DP_QSORT_MAX,
+            "order in which to assume inputs in dual solver");
+  init_opt (btor,
             BTOR_OPT_FUN_JUST,
             false,
             true,

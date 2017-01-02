@@ -1085,8 +1085,6 @@ chkclone_slv (Btor *btor, Btor *clone)
       assert (BTOR_PEEK_STACK (slv->stats.lemmas_size, i)
               == BTOR_PEEK_STACK (cslv->stats.lemmas_size, i));
 
-    BTOR_CHKCLONE_SLV_STATE (slv, cslv, dp_cmp_inputs);
-
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);

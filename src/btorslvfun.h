@@ -31,9 +31,6 @@ struct BtorFunSolver
   int lod_limit;
   int sat_limit;
 
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
-
   struct
   {
     int lod_refinements; /* number of lemmas on demand refinements */

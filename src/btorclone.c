@@ -924,7 +924,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #ifndef NDEBUG
     for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
       allocated += sizeof (BtorBVAssignment)
-                   + strlen (btor_get_bv_assignment_str (bvass));
+                   + strlen (btor_get_bv_assignment_str (bvass)) + 1;
     assert ((allocated += sizeof (BtorBVAssignmentList))
             == clone->mm->allocated);
 #endif
@@ -951,7 +951,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       btor_get_array_assignment_indices_values (
           arrass, &ind, &val, arrass->size);
       for (i = 0; i < arrass->size; i++)
-        allocated += strlen (ind[i]) + strlen (val[i]);
+        allocated += strlen (ind[i]) + 1 + strlen (val[i]) + 1;
     }
     assert ((allocated += sizeof (BtorArrayAssignmentList))
             == clone->mm->allocated);

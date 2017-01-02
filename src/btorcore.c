@@ -993,13 +993,13 @@ btor_process_unsynthesized_constraints (Btor *btor)
     assert (bucket);
     cur = (BtorNode *) bucket->key;
 
-#ifndef NDEBUG
-    if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2)
-    {
-      BtorNode *real_cur = BTOR_REAL_ADDR_NODE (cur);
-      if (btor_is_bv_eq_node (real_cur))
-      {
 #if 0
+#ifndef NDEBUG
+      if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2)
+	{
+	  BtorNode * real_cur = BTOR_REAL_ADDR_NODE (cur);
+	  if (btor_is_bv_eq_node (real_cur))
+	    {
 	      BtorNode * left = real_cur->e[0];
 	      BtorNode * right = real_cur->e[1];
 	      BtorNode * other;
@@ -1022,9 +1022,9 @@ btor_process_unsynthesized_constraints (Btor *btor)
 	      //    assert (!btor_is_bv_const_node (other->e[0]));
 	      //    assert (!btor_is_bv_const_node (other->e[1]));
 	      //  }
+	    }
+	}
 #endif
-      }
-    }
 #endif
 
     if (!btor_get_ptr_hash_table (sc, cur))

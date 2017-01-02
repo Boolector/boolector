@@ -1533,7 +1533,7 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       boolector_print_model (btor, arg1_str, stdout);
     }
-    else if (!strcmp (tok, "print_value"))
+    else if (!strcmp (tok, "print_value_smt2"))
     {
       PARSE_ARGS2 (tok, str, str);
       boolector_print_value_smt2 (

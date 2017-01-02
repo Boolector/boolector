@@ -61,13 +61,17 @@ struct BtorSATMgr
   {
     void (*add) (BtorSATMgr *, int);
     void (*assume) (BtorSATMgr *, int);
-    int (*changed) (BtorSATMgr *);
+#if 0
+      int (*changed) (BtorSATMgr*);
+#endif
     int (*deref) (BtorSATMgr *, int);
     void (*enable_verbosity) (BtorSATMgr *, int);
     int (*failed) (BtorSATMgr *, int);
     int (*fixed) (BtorSATMgr *, int);
     int (*inc_max_var) (BtorSATMgr *);
-    int (*inconsistent) (BtorSATMgr *);
+#if 0
+      int (*inconsistent) (BtorSATMgr*);
+#endif
     void *(*init) (BtorSATMgr *);
     void (*melt) (BtorSATMgr *, int);
     int (*repr) (BtorSATMgr *, int);
@@ -76,7 +80,9 @@ struct BtorSATMgr
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
-    int (*variables) (BtorSATMgr *);
+#if 0
+      int (*variables) (BtorSATMgr*);
+#endif
     void *(*clone) (BtorSATMgr *, BtorMemMgr *);
     void (*setterm) (BtorSATMgr *);
   } api;
@@ -131,8 +137,10 @@ int btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr);
 /* Mark old CNF index as not used anymore. */
 void btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int);
 
+#if 0
 /* Returns the last CNF index that has been generated. */
-int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);
+int btor_get_last_cnf_id_sat_mgr (BtorSATMgr * smgr);
+#endif
 
 /* Inits the SAT solver. */
 void btor_init_sat (BtorSATMgr *smgr);
@@ -184,14 +192,16 @@ int btor_fixed_sat (BtorSATMgr *smgr, int lit);
 /* Resets the status of the SAT solver. */
 void btor_reset_sat (BtorSATMgr *smgr);
 
+#if 0
 /* Determines if assignments have been changed
  * as constraints have been added.
  */
-int btor_changed_sat (BtorSATMgr *smgr);
+int btor_changed_sat (BtorSATMgr * smgr);
 
 /* Determine wether SAT solver is already inconsistent.
  */
-int btor_inconsistent_sat (BtorSATMgr *smgr);
+int btor_inconsistent_sat (BtorSATMgr * smgr);
+#endif
 
 #ifdef BTOR_USE_PICOSAT
 bool btor_enable_picosat_sat (BtorSATMgr *smgr);
