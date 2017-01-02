@@ -291,8 +291,8 @@ btor_reset_stats_btor (Btor *btor)
     btor_delete_ptr_hash_table (btor->stats.rw_rules_applied);
 #endif
   BTOR_CLR (&btor->stats);
-  assert (!btor->stats.rw_rules_applied);
 #ifndef NDEBUG
+  assert (!btor->stats.rw_rules_applied);
   btor->stats.rw_rules_applied = btor_new_ptr_hash_table (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 #endif
