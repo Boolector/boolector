@@ -783,7 +783,9 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc);
+#if 0
+BtorNode *btor_and_n_exp (Btor * btor, BtorNode *args[], uint32_t argc);
+#endif
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)

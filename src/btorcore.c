@@ -1904,10 +1904,23 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 void
 btor_fixate_assumptions (Btor *btor)
 {
+  BtorNode *exp;
+  BtorNodePtrStack stack;
   BtorPtrHashTableIterator it;
+  int32_t i;
+
+  BTOR_INIT_STACK (btor->mm, stack);
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&it))
-    btor_assert_exp (btor, btor_next_ptr_hash_table_iterator (&it));
+    BTOR_PUSH_STACK (
+        stack, btor_copy_exp (btor, btor_next_ptr_hash_table_iterator (&it)));
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    exp = BTOR_PEEK_STACK (stack, i);
+    btor_assert_exp (btor, exp);
+    btor_release_exp (btor, exp);
+  }
+  BTOR_RELEASE_STACK (stack);
   btor_reset_assumptions (btor);
 }
 

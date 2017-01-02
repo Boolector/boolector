@@ -2748,14 +2748,8 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
-
-  // TODO (ma): do we even allow that? can this happen?
-  /* if fun was simplified to a constant value, we return a copy of it */
-  if (!btor_is_fun_node (fun))
-  {
-    assert (!BTOR_REAL_ADDR_NODE (fun)->parameterized);
-    return btor_copy_exp (btor, fun);
-  }
+  assert (btor_is_fun_node (fun));
+  assert (btor_is_args_node (args));
 
   if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     return btor_rewrite_binary_exp (btor, BTOR_APPLY_NODE, fun, args);
@@ -3007,37 +3001,39 @@ btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+#if 0
 static BtorNode *
-create_bin_n_exp (Btor *btor,
-                  BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
-                  BtorNode *args[],
-                  uint32_t argc)
+create_bin_n_exp (Btor * btor,
+		  BtorNode * (*func) (Btor *, BtorNode *, BtorNode *),
+		  BtorNode * args[],
+		  uint32_t argc)
 {
   uint32_t i;
   BtorNode *result, *tmp, *arg;
 
   result = 0;
   for (i = 0; i < argc; i++)
-  {
-    arg = args[i];
-    if (result)
     {
-      tmp = func (btor, arg, result);
-      btor_release_exp (btor, result);
-      result = tmp;
+      arg = args[i];
+      if (result)
+	{
+	  tmp = func (btor, arg, result);
+	  btor_release_exp (btor, result);
+	  result = tmp;
+	}
+      else
+	result = btor_copy_exp (btor,  arg);
     }
-    else
-      result = btor_copy_exp (btor, arg);
-  }
   assert (result);
   return result;
 }
 
 BtorNode *
-btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc)
+btor_and_n_exp (Btor * btor, BtorNode * args[], uint32_t argc)
 {
   return create_bin_n_exp (btor, btor_and_exp, args, argc);
 }
+#endif
 
 BtorNode *
 btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
