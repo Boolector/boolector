@@ -2156,7 +2156,6 @@ sat_fun_solver (BtorFunSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  double start;
   int i;
   BtorSolverResult result;
   Btor *btor, *clone;
@@ -2165,8 +2164,8 @@ sat_fun_solver (BtorFunSolver *slv)
   BtorIntHashTable *init_apps_cache;
   BtorNodePtrStack init_apps;
 
-  start = btor_time_stamp ();
-  btor  = slv->btor;
+  btor = slv->btor;
+  assert (!btor->inconsistent);
 
   /* make initial applies in bv skeleton global in order to prevent
    * traversing the whole formula every refinement round */
@@ -2176,8 +2175,6 @@ sat_fun_solver (BtorFunSolver *slv)
   clone      = 0;
   clone_root = 0;
   exp_map    = 0;
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
 
   if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0)
   {
@@ -2213,14 +2210,6 @@ sat_fun_solver (BtorFunSolver *slv)
       btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
     }
   }
-  else
-    result = btor_simplify (btor);
-
-  if (result == BTOR_RESULT_UNSAT)
-  {
-    assert (btor->inconsistent);
-    goto DONE;
-  }
 
   if (btor_terminate_btor (btor))
   {
@@ -2230,8 +2219,6 @@ sat_fun_solver (BtorFunSolver *slv)
   }
 
   configure_sat_mgr (btor);
-
-  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
   if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
@@ -2311,9 +2298,6 @@ sat_fun_solver (BtorFunSolver *slv)
   }
 
 DONE:
-  btor->valid_assignments = 1;
-  btor->last_sat_result   = result;
-
   BTOR_RELEASE_STACK (init_apps);
   btor_delete_int_hash_table (init_apps_cache);
 
@@ -2324,12 +2308,6 @@ DONE:
     btor_release_exp (clone, clone_root);
     btor_delete_btor (clone);
   }
-  BTOR_MSG (btor->msg,
-            1,
-            "SAT call %d returned %d in %.3f seconds",
-            btor->btor_sat_btor_called + 1,
-            result,
-            btor_time_stamp () - start);
   return result;
 }
 

@@ -71,8 +71,6 @@ struct BtorPropSolver
 
   struct
   {
-    double sat;
-    double sat_total;
     double update_cone;
     double update_cone_reset;
     double update_cone_model_gen;

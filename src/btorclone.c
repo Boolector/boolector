@@ -630,25 +630,28 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
 }
 
 static void
-clone_nodes_id_table (Btor *clone,
-                      BtorNodePtrStack *id_table,
+clone_nodes_id_table (Btor *btor,
+                      Btor *clone,
                       BtorNodePtrStack *res,
                       BtorNodeMap *exp_map,
                       bool exp_layer_only,
                       BtorNodePtrStack *rhos)
 {
-  assert (id_table);
+  assert (btor);
+  assert (clone);
   assert (res);
   assert (exp_map);
 
-  int i, tag;
+  int32_t i, tag;
   BtorNode **tmp, *exp, *cloned_exp;
   BtorMemMgr *mm;
+  BtorNodePtrStack *id_table;
   BtorNodePtrPtrStack parents, nodes;
   BtorPtrHashTable *t;
   BtorNodePtrStack static_rhos;
 
-  mm = clone->mm;
+  mm       = clone->mm;
+  id_table = &btor->nodes_id_table;
 
   BTOR_INIT_STACK (mm, parents);
   BTOR_INIT_STACK (mm, nodes);
@@ -1022,12 +1025,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   BTOR_INIT_STACK (btor->mm, rhos);
   BTORLOG_TIMESTAMP (delta);
-  clone_nodes_id_table (clone,
-                        &btor->nodes_id_table,
-                        &clone->nodes_id_table,
-                        emap,
-                        exp_layer_only,
-                        &rhos);
+  clone_nodes_id_table (
+      btor, clone, &clone->nodes_id_table, emap, exp_layer_only, &rhos);
   BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)

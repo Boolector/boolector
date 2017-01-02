@@ -1428,7 +1428,6 @@ sat_sls_solver (BtorSLSSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  double start, delta;
   int32_t j, max_steps, id, nmoves;
   BtorSolverResult sat_result;
   BtorNode *root;
@@ -1437,15 +1436,9 @@ sat_sls_solver (BtorSLSSolver *slv)
   BtorIntHashTableIterator iit;
   Btor *btor;
 
-  start = btor_time_stamp ();
-  delta = 0;
-
-  btor   = slv->btor;
+  btor = slv->btor;
+  assert (!btor->inconsistent);
   nmoves = 0;
-
-  if (btor->inconsistent) goto UNSAT;
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
 
   if (btor_terminate_btor (btor))
   {
@@ -1453,21 +1446,10 @@ sat_sls_solver (BtorSLSSolver *slv)
     goto DONE;
   }
 
-  sat_result = btor_simplify (btor);
   BTOR_ABORT (btor->ufs->count != 0
                   || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "sls engine supports QF_BV only");
-
-  if (btor->inconsistent) goto UNSAT;
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_RESULT_UNKNOWN;
-    goto DONE;
-  }
-
-  delta = btor_time_stamp ();
 
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
@@ -1585,7 +1567,6 @@ UNSAT:
   sat_result = BTOR_RESULT_UNSAT;
 
 DONE:
-  btor->valid_assignments = 1;
   if (slv->roots)
   {
     btor_delete_int_hash_map (slv->roots);
@@ -1607,9 +1588,6 @@ DONE:
     btor_delete_int_hash_map (slv->score);
     slv->score = 0;
   }
-  slv->time.sat         = btor_time_stamp () - delta;
-  slv->time.sat_total   = btor_time_stamp () - start;
-  btor->last_sat_result = sat_result;
   return sat_result;
 }
 
@@ -1704,14 +1682,6 @@ print_time_stats_sls_solver (BtorSLSSolver *slv)
   Btor *btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds for sat call (incl. simplify)",
-            slv->time.sat_total);
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds for sat call (excl. simplify)",
-            slv->time.sat);
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds for updating cone (total)",

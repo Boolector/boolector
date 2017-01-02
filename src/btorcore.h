@@ -197,6 +197,7 @@ struct Btor
 
   struct
   {
+    double sat;
     double simplify;
     double subst;
     double subst_rebuild;

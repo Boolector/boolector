@@ -555,7 +555,7 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds determining failed assumptions",
             btor->time.failed);
-  BTOR_MSG (btor->msg, 1, "%.2f seconds for cloning", btor->time.cloning);
+  BTOR_MSG (btor->msg, 1, "%.2f seconds cloning", btor->time.cloning);
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds substitute and rebuild",
@@ -565,29 +565,31 @@ btor_print_stats_btor (Btor *btor)
         btor->msg, 1, "%.2f seconds model generation", btor->time.model_gen);
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "%.2f seconds rewriting engine", btor->time.simplify);
+  BTOR_MSG (btor->msg, 1, "%.2f seconds solving", btor->time.sat);
+  BTOR_MSG (
+      btor->msg, 1, "  %.2f seconds rewriting engine", btor->time.simplify);
   BTOR_MSG (btor->msg,
             1,
-            "  %.2f seconds variable substitution (%.0f%%)",
+            "    %.2f seconds variable substitution (%.0f%%)",
             btor->time.subst,
             percent (btor->time.subst, btor->time.simplify));
   BTOR_MSG (btor->msg,
             1,
-            "  %.2f seconds embedded substitution (%.0f%%)",
+            "    %.2f seconds embedded substitution (%.0f%%)",
             btor->time.embedded,
             percent (btor->time.embedded, btor->time.simplify));
 
   if (btor_get_opt (btor, BTOR_OPT_ELIMINATE_SLICES))
     BTOR_MSG (btor->msg,
               1,
-              "  %.2f seconds variable slicing (%.0f%%)",
+              "    %.2f seconds variable slicing (%.0f%%)",
               btor->time.slicing,
               percent (btor->time.slicing, btor->time.simplify));
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   BTOR_MSG (btor->msg,
             1,
-            "  %.2f seconds skeleton preprocessing (%.0f%%)",
+            "    %.2f seconds skeleton preprocessing (%.0f%%)",
             btor->time.skel,
             percent (btor->time.skel, btor->time.simplify));
 #endif
@@ -595,34 +597,34 @@ btor_print_stats_btor (Btor *btor)
   if (btor_get_opt (btor, BTOR_OPT_UCOPT))
     BTOR_MSG (btor->msg,
               1,
-              "%.2f seconds unconstrained optimization",
+              "    %.2f seconds unconstrained optimization",
               btor->time.ucopt);
 
   if (btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
     BTOR_MSG (btor->msg,
               1,
-              "  %.2f seconds lambda extraction (%.0f%%)",
+              "    %.2f seconds lambda extraction (%.0f%%)",
               btor->time.extract,
               percent (btor->time.extract, btor->time.simplify));
 
   if (btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
     BTOR_MSG (btor->msg,
               1,
-              "  %.2f seconds lambda merging (%.0f%%)",
+              "    %.2f seconds lambda merging (%.0f%%)",
               btor->time.merge,
               percent (btor->time.merge, btor->time.simplify));
 
   if (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL))
     BTOR_MSG (btor->msg,
               1,
-              "  %.2f seconds apply elimination (%.0f%%)",
+              "    %.2f seconds apply elimination (%.0f%%)",
               btor->time.elimapplies,
               percent (btor->time.elimapplies, btor->time.simplify));
 
   if (btor_get_opt (btor, BTOR_OPT_ACKERMANN))
     BTOR_MSG (btor->msg,
               1,
-              "  %.2f seconds ackermann constraints (%.0f%%)",
+              "    %.2f seconds ackermann constraints (%.0f%%)",
               btor->time.ack,
               percent (btor->time.ack, btor->time.simplify));
 
@@ -3611,8 +3613,15 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   assert (btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
           || btor->btor_sat_btor_called == 0);
 
+  double start, delta;
   BtorSolverResult res;
   uint32_t engine;
+
+  start = btor_time_stamp ();
+
+  BTOR_MSG (btor->msg, 1, "calling SAT");
+
+  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
   engine = btor_get_opt (btor, BTOR_OPT_ENGINE);
 
@@ -3661,6 +3670,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   {
     uclone = btor_clone_btor (btor);
     btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_MODEL, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
   }
 
   Btor *mclone             = 0;
@@ -3671,6 +3683,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
     btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_MODEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
     inputs = map_inputs_check_model (btor, mclone);
   }
 #endif
@@ -3678,8 +3693,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #ifndef NBTORLOG
   btor_log_opts (btor);
 #endif
-  res = btor->slv->api.sat (btor->slv);
+
+  res = btor_simplify (btor);
+  if (res != BTOR_RESULT_UNSAT) res = btor->slv->api.sat (btor->slv);
+  btor->last_sat_result = res;
   btor->btor_sat_btor_called++;
+  btor->valid_assignments = 1;
 
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN) && res == BTOR_RESULT_SAT)
   {
@@ -3704,7 +3723,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
     assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
     assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
-    BtorSolverResult ucres = uclone->slv->api.sat (uclone->slv);
+    BtorSolverResult ucres = btor_sat_btor (uclone, -1, -1);
     assert (res == ucres);
   }
 
@@ -3748,6 +3767,18 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && !btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
     check_failed_assumptions (btor);
 #endif
+
+  delta = btor_time_stamp () - start;
+
+  BTOR_MSG (btor->msg,
+            1,
+            "SAT call %d returned %d in %.3f seconds",
+            btor->btor_sat_btor_called + 1,
+            res,
+            delta);
+
+  btor->time.sat += delta;
+
   return res;
 }
 
@@ -4039,7 +4070,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   // btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
-          || clone->slv->api.sat (clone->slv) == BTOR_RESULT_SAT);
+          || btor_sat_btor (clone, -1, -1) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
   BTOR_ABORT (ret == BTOR_RESULT_UNSAT, "invalid model");
@@ -4060,8 +4091,10 @@ check_failed_assumptions (Btor *btor)
   clone = btor_clone_exp_layer (btor, 0);
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
   btor_set_opt (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
+  btor_set_opt (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
+  btor_set_opt (clone, BTOR_OPT_CHK_MODEL, 0);
+  btor_set_opt (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
 
   /* assert failed assumptions */
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -4087,7 +4120,7 @@ check_failed_assumptions (Btor *btor)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (clone->slv->api.sat (clone->slv) == BTOR_RESULT_UNSAT);
+  assert (btor_sat_btor (clone, -1, -1) == BTOR_RESULT_UNSAT);
   btor_delete_btor (clone);
 }
 #endif
