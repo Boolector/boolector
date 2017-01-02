@@ -141,6 +141,9 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define MIN_NASSERTS_UPPER 20
 #define MAX_NASSERTS_UPPER 30
 
+#define MIN_INC_CALLS 0
+#define MAX_INC_CALLS 10
+
 #define P_SORT_BV 500         // 0.5
 #define P_SORT_FUN 500        // 0.5
 #define P_SORT_FUN_UNARY 100  // 0.1
@@ -153,7 +156,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define P_READ 500            // 0.5
 #define P_COND 333            // 0.33
 #define P_EQ 500              // 0.5
-#define P_INC 333             // 0.33
 #define P_DUMP 100            // 0.1
 #define P_PRINT_MODEL 100     // 0.1
 #define P_MODEL_FORMAT 500    // 0.5
@@ -360,8 +362,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
                                       BTORMBT_M2STR (P_COND) "]\n" \
   "  --p-eq <val>                     choose eq over ne [" \
                                       BTORMBT_M2STR (P_EQ) "]\n" \
-  "  --p-inc <val>                    choose an incremental step [" \
-                                      BTORMBT_M2STR (P_INC) "]\n" \
   "  --p-dump <val>                   dump formula [" \
                                       BTORMBT_M2STR (P_DUMP) "]\n" \
   "  --p-print-model <val>            print model [" \
@@ -936,8 +936,6 @@ struct BtorMBT
   uint32_t p_cond;
   /* choose eq over ne */
   uint32_t p_eq;
-  /* choose an incremental step */
-  uint32_t p_inc;
   /* dump formula and exit */
   uint32_t p_dump;
   /* print the model after a sat call */
@@ -981,6 +979,7 @@ struct BtorMBT
     bool has_shadow;
 
     uint32_t ninc;
+    uint32_t max_ninc;
 
     /* prob. distribution of variables, constants, arrays in current round */
     uint32_t p_var, p_const, p_array;
@@ -1160,7 +1159,6 @@ btormbt_new_btormbt (void)
   mbt->p_read                 = P_READ;
   mbt->p_cond                 = P_COND;
   mbt->p_eq                   = P_EQ;
-  mbt->p_inc                  = P_INC;
   mbt->p_dump                 = P_DUMP;
   mbt->p_print_model          = P_PRINT_MODEL;
   mbt->p_model_format         = P_MODEL_FORMAT;
@@ -3002,6 +3000,8 @@ btormbt_state_opt (BtorMBT *mbt)
     if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
     {
       mbt->round.inc = true;
+      mbt->round.max_ninc =
+          btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
     }
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
@@ -3739,7 +3739,7 @@ btormbt_state_sat (BtorMBT *mbt)
   }
 
   if (mbt->round.mgen && res == BOOLECTOR_SAT) return btormbt_state_query_model;
-  if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
+  if (mbt->round.inc && mbt->round.ninc < mbt->round.max_ninc)
     return btormbt_state_inc;
   return btormbt_state_delete;
 }
@@ -3857,7 +3857,7 @@ btormbt_state_query_model (BtorMBT *mbt)
   BTOR_RELEASE_STACK (ufass_stack);
   BTOR_RELEASE_STACK (ufsize_stack);
 
-  if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
+  if (mbt->round.inc && mbt->round.ninc < mbt->round.max_ninc)
     return btormbt_state_inc;
 
   return btormbt_state_delete;
@@ -4844,16 +4844,6 @@ main (int argc, char **argv)
       g_btormbt->p_eq = atof (argv[i]) * BTOR_PROB_MAX;
       if (g_btormbt->p_eq > BTOR_PROB_MAX)
         btormbt_error ("argument to '--p-eq' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-inc' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-inc' is not a number (try '-h')");
-      g_btormbt->p_inc = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_inc > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-inc' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-dump"))
     {
