@@ -803,7 +803,6 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   fputs ("(define-fun ", sdc->file);
   dump_smt_id (sdc, exp);
   fputs (" () ", sdc->file);
-  // TODO (ma): workaround for now until dump_sort_smt merged from aina
   if (is_bool)
     fputs ("Bool", sdc->file);
   else
@@ -904,7 +903,6 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   }
   fputs (") ", sdc->file);
 
-  // TODO (ma): again wait for aina merge for dump_sort_smt
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
