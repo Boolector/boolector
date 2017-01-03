@@ -450,14 +450,14 @@ btor_is_array_or_bv_eq_node (const BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 /* Get the id of an expression (negative if exp is inverted). */
-static inline int
+static inline int32_t
 btor_exp_get_id (const BtorNode *exp)
 {
   assert (exp);
   return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
 }
 
-static inline int
+static inline int32_t
 btor_exp_get_btor_id (const BtorNode *exp)
 {
   assert (exp);

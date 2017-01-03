@@ -126,6 +126,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (BTOR_IS_REGULAR_NODE (exp));
 
   BtorPtrHashBucket *b;
+  int32_t id;
 
   if (sdc->pretty_print)
   {
@@ -138,10 +139,10 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
     }
     return b->data.as_int;
   }
-  if (btor_is_bv_var_node (exp) && ((BtorBVVarNode *) exp)->btor_id)
-    return ((BtorBVVarNode *) exp)->btor_id;
-  if (btor_is_uf_node (exp) && ((BtorUFNode *) exp)->btor_id)
-    return ((BtorUFNode *) exp)->btor_id;
+  id = btor_is_bv_var_node (exp) || btor_is_uf_node (exp)
+           ? btor_exp_get_btor_id (exp)
+           : 0;
+  if (id) return id;
   return exp->id;
 }
 
