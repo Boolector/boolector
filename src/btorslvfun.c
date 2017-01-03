@@ -1541,13 +1541,13 @@ find_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
   mm    = btor->mm;
   cache = btor_new_int_hash_table (mm);
   BTOR_INIT_STACK (mm, visit);
-  BTOR_PUSH_STACK (visit, app->e[0]);
   BTOR_PUSH_STACK (visit, app->e[1]);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-    if (!cur->apply_below || btor_contains_int_hash_table (cache, cur->id))
+    if (!cur->apply_below || btor_is_fun_node (cur)
+        || btor_contains_int_hash_table (cache, cur->id))
       continue;
     btor_add_int_hash_table (cache, cur->id);
     if (btor_contains_int_hash_table (conf_apps, cur->id))
