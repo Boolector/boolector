@@ -49,13 +49,15 @@ void btor_init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp);
 bool btor_has_next_lambda_iterator (const BtorNodeIterator *it);
 BtorNode *btor_next_lambda_iterator (BtorNodeIterator *it);
 
-void btor_init_param_iterator (BtorNodeIterator *it, BtorNode *exp);
-bool btor_has_next_param_iterator (const BtorNodeIterator *it);
-BtorNode *btor_next_param_iterator (BtorNodeIterator *it);
+#if 0
+void btor_init_param_iterator (BtorNodeIterator * it, BtorNode * exp);
+bool btor_has_next_param_iterator (const BtorNodeIterator * it);
+BtorNode * btor_next_param_iterator (BtorNodeIterator * it);
 
-void btor_init_unique_table_iterator (BtorNodeIterator *it, const Btor *exp);
-bool btor_has_next_unique_table_iterator (const BtorNodeIterator *it);
-BtorNode *btor_next_unique_table_iterator (BtorNodeIterator *it);
+void btor_init_unique_table_iterator (BtorNodeIterator * it, const Btor * exp);
+bool btor_has_next_unique_table_iterator (const BtorNodeIterator * it);
+BtorNode * btor_next_unique_table_iterator (BtorNodeIterator * it);
+#endif
 
 /*------------------------------------------------------------------------*/
 
