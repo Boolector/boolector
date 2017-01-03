@@ -270,7 +270,6 @@ int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
-BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);

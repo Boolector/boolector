@@ -255,12 +255,6 @@ btor_version (const Btor *btor)
   return BTOR_VERSION;
 }
 
-BtorMemMgr *
-btor_get_mem_mgr_btor (const Btor *btor)
-{
-  assert (btor);
-  return btor->mm;
-}
 BtorAIGMgr *
 btor_get_aig_mgr_btor (const Btor *btor)
 {
