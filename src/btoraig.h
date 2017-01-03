@@ -231,10 +231,8 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1);
 
-#if 0
 /* hash AIG by id */
-uint32_t btor_hash_aig_by_id (const BtorAIG * aig);
-#endif
+uint32_t btor_hash_aig_by_id (const BtorAIG *aig);
 
 /* compare AIG by id */
 int btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
