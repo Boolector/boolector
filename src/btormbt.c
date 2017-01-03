@@ -2718,6 +2718,8 @@ btormbt_state_opt (BtorMBT *mbt)
         btoropt_output_format->val = BTOR_OUTPUT_FORMAT_SMT2;
     }
   }
+  boolector_set_opt (
+      mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt_output_format->val);
 
   /* set Boolector options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
