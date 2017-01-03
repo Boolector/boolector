@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1346,16 +1346,6 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   dump_smt (sdc);
   delete_smt_dump_context (sdc);
-}
-
-void
-btor_dump_smt2_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
-{
-  assert (btor);
-  assert (file);
-  assert (roots);
-  assert (nroots > 0);
-  dump_smt_aux (btor, file, roots, nroots);
 }
 
 void
