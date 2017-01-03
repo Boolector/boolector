@@ -2606,7 +2606,7 @@ static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
   int i;
-  BtorMBTBtorOpt *btoropt, *btoropt_engine, *btoropt_output_format;
+  BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
 
   /* enable / disable shadow clone testing */
@@ -2700,26 +2700,33 @@ btormbt_state_opt (BtorMBT *mbt)
                btoropt_engine->val);
 
   /* set output format for dumping */
-  btoropt_output_format = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
-  if (!btoropt_output_format->forced_by_cl)
+  btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
+  if (!btoropt->forced_by_cl)
   {
     if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
     {
       if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+        btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
       else
-        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+        btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
     }
     else
     {
       if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_BTOR;
+        btoropt->val = BTOR_OUTPUT_FORMAT_BTOR;
       else
-        btoropt_output_format->val = BTOR_OUTPUT_FORMAT_SMT2;
+        btoropt->val = BTOR_OUTPUT_FORMAT_SMT2;
     }
   }
-  boolector_set_opt (
-      mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt_output_format->val);
+  boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt->val);
+
+  /* set output number format */
+  btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_NUMBER_FORMAT];
+  if (!btoropt->forced_by_cl)
+    boolector_set_opt (
+        mbt->btor,
+        BTOR_OPT_OUTPUT_NUMBER_FORMAT,
+        btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max));
 
   /* set Boolector options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
@@ -2732,7 +2739,8 @@ btormbt_state_opt (BtorMBT *mbt)
     {
       /* skip, has already been set */
       if (btoropt->kind == BTOR_OPT_ENGINE
-          || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT)
+          || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT
+          || btoropt->kind == BTOR_OPT_OUTPUT_NUMBER_FORMAT)
       {
         continue;
       }
