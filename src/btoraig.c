@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -1492,13 +1492,15 @@ btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1)
   return aig0->id - aig1->id;
 }
 
+#if 0
 /* hash AIG by id */
 uint32_t
-btor_hash_aig_by_id (const BtorAIG *aig)
+btor_hash_aig_by_id (const BtorAIG * aig)
 {
   assert (aig);
   return (unsigned int) btor_aig_get_id (aig) * 7334147u;
 }
+#endif
 
 /* compare AIG by id */
 int
