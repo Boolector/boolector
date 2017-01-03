@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1119,8 +1119,9 @@ aigprop_delete_aigprop (AIGProp *aprop)
   BTOR_DELETE (aprop->amgr->btor->mm, aprop);
 }
 
+#if 0
 void
-aigprop_print_stats (AIGProp *aprop)
+aigprop_print_stats (AIGProp * aprop)
 {
   assert (aprop);
   msg ("");
@@ -1129,9 +1130,10 @@ aigprop_print_stats (AIGProp *aprop)
 }
 
 void
-aigprop_print_time_stats (AIGProp *aprop)
+aigprop_print_time_stats (AIGProp * aprop)
 {
   assert (aprop);
   msg ("");
   msg ("%.2f seconds for sat call (AIG propagation)", aprop->time.sat);
 }
+#endif
