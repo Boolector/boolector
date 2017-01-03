@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -189,10 +189,4 @@ void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /* Release all AIGs of the AIG vector and delete AIG vector from memory. */
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
-/* Builds current assignment string of AIG vector (in the SAT case)
- * and returns it.
- */
-char *btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
 #endif

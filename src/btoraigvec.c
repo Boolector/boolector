@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -767,32 +767,4 @@ BtorAIGMgr *
 btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr)
 {
   return avmgr ? avmgr->amgr : 0;
-}
-
-char *
-btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
-{
-  BtorAIGMgr *amgr;
-  int i, len, cur;
-  char *result;
-  assert (avmgr);
-  assert (av);
-  assert (av->len > 0);
-  amgr = avmgr->amgr;
-  len  = av->len;
-  BTOR_NEWN (avmgr->btor->mm, result, len + 1);
-  for (i = 0; i < len; i++)
-  {
-    cur = btor_get_assignment_aig (amgr, av->aigs[i]);
-    assert (cur >= -1);
-    assert (cur <= 1);
-    if (cur == 1)
-      result[i] = '1';
-    else if (cur == -1)
-      result[i] = '0';
-    else
-      result[i] = 'x';
-  }
-  result[i] = '\0';
-  return result;
 }
