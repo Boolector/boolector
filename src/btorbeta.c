@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
@@ -876,16 +876,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
 }
 
 BtorNode *
-btor_beta_reduce_full (Btor *btor, BtorNode *exp)
-{
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0, 0, 0);
-}
-
-BtorNode *
-btor_beta_reduce_full_cached (Btor *btor,
-                              BtorNode *exp,
-                              BtorPtrHashTable *cache)
+btor_beta_reduce_full (Btor *btor, BtorNode *exp, BtorPtrHashTable *cache)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0, 0, cache);
@@ -924,44 +915,4 @@ btor_beta_reduce_partial_collect (Btor *btor,
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce_partial_aux (
       btor, exp, cond_sel_if, cond_sel_else, 0);
-}
-
-BtorNode *
-btor_apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
-{
-  assert (btor);
-  assert (argc >= 0);
-  assert (argc < 1 || args);
-  assert (lambda);
-
-  int i;
-  BtorNode *result, *cur;
-  BtorNodePtrStack unassign;
-  BtorMemMgr *mm;
-
-  mm = btor->mm;
-
-  BTOR_INIT_STACK (mm, unassign);
-
-  cur = lambda;
-  for (i = 0; i < argc; i++)
-  {
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (btor_is_lambda_node (cur));
-    btor_assign_param (btor, cur, args[i]);
-    BTOR_PUSH_STACK (unassign, cur);
-    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
-  }
-
-  result = btor_beta_reduce_full (btor, lambda);
-
-  while (!BTOR_EMPTY_STACK (unassign))
-  {
-    cur = BTOR_POP_STACK (unassign);
-    btor_unassign_params (btor, cur);
-  }
-
-  BTOR_RELEASE_STACK (unassign);
-
-  return result;
 }

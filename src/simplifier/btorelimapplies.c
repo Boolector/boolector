@@ -59,7 +59,7 @@ btor_eliminate_applies (Btor *btor)
         if (app->parameterized) continue;
 
         num_applies++;
-        subst = btor_beta_reduce_full_cached (btor, app, cache);
+        subst = btor_beta_reduce_full (btor, app, cache);
         assert (!btor_get_ptr_hash_table (btor->substitutions, app));
         btor_insert_substitution (btor, app, subst, 0);
         btor_release_exp (btor, subst);
