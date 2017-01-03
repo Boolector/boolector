@@ -3443,16 +3443,10 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", indices, values, size);
   BTOR_ABORT (size < 0, "negative size");
-  if (size)
-  {
-    BTOR_ABORT_ARG_NULL (indices);
-    BTOR_ABORT_ARG_NULL (values);
-  }
-  else
-  {
-    BTOR_ABORT (indices, "non zero 'indices' but 'size == 0'");
-    BTOR_ABORT (values, "non zero 'values' but 'size == 0'");
-  }
+  BTOR_ABORT (size && !indices, "size > 0 but 'indices' are zero");
+  BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
+  BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
+  BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
   arrass = btor_get_array_assignment (
       (const char **) indices, (const char **) values, size);
   (void) arrass;
@@ -3526,16 +3520,10 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", args, values, size);
   BTOR_ABORT (size < 0, "negative size");
-  if (size)
-  {
-    BTOR_ABORT_ARG_NULL (args);
-    BTOR_ABORT_ARG_NULL (values);
-  }
-  else
-  {
-    BTOR_ABORT (args, "non zero 'args' but 'size == 0'");
-    BTOR_ABORT (values, "non zero 'values' but 'size == 0'");
-  }
+  BTOR_ABORT (size && !args, "size > 0 but 'args' are zero");
+  BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
+  BTOR_ABORT (!size && args, "non zero 'args' but 'size == 0'");
+  BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
   arrass = btor_get_array_assignment (
       (const char **) args, (const char **) values, size);
   (void) arrass;
