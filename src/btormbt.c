@@ -3754,6 +3754,7 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt->paramfun == NULL);
 
   if (release_all) boolector_release_all (mbt->btor);
+  assert (boolector_get_refs (mbt->btor) == 0);
   boolector_delete (mbt->btor);
   mbt->btor = NULL;
   return 0;
