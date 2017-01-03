@@ -1,3 +1,4 @@
++ refactored, extended and improved btormbt
 + new API functions:
   - boolector_is_uf
 + dumping smt2 nodes in incremental mode is now also possible if Boolector
