@@ -14,11 +14,12 @@
 #include <btorcore.h>
 #include <stdio.h>
 
-#define NODE_FMT "e%d "
-#define SORT_FMT "s%d "
+#define NODE_FMT "n%d@%p "
+#define SORT_FMT "s%d@%p "
 
-#define BTOR_TRAPI_NODE_ID(exp) \
-  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
+#define BTOR_TRAPI_NODE_ID(exp)                                             \
+  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id), \
+      BTOR_REAL_ADDR_NODE (exp)->btor
 
 #define BTOR_TRAPI(args...)                  \
   do                                         \
@@ -70,7 +71,7 @@
 #define BTOR_TRAPI_RETURN_BOOL(res) \
   BTOR_TRAPI_RETURN ("%s", res ? "true" : "false")
 
-#define BTOR_TRAPI_RETURN_SORT(sort) BTOR_TRAPI_RETURN (SORT_FMT, sort)
+#define BTOR_TRAPI_RETURN_SORT(sort) BTOR_TRAPI_RETURN (SORT_FMT, sort, btor)
 
 void btor_trapi (Btor* btor, const char* fname, const char* msg, ...);
 

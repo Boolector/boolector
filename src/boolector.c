@@ -907,7 +907,7 @@ boolector_zero (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -944,7 +944,7 @@ boolector_ones (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -981,7 +981,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -1002,7 +1002,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%u " SORT_FMT, u, sort);
+  BTOR_TRAPI ("%u " SORT_FMT, u, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -1023,7 +1023,7 @@ boolector_int (Btor *btor, int i, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d " SORT_FMT, i, sort);
+  BTOR_TRAPI ("%d " SORT_FMT, i, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -1051,7 +1051,7 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
               "'sort' is not a bit vector sort");
   symb = (char *) symbol;
-  BTOR_TRAPI (SORT_FMT " %s", sort, symb);
+  BTOR_TRAPI (SORT_FMT " %s", sort, btor, symb);
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
               "symbol '%s' is already in use",
               symb);
@@ -1082,7 +1082,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
                          btor, btor_get_domain_fun_sort (btor, s))
                          != 1,
               "'sort' is not an array sort");
-  BTOR_TRAPI (SORT_FMT " %s", sort, symb);
+  BTOR_TRAPI (SORT_FMT " %s", sort, btor, symb);
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
@@ -1107,7 +1107,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
 
   symb = (char *) symbol;
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
-  BTOR_TRAPI (SORT_FMT "%s", sort, symb);
+  BTOR_TRAPI (SORT_FMT "%s", sort, btor, symb);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_fun_sort (btor, s),
               "%ssort%s%s%s%s must be a function sort",
@@ -2532,7 +2532,7 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   BtorSortId s;
 
   symb = (char *) symbol;
-  BTOR_TRAPI (SORT_FMT " %s", sort, symb);
+  BTOR_TRAPI (SORT_FMT " %s", sort, btor, symb);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (btor, s),
@@ -2813,7 +2813,7 @@ boolector_match_node_by_id (Btor *btor, int id)
   BTOR_TRAPI ("%d", id);
   res = btor_match_node_by_id (btor, id);
   btor_inc_exp_ext_ref_counter (btor, res);
-  BTOR_TRAPI_RETURN_PTR (res);
+  BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node_by_id, id);
 #endif
@@ -2829,7 +2829,7 @@ boolector_match_node_by_symbol (Btor *btor, const char *symbol)
   BTOR_TRAPI ("%s", symbol);
   res = btor_match_node_by_symbol (btor, symbol);
   btor_inc_exp_ext_ref_counter (btor, res);
-  BTOR_TRAPI_RETURN_PTR (res);
+  BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node_by_symbol, symbol);
 #endif
@@ -2847,7 +2847,7 @@ boolector_match_node (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   res = btor_match_node (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
-  BTOR_TRAPI_RETURN_PTR (res);
+  BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node, BTOR_CLONED_EXP (exp));
 #endif
@@ -3620,14 +3620,16 @@ boolector_fun_sort (Btor *btor,
   len = 8 + 10 + (arity + 1) * 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
 
-  sprintf (strtrapi, SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT ((domain[0])));
+  sprintf (strtrapi, SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT ((domain[0])), btor);
   for (i = 1; i < arity; i++)
     sprintf (strtrapi + strlen (strtrapi),
              SORT_FMT,
-             BTOR_IMPORT_BOOLECTOR_SORT (domain[i]));
+             BTOR_IMPORT_BOOLECTOR_SORT (domain[i]),
+             btor);
   sprintf (strtrapi + strlen (strtrapi),
            SORT_FMT,
-           BTOR_IMPORT_BOOLECTOR_SORT (codomain));
+           BTOR_IMPORT_BOOLECTOR_SORT (codomain),
+           btor);
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
@@ -3665,7 +3667,7 @@ BoolectorSort
 boolector_array_sort (Btor *btor, BoolectorSort index, BoolectorSort element)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT " " SORT_FMT, index, element);
+  BTOR_TRAPI (SORT_FMT " " SORT_FMT, index, btor, element, btor);
 
   BtorSortId is, es, res;
 
@@ -3694,7 +3696,7 @@ void
 boolector_release_sort (Btor *btor, BoolectorSort sort)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort));
+  BTOR_TRAPI (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort), btor);
 
   BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
@@ -3737,7 +3739,7 @@ boolector_is_array_sort (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
 
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
@@ -3757,7 +3759,7 @@ boolector_is_bitvec_sort (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
 
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
@@ -3777,7 +3779,7 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI (SORT_FMT, sort);
+  BTOR_TRAPI (SORT_FMT, sort, btor);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
 
   BTOR_ABORT (!btor_is_valid_sort (btor, s), "'sort' is not a valid sort");
