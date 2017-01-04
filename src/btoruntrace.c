@@ -1624,6 +1624,7 @@ DONE:
   BTOR_RELEASE_STACK (arg_str);
   BTOR_RELEASE_STACK (sort_stack);
   BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
+  BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
   if (delete) boolector_delete (btor);
