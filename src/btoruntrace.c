@@ -333,7 +333,7 @@ parse (FILE *file)
 {
   int i, ch, delete, clone;
   size_t len, buffer_len;
-  char *buffer, *tok;
+  char *buffer, *tok, *basename;
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
 
@@ -1640,19 +1640,22 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
 
-      flen = 40 + strlen ("/tmp/") + strlen (g_btorunt->filename);
+      basename = strrchr (g_btorunt->filename, '/');
+      basename += 1; /* skip '/' character */
+      flen = 40 + strlen ("/tmp/") + strlen (basename);
       BTOR_NEWN (g_btorunt->mm, outfilename, flen);
 
       if (!strcmp (tok, "dump_btor"))
       {
-        sprintf (outfilename, "/tmp/%s.%s", g_btorunt->filename, "btor");
+        sprintf (outfilename, "/tmp/%s.%s", basename, "btor");
         outfile = fopen (outfilename, "w");
         assert (outfile);
         boolector_dump_btor (btor, outfile);
       }
       else
       {
-        sprintf (outfilename, "/tmp/%s.%s", g_btorunt->filename, "smt2");
+        sprintf (outfilename, "/tmp/%s.%s", basename, "smt2");
+        printf ("outfilename: %s\n", outfilename);
         outfile = fopen (outfilename, "w");
         assert (outfile);
         boolector_dump_smt2 (btor, outfile);
