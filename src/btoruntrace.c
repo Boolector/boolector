@@ -1655,7 +1655,6 @@ NEXT:
       else
       {
         sprintf (outfilename, "/tmp/%s.%s", basename, "smt2");
-        printf ("outfilename: %s\n", outfilename);
         outfile = fopen (outfilename, "w");
         assert (outfile);
         boolector_dump_smt2 (btor, outfile);
