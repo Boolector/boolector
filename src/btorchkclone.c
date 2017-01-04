@@ -1238,6 +1238,9 @@ btor_chkclone (Btor *btor, Btor *clone)
   assert (clone);
   assert (btor != clone);
 
+  if (btor_get_opt (btor, BTOR_OPT_SAT_ENGINE) != BTOR_SAT_ENGINE_LINGELING)
+    return;
+
   chkclone_mem (btor, clone);
   chkclone_state (btor, clone);
   chkclone_stats (btor, clone);
