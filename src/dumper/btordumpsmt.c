@@ -139,9 +139,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
     }
     return b->data.as_int;
   }
-  id = btor_is_bv_var_node (exp) || btor_is_uf_node (exp)
-           ? btor_exp_get_btor_id (exp)
-           : 0;
+  id = btor_exp_get_btor_id (exp);
   if (id) return id;
   return exp->id;
 }
