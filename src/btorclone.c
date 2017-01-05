@@ -283,21 +283,24 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
 
     switch (sort->kind)
     {
-      case BTOR_BOOL_SORT: cid = btor_bool_sort (clone); break;
-
+#if 0
+	  case BTOR_BOOL_SORT:
+	    cid = btor_bool_sort (clone);
+	    break;
+#endif
       case BTOR_BITVEC_SORT:
         cid = btor_bitvec_sort (clone, sort->bitvec.width);
         break;
+#if 0
+	  case BTOR_LST_SORT:
+	    cid = btor_lst_sort (clone, sort->lst.head->id, sort->lst.tail->id);
+	    break;
 
-      case BTOR_LST_SORT:
-        cid = btor_lst_sort (clone, sort->lst.head->id, sort->lst.tail->id);
-        break;
-
-      case BTOR_ARRAY_SORT:
-        cid = btor_array_sort (
-            clone, sort->array.index->id, sort->array.element->id);
-        break;
-
+	  case BTOR_ARRAY_SORT:
+	    cid = btor_array_sort (clone, sort->array.index->id,
+				   sort->array.element->id);
+	    break;
+#endif
       case BTOR_FUN_SORT:
         assert (BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id));
         cid =

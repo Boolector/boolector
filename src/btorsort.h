@@ -119,7 +119,11 @@ BtorSortId btor_array_sort (Btor *btor,
                             BtorSortId index_id,
                             BtorSortId element_id);
 
-BtorSortId btor_lst_sort (Btor *btor, BtorSortId head_id, BtorSortId tail_id);
+#if 0
+BtorSortId btor_lst_sort (Btor * btor,
+                          BtorSortId head_id,
+                          BtorSortId tail_id);
+#endif
 
 BtorSortId btor_fun_sort (Btor *btor,
                           BtorSortId domain_id,

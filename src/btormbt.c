@@ -190,10 +190,11 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "\n"                                                                         \
   "  -s <val>                    enable/disable shadow clone testing\n"        \
   "                              (0: disable, 1: enable)\n"                    \
-  "  -o                          output directory for saving traces\n"         \
+  "  -o                          disable option fuzzing\n"                     \
   "  -f                          quit after first bug encountered\n"           \
   "  -m <maxruns>                quit after <maxruns> rounds\n"                \
   "  -t <seconds>                set time limit for calls to boolector\n"      \
+  "  -O                          output directory for saving traces\n"         \
   "\n"                                                                         \
   "  --logic <logic>             generate <logic> formulas only, available\n"  \
   "                              logics are: QF_BV,QF_UFBV,QF_ABV, QF_AUFBV\n" \
@@ -625,6 +626,7 @@ struct BtorMBT
   bool terminal;
   bool quit_after_first;
   bool ext;
+  bool optfuzz;
   int32_t fshadow;
   int32_t flogic;
   bool is_flogic;
@@ -885,6 +887,7 @@ btormbt_new_btormbt (void)
   }
   boolector_delete (tmpbtor);
 
+  mbt->optfuzz                = true;
   mbt->max_rounds             = UINT_MAX;
   mbt->seed                   = -1;
   mbt->seeded                 = false;
@@ -2699,34 +2702,36 @@ btormbt_state_opt (BtorMBT *mbt)
                btoropt_engine->name,
                btoropt_engine->val);
 
-  /* set output format for dumping */
-  btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
-  if (!btoropt->forced_by_cl)
+  if (mbt->optfuzz)
   {
-    if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
+    /* set output format for dumping */
+    btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
+    if (!btoropt->forced_by_cl)
     {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+          btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+        else
+          btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+      }
       else
-        btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+          btoropt->val = BTOR_OUTPUT_FORMAT_BTOR;
+        else
+          btoropt->val = BTOR_OUTPUT_FORMAT_SMT2;
+      }
     }
-    else
-    {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        btoropt->val = BTOR_OUTPUT_FORMAT_BTOR;
-      else
-        btoropt->val = BTOR_OUTPUT_FORMAT_SMT2;
-    }
-  }
-  boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt->val);
+    boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt->val);
 
-  /* set output number format */
-  btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_NUMBER_FORMAT];
-  if (!btoropt->forced_by_cl)
-    boolector_set_opt (
-        mbt->btor,
-        BTOR_OPT_OUTPUT_NUMBER_FORMAT,
-        btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max));
+    /* set output number format */
+    btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_NUMBER_FORMAT];
+    if (!btoropt->forced_by_cl)
+      btoropt->val =
+          btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+    boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, btoropt->val);
+  }
 
   /* set Boolector options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
@@ -2836,7 +2841,7 @@ btormbt_state_opt (BtorMBT *mbt)
 #endif
       }
     }
-    else
+    else if (mbt->optfuzz || btoropt->forced_by_cl)
     {
       boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
     }
@@ -3904,7 +3909,11 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-o"))
     {
-      if (++i == argc) btormbt_error ("argument to '-o' missing (try '-h')");
+      g_btormbt->optfuzz = false;
+    }
+    else if (!strcmp (argv[i], "-O"))
+    {
+      if (++i == argc) btormbt_error ("argument to '-O' missing (try '-h')");
       if (argv[i][0] == '-')
         btormbt_error ("invalid output directory given (try '-h')");
       g_btormbt->out = argv[i];
