@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -876,15 +876,21 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_STACK (btor->functions_with_model);
 
   BTOR_INIT_STACK (mm, stack);
+  /* copy lambdas and push onto stack since btor->lambdas does not hold a
+   * reference and they may get released if btor_lambda_delete_static_rho is
+   * called */
   btor_init_ptr_hash_table_iterator (&it, btor->lambdas);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     exp = btor_next_ptr_hash_table_iterator (&it);
-    btor_lambda_delete_static_rho (btor, exp);
+    BTOR_PUSH_STACK (stack, btor_copy_exp (btor, exp));
   }
-
   while (!BTOR_EMPTY_STACK (stack))
-    btor_release_exp (btor, BTOR_POP_STACK (stack));
+  {
+    exp = BTOR_POP_STACK (stack);
+    btor_lambda_delete_static_rho (btor, exp);
+    btor_release_exp (btor, exp);
+  }
   BTOR_RELEASE_STACK (stack);
 
   if (btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP) && btor->external_refs)
