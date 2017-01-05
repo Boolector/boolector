@@ -1555,6 +1555,7 @@ find_conflict_app (Btor *btor, BtorNode *app, BtorIntHashTable *conf_apps)
       res = true;
       break;
     }
+    if (btor_is_apply_node (cur)) continue;
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
