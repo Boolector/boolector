@@ -16,7 +16,7 @@
 #include "dumper/btordumpbtor.h"
 #include "utils/btorutil.h"
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 1024
 #define BUFCONCAT(BUF, CLEN, NLEN, ARGS...) \
   if (NLEN < BUFFER_SIZE - 1)               \
   {                                         \
@@ -39,7 +39,7 @@ node2string (BtorNode *exp)
   Btor *btor;
   BtorNode *real_exp;
   const char *name, *tmp;
-  char strbuf[BUFFER_SIZE], *bufstart;
+  char strbuf[BUFFER_SIZE], *bufstart, *bits;
   size_t cur_len, new_len;
   int i;
 
@@ -52,6 +52,7 @@ node2string (BtorNode *exp)
   strbuf[0] = '\0';
   cur_len   = 0;
   new_len   = btor_num_digits_util (real_exp->id);
+
   if (BTOR_IS_INVERTED_NODE (exp)) new_len += 1;
   new_len += 1 + strlen (name); /* space + name */
   BUFCONCAT (strbuf, cur_len, new_len, "%d %s", btor_exp_get_id (exp), name);
@@ -83,9 +84,13 @@ node2string (BtorNode *exp)
     new_len += strlen (tmp) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", tmp);
   }
-  // FIXME: len exceeds buf
-  //  else if (btor_is_bv_const_node (exp))
-  //    sprintf (strbuf, "%s %s", strbuf, exp->bits);
+  else if (btor_is_bv_const_node (exp))
+  {
+    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (real_exp));
+    new_len += strlen (bits) + 1;
+    BUFCONCAT (strbuf, cur_len, new_len, " %s", bits);
+    btor_freestr (btor->mm, bits);
+  }
 
   assert (cur_len == strlen (strbuf));
   if (g_strbufpos + cur_len + 1 > BUFFER_SIZE - 1) g_strbufpos = 0;
