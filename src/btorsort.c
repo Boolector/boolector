@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2012-2013 Armin Biere.
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -49,23 +49,24 @@ compute_hash_sort (const BtorSort *sort, int table_size)
   switch (sort->kind)
   {
     default:
-    case BTOR_BOOL_SORT:
-      assert (sort->kind == BTOR_BOOL_SORT);
-      res = 0;
-      break;
-
+#if 0
+      case BTOR_BOOL_SORT:
+	assert (sort->kind == BTOR_BOOL_SORT);
+        res = 0;
+	break;
+#endif
     case BTOR_BITVEC_SORT: res = (unsigned int) sort->bitvec.width; break;
+#if 0
+      case BTOR_ARRAY_SORT:
+        res = (unsigned int) sort->array.index->id;
+        tmp = (unsigned int) sort->array.element->id;
+	break;
 
-    case BTOR_ARRAY_SORT:
-      res = (unsigned int) sort->array.index->id;
-      tmp = (unsigned int) sort->array.element->id;
-      break;
-
-    case BTOR_LST_SORT:
-      res = (unsigned int) sort->lst.head->id;
-      tmp = (unsigned int) sort->lst.tail->id;
-      break;
-
+      case BTOR_LST_SORT:
+        res = (unsigned int) sort->lst.head->id;
+        tmp = (unsigned int) sort->lst.tail->id;
+        break;
+#endif
     case BTOR_FUN_SORT:
       res = (unsigned int) sort->fun.domain->id;
       tmp = (unsigned int) sort->fun.codomain->id;
@@ -139,23 +140,27 @@ equal_sort (const BtorSort *a, const BtorSort *b)
 
   switch (a->kind)
   {
-    case BTOR_BOOL_SORT:
-    default: assert (a->kind == BTOR_BOOL_SORT); break;
-
+    default:
+#if 0
+      case BTOR_BOOL_SORT:
+      default:
+        assert (a->kind == BTOR_BOOL_SORT);
+        break;
+#endif
     case BTOR_BITVEC_SORT:
       if (a->bitvec.width != b->bitvec.width) return 0;
       break;
+#if 0
+      case BTOR_ARRAY_SORT:
+        if (a->array.index->id != b->array.index->id) return 0;
+        if (a->array.element->id != b->array.element->id) return 0;
+        break;
 
-    case BTOR_ARRAY_SORT:
-      if (a->array.index->id != b->array.index->id) return 0;
-      if (a->array.element->id != b->array.element->id) return 0;
-      break;
-
-    case BTOR_LST_SORT:
-      if (a->lst.head->id != b->lst.head->id) return 0;
-      if (a->lst.tail->id != b->lst.tail->id) return 0;
-      break;
-
+      case BTOR_LST_SORT:
+        if (a->lst.head->id != b->lst.head->id) return 0;
+        if (a->lst.tail->id != b->lst.tail->id) return 0;
+        break;
+#endif
     case BTOR_FUN_SORT:
       if (a->fun.domain->id != b->fun.domain->id) return 0;
       if (a->fun.codomain->id != b->fun.codomain->id) return 0;
@@ -235,25 +240,25 @@ release_sort (BtorSortUniqueTable *table, BtorSort *sort)
   switch (sort->kind)
   {
     default: break;
-
-    case BTOR_LST_SORT:
+#if 0
+      case BTOR_LST_SORT:
 #ifndef NDEBUG
-      sort->lst.head->parents--;
-      sort->lst.tail->parents--;
+	sort->lst.head->parents--;
+	sort->lst.tail->parents--;
 #endif
-      release_sort (table, sort->lst.head);
-      release_sort (table, sort->lst.tail);
-      break;
+        release_sort (table, sort->lst.head);
+        release_sort (table, sort->lst.tail);
+        break;
 
-    case BTOR_ARRAY_SORT:
+      case BTOR_ARRAY_SORT:
 #ifndef NDEBUG
-      sort->array.index->parents--;
-      sort->array.element->parents--;
+	sort->array.index->parents--;
+	sort->array.element->parents--;
 #endif
-      release_sort (table, sort->array.index);
-      release_sort (table, sort->array.element);
-      break;
-
+        release_sort (table, sort->array.index);
+        release_sort (table, sort->array.element);
+        break;
+#endif
     case BTOR_FUN_SORT:
 #ifndef NDEBUG
       sort->fun.domain->parents--;
@@ -335,33 +340,36 @@ create_sort (Btor *btor, BtorSortUniqueTable *table, BtorSort *pattern)
 
   switch (pattern->kind)
   {
-    case BTOR_BOOL_SORT: res->kind = BTOR_BOOL_SORT; break;
-
+#if 0
+      case BTOR_BOOL_SORT:
+	res->kind = BTOR_BOOL_SORT;
+	break;
+#endif
     case BTOR_BITVEC_SORT:
       res->kind         = BTOR_BITVEC_SORT;
       res->bitvec.width = pattern->bitvec.width;
       break;
-
-    case BTOR_ARRAY_SORT:
-      res->kind          = BTOR_ARRAY_SORT;
-      res->array.index   = copy_sort (pattern->array.index);
-      res->array.element = copy_sort (pattern->array.element);
+#if 0
+      case BTOR_ARRAY_SORT:
+	res->kind = BTOR_ARRAY_SORT;
+	res->array.index = copy_sort (pattern->array.index);
+	res->array.element = copy_sort (pattern->array.element);
 #ifndef NDEBUG
-      res->array.index->parents++;
-      res->array.element->parents++;
+	res->array.index->parents++;
+	res->array.element->parents++;
 #endif
-      break;
+	break;
 
-    case BTOR_LST_SORT:
-      res->kind     = BTOR_LST_SORT;
-      res->lst.head = copy_sort (pattern->lst.head);
-      res->lst.tail = copy_sort (pattern->lst.tail);
+      case BTOR_LST_SORT:
+	res->kind = BTOR_LST_SORT;
+	res->lst.head = copy_sort (pattern->lst.head);
+	res->lst.tail = copy_sort (pattern->lst.tail);
 #ifndef NDEBUG
-      res->lst.head->parents++;
-      res->lst.tail->parents++;
+	res->lst.head->parents++;
+	res->lst.tail->parents++;
 #endif
-      break;
-
+	break;
+#endif
     case BTOR_FUN_SORT:
       res->kind         = BTOR_FUN_SORT;
       res->fun.domain   = copy_sort (pattern->fun.domain);
@@ -495,14 +503,17 @@ btor_array_sort (Btor *btor, BtorSortId index_id, BtorSortId element_id)
 #endif
 }
 
+#if 0
 BtorSortId
-btor_lst_sort (Btor *btor, BtorSortId head_id, BtorSortId tail_id)
+btor_lst_sort (Btor * btor,
+	       BtorSortId head_id,
+	       BtorSortId tail_id)
 {
   assert (btor);
   assert (head_id < BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort));
   assert (tail_id < BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort));
 
-  BtorSort *res, **pos, pattern, *head, *tail;
+  BtorSort * res, ** pos, pattern, *head, *tail;
   BtorSortUniqueTable *table;
 
   table = &btor->sorts_unique_table;
@@ -517,28 +528,29 @@ btor_lst_sort (Btor *btor, BtorSortId head_id, BtorSortId tail_id)
   assert (tail->table == table);
 
   BTOR_CLR (&pattern);
-  pattern.kind     = BTOR_LST_SORT;
+  pattern.kind = BTOR_LST_SORT;
   pattern.lst.head = head;
   pattern.lst.tail = tail;
-  pos              = find_sort (table, &pattern);
+  pos = find_sort (table, &pattern);
   assert (pos);
   res = *pos;
-  if (!res)
-  {
-    if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+  if (!res) 
     {
-      enlarge_sorts_unique_table (table);
-      pos = find_sort (table, &pattern);
-      assert (pos);
-      res = *pos;
-      assert (!res);
+      if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+	{
+	  enlarge_sorts_unique_table (table);
+	  pos = find_sort (table, &pattern);
+	  assert (pos);
+	  res = *pos;
+	  assert (!res);
+	}
+      res = create_sort (btor, table, &pattern);
+      *pos = res;
     }
-    res  = create_sort (btor, table, &pattern);
-    *pos = res;
-  }
   inc_sort_ref_counter (res);
   return res->id;
 }
+#endif
 
 BtorSortId
 btor_fun_sort (Btor *btor, BtorSortId domain_id, BtorSortId codomain_id)
@@ -636,8 +648,12 @@ btor_get_width_bitvec_sort (Btor *btor, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (btor, id);
+  assert (sort->kind != BTOR_BOOL_SORT);
+#if 0
   /* special case for Boolector as boolean are treated as bv of width 1 */
-  if (sort->kind == BTOR_BOOL_SORT) return 1;
+  if (sort->kind == BTOR_BOOL_SORT)
+    return 1;
+#endif
   assert (sort->kind == BTOR_BITVEC_SORT);
   return sort->bitvec.width;
 }
@@ -684,7 +700,11 @@ btor_get_index_array_sort (Btor *btor, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (btor, id);
-  if (sort->kind == BTOR_ARRAY_SORT) return sort->array.index->id;
+  assert (sort->kind != BTOR_ARRAY_SORT);
+#if 0
+  if (sort->kind == BTOR_ARRAY_SORT)
+    return sort->array.index->id;
+#endif
   assert (sort->kind == BTOR_FUN_SORT);
   assert (sort->fun.domain->tuple.num_elements == 1);
   return sort->fun.domain->tuple.elements[0]->id;
@@ -695,7 +715,11 @@ btor_get_element_array_sort (Btor *btor, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (btor, id);
-  if (sort->kind == BTOR_ARRAY_SORT) return sort->array.element->id;
+  assert (sort->kind != BTOR_ARRAY_SORT);
+#if 0
+  if (sort->kind == BTOR_ARRAY_SORT)
+    return sort->array.element->id;
+#endif
   assert (sort->kind == BTOR_FUN_SORT);
   return sort->fun.codomain->id;
 }
