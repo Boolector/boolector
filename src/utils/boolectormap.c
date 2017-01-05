@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -162,7 +162,7 @@ boolector_map_node_internal (Btor *btor,
     assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
   }
 
-  assert (e->kind != BTOR_PROXY_NODE);
+  assert (!btor_is_proxy_node (e));
 
   switch (e->kind)
   {
@@ -234,7 +234,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     node = BTOR_POP_STACK (working_stack);
     node = BTOR_REAL_ADDR_NODE (node);
     btor_inc_exp_ext_ref_counter (node->btor, node);
-    assert (node->kind != BTOR_PROXY_NODE);
+    assert (!btor_is_proxy_node (node));
     if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
     d = btor_get_int_hash_map (mark, node->id);
