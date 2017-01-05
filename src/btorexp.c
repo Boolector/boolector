@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -628,7 +628,7 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 void
-btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
+btor_exp_set_btor_id (Btor *btor, BtorNode *exp, int32_t id)
 {
   assert (btor);
   assert (exp);
@@ -638,13 +638,31 @@ btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
 
   (void) btor;
   BtorNode *real_exp;
+  BtorPtrHashBucket *b;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
+  b        = btor_get_ptr_hash_table (btor->inputs, real_exp);
+  assert (b);
+  b->data.as_int = id;
+}
 
-  if (btor_is_bv_var_node (real_exp))
-    ((BtorBVVarNode *) real_exp)->btor_id = id;
-  else if (btor_is_uf_node (real_exp))
-    ((BtorUFNode *) real_exp)->btor_id = id;
+int32_t
+btor_exp_get_btor_id (BtorNode *exp)
+{
+  assert (exp);
+
+  int32_t id = 0;
+  Btor *btor;
+  BtorNode *real_exp;
+  BtorPtrHashBucket *b;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  btor     = real_exp->btor;
+
+  if ((b = btor_get_ptr_hash_table (btor->inputs, real_exp)))
+    id = b->data.as_int;
+  if (BTOR_IS_INVERTED_NODE (exp)) return -id;
+  return id;
 }
 
 BtorNode *
