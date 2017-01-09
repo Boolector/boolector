@@ -52,143 +52,132 @@ def select_column(line, old_pos):
     return cols[1]
 
 # per directory/file flag
-# column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
+# column_name : <colname>, <keyword>, <filter>
 FILTER_LOG = {
   'lods':
       ['LODS', 
        lambda x: 'LOD refinements' in x,
-       lambda x: select_column(x, 3),
-       False],
+       lambda x: select_column(x, 3)],
   'lods_avg':
       ['LODS avg',
        lambda x: 'average lemma size' in x,
-       lambda x: select_column(x, 4),
-       False],
+       lambda x: select_column(x, 4)],
   'lods_fc':
       ['LODS FC',
        lambda x: 'function congruence conf' in x,
-       lambda x: select_column(x, 4),
-       False],
+       lambda x: select_column(x, 4)],
   'lods_br':
       ['LODS BR',
        lambda x: 'beta reduction conf' in x,
-       lambda x: select_column(x, 4),
-       False],
+       lambda x: select_column(x, 4)],
   'calls':
       ['CALLS', 
        lambda x: 'SAT calls' in x, 
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_sat':
       ['SAT[s]', 
        lambda x: 'pure SAT' in x, 
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_rw':
       ['RW[s]', 
        lambda x: 'rewriting engine' in x, 
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_beta':
       ['BETA[s]', 
        lambda x: 'beta-reduction' in x, 
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_eval':
       ['EVAL[s]', 
        lambda x: 'seconds expression evaluation' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_lle':
       ['LLE[s]', 
        lambda x: 'lazy lambda encoding' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_pas':
       ['PAS[s]', 
        lambda x: 'propagation apply search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_pacs':
       ['PAS[s]',
        lambda x: 'propagation apply in conds search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_neas':
       ['NEAS[s]', 
        lambda x: 'not encoded apply search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'num_beta':
       ['BETA', 
        lambda x: 'beta reductions' in x and 'partial' not in x,
-       lambda x: select_column(x, 3),
-       False],
+       lambda x: select_column(x, 3)],
   'num_eval':
       ['EVAL', 
        lambda x: 'evaluations' in x,
-       lambda x: select_column(x, 3),
-       False],
+       lambda x: select_column(x, 3)],
   'num_prop':
       ['PROP', 
        lambda x: 'slvfun' in x and 'propagations' in x and 'down' not in x,
-       lambda x: select_column(x, 2),
-       False],
+       lambda x: select_column(x, 2)],
   'num_propd':
       ['PROPD', 
        lambda x: 'propagations down' in x,
-       lambda x: select_column(x, 3),
-       False],
+       lambda x: select_column(x, 3)],
   'time_clapp':
       ['CLONE[s]', 
        lambda x: 'cloning for initial applies search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_sapp':
       ['SATDP[s]', 
        lambda x: 'SAT solving for initial applies search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_app':
       ['APP[s]', 
        lambda x: 'seconds initial applies search' in x,
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'time_coll': 
       ['COL[s]', 
        lambda x: 'collecting initial applies' in x, 
-       lambda x: select_column(x, 1),
-       False],
+       lambda x: select_column(x, 1)],
   'num_moves': 
       ['MOVES',
        lambda x: 'moves' in x,
-       lambda x: select_column(x, 2),
-       False],
+       lambda x: select_column(x, 2)],
   'num_props':
       ['PROPS',
        lambda x: 'propagation (steps)' in x,
-       lambda x: select_column(x, 3),
-       False],
+       lambda x: select_column(x, 3)],
   'num_conf_rec': 
       ['CONF(REC)',
        lambda x: 'propagation move conflicts (recoverable)' in x,
-       lambda x: select_column(x, 5),
-       False],
+       lambda x: select_column(x, 5)],
   'num_conf_non_rec': 
       ['CONF(NON-REC)',
        lambda x: 'propagation move conflicts (non-recoverable)' in x,
-       lambda x: select_column(x, 5),
-       False],
+       lambda x: select_column(x, 5)],
   'num_fvars': 
       ['FVAR',
        lambda x: 'dual prop: failed vars' in x,
-       lambda x: select_column(x, 5),
-       False],
+       lambda x: select_column(x, 5)],
   'num_fapps':
       ['FAPP',
        lambda x: 'dual prop: failed applies' in x,
-       lambda x: select_column(x, 5),
-       False]
+       lambda x: select_column(x, 5)],
+  'cnf_vars':
+      ['CNF VARs',
+       lambda x: 'CNF variables' in x and 'btor>core' in x,
+       lambda x: select_column(x, 1)],
+  'cnf_clauses':
+      ['CNF CLAUSEs',
+       lambda x: 'CNF clauses' in x and 'btor>core' in x,
+       lambda x: select_column(x, 1)],
+  'aig_vars':
+      ['AIG VARs',
+       lambda x: 'AIG variables' in x and 'btor>core' in x,
+       lambda x: select_column(x, 1)],
+  'aig_ands':
+      ['AIG ANDs',
+       lambda x: 'AIG ANDs' in x and 'btor>core' in x,
+       lambda x: select_column(x, 1)],
 }
 
 
@@ -215,73 +204,56 @@ def err_extract_opts(line):
     return None 
 
 
-# column_name : <colname>, <keyword>, <filter>, <format>, [<is_dir_stat>] (optional)
+# column_name : <colname>, <keyword>, <filter>, <format>
 FILTER_ERR = {
   'status':
       ['STAT', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_solved':
       ['SLVD', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_total':
       ['TOT', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_time':
       ['TOUTS', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_mem':
       ['MOUTS', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_err':
       ['ERR', 
        lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status,
-       False],
+       err_extract_status],
   'g_sat':
       ['SAT', 
        lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2],
-       False],
+       lambda x: x.split()[2]],
   'g_unsat':
       ['UNSAT', 
        lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2],
-       False],
+       lambda x: x.split()[2]],
   'result':
       ['RES', 
        lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2],
-       False],
+       lambda x: x.split()[2]],
   'time_real':
       ['REAL[s]', 
        lambda x: 'runlim' in x and 'real:' in x,
-       lambda x: x.split()[2],
-       False],
+       lambda x: x.split()[2]],
   'time_time':
       ['TIME[s]', 
        lambda x: 'runlim' in x and 'time:' in x,
-       lambda x: x.split()[2],
-       False],
+       lambda x: x.split()[2]],
   'space':
       ['SPACE[MB]', 
        lambda x: 'runlim' in x and 'space:' in x,
-       lambda x: x.split()[2],
-       False],
-#  'opts':
-#     ['OPTIONS', 
-#      lambda x: 'runlim' in x and 'argv' in x,
-#      err_extract_opts,
-#      True] 
+       lambda x: x.split()[2]],
 }
 
 def format_status(l):
@@ -312,14 +284,10 @@ assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
 assert(set(FILTER_ERR.keys()).isdisjoint(set(FILTER_OUT.keys())))
 
-FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if not f[3])
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if not f[3]))
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items() if not f[3]))
+FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items())
+FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items()))
+FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items()))
 
-DIR_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if f[3])
-DIR_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if f[3]))
-
-g_dir_stats = {}
 g_file_stats = {}
 g_total_stats = {}
 g_format_stats = TOTALS_FORMAT_ERR
@@ -332,9 +300,8 @@ def _cast(s):
     return s
 
 def _filter_data(d, file, filters):
-    global g_file_stats, g_dir_stats
+    global g_file_stats
     
-    dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
     (f_name, f_ext) = _get_name_and_ext(file)
 
     if os.stat(os.path.join(d, file)).st_size == 0:
@@ -357,7 +324,7 @@ def _filter_data(d, file, filters):
                 break
 
             for k, v in filters.items():
-                assert(len(v) == 4)
+                assert(len(v) == 3)
 
                 # value already extracted for current file
                 if k in used_filters:
@@ -366,48 +333,25 @@ def _filter_data(d, file, filters):
                 f_match = v[1]
                 f_val = v[2]
                 
-                if k in DIR_STATS_KEYS:
-                    if not d in g_dir_stats[k]:
-                        val = _cast(f_val(line)) if f_match(line) else None
-                        if k not in dir_stats:
-                            dir_stats[k] = {}
-                        if d not in dir_stats[k]:
-                            dir_stats[k][d] = []
-                        if val is not None:
-                            dir_stats[k][d].append(val)
-                # skip columns that are not printed
-                else:
-                    assert(k in FILE_STATS_KEYS)
-                    if f_match(line):
-                        val = _cast(f_val(line))
-                        used_filters.add(k)
-                    else:
-                        val = None
+                if not f_match(line):
+                    continue
 
-                    if k not in g_file_stats:
-                        g_file_stats[k] = {}
+                val = _cast(f_val(line))
+                used_filters.add(k)
 
-                    if d not in g_file_stats[k]:
-                        g_file_stats[k][d] = {}
+                if f_ext == 'out' \
+                   and line in ('sat', 'unsat', 'unknown'): 
+                       continue
 
-                    if f_name not in g_file_stats[k][d]:
-                        g_file_stats[k][d][f_name] = None
+                if k not in g_file_stats:
+                    g_file_stats[k] = {}
 
-                    if f_ext == 'out' \
-                       and line in ('sat', 'unsat', 'unknown'): 
-                           continue
-            
-                    if val is not None:
-                        if g_file_stats[k][d][f_name] == None:
-                            g_file_stats[k][d][f_name] = val
-                        else:
-                            g_file_stats[k][d][f_name] += val
+                if d not in g_file_stats[k]:
+                    g_file_stats[k][d] = {}
 
-    for k in dir_stats:
-        for d in dir_stats[k]:
-            if k not in g_dir_stats:
-                g_dir_stats[k] = {}
-            g_dir_stats[k][d] = dir_stats[k][d]
+                assert(f_name not in g_file_stats[k][d])
+                g_file_stats[k][d][f_name] = val 
+
 
 
 def _read_log_file(d, f):
@@ -432,7 +376,7 @@ def _init_missing_files(data):
                     data[k][d][f] = None
 
 def _normalize_data(data):
-    global g_args, g_dir_stats
+    global g_args
 
     assert('result' in data)
     # reset timeout if given
@@ -468,9 +412,6 @@ def _normalize_data(data):
                 vbpdir = "{} + {}".format(_base_dir(bdir), _base_dir(pdir))
 
                 # initialize for virtual best solver
-                for k in g_dir_stats.keys():
-                    g_dir_stats[k][vbpdir] = []
-
                 for k in data.keys():
                     if vbpdir not in data[k]:
                         data[k][vbpdir] = {}
@@ -506,10 +447,6 @@ def _normalize_data(data):
                 g_args.dirs.append(vbpdir)
         else:
             vb_dir = "virtual best solver (portfolio)"
-
-            # initialize for virtual best solver
-            for k in g_dir_stats.keys():
-                g_dir_stats[k][vb_dir] = []
 
             for f in g_benchmarks:
                 v = sorted(
@@ -555,7 +492,7 @@ def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
 
 def _save_cache_file(dir):
-    global g_file_stats, g_dir_stats
+    global g_file_stats
 
     sum_filename = "{}/cache".format(dir)
     keys = sorted(g_file_stats.keys())
@@ -572,7 +509,7 @@ def _save_cache_file(dir):
             sum_file.write("{} {}\n".format(f, " ".join(data)))
 
 def _read_cache_file(dir):
-    global g_file_stats, g_dir_stats, g_benchmarks
+    global g_file_stats, g_benchmarks
 
     sum_filename = "{}/cache".format(dir)
     if os.path.isfile(sum_filename):
@@ -953,7 +890,7 @@ def _get_column_widths(data, benchmarks):
 
 
 def _print_data ():
-    global g_file_stats, g_dir_stats
+    global g_file_stats
 
     diff_stats, best_stats = _pick_data(g_benchmarks, g_file_stats)
     if g_args.g:
@@ -993,11 +930,6 @@ def _print_data ():
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
     if not g_args.plain:
         _print_row (columns, widths, colspans=colspans, classes=classes)
-        for k in g_dir_stats:
-            columns = [_get_column_name(k)]
-            for d in g_args.dirs:
-                columns.append(" ".join(g_dir_stats[k][d]))
-            _print_row (columns, widths, colspans=colspans, classes=classes)
 
     columns = ["BENCHMARK"]
     widths = [benchmark_column_width]
@@ -1357,9 +1289,6 @@ if __name__ == "__main__":
 
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
-
-        # initialize global data
-        g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 
         if len(set(g_args.columns).intersection(FILTER_LOG)) == 0:
             g_parse_err_only = True
