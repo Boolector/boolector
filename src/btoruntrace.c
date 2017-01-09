@@ -557,6 +557,16 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       boolector_assume (btor, hmap_get (hmap, arg1_str));
     }
+    else if (!strcmp (tok, "reset_assumptions"))
+    {
+      PARSE_ARGS0 (tok);
+      boolector_reset_assumptions (btor);
+    }
+    else if (!strcmp (tok, "fixate_assumptions"))
+    {
+      PARSE_ARGS0 (tok);
+      boolector_fixate_assumptions (btor);
+    }
     else if (!strcmp (tok, "failed"))
     {
       PARSE_ARGS1 (tok, str);
