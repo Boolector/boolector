@@ -54,6 +54,24 @@ def select_column(line, old_pos):
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>
 FILTER_LOG = [
+  # bit blasting stats
+  ('cnf_vars',
+   'CNF VARs',
+   lambda x: 'CNF variables' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('cnf_clauses',
+   'CNF CLAUSEs',
+   lambda x: 'CNF clauses' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('aig_vars',
+   'AIG VARs',
+   lambda x: 'AIG variables' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('aig_ands',
+   'AIG ANDs',
+   lambda x: 'AIG ANDs' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  # lemmas on demand stats
   ('lods',
    'LODS', 
    lambda x: 'LOD refinements' in x,
@@ -74,38 +92,6 @@ FILTER_LOG = [
    'CALLS', 
    lambda x: 'SAT calls' in x, 
    lambda x: select_column(x, 1)),
-  ('time_sat',
-   'SAT(s]', 
-   lambda x: 'pure SAT' in x, 
-   lambda x: select_column(x, 1)),
-  ('time_rw',
-   'RW(s]', 
-   lambda x: 'rewriting engine' in x, 
-   lambda x: select_column(x, 1)),
-  ('time_beta',
-   'BETA(s]', 
-   lambda x: 'beta-reduction' in x, 
-   lambda x: select_column(x, 1)),
-  ('time_eval',
-   'EVAL(s]', 
-   lambda x: 'seconds expression evaluation' in x,
-   lambda x: select_column(x, 1)),
-  ('time_lle',
-   'LLE(s]', 
-   lambda x: 'lazy lambda encoding' in x,
-   lambda x: select_column(x, 1)),
-  ('time_pas',
-   'PAS(s]', 
-   lambda x: 'propagation apply search' in x,
-   lambda x: select_column(x, 1)),
-  ('time_pacs',
-   'PAS(s]',
-   lambda x: 'propagation apply in conds search' in x,
-   lambda x: select_column(x, 1)),
-  ('time_neas',
-   'NEAS(s]', 
-   lambda x: 'not encoded apply search' in x,
-   lambda x: select_column(x, 1)),
   ('num_beta',
    'BETA', 
    lambda x: 'beta reductions' in x and 'partial' not in x,
@@ -122,22 +108,15 @@ FILTER_LOG = [
    'PROPD', 
    lambda x: 'propagations down' in x,
    lambda x: select_column(x, 3)),
-  ('time_clapp',
-   'CLONE(s]', 
-   lambda x: 'cloning for initial applies search' in x,
-   lambda x: select_column(x, 1)),
-  ('time_sapp',
-   'SATDP(s]', 
-   lambda x: 'SAT solving for initial applies search' in x,
-   lambda x: select_column(x, 1)),
-  ('time_app',
-   'APP(s]', 
-   lambda x: 'seconds initial applies search' in x,
-   lambda x: select_column(x, 1)),
-  ('time_coll', 
-   'COL(s]', 
-   lambda x: 'collecting initial applies' in x, 
-   lambda x: select_column(x, 1)),
+  ('num_fvars', 
+   'FVAR',
+   lambda x: 'dual prop: failed vars' in x,
+   lambda x: select_column(x, 5)),
+  ('num_fapps',
+   'FAPP',
+   lambda x: 'dual prop: failed applies' in x,
+   lambda x: select_column(x, 5)),
+  # sls stats
   ('num_moves', 
    'MOVES',
    lambda x: 'moves' in x,
@@ -154,29 +133,42 @@ FILTER_LOG = [
    'CONF(NON-REC)',
    lambda x: 'propagation move conflicts (non-recoverable)' in x,
    lambda x: select_column(x, 5)),
-  ('num_fvars', 
-   'FVAR',
-   lambda x: 'dual prop: failed vars' in x,
-   lambda x: select_column(x, 5)),
-  ('num_fapps',
-   'FAPP',
-   lambda x: 'dual prop: failed applies' in x,
-   lambda x: select_column(x, 5)),
-  ('cnf_vars',
-   'CNF VARs',
-   lambda x: 'CNF variables' in x and 'btor>core' in x,
+  # time stats
+  ('time_clapp',
+   'CLONE[s]', 
+   lambda x: 'cloning for initial applies search' in x,
    lambda x: select_column(x, 1)),
-  ('cnf_clauses',
-   'CNF CLAUSEs',
-   lambda x: 'CNF clauses' in x and 'btor>core' in x,
+  ('time_sapp',
+   'SATDP[s]', 
+   lambda x: 'SAT solving for initial applies search' in x,
    lambda x: select_column(x, 1)),
-  ('aig_vars',
-   'AIG VARs',
-   lambda x: 'AIG variables' in x and 'btor>core' in x,
+  ('time_app',
+   'APP[s]', 
+   lambda x: 'seconds initial applies search' in x,
    lambda x: select_column(x, 1)),
-  ('aig_ands',
-   'AIG ANDs',
-   lambda x: 'AIG ANDs' in x and 'btor>core' in x,
+  ('time_coll', 
+   'COL[s]', 
+   lambda x: 'collecting initial applies' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_sat',
+   'SAT[s]', 
+   lambda x: 'pure SAT' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_rw',
+   'RW[s]', 
+   lambda x: 'rewriting engine' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_beta',
+   'BETA[s]', 
+   lambda x: 'beta-reduction' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_eval',
+   'EVAL[s]', 
+   lambda x: 'seconds expression evaluation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_pas',
+   'PAS[s]', 
+   lambda x: 'propagation apply search' in x,
    lambda x: select_column(x, 1)),
 ]
 
@@ -311,15 +303,16 @@ def _filter_data(d, file, filters):
     
     (f_name, f_ext) = _get_name_and_ext(file)
 
+    for t in filters:
+        k = t[0]
+        if k not in g_file_stats:
+            g_file_stats[k] = {}
+        if d not in g_file_stats[k]:
+            g_file_stats[k][d] = {}
+        if f_name not in g_file_stats[k][d]:
+            g_file_stats[k][d][f_name] = None
+
     if os.stat(os.path.join(d, file)).st_size == 0:
-        for t in filters:
-            k = t[0]
-            if k not in g_file_stats:
-                g_file_stats[k] = {}
-            if d not in g_file_stats[k]:
-                g_file_stats[k][d] = {}
-            if f_name not in g_file_stats[k][d]:
-                g_file_stats[k][d][f_name] = None
         return
 
     used_filters = set()
@@ -352,13 +345,7 @@ def _filter_data(d, file, filters):
                    and line in ('sat', 'unsat', 'unknown'): 
                        continue
 
-                if k not in g_file_stats:
-                    g_file_stats[k] = {}
-
-                if d not in g_file_stats[k]:
-                    g_file_stats[k][d] = {}
-
-                assert(f_name not in g_file_stats[k][d])
+                assert(g_file_stats[k][d][f_name] == None)
                 g_file_stats[k][d][f_name] = val 
 
 
@@ -478,7 +465,7 @@ def _normalize_data(data):
         t = ('g_uniq', 'UNIQ', lambda x: False, lambda x: None) 
         FILTER_ERR.append(t)
         filter_err_dict[t[0]] = t[1:]
-        filter_err_keys.append(t[0])
+        filter_err_keys.add(t[0])
 
         data['g_uniq'] = {}
         for f in g_benchmarks:
@@ -529,7 +516,7 @@ def _read_cache_file(dir):
                 if keys is None:
                     keys = line.split()
 
-                    expected_keys = filter_err_keys[:]
+                    expected_keys = list(filter_err_keys)
                     if not g_parse_err_only:
                         expected_keys.extend(filter_log_keys)
                         if g_args.m:
@@ -560,7 +547,7 @@ def _read_cache_file(dir):
                         else:
                             assert(k in filter_err_dict)
                             t = filter_err_dict[k]
-                        assert(len(t) == 4)
+                        assert(len(t) == 3)
                         assert(f not in g_file_stats[k][dir])
                         if data[i] == "None":
                             g_file_stats[k][dir][f] = None
