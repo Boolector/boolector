@@ -14,7 +14,6 @@ if [ -f $config ]; then
   commit_conf=`grep BTOR_ID $config | cut -d ' ' -f 3 | grep -o -e '[0-9a-z]\+'`
   commit_cur=`./getgitid.sh`
   if [ "$commit_conf" = "$commit_cur" ]; then
-    echo "[mkconfig.sh] commit id not changed, do not update $config"
     exit
   fi
 fi
