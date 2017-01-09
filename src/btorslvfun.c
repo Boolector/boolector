@@ -2177,7 +2177,8 @@ sat_fun_solver (BtorFunSolver *slv)
   clone_root = 0;
   exp_map    = 0;
 
-  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0)
+  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0
+      && btor->feqs->count == 0)
   {
     BtorSolver *propslv;
     if (btor->lambdas->count) btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
