@@ -363,6 +363,11 @@ btor_new_aigprop_solver (Btor *btor)
 
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+#ifndef NBTORLOG
+                           btor_get_opt (btor, BTOR_OPT_LOGLEVEL),
+#else
+                           0,
+#endif
                            btor_get_opt (btor, BTOR_OPT_SEED),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT));

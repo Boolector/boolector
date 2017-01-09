@@ -1090,6 +1090,7 @@ aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
 
 AIGProp *
 aigprop_new_aigprop (BtorAIGMgr *amgr,
+                     uint32_t loglevel,
                      uint32_t seed,
                      uint32_t use_restarts,
                      uint32_t use_bandit)
@@ -1101,6 +1102,7 @@ aigprop_new_aigprop (BtorAIGMgr *amgr,
   BTOR_CNEW (amgr->btor->mm, res);
   res->amgr = amgr;
   btor_init_rng (&res->rng, seed);
+  res->loglevel     = loglevel;
   res->seed         = seed;
   res->use_restarts = use_restarts;
   res->use_bandit   = use_bandit;

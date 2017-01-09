@@ -54,6 +54,7 @@ struct AIGProp
 typedef struct AIGProp AIGProp;
 
 AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr,
+                              uint32_t loglevel,
                               uint32_t seed,
                               uint32_t use_restarts,
                               uint32_t use_bandit);
