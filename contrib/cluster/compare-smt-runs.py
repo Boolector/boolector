@@ -53,133 +53,132 @@ def select_column(line, old_pos):
 
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>
-FILTER_LOG = {
-  'lods':
-      ['LODS', 
-       lambda x: 'LOD refinements' in x,
-       lambda x: select_column(x, 3)],
-  'lods_avg':
-      ['LODS avg',
-       lambda x: 'average lemma size' in x,
-       lambda x: select_column(x, 4)],
-  'lods_fc':
-      ['LODS FC',
-       lambda x: 'function congruence conf' in x,
-       lambda x: select_column(x, 4)],
-  'lods_br':
-      ['LODS BR',
-       lambda x: 'beta reduction conf' in x,
-       lambda x: select_column(x, 4)],
-  'calls':
-      ['CALLS', 
-       lambda x: 'SAT calls' in x, 
-       lambda x: select_column(x, 1)],
-  'time_sat':
-      ['SAT[s]', 
-       lambda x: 'pure SAT' in x, 
-       lambda x: select_column(x, 1)],
-  'time_rw':
-      ['RW[s]', 
-       lambda x: 'rewriting engine' in x, 
-       lambda x: select_column(x, 1)],
-  'time_beta':
-      ['BETA[s]', 
-       lambda x: 'beta-reduction' in x, 
-       lambda x: select_column(x, 1)],
-  'time_eval':
-      ['EVAL[s]', 
-       lambda x: 'seconds expression evaluation' in x,
-       lambda x: select_column(x, 1)],
-  'time_lle':
-      ['LLE[s]', 
-       lambda x: 'lazy lambda encoding' in x,
-       lambda x: select_column(x, 1)],
-  'time_pas':
-      ['PAS[s]', 
-       lambda x: 'propagation apply search' in x,
-       lambda x: select_column(x, 1)],
-  'time_pacs':
-      ['PAS[s]',
-       lambda x: 'propagation apply in conds search' in x,
-       lambda x: select_column(x, 1)],
-  'time_neas':
-      ['NEAS[s]', 
-       lambda x: 'not encoded apply search' in x,
-       lambda x: select_column(x, 1)],
-  'num_beta':
-      ['BETA', 
-       lambda x: 'beta reductions' in x and 'partial' not in x,
-       lambda x: select_column(x, 3)],
-  'num_eval':
-      ['EVAL', 
-       lambda x: 'evaluations' in x,
-       lambda x: select_column(x, 3)],
-  'num_prop':
-      ['PROP', 
-       lambda x: 'slvfun' in x and 'propagations' in x and 'down' not in x,
-       lambda x: select_column(x, 2)],
-  'num_propd':
-      ['PROPD', 
-       lambda x: 'propagations down' in x,
-       lambda x: select_column(x, 3)],
-  'time_clapp':
-      ['CLONE[s]', 
-       lambda x: 'cloning for initial applies search' in x,
-       lambda x: select_column(x, 1)],
-  'time_sapp':
-      ['SATDP[s]', 
-       lambda x: 'SAT solving for initial applies search' in x,
-       lambda x: select_column(x, 1)],
-  'time_app':
-      ['APP[s]', 
-       lambda x: 'seconds initial applies search' in x,
-       lambda x: select_column(x, 1)],
-  'time_coll': 
-      ['COL[s]', 
-       lambda x: 'collecting initial applies' in x, 
-       lambda x: select_column(x, 1)],
-  'num_moves': 
-      ['MOVES',
-       lambda x: 'moves' in x,
-       lambda x: select_column(x, 2)],
-  'num_props':
-      ['PROPS',
-       lambda x: 'propagation (steps)' in x,
-       lambda x: select_column(x, 3)],
-  'num_conf_rec': 
-      ['CONF(REC)',
-       lambda x: 'propagation move conflicts (recoverable)' in x,
-       lambda x: select_column(x, 5)],
-  'num_conf_non_rec': 
-      ['CONF(NON-REC)',
-       lambda x: 'propagation move conflicts (non-recoverable)' in x,
-       lambda x: select_column(x, 5)],
-  'num_fvars': 
-      ['FVAR',
-       lambda x: 'dual prop: failed vars' in x,
-       lambda x: select_column(x, 5)],
-  'num_fapps':
-      ['FAPP',
-       lambda x: 'dual prop: failed applies' in x,
-       lambda x: select_column(x, 5)],
-  'cnf_vars':
-      ['CNF VARs',
-       lambda x: 'CNF variables' in x and 'btor>core' in x,
-       lambda x: select_column(x, 1)],
-  'cnf_clauses':
-      ['CNF CLAUSEs',
-       lambda x: 'CNF clauses' in x and 'btor>core' in x,
-       lambda x: select_column(x, 1)],
-  'aig_vars':
-      ['AIG VARs',
-       lambda x: 'AIG variables' in x and 'btor>core' in x,
-       lambda x: select_column(x, 1)],
-  'aig_ands':
-      ['AIG ANDs',
-       lambda x: 'AIG ANDs' in x and 'btor>core' in x,
-       lambda x: select_column(x, 1)],
-}
-
+FILTER_LOG = [
+  ('lods',
+   'LODS', 
+   lambda x: 'LOD refinements' in x,
+   lambda x: select_column(x, 3)),
+  ('lods_avg',
+   'LODS avg',
+   lambda x: 'average lemma size' in x,
+   lambda x: select_column(x, 4)),
+  ('lods_fc',
+   'LODS FC',
+   lambda x: 'function congruence conf' in x,
+   lambda x: select_column(x, 4)),
+  ('lods_br',
+   'LODS BR',
+   lambda x: 'beta reduction conf' in x,
+   lambda x: select_column(x, 4)),
+  ('calls',
+   'CALLS', 
+   lambda x: 'SAT calls' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_sat',
+   'SAT(s]', 
+   lambda x: 'pure SAT' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_rw',
+   'RW(s]', 
+   lambda x: 'rewriting engine' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_beta',
+   'BETA(s]', 
+   lambda x: 'beta-reduction' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_eval',
+   'EVAL(s]', 
+   lambda x: 'seconds expression evaluation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_lle',
+   'LLE(s]', 
+   lambda x: 'lazy lambda encoding' in x,
+   lambda x: select_column(x, 1)),
+  ('time_pas',
+   'PAS(s]', 
+   lambda x: 'propagation apply search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_pacs',
+   'PAS(s]',
+   lambda x: 'propagation apply in conds search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_neas',
+   'NEAS(s]', 
+   lambda x: 'not encoded apply search' in x,
+   lambda x: select_column(x, 1)),
+  ('num_beta',
+   'BETA', 
+   lambda x: 'beta reductions' in x and 'partial' not in x,
+   lambda x: select_column(x, 3)),
+  ('num_eval',
+   'EVAL', 
+   lambda x: 'evaluations' in x,
+   lambda x: select_column(x, 3)),
+  ('num_prop',
+   'PROP', 
+   lambda x: 'slvfun' in x and 'propagations' in x and 'down' not in x,
+   lambda x: select_column(x, 2)),
+  ('num_propd',
+   'PROPD', 
+   lambda x: 'propagations down' in x,
+   lambda x: select_column(x, 3)),
+  ('time_clapp',
+   'CLONE(s]', 
+   lambda x: 'cloning for initial applies search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_sapp',
+   'SATDP(s]', 
+   lambda x: 'SAT solving for initial applies search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_app',
+   'APP(s]', 
+   lambda x: 'seconds initial applies search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_coll', 
+   'COL(s]', 
+   lambda x: 'collecting initial applies' in x, 
+   lambda x: select_column(x, 1)),
+  ('num_moves', 
+   'MOVES',
+   lambda x: 'moves' in x,
+   lambda x: select_column(x, 2)),
+  ('num_props',
+   'PROPS',
+   lambda x: 'propagation (steps)' in x,
+   lambda x: select_column(x, 3)),
+  ('num_conf_rec', 
+   'CONF(REC)',
+   lambda x: 'propagation move conflicts (recoverable)' in x,
+   lambda x: select_column(x, 5)),
+  ('num_conf_non_rec',
+   'CONF(NON-REC)',
+   lambda x: 'propagation move conflicts (non-recoverable)' in x,
+   lambda x: select_column(x, 5)),
+  ('num_fvars', 
+   'FVAR',
+   lambda x: 'dual prop: failed vars' in x,
+   lambda x: select_column(x, 5)),
+  ('num_fapps',
+   'FAPP',
+   lambda x: 'dual prop: failed applies' in x,
+   lambda x: select_column(x, 5)),
+  ('cnf_vars',
+   'CNF VARs',
+   lambda x: 'CNF variables' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('cnf_clauses',
+   'CNF CLAUSEs',
+   lambda x: 'CNF clauses' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('aig_vars',
+   'AIG VARs',
+   lambda x: 'AIG variables' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+  ('aig_ands',
+   'AIG ANDs',
+   lambda x: 'AIG ANDs' in x and 'btor>core' in x,
+   lambda x: select_column(x, 1)),
+]
 
 def err_extract_status(line):
     status = line.split(':')[1].strip()
@@ -205,56 +204,56 @@ def err_extract_opts(line):
 
 
 # column_name : <colname>, <keyword>, <filter>, <format>
-FILTER_ERR = {
-  'status':
-      ['STAT', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_solved':
-      ['SLVD', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_total':
-      ['TOT', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_time':
-      ['TOUTS', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_mem':
-      ['MOUTS', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_err':
-      ['ERR', 
-       lambda x: 'runlim' in x and 'status:' in x,
-       err_extract_status],
-  'g_sat':
-      ['SAT', 
-       lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2]],
-  'g_unsat':
-      ['UNSAT', 
-       lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2]],
-  'result':
-      ['RES', 
-       lambda x: 'runlim' in x and 'result:' in x,
-       lambda x: x.split()[2]],
-  'time_real':
-      ['REAL[s]', 
-       lambda x: 'runlim' in x and 'real:' in x,
-       lambda x: x.split()[2]],
-  'time_time':
-      ['TIME[s]', 
-       lambda x: 'runlim' in x and 'time:' in x,
-       lambda x: x.split()[2]],
-  'space':
-      ['SPACE[MB]', 
-       lambda x: 'runlim' in x and 'space:' in x,
-       lambda x: x.split()[2]],
-}
+FILTER_ERR = [
+  ('status',
+   'STAT', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_solved',
+   'SLVD', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_total',
+   'TOT', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_time',
+   'TOUTS', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_mem',
+   'MOUTS', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_err',
+   'ERR', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   err_extract_status),
+  ('g_sat',
+   'SAT', 
+   lambda x: 'runlim' in x and 'result:' in x,
+   lambda x: x.split()[2]),
+  ('g_unsat',
+   'UNSAT', 
+   lambda x: 'runlim' in x and 'result:' in x,
+   lambda x: x.split()[2]),
+  ('result',
+   'RES', 
+   lambda x: 'runlim' in x and 'result:' in x,
+   lambda x: x.split()[2]),
+  ('time_real',
+   'REAL[s]', 
+   lambda x: 'runlim' in x and 'real:' in x,
+   lambda x: x.split()[2]),
+  ('time_time',
+   'TIME[s]', 
+   lambda x: 'runlim' in x and 'time:' in x,
+   lambda x: x.split()[2]),
+  ('space',
+   'SPACE[MB]', 
+   lambda x: 'runlim' in x and 'space:' in x,
+   lambda x: x.split()[2]),
+]
 
 def format_status(l):
     if 'err' in l:
@@ -275,18 +274,26 @@ TOTALS_FORMAT_ERR = {
 }
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
-FILTER_OUT = {
-  'models_arr':  ['MARR', lambda x: '[' in x, lambda x: 1, False],
-  'models_bvar': ['MVAR', lambda x: '[' not in x, lambda x: 1, False]
-}
+FILTER_OUT = [
+  ('models_arr',  'MARR', lambda x: '[' in x, lambda x: 1),
+  ('models_bvar', 'MVAR', lambda x: '[' not in x, lambda x: 1)
+]
 
-assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
-assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
-assert(set(FILTER_ERR.keys()).isdisjoint(set(FILTER_OUT.keys())))
+filter_log_keys = set([t[0] for t in FILTER_LOG])
+filter_err_keys = set([t[0] for t in FILTER_ERR])
+filter_out_keys = set([t[0] for t in FILTER_OUT])
 
-FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items())
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items()))
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items()))
+filter_log_dict = dict([(t[0], t[1:]) for t in FILTER_LOG])
+filter_err_dict = dict([(t[0], t[1:]) for t in FILTER_ERR])
+filter_out_dict = dict([(t[0], t[1:]) for t in FILTER_OUT])
+
+assert(filter_log_keys.isdisjoint(filter_err_keys))
+assert(filter_log_keys.isdisjoint(filter_out_keys))
+assert(filter_err_keys.isdisjoint(filter_out_keys))
+
+FILE_STATS_KEYS = [t[0] for t in FILTER_LOG]
+FILE_STATS_KEYS.extend([t[0] for t in FILTER_ERR])
+FILE_STATS_KEYS.extend([t[0] for t in FILTER_OUT])
 
 g_file_stats = {}
 g_total_stats = {}
@@ -305,7 +312,8 @@ def _filter_data(d, file, filters):
     (f_name, f_ext) = _get_name_and_ext(file)
 
     if os.stat(os.path.join(d, file)).st_size == 0:
-        for k in filters:
+        for t in filters:
+            k = t[0]
             if k not in g_file_stats:
                 g_file_stats[k] = {}
             if d not in g_file_stats[k]:
@@ -323,15 +331,16 @@ def _filter_data(d, file, filters):
             if len(used_filters) == len(filters):
                 break
 
-            for k, v in filters.items():
-                assert(len(v) == 3)
+            for t in filters:
+                assert(len(t) == 4)
 
+                k = t[0]
                 # value already extracted for current file
                 if k in used_filters:
                     continue
 
-                f_match = v[1]
-                f_val = v[2]
+                f_match = t[2]
+                f_val = t[3]
                 
                 if not f_match(line):
                     continue
@@ -466,11 +475,11 @@ def _normalize_data(data):
     if g_args.u:
         FILE_STATS_KEYS.append('g_uniq')
         g_args.columns.append('g_uniq')
-        FILTER_ERR['g_uniq'] = ['UNIQ',
-                                lambda x: False,
-                                lambda x: None,
-                                lambda x: None,
-                                False]
+        t = ('g_uniq', 'UNIQ', lambda x: False, lambda x: None) 
+        FILTER_ERR.append(t)
+        filter_err_dict[t[0]] = t[1:]
+        filter_err_keys.append(t[0])
+
         data['g_uniq'] = {}
         for f in g_benchmarks:
             stats = []
@@ -520,11 +529,11 @@ def _read_cache_file(dir):
                 if keys is None:
                     keys = line.split()
 
-                    expected_keys = list(FILTER_ERR.keys())
+                    expected_keys = filter_err_keys[:]
                     if not g_parse_err_only:
-                        expected_keys.extend(FILTER_LOG.keys())
+                        expected_keys.extend(filter_log_keys)
                         if g_args.m:
-                            expected_keys.extend(FILTER_OUT.keys())
+                            expected_keys.extend(filter_out_keys)
 
                     missing_keys = set(expected_keys) - set(keys)
                     if len(missing_keys) > 0:
@@ -546,11 +555,11 @@ def _read_cache_file(dir):
                             g_file_stats[k] = {}
                         if dir not in g_file_stats[k]:
                             g_file_stats[k][dir] = {}
-                        if k in FILTER_LOG:
-                            t = FILTER_LOG[k]
+                        if k in filter_log_dict:
+                            t = filter_log_dict[k]
                         else:
-                            assert(k in FILTER_ERR)
-                            t = FILTER_ERR[k]
+                            assert(k in filter_err_dict)
+                            t = filter_err_dict[k]
                         assert(len(t) == 4)
                         assert(f not in g_file_stats[k][dir])
                         if data[i] == "None":
@@ -733,12 +742,12 @@ def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
 
 def _get_column_name(key):
-    if key in FILTER_LOG:
-        return FILTER_LOG[key][0]
-    elif key in FILTER_ERR:
-        return FILTER_ERR[key][0]
-    assert(key in FILTER_OUT)
-    return FILTER_OUT[key][0]
+    if key in filter_log_dict:
+        return filter_log_dict[key][0]
+    elif key in filter_err_dict:
+        return filter_err_dict[key][0]
+    assert(key in filter_out_dict)
+    return filter_out_dict[key][0]
 
 
 def _get_color(f, d, diff_stats, best_stats):
@@ -1032,7 +1041,7 @@ if __name__ == "__main__":
                       epilog="availabe values for column: {{ {} }}, " \
                              "note: {{ {} }} are enabled for '-M' only.".format(
                           ", ".join(sorted(FILE_STATS_KEYS)),
-                          ", ".join(sorted(list(FILTER_OUT.keys())))))
+                          ", ".join(sorted(filter_out_keys))))
         aparser.add_argument \
               (
                 "-f",
@@ -1270,7 +1279,7 @@ if __name__ == "__main__":
         # some columns may not make sense or are not available for some options
         remove_columns = []
         if not g_args.m:
-            remove_columns.extend(FILTER_OUT.keys())
+            remove_columns.extend(filter_out_keys)
 
         for c in remove_columns:
             if g_args.columns.count(c) > 0:
@@ -1290,7 +1299,7 @@ if __name__ == "__main__":
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
 
-        if len(set(g_args.columns).intersection(FILTER_LOG)) == 0:
+        if len(set(g_args.columns).intersection(filter_log_keys)) == 0:
             g_parse_err_only = True
 
         _read_data(g_args.dirs)
