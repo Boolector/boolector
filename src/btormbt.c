@@ -3435,6 +3435,7 @@ btormbt_state_dump (BtorMBT *mbt)
     if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
 
     tmpbtor = boolector_new ();
+    boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
     {
       pres = boolector_parse (

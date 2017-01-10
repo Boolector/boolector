@@ -1604,7 +1604,8 @@ NEXT:
       fclose (outfile);
       outfile = fopen (outfilename, "r");
       tmpbtor = boolector_new ();
-      pres    = boolector_parse (
+      boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+      pres = boolector_parse (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
       assert (pres != BOOLECTOR_PARSE_ERROR);
       boolector_delete (tmpbtor);
