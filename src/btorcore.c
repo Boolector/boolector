@@ -3677,6 +3677,11 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (uclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
     btor_set_opt (uclone, BTOR_OPT_CHK_MODEL, 0);
     btor_set_opt (uclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+
+    btor_set_opt (uclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    assert (uclone->slv);
+    uclone->slv->api.delet (uclone->slv);
+    uclone->slv = 0;
   }
 
   Btor *mclone             = 0;
@@ -3690,6 +3695,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
     btor_set_opt (mclone, BTOR_OPT_CHK_MODEL, 0);
     btor_set_opt (mclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+
+    btor_set_opt (mclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    assert (mclone->slv);
+    mclone->slv->api.delet (mclone->slv);
+    mclone->slv = 0;
+
     inputs = map_inputs_check_model (btor, mclone);
   }
 #endif
@@ -4099,6 +4110,11 @@ check_failed_assumptions (Btor *btor)
   btor_set_opt (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_set_opt (clone, BTOR_OPT_CHK_MODEL, 0);
   btor_set_opt (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+
+  btor_set_opt (clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+  assert (clone->slv);
+  clone->slv->api.delet (clone->slv);
+  clone->slv = 0;
 
   /* assert failed assumptions */
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
