@@ -366,8 +366,10 @@ def _init_missing_files(data):
     global g_benchmarks
 
     for k in data:
-        for d in data[k]:
+        for d in g_args.dirs:
             for f in g_benchmarks:
+                if d not in data[k]:
+                    data[k][d] = {}
                 if f not in data[k][d]:
                     data[k][d][f] = None
 
