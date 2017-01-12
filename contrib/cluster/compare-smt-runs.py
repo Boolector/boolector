@@ -57,20 +57,20 @@ FILTER_LOG = [
   # bit blasting stats
   ('cnf_vars',
    'CNF VARs',
-   lambda x: 'CNF variables' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'CNF variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('cnf_clauses',
    'CNF CLAUSEs',
-   lambda x: 'CNF clauses' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'CNF clauses' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('aig_vars',
    'AIG VARs',
-   lambda x: 'AIG variables' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'AIG variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('aig_ands',
    'AIG ANDs',
-   lambda x: 'AIG ANDs' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'AIG ANDs' in x and 'core' in x,
+   lambda x: select_column(x, 4)),
   # lemmas on demand stats
   ('lods',
    'LODS', 
@@ -796,7 +796,10 @@ def _get_group_totals():
                     fmt_stat = g_format_stats[stat]
                     val = fmt_stat(stats[group][d][stat])
                 else:
-                    val = sum(stats[group][d][stat])
+                    try:
+                        val = sum(stats[group][d][stat])
+                    except TypeError:
+                        val = None
                     if isinstance(val, float):
                         val = round(val, 1)
                 totals[stat][d][group] = val 
