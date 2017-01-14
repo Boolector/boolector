@@ -256,6 +256,13 @@ enum BtorOption
   */
   BTOR_OPT_EXTRACT_LAMBDAS,
 
+  /*!
+    * **BTOR_OPT_NORMALIZE_ADD**
+
+      Enable (``value``: 1) or disable (``value``: 0) normalization of addition.
+  */
+  BTOR_OPT_NORMALIZE_ADD,
+
   /* --------------------------------------------------------------------- */
   /*!
    **Fun Engine Options:**

@@ -343,6 +343,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "extract lambda terms");
+  init_opt (btor,
+            BTOR_OPT_NORMALIZE_ADD,
+            false,
+            true,
+            "normalize-add",
+            "nadd",
+            1,
+            0,
+            1,
+            "normalize addition operators");
 
   /* FUN engine ---------------------------------------------------------- */
   init_opt (btor,
