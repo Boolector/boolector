@@ -1171,15 +1171,25 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   //            probably because of findpm=1
   if ((b = btor_get_ptr_hash_table (gslv->forall_ces, ce)))
   {
-    gslv->forall_last_ce = b->data.as_ptr;
     btor_free_bv_tuple (f_solver->mm, ce);
-    btor_free_bv_tuple (f_solver->mm, evar_tup);
-    return false;
+    if (!btor_compare_bv_tuple (evar_tup, b->data.as_ptr))
+    {
+      btor_free_bv_tuple (f_solver->mm, evar_tup);
+      gslv->forall_last_ce = ce;
+      return false;
+    }
+    else
+    {
+      btor_free_bv_tuple (f_solver->mm, b->data.as_ptr);
+      b->data.as_ptr = evar_tup;
+      return true;
+    }
   }
 
   if (res == e_solver->true_exp)
   {
     btor_free_bv_tuple (f_solver->mm, ce);
+    btor_free_bv_tuple (f_solver->mm, evar_tup);
     return false;
   }
 
