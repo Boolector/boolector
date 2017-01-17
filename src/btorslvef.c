@@ -1160,10 +1160,7 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
     btor_map_node (map, var_fs, var_es);
   }
 
-  if (btor_get_opt (e_solver, BTOR_OPT_EF_SYNTH_QI))
-    res = 0;
-  else
-    res = build_refinement (e_solver, gslv->forall_formula, map);
+  res = build_refinement (e_solver, gslv->forall_formula, map);
 
   btor_delete_node_map (map);
 
@@ -1201,11 +1198,8 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   btor_add_ptr_hash_table (gslv->forall_ces, ce)->data.as_ptr = evar_tup;
   gslv->forall_last_ce                                        = ce;
 
-  if (res)
-  {
-    btor_assert_exp (e_solver, res);
-    btor_release_exp (e_solver, res);
-  }
+  btor_assert_exp (e_solver, res);
+  btor_release_exp (e_solver, res);
   return true;
 }
 
@@ -2781,9 +2775,9 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     }
   }
 
-  //  if (num_synth > 0)
-  //    {
-  /* map UFs */
+  if (num_synth > 0)
+  {
+    /* map UFs */
 #if 0
       btor_init_node_map_iterator (&it, gslv->exists_ufs);
       while (btor_has_next_node_map_iterator (&it))
@@ -2793,10 +2787,10 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 	  btor_map_node (map, var_fs, var_es);
 	}
 #endif
-  result = build_quant_inst_refinement (gslv, map);
-  btor_assert_exp (e_solver, result);
-  btor_release_exp (e_solver, result);
-  //    }
+    result = build_quant_inst_refinement (gslv, map);
+    btor_assert_exp (e_solver, result);
+    btor_release_exp (e_solver, result);
+  }
 
   while (!BTOR_EMPTY_STACK (value_in))
     btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
