@@ -61,6 +61,7 @@ struct BtorEFGroundSolvers
   BtorSolverResult result;
 
   BtorEFStats *statistics;
+  bool no_qi_synth;
 };
 
 typedef struct BtorEFGroundSolvers BtorEFGroundSolvers;
@@ -736,6 +737,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   mm         = btor->mm;
   forall_ufs = btor_new_ptr_hash_table (mm, 0, 0);
   BTOR_CNEW (mm, res);
+  res->no_qi_synth = false;
 
   /* new forall solver */
   res->result = BTOR_RESULT_UNKNOWN;
@@ -2782,6 +2784,8 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     btor_assert_exp (e_solver, result);
     btor_release_exp (e_solver, result);
   }
+  else
+    gslv->no_qi_synth = true;
 
   while (!BTOR_EMPTY_STACK (value_in))
     btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
@@ -2938,7 +2942,7 @@ UNDERAPPROX:
     goto RESTART;
   }
 
-  if (opt_synth_qi)
+  if (opt_synth_qi && !gslv->no_qi_synth)
   {
     start = time_stamp ();
     synthesize_quant_inst (gslv);
