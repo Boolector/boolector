@@ -174,7 +174,7 @@ FILTER_LOG = [
    lambda x: select_column(x, 1)),
 ]
 
-def err_extract_status(line):
+def _read_status(line):
     status = line.split(':')[1].strip()
     if 'ok' in status:
         return 'ok'
@@ -190,47 +190,12 @@ def err_extract_status(line):
         raise CmpSMTException("invalid status: '{}'".format(status))
 
 
-def err_extract_opts(line):
-    opt = line.split()[2]
-    if opt[0] == '-':
-        return opt
-    return None 
-
-
 # column_name : <colname>, <keyword>, <filter>, <format>
 FILTER_ERR = [
   ('status',
    'STAT', 
    lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_solved',
-   'SLVD', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_total',
-   'TOT', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_time',
-   'TO', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_mem',
-   'MO', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_err',
-   'ERR', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_sat',
-   'SAT', 
-   lambda x: True,
-   lambda x: 0),
-  ('g_unsat',
-   'UNSAT', 
-   lambda x: True,
-   lambda x: 0),
+   _read_status),
   ('result',
    'RES', 
    lambda x: 'runlim' in x and 'result:' in x,
@@ -248,6 +213,18 @@ FILTER_ERR = [
    lambda x: 'runlim' in x and 'space:' in x,
    lambda x: x.split()[2]),
 ]
+
+# these columns will be computed in _normalize_data
+GROUP_COLUMNS = {
+  'g_solved': 'SLVD', 
+  'g_total':  'TOT', 
+  'g_time':   'TO', 
+  'g_mem':    'MO', 
+  'g_err':    'ERR', 
+  'g_sat':    'SAT', 
+  'g_unsat':  'UNSAT', 
+  'g_uniq':   'UNIQ',
+}
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_OUT = [
@@ -267,9 +244,10 @@ assert(filter_log_keys.isdisjoint(filter_err_keys))
 assert(filter_log_keys.isdisjoint(filter_out_keys))
 assert(filter_err_keys.isdisjoint(filter_out_keys))
 
-FILE_STATS_KEYS = [t[0] for t in FILTER_LOG]
-FILE_STATS_KEYS.extend([t[0] for t in FILTER_ERR])
-FILE_STATS_KEYS.extend([t[0] for t in FILTER_OUT])
+STATS_KEYS = [t[0] for t in FILTER_LOG]
+STATS_KEYS.extend([t[0] for t in FILTER_ERR])
+STATS_KEYS.extend([t[0] for t in FILTER_OUT])
+STATS_KEYS.extend(GROUP_COLUMNS.keys())
 
 g_file_stats = {}
 g_total_stats = {}
@@ -385,11 +363,13 @@ def _normalize_data(data):
     # initialize group columns derived from status
     for k in ['g_solved', 'g_total', 'g_time', 'g_mem', 'g_err',
               'g_sat','g_unsat']:
-        assert(k in data)
+        assert(k not in data)
+        data[k] = {}
         for d in data['status']:
-            if d not in data[k]:
-                data[k][d] = {}
+            assert(d not in data[k])
+            data[k][d] = {}
             for f in data['status'][d]:
+                assert(f not in data[k][d])
                 if k == 'g_total':
                     data[k][d][f] = 1
                 else:
@@ -486,13 +466,6 @@ def _normalize_data(data):
 
     # add uniquely solved column
     if g_args.u:
-        FILE_STATS_KEYS.append('g_uniq')
-        g_args.columns.append('g_uniq')
-        t = ('g_uniq', 'UNIQ', lambda x: False, lambda x: None) 
-        FILTER_ERR.append(t)
-        filter_err_dict[t[0]] = t[1:]
-        filter_err_keys.add(t[0])
-
         data['g_uniq'] = {}
         for f in g_benchmarks:
             stats = []
@@ -563,7 +536,7 @@ def _read_cache_file(dir):
                     assert(len(data) == len(keys))
                     for i in range(len(keys)):
                         k = keys[i]
-                        assert(k in FILE_STATS_KEYS)
+                        assert(k in STATS_KEYS)
                         if k not in g_file_stats:
                             g_file_stats[k] = {}
                         if dir not in g_file_stats[k]:
@@ -759,6 +732,8 @@ def _get_column_name(key):
         return filter_log_dict[key][0]
     elif key in filter_err_dict:
         return filter_err_dict[key][0]
+    elif key in GROUP_COLUMNS:
+        return GROUP_COLUMNS[key]
     assert(key in filter_out_dict)
     return filter_out_dict[key][0]
 
@@ -1055,7 +1030,7 @@ if __name__ == "__main__":
                       formatter_class=ArgumentDefaultsHelpFormatter,
                       epilog="availabe values for column: {{ {} }}, " \
                              "note: {{ {} }} are enabled for '-M' only.".format(
-                          ", ".join(sorted(FILE_STATS_KEYS)),
+                          ", ".join(sorted(STATS_KEYS)),
                           ", ".join(sorted(filter_out_keys))))
         aparser.add_argument \
               (
@@ -1162,7 +1137,7 @@ if __name__ == "__main__":
               (
                 "-c",
                 metavar="column", dest="cmp_col",
-                choices=FILE_STATS_KEYS,
+                choices=STATS_KEYS,
                 help="compare results column"
               )
         aparser.add_argument \
@@ -1273,11 +1248,11 @@ if __name__ == "__main__":
             
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
-            if c not in FILE_STATS_KEYS:
+            if c not in STATS_KEYS:
                 raise CmpSMTException("column '{}' not available".format(c))
 
         if g_args.show_all:
-            g_args.columns = FILE_STATS_KEYS
+            g_args.columns = STATS_KEYS
 
         if g_args.timeout:
             g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
@@ -1296,13 +1271,20 @@ if __name__ == "__main__":
         if not g_args.m:
             remove_columns.extend(filter_out_keys)
 
+        if g_args.g and 'result' in g_args.columns:
+            remove_columns.append('result')
+
         for c in remove_columns:
             if g_args.columns.count(c) > 0:
                 g_args.columns.remove(c)
 
-        # disable comparison if cmp_col is not in the columns list
-#        if g_args.cmp_col not in g_args.columns:
-#            g_args.cmp_col = None
+        if g_args.u:
+            g_args.columns.append('g_uniq')
+
+
+        if len(g_args.columns) == 0:
+            raise CmpSMTException ("no columns selected to display")
+            
 
         if g_args.no_colors:
             COLOR_BEST = ''
@@ -1325,17 +1307,13 @@ if __name__ == "__main__":
                 if g_args.filter not in str(f):
                     g_benchmarks.remove(f)
 
-        if g_args.common:
-            _filter_common (g_file_stats)
-
         if len(g_file_stats.keys()) > 0:
-            #assert(len(g_file_stats.keys()) == len(g_args.columns))
             _init_missing_files (g_file_stats)
             _normalize_data(g_file_stats)
 
-            if g_args.g and 'result' in g_args.columns:
-                g_args.columns.remove('result')
-#                del(g_file_stats['result'])
+            if g_args.common:
+                _filter_common (g_file_stats)
+
             _print_data ()
         else:
             if g_args.filter:
