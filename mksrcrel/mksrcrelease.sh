@@ -114,16 +114,16 @@ cp -p \
 $dir/
 
 date=`date`
-sed -e 's,@VERSION@,'"`cat VERSION`," \
+version=`cat VERSION`
+sed -e 's,@VERSION@,'"$version," \
     -e 's,@DATE@,'"$date," \
 mksrcrel/README > $dir/README
 
-sed -e '/#CUTHERE/,$d' mkconfig.sh > $dir/mkconfig.sh
-echo 'cat<<EOF' >> $dir/mkconfig.sh
-echo "#define BTOR_RELEASED \"$date\"" >> $dir/mkconfig.sh
-echo "#define BTOR_VERSION \"`cat VERSION`\"" >> $dir/mkconfig.sh
-echo "#define BTOR_ID \"`./getgitid.sh`\"" >> $dir/mkconfig.sh
-echo EOF >>$dir/mkconfig.sh
+sed -e "s,^BTOR_DEF_DATE=.*,BTOR_DEF_DATE=\"$date\"," \
+    -e "s,^BTOR_DEF_VERSION=.*,BTOR_DEF_VERSION=\"$version\"," \
+    -e "s,^BTOR_DEF_ID=.*,BTOR_DEF_ID=\"`./getgitid.sh`\"," \
+    mkconfig.sh > $dir/mkconfig.sh
+
 chmod 755 $dir/mkconfig.sh
 
 cd /tmp/
