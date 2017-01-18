@@ -2754,8 +2754,8 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     {
       btor_map_node (map, uvar, result);
       btor_release_exp (f_solver, result);
-      printf ("qinst for %s\n", node2string (uvar));
-      btor_dump_smt2_node (f_solver, stdout, result, -1);
+      //	  printf ("qinst for %s\n", node2string (uvar));
+      //	  btor_dump_smt2_node (f_solver, stdout, result, -1);
       num_synth++;
     }
     else
@@ -2764,7 +2764,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       c  = btor_const_exp (f_solver, (BtorBitVector *) bv);
       btor_map_node (map, uvar, c);
       btor_release_exp (f_solver, c);
-      printf ("no qinst for %s\n", node2string (uvar));
+      //	  printf ("no qinst for %s\n", node2string (uvar));
     }
   }
 
