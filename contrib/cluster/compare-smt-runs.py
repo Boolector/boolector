@@ -135,6 +135,10 @@ FILTER_LOG = [
    'CONF(NON-REC)',
    lambda x: 'propagation move conflicts (non-recoverable)' in x,
    lambda x: select_column(x, 5)),
+  ('num_cegqi_refs',
+   'CEGQI R',
+   lambda x: 'cegqi solver refinements' in x,
+   lambda x: select_column(x, 4)),
   # time stats
   ('time_clapp',
    'CLONE[s]', 
@@ -392,9 +396,13 @@ def _normalize_data(data):
                 data['g_time'][d][f] = 1
             elif s == 'mem':
                 data['g_mem'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
             else:
                 data['status'][d][f] = 'err'
                 data['g_err'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
                         
 
     # collect data for virtual best solver
@@ -472,16 +480,12 @@ def _normalize_data(data):
             for d in data['status']:
                 if d not in data['g_uniq']:
                     data['g_uniq'][d] = {}
-                stats.append(data['status'][d][f])
-            set_uniq = False
-            uniq_exists = stats.count('ok') == 1
-            for d in data['status']:
-                if uniq_exists and data['status'][d][f] == 'ok':
-                    assert (not set_uniq)
-                    data['g_uniq'][d][f] = 1
-                    set_uniq = True
-                else:
-                    data['g_uniq'][d][f] = None
+                data['g_uniq'][d][f] = 0
+                if data['status'][d][f] == 'ok':
+                    stats.append(d)
+
+            if len(stats) == 1:
+                data['g_uniq'][stats[0]][f] = 1
 
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
@@ -1200,6 +1204,12 @@ if __name__ == "__main__":
                 "-common",
                 dest="common", action="store_true",
                 help="show commonly solved instances only"
+              )
+        aparser.add_argument \
+              (
+                "-pen", type=int,
+                metavar="seconds[,second ...]", dest="pen", default=None,
+                help="CPU time penalty for memory out/error"
               )
         g_args = aparser.parse_args()
 
