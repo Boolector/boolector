@@ -2843,21 +2843,22 @@ btormbt_state_opt (BtorMBT *mbt)
     }
     else if (mbt->optfuzz || btoropt->forced_by_cl)
     {
+      /* set boolector option */
       boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
-    }
 
-    /* set some mbt specific options */
-    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
-    {
-      mbt->round.inc = true;
-      mbt->round.max_ninc =
-          btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
-    }
-    else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
-    {
-      mbt->round.mgen = true;
-      if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_print_model))
-        mbt->round.print_model = true;
+      /* set some mbt specific options */
+      if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
+      {
+        mbt->round.inc = true;
+        mbt->round.max_ninc =
+            btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
+      }
+      else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
+      {
+        mbt->round.mgen = true;
+        if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_print_model))
+          mbt->round.print_model = true;
+      }
     }
   }
 
