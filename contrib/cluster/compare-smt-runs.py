@@ -135,6 +135,10 @@ FILTER_LOG = [
    'CONF(NON-REC)',
    lambda x: 'propagation move conflicts (non-recoverable)' in x,
    lambda x: select_column(x, 5)),
+  ('num_cegqi_refs',
+   'CEGQI R',
+   lambda x: 'cegqi solver refinements' in x,
+   lambda x: select_column(x, 4)),
   # time stats
   ('time_clapp',
    'CLONE[s]', 
@@ -392,9 +396,13 @@ def _normalize_data(data):
                 data['g_time'][d][f] = 1
             elif s == 'mem':
                 data['g_mem'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
             else:
                 data['status'][d][f] = 'err'
                 data['g_err'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
                         
 
     # collect data for virtual best solver
@@ -1200,6 +1208,12 @@ if __name__ == "__main__":
                 "-common",
                 dest="common", action="store_true",
                 help="show commonly solved instances only"
+              )
+        aparser.add_argument \
+              (
+                "-pen", type=int,
+                metavar="seconds[,second ...]", dest="pen", default=None,
+                help="CPU time penalty for memory out/error"
               )
         g_args = aparser.parse_args()
 
