@@ -480,16 +480,12 @@ def _normalize_data(data):
             for d in data['status']:
                 if d not in data['g_uniq']:
                     data['g_uniq'][d] = {}
-                stats.append(data['status'][d][f])
-            set_uniq = False
-            uniq_exists = stats.count('ok') == 1
-            for d in data['status']:
-                if uniq_exists and data['status'][d][f] == 'ok':
-                    assert (not set_uniq)
-                    data['g_uniq'][d][f] = 1
-                    set_uniq = True
-                else:
-                    data['g_uniq'][d][f] = None
+                data['g_uniq'][d][f] = 0
+                if data['status'][d][f] == 'ok':
+                    stats.append(d)
+
+            if len(stats) == 1:
+                data['g_uniq'][stats[0]][f] = 1
 
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
