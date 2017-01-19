@@ -727,7 +727,6 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     int *selected;
     double value, max_value, score;
     BtorHashTableData *d;
-    abort ();
 
     max_value = 0.0;
     btor_init_int_hash_table_iterator (&it, aprop->unsatroots);
