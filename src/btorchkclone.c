@@ -746,6 +746,8 @@ chkclone_node_unique_table (Btor *btor, Btor *clone)
   btable = &btor->nodes_unique_table;
   ctable = &clone->nodes_unique_table;
   assert (btable != ctable);
+  assert (btable->size == ctable->size);
+  assert (btable->num_elements == ctable->num_elements);
 
   for (i = 0; i < btable->size; i++)
   {

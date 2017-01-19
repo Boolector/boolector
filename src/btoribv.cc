@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2016 Armin Biere.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *  Copyright (C) 2015-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -2987,7 +2987,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         }
         assert (p == conststr);
         assert (strlen (conststr) == n->width);
-        assert (strlen (conststr) >= (long) r.getWidth ());
+        assert (strlen (conststr) >= (size_t) r.getWidth ());
         n->cached = boolector_const (btor, conststr);
         assert (boolector_get_width (btor, n->cached) == n->width);
         BTOR_DELETEN (btor->mm, conststr, n->width + 1);
