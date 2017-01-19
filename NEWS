@@ -1,3 +1,5 @@
+news for release 2.4.0 since 2.3.1
+--------------------------------------
 + refactored, extended and improved btormbt
 + new API functions:
   - boolector_is_uf
@@ -8,6 +10,7 @@
 + refactored model printing
 + command line option changes:
   - --incremental-all -> --incremental-smt1
++ optimized lemma generation of function solver
 
 news for release 2.3.1 since 2.3.0
 --------------------------------------
