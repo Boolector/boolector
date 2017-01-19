@@ -51,7 +51,7 @@ $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 		sed -e 's,$(SRCDIR)/\(.*\.o\),\1,' >>$@; \
 	done
 
-$(BUILDIR)/analyze:
+analyze:
 	clang --analyze $(CFLAGS) $(INCS) \
 	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 
