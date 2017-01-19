@@ -40,7 +40,7 @@ sed \
   makefile | sed -e "$patchgccversion" >> $config
 
 curpath=`pwd`
-BTOR_DEF_DATE=`data`
+BTOR_DEF_DATE=`date`
 BTOR_DEF_VERSION=`cat VERSION`
 BTOR_DEF_ID=`./getgitid.sh`
 
