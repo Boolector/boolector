@@ -336,6 +336,8 @@ create_sort (Btor *btor, BtorSortUniqueTable *table, BtorSort *pattern)
 
 #ifndef NDEBUG
   res->btor = btor;
+#else
+  (void) btor;
 #endif
 
   switch (pattern->kind)
