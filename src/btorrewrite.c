@@ -5399,8 +5399,9 @@ normalize_adds_muls_ands (Btor *btor, BtorNode **left, BtorNode **right)
 
   if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && real_e0->kind == real_e1->kind
-      && (btor_is_add_node (real_e0) || btor_is_mul_node (real_e0)
-          || btor_is_and_node (real_e0)))
+      && ((btor_is_add_node (real_e0)
+           && btor_get_opt (btor, BTOR_OPT_NORMALIZE_ADD))
+          || btor_is_mul_node (real_e0) || btor_is_and_node (real_e0)))
   {
     normalize_bin_comm_ass_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
     e0_norm = BTOR_COND_INVERT_NODE (e0, e0_norm);
@@ -5441,6 +5442,7 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
 
   // TODO (ma): what does this do?
   if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+      && btor_get_opt (btor, BTOR_OPT_NORMALIZE_ADD)
       && (c0 = find_top_add (btor, e0)) && (c1 = find_top_add (btor, e1))
       && btor_exp_get_sort_id (c0) == btor_exp_get_sort_id (c1))
   {

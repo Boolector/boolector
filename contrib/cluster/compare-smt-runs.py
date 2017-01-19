@@ -38,6 +38,8 @@ def _is_float(s):
     return s.lstrip('-').replace('.', '', 1).isdigit()
 
 def _is_int(s):
+    if isinstance(s, int):
+        return True
     return s.lstrip('-').isdigit()
 
 def _is_number(s):
@@ -57,20 +59,20 @@ FILTER_LOG = [
   # bit blasting stats
   ('cnf_vars',
    'CNF VARs',
-   lambda x: 'CNF variables' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'CNF variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('cnf_clauses',
    'CNF CLAUSEs',
-   lambda x: 'CNF clauses' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'CNF clauses' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('aig_vars',
    'AIG VARs',
-   lambda x: 'AIG variables' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'AIG variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
   ('aig_ands',
    'AIG ANDs',
-   lambda x: 'AIG ANDs' in x and 'btor>core' in x,
-   lambda x: select_column(x, 1)),
+   lambda x: 'AIG ANDs' in x and 'core' in x,
+   lambda x: select_column(x, 4)),
   # lemmas on demand stats
   ('lods',
    'LODS', 
@@ -172,7 +174,7 @@ FILTER_LOG = [
    lambda x: select_column(x, 1)),
 ]
 
-def err_extract_status(line):
+def _read_status(line):
     status = line.split(':')[1].strip()
     if 'ok' in status:
         return 'ok'
@@ -188,47 +190,12 @@ def err_extract_status(line):
         raise CmpSMTException("invalid status: '{}'".format(status))
 
 
-def err_extract_opts(line):
-    opt = line.split()[2]
-    if opt[0] == '-':
-        return opt
-    return None 
-
-
 # column_name : <colname>, <keyword>, <filter>, <format>
 FILTER_ERR = [
   ('status',
    'STAT', 
    lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_solved',
-   'SLVD', 
-   lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_total',
-   'TOT', 
-   lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_time',
-   'TOUTS', 
-   lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_mem',
-   'MOUTS', 
-   lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_err',
-   'ERR', 
-   lambda x: 'runlim' in x and 'status:' in x,
-   err_extract_status),
-  ('g_sat',
-   'SAT', 
-   lambda x: 'runlim' in x and 'result:' in x,
-   lambda x: x.split()[2]),
-  ('g_unsat',
-   'UNSAT', 
-   lambda x: 'runlim' in x and 'result:' in x,
-   lambda x: x.split()[2]),
+   _read_status),
   ('result',
    'RES', 
    lambda x: 'runlim' in x and 'result:' in x,
@@ -237,8 +204,8 @@ FILTER_ERR = [
    'REAL[s]', 
    lambda x: 'runlim' in x and 'real:' in x,
    lambda x: x.split()[2]),
-  ('time_time',
-   'TIME[s]', 
+  ('time_cpu',
+   'CPU[s]', 
    lambda x: 'runlim' in x and 'time:' in x,
    lambda x: x.split()[2]),
   ('space',
@@ -247,22 +214,16 @@ FILTER_ERR = [
    lambda x: x.split()[2]),
 ]
 
-def format_status(l):
-    if 'err' in l:
-        return 'err'
-    if 'ok' in l:
-        return 'ok'
-    return "".join(set(l))
-
-TOTALS_FORMAT_ERR = {
-  'status':    format_status,
-  'g_solved':  lambda l: l.count('ok'),
-  'g_total':   lambda l: len(l),
-  'g_mem':     lambda l: l.count('mem'),
-  'g_time':    lambda l: l.count('time'),
-  'g_err':     lambda l: l.count('err'),
-  'g_sat':     lambda l: l.count(10),
-  'g_unsat':   lambda l: l.count(20),
+# these columns will be computed in _normalize_data
+GROUP_COLUMNS = {
+  'g_solved': 'SLVD', 
+  'g_total':  'TOT', 
+  'g_time':   'TO', 
+  'g_mem':    'MO', 
+  'g_err':    'ERR', 
+  'g_sat':    'SAT', 
+  'g_unsat':  'UNSAT', 
+  'g_uniq':   'UNIQ',
 }
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
@@ -283,13 +244,24 @@ assert(filter_log_keys.isdisjoint(filter_err_keys))
 assert(filter_log_keys.isdisjoint(filter_out_keys))
 assert(filter_err_keys.isdisjoint(filter_out_keys))
 
-FILE_STATS_KEYS = [t[0] for t in FILTER_LOG]
-FILE_STATS_KEYS.extend([t[0] for t in FILTER_ERR])
-FILE_STATS_KEYS.extend([t[0] for t in FILTER_OUT])
+STATS_KEYS = [t[0] for t in FILTER_LOG]
+STATS_KEYS.extend([t[0] for t in FILTER_ERR])
+STATS_KEYS.extend([t[0] for t in FILTER_OUT])
+STATS_KEYS.extend(GROUP_COLUMNS.keys())
 
 g_file_stats = {}
 g_total_stats = {}
-g_format_stats = TOTALS_FORMAT_ERR
+
+def _format_status(l):
+    if 'err' in l:
+        return 'err'
+    elif 'ok' in l:
+        return 'ok'
+    return ''.join(set(l))
+
+g_format_column_sum = {
+    'status' : _format_status,
+}
 
 def _cast(s):
     if _is_int(s):
@@ -377,28 +349,53 @@ def _normalize_data(data):
     global g_args
 
     assert('result' in data)
+
     # reset timeout if given
     if g_args.timeout:
-        for d in data['time_time']:
-            for f in data['time_time'][d]:
-                if data['time_time'][d][f] > g_args.timeout[d]:
-                    data['time_time'][d][f] = g_args.timeout[d]
+        for d in data['time_cpu']:
+            for f in data['time_cpu'][d]:
+                if data['time_cpu'][d][f] > g_args.timeout[d]:
+                    data['time_cpu'][d][f] = g_args.timeout[d]
                     data['status'][d][f] = "time"
                     data['result'][d][f] = 1
-                    if g_args.g:
-                        for k in ["g_total", "g_solved", "g_time",
-                                  "g_mem", "g_err"]:
-                            g_file_stats[k][d][f] = "time"
 
-    # normalize status ok, time, mem, err
-    for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
-        if k not in data:
-            continue
-        for d in data[k]:
-            for f in data[k][d]:
-                if data[k][d][f] == 'ok' \
-                   and data['result'][d][f] not in (10, 20):
-                    data[k][d][f] = 'err'
+
+    # initialize group columns derived from status
+    for k in ['g_solved', 'g_total', 'g_time', 'g_mem', 'g_err',
+              'g_sat','g_unsat']:
+        assert(k not in data)
+        data[k] = {}
+        for d in data['status']:
+            assert(d not in data[k])
+            data[k][d] = {}
+            for f in data['status'][d]:
+                assert(f not in data[k][d])
+                if k == 'g_total':
+                    data[k][d][f] = 1
+                else:
+                    data[k][d][f] = 0
+
+    # compute values for group columns derived from status
+    for d in data['status']:
+        for f in data['status'][d]:
+            s = data['status'][d][f] 
+            r = data['result'][d][f]
+
+            if s == 'ok' and r in (10, 20):
+                data['g_solved'][d][f] = 1
+                if r == 10:
+                    data['g_sat'][d][f] = 1
+                else:
+                    assert(r == 20)
+                    data['g_unsat'][d][f] = 1
+            elif s == 'time':
+                data['g_time'][d][f] = 1
+            elif s == 'mem':
+                data['g_mem'][d][f] = 1
+            else:
+                data['status'][d][f] = 'err'
+                data['g_err'][d][f] = 1
+                        
 
     # collect data for virtual best solver
     if g_args.vb:
@@ -415,13 +412,13 @@ def _normalize_data(data):
                         data[k][vbpdir] = {}
 
                 for f in g_benchmarks:
-                    if data["time_time"][bdir][f] < g_args.timeout[bdir]:
-                        time_bdir = data["time_time"][bdir][f]
+                    if data["time_cpu"][bdir][f] < g_args.timeout[bdir]:
+                        time_bdir = data["time_cpu"][bdir][f]
                     else:
                         time_bdir = g_args.timeout[bdir]
 
-                    if data["time_time"][pdir][f] < g_args.timeout[pdir]:
-                        time_pdir = data["time_time"][pdir][f]
+                    if data["time_cpu"][pdir][f] < g_args.timeout[pdir]:
+                        time_pdir = data["time_cpu"][pdir][f]
                     else:
                         time_pdir = g_args.timeout[pdir]
 
@@ -433,10 +430,10 @@ def _normalize_data(data):
                         for k in data.keys():
                             data[k][vbpdir][f] = data[k][bdir][f]
                         time_vbp = round(time_bdir + g_args.timeout[pdir], 2)
-                        data["time_time"][vbpdir][f] = time_vbp
+                        data["time_cpu"][vbpdir][f] = time_vbp
                         if time_vbp >= g_args.timeout[bdir]:
                             data["status"][vbpdir][f] = "time"
-                            data["time_time"][vbpdir][f] = g_args.timeout[bdir]
+                            data["time_cpu"][vbpdir][f] = g_args.timeout[bdir]
                             if not g_args.g:
                                 data["result"][vbpdir][f] = 1
                     else:
@@ -447,28 +444,28 @@ def _normalize_data(data):
             vb_dir = "virtual best solver (portfolio)"
 
             for f in g_benchmarks:
-                v = sorted(
-                    [(data['time_time'][d][f], d) \
-                        for d in g_args.dirs \
-                            if data['time_time'][d][f] is not None])
+                v = []
+                for d in g_args.dirs:
+                    if data['time_cpu'][d][f] is not None \
+                        and data['status'][d][f] == 'ok':
+                        v.append((data['time_cpu'][d][f], d))
+                v = sorted(v)
 
-                best_dir = v[0][1]
+                best_dir = None
+                if len(v) > 0:
+                    best_dir = v[0][1]
                 for k in data.keys():
                     if vb_dir not in data[k]:
                         data[k][vb_dir] = {}
-                    data[k][vb_dir][f] = data[k][best_dir][f]
+                    if best_dir is None:
+                        data[k][vb_dir][f] = None
+                    else:
+                        data[k][vb_dir][f] = data[k][best_dir][f]
             g_args.dirs.append(vb_dir)
 
 
     # add uniquely solved column
     if g_args.u:
-        FILE_STATS_KEYS.append('g_uniq')
-        g_args.columns.append('g_uniq')
-        t = ('g_uniq', 'UNIQ', lambda x: False, lambda x: None) 
-        FILTER_ERR.append(t)
-        filter_err_dict[t[0]] = t[1:]
-        filter_err_keys.add(t[0])
-
         data['g_uniq'] = {}
         for f in g_benchmarks:
             stats = []
@@ -539,7 +536,7 @@ def _read_cache_file(dir):
                     assert(len(data) == len(keys))
                     for i in range(len(keys)):
                         k = keys[i]
-                        assert(k in FILE_STATS_KEYS)
+                        assert(k in STATS_KEYS)
                         if k not in g_file_stats:
                             g_file_stats[k] = {}
                         if dir not in g_file_stats[k]:
@@ -622,9 +619,9 @@ def _pick_data(benchmarks, data):
             best_stats[f] = None
             if g_args.cmp_col == 'g_solved':
                 x = sorted(\
-                    [(data['time_time'][d][f], d) \
+                    [(data['time_cpu'][d][f], d) \
                         for d in g_args.dirs \
-                            if data['time_time'][d][f] is not None])
+                            if data['time_cpu'][d][f] is not None])
                 if len(set([t[0] for t in x])) > 1:
                     best_stats[f] = x[0][1]
         else:
@@ -735,6 +732,8 @@ def _get_column_name(key):
         return filter_log_dict[key][0]
     elif key in filter_err_dict:
         return filter_err_dict[key][0]
+    elif key in GROUP_COLUMNS:
+        return GROUP_COLUMNS[key]
     assert(key in filter_out_dict)
     return filter_out_dict[key][0]
 
@@ -749,7 +748,7 @@ def _get_color(f, d, diff_stats, best_stats):
 
 
 def _get_group_totals():
-    global g_args, g_benchmarks, g_file_stats, g_format_stats
+    global g_args, g_benchmarks, g_file_stats, g_format_column_sum
     stats = {}
     totals = {}
 
@@ -783,23 +782,25 @@ def _get_group_totals():
                     stats['totals'][d][stat].append(val)
 
     # compute group totals
-    for stat in g_file_stats:
-        assert(stat not in totals)
-        totals[stat] = {}
+    for k in g_file_stats:
+        assert(k not in totals)
+        totals[k] = {}
         for d in g_args.dirs:
-            if d not in totals[stat]:
-                totals[stat][d] = {}
+            if d not in totals[k]:
+                totals[k][d] = {}
 
             for group in stats:
-                assert(group not in totals[stat][d])
-                if stat in g_format_stats:
-                    fmt_stat = g_format_stats[stat]
-                    val = fmt_stat(stats[group][d][stat])
+                assert(group not in totals[k][d])
+                if k in g_format_column_sum:
+                    val = g_format_column_sum[k](stats[group][d][k])
                 else:
-                    val = sum(stats[group][d][stat])
+                    try:
+                        val = sum(stats[group][d][k])
+                    except TypeError:
+                        val = None
                     if isinstance(val, float):
                         val = round(val, 1)
-                totals[stat][d][group] = val 
+                totals[k][d][group] = val 
 
     return totals, stats.keys()
 
@@ -1029,7 +1030,7 @@ if __name__ == "__main__":
                       formatter_class=ArgumentDefaultsHelpFormatter,
                       epilog="availabe values for column: {{ {} }}, " \
                              "note: {{ {} }} are enabled for '-M' only.".format(
-                          ", ".join(sorted(FILE_STATS_KEYS)),
+                          ", ".join(sorted(STATS_KEYS)),
                           ", ".join(sorted(filter_out_keys))))
         aparser.add_argument \
               (
@@ -1136,7 +1137,7 @@ if __name__ == "__main__":
               (
                 "-c",
                 metavar="column", dest="cmp_col",
-                choices=FILE_STATS_KEYS,
+                choices=STATS_KEYS,
                 help="compare results column"
               )
         aparser.add_argument \
@@ -1216,7 +1217,7 @@ if __name__ == "__main__":
             if g_args.g:
                 g_args.cmp_col = 'g_solved'
             else:
-                g_args.cmp_col = 'time_time'
+                g_args.cmp_col = 'time_cpu'
 
         if g_args.vbp: g_args.vb = True
 
@@ -1228,9 +1229,9 @@ if __name__ == "__main__":
             if g_args.g:
                 g_args.columns = \
                     "status,result,g_solved,g_total,g_time,g_mem,g_err," \
-                    "time_time,space"
+                    "time_cpu,space"
             else:
-                g_args.columns = "status,result,time_time,space"
+                g_args.columns = "status,result,time_cpu,space"
             
         # column options
         if g_args.bs:
@@ -1238,20 +1239,20 @@ if __name__ == "__main__":
                     "status,lods,calls,time_sat,time_rw,time_beta"
         elif g_args.dp:
             g_args.columns = \
-                    "status,lods,time_time,time_app,time_sapp"
+                    "status,lods,time_cpu,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
                     "status,lods,models_bvar,models_arr,"\
-                    "time_time,time_sat"
+                    "time_cpu,time_sat"
             g_args.m = True
             
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
-            if c not in FILE_STATS_KEYS:
+            if c not in STATS_KEYS:
                 raise CmpSMTException("column '{}' not available".format(c))
 
         if g_args.show_all:
-            g_args.columns = FILE_STATS_KEYS
+            g_args.columns = STATS_KEYS
 
         if g_args.timeout:
             g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
@@ -1270,13 +1271,20 @@ if __name__ == "__main__":
         if not g_args.m:
             remove_columns.extend(filter_out_keys)
 
+        if g_args.g and 'result' in g_args.columns:
+            remove_columns.append('result')
+
         for c in remove_columns:
             if g_args.columns.count(c) > 0:
                 g_args.columns.remove(c)
 
-        # disable comparison if cmp_col is not in the columns list
-#        if g_args.cmp_col not in g_args.columns:
-#            g_args.cmp_col = None
+        if g_args.u:
+            g_args.columns.append('g_uniq')
+
+
+        if len(g_args.columns) == 0:
+            raise CmpSMTException ("no columns selected to display")
+            
 
         if g_args.no_colors:
             COLOR_BEST = ''
@@ -1299,17 +1307,13 @@ if __name__ == "__main__":
                 if g_args.filter not in str(f):
                     g_benchmarks.remove(f)
 
-        if g_args.common:
-            _filter_common (g_file_stats)
-
         if len(g_file_stats.keys()) > 0:
-            #assert(len(g_file_stats.keys()) == len(g_args.columns))
             _init_missing_files (g_file_stats)
             _normalize_data(g_file_stats)
 
-            if g_args.g and 'result' in g_args.columns:
-                g_args.columns.remove('result')
-#                del(g_file_stats['result'])
+            if g_args.common:
+                _filter_common (g_file_stats)
+
             _print_data ()
         else:
             if g_args.filter:
