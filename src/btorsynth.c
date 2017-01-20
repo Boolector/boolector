@@ -19,12 +19,6 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
-// TODO (ma): for debugging only
-#include "dumper/btordumpbtor.h"
-#include "dumper/btordumpsmt.h"
-
-//#define PRINT_DBG
-
 BTOR_DECLARE_STACK (BtorBitVectorTuplePtr, BtorBitVectorTuple *);
 BTOR_DECLARE_STACK (BtorIntHashTablePtr, BtorIntHashTable *);
 
@@ -177,7 +171,6 @@ collect_exps_post_order (Btor *btor,
   assert (value_in_map);
   assert (exps);
   assert (cone);
-  assert (nroots == 1);  // TODO: multiple roots not yet supported
 
   uint32_t i;
   int32_t j;
@@ -244,7 +237,6 @@ collect_exps_post_order (Btor *btor,
         || btor_contains_int_hash_table (cone_hash, cur->id))
       continue;
 
-    //      BTOR_PUSH_STACK (mm, *cone, cur);
     btor_add_int_hash_table (cone_hash, cur->id);
     btor_init_parent_iterator (&it, cur);
     while (btor_has_next_parent_iterator (&it))
@@ -600,11 +592,15 @@ eval_exps (Btor *btor,
     BTOR_PUSH_STACK (mm, arg_stack, result);
   }
 
-  // TODO: if more than one root is used we have multiple arguments on the
-  //	   stack. in this case we need to create one big bv of all args on the
-  //	   stack
-  assert (BTOR_COUNT_STACK (arg_stack) == 1);
-  result = BTOR_POP_STACK (arg_stack);
+  /* merge results of multiple roots */
+  result = BTOR_PEEK_STACK (arg_stack, 0);
+  for (i = 1; i < BTOR_COUNT_STACK (arg_stack); i++)
+  {
+    a      = result;
+    result = btor_concat_bv (mm, a, BTOR_PEEK_STACK (arg_stack, i));
+    btor_free_bv (mm, a);
+    btor_free_bv (mm, BTOR_PEEK_STACK (arg_stack, i));
+  }
 
   for (j = 0; j < cache->size; j++)
   {
@@ -1042,22 +1038,19 @@ check_signature_exps (Btor *btor,
   {
     inputs = value_in[i];
     output = value_out[i];
-    res    = eval_candidate (btor, exp, inputs, output, value_in_map);
-  }
 
-  for (i = 0; i < nvalues; i++)
-  {
-    inputs = value_in[i];
-    output = value_out[i];
-    res    = eval_exps (btor,
-                     exps,
-                     nexps,
-                     value_caches[i],
-                     cone_hash,
-                     exp,
-                     inputs,
-                     output,
-                     value_in_map);
+    if (nexps)
+      res = eval_exps (btor,
+                       exps,
+                       nexps,
+                       value_caches[i],
+                       cone_hash,
+                       exp,
+                       inputs,
+                       output,
+                       value_in_map);
+    else
+      res = eval_candidate (btor, exp, inputs, output, value_in_map);
 
     if (btor_compare_bv (res, output) == 0)
     {
@@ -1350,15 +1343,6 @@ synthesize (Btor *btor,
   BTOR_PUSH_STACK (mm, candidates.exps, 0);
   BTOR_PUSH_STACK (mm, candidates.nexps_level, 0);
 
-  /* collect expressions in constraints in post-order for faster evaluations */
-  collect_exps_post_order (btor,
-                           constraints,
-                           nconstraints,
-                           value_in_map,
-                           &trav_exps,
-                           &trav_cone,
-                           cone_hash);
-
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
 
@@ -1366,6 +1350,16 @@ synthesize (Btor *btor,
   tmp_value_out = value_out;
   if (nconstraints > 0)
   {
+    /* collect expressions in constraints in post-order for faster
+     * evaluations */
+    collect_exps_post_order (btor,
+                             constraints,
+                             nconstraints,
+                             value_in_map,
+                             &trav_exps,
+                             &trav_cone,
+                             cone_hash);
+
     for (i = 0; i < nvalues; i++)
     {
       value_cache = btor_new_int_hash_map (mm);
