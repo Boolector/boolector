@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
@@ -344,7 +344,7 @@ parse (FILE *file)
 
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t flen, pstat, pres;
+  int32_t flen, pstat;
   char *outfilename, *emsg;
 
   BTORUNT_LOG ("parsing %s", g_btorunt->filename);
@@ -1605,9 +1605,11 @@ NEXT:
       outfile = fopen (outfilename, "r");
       tmpbtor = boolector_new ();
       boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-      pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
-      assert (pres != BOOLECTOR_PARSE_ERROR);
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+      (void) emsg;
+      (void) pstat;
       boolector_delete (tmpbtor);
       fclose (outfile);
       unlink (outfilename);

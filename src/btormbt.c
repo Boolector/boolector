@@ -3010,12 +3010,15 @@ btormbt_state_main (BtorMBT *mbt)
 
   Btor *clone;
   BoolectorNode *node, *cnode;
-  BoolectorSort sort, csort;
   const char *symbol, *csymbol;
-  int32_t i, j, id, cid;
+  int32_t i, j, id;
   BtorMBTExpStack *exp_stack;
   BtorMBTExpStack *exp_stacks[5] = {
       mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
+
+#ifdef NDEBUG
+  (void) csymbol;
+#endif
 
   /* main operations */
   if (mbt->round.ops < mbt->round.max_ops)
@@ -3110,16 +3113,13 @@ btormbt_state_main (BtorMBT *mbt)
           assert (boolector_get_btor (node) == mbt->btor);
           id     = boolector_get_id (mbt->btor, node);
           symbol = boolector_get_symbol (mbt->btor, node);
-          sort   = boolector_get_sort (mbt->btor, node);
-
-          cnode = boolector_match_node (clone, node);
+          cnode  = boolector_match_node (clone, node);
           assert (boolector_get_btor (cnode) == clone);
-          cid     = boolector_get_id (clone, cnode);
+          assert (id == boolector_get_id (clone, cnode));
+          assert (boolector_get_sort (mbt->btor, node)
+                  == boolector_get_sort (clone, cnode));
           csymbol = boolector_get_symbol (clone, cnode);
-          csort   = boolector_get_sort (clone, cnode);
-          assert (id == cid);
           assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
-          assert (sort == csort);
           if (boolector_is_fun (mbt->btor, node))
           {
             assert (boolector_fun_get_domain_sort (mbt->btor, node)
@@ -3132,9 +3132,9 @@ btormbt_state_main (BtorMBT *mbt)
           cnode = boolector_match_node_by_id (clone, id < 0 ? -id : id);
           assert (boolector_get_btor (cnode) == clone);
           csymbol = boolector_get_symbol (clone, cnode);
-          csort   = boolector_get_sort (clone, cnode);
+          assert (boolector_get_sort (mbt->btor, node)
+                  == boolector_get_sort (clone, cnode));
           assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
-          assert (sort == csort);
           if (boolector_is_fun (mbt->btor, node))
           {
             assert (boolector_fun_get_domain_sort (mbt->btor, node)
@@ -3148,10 +3148,9 @@ btormbt_state_main (BtorMBT *mbt)
           {
             cnode = boolector_match_node_by_symbol (clone, symbol);
             assert (boolector_get_btor (cnode) == clone);
-            cid   = boolector_get_id (clone, cnode);
-            csort = boolector_get_sort (clone, cnode);
-            assert (id == cid);
-            assert (sort == csort);
+            assert (id == boolector_get_id (clone, cnode));
+            assert (boolector_get_sort (mbt->btor, node)
+                    == boolector_get_sort (clone, cnode));
             if (boolector_is_fun (mbt->btor, node))
             {
               assert (boolector_fun_get_domain_sort (mbt->btor, node)
@@ -3387,7 +3386,7 @@ btormbt_state_dump (BtorMBT *mbt)
 
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t len, pstat, pres;
+  int32_t len, pstat;
   char *outfilename, *emsg, *envname = 0;
   uint32_t outformat;
   BoolectorNode *node;
@@ -3450,23 +3449,27 @@ btormbt_state_dump (BtorMBT *mbt)
     boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
     {
-      pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
     }
     else if (outformat == BTOR_OUTPUT_FORMAT_BTOR
              && !BTOR_COUNT_STACK (mbt->uf->exps)
              // TODO: we cannot parse equality over lambdas in btor right now
              && mbt->round.num_eq_fun == 0)
     {
-      pres = boolector_parse_btor (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse_btor (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
     }
     else
     {
-      pres = boolector_parse_smt2 (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse_smt2 (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
     }
-    assert (pres != BOOLECTOR_PARSE_ERROR);
+    (void) emsg;
+    (void) pstat;
     boolector_delete (tmpbtor);
     fclose (outfile);
     unlink (outfilename);
