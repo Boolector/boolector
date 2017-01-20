@@ -2702,6 +2702,55 @@ btormbt_state_opt (BtorMBT *mbt)
                btoropt_engine->name,
                btoropt_engine->val);
 
+  /* Set SAT engine */
+  btoropt = mbt->btor_opts.start[BTOR_OPT_SAT_ENGINE];
+  if (!btoropt->forced_by_cl)
+  {
+    /* pick randomly */
+    btoropt->val =
+        btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+  }
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+  {
+    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+  }
+  else
+  {
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+#ifdef BTOR_USE_LINGELING
+      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+        boolector_set_sat_solver (mbt->btor, "lingeling");
+#endif
+#ifdef BTOR_USE_PICOSAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+        boolector_set_sat_solver (mbt->btor, "picosat");
+#endif
+#ifdef BTOR_USE_MINISAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+        boolector_set_sat_solver (mbt->btor, "minisat");
+#endif
+    }
+    else
+    {
+#ifdef BTOR_USE_LINGELING
+      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+        boolector_set_sat_solver_lingeling (
+            mbt->btor, 0, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+#endif
+#ifdef BTOR_USE_PICOSAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+        boolector_set_sat_solver_picosat (mbt->btor);
+#endif
+#ifdef BTOR_USE_MINISAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+        boolector_set_sat_solver_minisat (mbt->btor);
+#endif
+    }
+  }
+  BTORMBT_LOG (
+      1, "opt: set boolector option '%s' to '%d'", btoropt->name, btoropt->val);
+
   if (mbt->optfuzz)
   {
     /* set output format for dumping */
@@ -2739,126 +2788,88 @@ btormbt_state_opt (BtorMBT *mbt)
     btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
     assert (boolector_has_opt (mbt->btor, btoropt->kind));
 
-    /* pick option randomly */
+    if (!mbt->optfuzz && !btoropt->forced_by_cl) continue;
+
+    /* skip, has already been set */
+    if (btoropt->kind == BTOR_OPT_ENGINE || btoropt->kind == BTOR_OPT_SAT_ENGINE
+        || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT
+        || btoropt->kind == BTOR_OPT_OUTPUT_NUMBER_FORMAT)
+    {
+      continue;
+    }
+
+    /* skip with prob = 0.5 */
+    if ((btoropt->kind == BTOR_OPT_INCREMENTAL
+         || btoropt->kind == BTOR_OPT_MODEL_GEN)
+        && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+      continue;
+    }
+    /* skip with prob = 0.1
+     * note: do not skip engine options (value is picked between min and
+     * max anyway, increases probability to enable engine options) */
+    else if ((!btoropt->is_engine_opt || btoropt->engine != btoropt_engine->val)
+             && btor_pick_with_prob_rng (&mbt->round.rng, 900))
+    {
+      continue;
+    }
+
+    /* avoid invalid option combinations */
+    // FIXME remove as soon as ucopt works with mgen
+    /* do not enable unconstrained optimization if either model
+     * generation or incremental is enabled */
+    if (btoropt->kind == BTOR_OPT_UCOPT
+        && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
+            || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
+    {
+      continue;
+    }
+    else if ((btoropt->kind == BTOR_OPT_MODEL_GEN
+              || btoropt->kind == BTOR_OPT_INCREMENTAL)
+             && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
+    {
+      continue;
+    }
+    /* do not enable justification if dual propagation is enabled */
+    else if (btoropt->kind == BTOR_OPT_FUN_JUST
+             && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+    {
+      continue;
+    }
+    else if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+             && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
+    {
+      continue;
+    }
+
     if (!btoropt->forced_by_cl)
     {
-      /* skip, has already been set */
-      if (btoropt->kind == BTOR_OPT_ENGINE
-          || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT
-          || btoropt->kind == BTOR_OPT_OUTPUT_NUMBER_FORMAT)
-      {
-        continue;
-      }
-
-      /* skip with prob = 0.5 */
-      if ((btoropt->kind == BTOR_OPT_INCREMENTAL
-           || btoropt->kind == BTOR_OPT_MODEL_GEN)
-          && btor_pick_with_prob_rng (&mbt->round.rng, 500))
-      {
-        continue;
-      }
-      /* skip with prob = 0.1
-       * note: do not skip engine options (value is picked between min and
-       * max anyway, increases probability to enable engine options) */
-      else if ((!btoropt->is_engine_opt
-                || btoropt->engine != btoropt_engine->val)
-               && btor_pick_with_prob_rng (&mbt->round.rng, 900))
-      {
-        continue;
-      }
-
-      /* avoid invalid option combinations */
-      // FIXME remove as soon as ucopt works with mgen
-      /* do not enable unconstrained optimization if either model
-       * generation or incremental is enabled */
-      if (btoropt->kind == BTOR_OPT_UCOPT
-          && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
-              || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
-      {
-        continue;
-      }
-      else if ((btoropt->kind == BTOR_OPT_MODEL_GEN
-                || btoropt->kind == BTOR_OPT_INCREMENTAL)
-               && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
-      {
-        continue;
-      }
-      /* do not enable justification if dual propagation is enabled */
-      else if (btoropt->kind == BTOR_OPT_FUN_JUST
-               && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
-      {
-        continue;
-      }
-      else if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
-               && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
-      {
-        continue;
-      }
-
+      /* pick option randomly */
       btoropt->val =
           btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
     }
+    /* if an option is set via command line the value is saved in
+     * btoropt->val */
 
+    /* set boolector option */
+    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
     BTORMBT_LOG (1,
                  "opt: set boolector option '%s' to '%u'",
                  btoropt->name,
                  btoropt->val);
 
-    /* if an option is set via command line the value is saved in
-     * btoropt->val */
-    if (btoropt->kind == BTOR_OPT_SAT_ENGINE
-        && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    /* set some mbt specific options */
+    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
     {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-      {
-#ifdef BTOR_USE_LINGELING
-        if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
-          boolector_set_sat_solver (mbt->btor, "lingeling");
-#endif
-#ifdef BTOR_USE_PICOSAT
-        else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
-          boolector_set_sat_solver (mbt->btor, "picosat");
-#endif
-#ifdef BTOR_USE_MINISAT
-        else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
-          boolector_set_sat_solver (mbt->btor, "minisat");
-#endif
-      }
-      else
-      {
-#ifdef BTOR_USE_LINGELING
-        if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
-          boolector_set_sat_solver_lingeling (
-              mbt->btor, 0, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
-#endif
-#ifdef BTOR_USE_PICOSAT
-        else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
-          boolector_set_sat_solver_picosat (mbt->btor);
-#endif
-#ifdef BTOR_USE_MINISAT
-        else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
-          boolector_set_sat_solver_minisat (mbt->btor);
-#endif
-      }
+      mbt->round.inc = true;
+      mbt->round.max_ninc =
+          btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
     }
-    else if (mbt->optfuzz || btoropt->forced_by_cl)
+    else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
-      /* set boolector option */
-      boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
-
-      /* set some mbt specific options */
-      if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
-      {
-        mbt->round.inc = true;
-        mbt->round.max_ninc =
-            btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
-      }
-      else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
-      {
-        mbt->round.mgen = true;
-        if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_print_model))
-          mbt->round.print_model = true;
-      }
+      mbt->round.mgen = true;
+      if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_print_model))
+        mbt->round.print_model = true;
     }
   }
 
