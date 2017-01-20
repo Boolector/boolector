@@ -17,7 +17,7 @@
 #include "btorexp.h"
 #include "btormodel.h"
 #include "btorslvfun.h"
-#include "btorsynthfun.h"
+#include "btorsynth.h"
 #include "normalizer/btornormquant.h"
 #include "normalizer/btorskolemize.h"
 #include "simplifier/btorder.h"
@@ -2020,21 +2020,19 @@ synthesize (BtorEFGroundSolvers *gslv,
   if (opt_synth_mode == BTOR_EF_SYNTH_EL
       || opt_synth_mode == BTOR_EF_SYNTH_EL_ELMC)
   {
-    result =
-        btor_synthesize_fun_constraints (gslv->forall,
-                                         inputs.start,
-                                         BTOR_COUNT_STACK (inputs),
-                                         value_in.start,
-                                         value_out.start,
-                                         BTOR_COUNT_STACK (value_in),
-                                         value_in_map,
-                                         prev_synth_fun,
-                                         constraints.start,
-                                         BTOR_COUNT_STACK (constraints),
-                                         gslv->forall_consts.start,
-                                         BTOR_COUNT_STACK (gslv->forall_consts),
-                                         limit,
-                                         0);
+    result = btor_synthesize_term (gslv->forall,
+                                   inputs.start,
+                                   BTOR_COUNT_STACK (inputs),
+                                   value_in.start,
+                                   value_out.start,
+                                   BTOR_COUNT_STACK (value_in),
+                                   value_in_map,
+                                   constraints.start,
+                                   BTOR_COUNT_STACK (constraints),
+                                   gslv->forall_consts.start,
+                                   BTOR_COUNT_STACK (gslv->forall_consts),
+                                   limit,
+                                   0);
   }
 
   if (!result
@@ -2089,21 +2087,19 @@ synthesize (BtorEFGroundSolvers *gslv,
 
   if (!result)
   {
-    result =
-        btor_synthesize_fun_constraints (gslv->forall,
-                                         inputs.start,
-                                         BTOR_COUNT_STACK (inputs),
-                                         value_in.start,
-                                         value_out.start,
-                                         BTOR_COUNT_STACK (value_in),
-                                         value_in_map,
-                                         prev_synth_fun,
-                                         constraints.start,
-                                         BTOR_COUNT_STACK (constraints),
-                                         gslv->forall_consts.start,
-                                         BTOR_COUNT_STACK (gslv->forall_consts),
-                                         limit,
-                                         0);
+    result = btor_synthesize_term (gslv->forall,
+                                   inputs.start,
+                                   BTOR_COUNT_STACK (inputs),
+                                   value_in.start,
+                                   value_out.start,
+                                   BTOR_COUNT_STACK (value_in),
+                                   value_in_map,
+                                   constraints.start,
+                                   BTOR_COUNT_STACK (constraints),
+                                   gslv->forall_consts.start,
+                                   BTOR_COUNT_STACK (gslv->forall_consts),
+                                   limit,
+                                   0);
   }
 
   if (result && btor_get_opt (gslv->forall, BTOR_OPT_EF_FIXSYNTH))
@@ -2725,20 +2721,19 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       /* 'uvar' is a special placeholder for constraint evaluation */
       d->as_int = -1;
 
-      result = btor_synthesize_fun_constraints (f_solver,
-                                                inputs.start,
-                                                BTOR_COUNT_STACK (inputs),
-                                                value_in.start,
-                                                value_out.start,
-                                                BTOR_COUNT_STACK (value_in),
-                                                value_in_map,
-                                                0,
-                                                constraints.start,
-                                                BTOR_COUNT_STACK (constraints),
-                                                consts.start,
-                                                BTOR_COUNT_STACK (consts),
-                                                10000,
-                                                0);
+      result = btor_synthesize_term (f_solver,
+                                     inputs.start,
+                                     BTOR_COUNT_STACK (inputs),
+                                     value_in.start,
+                                     value_out.start,
+                                     BTOR_COUNT_STACK (value_in),
+                                     value_in_map,
+                                     constraints.start,
+                                     BTOR_COUNT_STACK (constraints),
+                                     consts.start,
+                                     BTOR_COUNT_STACK (consts),
+                                     10000,
+                                     0);
 
       while (!BTOR_EMPTY_STACK (value_in))
         btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
