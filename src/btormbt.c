@@ -3384,6 +3384,7 @@ btormbt_state_dump (BtorMBT *mbt)
 {
   assert (!mbt->round.inc);
 
+  int tmppid;
   Btor *tmpbtor;
   FILE *outfile;
   int32_t len, pstat;
@@ -3391,6 +3392,7 @@ btormbt_state_dump (BtorMBT *mbt)
   uint32_t outformat;
   BoolectorNode *node;
 
+  tmppid    = getpid ();
   outformat = boolector_get_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT);
 
   if (outformat == BTOR_OUTPUT_FORMAT_AIGER_ASCII
@@ -3413,7 +3415,7 @@ btormbt_state_dump (BtorMBT *mbt)
            // TODO: we cannot dump ite over functions to smt2/btor right now
            && mbt->round.num_ite_fun == 0)
   {
-    len = 40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
+    len = 40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (tmppid);
     BTOR_NEWN (mbt->mm, outfilename, len);
 
     if (outformat == BTOR_OUTPUT_FORMAT_BTOR
@@ -3424,7 +3426,7 @@ btormbt_state_dump (BtorMBT *mbt)
     {
       sprintf (outfilename,
                "/tmp/btormbt-bug-%d%s",
-               mbt->seed,
+               tmppid,
                btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".btor" : "");
       outfile = fopen (outfilename, "w");
       assert (outfile);
@@ -3434,7 +3436,7 @@ btormbt_state_dump (BtorMBT *mbt)
     {
       sprintf (outfilename,
                "/tmp/btormbt-bug-%d%s",
-               mbt->seed,
+               tmppid,
                btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".smt2" : "");
       outfile = fopen (outfilename, "w");
       assert (outfile);
