@@ -177,6 +177,7 @@ collect_exps_post_order (Btor *btor,
   assert (value_in_map);
   assert (exps);
   assert (cone);
+  assert (nroots == 1);  // TODO: multiple roots not yet supported
 
   uint32_t i;
   int32_t j;
@@ -599,6 +600,9 @@ eval_exps (Btor *btor,
     BTOR_PUSH_STACK (mm, arg_stack, result);
   }
 
+  // TODO: if more than one root is used we have multiple arguments on the
+  //	   stack. in this case we need to create one big bv of all args on the
+  //	   stack
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
 
@@ -980,6 +984,33 @@ find_best_matches (Btor * btor,
 }
 #endif
 
+static BtorBitVectorTuple *
+create_signature_exp (Btor *btor,
+                      BtorNode *exp,
+                      BtorBitVectorTuple *value_in[],
+                      BtorBitVector *value_out[],
+                      uint32_t nvalues,
+                      BtorIntHashTable *value_in_map)
+{
+  uint32_t i;
+  BtorBitVectorTuple *inputs, *sig;
+  BtorBitVector *output, *res;
+  BtorMemMgr *mm;
+
+  mm  = btor->mm;
+  sig = btor_new_bv_tuple (btor->mm, nvalues);
+
+  for (i = 0; i < nvalues; i++)
+  {
+    inputs = value_in[i];
+    output = value_out[i];
+    res    = eval_candidate (btor, exp, inputs, output, value_in_map);
+    btor_add_to_bv_tuple (mm, sig, res, i);
+    btor_free_bv (mm, res);
+  }
+  return sig;
+}
+
 static bool
 check_signature_exps (Btor *btor,
                       BtorNode *exps[],
@@ -1006,6 +1037,13 @@ check_signature_exps (Btor *btor,
   if (sig) *sig = btor_new_bv_tuple (mm, nvalues);
 
   if (matchbv) bv = btor_new_bv (mm, nvalues);
+
+  for (i = 0; i < nvalues; i++)
+  {
+    inputs = value_in[i];
+    output = value_out[i];
+    res    = eval_candidate (btor, exp, inputs, output, value_in_map);
+  }
 
   for (i = 0; i < nvalues; i++)
   {
@@ -1053,15 +1091,14 @@ check_candidate_exps (Btor *btor,
                       Candidates *candidates,
                       BtorIntHashTable *cache,
                       BtorPtrHashTable *sigs,
+                      BtorPtrHashTable *sigs_exp,
                       BtorPtrHashTable *matches,
-                      Op *op,
-                      double *time_sig)
+                      Op *op)
 {
   bool found_candidate = false;
   int32_t id;
-  uint32_t num_matches = 0;
-  double start;
-  BtorBitVectorTuple *sig = 0;
+  uint32_t num_matches    = 0;
+  BtorBitVectorTuple *sig = 0, *sig_exp;
   BtorBitVector *matchbv  = 0;
   BtorMemMgr *mm;
   Match *m;
@@ -1077,7 +1114,19 @@ check_candidate_exps (Btor *btor,
 
   if (nexps == 0 || BTOR_REAL_ADDR_NODE (exp)->sort_id == target_sort)
   {
-    start           = btor_time_stamp ();
+    /* check signature for candidate expression (in/out values) */
+    sig_exp = create_signature_exp (
+        btor, exp, value_in, value_out, nvalues, value_in_map);
+
+    if (btor_get_ptr_hash_table (sigs_exp, sig_exp))
+    {
+      btor_free_bv_tuple (mm, sig_exp);
+      btor_release_exp (btor, exp);
+      return false;
+    }
+    btor_add_ptr_hash_table (sigs_exp, sig_exp);
+
+    /* check signature for candidate expression w.r.t. formula */
     found_candidate = check_signature_exps (btor,
                                             exps,
                                             nexps,
@@ -1091,7 +1140,6 @@ check_candidate_exps (Btor *btor,
                                             &sig,
                                             &num_matches,
                                             &matchbv);
-    *time_sig += btor_time_stamp () - start;
   }
 
   if (sig && btor_get_ptr_hash_table (sigs, sig))
@@ -1120,81 +1168,6 @@ check_candidate_exps (Btor *btor,
   add_exp (btor, cur_level, candidates, exp);
   return found_candidate;
 }
-
-#if 0
-static bool
-check_candidate (Btor * btor,
-                 uint32_t cur_level,
-                 BtorNode * exp, BtorSortId target_sort,
-                 BtorBitVectorTuple * value_in[], BtorBitVector * value_out[],
-                 uint32_t nvalues,
-                 BtorIntHashTable * value_in_map,
-                 Candidates * candidates,
-                 BtorIntHashTable * cache,
-                 BtorPtrHashTable * sigs,
-                 BtorPtrHashTable * matches,
-                 BtorNode * constraints[],
-                 uint32_t nconstraints,
-                 Op * op,
-                 double * time_sig)
-{
-  bool found_candidate = false;
-  int32_t id;
-  uint32_t num_matches = 0;
-  double start;
-  BtorBitVectorTuple *sig = 0;
-  BtorBitVector *matchbv = 0;
-  BtorMemMgr *mm;
-  Match *m;
-
-  id = BTOR_GET_ID_NODE (exp);
-  mm = btor->mm;
-
-  if (btor_is_bv_const_node (exp)
-      || btor_contains_int_hash_table (cache, id))
-    {
-      btor_release_exp (btor, exp);
-      return false;
-    }
-
-  if (nconstraints == 0 || BTOR_REAL_ADDR_NODE (exp)->sort_id == target_sort)
-    {
-    start = btor_time_stamp ();
-    found_candidate =
-      check_signature (btor, exp, value_in, value_out, nvalues, value_in_map,
-                       &sig, &num_matches, &matchbv, constraints, nconstraints);
-    *time_sig += btor_time_stamp () - start;
-    }
-
-  if (sig && btor_get_ptr_hash_table (sigs, sig))
-    {
-      assert (!found_candidate);
-      btor_free_bv_tuple (mm, sig);
-      btor_free_bv (mm, matchbv);
-      btor_release_exp (btor, exp);
-      return false;
-    }
-
-  if (num_matches > 0)
-    {
-      m = new_match (mm, cur_level, num_matches, matchbv, exp);
-      if (!btor_get_ptr_hash_table (matches, m))
-        btor_add_ptr_hash_table (matches, m);
-      else
-        delete_match (mm, m);
-    }
-  else if (matchbv)
-    btor_free_bv (mm, matchbv);
-
-  if (sig)
-    btor_add_ptr_hash_table (sigs, sig);
-  btor_add_int_hash_table (cache, id);
-  if (op)
-    op->num_added++;
-  add_exp (btor, cur_level, candidates, exp);
-  return found_candidate;
-}
-#endif
 
 static inline void
 report_stats (Btor *btor,
@@ -1278,6 +1251,37 @@ add_consts (Btor * btor, uint32_t width, Candidates * candidates,
 }
 #endif
 
+#define CHECK_CANDIDATE(exp)                                              \
+  {                                                                       \
+    found_candidate = check_candidate_exps (btor,                         \
+                                            trav_cone.start,              \
+                                            BTOR_COUNT_STACK (trav_cone), \
+                                            value_caches.start,           \
+                                            cone_hash,                    \
+                                            cur_level,                    \
+                                            exp,                          \
+                                            target_sort,                  \
+                                            value_in,                     \
+                                            value_out,                    \
+                                            nvalues,                      \
+                                            value_in_map,                 \
+                                            &candidates,                  \
+                                            cache,                        \
+                                            sigs,                         \
+                                            sigs_exp,                     \
+                                            matches,                      \
+                                            &ops[i]);                     \
+    num_checks++;                                                         \
+    if (num_checks % 10000 == 0)                                          \
+      report_stats (btor, start, cur_level, num_checks, &candidates);     \
+    if (num_checks % 1000 == 0 && btor_terminate_btor (btor))             \
+    {                                                                     \
+      BTOR_MSG (btor->msg, 1, "terminate");                               \
+      goto DONE;                                                          \
+    }                                                                     \
+    if (found_candidate || num_checks >= max_checks) goto DONE;           \
+  }
+
 static BtorNode *
 synthesize (Btor *btor,
             BtorNode *inputs[],
@@ -1305,14 +1309,14 @@ synthesize (Btor *btor,
   assert (nops > 0);
   assert (!nconsts || consts);
 
-  double start, start_tmp, time_check = 0, time_sig = 0;
+  double start;
   bool found_candidate = false, equal;
   uint32_t i, j, k, *tuple, cur_level = 1, num_checks = 0, num_added;
   BtorNode *exp, **exp_tuple, *result = 0;
   BtorNodePtrStack *exps, trav_exps, trav_cone;
   Candidates candidates;
   BtorIntHashTable *cache, *e0_exps, *e1_exps, *e2_exps;
-  BtorPtrHashTable *matches, *sigs;
+  BtorPtrHashTable *matches, *sigs, *sigs_exp;
   BtorHashTableData *d;
   BtorMemMgr *mm;
   BtorPartitionGenerator pg;
@@ -1332,6 +1336,8 @@ synthesize (Btor *btor,
   matches   = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_match, (BtorCmpPtr) cmp_match);
   sigs = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
+  sigs_exp = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
 
   BTOR_INIT_STACK (sig_constraints);
@@ -1353,13 +1359,10 @@ synthesize (Btor *btor,
                            &trav_cone,
                            cone_hash);
 
-  printf ("collect: %lu trav, %lu cone\n",
-          BTOR_COUNT_STACK (trav_exps),
-          BTOR_COUNT_STACK (trav_cone));
-
   target_sort =
       btor_bitvec_sort (&btor->sorts_unique_table, value_out[0]->width);
 
+  /* generate target signature */
   tmp_value_out = value_out;
   if (nconstraints > 0)
   {
@@ -1375,13 +1378,8 @@ synthesize (Btor *btor,
                       value_in[i],
                       value_out[i],
                       value_in_map);
-      //          bv = constraints_signature (btor, 0, constraints,
-      //          nconstraints,
-      //                                      value_in[i], value_out[i],
-      //                                      value_in_map);
       assert (btor_get_opt (btor, BTOR_OPT_EF_SYNTH) != BTOR_EF_SYNTH_ELMR
               || btor_is_ones_bv (bv));
-      //          btor_print_bv (bv);
       BTOR_PUSH_STACK (mm, sig_constraints, bv);
       BTOR_PUSH_STACK (mm, value_caches, value_cache);
     }
@@ -1394,7 +1392,6 @@ synthesize (Btor *btor,
   for (i = 0; i < ninputs; i++)
   {
     exp             = btor_copy_exp (btor, inputs[i]);
-    start_tmp       = btor_time_stamp ();
     found_candidate = check_candidate_exps (btor,
                                             trav_cone.start,
                                             BTOR_COUNT_STACK (trav_cone),
@@ -1410,17 +1407,9 @@ synthesize (Btor *btor,
                                             &candidates,
                                             cache,
                                             sigs,
+                                            sigs_exp,
                                             matches,
-                                            0,
-                                            &time_sig);
-    //        check_candidate (btor, cur_level, exp, target_sort,
-    //                         value_in, value_out, nvalues,
-    //                         value_in_map,
-    //                         &candidates, cache, sigs, matches,
-    //                         constraints, nconstraints, 0, &time_sig);
-    time_check += btor_time_stamp () - start_tmp;
-    //      add_consts (btor, btor_get_exp_width (btor, exp), &candidates,
-    //      cache);
+                                            0);
     num_checks++;
     if (num_checks % 10000 == 0)
       report_stats (btor, start, cur_level, num_checks, &candidates);
@@ -1480,49 +1469,8 @@ synthesize (Btor *btor,
           exps = e0_exps->data[j].as_ptr;
           for (k = 0; k < BTOR_COUNT_STACK (*exps); k++)
           {
-            exp       = ops[i].un (btor, BTOR_PEEK_STACK (*exps, k));
-            start_tmp = btor_time_stamp ();
-            found_candidate =
-                check_candidate_exps (btor,
-                                      trav_cone.start,
-                                      BTOR_COUNT_STACK (trav_cone),
-                                      value_caches.start,
-                                      cone_hash,
-                                      cur_level,
-                                      exp,
-                                      target_sort,
-                                      value_in,
-                                      value_out,
-                                      nvalues,
-                                      value_in_map,
-                                      &candidates,
-                                      cache,
-                                      sigs,
-                                      matches,
-                                      &ops[i],
-                                      &time_sig);
-            //                        check_candidate (btor, cur_level, exp,
-            //                        target_sort,
-            //                                         value_in, value_out,
-            //                                         nvalues, value_in_map,
-            //                                         &candidates, cache, sigs,
-            //                                         matches, constraints,
-            //                                         nconstraints, &ops[i],
-            //                                         &time_sig);
-            time_check += btor_time_stamp () - start_tmp;
-            num_checks++;
-            if (num_checks % 10000 == 0)
-              report_stats (btor, start, cur_level, num_checks, &candidates);
-            if (num_checks % 1000 == 0)
-            {
-              if (btor_terminate_btor (btor))
-              {
-                BTOR_MSG (btor->msg, 1, "terminate");
-                goto DONE;
-              }
-            }
-            if (found_candidate || num_checks >= max_checks) goto DONE;
-            //                      num_un_exps++;
+            exp = ops[i].un (btor, BTOR_PEEK_STACK (*exps, k));
+            CHECK_CANDIDATE (exp);
           }
         }
       }
@@ -1540,48 +1488,8 @@ synthesize (Btor *btor,
           {
             exp_tuple = btor_next_cart_prod_iterator (&cpit);
             exp       = ops[i].bin (btor, exp_tuple[0], exp_tuple[1]);
-            start_tmp = btor_time_stamp ();
-            found_candidate =
-                check_candidate_exps (btor,
-                                      trav_cone.start,
-                                      BTOR_COUNT_STACK (trav_cone),
-                                      value_caches.start,
-                                      cone_hash,
-                                      cur_level,
-                                      exp,
-                                      target_sort,
-                                      value_in,
-                                      value_out,
-                                      nvalues,
-                                      value_in_map,
-                                      &candidates,
-                                      cache,
-                                      sigs,
-                                      matches,
-                                      &ops[i],
-                                      &time_sig);
-            //                        check_candidate (btor, cur_level, exp,
-            //                        target_sort,
-            //                                         value_in, value_out,
-            //                                         nvalues, value_in_map,
-            //                                         &candidates, cache, sigs,
-            //                                         matches, constraints,
-            //                                         nconstraints, &ops[i],
-            //                                         &time_sig);
-            time_check += btor_time_stamp () - start_tmp;
-            num_checks++;
-            if (num_checks % 10000 == 0)
-              report_stats (btor, start, cur_level, num_checks, &candidates);
-            if (num_checks % 1000 == 0)
-            {
-              if (btor_terminate_btor (btor))
-              {
-                BTOR_MSG (btor->msg, 1, "terminate");
-                goto DONE;
-              }
-            }
-            if (found_candidate || num_checks >= max_checks) goto DONE;
-            //                      num_bin_exps++;
+            CHECK_CANDIDATE (exp);
+            ;
           }
         }
       }
@@ -1597,21 +1505,6 @@ synthesize (Btor *btor,
           e1_exps = BTOR_PEEK_STACK (candidates.exps, tuple[1]);
           e2_exps = BTOR_PEEK_STACK (candidates.exps, tuple[2]);
 
-#if 0
-                  // TODO (ma): this speeds up AR-fixpoint by ~3 seconds each, but
-                  //            is not the original sygus algorithm
-                  uint32_t cnt;
-                  cnt = tuple[0];
-                  while (cnt >= 1)
-                    {
-                      e0_exps = BTOR_PEEK_STACK (candidates, cnt);
-                      d = btor_get_int_hash_map (e0_exps, bool_sort);
-                      cnt--;
-                      if (d)
-                        break;
-                    }
-#endif
-
           /* no bool expression in level 'tuple[0]' */
           d = btor_get_int_hash_map (e0_exps, bool_sort);
           if (!d) continue;
@@ -1626,51 +1519,7 @@ synthesize (Btor *btor,
             {
               exp = ops[i].ter (
                   btor, BTOR_PEEK_STACK (*exps, j), exp_tuple[0], exp_tuple[1]);
-              start_tmp = btor_time_stamp ();
-              found_candidate =
-                  check_candidate_exps (btor,
-                                        trav_cone.start,
-                                        BTOR_COUNT_STACK (trav_cone),
-                                        value_caches.start,
-                                        cone_hash,
-                                        cur_level,
-                                        exp,
-                                        target_sort,
-                                        value_in,
-                                        value_out,
-                                        nvalues,
-                                        value_in_map,
-                                        &candidates,
-                                        cache,
-                                        sigs,
-                                        matches,
-                                        &ops[i],
-                                        &time_sig);
-              //                            check_candidate (btor, cur_level,
-              //                            exp, target_sort,
-              //                                             value_in,
-              //                                             value_out, nvalues,
-              //                                             value_in_map,
-              //                                             &candidates, cache,
-              //                                             sigs, matches,
-              //                                             constraints,
-              //                                             nconstraints,
-              //                                             &ops[i],
-              //                                             &time_sig);
-              time_check += btor_time_stamp () - start_tmp;
-              num_checks++;
-              if (num_checks % 10000 == 0)
-                report_stats (btor, start, cur_level, num_checks, &candidates);
-              if (num_checks % 1000 == 0)
-              {
-                if (btor_terminate_btor (btor))
-                {
-                  BTOR_MSG (btor->msg, 1, "terminate");
-                  goto DONE;
-                }
-              }
-              if (found_candidate || num_checks >= max_checks) goto DONE;
-              //                          num_ter_exps++;
+              CHECK_CANDIDATE (exp);
             }
           }
         }
@@ -1683,7 +1532,6 @@ synthesize (Btor *btor,
 DONE:
   report_stats (btor, start, cur_level, num_checks, &candidates);
   report_op_stats (btor, ops, nops);
-  //  max_chain_length (sigs);
 
   if (found_candidate)
     result = btor_copy_exp (btor, exp);
@@ -1705,11 +1553,6 @@ DONE:
     }
   }
 
-  printf ("time check: %.2f, sig: %.2f, checks: %u (%.1f/s)\n",
-          time_check,
-          time_sig,
-          num_checks,
-          (float) num_checks / (btor_time_stamp () - start));
   if (found_candidate)
     BTOR_MSG (btor->msg,
               1,
@@ -1757,10 +1600,12 @@ DONE:
     delete_match (mm, btor_next_hash_table_iterator (&it));
 
   btor_init_hash_table_iterator (&it, sigs);
+  btor_queue_hash_table_iterator (&it, sigs_exp);
   while (btor_has_next_hash_table_iterator (&it))
     btor_free_bv_tuple (mm, btor_next_hash_table_iterator (&it));
 
   btor_delete_ptr_hash_table (sigs);
+  btor_delete_ptr_hash_table (sigs_exp);
   btor_delete_ptr_hash_table (matches);
   btor_delete_int_hash_table (cache);
   BTOR_RELEASE_STACK (mm, trav_exps);
