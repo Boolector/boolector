@@ -1483,7 +1483,6 @@ synthesize (Btor *btor,
             exp_tuple = btor_next_cart_prod_iterator (&cpit);
             exp       = ops[i].bin (btor, exp_tuple[0], exp_tuple[1]);
             CHECK_CANDIDATE (exp);
-            ;
           }
         }
       }
