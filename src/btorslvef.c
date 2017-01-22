@@ -58,6 +58,7 @@ struct BtorEFGroundSolvers
                                 vars of forall solver) */
   BtorNodeMap *exists_ufs;   /* UFs (non-skolem constants), map to UFs
                                 of forall solver */
+  BtorNodeMap *exists_cur_qi;
   BtorSolverResult result;
 
   BtorEFStats *statistics;
@@ -918,6 +919,7 @@ delete_efg_solvers (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   btor_delete_node_map (gslv->forall_evar_deps);
   btor_delete_node_map (gslv->forall_uvar_deps);
   btor_delete_node_map (gslv->forall_skolem);
+  if (gslv->exists_cur_qi) btor_delete_node_map (gslv->exists_cur_qi);
 
   btor_init_hash_table_iterator (&it, gslv->forall_ces);
   while (btor_has_next_hash_table_iterator (&it))
@@ -1974,7 +1976,7 @@ synthesize (BtorEFGroundSolvers *gslv,
             BtorNode *evar,
             FlatModel *flat_model,
             uint32_t limit,
-            BtorNode *prev_synth_fun)
+            BtorNode *prev_synth)
 {
   uint32_t i, pos, opt_synth_mode;
   BtorNode *cur, *par, *result = 0;
@@ -2032,7 +2034,8 @@ synthesize (BtorEFGroundSolvers *gslv,
                                    gslv->forall_consts.start,
                                    BTOR_COUNT_STACK (gslv->forall_consts),
                                    limit,
-                                   0);
+                                   0,
+                                   prev_synth);
   }
 
   if (!result
@@ -2099,6 +2102,7 @@ synthesize (BtorEFGroundSolvers *gslv,
                                    gslv->forall_consts.start,
                                    BTOR_COUNT_STACK (gslv->forall_consts),
                                    limit,
+                                   0,
                                    0);
   }
 
@@ -2638,7 +2642,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 {
   uint32_t pos, opt_synth_mode, num_synth = 0;
   BtorNode *cur, *uvar, *result           = 0, *uconst, *c;
-  BtorNode *a;
+  BtorNode *a, *prev_synth;
   BtorMemMgr *mm;
   BtorIntHashTable *value_in_map, *input_cache;
   BtorNodePtrStack constraints, inputs, consts;
@@ -2647,7 +2651,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BtorBitVectorPtrStack value_out;
   BtorNodeMapIterator it, iit;
   BtorHashTableData *d;
-  BtorNodeMap *map;
+  BtorNodeMap *map, *prev_qi;
   Btor *f_solver, *e_solver;
   BtorArgsIterator ait;
 
@@ -2664,6 +2668,9 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BTOR_INIT_STACK (consts);
   BTOR_INIT_STACK (constraints);
   BTOR_PUSH_STACK (mm, constraints, BTOR_INVERT_NODE (gslv->forall_formula));
+
+  prev_qi             = gslv->exists_cur_qi;
+  gslv->exists_cur_qi = btor_new_node_map (e_solver);
 
   /* value_in_map maps variables to the position in the assignment vector
    * value_in[k] */
@@ -2721,6 +2728,9 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       /* 'uvar' is a special placeholder for constraint evaluation */
       d->as_int = -1;
 
+      prev_synth = 0;
+      if (prev_qi) prev_synth = btor_mapped_node (prev_qi, uvar);
+
       result = btor_synthesize_term (f_solver,
                                      inputs.start,
                                      BTOR_COUNT_STACK (inputs),
@@ -2733,7 +2743,8 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
                                      consts.start,
                                      BTOR_COUNT_STACK (consts),
                                      10000,
-                                     0);
+                                     0,
+                                     prev_synth);
 
       while (!BTOR_EMPTY_STACK (value_in))
         btor_free_bv_tuple (mm, BTOR_POP_STACK (value_in));
@@ -2750,6 +2761,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       //	  printf ("qinst for %s\n", node2string (uvar));
       //	  btor_dump_smt2_node (f_solver, stdout, result, -1);
       num_synth++;
+      btor_map_node (gslv->exists_cur_qi, uvar, result);
     }
     else
     {
@@ -2787,6 +2799,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BTOR_RELEASE_STACK (mm, consts);
   BTOR_RELEASE_STACK (mm, constraints);
 
+  if (prev_qi) btor_delete_node_map (prev_qi);
   btor_delete_int_hash_map (value_in_map);
   btor_delete_node_map (map);
   BTOR_RELEASE_STACK (mm, value_in);

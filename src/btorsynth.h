@@ -29,5 +29,6 @@ BtorNode* btor_synthesize_term (Btor* btor,
                                 BtorNode* consts[],
                                 uint32_t nconsts,
                                 uint32_t max_checks,
-                                uint32_t max_level);
+                                uint32_t max_level,
+                                BtorNode* prev_synth);
 #endif

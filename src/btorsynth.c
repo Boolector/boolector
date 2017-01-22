@@ -1290,7 +1290,8 @@ synthesize (Btor *btor,
             uint32_t nconstraints,
             BtorIntHashTable *value_in_map,
             uint32_t max_checks,
-            uint32_t max_level)
+            uint32_t max_level,
+            BtorNode *prev_synth)
 {
   assert (btor);
   assert (inputs);
@@ -1380,6 +1381,32 @@ synthesize (Btor *btor,
     value_out = sig_constraints.start;
     assert (nvalues == BTOR_COUNT_STACK (sig_constraints));
     assert (nvalues == BTOR_COUNT_STACK (value_caches));
+  }
+
+  if (prev_synth)
+  {
+    exp             = prev_synth;
+    found_candidate = check_signature_exps (btor,
+                                            trav_cone.start,
+                                            BTOR_COUNT_STACK (trav_cone),
+                                            value_caches.start,
+                                            cone_hash,
+                                            exp,
+                                            value_in,
+                                            value_out,
+                                            nvalues,
+                                            value_in_map,
+                                            0,
+                                            0,
+                                            0);
+    num_checks++;
+    if (num_checks % 10000 == 0)
+      report_stats (btor, start, cur_level, num_checks, &candidates);
+    if (found_candidate)
+    {
+      BTOR_MSG (btor->msg, 1, "previously synthesized term matches");
+      goto DONE;
+    }
   }
 
   /* level 1 checks (inputs) */
@@ -1702,7 +1729,8 @@ btor_synthesize_term (Btor *btor,
                       BtorNode *consts[],
                       uint32_t nconsts,
                       uint32_t max_checks,
-                      uint32_t max_level)
+                      uint32_t max_level,
+                      BtorNode *prev_synth)
 {
   uint32_t nops;
   Op ops[64];
@@ -1725,7 +1753,8 @@ btor_synthesize_term (Btor *btor,
                        nconstraints,
                        value_in_map,
                        max_checks,
-                       max_level);
+                       max_level,
+                       prev_synth);
 
   return result;
 }
