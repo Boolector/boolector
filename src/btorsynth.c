@@ -1385,20 +1385,35 @@ synthesize (Btor *btor,
 
   if (prev_synth)
   {
-    exp             = prev_synth;
-    found_candidate = check_signature_exps (btor,
+#if 0
+      exp = prev_synth;
+      found_candidate =
+        check_signature_exps (btor,
+                              trav_cone.start, BTOR_COUNT_STACK (trav_cone),
+                              value_caches.start, cone_hash,
+                              exp, value_in, value_out, nvalues, value_in_map,
+                              0, 0, 0);
+#else
+    exp             = btor_copy_exp (btor, prev_synth);
+    found_candidate = check_candidate_exps (btor,
                                             trav_cone.start,
                                             BTOR_COUNT_STACK (trav_cone),
                                             value_caches.start,
                                             cone_hash,
+                                            cur_level,
                                             exp,
+                                            target_sort,
                                             value_in,
                                             value_out,
                                             nvalues,
                                             value_in_map,
-                                            0,
-                                            0,
+                                            &candidates,
+                                            cache,
+                                            sigs,
+                                            sigs_exp,
+                                            matches,
                                             0);
+#endif
     num_checks++;
     if (num_checks % 10000 == 0)
       report_stats (btor, start, cur_level, num_checks, &candidates);
