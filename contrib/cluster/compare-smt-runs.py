@@ -176,6 +176,22 @@ FILTER_LOG = [
    'PAS[s]', 
    lambda x: 'propagation apply search' in x,
    lambda x: select_column(x, 1)),
+  ('time_qi',
+   'QI[s]', 
+   lambda x: 'seconds quantifier instantiation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_dqi',
+   'DQI[s]', 
+   lambda x: 'seconds dual quantifier instantiation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_sy',
+   'SY[s]', 
+   lambda x: 'seconds synthesizing' in x,
+   lambda x: select_column(x, 1)),
+  ('time_dsy',
+   'DSY[s]', 
+   lambda x: 'seconds dual synthesizing' in x,
+   lambda x: select_column(x, 1)),
 ]
 
 def _read_status(line):
