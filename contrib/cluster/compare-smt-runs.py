@@ -146,7 +146,7 @@ FILTER_LOG = [
    lambda x: select_column(x, 1)),
   ('time_sapp',
    'SATDP[s]', 
-   lambda x: 'SAT solving for initial applies search' in x,
+   lambda x: 'seconds SAT solving' in x,
    lambda x: select_column(x, 1)),
   ('time_app',
    'APP[s]', 
