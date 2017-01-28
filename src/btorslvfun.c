@@ -665,11 +665,6 @@ collect_applies (Btor *btor,
   }
   BTOR_RELEASE_STACK (failed_eqs);
   btor_delete_int_hash_table (mark);
-  /* sort to enforce same order for consistency checking over all iterations */
-  qsort (top_applies->start,
-         BTOR_COUNT_STACK (*top_applies),
-         sizeof (BtorNode *),
-         btor_compare_exp_by_id_qsort_asc);
   slv->time.search_init_apps_collect_fa += btor_time_stamp () - start;
 }
 
