@@ -563,7 +563,8 @@ collect_applies (Btor *btor,
                  Btor *clone,
                  BtorNodeMap *key_map,
                  BtorNodeMap *assumptions,
-                 BtorNodePtrStack *top_applies)
+                 BtorIntHashTable *top_applies,
+                 BtorNodePtrStack *top_applies_feq)
 {
   assert (btor);
   assert (btor->slv);
@@ -571,6 +572,8 @@ collect_applies (Btor *btor,
   assert (clone);
   assert (key_map);
   assert (assumptions);
+  assert (top_applies);
+  assert (top_applies_feq);
 
   double start;
   int i;
@@ -633,7 +636,7 @@ collect_applies (Btor *btor,
         if (btor_contains_int_hash_table (mark, cur_btor->id)) continue;
         slv->stats.dp_failed_applies += 1;
         btor_add_int_hash_table (mark, cur_btor->id);
-        BTOR_PUSH_STACK (*top_applies, cur_btor);
+        btor_add_int_hash_table (top_applies, cur_btor->id);
       }
     }
   }
@@ -656,7 +659,11 @@ collect_applies (Btor *btor,
     if (!cur_btor->parameterized && btor_is_apply_node (cur_btor))
     {
       BTORLOG (1, "apply below eq: %s", node2string (cur_btor));
-      BTOR_PUSH_STACK (*top_applies, cur_btor);
+      if (!btor_contains_int_hash_table (top_applies, cur_btor->id))
+      {
+        BTOR_PUSH_STACK (*top_applies_feq, cur_btor);
+        btor_add_int_hash_table (top_applies, cur_btor->id);
+      }
       continue;
     }
 
@@ -686,14 +693,28 @@ set_up_dual_and_collect (Btor *btor,
   assert (top_applies);
 
   double delta;
+  uint32_t i;
+  BtorNode *cur;
   BtorFunSolver *slv;
   BtorNodeMap *assumptions, *key_map;
+  BtorNodePtrStack sorted, topapps_feq;
+  BtorIntHashTable *topapps;
 
   delta = btor_time_stamp ();
   slv   = BTOR_FUN_SOLVER (btor);
 
   assumptions = btor_new_node_map (btor);
   key_map     = btor_new_node_map (btor);
+
+  BTOR_INIT_STACK (btor->mm, sorted);
+  BTOR_FIT_STACK (sorted, BTOR_COUNT_STACK (*inputs));
+  memcpy (sorted.start,
+          inputs->start,
+          sizeof (BtorNode *) * BTOR_COUNT_STACK (*inputs));
+  sorted.top = sorted.start + BTOR_COUNT_STACK (*inputs);
+
+  BTOR_INIT_STACK (btor->mm, topapps_feq);
+  topapps = btor_new_int_hash_table (btor->mm);
 
   /* assume root */
   btor_assume_exp (clone, BTOR_INVERT_NODE (clone_root));
@@ -703,14 +724,14 @@ set_up_dual_and_collect (Btor *btor,
   switch (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP_QSORT))
   {
     case BTOR_DP_QSORT_ASC:
-      qsort (inputs->start,
-             BTOR_COUNT_STACK (*inputs),
+      qsort (sorted.start,
+             BTOR_COUNT_STACK (sorted),
              sizeof (BtorNode *),
              btor_compare_exp_by_id_qsort_asc);
       break;
     case BTOR_DP_QSORT_DESC:
-      qsort (inputs->start,
-             BTOR_COUNT_STACK (*inputs),
+      qsort (sorted.start,
+             BTOR_COUNT_STACK (sorted),
              sizeof (BtorNode *),
              btor_compare_exp_by_id_qsort_desc);
       break;
@@ -718,12 +739,12 @@ set_up_dual_and_collect (Btor *btor,
       assert (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP_QSORT)
               == BTOR_DP_QSORT_JUST);
       btor_compute_scores_dual_prop (btor);
-      qsort (inputs->start,
-             BTOR_COUNT_STACK (*inputs),
+      qsort (sorted.start,
+             BTOR_COUNT_STACK (sorted),
              sizeof (BtorNode *),
              btor_compare_scores_qsort);
   }
-  assume_inputs (btor, clone, inputs, exp_map, key_map, assumptions);
+  assume_inputs (btor, clone, &sorted, exp_map, key_map, assumptions);
   slv->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   /* let solver determine failed assumptions */
@@ -733,8 +754,20 @@ set_up_dual_and_collect (Btor *btor,
   slv->time.search_init_apps_sat += btor_time_stamp () - delta;
 
   /* extract partial model via failed assumptions */
-  collect_applies (btor, clone, key_map, assumptions, top_applies);
+  collect_applies (btor, clone, key_map, assumptions, topapps, &topapps_feq);
 
+  for (i = 0; i < BTOR_COUNT_STACK (*inputs); i++)
+  {
+    cur = BTOR_PEEK_STACK (*inputs, i);
+    if (btor_contains_int_hash_table (topapps, BTOR_REAL_ADDR_NODE (cur)->id))
+      BTOR_PUSH_STACK (*top_applies, cur);
+  }
+  for (i = 0; i < BTOR_COUNT_STACK (topapps_feq); i++)
+    BTOR_PUSH_STACK (*top_applies, BTOR_PEEK_STACK (topapps_feq, i));
+
+  BTOR_RELEASE_STACK (sorted);
+  BTOR_RELEASE_STACK (topapps_feq);
+  btor_delete_int_hash_table (topapps);
   btor_delete_node_map (assumptions);
   btor_delete_node_map (key_map);
 }
