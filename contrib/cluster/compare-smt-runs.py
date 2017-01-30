@@ -34,338 +34,285 @@ HTML_CLASS = {
 def _get_name_and_ext (fname):
     return ("".join(fname.rpartition('.')[:-2]), fname.rpartition('.')[-1])
 
+def _is_float(s):
+    return s.lstrip('-').replace('.', '', 1).isdigit()
+
+def _is_int(s):
+    if isinstance(s, int):
+        return True
+    return s.lstrip('-').isdigit()
+
+def _is_number(s):
+    return _is_float(s)
+
+# compatibility for older boolector versions with different statistics format
+def select_column(line, old_pos):
+    cols = line.split()
+    # check if there is a number at 'old_pos'
+    if _is_number(cols[old_pos]):
+        return cols[old_pos]
+    return cols[1]
 
 # per directory/file flag
-# column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
-FILTER_LOG = {
-  'lods':
-      ['LODS', 
-       lambda x: b'LOD' in x, 
-       lambda x: x.split()[3], 
-       lambda x: int(x),
-       False],
-  'lods_avg':
-      ['LODS avg',
-       lambda x: b'average lemma size' in x,
-       lambda x: x.split()[4],
-       lambda x: float(x),
-       False],
-  'lods_fc':
-      ['LODS FC',
-       lambda x: b'function congruence conf' in x,
-       lambda x: x.split()[4],
-       lambda x: int(x),
-       False],
-  'lods_br':
-      ['LODS BR',
-       lambda x: b'beta reduction conf' in x,
-       lambda x: x.split()[4],
-       lambda x: int(x),
-       False],
-  'calls':
-      ['CALLS', 
-       lambda x: b'SAT calls' in x, 
-       lambda x: x.split()[1], 
-       lambda x: int(x),
-       False],
-  'time_sat':
-      ['SAT[s]', 
-       lambda x: b'pure SAT' in x, 
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_rw':
-      ['RW[s]', 
-       lambda x: b'rewriting engine' in x, 
-       lambda x: x.split()[1],
-       lambda x: float(x),
-       False],
-  'time_beta':
-      ['BETA[s]', 
-       lambda x: b'beta-reduction' in x, 
-       lambda x: x.split()[1],
-       lambda x: float(x),
-       False],
-  'time_eval':
-      ['EVAL[s]', 
-       lambda x: b'seconds expression evaluation' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_lle':
-      ['LLE[s]', 
-       lambda x: b'lazy lambda encoding' in x,
-       lambda x: float(x.split()[1]), 
-       lambda x: float(x),
-       False],
-  'time_pas':
-      ['PAS[s]', 
-       lambda x: b'propagation apply search' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_pacs':
-      ['PAS[s]',
-       lambda x: b'propagation apply in conds search' in x,
-       lambda x: x.split()[1],
-       lambda x: float(x),
-       False],
-  'time_neas':
-      ['NEAS[s]', 
-       lambda x: b'not encoded apply search' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'num_beta':
-      ['BETA', 
-       lambda x: b'beta reductions:' in x,
-       lambda x: x.split()[3], 
-       lambda x: int(x),
-       False],
-  'num_eval':
-      ['EVAL', 
-       lambda x: b'evaluations:' in x,
-       lambda x: x.split()[3], 
-       lambda x: int(x),
-       False],
-  'num_prop':
-      ['PROP', 
-       lambda x: b'propagations:' in x,
-       lambda x: x.split()[2], 
-       lambda x: int(x),
-       False],
-  'num_propd':
-      ['PROPD', 
-       lambda x: b'propagations down:' in x,
-       lambda x: x.split()[3], 
-       lambda x: int(x),
-       False],
-  'time_clapp':
-      ['CLONE[s]', 
-       lambda x: b'cloning for initial applies search' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_sapp':
-      ['SATDP[s]', 
-       lambda x: b'SAT solving for initial applies search' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_app':
-      ['APP[s]', 
-       lambda x: b'seconds initial applies search' in x,
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'time_coll': 
-      ['COL[s]', 
-       lambda x: b'collecting initial applies' in x, 
-       lambda x: x.split()[1], 
-       lambda x: float(x),
-       False],
-  'num_moves': 
-      ['MOVES',
-       lambda x: b'moves:' in x,
-       lambda x: x.split()[2],
-       lambda x: int(x),
-       False],
-  'num_props':
-      ['PROPS',
-       lambda x: b'propagation (steps):' in x,
-       lambda x: x.split()[3],
-       lambda x: int(x),
-       False],
-  'num_conf_rec': 
-      ['CONF(REC)',
-       lambda x: b'propagation move conflicts (recoverable):' in x,
-       lambda x: x.split()[5],
-       lambda x: int(x),
-       False],
-  'num_conf_non_rec': 
-      ['CONF(NON-REC)',
-       lambda x: b'propagation move conflicts (non-recoverable):' in x,
-       lambda x: x.split()[5],
-       lambda x: int(x),
-       False],
-  'num_fvars': 
-      ['FVAR',
-       lambda x: b'dual prop: failed vars:' in x,
-       lambda x: x.split()[5],
-       lambda x: int(x),
-       False],
-  'num_fapps':
-      ['FAPP',
-       lambda x: b'dual prop: failed applies:' in x,
-       lambda x: x.split()[5],
-       lambda x: int(x),
-       False]
-}
+# column_name : <colname>, <keyword>, <filter>
+FILTER_LOG = [
+  # bit blasting stats
+  ('cnf_vars',
+   'CNF VARs',
+   lambda x: 'CNF variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
+  ('cnf_clauses',
+   'CNF CLAUSEs',
+   lambda x: 'CNF clauses' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
+  ('aig_vars',
+   'AIG VARs',
+   lambda x: 'AIG variables' in x and 'core' in x,
+   lambda x: select_column(x, 3)),
+  ('aig_ands',
+   'AIG ANDs',
+   lambda x: 'AIG ANDs' in x and 'core' in x,
+   lambda x: select_column(x, 4)),
+  # lemmas on demand stats
+  ('lods',
+   'LODS', 
+   lambda x: 'LOD refinements' in x,
+   lambda x: select_column(x, 3)),
+  ('refiter',
+   'REFS', 
+   lambda x: 'refinement iterations' in x,
+   lambda x: select_column(x, 1)),
+  ('lods_avg',
+   'LODS avg',
+   lambda x: 'average lemma size' in x,
+   lambda x: select_column(x, 4)),
+  ('lods_fc',
+   'LODS FC',
+   lambda x: 'function congruence conf' in x,
+   lambda x: select_column(x, 4)),
+  ('lods_br',
+   'LODS BR',
+   lambda x: 'beta reduction conf' in x,
+   lambda x: select_column(x, 4)),
+  ('calls',
+   'CALLS', 
+   lambda x: 'SAT calls' in x, 
+   lambda x: select_column(x, 1)),
+  ('num_beta',
+   'BETA', 
+   lambda x: 'beta reductions' in x and 'partial' not in x,
+   lambda x: select_column(x, 3)),
+  ('num_eval',
+   'EVAL', 
+   lambda x: 'evaluations' in x,
+   lambda x: select_column(x, 3)),
+  ('num_prop',
+   'PROP', 
+   lambda x: 'slvfun' in x and 'propagations' in x and 'down' not in x,
+   lambda x: select_column(x, 2)),
+  ('num_propd',
+   'PROPD', 
+   lambda x: 'propagations down' in x,
+   lambda x: select_column(x, 3)),
+  ('num_fvars', 
+   'FVAR',
+   lambda x: 'dual prop: failed vars' in x,
+   lambda x: select_column(x, 5)),
+  ('num_fapps',
+   'FAPP',
+   lambda x: 'dual prop: failed applies' in x,
+   lambda x: select_column(x, 5)),
+  # sls stats
+  ('num_moves', 
+   'MOVES',
+   lambda x: 'moves' in x,
+   lambda x: select_column(x, 2)),
+  ('num_props',
+   'PROPS',
+   lambda x: 'propagation (steps)' in x,
+   lambda x: select_column(x, 3)),
+  ('num_conf_rec', 
+   'CONF(REC)',
+   lambda x: 'propagation move conflicts (recoverable)' in x,
+   lambda x: select_column(x, 5)),
+  ('num_conf_non_rec',
+   'CONF(NON-REC)',
+   lambda x: 'propagation move conflicts (non-recoverable)' in x,
+   lambda x: select_column(x, 5)),
+  ('num_cegqi_refs',
+   'CEGQI R',
+   lambda x: 'cegqi solver refinements' in x,
+   lambda x: select_column(x, 4)),
+  # time stats
+  ('time_clapp',
+   'CLONE[s]', 
+   lambda x: 'cloning for initial applies search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_sapp',
+   'SATDP[s]', 
+   lambda x: 'seconds SAT solving' in x,
+   lambda x: select_column(x, 1)),
+  ('time_app',
+   'APP[s]', 
+   lambda x: 'seconds initial applies search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_coll', 
+   'COL[s]', 
+   lambda x: 'collecting initial applies' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_sat',
+   'SAT[s]', 
+   lambda x: 'pure SAT' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_rw',
+   'RW[s]', 
+   lambda x: 'rewriting engine' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_beta',
+   'BETA[s]', 
+   lambda x: 'beta-reduction' in x, 
+   lambda x: select_column(x, 1)),
+  ('time_eval',
+   'EVAL[s]', 
+   lambda x: 'seconds expression evaluation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_pas',
+   'PAS[s]', 
+   lambda x: 'propagation apply search' in x,
+   lambda x: select_column(x, 1)),
+  ('time_qi',
+   'QI[s]', 
+   lambda x: 'seconds quantifier instantiation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_dqi',
+   'DQI[s]', 
+   lambda x: 'seconds dual quantifier instantiation' in x,
+   lambda x: select_column(x, 1)),
+  ('time_sy',
+   'SY[s]', 
+   lambda x: 'seconds synthesizing' in x,
+   lambda x: select_column(x, 1)),
+  ('time_dsy',
+   'DSY[s]', 
+   lambda x: 'seconds dual synthesizing' in x,
+   lambda x: select_column(x, 1)),
+]
 
-
-def err_extract_status(line):
-    status = line.split(b':')[1].strip()
-    if b'ok' in status:
+def _read_status(line):
+    status = line.split(':')[1].strip()
+    if 'ok' in status:
         return 'ok'
-    elif b'time' in status:
+    elif 'time' in status:
         return 'time'
-    elif b'memory' in status:
+    elif 'memory' in status:
         return 'mem'
-    elif b'segmentation' in status:
+    elif 'segmentation' in status:
         return 'segf'
-    elif b'signal' in status:
+    elif 'signal' in status:
         return 'sig'
     else:
-        raise CmpSMTException("invalid status: '{}'".format(status.decode()))
+        raise CmpSMTException("invalid status: '{}'".format(status))
 
 
-def err_extract_opts(line):
-    opt = line.split()[2].decode()
-    if opt[0] == '-':
-        return opt
-    return None 
+# column_name : <colname>, <keyword>, <filter>, <format>
+FILTER_ERR = [
+  ('status',
+   'STAT', 
+   lambda x: 'runlim' in x and 'status:' in x,
+   _read_status),
+  ('result',
+   'RES', 
+   lambda x: 'runlim' in x and 'result:' in x,
+   lambda x: x.split()[2]),
+  ('time_real',
+   'REAL[s]', 
+   lambda x: 'runlim' in x and 'real:' in x,
+   lambda x: x.split()[2]),
+  ('time_cpu',
+   'CPU[s]', 
+   lambda x: 'runlim' in x and 'time:' in x,
+   lambda x: x.split()[2]),
+  ('space',
+   'SPACE[MB]', 
+   lambda x: 'runlim' in x and 'space:' in x,
+   lambda x: x.split()[2]),
+]
 
-
-# column_name : <colname>, <keyword>, <filter>, <format>, [<is_dir_stat>] (optional)
-FILTER_ERR = {
-  'status':
-      ['STAT', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_solved':
-      ['SLVD', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_total':
-      ['TOT', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_time':
-      ['TOUTS', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_mem':
-      ['MOUTS', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_err':
-      ['ERR', 
-       lambda x: b'runlim' in x and b'status:' in x,
-       err_extract_status,
-       lambda x: str(x),
-       False],
-  'g_sat':
-      ['SAT', 
-       lambda x: b'runlim' in x and b'result:' in x,
-       lambda x: x.split()[2],
-       lambda x: int(x),
-       False],
-  'g_unsat':
-      ['UNSAT', 
-       lambda x: b'runlim' in x and b'result:' in x,
-       lambda x: x.split()[2],
-       lambda x: int(x),
-       False],
-  'result':
-      ['RES', 
-       lambda x: b'runlim' in x and b'result:' in x,
-       lambda x: x.split()[2],
-       lambda x: int(x),
-       False],
-  'time_real':
-      ['REAL[s]', 
-       lambda x: b'runlim' in x and b'real:' in x,
-       lambda x: x.split()[2],
-       lambda x: float(x),
-       False],
-  'time_time':
-      ['TIME[s]', 
-       lambda x: b'runlim' in x and b'time:' in x,
-       lambda x: x.split()[2],
-       lambda x: float(x),
-       False],
-  'space':
-      ['SPACE[MB]', 
-       lambda x: b'runlim' in x and b'space:' in x,
-       lambda x: x.split()[2],
-       lambda x: float(x),
-       False],
-#  'opts':
-#     ['OPTIONS', 
-#      lambda x: b'runlim' in x and b'argv' in x,
-#      err_extract_opts,
-#      lambda x: str(x),
-#      True] 
-}
-
-def format_status(l):
-    if 'err' in l:
-        return 'err'
-    if 'ok' in l:
-        return 'ok'
-    return "".join(set(l))
-
-TOTALS_FORMAT_ERR = {
-  'status':    format_status,
-  'g_solved':  lambda l: l.count('ok'),
-  'g_total':   lambda l: len(l),
-  'g_mem':     lambda l: l.count('mem'),
-  'g_time':    lambda l: l.count('time'),
-  'g_err':     lambda l: l.count('err'),
-  'g_sat':     lambda l: l.count(10),
-  'g_unsat':   lambda l: l.count(20),
+# these columns will be computed in _normalize_data
+GROUP_COLUMNS = {
+  'g_solved': 'SLVD', 
+  'g_total':  'TOT', 
+  'g_time':   'TO', 
+  'g_mem':    'MO', 
+  'g_err':    'ERR', 
+  'g_sat':    'SAT', 
+  'g_unsat':  'UNSAT', 
+  'g_uniq':   'UNIQ',
 }
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
-FILTER_OUT = {
-  'models_arr':  ['MARR', lambda x: b'[' in x, lambda x: 1, False],
-  'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
-}
+FILTER_OUT = [
+  ('models_arr',  'MARR', lambda x: '[' in x, lambda x: 1),
+  ('models_bvar', 'MVAR', lambda x: '[' not in x, lambda x: 1)
+]
 
-assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
-assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
-assert(set(FILTER_ERR.keys()).isdisjoint(set(FILTER_OUT.keys())))
+filter_log_keys = set([t[0] for t in FILTER_LOG])
+filter_err_keys = set([t[0] for t in FILTER_ERR])
+filter_out_keys = set([t[0] for t in FILTER_OUT])
 
-FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if not f[4])
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if not f[4]))
-FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items() if not f[3]))
+filter_log_dict = dict([(t[0], t[1:]) for t in FILTER_LOG])
+filter_err_dict = dict([(t[0], t[1:]) for t in FILTER_ERR])
+filter_out_dict = dict([(t[0], t[1:]) for t in FILTER_OUT])
 
-DIR_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if f[4])
-DIR_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if f[4]))
+assert(filter_log_keys.isdisjoint(filter_err_keys))
+assert(filter_log_keys.isdisjoint(filter_out_keys))
+assert(filter_err_keys.isdisjoint(filter_out_keys))
 
-g_dir_stats = {}
+STATS_KEYS = [t[0] for t in FILTER_LOG]
+STATS_KEYS.extend([t[0] for t in FILTER_ERR])
+STATS_KEYS.extend([t[0] for t in FILTER_OUT])
+STATS_KEYS.extend(GROUP_COLUMNS.keys())
+
 g_file_stats = {}
 g_total_stats = {}
-g_format_stats = TOTALS_FORMAT_ERR
+
+def _format_status(l):
+    if 'err' in l:
+        return 'err'
+    elif 'ok' in l:
+        return 'ok'
+    return ''.join(set(l))
+
+g_format_column_sum = {
+    'status' : _format_status,
+}
+
+def _cast(s):
+    if _is_int(s):
+        return int(s)
+    elif _is_float(s):
+        return float(s)
+    return s
 
 def _filter_data(d, file, filters):
-    global g_file_stats, g_dir_stats
+    global g_file_stats
     
-    dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-    with open(os.path.join(d, file), 'rb') as infile:
-        (f_name, f_ext) = _get_name_and_ext(file)
+    (f_name, f_ext) = _get_name_and_ext(file)
 
-        if os.stat(os.path.join(d, file)).st_size == 0:
-            for k in filters:
-                if k not in g_file_stats:
-                    g_file_stats[k] = {}
-                if d not in g_file_stats[k]:
-                    g_file_stats[k][d] = {}
-                if f_name not in g_file_stats[k][d]:
-                    g_file_stats[k][d][f_name] = None
-            return
-        
-        used_filters = set()
+    for t in filters:
+        k = t[0]
+        if k not in g_file_stats:
+            g_file_stats[k] = {}
+        if d not in g_file_stats[k]:
+            g_file_stats[k][d] = {}
+        if f_name not in g_file_stats[k][d]:
+            g_file_stats[k][d][f_name] = None
+
+    if os.stat(os.path.join(d, file)).st_size == 0:
+        return
+
+    used_filters = set()
+    with open(os.path.join(d, file), 'r') as infile:
         lines = infile.readlines()
         for line in reversed(lines):
             line = line.strip()
@@ -373,59 +320,30 @@ def _filter_data(d, file, filters):
             if len(used_filters) == len(filters):
                 break
 
-            for k, v in filters.items():
-                assert(len(v) == 5)
+            for t in filters:
+                assert(len(t) == 4)
 
+                k = t[0]
                 # value already extracted for current file
                 if k in used_filters:
                     continue
 
-                f_match = v[1]
-                f_val = v[2]
-                f_format = v[3]
+                f_match = t[2]
+                f_val = t[3]
                 
-                if k in DIR_STATS_KEYS:
-                    if not d in g_dir_stats[k]:
-                        val = f_format(f_val(line)) if f_match(line) else None
-                        if k not in dir_stats:
-                            dir_stats[k] = {}
-                        if d not in dir_stats[k]:
-                            dir_stats[k][d] = []
-                        if val is not None:
-                            dir_stats[k][d].append(val)
-                # skip columns that are not printed
-                else:
-                    assert(k in FILE_STATS_KEYS)
-                    if f_match(line):
-                        val = f_format(f_val(line))
-                        used_filters.add(k)
-                    else:
-                        val = None
+                if not f_match(line):
+                    continue
 
-                    if k not in g_file_stats:
-                        g_file_stats[k] = {}
+                val = _cast(f_val(line))
+                used_filters.add(k)
 
-                    if d not in g_file_stats[k]:
-                        g_file_stats[k][d] = {}
+                if f_ext == 'out' \
+                   and line in ('sat', 'unsat', 'unknown'): 
+                       continue
 
-                    if f_name not in g_file_stats[k][d]:
-                        g_file_stats[k][d][f_name] = None
+                assert(g_file_stats[k][d][f_name] == None)
+                g_file_stats[k][d][f_name] = val 
 
-                    if f_ext == 'out' \
-                       and line in (b'sat', b'unsat', b'unknown'): 
-                           continue
-            
-                    if val is not None:
-                        if g_file_stats[k][d][f_name] == None:
-                            g_file_stats[k][d][f_name] = val
-                        else:
-                            g_file_stats[k][d][f_name] += val
-
-    for k in dir_stats:
-        for d in dir_stats[k]:
-            if k not in g_dir_stats:
-                g_dir_stats[k] = {}
-            g_dir_stats[k][d] = dir_stats[k][d]
 
 
 def _read_log_file(d, f):
@@ -444,37 +362,69 @@ def _init_missing_files(data):
     global g_benchmarks
 
     for k in data:
-        for d in data[k]:
+        for d in g_args.dirs:
             for f in g_benchmarks:
+                if d not in data[k]:
+                    data[k][d] = {}
                 if f not in data[k][d]:
                     data[k][d][f] = None
 
 def _normalize_data(data):
-    global g_args, g_dir_stats
+    global g_args
 
     assert('result' in data)
+
     # reset timeout if given
     if g_args.timeout:
-        for d in data['time_time']:
-            for f in data['time_time'][d]:
-                if data['time_time'][d][f] > g_args.timeout[d]:
-                    data['time_time'][d][f] = g_args.timeout[d]
+        for d in data['time_cpu']:
+            for f in data['time_cpu'][d]:
+                if data['time_cpu'][d][f] is None or \
+                   data['time_cpu'][d][f] > g_args.timeout[d]:
+                    data['time_cpu'][d][f] = g_args.timeout[d]
                     data['status'][d][f] = "time"
                     data['result'][d][f] = 1
-                    if g_args.g:
-                        for k in ["g_total", "g_solved", "g_time",
-                                  "g_mem", "g_err"]:
-                            g_file_stats[k][d][f] = "time"
 
-    # normalize status ok, time, mem, err
-    for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
-        if k not in data:
-            continue
-        for d in data[k]:
-            for f in data[k][d]:
-                if data[k][d][f] == 'ok' \
-                   and data['result'][d][f] not in (10, 20):
-                    data[k][d][f] = 'err'
+
+    # initialize group columns derived from status
+    for k in ['g_solved', 'g_total', 'g_time', 'g_mem', 'g_err',
+              'g_sat','g_unsat']:
+        assert(k not in data)
+        data[k] = {}
+        for d in data['status']:
+            assert(d not in data[k])
+            data[k][d] = {}
+            for f in data['status'][d]:
+                assert(f not in data[k][d])
+                if k == 'g_total':
+                    data[k][d][f] = 1
+                else:
+                    data[k][d][f] = 0
+
+    # compute values for group columns derived from status
+    for d in data['status']:
+        for f in data['status'][d]:
+            s = data['status'][d][f] 
+            r = data['result'][d][f]
+
+            if s == 'ok' and r in (10, 20):
+                data['g_solved'][d][f] = 1
+                if r == 10:
+                    data['g_sat'][d][f] = 1
+                else:
+                    assert(r == 20)
+                    data['g_unsat'][d][f] = 1
+            elif s == 'time':
+                data['g_time'][d][f] = 1
+            elif s == 'mem':
+                data['g_mem'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
+            else:
+                data['status'][d][f] = 'err'
+                data['g_err'][d][f] = 1
+                if g_args.pen:
+                    data['time_cpu'][d][f] = g_args.pen
+                        
 
     # collect data for virtual best solver
     if g_args.vb:
@@ -486,21 +436,18 @@ def _normalize_data(data):
                 vbpdir = "{} + {}".format(_base_dir(bdir), _base_dir(pdir))
 
                 # initialize for virtual best solver
-                for k in g_dir_stats.keys():
-                    g_dir_stats[k][vbpdir] = []
-
                 for k in data.keys():
                     if vbpdir not in data[k]:
                         data[k][vbpdir] = {}
 
                 for f in g_benchmarks:
-                    if data["time_time"][bdir][f] < g_args.timeout[bdir]:
-                        time_bdir = data["time_time"][bdir][f]
+                    if data["time_cpu"][bdir][f] < g_args.timeout[bdir]:
+                        time_bdir = data["time_cpu"][bdir][f]
                     else:
                         time_bdir = g_args.timeout[bdir]
 
-                    if data["time_time"][pdir][f] < g_args.timeout[pdir]:
-                        time_pdir = data["time_time"][pdir][f]
+                    if data["time_cpu"][pdir][f] < g_args.timeout[pdir]:
+                        time_pdir = data["time_cpu"][pdir][f]
                     else:
                         time_pdir = g_args.timeout[pdir]
 
@@ -512,10 +459,10 @@ def _normalize_data(data):
                         for k in data.keys():
                             data[k][vbpdir][f] = data[k][bdir][f]
                         time_vbp = round(time_bdir + g_args.timeout[pdir], 2)
-                        data["time_time"][vbpdir][f] = time_vbp
+                        data["time_cpu"][vbpdir][f] = time_vbp
                         if time_vbp >= g_args.timeout[bdir]:
                             data["status"][vbpdir][f] = "time"
-                            data["time_time"][vbpdir][f] = g_args.timeout[bdir]
+                            data["time_cpu"][vbpdir][f] = g_args.timeout[bdir]
                             if not g_args.g:
                                 data["result"][vbpdir][f] = 1
                     else:
@@ -525,55 +472,47 @@ def _normalize_data(data):
         else:
             vb_dir = "virtual best solver (portfolio)"
 
-            # initialize for virtual best solver
-            for k in g_dir_stats.keys():
-                g_dir_stats[k][vb_dir] = []
-
             for f in g_benchmarks:
-                v = sorted(
-                    [(data['time_time'][d][f], d) \
-                        for d in g_args.dirs \
-                            if data['time_time'][d][f] is not None])
+                v = []
+                for d in g_args.dirs:
+                    if data['time_cpu'][d][f] is not None \
+                        and data['status'][d][f] == 'ok':
+                        v.append((data['time_cpu'][d][f], d))
+                v = sorted(v)
 
-                best_dir = v[0][1]
+                best_dir = None
+                if len(v) > 0:
+                    best_dir = v[0][1]
                 for k in data.keys():
                     if vb_dir not in data[k]:
                         data[k][vb_dir] = {}
-                    data[k][vb_dir][f] = data[k][best_dir][f]
+                    if best_dir is None:
+                        data[k][vb_dir][f] = None
+                    else:
+                        data[k][vb_dir][f] = data[k][best_dir][f]
             g_args.dirs.append(vb_dir)
 
 
     # add uniquely solved column
     if g_args.u:
-        FILE_STATS_KEYS.append('g_uniq')
-        g_args.columns.append('g_uniq')
-        FILTER_ERR['g_uniq'] = ['UNIQ',
-                                lambda x: False,
-                                lambda x: None,
-                                lambda x: None,
-                                False]
         data['g_uniq'] = {}
         for f in g_benchmarks:
             stats = []
             for d in data['status']:
                 if d not in data['g_uniq']:
                     data['g_uniq'][d] = {}
-                stats.append(data['status'][d][f])
-            set_uniq = False
-            uniq_exists = stats.count('ok') == 1
-            for d in data['status']:
-                if uniq_exists and data['status'][d][f] == 'ok':
-                    assert (not set_uniq)
-                    data['g_uniq'][d][f] = 1
-                    set_uniq = True
-                else:
-                    data['g_uniq'][d][f] = None
+                data['g_uniq'][d][f] = 0
+                if data['status'][d][f] == 'ok':
+                    stats.append(d)
+
+            if len(stats) == 1:
+                data['g_uniq'][stats[0]][f] = 1
 
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
 
 def _save_cache_file(dir):
-    global g_file_stats, g_dir_stats
+    global g_file_stats
 
     sum_filename = "{}/cache".format(dir)
     keys = sorted(g_file_stats.keys())
@@ -590,7 +529,7 @@ def _save_cache_file(dir):
             sum_file.write("{} {}\n".format(f, " ".join(data)))
 
 def _read_cache_file(dir):
-    global g_file_stats, g_dir_stats, g_benchmarks
+    global g_file_stats, g_benchmarks
 
     sum_filename = "{}/cache".format(dir)
     if os.path.isfile(sum_filename):
@@ -601,11 +540,11 @@ def _read_cache_file(dir):
                 if keys is None:
                     keys = line.split()
 
-                    expected_keys = list(FILTER_ERR.keys())
+                    expected_keys = list(filter_err_keys)
                     if not g_parse_err_only:
-                        expected_keys.extend(FILTER_LOG.keys())
+                        expected_keys.extend(filter_log_keys)
                         if g_args.m:
-                            expected_keys.extend(FILTER_OUT.keys())
+                            expected_keys.extend(filter_out_keys)
 
                     missing_keys = set(expected_keys) - set(keys)
                     if len(missing_keys) > 0:
@@ -622,23 +561,22 @@ def _read_cache_file(dir):
                     assert(len(data) == len(keys))
                     for i in range(len(keys)):
                         k = keys[i]
-                        assert(k in FILE_STATS_KEYS)
+                        assert(k in STATS_KEYS)
                         if k not in g_file_stats:
                             g_file_stats[k] = {}
                         if dir not in g_file_stats[k]:
                             g_file_stats[k][dir] = {}
-                        if k in FILTER_LOG:
-                            t = FILTER_LOG[k]
+                        if k in filter_log_dict:
+                            t = filter_log_dict[k]
                         else:
-                            assert(k in FILTER_ERR)
-                            t = FILTER_ERR[k]
-                        assert(len(t) == 5)
-                        f_format = t[3] 
+                            assert(k in filter_err_dict)
+                            t = filter_err_dict[k]
+                        assert(len(t) == 3)
                         assert(f not in g_file_stats[k][dir])
                         if data[i] == "None":
                             g_file_stats[k][dir][f] = None
                         else:
-                            g_file_stats[k][dir][f] = f_format(data[i])
+                            g_file_stats[k][dir][f] = _cast(data[i])
             return True
     return False 
 
@@ -706,9 +644,9 @@ def _pick_data(benchmarks, data):
             best_stats[f] = None
             if g_args.cmp_col == 'g_solved':
                 x = sorted(\
-                    [(data['time_time'][d][f], d) \
+                    [(data['time_cpu'][d][f], d) \
                         for d in g_args.dirs \
-                            if data['time_time'][d][f] is not None])
+                            if data['time_cpu'][d][f] is not None])
                 if len(set([t[0] for t in x])) > 1:
                     best_stats[f] = x[0][1]
         else:
@@ -815,12 +753,14 @@ def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
 
 def _get_column_name(key):
-    if key in FILTER_LOG:
-        return FILTER_LOG[key][0]
-    elif key in FILTER_ERR:
-        return FILTER_ERR[key][0]
-    assert(key in FILTER_OUT)
-    return FILTER_OUT[key][0]
+    if key in filter_log_dict:
+        return filter_log_dict[key][0]
+    elif key in filter_err_dict:
+        return filter_err_dict[key][0]
+    elif key in GROUP_COLUMNS:
+        return GROUP_COLUMNS[key]
+    assert(key in filter_out_dict)
+    return filter_out_dict[key][0]
 
 
 def _get_color(f, d, diff_stats, best_stats):
@@ -833,7 +773,7 @@ def _get_color(f, d, diff_stats, best_stats):
 
 
 def _get_group_totals():
-    global g_args, g_benchmarks, g_file_stats, g_format_stats
+    global g_args, g_benchmarks, g_file_stats, g_format_column_sum
     stats = {}
     totals = {}
 
@@ -867,23 +807,25 @@ def _get_group_totals():
                     stats['totals'][d][stat].append(val)
 
     # compute group totals
-    for stat in g_file_stats:
-        assert(stat not in totals)
-        totals[stat] = {}
+    for k in g_file_stats:
+        assert(k not in totals)
+        totals[k] = {}
         for d in g_args.dirs:
-            if d not in totals[stat]:
-                totals[stat][d] = {}
+            if d not in totals[k]:
+                totals[k][d] = {}
 
             for group in stats:
-                assert(group not in totals[stat][d])
-                if stat in g_format_stats:
-                    fmt_stat = g_format_stats[stat]
-                    val = fmt_stat(stats[group][d][stat])
+                assert(group not in totals[k][d])
+                if k in g_format_column_sum:
+                    val = g_format_column_sum[k](stats[group][d][k])
                 else:
-                    val = sum(stats[group][d][stat])
+                    try:
+                        val = sum(stats[group][d][k])
+                    except TypeError:
+                        val = None
                     if isinstance(val, float):
                         val = round(val, 1)
-                totals[stat][d][group] = val 
+                totals[k][d][group] = val 
 
     return totals, stats.keys()
 
@@ -972,7 +914,7 @@ def _get_column_widths(data, benchmarks):
 
 
 def _print_data ():
-    global g_file_stats, g_dir_stats
+    global g_file_stats
 
     diff_stats, best_stats = _pick_data(g_benchmarks, g_file_stats)
     if g_args.g:
@@ -1012,11 +954,6 @@ def _print_data ():
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
     if not g_args.plain:
         _print_row (columns, widths, colspans=colspans, classes=classes)
-        for k in g_dir_stats:
-            columns = [_get_column_name(k)]
-            for d in g_args.dirs:
-                columns.append(" ".join(g_dir_stats[k][d]))
-            _print_row (columns, widths, colspans=colspans, classes=classes)
 
     columns = ["BENCHMARK"]
     widths = [benchmark_column_width]
@@ -1118,8 +1055,8 @@ if __name__ == "__main__":
                       formatter_class=ArgumentDefaultsHelpFormatter,
                       epilog="availabe values for column: {{ {} }}, " \
                              "note: {{ {} }} are enabled for '-M' only.".format(
-                          ", ".join(sorted(FILE_STATS_KEYS)),
-                          ", ".join(sorted(list(FILTER_OUT.keys())))))
+                          ", ".join(sorted(STATS_KEYS)),
+                          ", ".join(sorted(filter_out_keys))))
         aparser.add_argument \
               (
                 "-f",
@@ -1225,7 +1162,7 @@ if __name__ == "__main__":
               (
                 "-c",
                 metavar="column", dest="cmp_col",
-                choices=FILE_STATS_KEYS,
+                choices=STATS_KEYS,
                 help="compare results column"
               )
         aparser.add_argument \
@@ -1289,6 +1226,12 @@ if __name__ == "__main__":
                 dest="common", action="store_true",
                 help="show commonly solved instances only"
               )
+        aparser.add_argument \
+              (
+                "-pen", type=int,
+                metavar="seconds[,second ...]", dest="pen", default=None,
+                help="CPU time penalty for memory out/error"
+              )
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -1305,7 +1248,7 @@ if __name__ == "__main__":
             if g_args.g:
                 g_args.cmp_col = 'g_solved'
             else:
-                g_args.cmp_col = 'time_time'
+                g_args.cmp_col = 'time_cpu'
 
         if g_args.vbp: g_args.vb = True
 
@@ -1317,9 +1260,9 @@ if __name__ == "__main__":
             if g_args.g:
                 g_args.columns = \
                     "status,result,g_solved,g_total,g_time,g_mem,g_err," \
-                    "time_time,space"
+                    "time_cpu,space"
             else:
-                g_args.columns = "status,result,time_time,space"
+                g_args.columns = "status,result,time_cpu,space"
             
         # column options
         if g_args.bs:
@@ -1327,20 +1270,20 @@ if __name__ == "__main__":
                     "status,lods,calls,time_sat,time_rw,time_beta"
         elif g_args.dp:
             g_args.columns = \
-                    "status,lods,time_time,time_app,time_sapp"
+                    "status,lods,time_cpu,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
                     "status,lods,models_bvar,models_arr,"\
-                    "time_time,time_sat"
+                    "time_cpu,time_sat"
             g_args.m = True
             
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
-            if c not in FILE_STATS_KEYS:
+            if c not in STATS_KEYS:
                 raise CmpSMTException("column '{}' not available".format(c))
 
         if g_args.show_all:
-            g_args.columns = FILE_STATS_KEYS
+            g_args.columns = STATS_KEYS
 
         if g_args.timeout:
             g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
@@ -1357,15 +1300,22 @@ if __name__ == "__main__":
         # some columns may not make sense or are not available for some options
         remove_columns = []
         if not g_args.m:
-            remove_columns.extend(FILTER_OUT.keys())
+            remove_columns.extend(filter_out_keys)
+
+        if g_args.g and 'result' in g_args.columns:
+            remove_columns.append('result')
 
         for c in remove_columns:
             if g_args.columns.count(c) > 0:
                 g_args.columns.remove(c)
 
-        # disable comparison if cmp_col is not in the columns list
-#        if g_args.cmp_col not in g_args.columns:
-#            g_args.cmp_col = None
+        if g_args.u:
+            g_args.columns.append('g_uniq')
+
+
+        if len(g_args.columns) == 0:
+            raise CmpSMTException ("no columns selected to display")
+            
 
         if g_args.no_colors:
             COLOR_BEST = ''
@@ -1377,10 +1327,7 @@ if __name__ == "__main__":
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
 
-        # initialize global data
-        g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-
-        if len(set(g_args.columns).intersection(FILTER_LOG)) == 0:
+        if len(set(g_args.columns).intersection(filter_log_keys)) == 0:
             g_parse_err_only = True
 
         _read_data(g_args.dirs)
@@ -1391,17 +1338,13 @@ if __name__ == "__main__":
                 if g_args.filter not in str(f):
                     g_benchmarks.remove(f)
 
-        if g_args.common:
-            _filter_common (g_file_stats)
-
         if len(g_file_stats.keys()) > 0:
-            #assert(len(g_file_stats.keys()) == len(g_args.columns))
             _init_missing_files (g_file_stats)
             _normalize_data(g_file_stats)
 
-            if g_args.g and 'result' in g_args.columns:
-                g_args.columns.remove('result')
-#                del(g_file_stats['result'])
+            if g_args.common:
+                _filter_common (g_file_stats)
+
             _print_data ()
         else:
             if g_args.filter:

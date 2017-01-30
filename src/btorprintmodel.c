@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2016 Mathias Preiner.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -83,7 +83,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 
   if (!strcmp (format, "btor"))
   {
-    id = ((BtorBVVarNode *) node)->btor_id;
+    id = btor_exp_get_btor_id (node);
     fprintf (file, "%d ", id ? id : btor_exp_get_id (node));
     print_fmt_bv_model_btor (btor, base, ass, file);
     fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
@@ -94,7 +94,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
       fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
     else
     {
-      id = ((BtorBVVarNode *) node)->btor_id;
+      id = btor_exp_get_btor_id (node);
       fprintf (file,
                "%2c(define-fun v%d () ",
                ' ',
@@ -132,6 +132,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 
   char *s, *symbol;
   uint32_t i, x, n;
+  int32_t id;
   BtorPtrHashTable *fun_model;
   BtorPtrHashTableIterator it;
   BtorBitVectorTuple *args;
@@ -148,11 +149,11 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   else
   {
     BTOR_NEWN (btor->mm, s, 40);
+    id = btor_exp_get_btor_id (node);
     sprintf (s,
              "%s%d",
              btor_is_uf_array_node (node) ? "a" : "uf",
-             ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
-                                            : node->id);
+             id ? id : node->id);
   }
 
   fprintf (file, "%2c(define-fun %s (", ' ', s);
@@ -245,7 +246,7 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   if (!fun_model) return;
 
   symbol = btor_get_symbol_exp (btor, node);
-  id     = ((BtorUFNode *) node)->btor_id;
+  id     = btor_exp_get_btor_id (node);
 
   btor_init_ptr_hash_table_iterator (&it, fun_model);
   while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -315,15 +316,10 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 /*------------------------------------------------------------------------*/
 
 static void
-print_bv_value (Btor *btor,
-                BtorNode *node,
-                char *symbol_str,
-                char *format,
-                int base,
-                FILE *file)
+print_bv_value_smt2 (
+    Btor *btor, BtorNode *node, char *symbol_str, int base, FILE *file)
 {
   assert (btor);
-  assert (format);
   assert (node);
 
   char *symbol;
@@ -333,28 +329,17 @@ print_bv_value (Btor *btor,
   ass    = btor_get_bv_model (btor, node);
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
 
-  if (!strcmp (format, "btor"))
-  {
-    id = btor_exp_get_btor_id (node);
-    fprintf (file, "%d ", id ? id : btor_exp_get_id (node));
-    print_fmt_bv_model_btor (btor, base, ass, file);
-    fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
-  }
+  if (symbol)
+    fprintf (file, "(%s ", symbol);
   else
   {
-    if (symbol)
-      fprintf (file, "(%s ", symbol);
-    else
-    {
-      id = btor_exp_get_btor_id (BTOR_REAL_ADDR_NODE (node));
-      fprintf (file,
-               "(v%d ",
-               id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
-    }
-
-    btor_dump_const_value_smt (btor, ass, base, file);
-    fprintf (file, ")");
+    id = btor_exp_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+    fprintf (
+        file, "(v%d ", id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
   }
+
+  btor_dump_const_value_smt (btor, ass, base, file);
+  fprintf (file, ")");
 }
 
 /*------------------------------------------------------------------------*/
@@ -420,32 +405,6 @@ print_fun_value_smt2 (
   fprintf (file, ")");
 }
 
-static void
-print_fun_value_btor (Btor *btor, BtorNode *node, int base, FILE *file)
-{
-  print_fun_model_btor (btor, node, base, file);
-}
-
-static void
-print_fun_value (Btor *btor,
-                 BtorNode *node,
-                 char *symbol_str,
-                 char *format,
-                 int base,
-                 FILE *file)
-{
-  assert (btor);
-  assert (node);
-  assert (format);
-  assert (file);
-
-  if (!strcmp (format, "btor"))
-    print_fun_value_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
-  else
-    print_fun_value_smt2 (
-        btor, BTOR_REAL_ADDR_NODE (node), symbol_str, base, file);
-}
-
 /*------------------------------------------------------------------------*/
 
 void
@@ -460,7 +419,7 @@ btor_print_value_smt2 (Btor *btor, BtorNode *exp, char *symbol_str, FILE *file)
 
   base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
-    print_fun_value (btor, exp, symbol_str, "smt2", base, file);
+    print_fun_value_smt2 (btor, exp, symbol_str, base, file);
   else
-    print_bv_value (btor, exp, symbol_str, "smt2", base, file);
+    print_bv_value_smt2 (btor, exp, symbol_str, base, file);
 }

@@ -13,4 +13,4 @@ catbtor: catbtor.o libbtorfmt.a makefile
 clean:
 	rm -f makefile
 	rm -f *.o *.a catbtor tests/*.log
-	rm -f *.gcno *.gcov
+	rm -f *.gcno *.gcov *.gcda

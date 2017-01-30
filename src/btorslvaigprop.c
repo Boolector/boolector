@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -198,12 +198,9 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   BtorAIG *aig;
   Btor *btor;
 
-  btor  = slv->btor;
+  btor = slv->btor;
+  assert (!btor->inconsistent);
   roots = 0;
-
-  if (btor->inconsistent) goto UNSAT;
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
 
   if (btor_terminate_btor (btor))
   {
@@ -211,19 +208,10 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     goto DONE;
   }
 
-  sat_result = btor_simplify (btor);
   BTOR_ABORT (btor->ufs->count != 0
                   || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "aigprop engine supports QF_BV only");
-
-  if (btor->inconsistent) goto UNSAT;
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_RESULT_UNKNOWN;
-    goto DONE;
-  }
 
   btor_process_unsynthesized_constraints (btor);
 
@@ -295,8 +283,6 @@ DONE:
     slv->aprop->model = 0;
   }
   if (roots) btor_delete_int_hash_table (roots);
-  btor->valid_assignments = 1;
-  btor->last_sat_result   = sat_result;
   return sat_result;
 }
 
@@ -377,6 +363,11 @@ btor_new_aigprop_solver (Btor *btor)
 
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+#ifndef NBTORLOG
+                           btor_get_opt (btor, BTOR_OPT_LOGLEVEL),
+#else
+                           0,
+#endif
                            btor_get_opt (btor, BTOR_OPT_SEED),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT));

@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -97,6 +97,28 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   BTOR_ABORT (real_exp->refs == INT_MAX, "Node reference counter overflow");
   real_exp->refs++;
+}
+
+void
+btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
+  BTOR_ABORT (real_exp->ext_refs == INT_MAX, "Node reference counter overflow");
+  real_exp->ext_refs += 1;
+  btor->external_refs += 1;
+}
+
+void
+btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BTOR_REAL_ADDR_NODE (exp)->ext_refs -= 1;
+  btor->external_refs -= 1;
 }
 
 BtorNode *
@@ -608,7 +630,7 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 void
-btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
+btor_exp_set_btor_id (Btor *btor, BtorNode *exp, int32_t id)
 {
   assert (btor);
   assert (exp);
@@ -618,13 +640,31 @@ btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
 
   (void) btor;
   BtorNode *real_exp;
+  BtorPtrHashBucket *b;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
+  b        = btor_get_ptr_hash_table (btor->inputs, real_exp);
+  assert (b);
+  b->data.as_int = id;
+}
 
-  if (btor_is_bv_var_node (real_exp))
-    ((BtorBVVarNode *) real_exp)->btor_id = id;
-  else if (btor_is_uf_node (real_exp))
-    ((BtorUFNode *) real_exp)->btor_id = id;
+int32_t
+btor_exp_get_btor_id (BtorNode *exp)
+{
+  assert (exp);
+
+  int32_t id = 0;
+  Btor *btor;
+  BtorNode *real_exp;
+  BtorPtrHashBucket *b;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  btor     = real_exp->btor;
+
+  if ((b = btor_get_ptr_hash_table (btor->inputs, real_exp)))
+    id = b->data.as_int;
+  if (BTOR_IS_INVERTED_NODE (exp)) return -id;
+  return id;
 }
 
 BtorNode *
@@ -693,18 +733,18 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
 }
 
 BtorNode *
-btor_get_node_by_symbol (Btor *btor, char *sym)
+btor_get_node_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
   BtorPtrHashBucket *b;
-  b = btor_get_ptr_hash_table (btor->symbols, sym);
+  b = btor_get_ptr_hash_table (btor->symbols, (char *) sym);
   if (!b) return 0;
   return b->data.as_ptr;
 }
 
 BtorNode *
-btor_match_node_by_symbol (Btor *btor, char *sym)
+btor_match_node_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
@@ -2732,14 +2772,8 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
-
-  // TODO (ma): do we even allow that? can this happen?
-  /* if fun was simplified to a constant value, we return a copy of it */
-  if (!btor_is_fun_node (fun))
-  {
-    assert (!BTOR_REAL_ADDR_NODE (fun)->parameterized);
-    return btor_copy_exp (btor, fun);
-  }
+  assert (btor_is_fun_node (fun));
+  assert (btor_is_args_node (args));
 
   if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     return btor_rewrite_binary_exp (btor, BTOR_APPLY_NODE, fun, args);
@@ -2991,37 +3025,39 @@ btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+#if 0
 static BtorNode *
-create_bin_n_exp (Btor *btor,
-                  BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
-                  BtorNode *args[],
-                  uint32_t argc)
+create_bin_n_exp (Btor * btor,
+		  BtorNode * (*func) (Btor *, BtorNode *, BtorNode *),
+		  BtorNode * args[],
+		  uint32_t argc)
 {
   uint32_t i;
   BtorNode *result, *tmp, *arg;
 
   result = 0;
   for (i = 0; i < argc; i++)
-  {
-    arg = args[i];
-    if (result)
     {
-      tmp = func (btor, arg, result);
-      btor_release_exp (btor, result);
-      result = tmp;
+      arg = args[i];
+      if (result)
+	{
+	  tmp = func (btor, arg, result);
+	  btor_release_exp (btor, result);
+	  result = tmp;
+	}
+      else
+	result = btor_copy_exp (btor,  arg);
     }
-    else
-      result = btor_copy_exp (btor, arg);
-  }
   assert (result);
   return result;
 }
 
 BtorNode *
-btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc)
+btor_and_n_exp (Btor * btor, BtorNode * args[], uint32_t argc)
 {
   return create_bin_n_exp (btor, btor_and_exp, args, argc);
 }
+#endif
 
 BtorNode *
 btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)

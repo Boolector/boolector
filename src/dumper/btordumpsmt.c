@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -126,6 +126,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (BTOR_IS_REGULAR_NODE (exp));
 
   BtorPtrHashBucket *b;
+  int32_t id;
 
   if (sdc->pretty_print)
   {
@@ -138,10 +139,8 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
     }
     return b->data.as_int;
   }
-  if (btor_is_bv_var_node (exp) && ((BtorBVVarNode *) exp)->btor_id)
-    return ((BtorBVVarNode *) exp)->btor_id;
-  if (btor_is_uf_node (exp) && ((BtorUFNode *) exp)->btor_id)
-    return ((BtorUFNode *) exp)->btor_id;
+  id = btor_exp_get_btor_id (exp);
+  if (id) return id;
   return exp->id;
 }
 
@@ -802,7 +801,6 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   fputs ("(define-fun ", sdc->file);
   dump_smt_id (sdc, exp);
   fputs (" () ", sdc->file);
-  // TODO (ma): workaround for now until dump_sort_smt merged from aina
   if (is_bool)
     fputs ("Bool", sdc->file);
   else
@@ -903,7 +901,6 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   }
   fputs (") ", sdc->file);
 
-  // TODO (ma): again wait for aina merge for dump_sort_smt
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
@@ -1304,7 +1301,6 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
 
   int i;
   BtorNode *tmp, *tmp_roots[nroots];
@@ -1350,20 +1346,11 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 }
 
 void
-btor_dump_smt2_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
-{
-  assert (btor);
-  assert (file);
-  assert (roots);
-  assert (nroots > 0);
-  dump_smt_aux (btor, file, roots, nroots);
-}
-
-void
 btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
   dump_smt_aux (btor, file, 0, 0);
 }
 
@@ -1371,7 +1358,6 @@ void
 btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 {
   assert (btor);
-  assert (depth);
 
   int i;
   BtorNode *cur, *real_exp;

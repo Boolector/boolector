@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -180,36 +180,45 @@ process_skeleton_tseitin (Btor *btor,
 
           break;
 
-        case BTOR_COND_NODE:
-          assert (btor_get_exp_width (btor, exp->e[0]) == 1);
-          if (btor_get_exp_width (btor, exp->e[1]) != 1) break;
-          assert (btor_get_exp_width (btor, exp->e[2]) == 1);
-          rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
-          rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
-          rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
+#if 0
+	    // can not happen, skeleton preprocessing is enabled when
+	    // rewrite level > 2, Boolean condition are rewritten when
+	    // rewrite level > 0
+	    case BTOR_COND_NODE:
+	      assert (btor_get_exp_width (btor, exp->e[0]) == 1);
+	      if (btor_get_exp_width (btor, exp->e[1]) != 1)
+		break;
+	      assert (btor_get_exp_width (btor, exp->e[2]) == 1);
+	      rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
+	      rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
+	      rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
 
-          lgladd (lgl, -lhs);
-          lgladd (lgl, -rhs[0]);
-          lgladd (lgl, rhs[1]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, -lhs);
+	      lgladd (lgl, -rhs[0]);
+	      lgladd (lgl, rhs[1]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, -lhs);
-          lgladd (lgl, rhs[0]);
-          lgladd (lgl, rhs[2]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, -lhs);
+	      lgladd (lgl, rhs[0]);
+	      lgladd (lgl, rhs[2]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, lhs);
-          lgladd (lgl, -rhs[0]);
-          lgladd (lgl, -rhs[1]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, lhs);
+	      lgladd (lgl, -rhs[0]);
+	      lgladd (lgl, -rhs[1]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, lhs);
-          lgladd (lgl, rhs[0]);
-          lgladd (lgl, -rhs[2]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, lhs);
+	      lgladd (lgl, rhs[0]);
+	      lgladd (lgl, -rhs[2]);
+	      lgladd (lgl, 0);
+	      break;
+#endif
+
+        default:
+          assert (!btor_is_cond_node (exp));
+          assert (!btor_is_proxy_node (exp));
           break;
-
-        default: assert (exp->kind != BTOR_PROXY_NODE); break;
       }
     }
   } while (!BTOR_EMPTY_STACK (*work_stack));

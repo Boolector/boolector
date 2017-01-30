@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -71,8 +71,6 @@ struct BtorPropSolver
 
   struct
   {
-    double sat;
-    double sat_total;
     double update_cone;
     double update_cone_reset;
     double update_cone_model_gen;

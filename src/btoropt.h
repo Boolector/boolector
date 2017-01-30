@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
  *  All rights reserved.
@@ -95,6 +95,13 @@ enum BtorOptSatEngines
 #define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
 #define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
 
+#define BTOR_DP_QSORT_JUST 0
+#define BTOR_DP_QSORT_ASC 1
+#define BTOR_DP_QSORT_DESC 2
+#define BTOR_DP_QSORT_DFLT BTOR_DP_QSORT_JUST
+#define BTOR_DP_QSORT_MIN BTOR_DP_QSORT_JUST
+#define BTOR_DP_QSORT_MAX BTOR_DP_QSORT_DESC
+
 #define BTOR_JUST_HEUR_LEFT 0
 #define BTOR_JUST_HEUR_BRANCH_MIN_APP 1
 #define BTOR_JUST_HEUR_BRANCH_MIN_DEP 2
@@ -117,6 +124,13 @@ enum BtorOptSatEngines
 #define BTOR_PROP_PATH_SEL_DFLT BTOR_PROP_PATH_SEL_ESSENTIAL
 #define BTOR_PROP_PATH_SEL_MIN 0
 #define BTOR_PROP_PATH_SEL_MAX 2
+
+#define BTOR_FUN_EAGER_LEMMAS_NONE 0
+#define BTOR_FUN_EAGER_LEMMAS_CONF 1
+#define BTOR_FUN_EAGER_LEMMAS_ALL 2
+#define BTOR_FUN_EAGER_LEMMAS_DFLT BTOR_FUN_EAGER_LEMMAS_CONF
+#define BTOR_FUN_EAGER_LEMMAS_MIN BTOR_FUN_EAGER_LEMMAS_NONE
+#define BTOR_FUN_EAGER_LEMMAS_MAX BTOR_FUN_EAGER_LEMMAS_ALL
 
 /*------------------------------------------------------------------------*/
 

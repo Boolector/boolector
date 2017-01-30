@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -343,7 +343,6 @@ UNSAT:
   sat_result = BTOR_RESULT_UNSAT;
 
 DONE:
-  btor->valid_assignments = 1;
   if (slv->roots)
   {
     btor_delete_int_hash_map (slv->roots);
@@ -366,21 +365,11 @@ sat_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  double start, delta = 0;
   int sat_result;
   Btor *btor;
 
-  start = btor_time_stamp ();
-
   btor = slv->btor;
-
-  if (btor->inconsistent)
-  {
-    sat_result = BTOR_RESULT_UNSAT;
-    goto DONE;
-  }
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
+  assert (!btor->inconsistent);
 
   if (btor_terminate_btor (btor))
   {
@@ -388,35 +377,17 @@ sat_prop_solver (BtorPropSolver *slv)
     goto DONE;
   }
 
-  sat_result = btor_simplify (btor);
   BTOR_ABORT (btor->ufs->count != 0
                   || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "prop engine supports QF_BV only");
-
-  if (btor->inconsistent)
-  {
-    sat_result = BTOR_RESULT_UNSAT;
-    goto DONE;
-  }
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_RESULT_UNKNOWN;
-    goto DONE;
-  }
-
-  delta = btor_time_stamp ();
 
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
    * the model generation (if enabled) after SAT has been determined. */
   slv->api.generate_model ((BtorSolver *) slv, false, true);
   sat_result = sat_prop_solver_aux (btor);
-  BTOR_PROP_SOLVER (btor)->time.sat += btor_time_stamp () - delta;
 DONE:
-  BTOR_PROP_SOLVER (btor)->time.sat_total += btor_time_stamp () - start;
-  btor->last_sat_result = sat_result;
   return sat_result;
 }
 
@@ -455,12 +426,12 @@ print_stats_prop_solver (BtorPropSolver *slv)
   BTOR_MSG (btor->msg,
             1,
             "moves per second: %.2f",
-            (double) slv->stats.moves / slv->time.sat);
+            (double) slv->stats.moves / (btor->time.sat - btor->time.simplify));
   BTOR_MSG (btor->msg, 1, "propagation (steps): %u", slv->stats.props);
   BTOR_MSG (btor->msg,
             1,
             "propagation (steps) per second: %.2f",
-            (double) slv->stats.props / slv->time.sat);
+            (double) slv->stats.props / (btor->time.sat - btor->time.simplify));
   BTOR_MSG (btor->msg, 1, "updates (cone): %u", slv->stats.updates);
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
@@ -525,14 +496,6 @@ print_time_stats_prop_solver (BtorPropSolver *slv)
   Btor *btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds for sat call (incl. simplify)",
-            slv->time.sat_total);
-  BTOR_MSG (btor->msg,
-            1,
-            "%.2f seconds for sat call (excl. simplify)",
-            slv->time.sat);
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds for updating cone (total)",

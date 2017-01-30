@@ -1358,12 +1358,13 @@ btor_is_umulo_bv (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
+#if 0
 BtorBitVector *
-btor_gcd_ext_bv (Btor *btor,
-                 const BtorBitVector *bv1,
-                 const BtorBitVector *bv2,
-                 BtorBitVector **fx,
-                 BtorBitVector **fy)
+btor_gcd_ext_bv (Btor * btor,
+		 const BtorBitVector * bv1,
+		 const BtorBitVector * bv2,
+		 BtorBitVector ** fx,
+		 BtorBitVector ** fy)
 {
   assert (bv1);
   assert (bv2);
@@ -1372,7 +1373,7 @@ btor_gcd_ext_bv (Btor *btor,
   assert (fx);
   assert (fy);
 
-  BtorBitVector *a, *b, *x, *y, *lx, *ly, *gcd      = 0;
+  BtorBitVector *a, *b, *x, *y, *lx, *ly, *gcd = 0;
   BtorBitVector *zero, *mul, *neg, *tx, *ty, *r, *q = 0;
 
   zero = btor_new_bv (btor->mm, bv1->width);
@@ -1383,47 +1384,47 @@ btor_gcd_ext_bv (Btor *btor,
   x = btor_copy_bv (btor->mm, zero);            // 0
   y = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
 
-  lx = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
-  ly = btor_copy_bv (btor->mm, zero);            // 0
+  lx = btor_flipped_bit_bv (btor->mm, zero, 0); // 1
+  ly = btor_copy_bv (btor->mm, zero);           // 0
 
   r = btor_copy_bv (btor->mm, bv1);
 
   while (btor_compare_bv (b, zero) > 0)
-  {
-    if (gcd) btor_free_bv (btor->mm, gcd);
-    gcd = btor_copy_bv (btor->mm, r);
+    {
+      if (gcd) btor_free_bv (btor->mm, gcd);
+      gcd = btor_copy_bv (btor->mm, r);
 
-    btor_free_bv (btor->mm, r);
-    r = btor_urem_bv (btor->mm, a, b);  // r = a % b
+      btor_free_bv (btor->mm, r);
+      r = btor_urem_bv (btor->mm, a, b);    // r = a % b
 
-    if (q) btor_free_bv (btor->mm, q);
-    q = btor_udiv_bv (btor->mm, a, b);  // q = a / b
+      if (q) btor_free_bv (btor->mm, q);
+      q = btor_udiv_bv (btor->mm, a, b);    // q = a / b
 
-    btor_free_bv (btor->mm, a);
-    a = btor_copy_bv (btor->mm, b);  // a = b
-    btor_free_bv (btor->mm, b);
-    b = btor_copy_bv (btor->mm, r);  // b = r
+      btor_free_bv (btor->mm, a);
+      a = btor_copy_bv (btor->mm, b);       // a = b
+      btor_free_bv (btor->mm, b);
+      b = btor_copy_bv (btor->mm, r);       // b = r
 
-    tx  = btor_copy_bv (btor->mm, x);  // tx = x
-    mul = btor_mul_bv (btor->mm, x, q);
-    neg = btor_neg_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, x);
-    x = btor_add_bv (btor->mm, lx, neg);  // x = lx - x * q
-    btor_free_bv (btor->mm, neg);
-    btor_free_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, lx);
-    lx = tx;  // lx = tx
-
-    ty  = btor_copy_bv (btor->mm, y);  // ty = y
-    mul = btor_mul_bv (btor->mm, y, q);
-    neg = btor_neg_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, y);
-    y = btor_add_bv (btor->mm, ly, neg);  // y = ly - y * q
-    btor_free_bv (btor->mm, neg);
-    btor_free_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, ly);
-    ly = ty;  // ly = ty
-  }
+      tx = btor_copy_bv (btor->mm, x);      // tx = x
+      mul = btor_mul_bv (btor->mm, x, q);
+      neg = btor_neg_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, x);
+      x = btor_add_bv (btor->mm, lx, neg);  // x = lx - x * q
+      btor_free_bv (btor->mm, neg);
+      btor_free_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, lx);
+      lx = tx;                              // lx = tx
+      
+      ty = btor_copy_bv (btor->mm, y);      // ty = y
+      mul = btor_mul_bv (btor->mm, y, q);
+      neg = btor_neg_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, y);
+      y = btor_add_bv (btor->mm, ly, neg);  // y = ly - y * q
+      btor_free_bv (btor->mm, neg);
+      btor_free_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, ly);
+      ly = ty;                              // ly = ty
+    }
 
   *fx = lx;
   *fy = ly;
@@ -1436,6 +1437,7 @@ btor_gcd_ext_bv (Btor *btor,
   btor_free_bv (btor->mm, zero);
   return gcd;
 }
+#endif
 
 /* Calculate modular inverse for bv by means of the Extended Euclidian
  * Algorithm. Note that c must be odd (the greatest

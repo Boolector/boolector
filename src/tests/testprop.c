@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -158,6 +158,7 @@ prop_complete_binary_eidx (
   sat_res = sat_prop_solver_aux (g_btor);
   assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
+  btor_reset_incremental_usage (g_btor);
 }
 
 static void
@@ -466,6 +467,7 @@ test_prop_complete_slice_bv (void)
           sat_res = sat_prop_solver_aux (g_btor);
           assert (sat_res == BTOR_RESULT_SAT);
           assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
+          btor_reset_incremental_usage (g_btor);
         }
       }
     }

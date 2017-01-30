@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Mathias Preiner
+ *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -111,6 +112,7 @@ test_array_sort (void)
   finish_sort_test ();
 }
 
+#if 0
 // TODO: more tests with different sorts (not only bitvec)
 void
 test_lst_sort (void)
@@ -161,6 +163,7 @@ test_lst_sort (void)
   btor_release_sort (g_btor, l6);
   finish_sort_test ();
 }
+#endif
 
 void
 test_fun_sort (void)
@@ -247,7 +250,9 @@ run_sort_tests (int argc, char **argv)
   BTOR_RUN_TEST (bool_sort);
   BTOR_RUN_TEST (bitvec_sort);
   BTOR_RUN_TEST (array_sort);
+#if 0
   BTOR_RUN_TEST (lst_sort);
+#endif
   BTOR_RUN_TEST (fun_sort);
   BTOR_RUN_TEST (tuple_sort);
 }

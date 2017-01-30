@@ -31,9 +31,6 @@ struct BtorFunSolver
   int lod_limit;
   int sat_limit;
 
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
-
   struct
   {
     int lod_refinements; /* number of lemmas on demand refinements */
@@ -58,7 +55,6 @@ struct BtorFunSolver
     long long eval_exp_calls;
     long long propagations;
     long long propagations_down;
-    long long partial_beta_reduction_restarts;
   } stats;
 
   struct
@@ -74,9 +70,13 @@ struct BtorFunSolver
     double search_init_apps_collect_fa;
     double search_init_apps_collect_fa_cone;
     double lemma_gen;
-    double find_nenc_app;
     double find_prop_app;
-    double find_cond_prop_app;
+    double check_consistency;
+    double prop;
+    double betap;
+    double find_conf_app;
+    double check_extensionality;
+    double prop_cleanup;
   } time;
 };
 

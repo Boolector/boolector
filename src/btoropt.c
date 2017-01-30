@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2015 Armin Biere.
  *
  *  All rights reserved.
@@ -343,6 +343,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "extract lambda terms");
+  init_opt (btor,
+            BTOR_OPT_NORMALIZE_ADD,
+            false,
+            true,
+            "normalize-add",
+            "nadd",
+            1,
+            0,
+            1,
+            "normalize addition operators");
 
   /* FUN engine ---------------------------------------------------------- */
   init_opt (btor,
@@ -367,6 +377,16 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "dual propagation optimization");
+  init_opt (btor,
+            BTOR_OPT_FUN_DUAL_PROP_QSORT,
+            false,
+            false,
+            "fun:dual-prop-qsort",
+            0,
+            BTOR_DP_QSORT_DFLT,
+            BTOR_DP_QSORT_MIN,
+            BTOR_DP_QSORT_MAX,
+            "order in which to assume inputs in dual solver");
   init_opt (btor,
             BTOR_OPT_FUN_JUST,
             false,
@@ -400,12 +420,12 @@ btor_init_opts (Btor *btor)
   init_opt (btor,
             BTOR_OPT_FUN_EAGER_LEMMAS,
             false,
-            true,
+            false,
             "fun:eager-lemmas",
             "fun:el",
-            1,
-            0,
-            1,
+            BTOR_FUN_EAGER_LEMMAS_DFLT,
+            BTOR_FUN_EAGER_LEMMAS_MIN,
+            BTOR_FUN_EAGER_LEMMAS_MAX,
             "eager lemma generation");
   init_opt (btor,
             BTOR_OPT_FUN_STORE_LAMBDAS,

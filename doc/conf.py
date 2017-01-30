@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Boolector'
-copyright = '2007-2016, Institute for Formal Models and Verification, Johannes Kepler University, Linz, Austria'
+copyright = '2007-2017, Institute for Formal Models and Verification, Johannes Kepler University, Linz, Austria'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

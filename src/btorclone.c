@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
  *  All rights reserved.
@@ -283,21 +283,24 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
 
     switch (sort->kind)
     {
-      case BTOR_BOOL_SORT: cid = btor_bool_sort (clone); break;
-
+#if 0
+	  case BTOR_BOOL_SORT:
+	    cid = btor_bool_sort (clone);
+	    break;
+#endif
       case BTOR_BITVEC_SORT:
         cid = btor_bitvec_sort (clone, sort->bitvec.width);
         break;
+#if 0
+	  case BTOR_LST_SORT:
+	    cid = btor_lst_sort (clone, sort->lst.head->id, sort->lst.tail->id);
+	    break;
 
-      case BTOR_LST_SORT:
-        cid = btor_lst_sort (clone, sort->lst.head->id, sort->lst.tail->id);
-        break;
-
-      case BTOR_ARRAY_SORT:
-        cid = btor_array_sort (
-            clone, sort->array.index->id, sort->array.element->id);
-        break;
-
+	  case BTOR_ARRAY_SORT:
+	    cid = btor_array_sort (clone, sort->array.index->id,
+				   sort->array.element->id);
+	    break;
+#endif
       case BTOR_FUN_SORT:
         assert (BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id));
         cid =
@@ -630,25 +633,28 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
 }
 
 static void
-clone_nodes_id_table (Btor *clone,
-                      BtorNodePtrStack *id_table,
+clone_nodes_id_table (Btor *btor,
+                      Btor *clone,
                       BtorNodePtrStack *res,
                       BtorNodeMap *exp_map,
                       bool exp_layer_only,
                       BtorNodePtrStack *rhos)
 {
-  assert (id_table);
+  assert (btor);
+  assert (clone);
   assert (res);
   assert (exp_map);
 
-  int i, tag;
+  int32_t i, tag;
   BtorNode **tmp, *exp, *cloned_exp;
   BtorMemMgr *mm;
+  BtorNodePtrStack *id_table;
   BtorNodePtrPtrStack parents, nodes;
   BtorPtrHashTable *t;
   BtorNodePtrStack static_rhos;
 
-  mm = clone->mm;
+  mm       = clone->mm;
+  id_table = &btor->nodes_id_table;
 
   BTOR_INIT_STACK (mm, parents);
   BTOR_INIT_STACK (mm, nodes);
@@ -887,11 +893,15 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     clone->last_sat_result      = 0;
     btor_reset_time_btor (clone);
 #ifndef NDEBUG
+    /* we need to explicitely reset the pointer to the table, since
+     * it is the memcpy-ied pointer of btor->stats.rw_rules_applied */
     clone->stats.rw_rules_applied = 0;
 #endif
     btor_reset_stats_btor (clone);
-    assert ((allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied))
-            == clone->mm->allocated);
+#ifndef NDEBUG
+    allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied);
+    assert (allocated == clone->mm->allocated);
+#endif
   }
 
   clone->msg = btor_new_btor_msg (clone);
@@ -924,7 +934,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #ifndef NDEBUG
     for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
       allocated += sizeof (BtorBVAssignment)
-                   + strlen (btor_get_bv_assignment_str (bvass));
+                   + strlen (btor_get_bv_assignment_str (bvass)) + 1;
     assert ((allocated += sizeof (BtorBVAssignmentList))
             == clone->mm->allocated);
 #endif
@@ -951,7 +961,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       btor_get_array_assignment_indices_values (
           arrass, &ind, &val, arrass->size);
       for (i = 0; i < arrass->size; i++)
-        allocated += strlen (ind[i]) + strlen (val[i]);
+        allocated += strlen (ind[i]) + 1 + strlen (val[i]) + 1;
     }
     assert ((allocated += sizeof (BtorArrayAssignmentList))
             == clone->mm->allocated);
@@ -1018,12 +1028,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   BTOR_INIT_STACK (btor->mm, rhos);
   BTORLOG_TIMESTAMP (delta);
-  clone_nodes_id_table (clone,
-                        &btor->nodes_id_table,
-                        &clone->nodes_id_table,
-                        emap,
-                        exp_layer_only,
-                        &rhos);
+  clone_nodes_id_table (
+      btor, clone, &clone->nodes_id_table, emap, exp_layer_only, &rhos);
   BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
@@ -1087,7 +1093,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
           == clone->mm->allocated);
 #endif
 
-  CLONE_PTR_HASH_TABLE (inputs);
+  CLONE_PTR_HASH_TABLE_DATA (inputs, btor_clone_data_as_int);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->inputs))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (bv_vars);

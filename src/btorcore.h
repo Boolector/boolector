@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -189,6 +189,7 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+    long long betap_reduce_calls;
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif
@@ -196,7 +197,8 @@ struct Btor
 
   struct
   {
-    double rewrite;
+    double sat;
+    double simplify;
     double subst;
     double subst_rebuild;
     double elimapplies;
@@ -205,12 +207,15 @@ struct Btor
     double skel;
     double propagate;
     double beta;
+    double betap;
     double failed;
     double cloning;
     double synth_exp;
     double model_gen;
-    double br_probing;
     double ucopt;
+    double merge;
+    double extract;
+    double ack;
   } time;
 };
 
@@ -265,7 +270,6 @@ int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
-BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);

@@ -25,8 +25,7 @@ all: updateconfig $(BUILDIR)/libboolector.a $(TARGETS)
 
 updateconfig: makefile VERSION mkconfig.sh
 	@mkdir -p $(BUILDIR)
-	rm -f $(BUILDIR)/btorconfig.h
-	./mkconfig.sh > $(BUILDIR)/btorconfig.h
+	@./mkconfig.sh $(BUILDIR)/btorconfig.h
 
 -include $(BUILDIR)/dependencies
 -include test.mk
@@ -52,7 +51,7 @@ $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 		sed -e 's,$(SRCDIR)/\(.*\.o\),\1,' >>$@; \
 	done
 
-$(BUILDIR)/analyze:
+analyze:
 	clang --analyze $(CFLAGS) $(INCS) \
 	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 

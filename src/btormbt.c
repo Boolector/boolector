@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
@@ -37,6 +37,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+/*------------------------------------------------------------------------*/
+
+BTOR_DECLARE_STACK (BtorConstCharPtr, const char *);
+BTOR_DECLARE_STACK (BtorCharPtrPtr, char **);
 
 /*------------------------------------------------------------------------*/
 
@@ -132,9 +137,12 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 #define MAX_NOPS_LOWER 50
 #define MIN_NASSERTS_LOWER 0
-#define MAX_NASSERTS_LOWER 25
-#define MIN_NASSERTS_UPPER 20
-#define MAX_NASSERTS_UPPER 30
+#define MAX_NASSERTS_LOWER 10
+#define MIN_NASSERTS_UPPER 5
+#define MAX_NASSERTS_UPPER 15
+
+#define MIN_INC_CALLS 0
+#define MAX_INC_CALLS 10
 
 #define P_SORT_BV 500         // 0.5
 #define P_SORT_FUN 500        // 0.5
@@ -148,7 +156,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define P_READ 500            // 0.5
 #define P_COND 333            // 0.33
 #define P_EQ 500              // 0.5
-#define P_INC 333             // 0.33
 #define P_DUMP 100            // 0.1
 #define P_PRINT_MODEL 100     // 0.1
 #define P_MODEL_FORMAT 500    // 0.5
@@ -183,189 +190,16 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "\n"                                                                         \
   "  -s <val>                    enable/disable shadow clone testing\n"        \
   "                              (0: disable, 1: enable)\n"                    \
-  "  -o                          output directory for saving traces\n"         \
+  "  -o                          disable option fuzzing\n"                     \
   "  -f                          quit after first bug encountered\n"           \
   "  -m <maxruns>                quit after <maxruns> rounds\n"                \
   "  -t <seconds>                set time limit for calls to boolector\n"      \
+  "  -O                          output directory for saving traces\n"         \
   "\n"                                                                         \
   "  --logic <logic>             generate <logic> formulas only, available\n"  \
   "                              logics are: QF_BV,QF_UFBV,QF_ABV, QF_AUFBV\n" \
   "                              (default: QF_AUFBV)\n"                        \
   "  -b <btoropt> <val>          set boolector option <btoropt> to <val>\n"
-
-/*------------------------------------------------------------------------*/
-
-#define BTORMBT_USAGE_ADVANCED \
-  "\n" \
-  "-------------------------------------------------------------------------\n"\
-  "\nadvanced options:\n\n" \
-  "  --bw <min> <max>                 bit width (min: " \
-                                      BTORMBT_M2STR (MIN_BITWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_BITWIDTH) " "\
-                                      BTORMBT_M2STR (MAX_BITWIDTH) "]\n" \
-  "  --index-bw <min> <max>           index bit width (min: " \
-                                      BTORMBT_M2STR (MIN_INDEXWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_INDEXWIDTH) " " \
-                                      BTORMBT_M2STR (MAX_INDEXWIDTH) "]\n" \
-  "  --muldiv-bw <min> <max>          bit width for mul/div (min: " \
-                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) " " \
-                                      BTORMBT_M2STR (MAX_MULDIVWIDTH) "]\n" \
-  "\n" \
-  "  --sort-fun-arity <min> <max>     fun sort min and max arity [" \
-                                      BTORMBT_M2STR (MIN_SORT_FUN_ARITY) \
-                                      BTORMBT_M2STR (MAX_SORT_FUN_ARITY) \
-                                     "]\n" \
-  "\n" \
-  "  --inputs <min> <max>             num inputs [" \
-                                      BTORMBT_M2STR (MIN_NLITS) " " \
-                                      BTORMBT_M2STR (MAX_NLITS) "]\n" \
-  "  --vars-init <min> <max>          num vars for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NVARS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NVARS_INIT) "]\n" \
-  "  --vars <min> <max>               num vars after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NVARS) " " \
-                                      BTORMBT_M2STR (MAX_NVARS) "]\n" \
-  "  --vars-inc <min> <max>           num vars for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NVARS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NVARS_INC) "]\n" \
-  "  --consts-init <min> <max>        num constants for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NCONSTS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NCONSTS_INIT) "]\n" \
-  "  --consts <min> <max>             num constants after initial " \
-                                     "layer [" \
-                                      BTORMBT_M2STR (MIN_NCONSTS) " " \
-                                      BTORMBT_M2STR (MAX_NCONSTS) "]\n" \
-  "  --consts-inc <min> <max>         num constants for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NCONSTS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NCONSTS_INC) "]\n" \
-  "  --arrays-init <min> <max>        num arrays for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NARRS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NARRS_INIT) "]\n" \
-  "  --arrays <min> <max>             num arrays after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NARRS) " " \
-                                      BTORMBT_M2STR (MAX_NARRS) "]\n" \
-  "  --arrays-inc <min> <max>         num arrays for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NARRS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NARRS_INC) "]\n" \
-  "  --ops-init <min> <max>           num ops for init layer [" \
-                                      BTORMBT_M2STR (MIN_NOPS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NOPS_INIT) "]\n" \
-  "  --ops <min> <max>                num ops after init layer [" \
-                                      BTORMBT_M2STR (MIN_NOPS) " " \
-                                      BTORMBT_M2STR (MAX_NOPS) "]\n" \
-  "  --ops-inc <min> <max>            num ops for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NOPS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NOPS_INC) "]\n" \
-  "\n" \
-  "  --max-ops-lower <val>            lower bound for max-ops in current " \
-                                     "round [" \
-                                      BTORMBT_M2STR (MAX_NOPS_LOWER) "]\n" \
-  "\n" \
-  "  --asserts-lower <min> <max>      num assertions for current\n" \
-  "                                     max-ops < max-ops-lower [" \
-                                      BTORMBT_M2STR (MIN_NASSERTS_LOWER) " " \
-                                      BTORMBT_M2STR (MAX_NASSERTS_LOWER) "]\n" \
-  "  --asserts-upper <min> <max>      num assertions for current\n" \
-  "                                    max-ops >= max-ops-lower [" \
-                                      BTORMBT_M2STR (MIN_NASSERTS_UPPER) " " \
-                                      BTORMBT_M2STR (MAX_NASSERTS_UPPER) "]\n" \
-  "\n add/release phase options:\n" \
-  "  --add-ops-init <min> <max>       num add ops for init layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPS_INIT) "]\n" \
-  "  --add-ops <min> <max>            num add ops after init layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPS) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPS) "]\n" \
-  "  --add-ops-inc <min> <max>        num add ops for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NADDOPS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPS_INC) "]\n" \
-  "  --release-ops-init <min> <max>   num release ops for init layer [" \
-                                      BTORMBT_M2STR (MIN_NRELOPS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NRELOPS_INIT) "]\n" \
-  "  --release-ops <min> <max>        num release ops after init layer ["\
-                                      BTORMBT_M2STR (MIN_NRELOPS) " " \
-                                      BTORMBT_M2STR (MAX_NRELOPS) "]\n" \
-  "  --release-ops-inc <min> <max>    num release ops for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NRELOPS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NRELOPS_INC) "]\n" \
-  "  --add-funs-init <min> <max>      num funs for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPFUNS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPFUNS_INIT)"]\n"\
-  "  --add-funs <min> <max>           num funs after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPFUNS) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPFUNS) "]\n" \
-  "  --add-funs-inc <min> <max>       num funs for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NADDOPFUNS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPFUNS_INC) "]\n" \
-  "  --add-arrayops-init <min> <max>  num array ops for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPAFUNS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPAFUNS_INIT)"]\n"\
-  "  --add-arrayops <min> <max>       num array ops after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPAFUNS) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPAFUNS) "]\n" \
-  "  --add-arrayops-inc <min> <max>   num array ops for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NADDOPAFUNS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPAFUNS_INC) "]\n"\
-  "  --add-bitvecops-init <min> <max> num bv ops for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPBFUNS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPBFUNS_INIT)"]\n"\
-  "  --add-bitvecops <min> <max>      num bv ops after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPBFUNS) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPBFUNS) "]\n" \
-  "  --add-bitvecops-inc <min> <max>  num bv ops for reinit. inc. step [" \
-                                      BTORMBT_M2STR (MIN_NADDOPBFUNS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPBFUNS_INC) "]\n"\
-  "  --add-inputs-init <min> <max>    num inputs for initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPLITS_INIT) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPLITS_INIT) "]\n"\
-  "  --add-inputs <min> <max>         num inputs after initial layer [" \
-                                      BTORMBT_M2STR (MIN_NADDOPLITS) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPLITS) "]\n" \
-  "  --add-inputs-inc <min> <max>     num inputs for reinit. inc. step ["\
-                                      BTORMBT_M2STR (MIN_NADDOPLITS_INC) " " \
-                                      BTORMBT_M2STR (MAX_NADDOPLITS_INC) "]\n" \
-  "\n probability options:\n" \
-  "  --p-sort-bv <val>                choose existing over new bv sort [" \
-                                      BTORMBT_M2STR (P_SORT_BV) "]\n" \
-  "  --p-sort-fun <val>               choose existing over new fun sort [" \
-                                      BTORMBT_M2STR (P_SORT_FUN) "]\n" \
-  "  --p-sort-fun-unary <val>         choose unary fun sort [" \
-                                      BTORMBT_M2STR (P_SORT_FUN_UNARY) "]\n" \
-  "  --p-assume <val>                 choose assumption over assertion in \n" \
-  "                                   incremental mode [" \
-                                      BTORMBT_M2STR (P_ASSUME) "] \n" \
-  "  --p-param-exp <val>              choose parameterized over\n" \
-  "                                   non-parameterized expressions [" \
-                                      BTORMBT_M2STR (P_PARAM_EXP) "]\n" \
-  "  --p-param-arr-exp <val>          choose parameterized over\n" \
-  "                                   non-parameterized array expressions [" \
-                                      BTORMBT_M2STR (P_PARAM_ARR_EXP) "]\n" \
-  "  --p-apply-fun <val>              choose apply on existing over new\n"\
-  "                                   function [" \
-                                      BTORMBT_M2STR (P_APPLY_FUN) "]\n" \
-  "  --p-apply-uf <val>               choose apply on existing over new\n"\
-  "                                   uninterpreted function [" \
-                                      BTORMBT_M2STR (P_APPLY_UF) "]\n" \
-  "  --p-rw <val>                     choose read/write over eq/ne/cond [" \
-                                      BTORMBT_M2STR (P_RW) "]\n" \
-  "  --p-read <val>                   choose read over write [" \
-                                      BTORMBT_M2STR (P_READ) "]\n" \
-  "  --p-cond <val>                   choose cond over eq/ne [" \
-                                      BTORMBT_M2STR (P_COND) "]\n" \
-  "  --p-eq <val>                     choose eq over ne [" \
-                                      BTORMBT_M2STR (P_EQ) "]\n" \
-  "  --p-inc <val>                    choose an incremental step [" \
-                                      BTORMBT_M2STR (P_INC) "]\n" \
-  "  --p-dump <val>                   dump formula [" \
-                                      BTORMBT_M2STR (P_DUMP) "]\n" \
-  "  --p-print-model <val>            print model [" \
-                                      BTORMBT_M2STR (P_PRINT_MODEL) "]\n" \
-  "  --p-model-format <val>           model format (btor:smt2) [" \
-                                      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
-  "\n other options:\n" \
-  "  --output-format <string>         force dump/model output format\n" \
-  "                                   available formats are: btor,smt2,aag,aig\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -396,7 +230,7 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
-typedef enum Op
+typedef enum BtorMBTOperator
 {
   /* PARAM must be the first */
   PARAM,
@@ -476,7 +310,7 @@ typedef enum Op
   APPLY,
   /* do not remove */
   BTORMBT_NUM_OPS
-} Op;
+} BtorMBTOperator;
 
 const char *const g_op2str[] = {
     "param",   "fun",   "uf",    "const", "zero",  "false",  "ones",   "true",
@@ -487,11 +321,11 @@ const char *const g_op2str[] = {
     "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",     "nor",
     "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",   "smod",
     "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",   "read",
-    "WRITe",   "apply",
+    "write",   "apply",
 };
 
 static int
-is_unary_op (Op op)
+is_unary_op (BtorMBTOperator op)
 {
   return op >= NOT && op <= REDAND;
 }
@@ -499,14 +333,14 @@ is_unary_op (Op op)
 #if 0
 // NOTE (ma): not required right now
 static int
-is_boolean_unary_op (Op op)
+is_boolean_unary_op (BtorMBTOperator op)
 {
   return (op >= REDOR && op <= REDAND);
 }
 #endif
 
 static int
-is_binary_op (Op op)
+is_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= CONCAT);
 }
@@ -514,7 +348,7 @@ is_binary_op (Op op)
 #if 0
 // NOTE (ma): not required right now
 static int
-is_boolean_binary_op (Op op)
+is_boolean_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= IFF);
 }
@@ -522,13 +356,13 @@ is_boolean_binary_op (Op op)
 
 #ifndef NDEBUG
 static int
-is_ternary_op (Op op)
+is_ternary_op (BtorMBTOperator op)
 {
   return op == COND;
 }
 
 static int
-is_array_op (Op op)
+is_array_op (BtorMBTOperator op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
@@ -545,11 +379,16 @@ struct BtorMBTBtorOpt
   BtorOption kind;
   char *name;
   char *shrt;
-  uint32_t val; /* only used for options specified via command line */
+  uint32_t val;
   uint32_t min;
   uint32_t max;
-  bool set_by_cl; /* if option is already set by command line, we do not
-                     choose a random value for this option */
+  uint32_t dflt;
+  const char *desc;
+
+  bool is_engine_opt;
+  uint32_t engine;
+
+  bool forced_by_cl;
 };
 
 typedef struct BtorMBTBtorOpt BtorMBTBtorOpt;
@@ -676,14 +515,17 @@ btormbt_release_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
   BTOR_DELETE (mm, expstack);
 }
 
-#define RELEASE_EXP_STACK(stack)                                  \
-  do                                                              \
-  {                                                               \
-    int i;                                                        \
-    for (i = 0; i < BTOR_COUNT_STACK (mbt->stack->exps); i++)     \
-      btormbt_release_node (mbt, mbt->stack->exps.start[i]->exp); \
-    btormbt_release_exp_stack (mbt->mm, mbt->stack);              \
-    mbt->stack = 0;                                               \
+#define RELEASE_EXP_STACK(stack, dorelease)                         \
+  do                                                                \
+  {                                                                 \
+    int i;                                                          \
+    if (dorelease)                                                  \
+    {                                                               \
+      for (i = 0; i < BTOR_COUNT_STACK (mbt->stack->exps); i++)     \
+        btormbt_release_node (mbt, mbt->stack->exps.start[i]->exp); \
+    }                                                               \
+    btormbt_release_exp_stack (mbt->mm, mbt->stack);                \
+    mbt->stack = 0;                                                 \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -738,19 +580,36 @@ struct BtorMBTStatistics
   uint32_t num_sat;
   uint32_t num_unsat;
   uint32_t num_inc;
+  uint32_t num_shadow_clone;
   uint32_t num_clone;
-  Op num_ops[BTORMBT_NUM_OPS];
+  uint32_t num_simp;
+  BtorMBTOperator num_ops[BTORMBT_NUM_OPS];
 
   /* avg. numbers per round */
 };
 
 typedef struct BtorMBTStatistics BtorMBTStatistics;
 
+/*------------------------------------------------------------------------*/
+
+enum BtorMBTLogic
+{
+  BTORMBT_LOGIC_QF_AUFBV = 0, /* default: all */
+  BTORMBT_LOGIC_QF_BV,
+  BTORMBT_LOGIC_QF_ABV,
+  BTORMBT_LOGIC_QF_UFBV,
+};
+
+typedef enum BtorMBTLogic BtorMBTLogic;
+
+/*------------------------------------------------------------------------*/
+
 struct BtorMBT
 {
   BtorMemMgr *mm;
 
   Btor *btor;
+
   BtorMBTBtorOptPtrStack btor_opts; /* maintains all available boolector opts */
 
   double start_time;
@@ -767,7 +626,10 @@ struct BtorMBT
   bool terminal;
   bool quit_after_first;
   bool ext;
+  bool optfuzz;
   int32_t fshadow;
+  int32_t flogic;
+  bool is_flogic;
   char *out;
   bool create_funs;
   bool create_ufs;
@@ -866,17 +728,17 @@ struct BtorMBT
   uint32_t min_release_ops_inc;  /* min release ops (reinit inc step) */
   uint32_t max_release_ops_inc;  /* max release ops (reinit inc step) */
 
-  uint32_t max_ops_lower; /* lower bound for current max_ops_cur
-                             for determining max_ass_cur */
+  uint32_t max_ops_lower; /* lower bound for max_ops in current round
+                             for determining round.max_ass */
 
   uint32_t min_asserts_lower; /* min number of assertions in a round
-                                 for max_ops_cur < max_ops_lower */
+                                 for round.max_ops < max_ops_lower */
   uint32_t max_asserts_lower; /* max number of assertions in a round
-                                 for max_ops_cur < max_ops_lower */
+                                 for round.max_ops < max_ops_lower */
   uint32_t min_asserts_upper; /* min number of assertions in a round
-                                 for max_ops_cur >= max_ops_lower */
+                                 for round.max_ops >= max_ops_lower */
   uint32_t max_asserts_upper; /* max number of assertions in a round
-                                 for max_ops_cur >= max_ops_lower */
+                                 for round.max_ops >= max_ops_lower */
 
   /* propability options */
 
@@ -904,17 +766,12 @@ struct BtorMBT
   uint32_t p_cond;
   /* choose eq over ne */
   uint32_t p_eq;
-  /* choose an incremental step */
-  uint32_t p_inc;
   /* dump formula and exit */
   uint32_t p_dump;
   /* print the model after a sat call */
   uint32_t p_print_model;
   /* use btor over smt2 format when printing a model */
   uint32_t p_model_format;
-
-  /* other options */
-  char *output_format; /* force output format for dumping/printing models */
 
   /* round counters */
   /* number of add ops wrt to number of release ops (initial layer) */
@@ -937,6 +794,8 @@ struct BtorMBT
 
   struct
   {
+    BtorMBTLogic logic;
+
     bool is_init;
     bool inc;
     bool mgen;
@@ -947,6 +806,7 @@ struct BtorMBT
     bool has_shadow;
 
     uint32_t ninc;
+    uint32_t max_ninc;
 
     /* prob. distribution of variables, constants, arrays in current round */
     uint32_t p_var, p_const, p_array;
@@ -960,11 +820,11 @@ struct BtorMBT
     uint32_t asserts; /* number of produced asserts in current round */
     uint32_t assumes; /* number of produced assumes in current round */
 
-    uint32_t max_inputs_cur; /* max number of inputs in current round */
-    uint32_t max_ops_cur;    /* max number of operations in current round */
-    uint32_t max_ass_cur;    /* max number of ass(erts|umes) in current round */
+    uint32_t max_inputs; /* max number of inputs in current round */
+    uint32_t max_ops;    /* max number of operations in current round */
+    uint32_t max_ass;    /* max number of ass(erts|umes) in current round */
 
-    uint32_t tot_asserts; /* total number of asserts in current round */
+    uint32_t asserts_tot; /* total number of asserts in current round */
     uint32_t num_ite_fun;
     uint32_t num_eq_fun;
 
@@ -994,20 +854,40 @@ btormbt_new_btormbt (void)
   for (opt = boolector_first_opt (tmpbtor); opt < BTOR_OPT_NUM_OPTS;
        opt = boolector_next_opt (tmpbtor, opt))
   {
-    BTOR_NEW (mm, btoropt);
+    BTOR_CNEW (mm, btoropt);
     btoropt->kind = opt;
     btoropt->name = btor_strdup (mm, boolector_get_opt_lng (tmpbtor, opt));
     btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
     btoropt->val  = boolector_get_opt (tmpbtor, opt);
     btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
+    btoropt->dflt = boolector_get_opt_dflt (tmpbtor, opt);
+    btoropt->desc = boolector_get_opt_desc (tmpbtor, opt);
     /* disabling incremental not supported */
     if (opt == BTOR_OPT_INCREMENTAL) btoropt->min = btoropt->max;
-    btoropt->set_by_cl = false;
+    /* check if opt is an engine opt */
+    if (strchr (btoropt->name, ':'))
+    {
+      btoropt->is_engine_opt = true;
+      if (strstr (btoropt->name, "fun:"))
+        btoropt->engine = BTOR_ENGINE_FUN;
+      else if (strstr (btoropt->name, "aigprop:"))
+        btoropt->engine = BTOR_ENGINE_AIGPROP;
+      else if (strstr (btoropt->name, "prop:"))
+        btoropt->engine = BTOR_ENGINE_PROP;
+      else
+      {
+        assert (strstr (btoropt->name, "sls:"));
+        btoropt->engine = BTOR_ENGINE_SLS;
+      }
+    }
+    /* check if opt was set (forced) via the command line */
+    btoropt->forced_by_cl = false;
     BTOR_PUSH_STACK (mbt->btor_opts, btoropt);
   }
   boolector_delete (tmpbtor);
 
+  mbt->optfuzz                = true;
   mbt->max_rounds             = UINT_MAX;
   mbt->seed                   = -1;
   mbt->seeded                 = false;
@@ -1107,7 +987,6 @@ btormbt_new_btormbt (void)
   mbt->p_read                 = P_READ;
   mbt->p_cond                 = P_COND;
   mbt->p_eq                   = P_EQ;
-  mbt->p_inc                  = P_INC;
   mbt->p_dump                 = P_DUMP;
   mbt->p_print_model          = P_PRINT_MODEL;
   mbt->p_model_format         = P_MODEL_FORMAT;
@@ -1163,8 +1042,7 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
   is_parameterized = btormbt_is_parameterized (mbt, node);
   if (boolector_is_array (mbt->btor, node))
     stack = is_parameterized ? mbt->paramarr : mbt->arr;
-  // TODO (ma): workaround need API for querying if UF
-  else if (btor_is_uf_node ((BtorNode *) node))
+  else if (boolector_is_uf (mbt->btor, node))
     stack = mbt->uf;
   else if (boolector_is_fun (mbt->btor, node))
     stack = is_parameterized ? mbt->paramfun : mbt->fun;
@@ -1193,6 +1071,20 @@ btormbt_copy_exp_stack (BtorMBT *mbt, BtorMBTExpStack *expstack)
   res->init_layer_size  = expstack->init_layer_size;
   res->last_pos_parents = expstack->last_pos_parents;
   return res;
+}
+
+static void
+btormbt_reset_assumptions (BtorMBT *mbt)
+{
+  BoolectorNode *ass;
+
+  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
+  {
+    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
+    assert (ass);
+    btormbt_release_node (mbt, ass);
+  }
+  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1230,15 +1122,6 @@ isnumstr (const char *str)
   const char *p;
   for (p = str; *p; p++)
     if (!isdigit ((int) *p)) return 0;
-  return 1;
-}
-
-static int
-isfloatnumstr (const char *str)
-{
-  const char *p;
-  for (p = str; *p; p++)
-    if (!isdigit ((int) *p) && *p != '.') return 0;
   return 1;
 }
 
@@ -1351,7 +1234,9 @@ btormbt_print_stats (BtorMBT *mbt)
   btormbt_msg ("%u sat calls", g_btormbtstats->num_sat);
   btormbt_msg ("%u unsat calls", g_btormbtstats->num_unsat);
   btormbt_msg ("%u incremental calls", g_btormbtstats->num_inc);
-  btormbt_msg ("%u shadow clone calls", g_btormbtstats->num_clone);
+  btormbt_msg ("%u shadow clone calls", g_btormbtstats->num_shadow_clone);
+  btormbt_msg ("%u clone calls", g_btormbtstats->num_clone);
+  btormbt_msg ("%u simplify calls", g_btormbtstats->num_simp);
 
   /* print total number of created ops */
   if (mbt->verbosity > 1)
@@ -1546,8 +1431,11 @@ modify_bv (BtorMBT *mbt, BoolectorNode *e, uint32_t new_width)
 static void
 btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
 {
-  int width;
+  int32_t id;
+  uint32_t width;
   BoolectorSort s;
+  BoolectorNode *var;
+  char *symbol;
 
   if (type == BTORMBT_BO_T)
     width = 1;
@@ -1558,8 +1446,15 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
     assert (type = BTORMBT_BB_T);
     width = btor_pick_rand_rng (&mbt->round.rng, 1, mbt->max_bw);
   }
-  s = boolector_bitvec_sort (mbt->btor, width);
-  btormbt_push_node (mbt, boolector_var (mbt->btor, s, 0));
+  s   = boolector_bitvec_sort (mbt->btor, width);
+  var = boolector_var (mbt->btor, s, 0);
+  assert (boolector_is_var (mbt->btor, var));
+  id = boolector_get_id (mbt->btor, var);
+  BTOR_NEWN (mbt->mm, symbol, 20);
+  sprintf (symbol, "mbtvar%u", id);
+  boolector_set_symbol (mbt->btor, var, symbol);
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+  btormbt_push_node (mbt, var);
   boolector_release_sort (mbt->btor, s);
   g_btormbtstats->num_ops[VAR]++;
 }
@@ -1568,10 +1463,11 @@ static void
 btormbt_const (BtorMBT *mbt)
 {
   char *bits;
+  const char *sbits;
   int width, val, i;
   BoolectorNode *node;
   //  BtorMBTNodeAttr attr;
-  Op op;
+  BtorMBTOperator op;
   BoolectorSort s;
 
   op    = btor_pick_rand_rng (&mbt->round.rng, CONST, INT);
@@ -1616,6 +1512,13 @@ btormbt_const (BtorMBT *mbt)
         bits[i] = btor_pick_with_prob_rng (&mbt->round.rng, 500) ? '1' : '0';
       bits[width] = '\0';
       node        = boolector_const (mbt->btor, bits);
+      assert (boolector_is_const (mbt->btor, node));
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+      {
+        sbits = boolector_get_bits (mbt->btor, node);
+        assert (!strcmp (bits, sbits));
+        boolector_free_bits (mbt->btor, sbits);
+      }
       BTOR_DELETEN (mbt->mm, bits, width + 1);
       break;
     case ZERO: node = boolector_zero (mbt->btor, s); break;
@@ -1649,18 +1552,29 @@ btormbt_const (BtorMBT *mbt)
 static void
 btormbt_array (BtorMBT *mbt)
 {
-  int ew, iw;
+  int32_t id;
+  uint32_t ew, iw;
+  BoolectorNode *array;
   BoolectorSort es, is, as;
+  char *symbol;
 
   // TODO (ma): remove ite here and use min_bw
   ew = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
   iw = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_index_bw, mbt->max_index_bw);
-  es = boolector_bitvec_sort (mbt->btor, ew);
-  is = boolector_bitvec_sort (mbt->btor, iw);
-  as = boolector_array_sort (mbt->btor, is, es);
-  btormbt_push_node (mbt, boolector_array (mbt->btor, as, 0));
+  es    = boolector_bitvec_sort (mbt->btor, ew);
+  is    = boolector_bitvec_sort (mbt->btor, iw);
+  as    = boolector_array_sort (mbt->btor, is, es);
+  array = boolector_array (mbt->btor, as, 0);
+  assert (boolector_is_array (mbt->btor, array));
+  assert (boolector_is_array_var (mbt->btor, array));
+  id = boolector_get_id (mbt->btor, array);
+  BTOR_NEWN (mbt->mm, symbol, 20);
+  sprintf (symbol, "mbtarr%u", id);
+  boolector_set_symbol (mbt->btor, array, symbol);
+  BTOR_DELETEN (mbt->mm, symbol, 20);
+  btormbt_push_node (mbt, array);
   boolector_release_sort (mbt->btor, es);
   boolector_release_sort (mbt->btor, is);
   boolector_release_sort (mbt->btor, as);
@@ -1715,7 +1629,7 @@ btormbt_constraint (BtorMBT *mbt)
 }
 
 static void
-btormbt_unary_op (BtorMBT *mbt, Op op, BoolectorNode *e)
+btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
@@ -1754,7 +1668,10 @@ btormbt_unary_op (BtorMBT *mbt, Op op, BoolectorNode *e)
 }
 
 static void
-btormbt_binary_op (BtorMBT *mbt, Op op, BoolectorNode *e0, BoolectorNode *e1)
+btormbt_binary_op (BtorMBT *mbt,
+                   BtorMBTOperator op,
+                   BoolectorNode *e0,
+                   BoolectorNode *e1)
 {
   assert (is_binary_op (op));
 
@@ -1860,7 +1777,7 @@ btormbt_binary_op (BtorMBT *mbt, Op op, BoolectorNode *e0, BoolectorNode *e1)
 
 static void
 btormbt_ternary_op (BtorMBT *mbt,
-                    Op op,
+                    BtorMBTOperator op,
                     BoolectorNode *e0,
                     BoolectorNode *e1,
                     BoolectorNode *e2)
@@ -1893,7 +1810,7 @@ btormbt_ternary_op (BtorMBT *mbt,
  */
 static BtorMBTExp *
 btormbt_array_op (BtorMBT *mbt,
-                  Op op,
+                  BtorMBTOperator op,
                   BoolectorNode *e0,
                   BoolectorNode *e1,
                   BoolectorNode *e2)
@@ -2207,7 +2124,7 @@ btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
 {
   uint32_t i, rand;
   BoolectorNode *e[3];
-  Op op;
+  BtorMBTOperator op;
 
   assert (op_from >= NOT && op_from <= COND);
   assert (op_to >= NOT && op_to <= COND);
@@ -2253,7 +2170,7 @@ btormbt_param_array_op (BtorMBT *mbt)
   bool force_param;
   uint32_t rand;
   BoolectorNode *e0, *e1, *e2;
-  Op op;
+  BtorMBTOperator op;
 
   /* if there are no parameterized arrays yet, we have to create at least
    * one */
@@ -2332,7 +2249,9 @@ btormbt_param_array_op (BtorMBT *mbt)
 static void
 btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 {
-  uint32_t i, n, width, max_ops_cur, rand;
+  int32_t id;
+  uint32_t i, n, width, max_param_exps, rand;
+  char *symbol;
   BtorMBTExpStack *expstack;
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
@@ -2414,6 +2333,12 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
           &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
       s   = boolector_bitvec_sort (mbt->btor, width);
       tmp = boolector_param (mbt->btor, s, 0);
+      assert (boolector_is_param (mbt->btor, tmp));
+      id = boolector_get_id (mbt->btor, tmp);
+      BTOR_NEWN (mbt->mm, symbol, 20);
+      sprintf (symbol, "mbtparam%u", id);
+      boolector_set_symbol (mbt->btor, tmp, symbol);
+      BTOR_DELETEN (mbt->mm, symbol, 20);
       boolector_release_sort (mbt->btor, s);
       BTOR_PUSH_STACK (params, tmp);
       BTOR_PUSH_STACK (param_widths, boolector_get_width (mbt->btor, tmp));
@@ -2463,9 +2388,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     }
 
     /* generate parameterized expressions */
-    max_ops_cur = btor_pick_rand_rng (&mbt->round.rng, 0, MAX_NPARAMOPS);
-    n           = 0;
-    while (n++ < max_ops_cur)
+    max_param_exps = btor_pick_rand_rng (&mbt->round.rng, 0, MAX_NPARAMOPS);
+    n              = 0;
+    while (n++ < max_param_exps)
     {
       rand = btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_PROB_MAX - 1);
       if (rand < mbt->round.p_bitvec_fun)
@@ -2491,6 +2416,8 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     tmp = BTOR_PEEK_STACK (expstack->exps, rand)->exp;
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
+    for (i = 0; i < BTOR_COUNT_STACK (params); i++)
+      boolector_is_bound_param (mbt->btor, BTOR_PEEK_STACK (params, i));
 
     /* cleanup */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->parambo->exps); i++)
@@ -2529,7 +2456,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     tmp = select_exp (mbt, BTORMBT_BV_T, 0);
     BTOR_PUSH_STACK (args, modify_bv (mbt, tmp, width));
   }
-
+  assert (boolector_fun_sort_check (
+              mbt->btor, args.start, BTOR_COUNT_STACK (args), fun)
+          == -1);
   tmp = boolector_apply (mbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
   btormbt_push_node (mbt, tmp);
   g_btormbtstats->num_ops[APPLY]++;
@@ -2540,7 +2469,9 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 static void
 btormbt_bv_uf (BtorMBT *mbt)
 {
+  int32_t id;
   uint32_t width, rand;
+  char *symbol;
   BoolectorNode *uf, *arg, *apply;
   BtorSortId sortid;
   BoolectorSort sort;
@@ -2559,6 +2490,12 @@ btormbt_bv_uf (BtorMBT *mbt)
   {
     sort = btormbt_fun_sort (mbt);
     uf   = boolector_uf (mbt->btor, sort, 0);
+    assert (boolector_is_uf (mbt->btor, uf));
+    id = boolector_get_id (mbt->btor, uf);
+    BTOR_NEWN (mbt->mm, symbol, 20);
+    sprintf (symbol, "mbtuf%u", id);
+    boolector_set_symbol (mbt->btor, uf, symbol);
+    BTOR_DELETEN (mbt->mm, symbol, 20);
     //      btormbt_push_exp_stack (mbt->mm, mbt->uf, uf);
     btormbt_push_node (mbt, uf);
     g_btormbtstats->num_ops[UF]++;
@@ -2613,10 +2550,11 @@ static void *
 btormbt_state_new (BtorMBT *mbt)
 {
   /* number of initial inputs */
-  mbt->round.max_inputs_cur =
+  mbt->round.max_inputs =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_inputs, mbt->max_inputs);
+
   /* number of initial operations */
-  mbt->round.max_ops_cur = btor_pick_rand_rng (
+  mbt->round.max_ops = btor_pick_rand_rng (
       &mbt->round.rng, mbt->min_ops_init, mbt->max_ops_init);
 
   // TODO (ma): UFs
@@ -2656,10 +2594,10 @@ btormbt_state_new (BtorMBT *mbt)
 
   BTORMBT_LOG (1,
                "new: pick %u ops (add:rel=%0.1f%%:%0.1f%%), %u inputs",
-               mbt->round.max_ops_cur,
+               mbt->round.max_ops,
                (double) mbt->round.p_add / 10,
                (double) mbt->round.p_release / 10,
-               mbt->round.max_inputs_cur);
+               mbt->round.max_inputs);
 
   mbt->btor = boolector_new ();
   assert (mbt->btor);
@@ -2671,8 +2609,8 @@ static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
   int i;
-  uint32_t opt_engine;
-  BtorMBTBtorOpt *btoropt;
+  BtorMBTBtorOpt *btoropt, *btoropt_engine;
+  BtorUIntStack stack;
 
   /* enable / disable shadow clone testing */
   if (mbt->fshadow)
@@ -2687,71 +2625,246 @@ btormbt_state_opt (BtorMBT *mbt)
     if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
       mbt->round.shadow = true;
   }
-
-  /* create initial shadow clone with prob=0.2 (do not create shadow clone
-   * prior to issuing any other API calls by default, we want to test the
-   * cloning feature at various points in time) */
-  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  if (mbt->round.shadow && btor_pick_with_prob_rng (&mbt->round.rng, 300))
   {
     BTORMBT_LOG (1, "initial shadow clone...");
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_clone += 1;
+    g_btormbtstats->num_shadow_clone += 1;
     mbt->round.has_shadow = true;
   }
 
-  /* set random options */
+  /* choose logic */
+  if (mbt->is_flogic)
+    mbt->round.logic = mbt->flogic;
+  else
+  {
+    BTOR_INIT_STACK (mbt->mm, stack);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_BV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_ABV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_AUFBV);
+    BTOR_PUSH_STACK (stack, BTORMBT_LOGIC_QF_UFBV);
+    mbt->round.logic = BTOR_PEEK_STACK (
+        stack,
+        btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+    BTOR_RELEASE_STACK (stack);
+  }
+
+  /* set Boolector engine */
+  btoropt_engine = mbt->btor_opts.start[BTOR_OPT_ENGINE];
+  if (btoropt_engine->forced_by_cl)
+  {
+    if (btoropt_engine->val == BTOR_ENGINE_AIGPROP
+        || btoropt_engine->val == BTOR_ENGINE_PROP
+        || btoropt_engine->val == BTOR_ENGINE_SLS
+        || (btoropt_engine->val == BTOR_ENGINE_FUN
+            && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+    {
+      /* reset if forced engine does not support QF_(AUF)BV */
+      mbt->round.logic = BTORMBT_LOGIC_QF_BV;
+    }
+  }
+  else
+  {
+    /* choose Boolector engine corresponding to supported logic */
+    BTOR_INIT_STACK (mbt->mm, stack);
+    BTOR_PUSH_STACK (stack, BTOR_ENGINE_FUN);
+    if (mbt->round.logic == BTORMBT_LOGIC_QF_BV)
+    {
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_AIGPROP);
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_PROP);
+      BTOR_PUSH_STACK (stack, BTOR_ENGINE_SLS);
+    }
+    btoropt_engine->val = BTOR_PEEK_STACK (
+        stack,
+        btor_pick_rand_rng (&mbt->round.rng, 0, BTOR_COUNT_STACK (stack) - 1));
+    BTOR_RELEASE_STACK (stack);
+  }
+  assert (btoropt_engine->val == BTOR_ENGINE_FUN
+          || mbt->round.logic == BTORMBT_LOGIC_QF_BV);
+  boolector_set_opt (mbt->btor, BTOR_OPT_ENGINE, btoropt_engine->val);
+
+  BTORMBT_LOG (
+      1,
+      "opt: set logic to '%s'",
+      mbt->round.logic == BTORMBT_LOGIC_QF_AUFBV
+          ? "QF_AUFBV"
+          : (mbt->round.logic == BTORMBT_LOGIC_QF_ABV
+                 ? "QF_ABV"
+                 : (mbt->round.logic == BTORMBT_LOGIC_QF_UFBV ? "QF_UFBV"
+                                                              : "QF_BV")));
+
+  BTORMBT_LOG (1,
+               "opt: set boolector option '%s' to '%d'",
+               btoropt_engine->name,
+               btoropt_engine->val);
+
+  /* Set SAT engine */
+  btoropt = mbt->btor_opts.start[BTOR_OPT_SAT_ENGINE];
+  if (!btoropt->forced_by_cl)
+  {
+    /* pick randomly */
+    btoropt->val =
+        btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+  }
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+  {
+    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+  }
+  else
+  {
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+#ifdef BTOR_USE_LINGELING
+      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+        boolector_set_sat_solver (mbt->btor, "lingeling");
+#endif
+#ifdef BTOR_USE_PICOSAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+        boolector_set_sat_solver (mbt->btor, "picosat");
+#endif
+#ifdef BTOR_USE_MINISAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+        boolector_set_sat_solver (mbt->btor, "minisat");
+#endif
+    }
+    else
+    {
+#ifdef BTOR_USE_LINGELING
+      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+        boolector_set_sat_solver_lingeling (
+            mbt->btor, 0, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+#endif
+#ifdef BTOR_USE_PICOSAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+        boolector_set_sat_solver_picosat (mbt->btor);
+#endif
+#ifdef BTOR_USE_MINISAT
+      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+        boolector_set_sat_solver_minisat (mbt->btor);
+#endif
+    }
+  }
+  BTORMBT_LOG (
+      1, "opt: set boolector option '%s' to '%d'", btoropt->name, btoropt->val);
+
+  if (mbt->optfuzz)
+  {
+    /* set output format for dumping */
+    btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_FORMAT];
+    if (!btoropt->forced_by_cl)
+    {
+      if (btor_pick_with_prob_rng (&mbt->round.rng, 330))
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+          btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+        else
+          btoropt->val = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+      }
+      else
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+          btoropt->val = BTOR_OUTPUT_FORMAT_BTOR;
+        else
+          btoropt->val = BTOR_OUTPUT_FORMAT_SMT2;
+      }
+    }
+    boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT, btoropt->val);
+
+    /* set output number format */
+    btoropt = mbt->btor_opts.start[BTOR_OPT_OUTPUT_NUMBER_FORMAT];
+    if (!btoropt->forced_by_cl)
+      btoropt->val =
+          btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
+    boolector_set_opt (mbt->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, btoropt->val);
+  }
+
+  /* set Boolector options */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
   {
     btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
-    if (!btoropt->set_by_cl)
+    assert (boolector_has_opt (mbt->btor, btoropt->kind));
+
+    if (!mbt->optfuzz && !btoropt->forced_by_cl) continue;
+
+    /* skip, has already been set */
+    if (btoropt->kind == BTOR_OPT_ENGINE || btoropt->kind == BTOR_OPT_SAT_ENGINE
+        || btoropt->kind == BTOR_OPT_OUTPUT_FORMAT
+        || btoropt->kind == BTOR_OPT_OUTPUT_NUMBER_FORMAT)
     {
-      /* choose options with probability 0.5 */
-      if (btoropt->kind == BTOR_OPT_INCREMENTAL
-          || btoropt->kind == BTOR_OPT_MODEL_GEN)
-      {
-        if (btor_pick_with_prob_rng (&mbt->round.rng, 500)) continue;
-      }
-      else /* choose other options with probability 0.1 */
-      {
-        if (btor_pick_with_prob_rng (&mbt->round.rng, 900)) continue;
-      }
+      continue;
+    }
 
-      /* avoid invalid option combinations */
+    /* skip with prob = 0.5 */
+    if ((btoropt->kind == BTOR_OPT_INCREMENTAL
+         || btoropt->kind == BTOR_OPT_MODEL_GEN)
+        && btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+      continue;
+    }
+    /* skip with prob = 0.1
+     * note: do not skip engine options (value is picked between min and
+     * max anyway, increases probability to enable engine options) */
+    else if ((!btoropt->is_engine_opt || btoropt->engine != btoropt_engine->val)
+             && btor_pick_with_prob_rng (&mbt->round.rng, 900))
+    {
+      continue;
+    }
 
-      // FIXME remove as soon as ucopt works with mgen
-      /* do not enable unconstrained optimization if either model
-       * generation or incremental is enabled */
-      if (btoropt->kind == BTOR_OPT_UCOPT
-          && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
-              || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
-        continue;
-      if ((btoropt->kind == BTOR_OPT_MODEL_GEN
-           || btoropt->kind == BTOR_OPT_INCREMENTAL)
-          && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
-        continue;
-      /* do not enable justification if dual propagation is enabled */
-      if (btoropt->kind == BTOR_OPT_FUN_JUST
-          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
-        continue;
-      if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
-          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
-        continue;
+    /* avoid invalid option combinations */
+    // FIXME remove as soon as ucopt works with mgen
+    /* do not enable unconstrained optimization if either model
+     * generation or incremental is enabled */
+    if (btoropt->kind == BTOR_OPT_UCOPT
+        && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
+            || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
+    {
+      continue;
+    }
+    else if ((btoropt->kind == BTOR_OPT_MODEL_GEN
+              || btoropt->kind == BTOR_OPT_INCREMENTAL)
+             && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
+    {
+      continue;
+    }
+    /* do not enable justification if dual propagation is enabled */
+    else if (btoropt->kind == BTOR_OPT_FUN_JUST
+             && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+    {
+      continue;
+    }
+    else if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+             && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
+    {
+      continue;
+    }
 
+    if (!btoropt->forced_by_cl)
+    {
+      /* pick option randomly */
       btoropt->val =
           btor_pick_rand_rng (&mbt->round.rng, btoropt->min, btoropt->max);
     }
-    BTORMBT_LOG (1,
-                 "opt: set boolector option '%s' to '%d'",
-                 btoropt->name,
-                 btoropt->val);
     /* if an option is set via command line the value is saved in
      * btoropt->val */
+
+    /* set boolector option */
     boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+    BTORMBT_LOG (1,
+                 "opt: set boolector option '%s' to '%u'",
+                 btoropt->name,
+                 btoropt->val);
 
     /* set some mbt specific options */
     if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
+    {
       mbt->round.inc = true;
+      mbt->round.max_ninc =
+          btor_pick_rand_rng (&mbt->round.rng, MIN_INC_CALLS, MAX_INC_CALLS);
+    }
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
       mbt->round.mgen = true;
@@ -2760,20 +2873,34 @@ btormbt_state_opt (BtorMBT *mbt)
     }
   }
 
-  /* prop, sls and aigprop engine only support QF_BV */
-  opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
-  if (opt_engine == BTOR_ENGINE_AIGPROP || opt_engine == BTOR_ENGINE_PROP
-      || opt_engine == BTOR_ENGINE_SLS
-      || (opt_engine == BTOR_ENGINE_FUN
-          && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+  /* configure logic */
+  switch (mbt->round.logic)
   {
-    g_btormbt->create_funs   = false;
-    g_btormbt->create_ufs    = false;
-    g_btormbt->create_arrays = false;
+    case BTORMBT_LOGIC_QF_BV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = false;
+      g_btormbt->create_arrays = false;
+      break;
+    case BTORMBT_LOGIC_QF_UFBV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = true;
+      g_btormbt->create_arrays = false;
+      break;
+    case BTORMBT_LOGIC_QF_ABV:
+      g_btormbt->create_funs   = false;
+      g_btormbt->create_ufs    = false;
+      g_btormbt->create_arrays = true;
+      break;
+    default:
+      assert (mbt->round.logic == BTORMBT_LOGIC_QF_AUFBV);
+      g_btormbt->create_funs   = true;
+      g_btormbt->create_ufs    = true;
+      g_btormbt->create_arrays = true;
   }
 
-  if (!mbt->round.inc && !mbt->round.mgen
-      && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
+  /* we currently do not allow to dump assumptions, hence dumping the
+   * formula when incremental mode is enabled is not supported */
+  if (!mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
   {
     mbt->round.dump = true;
   }
@@ -2790,7 +2917,7 @@ btormbt_state_init (BtorMBT *mbt)
   // TODO (ma): UFs?
   if (BTOR_COUNT_STACK (mbt->bo->exps) + BTOR_COUNT_STACK (mbt->bv->exps)
           + BTOR_COUNT_STACK (mbt->arr->exps)
-      < mbt->round.max_inputs_cur)
+      < mbt->round.max_inputs)
   {
     return btormbt_state_input;
   }
@@ -2803,7 +2930,7 @@ btormbt_state_init (BtorMBT *mbt)
   if (mbt->create_arrays && BTOR_COUNT_STACK (mbt->arr->exps) < 1)
     btormbt_array (mbt);
 
-  if (mbt->round.ops < mbt->round.max_ops_cur)
+  if (mbt->round.ops < mbt->round.max_ops)
   {
     mbt->round.ops++;
     BTORMBT_LOG_STATUS (2, "init");
@@ -2820,21 +2947,21 @@ btormbt_state_init (BtorMBT *mbt)
 
   /* adapt paramters for main */
   mbt->round.ops = 0;
-  mbt->round.max_ops_cur =
+  mbt->round.max_ops =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_ops, mbt->max_ops);
   /* how many operations should be assertions?
-   * -> max_ops_cur and nass should be in relation (the more ops, the more
+   * -> round.max_ops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  if (mbt->round.max_ops_cur < mbt->max_ops_lower)
+  if (mbt->round.max_ops < mbt->max_ops_lower)
   {
-    mbt->round.max_ass_cur = BTORMBT_MIN (
-        mbt->round.max_ops_cur,
+    mbt->round.max_ass = BTORMBT_MIN (
+        mbt->round.max_ops,
         btor_pick_rand_rng (
             &mbt->round.rng, mbt->min_asserts_lower, mbt->max_asserts_lower));
   }
   else
   {
-    mbt->round.max_ass_cur = btor_pick_rand_rng (
+    mbt->round.max_ass = btor_pick_rand_rng (
         &mbt->round.rng, mbt->min_asserts_upper, mbt->max_asserts_upper);
   }
 
@@ -2865,10 +2992,10 @@ btormbt_state_init (BtorMBT *mbt)
   BTORMBT_LOG (
       1,
       "main: pick %u ops (add:rel=%0.1f%%:%0.1f%%), ~%u asserts/assumes",
-      mbt->round.max_ops_cur,
+      mbt->round.max_ops,
       (double) mbt->round.p_add / 10,
       (double) mbt->round.p_release / 10,
-      mbt->round.max_ass_cur);
+      mbt->round.max_ass);
 
   mbt->round.is_init = true;
   return btormbt_state_main;
@@ -2881,17 +3008,47 @@ btormbt_state_main (BtorMBT *mbt)
   assert (BTOR_COUNT_STACK (mbt->bv->exps) > 0);
   assert (!mbt->create_arrays || BTOR_COUNT_STACK (mbt->arr->exps) > 0);
 
+  Btor *clone;
+  BoolectorNode *node, *cnode;
+  const char *symbol, *csymbol;
+  int32_t i, j, id;
+  BtorMBTExpStack *exp_stack;
+  BtorMBTExpStack *exp_stacks[5] = {
+      mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
+
+#ifdef NDEBUG
+  (void) csymbol;
+#endif
+
   /* main operations */
-  if (mbt->round.ops < mbt->round.max_ops_cur)
+  if (mbt->round.ops < mbt->round.max_ops)
   {
     mbt->round.ops++;
     BTORMBT_LOG_STATUS (2, "main");
-    if (mbt->round.max_ass_cur > mbt->round.max_ops_cur
+    if (mbt->round.max_ass > mbt->round.max_ops
         || btor_pick_with_prob_rng (
                &mbt->round.rng,
-               ((double) mbt->round.max_ass_cur / mbt->round.max_ops_cur)
+               ((double) mbt->round.max_ass / mbt->round.max_ops)
                    * BTOR_PROB_MAX))
     {
+      /* pick with prob=0.0001 */
+      if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, 100))
+      {
+        if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+        {
+          mbt->round.asserts += mbt->round.assumes;
+          mbt->round.asserts_tot += mbt->round.assumes;
+          boolector_fixate_assumptions (mbt->btor);
+          btormbt_reset_assumptions (mbt);
+        }
+        else
+        {
+          boolector_reset_assumptions (mbt->btor);
+          btormbt_reset_assumptions (mbt);
+        }
+        mbt->round.assumes = 0;
+      }
+
       return btormbt_state_assume_assert;
     }
     else if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->round.p_add))
@@ -2907,8 +3064,108 @@ btormbt_state_main (BtorMBT *mbt)
   BTORMBT_LOG_STATUS (1, "main");
   BTORMBT_LOG (1,
                "main: asserts %d, assumes %d",
-               mbt->round.tot_asserts,
+               mbt->round.asserts_tot,
                mbt->round.assumes);
+
+  if (mbt->round.shadow
+      && (!mbt->round.has_shadow
+          || !btor_pick_with_prob_rng (&mbt->round.rng, 100)))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+    mbt->round.has_shadow = true;
+  }
+
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    g_btormbtstats->num_simp += 1;
+    (void) boolector_simplify (mbt->btor);
+  }
+
+  if (btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    g_btormbtstats->num_clone += 1;
+
+    clone = boolector_clone (mbt->btor);
+
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_reset_stats (clone);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_reset_time (clone);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+      boolector_print_stats (clone);
+
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+      for (j = 0; j < 5; j++)
+      {
+        exp_stack = exp_stacks[j];
+        for (i = 0; i < BTOR_COUNT_STACK (exp_stack->exps); i++)
+        {
+          node = BTOR_PEEK_STACK (exp_stack->exps,
+                                  btor_pick_rand_rng (
+                                      &mbt->round.rng,
+                                      0,
+                                      BTOR_COUNT_STACK (exp_stack->exps) - 1))
+                     ->exp;
+          assert (boolector_get_btor (node) == mbt->btor);
+          id     = boolector_get_id (mbt->btor, node);
+          symbol = boolector_get_symbol (mbt->btor, node);
+          cnode  = boolector_match_node (clone, node);
+          assert (boolector_get_btor (cnode) == clone);
+          assert (id == boolector_get_id (clone, cnode));
+          assert (boolector_get_sort (mbt->btor, node)
+                  == boolector_get_sort (clone, cnode));
+          csymbol = boolector_get_symbol (clone, cnode);
+          assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+          if (boolector_is_fun (mbt->btor, node))
+          {
+            assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                    == boolector_fun_get_domain_sort (clone, cnode));
+            assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                    == boolector_fun_get_codomain_sort (clone, cnode));
+          }
+          boolector_release (clone, cnode);
+
+          cnode = boolector_match_node_by_id (clone, id < 0 ? -id : id);
+          assert (boolector_get_btor (cnode) == clone);
+          csymbol = boolector_get_symbol (clone, cnode);
+          assert (boolector_get_sort (mbt->btor, node)
+                  == boolector_get_sort (clone, cnode));
+          assert ((!symbol && !csymbol) || !strcmp (symbol, csymbol));
+          if (boolector_is_fun (mbt->btor, node))
+          {
+            assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                    == boolector_fun_get_domain_sort (clone, cnode));
+            assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                    == boolector_fun_get_codomain_sort (clone, cnode));
+          }
+          boolector_release (clone, cnode);
+
+          if (symbol)
+          {
+            cnode = boolector_match_node_by_symbol (clone, symbol);
+            assert (boolector_get_btor (cnode) == clone);
+            assert (id == boolector_get_id (clone, cnode));
+            assert (boolector_get_sort (mbt->btor, node)
+                    == boolector_get_sort (clone, cnode));
+            if (boolector_is_fun (mbt->btor, node))
+            {
+              assert (boolector_fun_get_domain_sort (mbt->btor, node)
+                      == boolector_fun_get_domain_sort (clone, cnode));
+              assert (boolector_fun_get_codomain_sort (mbt->btor, node)
+                      == boolector_fun_get_codomain_sort (clone, cnode));
+            }
+            boolector_release (clone, cnode);
+          }
+        }
+      }
+    }
+
+    boolector_delete (clone);
+  }
 
   if (mbt->round.dump) return btormbt_state_dump;
 
@@ -2957,7 +3214,7 @@ btormbt_state_bv_op (BtorMBT *mbt)
 {
   BoolectorNode *e0, *e1, *e2;
 
-  Op op = btor_pick_rand_rng (&mbt->round.rng, NOT, COND);
+  BtorMBTOperator op = btor_pick_rand_rng (&mbt->round.rng, NOT, COND);
 
   if (is_unary_op (op))
   {
@@ -2988,7 +3245,7 @@ static void *
 btormbt_state_arr_op (BtorMBT *mbt)
 {
   uint32_t e0w, e0iw;
-  Op op;
+  BtorMBTOperator op;
   BoolectorNode *e0, *e1, *e2;
 
   e0   = select_exp (mbt, BTORMBT_ARR_T, 0);
@@ -3117,7 +3374,7 @@ btormbt_state_assume_assert (BtorMBT *mbt)
     boolector_assert (mbt->btor, node);
     btormbt_release_node (mbt, node);
     mbt->round.asserts++;
-    mbt->round.tot_asserts++;
+    mbt->round.asserts_tot++;
   }
   return btormbt_state_main;
 }
@@ -3126,86 +3383,152 @@ static void *
 btormbt_state_dump (BtorMBT *mbt)
 {
   assert (!mbt->round.inc);
-  assert (!mbt->round.mgen);
 
+  int tmppid;
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t len, pstat, pres;
+  int32_t len, pstat;
   char *outfilename, *emsg, *envname = 0;
+  uint32_t outformat;
+  BoolectorNode *node;
 
-  // TODO (ma): UF support in BTOR format not yet implemented
-  if (mbt->output_format)
+  tmppid    = getpid ();
+  outformat = boolector_get_opt (mbt->btor, BTOR_OPT_OUTPUT_FORMAT);
+
+  if (outformat == BTOR_OUTPUT_FORMAT_AIGER_ASCII
+      && !BTOR_COUNT_STACK (mbt->uf->exps) && !BTOR_COUNT_STACK (mbt->fun->exps)
+      && !BTOR_COUNT_STACK (mbt->arr->exps))
   {
-    if (!strcmp (mbt->output_format, "btor")
-        && !BTOR_COUNT_STACK (mbt->uf->exps))
-      boolector_dump_btor (mbt->btor, stdout);
-    else if (!strcmp (mbt->output_format, "smt2"))
-      boolector_dump_smt2 (mbt->btor, stdout);
-    else if (!strcmp (mbt->output_format, "aag")
-             && !BTOR_COUNT_STACK (mbt->uf->exps)
-             && !BTOR_COUNT_STACK (mbt->fun->exps)
-             && !BTOR_COUNT_STACK (mbt->arr->exps))
-      boolector_dump_aiger_ascii (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
-    else if (!strcmp (mbt->output_format, "aig")
-             && !BTOR_COUNT_STACK (mbt->uf->exps)
-             && !BTOR_COUNT_STACK (mbt->fun->exps)
-             && !BTOR_COUNT_STACK (mbt->arr->exps))
-      boolector_dump_aiger_binary (
-          mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+    boolector_dump_aiger_ascii (
+        mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
   }
-  else
+  else if (outformat == BTOR_OUTPUT_FORMAT_AIGER_BINARY
+           && !BTOR_COUNT_STACK (mbt->uf->exps)
+           && !BTOR_COUNT_STACK (mbt->fun->exps)
+           && !BTOR_COUNT_STACK (mbt->arr->exps))
   {
-    if (!BTOR_COUNT_STACK (mbt->uf->exps) && !BTOR_COUNT_STACK (mbt->fun->exps)
-        && !BTOR_COUNT_STACK (mbt->arr->exps)
-        && btor_pick_with_prob_rng (&mbt->round.rng, 330))
+    boolector_dump_aiger_binary (
+        mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+  }
+  else if ((outformat == BTOR_OUTPUT_FORMAT_BTOR
+            || outformat == BTOR_OUTPUT_FORMAT_SMT2)
+           // TODO: we cannot dump ite over functions to smt2/btor right now
+           && mbt->round.num_ite_fun == 0)
+  {
+    len = 40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (tmppid);
+    BTOR_NEWN (mbt->mm, outfilename, len);
+
+    if (outformat == BTOR_OUTPUT_FORMAT_BTOR
+        // TODO: UF support in BTOR format not yet implemented
+        && !BTOR_COUNT_STACK (mbt->uf->exps)
+        // TODO: we cannot parse equality over lambdas in btor right now
+        && mbt->round.num_eq_fun == 0)
     {
-      if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
-        boolector_dump_aiger_ascii (
-            mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
-      else
-        boolector_dump_aiger_binary (
-            mbt->btor, stdout, btor_pick_rand_rng (&mbt->round.rng, 0, 1));
+      sprintf (outfilename,
+               "/tmp/btormbt-bug-%d%s",
+               tmppid,
+               btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".btor" : "");
+      outfile = fopen (outfilename, "w");
+      assert (outfile);
+      boolector_dump_btor (mbt->btor, outfile);
     }
-    // TODO (ma): we cannot dump ite over functions to smt2/btor right now
-    else if (mbt->round.num_ite_fun == 0)
+    else
     {
-      len =
-          40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (mbt->seed);
-      BTOR_NEWN (mbt->mm, outfilename, len);
+      sprintf (outfilename,
+               "/tmp/btormbt-bug-%d%s",
+               tmppid,
+               btor_pick_with_prob_rng (&mbt->round.rng, 500) ? ".smt2" : "");
+      outfile = fopen (outfilename, "w");
+      assert (outfile);
+      boolector_dump_smt2 (mbt->btor, outfile);
+    }
 
-      // TODO: we cannot parse UF, equality over lambdas in btor right now
-      if (!BTOR_COUNT_STACK (mbt->uf->exps) && mbt->round.num_eq_fun == 0
-          && btor_pick_with_prob_rng (&mbt->round.rng, 500))
-      {
-        sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "btor");
-        outfile = fopen (outfilename, "w");
-        assert (outfile);
-        boolector_dump_btor (mbt->btor, outfile);
-      }
+    fclose (outfile);
+    outfile = fopen (outfilename, "r");
+    if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
+
+    tmpbtor = boolector_new ();
+    boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+    if (btor_pick_with_prob_rng (&mbt->round.rng, 500))
+    {
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+    }
+    else if (outformat == BTOR_OUTPUT_FORMAT_BTOR
+             && !BTOR_COUNT_STACK (mbt->uf->exps)
+             // TODO: we cannot parse equality over lambdas in btor right now
+             && mbt->round.num_eq_fun == 0)
+    {
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse_btor (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+    }
+    else
+    {
+      assert (BOOLECTOR_PARSE_ERROR
+              != boolector_parse_smt2 (
+                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+    }
+    (void) emsg;
+    (void) pstat;
+    boolector_delete (tmpbtor);
+    fclose (outfile);
+    unlink (outfilename);
+    BTOR_DELETEN (mbt->mm, outfilename, len);
+    if (envname) setenv ("BTORAPITRACE", envname, 1);
+
+    /* dump some random nodes, one per exp type */
+    if (BTOR_COUNT_STACK (mbt->bo->exps))
+    {
+      node = BTOR_PEEK_STACK (
+                 mbt->bo->exps,
+                 btor_pick_rand_rng (
+                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bo->exps) - 1))
+                 ->exp;
+      if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+        boolector_dump_btor_node (mbt->btor, stdout, node);
       else
-      {
-        sprintf (outfilename, "/tmp/btormbt-bug-%d.%s", mbt->seed, "smt2");
-        outfile = fopen (outfilename, "w");
-        assert (outfile);
-        boolector_dump_smt2 (mbt->btor, outfile);
-      }
-
-      fclose (outfile);
-      outfile = fopen (outfilename, "r");
-      if ((envname = getenv ("BTORAPITRACE"))) unsetenv ("BTORAPITRACE");
-
-      tmpbtor = boolector_new ();
-      pres    = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
-      assert (pres != BOOLECTOR_PARSE_ERROR);
-      boolector_delete (tmpbtor);
-      fclose (outfile);
-      unlink (outfilename);
-      BTOR_DELETEN (mbt->mm, outfilename, len);
-      if (envname) setenv ("BTORAPITRACE", envname, 1);
+        boolector_dump_smt2_node (mbt->btor, stdout, node);
+    }
+    if (BTOR_COUNT_STACK (mbt->bv->exps))
+    {
+      node = BTOR_PEEK_STACK (
+                 mbt->bv->exps,
+                 btor_pick_rand_rng (
+                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->bv->exps) - 1))
+                 ->exp;
+      if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+        boolector_dump_btor_node (mbt->btor, stdout, node);
+      else
+        boolector_dump_smt2_node (mbt->btor, stdout, node);
+    }
+    if (BTOR_COUNT_STACK (mbt->arr->exps))
+    {
+      node = BTOR_PEEK_STACK (
+                 mbt->arr->exps,
+                 btor_pick_rand_rng (
+                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->arr->exps) - 1))
+                 ->exp;
+      if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+        boolector_dump_btor_node (mbt->btor, stdout, node);
+      else
+        boolector_dump_smt2_node (mbt->btor, stdout, node);
+    }
+    if (BTOR_COUNT_STACK (mbt->uf->exps))
+    {
+      node = BTOR_PEEK_STACK (
+                 mbt->uf->exps,
+                 btor_pick_rand_rng (
+                     &mbt->round.rng, 0, BTOR_COUNT_STACK (mbt->uf->exps) - 1))
+                 ->exp;
+      if (outformat == BTOR_OUTPUT_FORMAT_BTOR)
+        boolector_dump_btor_node (mbt->btor, stdout, node);
+      else
+        boolector_dump_smt2_node (mbt->btor, stdout, node);
     }
   }
+
   return btor_pick_with_prob_rng (&mbt->round.rng, 500) ? btormbt_state_delete
                                                         : btormbt_state_main;
 }
@@ -3215,17 +3538,6 @@ btormbt_state_sat (BtorMBT *mbt)
 {
   int i, res, failed;
   BoolectorNode *ass;
-
-  if (mbt->round.shadow
-      && (!mbt->round.has_shadow
-          || !btor_pick_with_prob_rng (&mbt->round.rng, 20)))
-  {
-    BTORMBT_LOG (1, "cloning...");
-    /* cleanup done by boolector */
-    boolector_chkclone (mbt->btor);
-    g_btormbtstats->num_clone += 1;
-    mbt->round.has_shadow = true;
-  }
 
   BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (mbt->btor);
@@ -3255,8 +3567,17 @@ btormbt_state_sat (BtorMBT *mbt)
     }
   }
 
+  if (mbt->round.shadow && !btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    assert (mbt->round.has_shadow == true);
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+  }
+
   if (mbt->round.mgen && res == BOOLECTOR_SAT) return btormbt_state_query_model;
-  if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
+  if (mbt->round.inc && mbt->round.ninc < mbt->round.max_ninc)
     return btormbt_state_inc;
   return btormbt_state_delete;
 }
@@ -3264,12 +3585,24 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int i, size = 0;
-  const char *bv = NULL;
+  int32_t i, j, k, size = 0;
+  const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;
+  BtorConstCharPtrStack bvass_stack;
+  BtorCharPtrPtrStack arrass_stack, ufass_stack;
+  BtorIntStack arrsize_stack, ufsize_stack;
+  BtorMBTExpStack *exp_stack;
+  BtorMBTExpStack *exp_stacks[5] = {
+      mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
 
   assert (mbt->round.mgen);
+
+  BTOR_INIT_STACK (mbt->mm, bvass_stack);
+  BTOR_INIT_STACK (mbt->mm, arrass_stack);
+  BTOR_INIT_STACK (mbt->mm, ufass_stack);
+  BTOR_INIT_STACK (mbt->mm, arrsize_stack);
+  BTOR_INIT_STACK (mbt->mm, ufsize_stack);
 
   if (mbt->round.print_model)
   {
@@ -3280,62 +3613,89 @@ btormbt_state_query_model (BtorMBT *mbt)
   }
 
   BTOR_CNEWN (mbt->mm, symbol, 20);
-
-  sprintf (symbol, "bv");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->bo->exps); i++)
+  for (k = 0; k < 5; k++)
   {
-    exp = mbt->bo->exps.start[i]->exp;
-    bv  = boolector_bv_assignment (mbt->btor, exp);
-    boolector_free_bv_assignment (mbt->btor, (char *) bv);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->bv->exps); i++)
-  {
-    exp = mbt->bv->exps.start[i]->exp;
-    bv  = boolector_bv_assignment (mbt->btor, exp);
-    boolector_free_bv_assignment (mbt->btor, (char *) bv);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
+    exp_stack = exp_stacks[k];
+    if (exp_stack == mbt->bo || exp_stack == mbt->bv)
+      sprintf (symbol, "mbtass");
+    else if (exp_stack == mbt->arr)
+      sprintf (symbol, "mbtarr");
+    else if (exp_stack == mbt->fun)
+      sprintf (symbol, "mbtfun");
+    else if (exp_stack == mbt->uf)
+      sprintf (symbol, "mbtuf");
 
-  sprintf (symbol, "arr");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->arr->exps); i++)
-  {
-    exp = mbt->arr->exps.start[i]->exp;
-    boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
-    if (size > 0)
-      boolector_free_array_assignment (mbt->btor, indices, values, size);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
+    for (i = 0; i < BTOR_COUNT_STACK (exp_stack->exps); i++)
+    {
+      exp = exp_stack->exps.start[i]->exp;
+      if (exp_stack == mbt->bo || exp_stack == mbt->bv)
+      {
+        ass = boolector_bv_assignment (mbt->btor, exp);
+        BTOR_PUSH_STACK (bvass_stack, ass);
+      }
+      else if (exp_stack == mbt->arr)
+      {
+        boolector_array_assignment (mbt->btor, exp, &indices, &values, &size);
+        if (size > 0)
+        {
+          BTOR_PUSH_STACK (arrsize_stack, size);
+          BTOR_PUSH_STACK (arrass_stack, indices);
+          BTOR_PUSH_STACK (arrass_stack, values);
+        }
+      }
+      else
+      {
+        assert (exp_stack == mbt->fun || exp_stack == mbt->uf);
+        boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
+        if (size > 0)
+        {
+          BTOR_PUSH_STACK (ufsize_stack, size);
+          BTOR_PUSH_STACK (ufass_stack, indices);
+          BTOR_PUSH_STACK (ufass_stack, values);
+        }
+      }
+      boolector_print_value_smt2 (
+          mbt->btor,
+          exp,
+          btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
+          stdout);
+    }
   }
-
-  sprintf (symbol, "uf");
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->uf->exps); i++)
-  {
-    exp = mbt->uf->exps.start[i]->exp;
-    boolector_uf_assignment (mbt->btor, exp, &indices, &values, &size);
-    if (size > 0)
-      boolector_free_uf_assignment (mbt->btor, indices, values, size);
-    boolector_print_value_smt2 (
-        mbt->btor,
-        exp,
-        btor_pick_with_prob_rng (&mbt->round.rng, 500) ? symbol : 0,
-        stdout);
-  }
-
   BTOR_DELETEN (mbt->mm, symbol, 20);
 
-  if (mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_inc))
+  if (mbt->round.shadow && !btor_pick_with_prob_rng (&mbt->round.rng, 100))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    assert (mbt->round.has_shadow == true);
+    /* cleanup done by boolector */
+    boolector_chkclone (mbt->btor);
+    g_btormbtstats->num_shadow_clone += 1;
+  }
+
+  /* release assignments */
+  while (!BTOR_EMPTY_STACK (bvass_stack))
+    boolector_free_bv_assignment (mbt->btor, BTOR_POP_STACK (bvass_stack));
+  BTOR_RELEASE_STACK (bvass_stack);
+  for (i = 0, j = 0; i < BTOR_COUNT_STACK (arrsize_stack); i++, j += 2)
+  {
+    size    = BTOR_PEEK_STACK (arrsize_stack, i);
+    indices = BTOR_PEEK_STACK (arrass_stack, j);
+    values  = BTOR_PEEK_STACK (arrass_stack, j + 1);
+    boolector_free_array_assignment (mbt->btor, indices, values, size);
+  }
+  BTOR_RELEASE_STACK (arrass_stack);
+  BTOR_RELEASE_STACK (arrsize_stack);
+  for (i = 0, j = 0; i < BTOR_COUNT_STACK (ufsize_stack); i++, j += 2)
+  {
+    size    = BTOR_PEEK_STACK (ufsize_stack, i);
+    indices = BTOR_PEEK_STACK (ufass_stack, j);
+    values  = BTOR_PEEK_STACK (ufass_stack, j + 1);
+    boolector_free_uf_assignment (mbt->btor, indices, values, size);
+  }
+  BTOR_RELEASE_STACK (ufass_stack);
+  BTOR_RELEASE_STACK (ufsize_stack);
+
+  if (mbt->round.inc && mbt->round.ninc < mbt->round.max_ninc)
     return btormbt_state_inc;
 
   return btormbt_state_delete;
@@ -3344,26 +3704,18 @@ btormbt_state_query_model (BtorMBT *mbt)
 static void *
 btormbt_state_inc (BtorMBT *mbt)
 {
-  BoolectorNode *ass;
-
   mbt->round.ninc += 1;
+  g_btormbtstats->num_inc += 1;
 
-  /* release assumptions */
-  while (!BTOR_EMPTY_STACK (mbt->assumptions->exps))
-  {
-    ass = btormbt_pop_exp_stack (mbt->mm, mbt->assumptions);
-    assert (ass);
-    btormbt_release_node (mbt, ass);
-  }
-  btormbt_reset_exp_stack (mbt->mm, mbt->assumptions);
+  btormbt_reset_assumptions (mbt);
 
   /* reset / reinit */
-  mbt->round.ops         = 0;
-  mbt->round.max_ass_cur = mbt->round.max_ass_cur - mbt->round.asserts;
-  mbt->round.assumes     = 0;
-  mbt->round.asserts     = 0;
+  mbt->round.ops     = 0;
+  mbt->round.max_ass = mbt->round.max_ass - mbt->round.asserts;
+  mbt->round.assumes = 0;
+  mbt->round.asserts = 0;
 
-  mbt->round.max_ops_cur =
+  mbt->round.max_ops =
       btor_pick_rand_rng (&mbt->round.rng, mbt->min_ops_inc, mbt->max_ops_inc);
 
   init_pd_inputs (
@@ -3399,7 +3751,7 @@ btormbt_state_inc (BtorMBT *mbt)
 
   BTORMBT_LOG (1,
                "inc: pick %u ops (add:rel=%0.1f%%:%0.1f%%)",
-               mbt->round.max_ops_cur,
+               mbt->round.max_ops,
                (double) mbt->round.p_add / 10,
                (double) mbt->round.p_release / 10);
   BTORMBT_LOG (1, "number of increments: %u", mbt->round.ninc);
@@ -3413,12 +3765,16 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt);
   assert (mbt->btor);
 
-  RELEASE_EXP_STACK (bo);
-  RELEASE_EXP_STACK (bv);
-  RELEASE_EXP_STACK (arr);
-  RELEASE_EXP_STACK (fun);
-  RELEASE_EXP_STACK (uf);
-  RELEASE_EXP_STACK (assumptions);
+  bool release_all;
+
+  release_all = btor_pick_with_prob_rng (&mbt->round.rng, 100);
+
+  RELEASE_EXP_STACK (bo, !release_all);
+  RELEASE_EXP_STACK (bv, !release_all);
+  RELEASE_EXP_STACK (arr, !release_all);
+  RELEASE_EXP_STACK (fun, !release_all);
+  RELEASE_EXP_STACK (uf, !release_all);
+  RELEASE_EXP_STACK (assumptions, !release_all);
 
   RELEASE_SORT_STACK (bv_sorts);
   RELEASE_SORT_STACK (fun_sorts);
@@ -3428,6 +3784,8 @@ btormbt_state_delete (BtorMBT *mbt)
   assert (mbt->paramarr == NULL);
   assert (mbt->paramfun == NULL);
 
+  if (release_all) boolector_release_all (mbt->btor);
+  assert (boolector_get_refs (mbt->btor) == 0);
   boolector_delete (mbt->btor);
   mbt->btor = NULL;
   return 0;
@@ -3451,8 +3809,6 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->paramfun);
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
-
-  g_btormbtstats += mbt->round.ninc;
 
   memset (&mbt->round, 0, sizeof (mbt->round));
 
@@ -3549,13 +3905,6 @@ main (int argc, char **argv)
       exitcode = EXIT_OK;
       goto EXIT;
     }
-    else if (!strcmp (argv[i], "-ha"))
-    {
-      printf ("%s", BTORMBT_USAGE);
-      printf ("%s", BTORMBT_USAGE_ADVANCED);
-      exitcode = EXIT_OK;
-      goto EXIT;
-    }
     else if (!strcmp (argv[i], "-v"))
     {
       g_btormbt->verbosity++;
@@ -3578,7 +3927,11 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-o"))
     {
-      if (++i == argc) btormbt_error ("argument to '-o' missing (try '-h')");
+      g_btormbt->optfuzz = false;
+    }
+    else if (!strcmp (argv[i], "-O"))
+    {
+      if (++i == argc) btormbt_error ("argument to '-O' missing (try '-h')");
       if (argv[i][0] == '-')
         btormbt_error ("invalid output directory given (try '-h')");
       g_btormbt->out = argv[i];
@@ -3612,30 +3965,15 @@ main (int argc, char **argv)
     {
       if (++i == argc)
         btormbt_error ("argument to '--logic' missing (try '-h')");
+      g_btormbt->is_flogic = true;
       if (!strcmp (argv[i], "QF_BV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = false;
-        g_btormbt->create_arrays = false;
-      }
-      else if (!strcmp (argv[i], "QF_UFBV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = true;
-        g_btormbt->create_arrays = false;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_BV;
       else if (!strcmp (argv[i], "QF_ABV"))
-      {
-        g_btormbt->create_funs   = false;
-        g_btormbt->create_ufs    = false;
-        g_btormbt->create_arrays = true;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_ABV;
       else if (!strcmp (argv[i], "QF_AUFBV"))
-      {
-        g_btormbt->create_funs   = true;
-        g_btormbt->create_ufs    = true;
-        g_btormbt->create_arrays = true;
-      }
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_AUFBV;
+      else if (!strcmp (argv[i], "QF_UFBV"))
+        g_btormbt->flogic = BTORMBT_LOGIC_QF_UFBV;
       else
       {
         btormbt_error ("invalid argument to '--logic' (try '-h')");
@@ -3661,738 +3999,8 @@ main (int argc, char **argv)
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
       val = (uint32_t) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
-      btoropt->val       = val;
-      btoropt->set_by_cl = true;
-    }
-
-    /* advanced options */
-    else if (!strcmp (argv[i], "--bw"))
-    {
-      if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--bw' is not a number (try '-h')");
-      g_btormbt->min_bw = atoi (argv[i]);
-      if (g_btormbt->min_bw < MIN_BITWIDTH)
-        btormbt_error (
-            "min value of '--bw' must not be less than %d "
-            "(try '-h')",
-            MIN_BITWIDTH);
-      if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--bw' is not a number (try '-h')");
-      g_btormbt->max_bw = atoi (argv[i]);
-      if (g_btormbt->max_bw < g_btormbt->min_bw)
-        btormbt_error (
-            "min value for '--bw' must be less or equal than max value "
-            "(try '-h')");
-    }
-    else if (!strcmp (argv[i], "--index-bw"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--index-bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
-      g_btormbt->min_index_bw = atoi (argv[i]);
-      if (g_btormbt->min_index_bw < MIN_INDEXWIDTH)
-        btormbt_error (
-            "min value of '--index-bw' must not be less "
-            "than %d (try '-h')",
-            MIN_INDEXWIDTH);
-      if (++i == argc)
-        btormbt_error ("argument to '--index-bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
-      g_btormbt->max_index_bw = atoi (argv[i]);
-      if (g_btormbt->max_index_bw < g_btormbt->min_index_bw)
-        btormbt_error (
-            "min value of '--index-bw' must be less or equal than max value "
-            "(try '-h')");
-    }
-    else if (!strcmp (argv[i], "--muldiv-bw"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
-      g_btormbt->min_muldiv_bw = atoi (argv[i]);
-      if (g_btormbt->min_muldiv_bw < MIN_MULDIVWIDTH)
-        btormbt_error (
-            "min value of '--muldiv-bw' must not be less "
-            "than %d (try '-h')",
-            MIN_MULDIVWIDTH);
-      if (++i == argc)
-        btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
-      g_btormbt->max_muldiv_bw = atoi (argv[i]);
-      if (g_btormbt->max_muldiv_bw < g_btormbt->min_muldiv_bw)
-        btormbt_error (
-            "min value of '--muldiv-bw' must be less or equal than "
-            "max value (try '-h')");
-    }
-    else if (!strcmp (argv[i], "--sort-fun-arity"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--sort-fun-arity' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--sort-fun-arity' is not a number (try '-h')");
-      g_btormbt->min_sort_fun_arity = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--sort-fun-arity' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--sort-fun-arity' is not a number (try '-h')");
-      g_btormbt->max_sort_fun_arity = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--inputs"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--inputs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--inputs' is not a number (try '-h')");
-      g_btormbt->min_inputs = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--inputs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--inputs' is not a number (try '-h')");
-      g_btormbt->max_inputs = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--vars-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--vars-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
-      g_btormbt->min_vars_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--vars-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
-      g_btormbt->max_vars_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--vars"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--vars' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars' is not a number (try '-h')");
-      g_btormbt->min_vars = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--vars' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars' is not a number (try '-h')");
-      g_btormbt->max_vars = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--vars-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--vars-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
-      g_btormbt->min_vars_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--vars-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
-      g_btormbt->max_vars_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--consts-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--consts-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--consts-init' is not a number (try '-h')");
-      g_btormbt->min_consts_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--consts-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--consts-init' is not a number (try '-h')");
-      g_btormbt->max_consts_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--consts"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--consts' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--consts' is not a number (try '-h')");
-      g_btormbt->min_consts = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--consts' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--consts' is not a number (try '-h')");
-      g_btormbt->max_consts = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--consts-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--consts-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
-      g_btormbt->min_consts_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--consts-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
-      g_btormbt->max_consts_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--arrays-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--arrays-init' is not a number (try '-h')");
-      g_btormbt->min_arrays_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--arrays-init' is not a number (try '-h')");
-      g_btormbt->max_arrays_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--arrays"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--arrays' is not a number (try '-h')");
-      g_btormbt->min_arrays = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--arrays' is not a number (try '-h')");
-      g_btormbt->max_arrays = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--arrays-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
-      g_btormbt->min_arrays_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
-      g_btormbt->max_arrays_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-funs-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-funs-init' is not a number (try '-h')");
-      g_btormbt->min_add_funs_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-funs-init' is not a number (try '-h')");
-      g_btormbt->max_add_funs_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-funs"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
-      g_btormbt->min_add_funs = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
-      g_btormbt->max_add_funs = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-funs-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-funs-inc' is not a number (try '-h')");
-      g_btormbt->min_add_funs_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-funs-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-funs-inc' is not a number (try '-h')");
-      g_btormbt->max_add_funs_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-arrayops-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops-init' is not a number (try '-h')");
-      g_btormbt->min_add_arrayops_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops-init' is not a number (try '-h')");
-      g_btormbt->max_add_arrayops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-arrayops"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops' is not a number (try '-h')");
-      g_btormbt->min_add_arrayops = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops' is not a number (try '-h')");
-      g_btormbt->max_add_arrayops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-arrayops-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops-inc' is not a number (try '-h')");
-      g_btormbt->min_add_arrayops_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-arrayops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-arrayops-inc' is not a number (try '-h')");
-      g_btormbt->max_add_arrayops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-bitvecops-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops-init' is not a number (try '-h')");
-      g_btormbt->min_add_bitvecops_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops-init' is not a number (try '-h')");
-      g_btormbt->max_add_bitvecops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-bitvecops"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops' is not a number (try '-h')");
-      g_btormbt->min_add_bitvecops = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops' is not a number (try '-h')");
-      g_btormbt->max_add_bitvecops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-bitvecops-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      g_btormbt->min_add_bitvecops_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-bitvecops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      g_btormbt->max_add_bitvecops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-inputs-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-inputs-init' is not a number (try '-h')");
-      g_btormbt->min_add_inputs_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-inputs-init' is not a number (try '-h')");
-      g_btormbt->max_add_inputs_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-inputs"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
-      g_btormbt->min_add_inputs = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
-      g_btormbt->max_add_inputs = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-inputs-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-inputs-inc' is not a number (try '-h')");
-      g_btormbt->min_add_inputs_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-inputs-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-inputs-inc' is not a number (try '-h')");
-      g_btormbt->max_add_inputs_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--ops-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
-      g_btormbt->min_ops_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
-      g_btormbt->max_ops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--ops"))
-    {
-      if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops' is not a number (try '-h')");
-      g_btormbt->min_ops = atoi (argv[i]);
-      if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops' is not a number (try '-h')");
-      g_btormbt->max_ops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--ops-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
-      g_btormbt->min_ops_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
-      g_btormbt->max_ops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-ops-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-ops-init' is not a number (try '-h')");
-      g_btormbt->min_add_ops_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-ops-init' is not a number (try '-h')");
-      g_btormbt->max_add_ops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-ops"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
-      g_btormbt->min_add_ops = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
-      g_btormbt->max_add_ops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--add-ops-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-ops-inc' is not a number (try '-h')");
-      g_btormbt->min_add_ops_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--add-ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--add-ops-inc' is not a number (try '-h')");
-      g_btormbt->max_add_ops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--release-ops-init"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops-init' is not a number (try '-h')");
-      g_btormbt->min_release_ops_init = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops-init' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops-init' is not a number (try '-h')");
-      g_btormbt->max_release_ops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--release-ops"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops' is not a number (try '-h')");
-      g_btormbt->min_release_ops = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops' is not a number (try '-h')");
-      g_btormbt->max_release_ops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--release-ops-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops-inc' is not a number (try '-h')");
-      g_btormbt->min_release_ops_inc = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--release-ops-inc' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--release-ops-inc' is not a number (try '-h')");
-      g_btormbt->max_release_ops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-ops-lower"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--max-ops-lower' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--max-ops-lower' is not a number (try '-h')");
-      g_btormbt->max_ops_lower = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--asserts-lower"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--asserts-lower' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--asserts-lower' is not a number (try '-h')");
-      g_btormbt->min_asserts_lower = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--asserts-lower' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--asserts-lower' is not a number (try '-h')");
-      g_btormbt->max_asserts_lower = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--asserts-upper"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--asserts-upper' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--asserts-upper' is not a number (try '-h')");
-      g_btormbt->min_asserts_upper = atoi (argv[i]);
-      if (++i == argc)
-        btormbt_error ("argument to '--asserts-upper' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--asserts-upper' is not a number (try '-h')");
-      g_btormbt->max_asserts_upper = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--p-sort-bv"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-sort-bv' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-sort-bv' is not a number (try '-h')");
-      g_btormbt->p_sort_bv = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_sort_bv > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-sort-bv' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-sort-fun"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-sort-fun' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-sort-fun' is not a number (try '-h')");
-      g_btormbt->p_sort_fun = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_sort_fun > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-sort-fun' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-sort-fun-unary"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-sort-fun-unary' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-sort-fun-unary' is not a number (try '-h')");
-      g_btormbt->p_sort_fun_unary = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_sort_fun_unary > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-sort-fun-unary' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-assume"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-assume' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-assume' is not a number (try '-h')");
-      g_btormbt->p_assume = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_assume > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-assume' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-param-exp"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-param-exp' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-param-exp' is not a number (try '-h')");
-      g_btormbt->p_param_exp = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_param_exp > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-param-exp' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-param-arr-exp"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-param-arr-exp' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-param-arr-exp' is not a number (try '-h')");
-      g_btormbt->p_param_arr_exp = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_param_arr_exp > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-param-arr-exp' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-apply-fun"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-apply-fun' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-apply-fun' is not a number (try '-h')");
-      g_btormbt->p_apply_fun = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_apply_fun > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-apply-fun' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-apply-uf"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-apply-uf' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-apply-uf' is not a number (try '-h')");
-      g_btormbt->p_apply_uf = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_apply_uf > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-apply-uf' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-rw"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-rw' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-rw' is not a number (try '-h')");
-      g_btormbt->p_rw = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_rw > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-rw' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-read"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-read' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-read' is not a number (try '-h')");
-      g_btormbt->p_read = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_read > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-read' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-cond"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-cond' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-cond' is not a number (try '-h')");
-      g_btormbt->p_cond = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_cond > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-cond' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-eq"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-eq' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-eq' is not a number (try '-h')");
-      g_btormbt->p_eq = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_eq > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-eq' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-inc"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-inc' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-inc' is not a number (try '-h')");
-      g_btormbt->p_inc = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_inc > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-inc' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-dump"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-dump' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error ("argument to '--p-dump' is not a number (try '-h')");
-      g_btormbt->p_dump = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_dump > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-dump' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-print-model"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-print-model' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-print-model' is not a number (try '-h')");
-      g_btormbt->p_print_model = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_print_model > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-print-model' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--p-model-format"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--p-model-format' missing (try '-h')");
-      if (!isfloatnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--p-model-format' is not a number (try '-h')");
-      g_btormbt->p_model_format = atof (argv[i]) * BTOR_PROB_MAX;
-      if (g_btormbt->p_print_model > BTOR_PROB_MAX)
-        btormbt_error ("argument to '--p-model-format' must be < 1.0");
-    }
-    else if (!strcmp (argv[i], "--output-format"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--output-format' missing (try '-h')");
-      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2")
-          && strcmp (argv[i], "aag") && strcmp (argv[i], "aig"))
-        btormbt_error ("argument to '--output-format' is invalid (try '-h')");
-      g_btormbt->output_format = argv[i];
+      btoropt->val          = val;
+      btoropt->forced_by_cl = true;
     }
     else if (!isnumstr (argv[i]))
     {

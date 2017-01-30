@@ -68,13 +68,6 @@ btor_mapped_node (BtorNodeMap *map, const BtorNode *node)
   return res;
 }
 
-int
-btor_count_map (const BtorNodeMap *map)
-{
-  assert (map);
-  return map->table->count;
-}
-
 void
 btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {

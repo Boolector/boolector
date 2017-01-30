@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -126,7 +126,6 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  int32_t btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
@@ -134,7 +133,6 @@ typedef struct BtorBVVarNode BtorBVVarNode;
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
-  int32_t btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorUFNode BtorUFNode;
@@ -458,28 +456,11 @@ btor_is_array_or_bv_eq_node (const BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 /* Get the id of an expression (negative if exp is inverted). */
-static inline int
+static inline int32_t
 btor_exp_get_id (const BtorNode *exp)
 {
   assert (exp);
   return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
-}
-
-static inline int
-btor_exp_get_btor_id (const BtorNode *exp)
-{
-  assert (exp);
-
-  BtorNode *real_exp;
-
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (btor_is_bv_var_node (exp))
-    return BTOR_IS_INVERTED_NODE (exp) ? -((BtorBVVarNode *) real_exp)->btor_id
-                                       : ((BtorBVVarNode *) real_exp)->btor_id;
-  else if (btor_is_uf_node (exp))
-    return ((BtorUFNode *) real_exp)->btor_id;
-  return 0;
 }
 
 static inline int
@@ -514,13 +495,6 @@ btor_exp_set_sort_id (BtorNode *exp, BtorSortId id)
 
 /*------------------------------------------------------------------------*/
 
-/* These are only necessary in kind of internal wrapper code, which uses
- * the internal structure of expressions, e.g., BtorNode, but otherwise
- * works through the external API, e.g., BoolectorNode, particularly if
- * call backs are provided by the user which have the external view.
- * Consider for example the substitution functions in 'boolectormap.h'
- * which in turn is heavily used in the model checker 'btormc.c'.
- */
 void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
 
 void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
@@ -534,7 +508,10 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 /*------------------------------------------------------------------------*/
 
 /* Set parsed id (BTOR format only, needed for model output). */
-void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
+void btor_exp_set_btor_id (Btor *btor, BtorNode *exp, int32_t id);
+
+/* Get parsed id (BTOR format only, needed for model output). */
+int32_t btor_exp_get_btor_id (BtorNode *exp);
 
 /* Get the exp (belonging to instance 'btor') that matches given id.
  * Note: The main difference to 'btor_match_node_by_id' is that this function
@@ -558,11 +535,11 @@ void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
 /* Get the exp (belonging to instance 'btor') that matches given symbol.
  * Note: does NOT increase the ref counter */
-BtorNode *btor_get_node_by_symbol (Btor *btor, char *sym);
+BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
 
 /* Retrieve the exp (belonging to instance 'btor') that matches given symbol.
  * Note: increases ref counter of returned match! */
-BtorNode *btor_match_node_by_symbol (Btor *btor, char *sym);
+BtorNode *btor_match_node_by_symbol (Btor *btor, const char *sym);
 
 /*------------------------------------------------------------------------*/
 
@@ -798,7 +775,9 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc);
+#if 0
+BtorNode *btor_and_n_exp (Btor * btor, BtorNode *args[], uint32_t argc);
+#endif
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
