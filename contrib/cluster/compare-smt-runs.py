@@ -378,7 +378,8 @@ def _normalize_data(data):
     if g_args.timeout:
         for d in data['time_cpu']:
             for f in data['time_cpu'][d]:
-                if data['time_cpu'][d][f] > g_args.timeout[d]:
+                if data['time_cpu'][d][f] is None or \
+                   data['time_cpu'][d][f] > g_args.timeout[d]:
                     data['time_cpu'][d][f] = g_args.timeout[d]
                     data['status'][d][f] = "time"
                     data['result'][d][f] = 1
