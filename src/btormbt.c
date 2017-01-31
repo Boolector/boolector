@@ -2661,7 +2661,8 @@ btormbt_state_opt (BtorMBT *mbt)
         || btoropt_engine->val == BTOR_ENGINE_PROP
         || btoropt_engine->val == BTOR_ENGINE_SLS
         || (btoropt_engine->val == BTOR_ENGINE_FUN
-            && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+            && (btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)
+                || btor_get_opt (mbt->btor, BTOR_OPT_FUN_PRESLS))))
     {
       /* reset if forced engine does not support QF_(AUF)BV */
       mbt->round.logic = BTORMBT_LOGIC_QF_BV;
