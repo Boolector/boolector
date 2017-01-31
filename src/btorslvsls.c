@@ -1429,6 +1429,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int32_t j, max_steps, id, nmoves;
+  uint32_t nflips;
   BtorSolverResult sat_result;
   BtorNode *root;
   BtorSLSConstrData *d;
@@ -1439,6 +1440,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   btor = slv->btor;
   assert (!btor->inconsistent);
   nmoves = 0;
+  nflips = btor_get_opt (btor, BTOR_OPT_SLS_NFLIPS);
 
   if (btor_terminate_btor (btor))
   {
@@ -1538,7 +1540,7 @@ sat_sls_solver (BtorSLSSolver *slv)
          !btor_get_opt (btor, BTOR_OPT_SLS_USE_RESTARTS) || j < max_steps;
          j++)
     {
-      if (btor_terminate_btor (btor))
+      if (btor_terminate_btor (btor) || (nflips && slv->stats.flips >= nflips))
       {
         sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;

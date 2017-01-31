@@ -368,6 +368,18 @@ btor_init_opts (Btor *btor)
             "within a sequential portfolio "
             "(QF_BV only!)");
   init_opt (btor,
+            BTOR_OPT_FUN_PRESLS,
+            false,
+            true,
+            "fun:presls",
+            0,
+            0,
+            0,
+            1,
+            "run sls engine as a preprocessing step "
+            "within a sequential portfolio "
+            "(QF_BV only!)");
+  init_opt (btor,
             BTOR_OPT_FUN_DUAL_PROP,
             false,
             true,
@@ -429,6 +441,16 @@ btor_init_opts (Btor *btor)
             "eager lemma generation");
 
   /* SLS engine ---------------------------------------------------------- */
+  init_opt (btor,
+            BTOR_OPT_SLS_NFLIPS,
+            false,
+            false,
+            "sls:nflips",
+            0,
+            0,
+            0,
+            UINT32_MAX,
+            "number of bit-flips used as a limit for sls engine");
   init_opt (btor,
             BTOR_OPT_SLS_STRATEGY,
             false,
