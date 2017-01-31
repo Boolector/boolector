@@ -2240,6 +2240,7 @@ sat_fun_solver (BtorFunSolver *slv)
       btor->slv->api.print_time_stats (btor->slv);
       /* delete prop solver */
       btor->slv->api.delet (btor->slv);
+      btor_delete_model (btor);
       /* reset */
       btor->slv = (BtorSolver *) slv;
       btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
