@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -46,7 +46,7 @@ void
 init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
-  g_mm   = btor_get_mem_mgr_btor (g_btor);
+  g_mm   = g_btor->mm;
   btor_init_rng (&g_btor->rng, btor_get_opt (g_btor, BTOR_OPT_SEED));
   g_rng = &g_btor->rng;
 }
@@ -170,6 +170,55 @@ test_uint64_to_bv_to_uint64_bitvec (void)
     y = btor_bv_to_uint64_bv (a);
     assert (x == y);
     btor_free_bv (g_mm, a);
+  }
+}
+
+static void
+test_int64_to_bv_bitvec (void)
+{
+  uint64_t i;
+  BtorBitVector *a;
+  char *str_a;
+  const char *s;
+  int64_t x[] = {
+      -1,
+      -2,
+      -3,
+      -123,
+      3,
+  };
+  const char *str_x[] = {
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111110",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "1111111111111111111111111111101",
+
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111111111111"
+      "11111111111111111111111110000101",
+
+      "00000000000000000000000000000000"
+      "00000000000000000000000000000000"
+      "00000000000000000000000000000011",
+
+      0};
+
+  for (i = 0; str_x[i]; i++)
+  {
+    s     = str_x[i];
+    a     = btor_int64_to_bv (g_mm, x[i], strlen (s));
+    str_a = btor_bv_to_char_bv (g_mm, a);
+    assert (strcmp (str_a, s) == 0);
+    btor_free_bv (g_mm, a);
+    btor_freestr (g_mm, str_a);
   }
 }
 
@@ -1915,6 +1964,7 @@ run_bitvec_tests (int argc, char **argv)
 
   BTOR_RUN_TEST (uint64_to_bitvec);
   BTOR_RUN_TEST (uint64_to_bv_to_uint64_bitvec);
+  BTOR_RUN_TEST (int64_to_bv_bitvec);
   BTOR_RUN_TEST (char_to_bitvec);
   BTOR_RUN_TEST (bv_to_char_bitvec);
   BTOR_RUN_TEST_CHECK_LOG (bv_to_hex_char_bitvec);

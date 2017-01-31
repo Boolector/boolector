@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -9,8 +9,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORSLVCORE_H_INCLUDED
-#define BTORSLVCORE_H_INCLUDED
+#ifndef BTORSLVFUN_H_INCLUDED
+#define BTORSLVFUN_H_INCLUDED
 
 #include "btorexp.h"
 #include "btorslv.h"
@@ -31,9 +31,6 @@ struct BtorFunSolver
   int lod_limit;
   int sat_limit;
   bool assume_lemmas;
-
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
 
   struct
   {
@@ -59,7 +56,6 @@ struct BtorFunSolver
     long long eval_exp_calls;
     long long propagations;
     long long propagations_down;
-    long long partial_beta_reduction_restarts;
   } stats;
 
   struct
@@ -75,9 +71,13 @@ struct BtorFunSolver
     double search_init_apps_collect_fa;
     double search_init_apps_collect_fa_cone;
     double lemma_gen;
-    double find_nenc_app;
     double find_prop_app;
-    double find_cond_prop_app;
+    double check_consistency;
+    double prop;
+    double betap;
+    double find_conf_app;
+    double check_extensionality;
+    double prop_cleanup;
   } time;
 };
 

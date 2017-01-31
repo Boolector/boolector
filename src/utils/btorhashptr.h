@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,11 +14,12 @@
 #ifndef BTOR_PTR_HASH_H_INCLUDED
 #define BTOR_PTR_HASH_H_INCLUDED
 
+#include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 #include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
-
-#include <assert.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -53,8 +54,8 @@ struct BtorPtrHashTable
 {
   BtorMemMgr *mm;
 
-  unsigned size;
-  unsigned count;
+  uint32_t size;
+  uint32_t count;
   BtorPtrHashBucket **table;
 
   BtorHashPtr hash;
@@ -81,11 +82,11 @@ BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mm,
                                              const void *key_map,
                                              const void *data_map);
 
-void btor_delete_ptr_hash_table (BtorPtrHashTable *);
+void btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht);
 
-BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
 
-BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
 
 /* Remove from hash table the bucket with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
@@ -101,6 +102,34 @@ void btor_remove_ptr_hash_table (BtorPtrHashTable *,
 
 unsigned btor_hash_str (const void *str);
 
-#define btor_cmpstr ((BtorCmpPtr) strcmp)
+#define btor_compare_str ((BtorCmpPtr) strcmp)
 
+/*------------------------------------------------------------------------*/
+/* iterators     		                                          */
+/*------------------------------------------------------------------------*/
+
+#define BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE 8
+
+typedef struct BtorPtrHashTableIterator
+{
+  BtorPtrHashBucket *bucket;
+  void *cur;
+  bool reversed;
+  uint8_t num_queued;
+  uint8_t pos;
+  const BtorPtrHashTable *stack[BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE];
+} BtorPtrHashTableIterator;
+
+void btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                        const BtorPtrHashTable *t);
+void btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                                 const BtorPtrHashTable *t);
+void btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
+                                         const BtorPtrHashTable *t);
+bool btor_has_next_ptr_hash_table_iterator (const BtorPtrHashTableIterator *it);
+void *btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it);
+BtorHashTableData *btor_next_data_ptr_hash_table_iterator (
+    BtorPtrHashTableIterator *it);
+
+/*------------------------------------------------------------------------*/
 #endif

@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,7 +13,7 @@
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
 void
@@ -24,7 +25,7 @@ btor_eliminate_applies (Btor *btor)
   double start, delta;
   BtorNode *app, *fun, *subst;
   BtorNodeIterator it;
-  BtorHashTableIterator h_it;
+  BtorPtrHashTableIterator h_it;
   BtorPtrHashTable *cache;
 
   if (btor->lambdas->count == 0) return;
@@ -45,10 +46,10 @@ btor_eliminate_applies (Btor *btor)
     btor_init_substitutions (btor);
 
     /* collect function applications */
-    btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
-    while (btor_has_next_node_hash_table_iterator (&h_it))
+    btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
+    while (btor_has_next_ptr_hash_table_iterator (&h_it))
     {
-      fun = btor_next_node_hash_table_iterator (&h_it);
+      fun = btor_next_ptr_hash_table_iterator (&h_it);
 
       btor_init_apply_parent_iterator (&it, fun);
       while (btor_has_next_apply_parent_iterator (&it))
@@ -58,7 +59,7 @@ btor_eliminate_applies (Btor *btor)
         if (app->parameterized) continue;
 
         num_applies++;
-        subst = btor_beta_reduce_full_cached (btor, app, cache);
+        subst = btor_beta_reduce_full (btor, app, cache);
         assert (!btor_get_ptr_hash_table (btor->substitutions, app));
         btor_insert_substitution (btor, app, subst, 0);
         btor_release_exp (btor, subst);
@@ -78,10 +79,10 @@ btor_eliminate_applies (Btor *btor)
   } while (num_applies > 0);
 
 #ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
-  while (btor_has_next_node_hash_table_iterator (&h_it))
+  btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
+  while (btor_has_next_ptr_hash_table_iterator (&h_it))
   {
-    fun = btor_next_node_hash_table_iterator (&h_it);
+    fun = btor_next_ptr_hash_table_iterator (&h_it);
 
     btor_init_apply_parent_iterator (&it, fun);
     while (btor_has_next_apply_parent_iterator (&it))
@@ -92,11 +93,11 @@ btor_eliminate_applies (Btor *btor)
   }
 #endif
 
-  btor_init_hash_table_iterator (&h_it, cache);
-  while (btor_has_next_hash_table_iterator (&h_it))
+  btor_init_ptr_hash_table_iterator (&h_it, cache);
+  while (btor_has_next_ptr_hash_table_iterator (&h_it))
   {
     btor_release_exp (btor, h_it.bucket->data.as_ptr);
-    btor_delete_exp_pair (btor, btor_next_hash_table_iterator (&h_it));
+    btor_delete_exp_pair (btor, btor_next_ptr_hash_table_iterator (&h_it));
   }
   btor_delete_ptr_hash_table (cache);
 

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2016 Aina Niemetz.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,11 +14,11 @@
 #include "btormain.h"
 #include "boolector.h"
 #include "btorconfig.h"
+#include "btorcore.h"
 #include "btorexit.h"
 #include "btoropt.h"
 #include "btorparse.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btorutil.h"
 
@@ -237,7 +237,7 @@ btormain_init_opts (BtorMainApp *app)
                  BTOR_ENGINE_MAX,
                  false,
                  BTORMAIN_OPT_ARG_STR,
-                 "set engine (core sls) [core]");
+                 "set engine (core sls prop aigprop) [core]");
   init_main_opt (
       app,
       BTORMAIN_OPT_SAT_ENGINE,
@@ -521,9 +521,9 @@ print_opt (BtorMainApp *app,
 
   assert (!strcmp (lng, "lingeling-opts")
           || (shrt
-              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
+              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 5
                   <= LEN_OPTSTR))
-          || (!shrt && (strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR)));
+          || (!shrt && (strlen (paramstr) + strlen (lng) + 5 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -557,11 +557,11 @@ print_opt (BtorMainApp *app,
     BTOR_CNEWN (app->mm, descstr, len + 1);
     sprintf (descstr, "%s", desc);
   }
-  BTOR_INIT_STACK (words);
+  BTOR_INIT_STACK (app->mm, words);
   word = strtok (descstr, " ");
   while (word)
   {
-    BTOR_PUSH_STACK (app->mm, words, btor_strdup (app->mm, word));
+    BTOR_PUSH_STACK (words, btor_strdup (app->mm, word));
     word = strtok (0, " ");
   }
   BTOR_DELETEN (app->mm, descstr, len + 1);
@@ -593,7 +593,7 @@ print_opt (BtorMainApp *app,
   /* cleanup */
   while (!BTOR_EMPTY_STACK (words))
     btor_freestr (app->mm, BTOR_POP_STACK (words));
-  BTOR_RELEASE_STACK (app->mm, words);
+  BTOR_RELEASE_STACK (words);
 }
 
 #define PRINT_MAIN_OPT(app, opt)                                           \
@@ -688,21 +688,21 @@ print_copyright (BtorMainApp *app)
 
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
-  fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2007-2016 Armin Biere\n");
   fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
   fprintf (out, "\n");
   fprintf (out, "This software is linked against Lingeling\n");
-  fprintf (out, "Copyright (c) 2010-2014 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2010-2016 Armin Biere\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
 #ifdef BTOR_USE_PICOSAT
   fprintf (out, "\n");
   fprintf (out, "This software is linked against PicoSAT\n");
-  fprintf (out, "Copyright (c) 2006-2014 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2006-2016 Armin Biere\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
@@ -906,8 +906,8 @@ boolector_main (int argc, char **argv)
 
   mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
-  BTOR_INIT_STACK (opt);
-  BTOR_INIT_STACK (errarg);
+  BTOR_INIT_STACK (g_app->mm, opt);
+  BTOR_INIT_STACK (g_app->mm, errarg);
 
   for (i = 1; i < argc; i++)
   {
@@ -974,9 +974,8 @@ boolector_main (int argc, char **argv)
     BTOR_RESET_STACK (opt);
 
     /* save original option string (without arguments) for error messages */
-    for (j = 0; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, errarg, arg[j]);
-    BTOR_PUSH_STACK (g_app->mm, errarg, '\0');
+    for (j = 0; j < len && arg[j] != '='; j++) BTOR_PUSH_STACK (errarg, arg[j]);
+    BTOR_PUSH_STACK (errarg, '\0');
 
     /* extract option name */
     isshrt = arg[1] == '-' ? 0 : 1;
@@ -984,8 +983,8 @@ boolector_main (int argc, char **argv)
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
     for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, opt, arg[j]);
-    BTOR_PUSH_STACK (g_app->mm, opt, '\0');
+      BTOR_PUSH_STACK (opt, arg[j]);
+    BTOR_PUSH_STACK (opt, '\0');
 
     /* extract option argument (if any) */
     if (arg[j] == '=')
@@ -1249,20 +1248,6 @@ boolector_main (int argc, char **argv)
         {
           switch (k)
           {
-            case BTOR_OPT_INCREMENTAL:
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-              boolector_set_opt (g_app->btor, k, inc);
-              break;
-            case BTOR_OPT_INCREMENTAL_ALL:
-              boolector_set_opt (
-                  g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-              inc = READ_ARG_IS_INT (readval) && val == 0
-                        ? 0
-                        : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-              boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-              break;
             case BTOR_OPT_MODEL_GEN:
               if (READ_ARG_IS_INT (readval) && val == 0)
               {
@@ -1275,26 +1260,6 @@ boolector_main (int argc, char **argv)
                 pmodel = 1;
               }
               break;
-            case BTOR_OPT_FUN_DUAL_PROP:
-              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
-              {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
-                goto DONE;
-              }
-              goto DEFAULT;
-            case BTOR_OPT_FUN_JUST:
-              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP))
-              {
-                btormain_error (g_app,
-                                "can only set one out of '--%s' and '--%s'",
-                                BTOR_OPT_FUN_DUAL_PROP,
-                                BTOR_OPT_FUN_JUST);
-                goto DONE;
-              }
-              goto DEFAULT;
 #ifndef NBTORLOG
             case BTOR_OPT_VERBOSITY:
             case BTOR_OPT_LOGLEVEL:
@@ -1309,7 +1274,6 @@ boolector_main (int argc, char **argv)
               break;
             default:
               assert (k != BTOR_OPT_NUM_OPTS);
-            DEFAULT:
               if (READ_ARG_IS_INT (readval))
                 boolector_set_opt (g_app->btor, k, val);
               else
@@ -1471,6 +1435,8 @@ boolector_main (int argc, char **argv)
   /* we don't dump formula(s) in incremental mode */
   else if (dump)
   {
+    (void) boolector_simplify (g_app->btor);
+
     switch (dump)
     {
       case BTOR_OUTPUT_FORMAT_BTOR:
@@ -1502,8 +1468,8 @@ boolector_main (int argc, char **argv)
     goto DONE;
   }
 
-  /* call sat (if not in incremental mode) */
-  if (parse_res != BOOLECTOR_SAT && parse_res != BOOLECTOR_UNSAT
+  /* call sat (if not yet called) */
+  if (parse_res == BOOLECTOR_PARSE_UNKNOWN
       && !boolector_terminate (g_app->btor))
   {
     sat_res = boolector_sat (g_app->btor);
@@ -1568,8 +1534,8 @@ DONE:
     }
   }
 
-  BTOR_RELEASE_STACK (g_app->mm, errarg);
-  BTOR_RELEASE_STACK (g_app->mm, opt);
+  BTOR_RELEASE_STACK (errarg);
+  BTOR_RELEASE_STACK (opt);
   btormain_delete_btormain (g_app);
   reset_sig_handlers ();
 

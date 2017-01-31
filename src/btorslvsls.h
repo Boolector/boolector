@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -17,6 +17,7 @@
 #endif
 
 #include "btorslv.h"
+#include "utils/btorhashint.h"
 #include "utils/btorstack.h"
 
 enum BtorSLSMoveKind
@@ -36,7 +37,7 @@ typedef enum BtorSLSMoveKind BtorSLSMoveKind;
 
 struct BtorSLSMove
 {
-  BtorPtrHashTable *cans;
+  BtorIntHashTable *cans;
   double sc;
 };
 typedef struct BtorSLSMove BtorSLSMove;
@@ -58,18 +59,28 @@ struct BtorSLSSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorPtrHashTable *roots; /* also maintains assertion weights */
-  BtorPtrHashTable *score; /* sls score */
+  BtorIntHashTable *roots;   /* must be map (for common propsls funs)
+                                but does not maintain anything */
+  BtorIntHashTable *weights; /* also maintains assertion weights */
+  BtorIntHashTable *score;   /* sls score */
+
+  uint32_t nflips; /* limit, disabled if 0 */
+  bool terminate;
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   uint32_t npropmoves;       /* record #no moves for prop moves */
   uint32_t nslsmoves;        /* record #no moves for sls moves */
   double sum_score;          /* record sum of all scores for prob rand walk */
 
+  /* prop moves only */
+  uint32_t prop_flip_cond_const_prob;
+  int32_t prop_flip_cond_const_prob_delta;
+  uint32_t prop_nflip_cond_const;
+
   /* the following maintain data for the next move (i.e. either the move
    * with the maximum score of all tried moves, or a random walk, or a
    * randomized move). */
-  BtorPtrHashTable *max_cans; /* list of (can, neigh) */
+  BtorIntHashTable *max_cans; /* list of (can, neigh) */
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
   int32_t max_gw;           /* is groupwise move? (for stats) */
@@ -99,14 +110,20 @@ struct BtorSLSSolver
     uint32_t move_gw_seg;
     uint32_t move_gw_rand;
     uint32_t move_gw_rand_walk;
+    uint64_t updates;
   } stats;
+
+  struct
+  {
+    double update_cone;
+    double update_cone_reset;
+    double update_cone_model_gen;
+    double update_cone_compute_score;
+  } time;
 };
 
 typedef struct BtorSLSSolver BtorSLSSolver;
 
 BtorSolver *btor_new_sls_solver (Btor *btor);
-
-/* currently needed by prop engine (TODO maybe remove in the future) */
-void btor_compute_sls_scores (Btor *btor, BtorPtrHashTable *score);
 
 #endif

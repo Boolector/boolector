@@ -28,6 +28,7 @@ main (int argc, char **argv)
   Btor *btor;
   BoolectorNode *var, *var_shift, *zero, *one, *onelog, *formula;
   BoolectorNode *result1, *result2, *and, *temp, *sgt, *eq, *ne;
+  BoolectorSort s0, s1;
   if (argc != 2)
   {
     printf ("Usage: ./ispowerof2 <num-bits>\n");
@@ -46,11 +47,13 @@ main (int argc, char **argv)
   }
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
-  var       = boolector_var (btor, num_bits, "var");
+  s0        = boolector_bitvec_sort (btor, num_bits);
+  s1        = boolector_bitvec_sort (btor, btor_log_2_util (num_bits));
+  var       = boolector_var (btor, s0, "var");
   var_shift = boolector_copy (btor, var);
-  zero      = boolector_zero (btor, num_bits);
-  one       = boolector_one (btor, num_bits);
-  onelog    = boolector_one (btor, btor_log_2_util (num_bits));
+  zero      = boolector_zero (btor, s0);
+  one       = boolector_one (btor, s0);
+  onelog    = boolector_one (btor, s1);
   result1   = boolector_true (btor);
   for (i = 0; i < num_bits - 2; i++)
   {
@@ -106,6 +109,8 @@ main (int argc, char **argv)
   boolector_release (btor, zero);
   boolector_release (btor, one);
   boolector_release (btor, onelog);
+  boolector_release_sort (btor, s0);
+  boolector_release_sort (btor, s1);
   boolector_delete (btor);
   return 0;
 }

@@ -32,35 +32,35 @@ static void
 test_init_release_stack (void)
 {
   BtorIntStack stack;
-  BTOR_INIT_STACK (stack);
-  BTOR_RELEASE_STACK (g_mm, stack);
+  BTOR_INIT_STACK (g_mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 static void
 test_functionality_stack (void)
 {
   BtorIntStack stack;
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (g_mm, stack);
   assert (BTOR_COUNT_STACK (stack) == 0);
   assert (BTOR_EMPTY_STACK (stack));
   assert (BTOR_SIZE_STACK (stack) == 0);
   assert (BTOR_FULL_STACK (stack));
 
-  BTOR_PUSH_STACK (g_mm, stack, 1);
+  BTOR_PUSH_STACK (stack, 1);
 
   assert (BTOR_COUNT_STACK (stack) == 1);
   assert (!BTOR_EMPTY_STACK (stack));
   assert (BTOR_SIZE_STACK (stack) == 1);
   assert (BTOR_FULL_STACK (stack));
 
-  BTOR_PUSH_STACK (g_mm, stack, 2);
+  BTOR_PUSH_STACK (stack, 2);
 
   assert (BTOR_COUNT_STACK (stack) == 2);
   assert (!BTOR_EMPTY_STACK (stack));
   assert (BTOR_SIZE_STACK (stack) == 2);
   assert (BTOR_FULL_STACK (stack));
 
-  BTOR_PUSH_STACK (g_mm, stack, 3);
+  BTOR_PUSH_STACK (stack, 3);
 
   assert (BTOR_COUNT_STACK (stack) == 3);
   assert (!BTOR_EMPTY_STACK (stack));
@@ -88,7 +88,7 @@ test_functionality_stack (void)
   assert (BTOR_SIZE_STACK (stack) == 4);
   assert (!BTOR_FULL_STACK (stack));
 
-  BTOR_RELEASE_STACK (g_mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 static void
@@ -96,26 +96,26 @@ test_fit_stack (void)
 {
   BtorIntStack stack;
   int i;
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (g_mm, stack);
   for (i = 0; i < 100; i++)
   {
-    BTOR_FIT_STACK (g_mm, stack, i);
+    BTOR_FIT_STACK (stack, i);
     stack.start[i] = i;
   }
   for (i = 0; i < 100; i++) assert (stack.start[i] == i);
-  BTOR_FIT_STACK (g_mm, stack, 999);
+  BTOR_FIT_STACK (stack, 999);
   for (i = 100; i < 1000; i++) assert (!stack.start[i]);
-  BTOR_RELEASE_STACK (g_mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 static void
 test_reset_stack (void)
 {
   BtorIntStack stack;
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (g_mm, stack, 1);
-  BTOR_PUSH_STACK (g_mm, stack, 2);
-  BTOR_PUSH_STACK (g_mm, stack, 3);
+  BTOR_INIT_STACK (g_mm, stack);
+  BTOR_PUSH_STACK (stack, 1);
+  BTOR_PUSH_STACK (stack, 2);
+  BTOR_PUSH_STACK (stack, 3);
   assert (BTOR_COUNT_STACK (stack) == 3);
   assert (!BTOR_EMPTY_STACK (stack));
   assert (BTOR_SIZE_STACK (stack) == 4);
@@ -125,7 +125,7 @@ test_reset_stack (void)
   assert (BTOR_EMPTY_STACK (stack));
   assert (BTOR_SIZE_STACK (stack) == 4);
   assert (!BTOR_FULL_STACK (stack));
-  BTOR_RELEASE_STACK (g_mm, stack);
+  BTOR_RELEASE_STACK (stack);
 }
 
 void

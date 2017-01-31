@@ -1,4 +1,8 @@
-This is a source release of Boolector together with Lingeling.
+Boolector @VERSION@
+
+@DATE@
+
+Source code release of Boolector together with Lingeling.
 
 For COPYING respectively LICENSE see the individual archives in 'archives'.
 
@@ -25,4 +29,5 @@ The most recent version of Boolector can be found at
 
 This site also contains papers and documentation related to Boolector.
 
-Armin Biere, FMV, JKU, October, 2013.
+Institute for Formal Models and Verification
+Johannes Kepler University, Linz, Austria

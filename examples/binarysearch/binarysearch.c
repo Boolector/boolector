@@ -12,6 +12,7 @@ main (int argc, char **argv)
   BoolectorNode **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
   BoolectorNode *read2, *formula, *val, *index, *found, *sorted, *low, *high;
   BoolectorNode *two, *one, *mid, *sub, *udiv, *inc, *dec;
+  BoolectorSort sort_index, sort_elem, sort_array;
   if (argc != 3)
   {
     printf ("Usage: ./binarysearch <num-bits> <num-elements>\n");
@@ -38,14 +39,17 @@ main (int argc, char **argv)
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
   btor           = boolector_new ();
+  sort_elem      = boolector_bitvec_sort (btor, num_bits);
+  sort_index     = boolector_bitvec_sort (btor, num_bits_index);
+  sort_array     = boolector_array_sort (btor, sort_index, sort_elem);
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index, "array");
+    indices[i] = boolector_int (btor, i, sort_index);
+  array = boolector_array (btor, sort_array, "array");
   /* we write arbitrary search value into array at an arbitrary index */
-  val   = boolector_var (btor, num_bits, "search_val");
-  index = boolector_var (btor, num_bits_index, "search_index");
+  val   = boolector_var (btor, sort_elem, "search_val");
+  index = boolector_var (btor, sort_index, "search_index");
   temp  = boolector_write (btor, array, index, val);
   boolector_release (btor, array);
   array = temp;
@@ -64,10 +68,10 @@ main (int argc, char **argv)
     boolector_release (btor, ulte);
   }
   /* binary search algorithm */
-  low   = boolector_int (btor, 0, num_bits_index);
-  high  = boolector_int (btor, num_elements - 1, num_bits_index);
-  two   = boolector_int (btor, 2, num_bits_index);
-  one   = boolector_int (btor, 1, num_bits_index);
+  low   = boolector_int (btor, 0, sort_index);
+  high  = boolector_int (btor, num_elements - 1, sort_index);
+  two   = boolector_int (btor, 2, sort_index);
+  one   = boolector_int (btor, 1, sort_index);
   found = boolector_const (btor, "0");
   for (i = 0; i < num_iterations; i++)
   {
@@ -124,6 +128,9 @@ main (int argc, char **argv)
   boolector_release (btor, high);
   boolector_release (btor, two);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_index);
+  boolector_release_sort (btor, sort_elem);
+  boolector_release_sort (btor, sort_array);
   boolector_delete (btor);
   free (indices);
   return 0;

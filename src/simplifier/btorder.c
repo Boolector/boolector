@@ -10,9 +10,10 @@
 
 #include "simplifier/btorder.h"
 #include "btorcore.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 static BtorNode *
 mk_param_with_symbol (Btor *btor, BtorNode *node)
@@ -62,8 +63,8 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term)
 
   mm   = btor->mm;
   mark = btor_new_int_hash_table (mm);
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, term);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, term);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -78,10 +79,10 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term)
     }
 
     btor_add_int_hash_table (mark, cur->id);
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
   btor_delete_int_hash_table (mark);
-  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (visit);
   return res;
 }
 
@@ -170,8 +171,8 @@ find_substitutions (Btor *btor,
 
   mm    = btor->mm;
   cache = btor_new_int_hash_table (mm);
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, top_and);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, top_and);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
@@ -183,8 +184,8 @@ find_substitutions (Btor *btor,
 
     if (!BTOR_IS_INVERTED_NODE (cur) && btor_is_and_node (cur))
     {
-      BTOR_PUSH_STACK (mm, visit, cur->e[0]);
-      BTOR_PUSH_STACK (mm, visit, cur->e[1]);
+      BTOR_PUSH_STACK (visit, cur->e[0]);
+      BTOR_PUSH_STACK (visit, cur->e[1]);
     }
     else if (!BTOR_IS_INVERTED_NODE (cur) && btor_is_bv_eq_node (cur))
     {
@@ -194,7 +195,7 @@ find_substitutions (Btor *btor,
         map_subst_node (subst_map, cur->e[1], cur->e[0]);
     }
   }
-  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (visit);
   btor_delete_int_hash_table (cache);
 }
 
@@ -212,8 +213,8 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
   mark = btor_new_int_hash_map (mm);
   map  = btor_new_int_hash_map (mm);
 
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, root);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
@@ -232,13 +233,13 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
           || (!is_cer && btor_is_forall_node (real_cur)))
         num_quant_vars++;
 
-      BTOR_PUSH_STACK (mm, visit, real_cur);
+      BTOR_PUSH_STACK (visit, real_cur);
       for (i = 0; i < real_cur->arity; i++)
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (visit, real_cur->e[i]);
 
       /* we need to rebuild the substitution first */
       if ((d = btor_get_int_hash_map (map, real_cur->id)))
-        BTOR_PUSH_STACK (mm, visit, d->as_ptr);
+        BTOR_PUSH_STACK (visit, d->as_ptr);
     }
     else if (!cur_d->as_ptr)
     {
@@ -299,7 +300,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
   }
   btor_delete_int_hash_map (mark);
   btor_delete_int_hash_map (map);
-  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (visit);
   return result;
 }
 

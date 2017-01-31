@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -46,8 +46,8 @@ BTOR_DECLARE_STACK (BtorAIGPtr, BtorAIG *);
 
 struct BtorAIGUniqueTable
 {
-  int size;
-  int num_elements;
+  uint32_t size;
+  uint32_t num_elements;
   int32_t *chains;
 };
 
@@ -80,9 +80,6 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
 
-#define BTOR_IS_CONST_AIG(aig) \
-  (((aig) == BTOR_AIG_TRUE) || ((aig) == BTOR_AIG_FALSE))
-
 #define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
 
 #define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
@@ -91,38 +88,89 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (unsigned long int) (aig)))
 
-#define BTOR_IS_VAR_AIG(aig) ((aig)->is_var)
-
-#define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
-
-#define BTOR_GET_AIG_BY_ID(amgr, id)                              \
-  (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
-          : BTOR_PEEK_STACK (amgr->id2aig, id))
-
-#define BTOR_LEFT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[0]))
-
-#define BTOR_RIGHT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[1]))
-
-#define BTOR_GET_ID_AIG(aig) \
-  (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
-
-#define BTOR_GET_CNF_ID_AIG(aig)                                             \
-  ((aig) == BTOR_AIG_TRUE                                                    \
-       ? 1                                                                   \
-       : ((aig) == BTOR_AIG_FALSE ? -1                                       \
-                                  : (BTOR_IS_INVERTED_AIG (aig)              \
-                                         ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id \
-                                         : (aig)->cnf_id)))
-
 /*------------------------------------------------------------------------*/
 
+static inline bool
+btor_aig_is_const (const BtorAIG *aig)
+{
+  return aig == BTOR_AIG_TRUE || aig == BTOR_AIG_FALSE;
+}
+
+static inline bool
+btor_aig_is_false (const BtorAIG *aig)
+{
+  return aig == BTOR_AIG_FALSE;
+}
+
+static inline bool
+btor_aig_is_true (const BtorAIG *aig)
+{
+  return aig == BTOR_AIG_TRUE;
+}
+
+static inline bool
+btor_aig_is_var (const BtorAIG *aig)
+{
+  if (btor_aig_is_const (aig)) return false;
+  return aig->is_var;
+}
+
+static inline bool
+btor_aig_is_and (const BtorAIG *aig)
+{
+  if (btor_aig_is_const (aig)) return false;
+  return !aig->is_var;
+}
+
+static inline int32_t
+btor_aig_get_id (const BtorAIG *aig)
+{
+  assert (aig);
+  assert (!btor_aig_is_const (aig));
+  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id;
+}
+
+static inline BtorAIG *
+btor_aig_get_by_id (BtorAIGMgr *amgr, int32_t id)
+{
+  assert (amgr);
+
+  return id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id))
+                : BTOR_PEEK_STACK (amgr->id2aig, id);
+}
+
+static inline int32_t
+btor_aig_get_cnf_id (const BtorAIG *aig)
+{
+  if (btor_aig_is_true (aig)) return 1;
+  if (btor_aig_is_false (aig)) return -1;
+  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id
+                                    : aig->cnf_id;
+}
+
+static inline BtorAIG *
+btor_aig_get_left_child (BtorAIGMgr *amgr, const BtorAIG *aig)
+{
+  assert (amgr);
+  assert (aig);
+  assert (!btor_aig_is_const (aig));
+  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[0]);
+}
+
+static inline BtorAIG *
+btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
+{
+  assert (amgr);
+  assert (aig);
+  assert (!btor_aig_is_const (aig));
+  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[1]);
+}
+
+/*------------------------------------------------------------------------*/
 BtorAIGMgr *btor_new_aig_mgr (Btor *btor);
 BtorAIGMgr *btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr);
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
-// TODO remove
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
 
 /* Variable representing 1 bit. */
@@ -181,10 +229,12 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1);
+int btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1);
 
 /* hash AIG by id */
-unsigned int btor_hash_aig_by_id (BtorAIG *aig);
+uint32_t btor_hash_aig_by_id (const BtorAIG *aig);
+
 /* compare AIG by id */
-int btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1);
+int btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
+int btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
 #endif

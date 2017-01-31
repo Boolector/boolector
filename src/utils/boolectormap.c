@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -13,7 +13,7 @@
 #include "utils/boolectormap.h"
 #include "btorcore.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
+#include "utils/btorhashptr.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -42,19 +42,19 @@ boolector_delete_node_map (BoolectorNodeMap *map)
 {
   assert (map);
 
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNode *e;
   Btor *btor;
 
-  btor_init_node_hash_table_iterator (&it, map->table);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, map->table);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     e    = it.bucket->data.as_ptr;
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
 
-    e    = btor_next_node_hash_table_iterator (&it);
+    e    = btor_next_ptr_hash_table_iterator (&it);
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
@@ -64,7 +64,7 @@ boolector_delete_node_map (BoolectorNodeMap *map)
 }
 
 BoolectorNode *
-boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n)
+boolector_mapped_node (BoolectorNodeMap *map, const BoolectorNode *n)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *real_node;
@@ -86,7 +86,7 @@ boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n)
 }
 
 int
-boolector_count_map (BoolectorNodeMap *map)
+boolector_count_map (const BoolectorNodeMap *map)
 {
   assert (map);
   return map->table->count;
@@ -162,7 +162,7 @@ boolector_map_node_internal (Btor *btor,
     assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
   }
 
-  assert (e->kind != BTOR_PROXY_NODE);
+  assert (!btor_is_proxy_node (e));
 
   switch (e->kind)
   {
@@ -226,15 +226,15 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   mm   = btor->mm;
   mark = btor_new_int_hash_map (mm);
 
-  BTOR_INIT_STACK (working_stack);
-  BTOR_PUSH_STACK (mm, working_stack, eroot);
+  BTOR_INIT_STACK (mm, working_stack);
+  BTOR_PUSH_STACK (working_stack, eroot);
 
   while (!BTOR_EMPTY_STACK (working_stack))
   {
     node = BTOR_POP_STACK (working_stack);
     node = BTOR_REAL_ADDR_NODE (node);
     btor_inc_exp_ext_ref_counter (node->btor, node);
-    assert (node->kind != BTOR_PROXY_NODE);
+    assert (!btor_is_proxy_node (node));
     if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
     d = btor_get_int_hash_map (mark, node->id);
@@ -251,9 +251,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     else if (!d)
     {
       btor_add_int_hash_map (mark, node->id);
-      BTOR_PUSH_STACK (mm, working_stack, node);
+      BTOR_PUSH_STACK (working_stack, node);
       for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, working_stack, node->e[i]);
+        BTOR_PUSH_STACK (working_stack, node->e[i]);
     }
     else
     {
@@ -270,7 +270,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     assert (!BTOR_IS_INVERTED_NODE (node));
     btor_dec_exp_ext_ref_counter (node->btor, node);
   }
-  BTOR_RELEASE_STACK (mm, working_stack);
+  BTOR_RELEASE_STACK (working_stack);
   btor_delete_int_hash_map (mark);
   res = boolector_mapped_node (map, nroot);
   assert (res);

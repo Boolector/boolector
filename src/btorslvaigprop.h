@@ -31,6 +31,10 @@ struct BtorAIGPropSolver
   struct
   {
     double aprop_sat;
+    double aprop_update_cone;
+    double aprop_update_cone_reset;
+    double aprop_update_cone_model_gen;
+    double aprop_update_cone_compute_score;
   } time;
 };
 

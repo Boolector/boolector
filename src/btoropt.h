@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Aina Niemetz.
- *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
  *  All rights reserved.
@@ -74,9 +74,8 @@ enum BtorOptSatEngines
 
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
-#define BTOR_INPUT_FORMAT_BTOR2 2
-#define BTOR_INPUT_FORMAT_SMT1 3
-#define BTOR_INPUT_FORMAT_SMT2 4
+#define BTOR_INPUT_FORMAT_SMT1 2
+#define BTOR_INPUT_FORMAT_SMT2 3
 #define BTOR_INPUT_FORMAT_DFLT BTOR_INPUT_FORMAT_NONE
 #define BTOR_INPUT_FORMAT_MIN BTOR_INPUT_FORMAT_NONE
 #define BTOR_INPUT_FORMAT_MAX BTOR_INPUT_FORMAT_SMT2
@@ -97,6 +96,13 @@ enum BtorOptSatEngines
 #define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
 #define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
 
+#define BTOR_DP_QSORT_JUST 0
+#define BTOR_DP_QSORT_ASC 1
+#define BTOR_DP_QSORT_DESC 2
+#define BTOR_DP_QSORT_DFLT BTOR_DP_QSORT_JUST
+#define BTOR_DP_QSORT_MIN BTOR_DP_QSORT_JUST
+#define BTOR_DP_QSORT_MAX BTOR_DP_QSORT_DESC
+
 #define BTOR_JUST_HEUR_LEFT 0
 #define BTOR_JUST_HEUR_BRANCH_MIN_APP 1
 #define BTOR_JUST_HEUR_BRANCH_MIN_DEP 2
@@ -105,7 +111,7 @@ enum BtorOptSatEngines
 #define BTOR_JUST_HEUR_MAX BTOR_JUST_HEUR_BRANCH_MIN_DEP
 
 #define BTOR_SLS_STRAT_BEST_MOVE 0
-#define BTOR_SLS_STRAT_PROB_RAND_WALK 1
+#define BTOR_SLS_STRAT_RAND_WALK 1
 #define BTOR_SLS_STRAT_FIRST_BEST_MOVE 2
 #define BTOR_SLS_STRAT_BEST_SAME_MOVE 3
 #define BTOR_SLS_STRAT_ALWAYS_PROP 4
@@ -137,25 +143,39 @@ enum BtorOptSatEngines
 #define BTOR_EF_FINDPM_MIN BTOR_EF_FINDPM_NONE
 #define BTOR_EF_FINDPM_MAX BTOR_EF_FINDPM_REF
 
+#define BTOR_PROP_PATH_SEL_CONTROLLING 0
+#define BTOR_PROP_PATH_SEL_ESSENTIAL 1
+#define BTOR_PROP_PATH_SEL_RANDOM 2
+#define BTOR_PROP_PATH_SEL_DFLT BTOR_PROP_PATH_SEL_ESSENTIAL
+#define BTOR_PROP_PATH_SEL_MIN 0
+#define BTOR_PROP_PATH_SEL_MAX 2
+
+#define BTOR_FUN_EAGER_LEMMAS_NONE 0
+#define BTOR_FUN_EAGER_LEMMAS_CONF 1
+#define BTOR_FUN_EAGER_LEMMAS_ALL 2
+#define BTOR_FUN_EAGER_LEMMAS_DFLT BTOR_FUN_EAGER_LEMMAS_CONF
+#define BTOR_FUN_EAGER_LEMMAS_MIN BTOR_FUN_EAGER_LEMMAS_NONE
+#define BTOR_FUN_EAGER_LEMMAS_MAX BTOR_FUN_EAGER_LEMMAS_ALL
+
 /*------------------------------------------------------------------------*/
 
 void btor_init_opts (Btor *btor);
 void btor_clone_opts (Btor *btor, Btor *clone);
 void btor_delete_opts (Btor *btor);
 
-bool btor_has_opt (Btor *btor, BtorOption opt);
+bool btor_has_opt (Btor *btor, const BtorOption opt);
 
-uint32_t btor_get_opt (Btor *btor, BtorOption opt);
-uint32_t btor_get_opt_min (Btor *btor, BtorOption opt);
-uint32_t btor_get_opt_max (Btor *btor, BtorOption opt);
-uint32_t btor_get_opt_dflt (Btor *btor, BtorOption opt);
-const char *btor_get_opt_lng (Btor *btor, BtorOption opt);
-const char *btor_get_opt_shrt (Btor *btor, BtorOption opt);
-const char *btor_get_opt_desc (Btor *btor, BtorOption opt);
-const char *btor_get_opt_valstr (Btor *btor, BtorOption opt);
+uint32_t btor_get_opt (Btor *btor, const BtorOption opt);
+uint32_t btor_get_opt_min (Btor *btor, const BtorOption opt);
+uint32_t btor_get_opt_max (Btor *btor, const BtorOption opt);
+uint32_t btor_get_opt_dflt (Btor *btor, const BtorOption opt);
+const char *btor_get_opt_lng (Btor *btor, const BtorOption opt);
+const char *btor_get_opt_shrt (Btor *btor, const BtorOption opt);
+const char *btor_get_opt_desc (Btor *btor, const BtorOption opt);
+const char *btor_get_opt_valstr (Btor *btor, const BtorOption opt);
 
-void btor_set_opt (Btor *btor, BtorOption name, uint32_t val);
-void btor_set_opt_str (Btor *btor, BtorOption name, const char *str);
+void btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val);
+void btor_set_opt_str (Btor *btor, const BtorOption opt, const char *str);
 
 BtorOption btor_first_opt (Btor *btor);
 BtorOption btor_next_opt (Btor *btor, BtorOption cur);

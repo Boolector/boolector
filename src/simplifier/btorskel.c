@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -16,7 +16,6 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
 #include "lglib.h"
@@ -42,7 +41,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
     res = -1;
   else
   {
-    id = BTOR_GET_CNF_ID_AIG (aig);
+    id = btor_aig_get_cnf_id (aig);
     if (!id) return 0;
     smgr = btor_get_sat_mgr_btor (btor);
     res  = btor_fixed_sat (smgr, id);
@@ -89,7 +88,7 @@ process_skeleton_tseitin (Btor *btor,
   BtorNode *exp;
   BtorHashTableData *d;
 
-  BTOR_PUSH_STACK (btor->mm, *work_stack, root);
+  BTOR_PUSH_STACK (*work_stack, root);
 
   do
   {
@@ -102,9 +101,9 @@ process_skeleton_tseitin (Btor *btor,
     {
       btor_add_int_hash_map (mark, exp->id);
 
-      BTOR_PUSH_STACK (btor->mm, *work_stack, exp);
+      BTOR_PUSH_STACK (*work_stack, exp);
       for (i = exp->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (btor->mm, *work_stack, exp->e[i]);
+        BTOR_PUSH_STACK (*work_stack, exp->e[i]);
     }
     else if (d->as_int == 0)
     {
@@ -181,36 +180,45 @@ process_skeleton_tseitin (Btor *btor,
 
           break;
 
-        case BTOR_COND_NODE:
-          assert (btor_get_exp_width (btor, exp->e[0]) == 1);
-          if (btor_get_exp_width (btor, exp->e[1]) != 1) break;
-          assert (btor_get_exp_width (btor, exp->e[2]) == 1);
-          rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
-          rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
-          rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
+#if 0
+	    // can not happen, skeleton preprocessing is enabled when
+	    // rewrite level > 2, Boolean condition are rewritten when
+	    // rewrite level > 0
+	    case BTOR_COND_NODE:
+	      assert (btor_get_exp_width (btor, exp->e[0]) == 1);
+	      if (btor_get_exp_width (btor, exp->e[1]) != 1)
+		break;
+	      assert (btor_get_exp_width (btor, exp->e[2]) == 1);
+	      rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
+	      rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
+	      rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
 
-          lgladd (lgl, -lhs);
-          lgladd (lgl, -rhs[0]);
-          lgladd (lgl, rhs[1]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, -lhs);
+	      lgladd (lgl, -rhs[0]);
+	      lgladd (lgl, rhs[1]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, -lhs);
-          lgladd (lgl, rhs[0]);
-          lgladd (lgl, rhs[2]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, -lhs);
+	      lgladd (lgl, rhs[0]);
+	      lgladd (lgl, rhs[2]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, lhs);
-          lgladd (lgl, -rhs[0]);
-          lgladd (lgl, -rhs[1]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, lhs);
+	      lgladd (lgl, -rhs[0]);
+	      lgladd (lgl, -rhs[1]);
+	      lgladd (lgl, 0);
 
-          lgladd (lgl, lhs);
-          lgladd (lgl, rhs[0]);
-          lgladd (lgl, -rhs[2]);
-          lgladd (lgl, 0);
+	      lgladd (lgl, lhs);
+	      lgladd (lgl, rhs[0]);
+	      lgladd (lgl, -rhs[2]);
+	      lgladd (lgl, 0);
+	      break;
+#endif
+
+        default:
+          assert (!btor_is_cond_node (exp));
+          assert (!btor_is_proxy_node (exp));
           break;
-
-        default: assert (exp->kind != BTOR_PROXY_NODE); break;
       }
     }
   } while (!BTOR_EMPTY_STACK (*work_stack));
@@ -223,7 +231,7 @@ btor_process_skeleton (Btor *btor)
   int count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   double start, delta;
   int res, lit, val;
   BtorNode *exp;
@@ -250,22 +258,22 @@ btor_process_skeleton (Btor *btor)
 
   count = 0;
 
-  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (mm, work_stack);
   mark = btor_new_int_hash_map (mm);
 
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     count++;
-    exp = btor_next_node_hash_table_iterator (&it);
+    exp = btor_next_ptr_hash_table_iterator (&it);
     assert (btor_get_exp_width (btor, exp) == 1);
     process_skeleton_tseitin (btor, lgl, &work_stack, mark, ids, exp);
     lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
     lgladd (lgl, 0);
   }
 
-  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (work_stack);
   btor_delete_int_hash_map (mark);
 
   BTOR_MSG (btor->msg,
@@ -287,15 +295,15 @@ btor_process_skeleton (Btor *btor)
   if (res == 20)
   {
     BTOR_MSG (btor->msg, 1, "skeleton inconsistent");
-    btor->inconsistent = 1;
+    btor->inconsistent = true;
   }
   else
   {
     assert (res == 0 || res == 10);
-    btor_init_node_hash_table_iterator (&it, ids);
-    while (btor_has_next_node_hash_table_iterator (&it))
+    btor_init_ptr_hash_table_iterator (&it, ids);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
     {
-      exp = btor_next_node_hash_table_iterator (&it);
+      exp = btor_next_ptr_hash_table_iterator (&it);
       assert (!BTOR_IS_INVERTED_NODE (exp));
       lit = process_skeleton_tseitin_lit (ids, exp);
       val = lglfixed (lgl, lit);

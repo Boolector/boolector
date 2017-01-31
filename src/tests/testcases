@@ -698,7 +698,7 @@ distri7 -o src/tests/log/distri7.log src/tests/log/distri7.btor
 distri8 -o src/tests/log/distri8.log src/tests/log/distri8.btor
 redor3 -o src/tests/log/redor3.log src/tests/log/redor3.btor
 redand3twice -o src/tests/log/redand3twice.log src/tests/log/redand3twice.btor
-painc -I -o src/tests/log/painc.log src/tests/log/painc.smt
+painc -i -I 1 -o src/tests/log/painc.log src/tests/log/painc.smt
 sult -o src/tests/log/sult.log src/tests/log/sult.btor
 sult2 -o src/tests/log/sult2.log src/tests/log/sult2.btor
 concatslice1 -rwl 1 -db -o src/tests/log/concatslice1.log src/tests/log/concatslice1.btor
@@ -723,3 +723,5 @@ exactlyone -o src/tests/log/exactlyone.log src/tests/log/exactlyone.btor
 normalize_add_incomplete -db -o src/tests/log/normalize_add_incomplete.log src/tests/log/normalize_add_incomplete.btor
 normalize_mul_incomplete -db -o src/tests/log/normalize_mul_incomplete.log src/tests/log/normalize_mul_incomplete.btor
 normalize_and_incomplete -db -o src/tests/log/normalize_and_incomplete.log src/tests/log/normalize_and_incomplete.btor
+getvalue1 -o src/tests/log/getvalue1.log src/tests/log/getvalue1.smt2
+getvalue2 -o src/tests/log/getvalue2.log src/tests/log/getvalue2.smt2

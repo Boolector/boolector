@@ -26,6 +26,7 @@ main (int argc, char **argv)
   BoolectorNode *formula, *next_power, *next_smallest_power, *one, *temp;
   BoolectorNode *shift, *cur_const, *x, *eq, *gte, *lte, *gt;
   BoolectorNode **powers;
+  BoolectorSort s0, s1;
   char *const_string;
   if (argc != 2)
   {
@@ -58,13 +59,15 @@ main (int argc, char **argv)
     powers[i]                      = boolector_const (btor, const_string);
     const_string[num_bits - 1 - i] = '0';
   }
-  one = boolector_unsigned_int (btor, 1, num_bits);
-  x   = boolector_var (btor, num_bits, "x");
+  s0  = boolector_bitvec_sort (btor, num_bits);
+  s1  = boolector_bitvec_sort (btor, num_bits_log_2);
+  one = boolector_unsigned_int (btor, 1, s0);
+  x   = boolector_var (btor, s0, "x");
 
   next_power = boolector_sub (btor, x, one);
   for (i = 1; i < num_bits; i++)
   {
-    cur_const = boolector_unsigned_int (btor, i, num_bits_log_2);
+    cur_const = boolector_unsigned_int (btor, i, s1);
     shift     = boolector_sra (btor, next_power, cur_const);
     temp      = boolector_or (btor, next_power, shift);
     boolector_release (btor, next_power);
@@ -96,7 +99,7 @@ main (int argc, char **argv)
 
   /* we show that x is greater than (next_power >> 1), hence next_power
    * is indeed the NEXT biggest power of 2 */
-  cur_const           = boolector_unsigned_int (btor, 1, num_bits_log_2);
+  cur_const           = boolector_unsigned_int (btor, 1, s1);
   next_smallest_power = boolector_srl (btor, next_power, cur_const);
   gt                  = boolector_sgt (btor, x, next_smallest_power);
   temp                = boolector_and (btor, gt, formula);
@@ -125,6 +128,8 @@ main (int argc, char **argv)
   boolector_release (btor, next_power);
   boolector_release (btor, x);
   boolector_release (btor, one);
+  boolector_release_sort (btor, s0);
+  boolector_release_sort (btor, s1);
   boolector_delete (btor);
   free (powers);
   free (const_string);

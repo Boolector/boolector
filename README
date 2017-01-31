@@ -1,8 +1,8 @@
 These are the sources of the SMT solver Boolector. To compile issue
-'./configure && make'. This will build the library 'libboolector.a' and the
+'./configure.sh && make'. This will build the library 'libboolector.a' and the
 solver 'boolector'. The python API can be compiled by issuing
-'./configure -python && make', for further details please refer to
-'api/python/README'.
+'./configure.sh -python && make', for further details please refer to
+'src/api/python/README'.
 
 For a documentation of Boolector and its public APIs see 'doc/index.html'.
 

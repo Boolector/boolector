@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2013-2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -373,18 +373,18 @@ parse_symbol (BtorBTORParser *parser)
 
   if (ch != '\n')
   {
-    BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
+    BTOR_PUSH_STACK (parser->symbol, ch);
 
     while (!isspace (ch = btor_nextch_btor (parser)))
     {
       if (!isprint (ch)) btor_perr_btor (parser, "invalid character");
       if (ch == EOF) goto UNEXPECTED_EOF;
-      BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
+      BTOR_PUSH_STACK (parser->symbol, ch);
     }
   }
 
   btor_savech_btor (parser, ch);
-  BTOR_PUSH_STACK (parser->mem, parser->symbol, 0);
+  BTOR_PUSH_STACK (parser->symbol, 0);
   BTOR_RESET_STACK (parser->symbol);
   return 1;
 }
@@ -402,7 +402,7 @@ parse_var (BtorBTORParser *parser, uint32_t width)
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
   boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
-  BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
+  BTOR_PUSH_STACK (parser->inputs, res);
   parser->info.start[parser->idx].var = 1;
 
   return res;
@@ -420,7 +420,7 @@ parse_param (BtorBTORParser *parser, uint32_t width)
   res = boolector_param (
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
   boolector_release_sort (parser->btor, s);
-  BTOR_PUSH_STACK (parser->mem, parser->params, res);
+  BTOR_PUSH_STACK (parser->params, res);
 
   return res;
 }
@@ -463,7 +463,7 @@ parse_array (BtorBTORParser *parser, uint32_t width)
   boolector_release_sort (parser->btor, es);
   boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
-  BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
+  BTOR_PUSH_STACK (parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
 
   parser->found_arrays = 1;
@@ -521,12 +521,12 @@ parse_const (BtorBTORParser *parser, uint32_t width)
       return 0;
     }
 
-    BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
+    BTOR_PUSH_STACK (parser->constant, ch);
   }
 
   btor_savech_btor (parser, ch);
   cwidth = BTOR_COUNT_STACK (parser->constant);
-  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
+  BTOR_PUSH_STACK (parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
   if (cwidth != width)
@@ -564,13 +564,13 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
       return 0;
     }
 
-    BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
+    BTOR_PUSH_STACK (parser->constant, ch);
   }
 
   btor_savech_btor (parser, ch);
 
   cwidth = BTOR_COUNT_STACK (parser->constant);
-  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
+  BTOR_PUSH_STACK (parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
   tmp =
@@ -633,7 +633,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
     return 0;
   }
 
-  BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
+  BTOR_PUSH_STACK (parser->constant, ch);
 
   if (ch == '0')
   {
@@ -650,7 +650,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
   else
   {
     while (isdigit (ch = btor_nextch_btor (parser)))
-      BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
+      BTOR_PUSH_STACK (parser->constant, ch);
 
     cwidth = BTOR_COUNT_STACK (parser->constant);
 
@@ -658,7 +658,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
         parser->mem, parser->constant.start, cwidth);
   }
 
-  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
+  BTOR_PUSH_STACK (parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
   btor_savech_btor (parser, ch);
@@ -745,7 +745,7 @@ parse_root (BtorBTORParser *parser, uint32_t width)
 
   if (!(res = parse_exp (parser, width, false, true))) return 0;
 
-  BTOR_PUSH_STACK (parser->mem, parser->outputs, res);
+  BTOR_PUSH_STACK (parser->outputs, res);
 
   return res;
 }
@@ -1547,7 +1547,7 @@ parse_lambda (BtorBTORParser *parser, uint32_t width)
   boolector_release (parser->btor, exp);
 
   parser->found_lambdas = 1;
-  BTOR_PUSH_STACK (parser->mem, parser->lambdas, res);
+  BTOR_PUSH_STACK (parser->lambdas, res);
 
   return res;
 }
@@ -1563,14 +1563,14 @@ parse_apply (BtorBTORParser *parser, uint32_t width)
 
   if (!(fun = parse_fun_exp (parser, width))) return 0;
 
-  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (parser->mem, args);
 
   if (parse_space (parser))
   {
   RELEASE_FUN_AND_RETURN_ERROR:
     while (!BTOR_EMPTY_STACK (args))
       boolector_release (parser->btor, BTOR_POP_STACK (args));
-    BTOR_RELEASE_STACK (parser->mem, args);
+    BTOR_RELEASE_STACK (args);
     boolector_release (parser->btor, fun);
     return 0;
   }
@@ -1584,7 +1584,7 @@ parse_apply (BtorBTORParser *parser, uint32_t width)
     if (i < arity - 1)
       if (parse_space (parser)) goto RELEASE_FUN_AND_RETURN_ERROR;
 
-    BTOR_PUSH_STACK (parser->mem, args, arg);
+    BTOR_PUSH_STACK (args, arg);
   }
 
   res = boolector_apply (parser->btor, args.start, arity, fun);
@@ -1592,7 +1592,7 @@ parse_apply (BtorBTORParser *parser, uint32_t width)
 
   while (!BTOR_EMPTY_STACK (args))
     boolector_release (parser->btor, BTOR_POP_STACK (args));
-  BTOR_RELEASE_STACK (parser->mem, args);
+  BTOR_RELEASE_STACK (args);
 
   return res;
 }
@@ -1716,6 +1716,17 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_NEWN (mem, res->ops, SIZE_PARSERS);
   BTOR_CLRN (res->ops, SIZE_PARSERS);
 
+  BTOR_INIT_STACK (mem, res->exps);
+  BTOR_INIT_STACK (mem, res->info);
+  BTOR_INIT_STACK (mem, res->inputs);
+  BTOR_INIT_STACK (mem, res->outputs);
+  BTOR_INIT_STACK (mem, res->regs);
+  BTOR_INIT_STACK (mem, res->lambdas);
+  BTOR_INIT_STACK (mem, res->params);
+  BTOR_INIT_STACK (mem, res->op);
+  BTOR_INIT_STACK (mem, res->constant);
+  BTOR_INIT_STACK (mem, res->symbol);
+
   new_parser (res, parse_add, "add");
   new_parser (res, parse_and, "and");
   new_parser (res, parse_array, "array");
@@ -1801,17 +1812,17 @@ btor_delete_btor_parser (BtorBTORParser *parser)
 
   mm = parser->mem;
 
-  BTOR_RELEASE_STACK (mm, parser->exps);
-  BTOR_RELEASE_STACK (mm, parser->info);
-  BTOR_RELEASE_STACK (mm, parser->inputs);
-  BTOR_RELEASE_STACK (mm, parser->outputs);
-  BTOR_RELEASE_STACK (mm, parser->regs);
-  BTOR_RELEASE_STACK (mm, parser->lambdas);
-  BTOR_RELEASE_STACK (mm, parser->params);
+  BTOR_RELEASE_STACK (parser->exps);
+  BTOR_RELEASE_STACK (parser->info);
+  BTOR_RELEASE_STACK (parser->inputs);
+  BTOR_RELEASE_STACK (parser->outputs);
+  BTOR_RELEASE_STACK (parser->regs);
+  BTOR_RELEASE_STACK (parser->lambdas);
+  BTOR_RELEASE_STACK (parser->params);
 
-  BTOR_RELEASE_STACK (mm, parser->op);
-  BTOR_RELEASE_STACK (mm, parser->constant);
-  BTOR_RELEASE_STACK (mm, parser->symbol);
+  BTOR_RELEASE_STACK (parser->op);
+  BTOR_RELEASE_STACK (parser->constant);
+  BTOR_RELEASE_STACK (parser->symbol);
 
   BTOR_DELETEN (mm, parser->parsers, SIZE_PARSERS);
   BTOR_DELETEN (mm, parser->ops, SIZE_PARSERS);
@@ -1851,8 +1862,8 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   parser->lineno      = 1;
   parser->saved       = 0;
 
-  BTOR_INIT_STACK (parser->lambdas);
-  BTOR_INIT_STACK (parser->params);
+  BTOR_INIT_STACK (parser->mem, parser->lambdas);
+  BTOR_INIT_STACK (parser->mem, parser->params);
 
   BTOR_CLR (res);
 
@@ -1912,8 +1923,8 @@ NEXT:
   {
     Info info;
     memset (&info, 0, sizeof info);
-    BTOR_PUSH_STACK (parser->mem, parser->info, info);
-    BTOR_PUSH_STACK (parser->mem, parser->exps, 0);
+    BTOR_PUSH_STACK (parser->info, info);
+    BTOR_PUSH_STACK (parser->exps, 0);
   }
 
   if (parser->exps.start[parser->idx])
@@ -1923,9 +1934,9 @@ NEXT:
 
   assert (BTOR_EMPTY_STACK (parser->op));
   while (!isspace (ch = btor_nextch_btor (parser)) && ch != EOF)
-    BTOR_PUSH_STACK (parser->mem, parser->op, ch);
+    BTOR_PUSH_STACK (parser->op, ch);
 
-  BTOR_PUSH_STACK (parser->mem, parser->op, 0);
+  BTOR_PUSH_STACK (parser->op, 0);
   BTOR_RESET_STACK (parser->op);
   btor_savech_btor (parser, ch);
 

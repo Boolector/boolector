@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -17,10 +17,8 @@
 #include "btormodel.h"
 #include "btoropt.h"
 #include "btorslvprop.h"
-#include "btorslvsls.h"  // for score computation
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -65,25 +63,26 @@ delete_aigprop_solver (BtorAIGPropSolver *slv)
 }
 
 static int
-get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
+get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
 {
-  assert (model);
+  assert (aprop);
+  assert (aprop->model);
 
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_get_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig)))
+  if (!btor_contains_int_hash_map (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
-  return aigprop_get_assignment_aig (model, aig);
+  return aigprop_get_assignment_aig (aprop, aig);
 }
 
 BtorBitVector *
-get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *model)
+get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
 {
   assert (mm);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (model);
+  assert (aprop);
 
   int i, j, len, bit;
   BtorBitVector *res;
@@ -97,7 +96,7 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *model)
 
   for (i = 0, j = len - 1; i < len; i++, j--)
   {
-    bit = get_assignment_aig (model, av->aigs[j]);
+    bit = get_assignment_aig (aprop, av->aigs[j]);
     assert (bit == -1 || bit == 1);
     btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
   }
@@ -113,7 +112,7 @@ generate_model_from_aig_model (Btor *btor)
   BtorNode *cur, *real_cur;
   BtorBitVector *bv;
   BtorAIGPropSolver *slv;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
   AIGProp *aprop;
@@ -131,13 +130,13 @@ generate_model_from_aig_model (Btor *btor)
    * Note: we can only map inputs back, since other nodes might have partial
    *       assignments only (e.g. for a slice we may have AIGs for the sliced
    *       bits of its input only) */
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (btor->mm, stack, btor_next_node_hash_table_iterator (&it));
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (stack, btor_next_ptr_hash_table_iterator (&it));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -149,14 +148,14 @@ generate_model_from_aig_model (Btor *btor)
           btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
     if (btor_is_bv_var_node (real_cur))
     {
-      bv = get_assignment_bv (btor->mm, real_cur, aprop->model);
+      bv = get_assignment_bv (btor->mm, real_cur, aprop);
       btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
       btor_free_bv (btor->mm, bv);
     }
     for (i = 0; i < real_cur->arity; i++)
-      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+      BTOR_PUSH_STACK (stack, real_cur->e[i]);
   }
-  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (stack);
   btor_delete_int_hash_table (cache);
 }
 
@@ -193,16 +192,15 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int sat_result;
-  BtorHashTableIterator it;
+  BtorIntHashTable *roots;
+  BtorPtrHashTableIterator it;
   BtorNode *root;
   BtorAIG *aig;
   Btor *btor;
 
   btor = slv->btor;
-
-  if (btor->inconsistent) goto UNSAT;
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
+  assert (!btor->inconsistent);
+  roots = 0;
 
   if (btor_terminate_btor (btor))
   {
@@ -210,19 +208,10 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     goto DONE;
   }
 
-  sat_result = btor_simplify (btor);
   BTOR_ABORT (btor->ufs->count != 0
                   || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "aigprop engine supports QF_BV only");
-
-  if (btor->inconsistent) goto UNSAT;
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_RESULT_UNKNOWN;
-    goto DONE;
-  }
 
   btor_process_unsynthesized_constraints (btor);
 
@@ -237,9 +226,10 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
 #ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+    assert (!BTOR_REAL_ADDR_NODE (
+                 ((BtorNode *) btor_next_ptr_hash_table_iterator (&it)))
                  ->simplified);
 #endif
 
@@ -255,16 +245,13 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  slv->aprop->roots =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_aig_by_id,
-                               (BtorCmpPtr) btor_compare_aig_by_id);
+  roots = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    root = btor_next_node_hash_table_iterator (&it);
+    root = btor_next_ptr_hash_table_iterator (&it);
 
     if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
@@ -272,34 +259,30 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
-    if (!btor_get_ptr_hash_table (slv->aprop->roots, aig))
-      (void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
+    if (!btor_contains_int_hash_table (roots, btor_aig_get_id (aig)))
+      (void) btor_add_int_hash_table (roots, btor_aig_get_id (aig));
   }
 
-  if ((sat_result = aigprop_sat (slv->aprop)) == BTOR_RESULT_UNSAT) goto UNSAT;
+  if ((sat_result = aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)
+    goto UNSAT;
   generate_model_from_aig_model (btor);
   assert (sat_result == BTOR_RESULT_SAT);
-  slv->stats.moves    = slv->aprop->stats.moves;
-  slv->stats.restarts = slv->aprop->stats.restarts;
-  slv->time.aprop_sat = slv->aprop->time.sat;
+  slv->stats.moves                  = slv->aprop->stats.moves;
+  slv->stats.restarts               = slv->aprop->stats.restarts;
+  slv->time.aprop_sat               = slv->aprop->time.sat;
+  slv->time.aprop_update_cone       = slv->aprop->time.update_cone;
+  slv->time.aprop_update_cone_reset = slv->aprop->time.update_cone_reset;
+  slv->time.aprop_update_cone_model_gen =
+      slv->aprop->time.update_cone_model_gen;
+  slv->time.aprop_update_cone_compute_score =
+      slv->aprop->time.update_cone_compute_score;
 DONE:
-  if (slv->aprop->roots)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->roots);
-    slv->aprop->roots = 0;
-  }
-  if (slv->aprop->score)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->score);
-    slv->aprop->score = 0;
-  }
   if (slv->aprop->model)
   {
-    btor_delete_ptr_hash_table (slv->aprop->model);
+    btor_delete_int_hash_map (slv->aprop->model);
     slv->aprop->model = 0;
   }
-  btor->valid_assignments = 1;
-  btor->last_sat_result   = sat_result;
+  if (roots) btor_delete_int_hash_table (roots);
   return sat_result;
 }
 
@@ -337,6 +320,24 @@ print_time_stats_aigprop_solver (BtorAIGPropSolver *slv)
   BTOR_MSG (
       btor->msg, 1, "%.2f seconds in AIG propagator", slv->time.aprop_sat);
   BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (total)",
+            slv->time.aprop_update_cone);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (reset)",
+            slv->time.aprop_update_cone_reset);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds for updating cone (model gen)",
+            slv->time.aprop_update_cone_model_gen);
+  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds for updating cone (compute score)",
+              slv->time.aprop_update_cone_compute_score);
+  BTOR_MSG (btor->msg, 1, "");
 }
 
 BtorSolver *
@@ -362,6 +363,11 @@ btor_new_aigprop_solver (Btor *btor)
 
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+#ifndef NBTORLOG
+                           btor_get_opt (btor, BTOR_OPT_LOGLEVEL),
+#else
+                           0,
+#endif
                            btor_get_opt (btor, BTOR_OPT_SEED),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
                            btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT));

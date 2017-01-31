@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -29,12 +29,6 @@
 #include <stdbool.h>
 
 /*------------------------------------------------------------------------*/
-
-#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-//#define BTOR_CHECK_UNCONSTRAINED
-#define BTOR_CHECK_MODEL
-//#define BTOR_CHECK_DUAL_PROP
-#endif
 
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
@@ -86,15 +80,14 @@ typedef struct BtorCallbacks BtorCallbacks;
 
 struct BtorConstraintStats
 {
-  int varsubst;
-  int embedded;
-  int unsynthesized;
-  int synthesized;
+  uint32_t varsubst;
+  uint32_t embedded;
+  uint32_t unsynthesized;
+  uint32_t synthesized;
 };
 
 typedef struct BtorConstraintStats BtorConstraintStats;
 
-// TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
   BtorMemMgr *mm;
@@ -102,7 +95,7 @@ struct Btor
   BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
-  BtorArrayAssignmentList *array_assignments;
+  BtorArrayAssignmentList *fun_assignments;
 
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
@@ -127,17 +120,20 @@ struct Btor
 
   BtorNode *true_exp;
 
-  BtorPtrHashTable *bv_model;
-  BtorPtrHashTable *fun_model;
+  BtorIntHashTable *bv_model;
+  BtorIntHashTable *fun_model;
   BtorNodePtrStack functions_with_model;
 
-  int rec_rw_calls; /* calls for recursive rewriting */
-  int valid_assignments;
-  int vis_idx; /* file index for visualizing expressions */
-  int inconsistent;
-  int found_constraint_false;
-  int external_refs;                /* external references (library mode) */
-  int btor_sat_btor_called;         /* how often is btor_sat_btor been called */
+  uint32_t rec_rw_calls; /* calls for recursive rewriting */
+  uint32_t valid_assignments;
+
+  int32_t vis_idx; /* file index for visualizing expressions */
+
+  bool inconsistent;
+  bool found_constraint_false;
+
+  uint32_t external_refs;           /* external references (library mode) */
+  uint32_t btor_sat_btor_called;    /* how often is btor_sat_btor been called */
   BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
@@ -157,7 +153,7 @@ struct Btor
   char *parse_error_msg;
 
   FILE *apitrace;
-  int close_apitrace;
+  int8_t close_apitrace;
 
   BtorOpt *options;
   BtorPtrHashTable *str2opt;
@@ -172,22 +168,23 @@ struct Btor
 
   struct
   {
-    int max_rec_rw_calls;      /* maximum number of recursive rewrite calls */
-    int var_substitutions;     /* number substituted vars */
-    int uf_substitutions;      /* num substituted uninterpreted functions */
-    int ec_substitutions;      /* embedded constraint substitutions */
-    int linear_equations;      /* number of linear equations */
-    int gaussian_eliminations; /* number of gaussian eliminations */
-    int eliminated_slices;     /* number of eliminated slices */
-    int skeleton_constraints;  /* number of extracted skeleton constraints */
-    int adds_normalized;       /* number of add chains normalizations */
-    int ands_normalized;       /* number of and chains normalizations */
-    int muls_normalized;       /* number of mul chains normalizations */
-    int ackermann_constraints;
+    uint32_t max_rec_rw_calls;  /* maximum number of recursive rewrite calls */
+    uint32_t var_substitutions; /* number substituted vars */
+    uint32_t uf_substitutions;  /* num substituted uninterpreted functions */
+    uint32_t ec_substitutions;  /* embedded constraint substitutions */
+    uint32_t linear_equations;  /* number of linear equations */
+    uint32_t gaussian_eliminations; /* number of gaussian eliminations */
+    uint32_t eliminated_slices;     /* number of eliminated slices */
+    uint32_t
+        skeleton_constraints; /* number of extracted skeleton constraints */
+    uint32_t adds_normalized; /* number of add chains normalizations */
+    uint32_t ands_normalized; /* number of and chains normalizations */
+    uint32_t muls_normalized; /* number of mul chains normalizations */
+    uint32_t ackermann_constraints;
     long long apply_props_construct; /* number of static apply propagations */
-    int bv_uc_props;
-    int fun_uc_props;
-    int param_uc_props;
+    uint32_t bv_uc_props;
+    uint32_t fun_uc_props;
+    uint32_t param_uc_props;
     long long lambdas_merged;
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
@@ -195,6 +192,7 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+    long long betap_reduce_calls;
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif
@@ -202,7 +200,8 @@ struct Btor
 
   struct
   {
-    double rewrite;
+    double sat;
+    double simplify;
     double subst;
     double subst_rebuild;
     double elimapplies;
@@ -211,12 +210,15 @@ struct Btor
     double skel;
     double propagate;
     double beta;
+    double betap;
     double failed;
     double cloning;
     double synth_exp;
     double model_gen;
-    double br_probing;
     double ucopt;
+    double merge;
+    double extract;
+    double ack;
   } time;
 };
 
@@ -227,7 +229,7 @@ Btor *btor_new_btor (void);
 void btor_delete_btor (Btor *btor);
 
 /* Gets version. */
-const char *btor_version (Btor *btor);
+const char *btor_version (const Btor *btor);
 
 /* Set termination callback. */
 void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
@@ -271,7 +273,6 @@ int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
-BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);
@@ -305,9 +306,6 @@ void btor_synthesize_exp (Btor *btor,
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
-
-/* Frees BV assignment obtained by calling 'btor_assignment_exp' */
-void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
 void btor_release_all_ext_refs (Btor *btor);
 

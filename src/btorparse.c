@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2016 Aina Niemetz.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -35,15 +35,15 @@ has_compressed_suffix (const char *str, const char *suffix)
 
 /* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
 static int
-btor_parse_aux (Btor *btor,
-                FILE *infile,
-                BtorCharStack *prefix,
-                const char *infile_name,
-                FILE *outfile,
-                const BtorParserAPI *parser_api,
-                char **error_msg,
-                int *status,
-                char *msg)
+parse_aux (Btor *btor,
+           FILE *infile,
+           BtorCharStack *prefix,
+           const char *infile_name,
+           FILE *outfile,
+           const BtorParserAPI *parser_api,
+           char **error_msg,
+           int *status,
+           char *msg)
 {
   assert (btor);
   assert (infile);
@@ -60,12 +60,13 @@ btor_parse_aux (Btor *btor,
   int i, root_len, res;
   char *emsg;
 
-  res                   = BOOLECTOR_UNKNOWN;
-  *error_msg            = 0;
-  parse_opt.verbosity   = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
-  parse_opt.interactive = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
-  parse_opt.need_model  = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  res                        = BOOLECTOR_UNKNOWN;
+  *error_msg                 = 0;
+  parse_opt.verbosity        = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental      = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.incremental_smt1 = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
+  parse_opt.interactive      = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
+  parse_opt.need_model       = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
@@ -79,7 +80,7 @@ btor_parse_aux (Btor *btor,
   }
   else
   {
-    res = parse_res.result;
+    res = parse_res.nsatcalls ? parse_res.result : BOOLECTOR_PARSE_UNKNOWN;
 
     if (!parse_opt.incremental)
     {
@@ -163,7 +164,7 @@ btor_parse (Btor *btor,
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
   mem = btor_new_mem_mgr ();
-  BTOR_INIT_STACK (prefix);
+  BTOR_INIT_STACK (mem, prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
@@ -183,20 +184,20 @@ btor_parse (Btor *btor,
     for (;;)
     {
       ch = getc (infile);
-      BTOR_PUSH_STACK (mem, prefix, ch);
+      BTOR_PUSH_STACK (prefix, ch);
       if (!ch || ch == EOF) break;
       if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
       {
-        BTOR_PUSH_STACK (mem, prefix, ch);
+        BTOR_PUSH_STACK (prefix, ch);
       }
       else if (ch == ';')
       {
-        BTOR_PUSH_STACK (mem, prefix, ';');
+        BTOR_PUSH_STACK (prefix, ';');
         do
         {
           ch = getc (infile);
           if (ch == EOF) break;
-          BTOR_PUSH_STACK (mem, prefix, ch);
+          BTOR_PUSH_STACK (prefix, ch);
         } while (ch != '\n');
         if (ch == EOF) break;
       }
@@ -230,18 +231,18 @@ btor_parse (Btor *btor,
     }
   }
 
-  res = btor_parse_aux (btor,
-                        infile,
-                        &prefix,
-                        infile_name,
-                        outfile,
-                        parser_api,
-                        error_msg,
-                        status,
-                        msg);
+  res = parse_aux (btor,
+                   infile,
+                   &prefix,
+                   infile_name,
+                   outfile,
+                   parser_api,
+                   error_msg,
+                   status,
+                   msg);
 
   /* cleanup */
-  BTOR_RELEASE_STACK (mem, prefix);
+  BTOR_RELEASE_STACK (prefix);
   btor_delete_mem_mgr (mem);
   BTOR_DELETEN (btor->mm, msg, len);
 
@@ -265,7 +266,7 @@ btor_parse_btor (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_btor_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
@@ -286,7 +287,7 @@ btor_parse_smt1 (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
@@ -307,6 +308,6 @@ btor_parse_smt2 (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt2_parser_api ();
-  return btor_parse_aux (
+  return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
 #define AIGPROP_H_INCLUDED
 
 #include "btoraig.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorrng.h"
 
@@ -21,9 +22,11 @@
 struct AIGProp
 {
   BtorAIGMgr *amgr;
-  BtorPtrHashTable *roots;
-  BtorPtrHashTable *score;
-  BtorPtrHashTable *model;
+  BtorIntHashTable *roots;
+  BtorIntHashTable *unsatroots;
+  BtorIntHashTable *score;
+  BtorIntHashTable *model;
+  BtorIntHashTable *parents;
 
   BtorRNG rng;
 
@@ -41,12 +44,17 @@ struct AIGProp
   struct
   {
     double sat;
+    double update_cone;
+    double update_cone_reset;
+    double update_cone_model_gen;
+    double update_cone_compute_score;
   } time;
 };
 
 typedef struct AIGProp AIGProp;
 
 AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr,
+                              uint32_t loglevel,
                               uint32_t seed,
                               uint32_t use_restarts,
                               uint32_t use_bandit);
@@ -54,12 +62,14 @@ AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr,
 AIGProp *aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop);
 void aigprop_delete_aigprop (AIGProp *aprop);
 
-int aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig);
+int aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig);
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
-int aigprop_sat (AIGProp *aprop);
+int aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots);
 
-void aigprop_print_stats (AIGProp *aprop);
-void aigprop_print_time_stats (AIGProp *aprop);
+#if 0
+void aigprop_print_stats (AIGProp * aprop);
+void aigprop_print_time_stats (AIGProp * aprop);
+#endif
 
 #endif

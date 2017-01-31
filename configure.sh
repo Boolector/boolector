@@ -213,7 +213,7 @@ LDEPS="$BUILDIR/libboolector.a"
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
-RPATHS="-rpath=$ROOT/$BUILDIR"
+RPATHS="-rpath\,$ROOT/$BUILDIR"
 if [ $shared = yes ]
 then
   LDEPS="$BUILDIR/libboolector.so"
@@ -256,7 +256,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
+    RPATHS="${RPATHS}\,-rpath\,$ROOT/../picosat/"
     if [ $shared = yes ]		
     then
       LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
@@ -305,7 +305,6 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
-    [ $debug = yes ] && CFLAGS="$CFLAGS -DBTOR_CHECK_FAILED"
     LIBS="${LIBS}-L$ROOT/../lingeling -llgl"
     LDEPS="${LDEPS}$ROOT/../lingeling/liblgl.a"
     LIBM=yes
@@ -415,7 +414,7 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}$BUILDIR/btorminisat.o"
-    RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
+    RPATHS="${RPATHS}\,-rpath\,$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
       LIBS="${LIBS}-L$ROOT/../minisat/build/dynamic/lib -lminisat"
@@ -474,7 +473,7 @@ then
   [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
 
   py_libraries="boolector"
-  py_library_dirs="$BUILDIR"
+  py_library_dirs="$ROOT/$BUILDIR"
   py_inc_dirs=""
   if [ $lingeling = yes ]; then
     py_libraries="$py_libraries lgl"
@@ -509,10 +508,10 @@ ext_modules=[
     Extension("boolector",
               sources=["$SRCDIR/api/python/boolector.pyx"],
               include_dirs=incdirs,
-              library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
+              library_dirs=[s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-       extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
+       extra_link_args=["-Wl,-rpath,"+":".join([s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)

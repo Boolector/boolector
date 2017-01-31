@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -13,7 +13,7 @@
 
 #include "simplifier/btorelimslices.h"
 #include "btorcore.h"
-#include "utils/btoriter.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
 struct BtorSlice
@@ -107,6 +107,7 @@ void
 btor_eliminate_slices_on_bv_vars (Btor *btor)
 {
   BtorNode *var, *cur, *result, *lambda_var, *temp;
+  BtorSortId sort;
   BtorSlice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
   BtorPtrHashBucket *b_var, *b1, *b2;
   BtorNodeIterator it;
@@ -123,11 +124,11 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
   count = 0;
 
   mm = btor->mm;
-  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (mm, vars);
   for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
   {
     var = (BtorNode *) b_var->key;
-    BTOR_PUSH_STACK (mm, vars, var);
+    BTOR_PUSH_STACK (vars, var);
   }
 
   while (!BTOR_EMPTY_STACK (vars))
@@ -270,13 +271,17 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
            compare_slices_qsort);
 
     s1     = sorted_slices[(int) slices->count - 1];
-    result = btor_var_exp (btor, s1->upper - s1->lower + 1, 0);
+    sort   = btor_bitvec_sort (btor, s1->upper - s1->lower + 1);
+    result = btor_var_exp (btor, sort, 0);
+    btor_release_sort (btor, sort);
     delete_slice (btor, s1);
     for (i = (int) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
-      lambda_var = btor_var_exp (btor, s1->upper - s1->lower + 1, 0);
-      temp       = btor_concat_exp (btor, result, lambda_var);
+      sort       = btor_bitvec_sort (btor, s1->upper - s1->lower + 1);
+      lambda_var = btor_var_exp (btor, sort, 0);
+      btor_release_sort (btor, sort);
+      temp = btor_concat_exp (btor, result, lambda_var);
       btor_release_exp (btor, result);
       result = temp;
       btor_release_exp (btor, lambda_var);
@@ -293,7 +298,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (vars);
 
   delta = btor_time_stamp () - start;
   btor->time.slicing += delta;

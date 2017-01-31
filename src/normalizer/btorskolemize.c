@@ -10,8 +10,8 @@
 
 #include "normalizer/btorskolemize.h"
 #include "btorcore.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 
 BtorNode *
 btor_skolemize_node (Btor *btor,
@@ -30,18 +30,16 @@ btor_skolemize_node (Btor *btor,
   BtorHashTableData *d, *d_p;
   BtorSortIdStack sorts;
   BtorSortId tuple_s, fun_s;
-  BtorSortUniqueTable *suniq;
 
-  mm    = btor->mm;
-  map   = btor_new_int_hash_map (mm);
-  suniq = &btor->sorts_unique_table;
+  mm  = btor->mm;
+  map = btor_new_int_hash_map (mm);
 
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (params);
-  BTOR_INIT_STACK (quants);
-  BTOR_INIT_STACK (sorts);
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, root);
+  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (mm, params);
+  BTOR_INIT_STACK (mm, quants);
+  BTOR_INIT_STACK (mm, sorts);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_PUSH_STACK (visit, root);
 
   while (!BTOR_EMPTY_STACK (visit))
   {
@@ -56,11 +54,11 @@ btor_skolemize_node (Btor *btor,
     {
       btor_add_int_hash_map (map, real_cur->id);
 
-      if (btor_is_forall_node (real_cur)) BTOR_PUSH_STACK (mm, quants, cur);
+      if (btor_is_forall_node (real_cur)) BTOR_PUSH_STACK (quants, cur);
 
-      BTOR_PUSH_STACK (mm, visit, cur);
+      BTOR_PUSH_STACK (visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (visit, real_cur->e[i]);
     }
     else if (!d->as_ptr)
     {
@@ -93,17 +91,17 @@ btor_skolemize_node (Btor *btor,
                 assert (d_p);
                 assert (d_p->as_ptr);
                 param = d_p->as_ptr;
-                BTOR_PUSH_STACK (mm, params, param);
-                BTOR_PUSH_STACK (mm, sorts, param->sort_id);
+                BTOR_PUSH_STACK (params, param);
+                BTOR_PUSH_STACK (sorts, param->sort_id);
               }
 
-              tuple_s = btor_tuple_sort (
-                  suniq, sorts.start, BTOR_COUNT_STACK (sorts));
-              fun_s = btor_fun_sort (suniq, tuple_s, real_cur->sort_id);
-              btor_release_sort (suniq, tuple_s);
+              tuple_s =
+                  btor_tuple_sort (btor, sorts.start, BTOR_COUNT_STACK (sorts));
+              fun_s = btor_fun_sort (btor, tuple_s, real_cur->sort_id);
+              btor_release_sort (btor, tuple_s);
 
               uf = btor_uf_exp (btor, fun_s, buf);
-              btor_release_sort (suniq, fun_s);
+              btor_release_sort (btor, fun_s);
 
               result = btor_apply_exps (
                   btor, params.start, BTOR_COUNT_STACK (params), uf);
@@ -178,7 +176,7 @@ btor_skolemize_node (Btor *btor,
       result = BTOR_COND_INVERT_NODE (cur, result);
       assert (!btor_is_quantifier_node (result)
               || !BTOR_IS_INVERTED_NODE (result));
-      BTOR_PUSH_STACK (mm, args, result);
+      BTOR_PUSH_STACK (args, result);
     }
     else
     {
@@ -196,11 +194,11 @@ btor_skolemize_node (Btor *btor,
     btor_release_exp (btor, map->data[j].as_ptr);
   }
   btor_delete_int_hash_map (map);
-  BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, quants);
-  BTOR_RELEASE_STACK (mm, params);
-  BTOR_RELEASE_STACK (mm, args);
-  BTOR_RELEASE_STACK (mm, sorts);
+  BTOR_RELEASE_STACK (visit);
+  BTOR_RELEASE_STACK (quants);
+  BTOR_RELEASE_STACK (params);
+  BTOR_RELEASE_STACK (args);
+  BTOR_RELEASE_STACK (sorts);
   return result;
 }
 
@@ -215,7 +213,7 @@ btor_skolemize (Btor *btor)
   char *symbol, *buf;
   size_t len;
   BtorNode *cur, *quant, *param, *uf, *app, *subst;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNodePtrStack visit, quants, args;
   BtorMemMgr *mm;
   BtorIntHashTable *cache;
@@ -223,28 +221,26 @@ btor_skolemize (Btor *btor)
   BtorNodeMap *map;
   BtorSortIdStack sorts;
   BtorSortId tuple_s, fun_s;
-  BtorSortUniqueTable *suniq;
   BtorNodeMapIterator nit;
 
   mm    = btor->mm;
-  suniq = &btor->sorts_unique_table;
   cache = btor_new_int_hash_map (mm);
   map   = btor_new_node_map (btor);
 
-  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (mm, visit);
 
   /* push roots */
-  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (mm, visit, cur);
+    cur = btor_next_ptr_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (visit, cur);
   }
 
   btor_init_substitutions (btor);
-  BTOR_INIT_STACK (quants);
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (sorts);
+  BTOR_INIT_STACK (mm, quants);
+  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (mm, sorts);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -254,10 +250,10 @@ btor_skolemize (Btor *btor)
     {
       (void) btor_add_int_hash_map (cache, cur->id);
 
-      if (btor_is_forall_node (cur)) BTOR_PUSH_STACK (mm, quants, cur);
+      if (btor_is_forall_node (cur)) BTOR_PUSH_STACK (quants, cur);
 
-      BTOR_PUSH_STACK (mm, visit, cur);
-      for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+      BTOR_PUSH_STACK (visit, cur);
+      for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
     }
     else if (d->as_int == 0)
     {
@@ -274,13 +270,12 @@ btor_skolemize (Btor *btor)
         for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
         {
           quant = BTOR_PEEK_STACK (quants, i);
-          BTOR_PUSH_STACK (mm, args, quant->e[0]);
-          BTOR_PUSH_STACK (mm, sorts, quant->e[0]->sort_id);
+          BTOR_PUSH_STACK (args, quant->e[0]);
+          BTOR_PUSH_STACK (sorts, quant->e[0]->sort_id);
         }
 
-        tuple_s =
-            btor_tuple_sort (suniq, sorts.start, BTOR_COUNT_STACK (sorts));
-        fun_s = btor_fun_sort (suniq, tuple_s, param->sort_id);
+        tuple_s = btor_tuple_sort (btor, sorts.start, BTOR_COUNT_STACK (sorts));
+        fun_s   = btor_fun_sort (btor, tuple_s, param->sort_id);
 
         symbol = btor_get_symbol_exp (btor, param);
         //	      printf ("%s\n", symbol);
@@ -299,8 +294,8 @@ btor_skolemize (Btor *btor)
 
         btor_map_node (map, param, app);
         btor_freestr (mm, buf);
-        btor_release_sort (suniq, tuple_s);
-        btor_release_sort (suniq, fun_s);
+        btor_release_sort (btor, tuple_s);
+        btor_release_sort (btor, fun_s);
         btor_release_exp (btor, uf);
         BTOR_RESET_STACK (sorts);
         BTOR_RESET_STACK (args);
@@ -308,10 +303,10 @@ btor_skolemize (Btor *btor)
     }
   }
 
-  btor_init_node_hash_table_iterator (&it, btor->quantifiers);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->quantifiers);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
 
     if (btor_is_forall_node (cur)) continue;
 
@@ -336,8 +331,8 @@ btor_skolemize (Btor *btor)
 
   btor_delete_node_map (map);
   btor_delete_int_hash_map (cache);
-  BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, quants);
-  BTOR_RELEASE_STACK (mm, args);
-  BTOR_RELEASE_STACK (mm, sorts);
+  BTOR_RELEASE_STACK (visit);
+  BTOR_RELEASE_STACK (quants);
+  BTOR_RELEASE_STACK (args);
+  BTOR_RELEASE_STACK (sorts);
 }

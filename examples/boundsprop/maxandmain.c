@@ -14,6 +14,7 @@ main (int argc, char **argv)
   BoolectorNode *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
   BoolectorNode *result, *one, *x_and_y, *premisse;
   BoolectorNode *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y, *concl;
+  BoolectorSort sort_1, sort_zero, sort_var;
 
   if (argc != 2)
   {
@@ -32,18 +33,21 @@ main (int argc, char **argv)
     return 1;
   }
 
-  btor = boolector_new ();
+  btor      = boolector_new ();
+  sort_1    = boolector_bitvec_sort (btor, 1);
+  sort_zero = boolector_bitvec_sort (btor, num_bits - 1);
+  sort_var  = boolector_bitvec_sort (btor, num_bits);
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  one               = boolector_one (btor, 1);
-  zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
+  one               = boolector_one (btor, sort_1);
+  zero_num_bits_m_1 = boolector_zero (btor, sort_zero);
   m                 = boolector_concat (btor, one, zero_num_bits_m_1);
-  a                 = boolector_var (btor, num_bits, "a");
-  b                 = boolector_var (btor, num_bits, "b");
-  c                 = boolector_var (btor, num_bits, "c");
-  d                 = boolector_var (btor, num_bits, "d");
-  x                 = boolector_var (btor, num_bits, "x");
-  y                 = boolector_var (btor, num_bits, "y");
+  a                 = boolector_var (btor, sort_var, "a");
+  b                 = boolector_var (btor, sort_var, "b");
+  c                 = boolector_var (btor, sort_var, "c");
+  d                 = boolector_var (btor, sort_var, "d");
+  x                 = boolector_var (btor, sort_var, "x");
+  y                 = boolector_var (btor, sort_var, "y");
 
   x_and_y = boolector_and (btor, x, y);
 
@@ -89,6 +93,9 @@ main (int argc, char **argv)
   boolector_release (btor, y);
   boolector_release (btor, zero_num_bits_m_1);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_1);
+  boolector_release_sort (btor, sort_zero);
+  boolector_release_sort (btor, sort_var);
   boolector_delete (btor);
   return 0;
 }

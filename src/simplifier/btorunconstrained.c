@@ -15,8 +15,8 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btormsg.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
@@ -69,11 +69,11 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
 
   if (btor_is_lambda_node (exp) || btor_is_fun_cond_node (exp))
   {
-    subst           = btor_uf_exp (btor, exp->sort_id, 0);
+    subst           = btor_uf_exp (btor, btor_exp_get_sort_id (exp), 0);
     subst->is_array = exp->is_array;
   }
   else
-    subst = btor_var_exp (btor, btor_get_exp_width (btor, exp), 0);
+    subst = btor_var_exp (btor, btor_exp_get_sort_id (exp), 0);
 
   btor_insert_substitution (btor, exp, subst, 0);
   btor_release_exp (btor, subst);
@@ -93,7 +93,7 @@ btor_optimize_unconstrained (Btor *btor)
   bool uc[3], ucp[3];
   BtorNode *cur, *cur_parent;
   BtorNodePtrStack stack, roots;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNodeIterator pit;
   BtorMemMgr *mm;
   BtorIntHashTable *ucs;  /* unconstrained candidate nodes */
@@ -105,8 +105,8 @@ btor_optimize_unconstrained (Btor *btor)
 
   start = btor_time_stamp ();
   mm    = btor->mm;
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (roots);
+  BTOR_INIT_STACK (mm, stack);
+  BTOR_INIT_STACK (mm, roots);
   uc[0] = uc[1] = uc[2] = ucp[0] = ucp[1] = ucp[2] = false;
 
   mark = btor_new_int_hash_map (mm);
@@ -116,11 +116,11 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
-  btor_init_node_hash_table_iterator (&it, btor->bv_vars);
-  btor_queue_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_hash_table_iterator (&it))
+  btor_init_ptr_hash_table_iterator (&it, btor->bv_vars);
+  btor_queue_ptr_hash_table_iterator (&it, btor->ufs);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
+    cur = btor_next_ptr_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
     {
@@ -131,7 +131,7 @@ btor_optimize_unconstrained (Btor *btor)
       if (btor_is_uf_node (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
-        BTOR_PUSH_STACK (mm, stack, cur_parent);
+        BTOR_PUSH_STACK (stack, cur_parent);
     }
   }
   while (!BTOR_EMPTY_STACK (stack))
@@ -142,19 +142,19 @@ btor_optimize_unconstrained (Btor *btor)
     {
       btor_add_int_hash_map (mark, cur->id);
       if (!cur->parents)
-        BTOR_PUSH_STACK (mm, roots, cur);
+        BTOR_PUSH_STACK (roots, cur);
       else
       {
         btor_init_parent_iterator (&pit, cur);
         while (btor_has_next_parent_iterator (&pit))
-          BTOR_PUSH_STACK (mm, stack, btor_next_parent_iterator (&pit));
+          BTOR_PUSH_STACK (stack, btor_next_parent_iterator (&pit));
       }
     }
   }
 
   /* identify unconstrained candidates */
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
-    BTOR_PUSH_STACK (mm, stack, BTOR_PEEK_STACK (roots, i));
+    BTOR_PUSH_STACK (stack, BTOR_PEEK_STACK (roots, i));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
@@ -171,9 +171,9 @@ btor_optimize_unconstrained (Btor *btor)
     if (d->as_int == 0)
     {
       d->as_int = 1;
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (stack, cur);
       for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+        BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
     }
     else
     {
@@ -259,8 +259,8 @@ btor_optimize_unconstrained (Btor *btor)
   btor_delete_substitutions (btor);
   btor_delete_int_hash_table (ucs);
   btor_delete_int_hash_table (ucsp);
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, roots);
+  BTOR_RELEASE_STACK (stack);
+  BTOR_RELEASE_STACK (roots);
 
   delta = btor_time_stamp () - start;
   btor->time.ucopt += delta;

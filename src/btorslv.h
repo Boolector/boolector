@@ -12,6 +12,7 @@
 #ifndef BTORSLV_H_INCLUDED
 #define BTORSLV_H_INCLUDED
 
+#include <stdbool.h>
 #include "btortypes.h"
 #include "utils/btormem.h"
 #include "utils/btornodemap.h"

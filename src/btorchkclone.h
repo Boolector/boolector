@@ -19,16 +19,24 @@
 #include "btoropt.h"
 #include "btorsat.h"
 
-void btor_chkclone (Btor *btor);
-void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);
-void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
+void btor_chkclone (Btor *btor, Btor *clone);
+
+void btor_chkclone_exp (Btor *btor,
+                        Btor *clone,
+                        const BtorNode *exp,
+                        const BtorNode *cexp);
+
+void btor_chkclone_sort (Btor *btor,
+                         Btor *clone,
+                         const BtorSort *sort,
+                         const BtorSort *cexp);
 
 #define BTOR_CHKCLONE_NORES(fun, args...)  \
   do                                       \
   {                                        \
     if (!btor->clone) break;               \
     boolector_##fun (btor->clone, ##args); \
-    btor_chkclone (btor);                  \
+    btor_chkclone (btor, btor->clone);     \
   } while (0)
 
 #define BTOR_CHKCLONE_RES(res, fun, args...)              \
@@ -38,7 +46,7 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     int cloneres = boolector_##fun (btor->clone, ##args); \
     (void) cloneres;                                      \
     assert (cloneres == res);                             \
-    btor_chkclone (btor);                                 \
+    btor_chkclone (btor, btor->clone);                    \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_UINT(res, fun, args...)              \
@@ -48,7 +56,7 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     uint32_t cloneres = boolector_##fun (btor->clone, ##args); \
     (void) cloneres;                                           \
     assert (cloneres == res);                                  \
-    btor_chkclone (btor);                                      \
+    btor_chkclone (btor, btor->clone);                         \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_BOOL(res, fun, args...)          \
@@ -58,7 +66,7 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     bool cloneres = boolector_##fun (btor->clone, ##args); \
     (void) cloneres;                                       \
     assert (cloneres == res);                              \
-    btor_chkclone (btor);                                  \
+    btor_chkclone (btor, btor->clone);                     \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                            \
@@ -68,8 +76,8 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     BtorNode *cloneres =                                                    \
         BTOR_IMPORT_BOOLECTOR_NODE (boolector_##fun (btor->clone, ##args)); \
     (void) cloneres;                                                        \
-    btor_chkclone_exp (res, cloneres);                                      \
-    btor_chkclone (btor);                                                   \
+    btor_chkclone_exp (btor, btor->clone, res, cloneres);                   \
+    btor_chkclone (btor, btor->clone);                                      \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_STR(res, fun, args...)                  \
@@ -82,7 +90,7 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
       assert (!cloneres);                                         \
     else                                                          \
       assert (!strcmp (cloneres, res));                           \
-    btor_chkclone (btor);                                         \
+    btor_chkclone (btor, btor->clone);                            \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_SORT(res, fun, args...)                           \
@@ -92,9 +100,9 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     const BtorSortId cloneres =                                             \
         BTOR_IMPORT_BOOLECTOR_SORT (boolector_##fun (btor->clone, ##args)); \
     const BtorSort *s0, *s1;                                                \
-    s0 = btor_get_sort_by_id (&btor->sorts_unique_table, res);              \
-    s1 = btor_get_sort_by_id (&btor->sorts_unique_table, cloneres);         \
-    btor_chkclone_sort (s0, s1);                                            \
+    s0 = btor_get_sort_by_id (btor, res);                                   \
+    s1 = btor_get_sort_by_id (btor->clone, cloneres);                       \
+    btor_chkclone_sort (btor, btor->clone, s0, s1);                         \
   } while (0)
 
 /*------------------------------------------------------------------------*/

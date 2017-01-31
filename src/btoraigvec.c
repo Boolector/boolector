@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -42,7 +42,7 @@ new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 }
 
 BtorAIGVec *
-btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits)
+btor_const_aigvec (BtorAIGVecMgr *avmgr, const BtorBitVector *bits)
 {
   assert (avmgr);
   assert (bits);
@@ -239,7 +239,7 @@ full_adder (
 }
 
 static int
-btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
+btor_compare_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
 {
   uint32_t len, i;
   int res;
@@ -248,7 +248,8 @@ btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
   len = a->len;
   assert (len == b->len);
   res = 0;
-  for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
+  for (i = 0; !res && i < len; i++)
+    res = btor_compare_aig (a->aigs[i], b->aigs[i]);
   return res;
 }
 
@@ -267,7 +268,7 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   int i;
 
   if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
-      && btor_cmp_aigvec_lsb_first (av1, av2) > 0)
+      && btor_compare_aigvec_lsb_first (av1, av2) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, av1, av2);
   }
@@ -413,7 +414,7 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len == b->len);
 
   if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
-      && btor_cmp_aigvec_lsb_first (a, b) > 0)
+      && btor_compare_aigvec_lsb_first (a, b) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, a, b);
   }
@@ -677,7 +678,7 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
   res  = new_aigvec (avmgr, av->len);
   for (i = 0; i < av->len; i++)
   {
-    if (BTOR_IS_CONST_AIG (av->aigs[i]))
+    if (btor_aig_is_const (av->aigs[i]))
       res->aigs[i] = av->aigs[i];
     else
     {
@@ -685,7 +686,7 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
       assert (BTOR_REAL_ADDR_AIG (aig)->id < BTOR_COUNT_STACK (amgr->id2aig));
       caig = BTOR_PEEK_STACK (amgr->id2aig, BTOR_REAL_ADDR_AIG (aig)->id);
       assert (caig);
-      assert (!BTOR_IS_CONST_AIG (caig));
+      assert (!btor_aig_is_const (caig));
       if (BTOR_IS_INVERTED_AIG (aig))
         res->aigs[i] = BTOR_INVERT_AIG (caig);
       else
@@ -766,32 +767,4 @@ BtorAIGMgr *
 btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr)
 {
   return avmgr ? avmgr->amgr : 0;
-}
-
-char *
-btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
-{
-  BtorAIGMgr *amgr;
-  int i, len, cur;
-  char *result;
-  assert (avmgr);
-  assert (av);
-  assert (av->len > 0);
-  amgr = avmgr->amgr;
-  len  = av->len;
-  BTOR_NEWN (avmgr->btor->mm, result, len + 1);
-  for (i = 0; i < len; i++)
-  {
-    cur = btor_get_assignment_aig (amgr, av->aigs[i]);
-    assert (cur >= -1);
-    assert (cur <= 1);
-    if (cur == 1)
-      result[i] = '1';
-    else if (cur == -1)
-      result[i] = '0';
-    else
-      result[i] = 'x';
-  }
-  result[i] = '\0';
-  return result;
 }

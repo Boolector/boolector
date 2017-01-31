@@ -9,8 +9,8 @@
  */
 
 #include "simplifier/btorminiscope.h"
+#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
-#include "utils/btoriter.h"
 #include "utils/btorstack.h"
 
 #define INV_KIND(k) \
@@ -44,12 +44,12 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
   //  printf ("quant: %s\n", node2string (quantifier));
   //  printf ("  body: %s\n", node2string (body));
 
-  BTOR_INIT_STACK (visit);
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (kind);
-  BTOR_INIT_STACK (args_kind);
-  BTOR_PUSH_STACK (mm, kind, quantifier->kind);
-  BTOR_PUSH_STACK (mm, visit, body);
+  BTOR_INIT_STACK (mm, visit);
+  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (mm, kind);
+  BTOR_INIT_STACK (mm, args_kind);
+  BTOR_PUSH_STACK (kind, quantifier->kind);
+  BTOR_PUSH_STACK (visit, body);
   /* push down quantifier */
   while (!BTOR_EMPTY_STACK (visit))
   {
@@ -64,8 +64,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
     if (!btor_is_and_node (real_cur))
     {
       //	  printf ("  no and\n");
-      BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, cur));
-      BTOR_PUSH_STACK (mm, args_kind, cur_kind);
+      BTOR_PUSH_STACK (args, btor_copy_exp (btor, cur));
+      BTOR_PUSH_STACK (args_kind, cur_kind);
       continue;
     }
     assert (cur_kind == BTOR_FORALL_NODE || cur_kind == BTOR_EXISTS_NODE);
@@ -73,8 +73,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
     if (!btor_contains_int_hash_table (cache, real_cur->id))
     {
       btor_add_int_hash_table (cache, real_cur->id);
-      BTOR_PUSH_STACK (mm, visit, cur);
-      BTOR_PUSH_STACK (mm, kind, cur_kind);
+      BTOR_PUSH_STACK (visit, cur);
+      BTOR_PUSH_STACK (kind, cur_kind);
 
       // FIXME: is_free not available anymore
 #if 0
@@ -82,23 +82,23 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 	    {
 //	      printf ("  free: %s\n", node2string (real_cur->e[0]));
 	      assert (!btor_param_is_free (btor, param, real_cur->e[1]));
-	      BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[0]));
-	      BTOR_PUSH_STACK (mm, args_kind, 0);
-	      BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
+	      BTOR_PUSH_STACK (args, btor_copy_exp (btor, real_cur->e[0]));
+	      BTOR_PUSH_STACK (args_kind, 0);
+	      BTOR_PUSH_STACK (visit, real_cur->e[1]);
 	      if (BTOR_IS_INVERTED_NODE (cur))
 		cur_kind = INV_KIND (cur_kind);
-	      BTOR_PUSH_STACK (mm, kind, cur_kind);
+	      BTOR_PUSH_STACK (kind, cur_kind);
 	    }
 	  else if (btor_param_is_free (btor, param, real_cur->e[1]))
 	    {
 //	      printf ("  free: %s\n", node2string (real_cur->e[1]));
 	      assert (!btor_param_is_free (btor, param, real_cur->e[0]));
-	      BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[1]));
-	      BTOR_PUSH_STACK (mm, args_kind, 0);
-	      BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
+	      BTOR_PUSH_STACK (args, btor_copy_exp (btor, real_cur->e[1]));
+	      BTOR_PUSH_STACK (args_kind, 0);
+	      BTOR_PUSH_STACK (visit, real_cur->e[0]);
 	      if (BTOR_IS_INVERTED_NODE (cur))
 		cur_kind = INV_KIND (cur_kind);
-	      BTOR_PUSH_STACK (mm, kind, cur_kind);
+	      BTOR_PUSH_STACK (kind, cur_kind);
 	    }
 	  /* match: \forall x . (e0[x] /\ e1[x])
 	   * result: (\forall x' . e0[x']) /\ (\forall x'' . e1[x''])
@@ -108,25 +108,25 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       if (cur_kind == BTOR_FORALL_NODE && !BTOR_IS_INVERTED_NODE (cur))
       {
         //	      printf ("  push forall\n");
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
+        BTOR_PUSH_STACK (visit, real_cur->e[0]);
+        BTOR_PUSH_STACK (kind, cur_kind);
+        BTOR_PUSH_STACK (visit, real_cur->e[1]);
+        BTOR_PUSH_STACK (kind, cur_kind);
       }
       else if (cur_kind == BTOR_EXISTS_NODE && BTOR_IS_INVERTED_NODE (cur))
       {
         //	      printf ("  push exists\n");
         //	      cur_kind = INV_KIND (cur_kind);
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
-        BTOR_PUSH_STACK (mm, kind, cur_kind);
+        BTOR_PUSH_STACK (visit, real_cur->e[0]);
+        BTOR_PUSH_STACK (kind, cur_kind);
+        BTOR_PUSH_STACK (visit, real_cur->e[1]);
+        BTOR_PUSH_STACK (kind, cur_kind);
       }
       else
       {
         //	      printf ("  no push\n");
-        BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, cur));
-        BTOR_PUSH_STACK (mm, args_kind, cur_kind);
+        BTOR_PUSH_STACK (args, btor_copy_exp (btor, cur));
+        BTOR_PUSH_STACK (args_kind, cur_kind);
       }
     }
     else
@@ -170,8 +170,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 
       //	  printf ("  result: %s\n", node2string (BTOR_COND_INVERT_NODE
       //(cur, and)));
-      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, and));
-      BTOR_PUSH_STACK (mm, args_kind, 0);
+      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, and));
+      BTOR_PUSH_STACK (args_kind, 0);
     }
   }
   assert (BTOR_COUNT_STACK (args) == 1);
@@ -179,10 +179,10 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 
   btor_delete_int_hash_map (map);
   btor_delete_int_hash_table (cache);
-  BTOR_RELEASE_STACK (mm, visit);
-  BTOR_RELEASE_STACK (mm, args);
-  BTOR_RELEASE_STACK (mm, args_kind);
-  BTOR_RELEASE_STACK (mm, kind);
+  BTOR_RELEASE_STACK (visit);
+  BTOR_RELEASE_STACK (args);
+  BTOR_RELEASE_STACK (args_kind);
+  BTOR_RELEASE_STACK (kind);
   return result;
 }
 
@@ -190,7 +190,7 @@ void
 btor_miniscope (Btor *btor)
 {
   uint32_t i;
-  BtorHashTableIterator it;
+  BtorPtrHashTableIterator it;
   BtorNode *cur, *subst;
   BtorNodePtrStack quants;
   BtorMemMgr *mm;
@@ -198,12 +198,12 @@ btor_miniscope (Btor *btor)
   if (btor->quantifiers->count == 0) return;
 
   mm = btor->mm;
-  BTOR_INIT_STACK (quants);
-  btor_init_node_hash_table_iterator (&it, btor->quantifiers);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  BTOR_INIT_STACK (mm, quants);
+  btor_init_ptr_hash_table_iterator (&it, btor->quantifiers);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (mm, quants, cur);
+    cur = btor_next_ptr_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (quants, cur);
   }
 
   btor_init_substitutions (btor);
@@ -217,5 +217,5 @@ btor_miniscope (Btor *btor)
   }
   btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
-  BTOR_RELEASE_STACK (mm, quants);
+  BTOR_RELEASE_STACK (quants);
 }

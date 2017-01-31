@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -27,15 +27,14 @@
 static int
 rem_bits_zero_dbg (BtorBitVector *bv)
 {
-  assert (bv->width % BTOR_BV_TYPE_BW == 0
+  return (bv->width % BTOR_BV_TYPE_BW == 0
           || (bv->bits[0] >> (bv->width % BTOR_BV_TYPE_BW) == 0));
-  return 1;
 }
 
 static int
-btor_check_bits_sll_dbg (const BtorBitVector *bv,
-                         const BtorBitVector *res,
-                         int shift)
+check_bits_sll_dbg (const BtorBitVector *bv,
+                    const BtorBitVector *res,
+                    int shift)
 {
   assert (bv);
   assert (res);
@@ -84,8 +83,8 @@ BtorBitVector *
 btor_new_random_range_bv (BtorMemMgr *mm,
                           BtorRNG *rng,
                           uint32_t bw,
-                          BtorBitVector *from,
-                          BtorBitVector *to)
+                          const BtorBitVector *from,
+                          const BtorBitVector *to)
 {
   assert (mm);
   assert (rng);
@@ -160,7 +159,7 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_char_to_bv (BtorMemMgr *mm, char *assignment)
+btor_char_to_bv (BtorMemMgr *mm, const char *assignment)
 {
   assert (mm);
   assert (assignment);
@@ -192,6 +191,34 @@ btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
 
   res = btor_new_bv (mm, bw);
   assert (res->len > 0);
+  res->bits[res->len - 1] = (BTOR_BV_TYPE) value;
+  if (res->width > 32)
+    res->bits[res->len - 2] = (BTOR_BV_TYPE) (value >> BTOR_BV_TYPE_BW);
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
+btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
+{
+  assert (mm);
+  assert (bw > 0);
+
+  BtorBitVector *res, *tmp;
+
+  res = btor_new_bv (mm, bw);
+  assert (res->len > 0);
+
+  /* ensure that all bits > 64 are set to 1 in case of negative values */
+  if (value < 0 && bw > 64)
+  {
+    tmp = btor_not_bv (mm, res);
+    btor_free_bv (mm, res);
+    res = tmp;
+  }
+
   res->bits[res->len - 1] = (BTOR_BV_TYPE) value;
   if (res->width > 32)
     res->bits[res->len - 2] = (BTOR_BV_TYPE) (value >> BTOR_BV_TYPE_BW);
@@ -433,7 +460,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
     return res;
   }
 
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (mm, stack);
 
   if (bv->width < 4)
   {
@@ -457,14 +484,14 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
     }
     assert (ch < 10);
     ch += '0';
-    BTOR_PUSH_STACK (mm, stack, ch);
+    BTOR_PUSH_STACK (stack, ch);
     btor_free_bv (mm, rem);
     btor_free_bv (mm, tmp);
     tmp = div;
   }
   btor_free_bv (mm, tmp);
   btor_free_bv (mm, ten);
-  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mm, stack, '0');
+  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (stack, '0');
   BTOR_NEWN (mm, res, BTOR_COUNT_STACK (stack) + 1);
   q = res;
   p = stack.top;
@@ -472,7 +499,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (res + BTOR_COUNT_STACK (stack) == q);
   *q = 0;
   assert ((uint32_t) BTOR_COUNT_STACK (stack) == strlen (res));
-  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (stack);
   return res;
 }
 
@@ -529,6 +556,18 @@ btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit)
   else
     bv->bits[bv->len - 1 - i] &= ~(1u << j);
 }
+
+void
+btor_flip_bit_bv (BtorBitVector *bv, uint32_t pos)
+{
+  assert (bv);
+  assert (bv->len > 0);
+  assert (pos < bv->width);
+
+  btor_set_bit_bv (bv, pos, btor_get_bit_bv (bv, pos) ? 0 : 1);
+}
+
+/*------------------------------------------------------------------------*/
 
 bool
 btor_is_true_bv (const BtorBitVector *bv)
@@ -961,7 +1000,7 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, int shift)
   }
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
-  assert (btor_check_bits_sll_dbg (a, res, shift));
+  assert (check_bits_sll_dbg (a, res, shift));
   return res;
 }
 
@@ -1338,12 +1377,13 @@ btor_is_umulo_bv (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
+#if 0
 BtorBitVector *
-btor_gcd_ext_bv (Btor *btor,
-                 const BtorBitVector *bv1,
-                 const BtorBitVector *bv2,
-                 BtorBitVector **fx,
-                 BtorBitVector **fy)
+btor_gcd_ext_bv (Btor * btor,
+		 const BtorBitVector * bv1,
+		 const BtorBitVector * bv2,
+		 BtorBitVector ** fx,
+		 BtorBitVector ** fy)
 {
   assert (bv1);
   assert (bv2);
@@ -1352,7 +1392,7 @@ btor_gcd_ext_bv (Btor *btor,
   assert (fx);
   assert (fy);
 
-  BtorBitVector *a, *b, *x, *y, *lx, *ly, *gcd      = 0;
+  BtorBitVector *a, *b, *x, *y, *lx, *ly, *gcd = 0;
   BtorBitVector *zero, *mul, *neg, *tx, *ty, *r, *q = 0;
 
   zero = btor_new_bv (btor->mm, bv1->width);
@@ -1363,47 +1403,47 @@ btor_gcd_ext_bv (Btor *btor,
   x = btor_copy_bv (btor->mm, zero);            // 0
   y = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
 
-  lx = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
-  ly = btor_copy_bv (btor->mm, zero);            // 0
+  lx = btor_flipped_bit_bv (btor->mm, zero, 0); // 1
+  ly = btor_copy_bv (btor->mm, zero);           // 0
 
   r = btor_copy_bv (btor->mm, bv1);
 
   while (btor_compare_bv (b, zero) > 0)
-  {
-    if (gcd) btor_free_bv (btor->mm, gcd);
-    gcd = btor_copy_bv (btor->mm, r);
+    {
+      if (gcd) btor_free_bv (btor->mm, gcd);
+      gcd = btor_copy_bv (btor->mm, r);
 
-    btor_free_bv (btor->mm, r);
-    r = btor_urem_bv (btor->mm, a, b);  // r = a % b
+      btor_free_bv (btor->mm, r);
+      r = btor_urem_bv (btor->mm, a, b);    // r = a % b
 
-    if (q) btor_free_bv (btor->mm, q);
-    q = btor_udiv_bv (btor->mm, a, b);  // q = a / b
+      if (q) btor_free_bv (btor->mm, q);
+      q = btor_udiv_bv (btor->mm, a, b);    // q = a / b
 
-    btor_free_bv (btor->mm, a);
-    a = btor_copy_bv (btor->mm, b);  // a = b
-    btor_free_bv (btor->mm, b);
-    b = btor_copy_bv (btor->mm, r);  // b = r
+      btor_free_bv (btor->mm, a);
+      a = btor_copy_bv (btor->mm, b);       // a = b
+      btor_free_bv (btor->mm, b);
+      b = btor_copy_bv (btor->mm, r);       // b = r
 
-    tx  = btor_copy_bv (btor->mm, x);  // tx = x
-    mul = btor_mul_bv (btor->mm, x, q);
-    neg = btor_neg_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, x);
-    x = btor_add_bv (btor->mm, lx, neg);  // x = lx - x * q
-    btor_free_bv (btor->mm, neg);
-    btor_free_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, lx);
-    lx = tx;  // lx = tx
-
-    ty  = btor_copy_bv (btor->mm, y);  // ty = y
-    mul = btor_mul_bv (btor->mm, y, q);
-    neg = btor_neg_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, y);
-    y = btor_add_bv (btor->mm, ly, neg);  // y = ly - y * q
-    btor_free_bv (btor->mm, neg);
-    btor_free_bv (btor->mm, mul);
-    btor_free_bv (btor->mm, ly);
-    ly = ty;  // ly = ty
-  }
+      tx = btor_copy_bv (btor->mm, x);      // tx = x
+      mul = btor_mul_bv (btor->mm, x, q);
+      neg = btor_neg_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, x);
+      x = btor_add_bv (btor->mm, lx, neg);  // x = lx - x * q
+      btor_free_bv (btor->mm, neg);
+      btor_free_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, lx);
+      lx = tx;                              // lx = tx
+      
+      ty = btor_copy_bv (btor->mm, y);      // ty = y
+      mul = btor_mul_bv (btor->mm, y, q);
+      neg = btor_neg_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, y);
+      y = btor_add_bv (btor->mm, ly, neg);  // y = ly - y * q
+      btor_free_bv (btor->mm, neg);
+      btor_free_bv (btor->mm, mul);
+      btor_free_bv (btor->mm, ly);
+      ly = ty;                              // ly = ty
+    }
 
   *fx = lx;
   *fy = ly;
@@ -1416,6 +1456,7 @@ btor_gcd_ext_bv (Btor *btor,
   btor_free_bv (btor->mm, zero);
   return gcd;
 }
+#endif
 
 /* Calculate modular inverse for bv by means of the Extended Euclidian
  * Algorithm. Note that c must be odd (the greatest
@@ -1545,7 +1586,8 @@ btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 }
 
 int
-btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
+btor_compare_bv_tuple (const BtorBitVectorTuple *t0,
+                       const BtorBitVectorTuple *t1)
 {
   assert (t0);
   assert (t1);
@@ -1566,7 +1608,7 @@ btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
 }
 
 uint32_t
-btor_hash_bv_tuple (BtorBitVectorTuple *t)
+btor_hash_bv_tuple (const BtorBitVectorTuple *t)
 {
   assert (t);
 

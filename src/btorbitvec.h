@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
@@ -50,13 +50,16 @@ BtorBitVector *btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw);
 BtorBitVector *btor_new_random_range_bv (BtorMemMgr *mm,
                                          BtorRNG *rng,
                                          uint32_t bw,
-                                         BtorBitVector *from,
-                                         BtorBitVector *to);
+                                         const BtorBitVector *from,
+                                         const BtorBitVector *to);
+
 BtorBitVector *btor_new_random_bit_range_bv (
     BtorMemMgr *mm, BtorRNG *rng, uint32_t bw, uint32_t up, uint32_t lo);
 
-BtorBitVector *btor_char_to_bv (BtorMemMgr *mm, char *assignment);
+BtorBitVector *btor_char_to_bv (BtorMemMgr *mm, const char *assignment);
 BtorBitVector *btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw);
+
+BtorBitVector *btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw);
 
 BtorBitVector *btor_get_assignment_bv (BtorMemMgr *mm,
                                        BtorNode *exp,
@@ -86,6 +89,8 @@ uint64_t btor_bv_to_uint64_bv (const BtorBitVector *bv);
 int btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos);
 /* index 0 is LSB, width - 1 is MSB */
 void btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t value);
+
+void btor_flip_bit_bv (BtorBitVector *bv, uint32_t pos);
 
 bool btor_is_true_bv (const BtorBitVector *bv);
 bool btor_is_false_bv (const BtorBitVector *bv);
@@ -199,11 +204,13 @@ bool btor_is_umulo_bv (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
-BtorBitVector *btor_gcd_ext_bv (Btor *btor,
-                                const BtorBitVector *bv1,
-                                const BtorBitVector *bv2,
-                                BtorBitVector **fx,
-                                BtorBitVector **fy);
+#if 0
+BtorBitVector * btor_gcd_ext_bv (Btor * btor,
+				 const BtorBitVector * bv1,
+				 const BtorBitVector * bv2,
+				 BtorBitVector ** fx,
+				 BtorBitVector ** fy);
+#endif
 
 BtorBitVector *btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv);
 
@@ -244,9 +251,10 @@ void btor_add_to_bv_tuple (BtorMemMgr *mm,
                            const BtorBitVector *bv,
                            uint32_t pos);
 
-int btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1);
+int btor_compare_bv_tuple (const BtorBitVectorTuple *t0,
+                           const BtorBitVectorTuple *t1);
 
-uint32_t btor_hash_bv_tuple (BtorBitVectorTuple *t);
+uint32_t btor_hash_bv_tuple (const BtorBitVectorTuple *t);
 
 /*------------------------------------------------------------------------*/
 

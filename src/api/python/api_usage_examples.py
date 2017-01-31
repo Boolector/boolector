@@ -1,3 +1,4 @@
+import os
 import boolector
 from boolector import Boolector
 
@@ -304,7 +305,7 @@ if __name__ == "__main__":
 
     # Set SAT solver (can only be done before the first Sat() call)
     # Lingeling is the default SAT solver
-    b.Set_sat_solver("MiniSAT")
+    #b.Set_sat_solver("MiniSAT")
     
     # Assert formulas
     b.Assert(_cond0[1])
@@ -351,3 +352,4 @@ if __name__ == "__main__":
         bb.Failed(~_cond0_matched[1])
         bb.Failed(_cond0_matched[2])
 
+    os.remove("dump.btor") 

@@ -47,17 +47,25 @@ btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssignmentList *list)
 }
 
 void
-btor_delete_bv_assignment_list (BtorBVAssignmentList *list, int auto_cleanup)
+btor_delete_bv_assignment_list (BtorBVAssignmentList *list, bool auto_cleanup)
 {
   assert (list);
 
-  BtorBVAssignment *bvass;
+  BtorBVAssignment *bvass, *tmp;
 
   assert (auto_cleanup || list->count == 0);
 
-  for (bvass = list->first; auto_cleanup && bvass; bvass = bvass->next)
-    btor_release_bv_assignment (list,
-                                (char *) btor_get_bv_assignment_str (bvass));
+  if (auto_cleanup)
+  {
+    bvass = list->first;
+    while (bvass)
+    {
+      tmp   = bvass;
+      bvass = bvass->next;
+      btor_release_bv_assignment (list,
+                                  (char *) btor_get_bv_assignment_str (tmp));
+    }
+  }
   BTOR_DELETE (list->mm, list);
 }
 
@@ -106,7 +114,7 @@ btor_find_bv_assignment_dbg (BtorBVAssignmentList *list, BtorBVAssignment *ass)
   bool res;
   BtorBVAssignment *b;
 
-  for (res = 0, b = list->first; b; b = b->next)
+  for (res = false, b = list->first; b; b = b->next)
     if ((res = (b == ass))) break;
   return res;
 }

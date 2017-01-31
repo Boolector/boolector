@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -13,8 +13,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"
-#include "btorslvprop.h"
-#include "btorslvsls.h"
+#include "btorslvpropsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 
@@ -36,10 +35,14 @@ static BtorRNG *g_rng;
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
     btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB, 1000); \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
     btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
     btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
     btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
     /*btor_set_opt (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
     g_mm  = g_btor->mm;                                            \
     g_rng = &g_btor->rng;                                          \
@@ -78,12 +81,15 @@ prop_complete_binary_eidx (
   int i, idx, sat_res;
   BtorNode *e[2], *exp, *val, *eq;
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
+  BtorSortId sort0, sort1;
 
-  e[0] = btor_var_exp (g_btor, bw0, 0);
-  e[1] = btor_var_exp (g_btor, bw1, 0);
-  exp  = create_exp (g_btor, e[0], e[1]);
-  val  = btor_const_exp (g_btor, bvexp);
-  eq   = btor_eq_exp (g_btor, exp, val);
+  sort0 = btor_bitvec_sort (g_btor, bw0);
+  sort1 = btor_bitvec_sort (g_btor, bw1);
+  e[0]  = btor_var_exp (g_btor, sort0, 0);
+  e[1]  = btor_var_exp (g_btor, sort1, 0);
+  exp   = create_exp (g_btor, e[0], e[1]);
+  val   = btor_const_exp (g_btor, bvexp);
+  eq    = btor_eq_exp (g_btor, exp, val);
 
   idx = eidx ? 0 : 1;
 
@@ -147,9 +153,12 @@ prop_complete_binary_eidx (
   btor_release_exp (g_btor, exp);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
+  btor_release_sort (g_btor, sort0);
+  btor_release_sort (g_btor, sort1);
   sat_res = sat_prop_solver_aux (g_btor);
   assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
+  btor_reset_incremental_usage (g_btor);
 }
 
 static void
@@ -389,9 +398,11 @@ test_prop_complete_slice_bv (void)
   uint64_t up, lo, i, j, k;
   BtorNode *exp, *e, *val, *eq;
   BtorBitVector *bve, *bvexp, *bvetmp, *bvexptmp, *res, *tmp;
+  BtorSortId sort;
 
   TEST_PROP_INIT;
-  bw = TEST_PROP_COMPLETE_BW;
+  bw   = TEST_PROP_COMPLETE_BW;
+  sort = btor_bitvec_sort (g_btor, bw);
 
   for (lo = 0; lo < bw; lo++)
   {
@@ -401,7 +412,7 @@ test_prop_complete_slice_bv (void)
       {
         for (j = 0; j < bw; j++)
         {
-          e        = btor_var_exp (g_btor, bw, 0);
+          e        = btor_var_exp (g_btor, sort, 0);
           exp      = btor_slice_exp (g_btor, e, up, lo);
           bve      = btor_uint64_to_bv (g_mm, i, bw);
           bvexp    = btor_slice_bv (g_mm, bve, up, lo);
@@ -456,10 +467,12 @@ test_prop_complete_slice_bv (void)
           sat_res = sat_prop_solver_aux (g_btor);
           assert (sat_res == BTOR_RESULT_SAT);
           assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
+          btor_reset_incremental_usage (g_btor);
         }
       }
     }
   }
+  btor_release_sort (g_btor, sort);
   btor_delete_btor (g_btor);
 #endif
 }

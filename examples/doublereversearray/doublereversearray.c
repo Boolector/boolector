@@ -10,7 +10,8 @@ static BoolectorNode *
 reverse_array_mem_xor (Btor *btor,
                        BoolectorNode *mem,
                        int num_elements,
-                       BoolectorNode *start)
+                       BoolectorNode *start,
+                       BoolectorSort isort)
 {
   BoolectorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
   BoolectorNode *temp, *result, *x, *y, *xor;
@@ -21,8 +22,8 @@ reverse_array_mem_xor (Btor *btor,
   assert (start != NULL);
 
   result           = mem;
-  num_elements_m_1 = boolector_unsigned_int (btor, num_elements - 1, 32);
-  one              = boolector_one (btor, 32);
+  num_elements_m_1 = boolector_unsigned_int (btor, num_elements - 1, isort);
+  one              = boolector_one (btor, isort);
   bottom_exp       = boolector_copy (btor, start);
   bottom           = 0;
   top_exp          = boolector_add (btor, start, num_elements_m_1);
@@ -77,7 +78,8 @@ static BoolectorNode *
 reverse_array_mem (Btor *btor,
                    BoolectorNode *mem,
                    int num_elements,
-                   BoolectorNode *start)
+                   BoolectorNode *start,
+                   BoolectorSort isort)
 {
   BoolectorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
   BoolectorNode *temp, *result, *x, *y;
@@ -88,8 +90,8 @@ reverse_array_mem (Btor *btor,
   assert (start != NULL);
 
   result           = mem;
-  num_elements_m_1 = boolector_unsigned_int (btor, num_elements - 1, 32);
-  one              = boolector_one (btor, 32);
+  num_elements_m_1 = boolector_unsigned_int (btor, num_elements - 1, isort);
+  one              = boolector_one (btor, isort);
   bottom_exp       = boolector_copy (btor, start);
   bottom           = 0;
   top_exp          = boolector_add (btor, start, num_elements_m_1);
@@ -135,6 +137,7 @@ main (int argc, char **argv)
   char *string;
   Btor *btor;
   BoolectorNode *mem1, *mem2, *orig_mem, *formula, *start;
+  BoolectorSort isort, esort, asort;
   if (argc != 2)
   {
     printf ("Usage: ./doublereversearray <num-elements>\n");
@@ -150,7 +153,10 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  orig_mem = boolector_array (btor, 8, 32, "mem");
+  isort    = boolector_bitvec_sort (btor, 32);
+  esort    = boolector_bitvec_sort (btor, 8);
+  asort    = boolector_array_sort (btor, isort, esort);
+  orig_mem = boolector_array (btor, asort, "mem");
   mem1     = boolector_copy (btor, orig_mem);
   mem2     = boolector_copy (btor, orig_mem);
   for (i = 0; i < num_elements; i++)
@@ -158,9 +164,9 @@ main (int argc, char **argv)
     string = (char *) malloc (
         sizeof (char) * (strlen ("start") + btor_num_digits_util (i + 1) + 1));
     sprintf (string, "start%d", i + 1);
-    start = boolector_var (btor, 32, string);
-    mem1  = reverse_array_mem (btor, mem1, num_elements, start);
-    mem2  = reverse_array_mem_xor (btor, mem2, num_elements, start);
+    start = boolector_var (btor, isort, string);
+    mem1  = reverse_array_mem (btor, mem1, num_elements, start, isort);
+    mem2  = reverse_array_mem_xor (btor, mem2, num_elements, start, isort);
     boolector_release (btor, start);
     free (string);
   }
@@ -173,6 +179,9 @@ main (int argc, char **argv)
   boolector_release (btor, mem1);
   boolector_release (btor, mem2);
   boolector_release (btor, orig_mem);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   return 0;
 }

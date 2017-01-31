@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
+#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btoropt.h"
 #include "utils/btormem.h"
@@ -236,6 +237,8 @@ main (int argc, char **argv)
   Btor *btor;
   BtorMemMgr *mm;
   BoolectorNode *matrix, *temp, *formula, *constraint;
+  BoolectorSort isort, esort, asort;
+  BtorBitVector *bv;
 
   if ((argc != 2 && argc != 1)
       || (argc == 2 && strcmp (argv[1], "--dump-formula") != 0))
@@ -257,29 +260,30 @@ main (int argc, char **argv)
 
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
-  mm = btor_new_mem_mgr ();
+  mm    = btor_new_mem_mgr ();
+  isort = boolector_bitvec_sort (btor, SUDOKU_NUM_BITS_INDEX);
+  esort = boolector_bitvec_sort (btor, SUDOKU_NUM_BITS_VAL);
+  asort = boolector_array_sort (btor, isort, esort);
 
   if (dump_formula) boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
   indices =
       (BoolectorNode **) malloc (sizeof (BoolectorNode *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
-    indices[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_INDEX);
+    indices[i] = boolector_unsigned_int (btor, i, isort);
 
   values = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * 10);
-  for (i = 0; i <= 9; i++)
-    values[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_VAL);
+  for (i = 0; i <= 9; i++) values[i] = boolector_unsigned_int (btor, i, esort);
 
   vars =
       (BoolectorNode **) malloc (sizeof (BoolectorNode *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
     sprintf (varname, "var%d", i);
-    vars[i] = boolector_var (btor, SUDOKU_NUM_BITS_VAL, varname);
+    vars[i] = boolector_var (btor, esort, varname);
   }
 
-  matrix = boolector_array (
-      btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX, "matrix");
+  matrix = boolector_array (btor, asort, "matrix");
 
   /* read sudoku file */
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
@@ -356,7 +360,9 @@ main (int argc, char **argv)
       for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
       {
         assignment     = boolector_bv_assignment (btor, vars[i]);
-        assignment_dec = btor_const_to_decimal (mm, assignment);
+        bv             = btor_char_to_bv (mm, assignment);
+        assignment_dec = btor_bv_to_dec_char_bv (mm, bv);
+        btor_free_bv (mm, bv);
         printf ("%s", assignment_dec);
         counter++;
         if (counter % SUDOKU_SIZE_SQRT == 0) printf (" ");
@@ -390,6 +396,9 @@ BTOR_SUDOKU_CLEANUP:
 
   boolector_release (btor, formula);
   boolector_release (btor, matrix);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   btor_delete_mem_mgr (mm);
   if (error) return EXIT_FAILURE;

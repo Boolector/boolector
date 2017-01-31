@@ -12,6 +12,7 @@ main (int argc, char **argv)
   BoolectorNode **indices, *array, *min_index, *min_element, *cur_element;
   BoolectorNode *old_element, *index, *ne, *ult, *ulte, *temp, *read1, *read2;
   BoolectorNode *no_diff_element, *sorted, *formula;
+  BoolectorSort isort, esort, asort;
   if (argc != 3)
   {
     printf ("Usage: ./selectionsort <num-bits> <num-elements>\n");
@@ -38,11 +39,14 @@ main (int argc, char **argv)
   btor           = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
+  isort   = boolector_bitvec_sort (btor, num_bits_index);
+  esort   = boolector_bitvec_sort (btor, num_bits);
+  asort   = boolector_array_sort (btor, isort, esort);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index, "array");
+    indices[i] = boolector_int (btor, i, isort);
+  array = boolector_array (btor, asort, "array");
   /* read at an arbitrary index (needed later): */
-  index       = boolector_var (btor, num_bits_index, "index");
+  index       = boolector_var (btor, isort, "index");
   old_element = boolector_read (btor, array, index);
   /* selection sort algorithm */
   for (i = 0; i < num_elements - 1; i++)
@@ -126,6 +130,9 @@ main (int argc, char **argv)
   boolector_release (btor, no_diff_element);
   boolector_release (btor, sorted);
   boolector_release (btor, array);
+  boolector_release_sort (btor, isort);
+  boolector_release_sort (btor, esort);
+  boolector_release_sort (btor, asort);
   boolector_delete (btor);
   free (indices);
   return 0;

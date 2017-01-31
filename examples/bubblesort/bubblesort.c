@@ -12,6 +12,7 @@ main (int argc, char **argv)
   BoolectorNode **indices, *array, *ne, *ugt, *ulte, *temp, *read1;
   BoolectorNode *read2, *cond1, *cond2, *sorted;
   BoolectorNode *no_diff_element, *formula, *index, *old_element;
+  BoolectorSort sort_index, sort_elem, sort_array;
   if (argc != 3)
   {
     printf ("Usage: ./bubblesort <num-bits> <num-elements>\n");
@@ -36,13 +37,16 @@ main (int argc, char **argv)
   }
   num_bits_index = btor_log_2_util (num_elements);
   btor           = boolector_new ();
+  sort_index     = boolector_bitvec_sort (btor, num_bits_index);
+  sort_elem      = boolector_bitvec_sort (btor, num_bits);
+  sort_array     = boolector_array_sort (btor, sort_index, sort_elem);
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index, "array");
+    indices[i] = boolector_int (btor, i, sort_index);
+  array = boolector_array (btor, sort_array, "array");
   /* read at an arbitrary index (needed later): */
-  index       = boolector_var (btor, num_bits_index, "index");
+  index       = boolector_var (btor, sort_index, "index");
   old_element = boolector_read (btor, array, index);
   /* bubble sort algorithm */
   for (i = 1; i < num_elements; i++)
@@ -114,6 +118,9 @@ main (int argc, char **argv)
   boolector_release (btor, old_element);
   boolector_release (btor, index);
   boolector_release (btor, array);
+  boolector_release_sort (btor, sort_index);
+  boolector_release_sort (btor, sort_elem);
+  boolector_release_sort (btor, sort_array);
   boolector_delete (btor);
   free (indices);
   return 0;

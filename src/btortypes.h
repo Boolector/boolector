@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Mathias Preiner.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *  Copyright (C) 2016 Armin Biere.
  *
  *  All rights reserved.
@@ -28,9 +28,9 @@ typedef enum BtorSolverResult BtorSolverResult;
 /* public API types */
 typedef struct BoolectorNode BoolectorNode;
 
-typedef struct BoolectorAnymous BoolectorAnymous;
+typedef struct BoolectorAnonymous BoolectorAnonymous;
 
-typedef BoolectorAnymous* BoolectorSort;
+typedef BoolectorAnonymous* BoolectorSort;
 
 /* --------------------------------------------------------------------- */
 
@@ -64,13 +64,14 @@ enum BtorOption
   BTOR_OPT_INCREMENTAL,
 
   /*!
-    * **BTOR_OPT_INCREMENTAL_ALL**
+    * **BTOR_OPT_INCREMENTAL_SMT1**
 
-      | Enable (``value``: 1) or disable (``value``: 0) incremental solving of
-    all formulas when parsing an input file. | Note that currently, incremental
-    mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
+      | Incremental mode for SMT1. Stop after first satisfiable formula
+    (``value``: 1) or solve all formulas (``value``: 2). | Note that currently,
+    incremental mode while parsing an input file is only supported for `SMT-LIB
+    v1`_ input.
   */
-  BTOR_OPT_INCREMENTAL_ALL,
+  BTOR_OPT_INCREMENTAL_SMT1,
 
   /*!
     * **BTOR_OPT_INPUT_FORMAT**
@@ -255,6 +256,13 @@ enum BtorOption
   */
   BTOR_OPT_EXTRACT_LAMBDAS,
 
+  /*!
+    * **BTOR_OPT_NORMALIZE_ADD**
+
+      Enable (``value``: 1) or disable (``value``: 0) normalization of addition.
+  */
+  BTOR_OPT_NORMALIZE_ADD,
+
   /* --------------------------------------------------------------------- */
   /*!
    **Fun Engine Options:**
@@ -270,12 +278,32 @@ enum BtorOption
   BTOR_OPT_FUN_PREPROP,
 
   /*!
+   * **BTOR_OPT_FUN_PRESLS**
+
+     Enable (``value``: 1) or disable (``value``: 0) sls engine as preprocessing
+   step within sequential portfolio setting.
+   */
+  BTOR_OPT_FUN_PRESLS,
+
+  /*!
     * **BTOR_OPT_FUN_DUAL_PROP**
 
       Enable (``value``: 1) or disable (``value``: 0) dual propagation
     optimization.
   */
   BTOR_OPT_FUN_DUAL_PROP,
+
+  /*!
+    * **BTOR_OPT_FUN_DUAL_PROP_QSORT**
+
+      | Set order in which inputs are assumed in dual propagation clone.
+      | Boolector uses BTOR_DP_QSORT_JUST by default.
+
+      * BTOR_DP_QSORT_JUST (0): order by score, highest score first
+      * BTOR_DP_QSORT_ASC (1): order by input id, ascending
+      * BTOR_DP_QSORT_DESC (2): order by input id, descending
+  */
+  BTOR_OPT_FUN_DUAL_PROP_QSORT,
 
   /*!
     * **BTOR_OPT_FUN_JUST**
@@ -323,13 +351,20 @@ enum BtorOption
   /* --------------------------------------------------------------------- */
 
   /*!
+   * **BTOR_OPT_SLS_NFIPS**
+      Set the number of bit flips used as a limit for the sls engine. Disabled
+   if 0.
+   */
+  BTOR_OPT_SLS_NFLIPS,
+
+  /*!
     * **BTOR_OPT_SLS_STRATEGY**
 
       | Set move strategy for SLS engine.
       | Boolector uses BTOR_SLS_STRAT_BEST_MOVE by default.
 
       * BTOR_SLS_STRAT_BEST_MOVE (0): always choose best score improving move
-      * BTOR_SLS_STRAT_PROB_RAND_WALK (1): always choose random walk weighted by
+      * BTOR_SLS_STRAT_RAND_WALK (1): always choose random walk weighted by
     score
       * BTOR_SLS_STRAT_FIRST_BEST_MOVE (2): always choose first best move (no
     matter if any other move is better)
@@ -379,18 +414,18 @@ enum BtorOption
 
       Enable (``value``: 1) or disable (``value``: 0) random walk moves, where
     one out of all possible neighbors is randomly selected (with given
-    probability, see BTOR_OPT_SLS_MOVE_RAND_WALK_PROB) for a randomly selected
+    probability, see BTOR_OPT_SLS_PROB_MOVE_RAND_WALK) for a randomly selected
     candidate variable.
   */
   BTOR_OPT_SLS_MOVE_RAND_WALK,
 
   /*!
-    * **BTOR_OPT_SLS_MOVE_RAND_WALK_PROB**
+    * **BTOR_OPT_SLS_PROB_MOVE_RAND_WALK**
 
       Set the probability with which a random walk is chosen if random walks are
     enabled (see BTOR_OPT_SLS_MOVE_RAND_WALK).
   */
-  BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
+  BTOR_OPT_SLS_PROB_MOVE_RAND_WALK,
 
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_ALL**
@@ -506,29 +541,105 @@ enum BtorOption
   BTOR_OPT_PROP_USE_BANDIT,
 
   /*!
-    * **BTOR_OPT_PROP_USE_FULL_PATH**
+    * **BTOR_OPT_PROP_PATH_SEL**
 
-      Enable (``value``: 1) or disable (``value``: 0) path selection over the
-    full set of operators (rather than just Boolean operators).
+      Choose mode for path selection.
   */
-  BTOR_OPT_PROP_USE_FULL_PATH,
+  BTOR_OPT_PROP_PATH_SEL,
 
   /*!
-    * **BTOR_OPT_PROP_USE_INV_VALUE_PROB**
+    * **BTOR_OPT_PROP_PROB_USE_INV_VALUE**
 
      Set probabiality with which to choose inverse values over consistent
     values.
   */
-  BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+  BTOR_OPT_PROP_PROB_USE_INV_VALUE,
 
   /*!
-    * **BTOR_OPT_PROP_FLIP_COND_PROB**
+    * **BTOR_OPT_PROP_PROB_FLIP_COND**
 
-     Set probabiality with which to select the path to the condition (in case of
+     Set probability with which to select the path to the condition (in case of
     an if-then-else operation) rather than the enabled branch during down
     propagation.
   */
-  BTOR_OPT_PROP_FLIP_COND_PROB,
+  BTOR_OPT_PROP_PROB_FLIP_COND,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_FLIP_COND_CONST**
+
+     Set probbiality with which to select the path to the condition (in case of
+    an if-then-else operation) rather than the enabled branch during down
+    propagation if either of the 'then' or 'else' branch is constant.
+  */
+  BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
+
+  /*!
+    * **BTOR_OPT_PROP_FLIP_COND_CONST_DELTA**
+
+     Set delta by which BTOR_OPT_PROP_PROB_FLIP_COND_CONST is decreased or
+    increased after a limit BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL is reached.
+  */
+  BTOR_OPT_PROP_FLIP_COND_CONST_DELTA,
+
+  /*!
+    * **BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL**
+
+     Set the limit for how often the path to the condition (in case of an
+    if-then-else operation) may be selected bevor
+    BTOR_OPT_PROP_PROB_FLIP_COND_CONST is decreased or increased by
+    BTOR_OPT_PROP_PROB_FLIP_COND_CONST_DELTA.
+  */
+  BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_SLICE_KEEP_DC**
+
+      Set probability with which to keep the current value of the don't care
+    bits of a slice operation (rather than fully randomizing all of them) when
+    selecting an inverse or consistent value.
+   */
+  BTOR_OPT_PROP_PROB_SLICE_KEEP_DC,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_CONC_FLIP**
+
+     Set probability with which to use the corresponing slice of current
+    assignment with max. one of its bits flipped (rather than using the
+    corresponding slice of the down propagated assignment) as result of
+    consistent value selection for concats.
+  */
+  BTOR_OPT_PROP_PROB_CONC_FLIP,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_SLICE_FLIP**
+
+     Set probability with which to use the current assignment of the operand of
+    a slice operation with one of the don't care bits flipped (rather than fully
+    randomizing all of them, both for inverse and consistent value selection) if
+    their current assignment is not kept (see BTOR_OPT_PROP_PROB_SLICE_KEEP_DC).
+  */
+  BTOR_OPT_PROP_PROB_SLICE_FLIP,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_EQ_FLIP**
+
+     Set probability with which the current assignment of the selected node with
+    one of its bits flipped (rather than a fully randomized bit-vector) is
+    down-propagated in case of an inequality (both for inverse and consistent
+    value selection).
+  */
+  BTOR_OPT_PROP_PROB_EQ_FLIP,
+
+  /*!
+    * **BTOR_OPT_PROP_PROB_AND_FLIP**
+
+     Set probability with which the current assignment of the don't care bits of
+    the selected node with max. one of its bits flipped (rather than fully
+    randomizing all of them) in case of an and operation (for both inverse and
+    consistent value selection).
+
+  */
+  BTOR_OPT_PROP_PROB_AND_FLIP,
 
   /*!
    * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
@@ -590,8 +701,10 @@ enum BtorOption
   BTOR_OPT_SORT_AIGVEC,
   BTOR_OPT_AUTO_CLEANUP_INTERNAL,
   BTOR_OPT_SIMPLIFY_CONSTRAINTS,
-#ifdef BTOR_CHECK_FAILED
+#ifndef NDEBUG
   BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
+  BTOR_OPT_CHK_MODEL,
+  BTOR_OPT_CHK_UNCONSTRAINED,
 #endif
   BTOR_OPT_PARSE_INTERACTIVE,
 #ifdef BTOR_USE_LINGELING

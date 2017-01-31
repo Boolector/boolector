@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -21,55 +21,65 @@
   typedef struct name##Queue name##Queue; \
   struct name##Queue                      \
   {                                       \
+    BtorMemMgr* mm;                       \
     type* start;                          \
     type* head;                           \
     type* tail;                           \
     type* end;                            \
   }
 
-#define BTOR_INIT_QUEUE(queue) \
-  do                           \
-  {                            \
-    (queue).start = 0;         \
-    (queue).head  = 0;         \
-    (queue).tail  = 0;         \
-    (queue).end   = 0;         \
+#define BTOR_INIT_QUEUE(mem, queue) \
+  do                                \
+  {                                 \
+    (queue).mm    = mem;            \
+    (queue).start = 0;              \
+    (queue).head  = 0;              \
+    (queue).tail  = 0;              \
+    (queue).end   = 0;              \
   } while (0)
 
-#define BTOR_COUNT_QUEUE(queue) ((queue).tail - (queue).head)
-#define BTOR_EMPTY_QUEUE(queue) ((queue).tail == (queue).head)
+#define BTOR_COUNT_QUEUE(queue) \
+  (assert ((queue).mm), (queue).tail - (queue).head)
+#define BTOR_EMPTY_QUEUE(queue) \
+  (assert ((queue).mm), (queue).tail == (queue).head)
 
 #define BTOR_RESET_QUEUE(queue)                  \
   do                                             \
   {                                              \
+    assert ((queue).mm);                         \
     (queue).head = (queue).tail = (queue).start; \
   } while (0)
 
-#define BTOR_SIZE_QUEUE(queue) ((queue).end - (queue).start)
-#define BTOR_FULL_QUEUE(queue) ((queue).tail == (queue).end)
+#define BTOR_SIZE_QUEUE(queue) \
+  (assert ((queue).mm), (queue).end - (queue).start)
+#define BTOR_FULL_QUEUE(queue) \
+  (assert ((queue).mm), (queue).tail == (queue).end)
 
-#define BTOR_RELEASE_QUEUE(mm, queue)                              \
-  do                                                               \
-  {                                                                \
-    BTOR_DELETEN ((mm), (queue).start, BTOR_SIZE_QUEUE ((queue))); \
-    BTOR_INIT_QUEUE (queue);                                       \
+#define BTOR_RELEASE_QUEUE(queue)                                        \
+  do                                                                     \
+  {                                                                      \
+    assert ((queue).mm);                                                 \
+    BTOR_DELETEN ((queue).mm, (queue).start, BTOR_SIZE_QUEUE ((queue))); \
+    BTOR_INIT_QUEUE ((queue).mm, queue);                                 \
   } while (0)
 
-#define BTOR_ENLARGE_QUEUE(mm, queue)                       \
-  do                                                        \
-  {                                                         \
-    int old_size     = BTOR_SIZE_QUEUE (queue), new_size;   \
-    int old_tail_pos = (queue).tail - (queue).start;        \
-    int old_head_pos = (queue).head - (queue).start;        \
-    BTOR_ENLARGE ((mm), (queue).start, old_size, new_size); \
-    (queue).tail = (queue).start + old_tail_pos;            \
-    (queue).head = (queue).start + old_head_pos;            \
-    (queue).end  = (queue).start + new_size;                \
+#define BTOR_ENLARGE_QUEUE(queue)                                 \
+  do                                                              \
+  {                                                               \
+    assert ((queue).mm);                                          \
+    int old_size     = BTOR_SIZE_QUEUE (queue), new_size;         \
+    int old_tail_pos = (queue).tail - (queue).start;              \
+    int old_head_pos = (queue).head - (queue).start;              \
+    BTOR_ENLARGE ((queue).mm, (queue).start, old_size, new_size); \
+    (queue).tail = (queue).start + old_tail_pos;                  \
+    (queue).head = (queue).start + old_head_pos;                  \
+    (queue).end  = (queue).start + new_size;                      \
   } while (0)
 
-#define BTOR_MOVE_QUEUE(mm, queue)                                        \
+#define BTOR_MOVE_QUEUE(queue)                                            \
   do                                                                      \
   {                                                                       \
+    assert ((queue).mm);                                                  \
     int offset = (queue).head - (queue).start;                            \
     int count  = BTOR_COUNT_QUEUE ((queue));                              \
     memmove ((queue).start, (queue).head, count * sizeof *(queue).start); \
@@ -77,21 +87,22 @@
     (queue).tail -= offset;                                               \
   } while (0)
 
-#define BTOR_ENQUEUE(mm, queue, elem)                             \
+#define BTOR_ENQUEUE(queue, elem)                                 \
   do                                                              \
   {                                                               \
+    assert ((queue).mm);                                          \
     if (BTOR_FULL_QUEUE ((queue)))                                \
     {                                                             \
       if (2 * BTOR_COUNT_QUEUE (queue) < BTOR_SIZE_QUEUE (queue)) \
-        BTOR_MOVE_QUEUE ((mm), (queue));                          \
+        BTOR_MOVE_QUEUE ((queue));                                \
       else                                                        \
-        BTOR_ENLARGE_QUEUE ((mm), (queue));                       \
+        BTOR_ENLARGE_QUEUE ((queue));                             \
     }                                                             \
     assert ((queue).tail < (queue).end);                          \
     *(queue).tail++ = (elem);                                     \
   } while (0)
 
-#define BTOR_DEQUEUE(queue) (*(queue).head++)
+#define BTOR_DEQUEUE(queue) (assert ((queue).mm), *(queue).head++)
 
 BTOR_DECLARE_QUEUE (BtorInt, int);
 

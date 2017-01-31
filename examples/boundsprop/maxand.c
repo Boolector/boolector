@@ -24,6 +24,7 @@ btor_maxand (Btor *btor,
   BoolectorNode *not_b_and_d_and_m_ne_zero, *temp_1_ugte_a, *temp_2_ugte_c;
   BoolectorNode *result, *cond_if, *cond_else_1, *cond_else_2;
   BoolectorNode *one_log_bits, *one_full_bits;
+  BoolectorSort sort, sort_log;
   int i;
 
   assert (btor != NULL);
@@ -41,9 +42,11 @@ btor_maxand (Btor *btor,
   d = boolector_copy (btor, d_in);
   m = boolector_copy (btor, m_in);
 
-  one_log_bits  = boolector_one (btor, btor_log_2_util (num_bits));
-  one_full_bits = boolector_one (btor, num_bits);
-  zero          = boolector_zero (btor, num_bits);
+  sort          = boolector_bitvec_sort (btor, num_bits);
+  sort_log      = boolector_bitvec_sort (btor, btor_log_2_util (num_bits));
+  one_log_bits  = boolector_one (btor, sort_log);
+  one_full_bits = boolector_one (btor, sort);
+  zero          = boolector_zero (btor, sort);
 
   for (i = 0; i < num_bits; i++)
   {
@@ -117,6 +120,8 @@ btor_maxand (Btor *btor,
   boolector_release (btor, zero);
   boolector_release (btor, one_log_bits);
   boolector_release (btor, one_full_bits);
+  boolector_release_sort (btor, sort);
+  boolector_release_sort (btor, sort_log);
 
   return result;
 }
