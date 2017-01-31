@@ -742,6 +742,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   BtorIntHashTableIterator iit;
   BtorSLSSolver *slv;
 
+  done      = false;
   slv       = BTOR_SLS_SOLVER (btor);
   sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
 
