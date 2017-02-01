@@ -3136,6 +3136,63 @@ update_assumptions (Btor *btor)
   btor->assumptions = ass;
 }
 
+// TODO: move to btorextract
+// TODO: this does not work with extensional benchmarks since we do not support
+//       constant lambdas as base case for extensionality yet
+void
+extract_quantified_array_initialization (Btor *btor)
+{
+  BtorPtrHashTableIterator it;
+  BtorNode *cur, *eq, *app, *val, *var, *lambda, *param;
+
+  btor_init_substitutions (btor);
+  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_ptr_hash_table_iterator (&it))
+  {
+    cur = btor_next_ptr_hash_table_iterator (&it);
+
+    if (BTOR_IS_INVERTED_NODE (cur) || !btor_is_forall_node (cur)
+        || BTOR_IS_INVERTED_NODE (cur->e[1]) || !btor_is_bv_eq_node (cur->e[1]))
+      continue;
+
+    eq = cur->e[1];
+    if (!BTOR_IS_INVERTED_NODE (eq->e[0]) && btor_is_apply_node (eq->e[0])
+        && btor_is_bv_const_node (eq->e[1]))
+    {
+      app = eq->e[0];
+      val = eq->e[1];
+    }
+    else if (!BTOR_IS_INVERTED_NODE (eq->e[1]) && btor_is_apply_node (eq->e[1])
+             && btor_is_bv_const_node (eq->e[0]))
+    {
+      app = eq->e[1];
+      val = eq->e[0];
+    }
+    else
+      continue;
+
+    if (!btor_is_uf_array_node (app->e[0])) continue;
+
+    if (!btor_is_param_node (app->e[1]->e[0])) continue;
+
+    var = app->e[1]->e[0];
+
+    if (!btor_param_is_forall_var (var) || var != cur->e[0]) continue;
+
+    param  = btor_param_exp (btor, var->sort_id, 0);
+    lambda = btor_lambda_exp (btor, param, val);
+    btor_insert_substitution (btor, app->e[0], lambda, 0);
+    btor_release_exp (btor, param);
+    btor_release_exp (btor, lambda);
+    btor_insert_substitution (btor, cur, btor->true_exp, 0);
+  }
+
+  btor_substitute_and_rebuild (btor, btor->substitutions);
+  btor_delete_substitutions (btor);
+}
+
 int
 btor_simplify (Btor *btor)
 {
@@ -3247,7 +3304,10 @@ btor_simplify (Btor *btor)
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
+    {
+      extract_quantified_array_initialization (btor);
       btor_extract_lambdas (btor);
+    }
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
@@ -3704,6 +3764,58 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
+#ifndef NDEBUG
+  Btor *uclone = 0;
+  if (check && btor_get_opt (btor, BTOR_OPT_CHK_UNCONSTRAINED)
+      && btor_get_opt (btor, BTOR_OPT_UCOPT)
+      && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+      && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
+      && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
+  {
+    uclone = btor_clone_btor (btor);
+    btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_MODEL, 0);
+    btor_set_opt (uclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+
+    btor_set_opt (uclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    //      assert (uclone->slv);
+    if (uclone->slv)
+    {
+      uclone->slv->api.delet (uclone->slv);
+      uclone->slv = 0;
+    }
+  }
+
+  Btor *mclone             = 0;
+  BtorPtrHashTable *inputs = 0;
+  if (check && btor_get_opt (btor, BTOR_OPT_CHK_MODEL))
+  {
+    mclone = btor_clone_exp_layer (btor, 0);
+    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
+    btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_MODEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+
+    btor_set_opt (mclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    //      assert (mclone->slv);
+    if (mclone->slv)
+    {
+      mclone->slv->api.delet (mclone->slv);
+      mclone->slv = 0;
+    }
+
+    inputs = map_inputs_check_model (btor, mclone);
+  }
+#endif
+
+#ifndef NBTORLOG
+  btor_log_opts (btor);
+#endif
+
+  res    = btor_simplify (btor);
   engine = btor_get_opt (btor, BTOR_OPT_ENGINE);
 
   if (!btor->slv)
@@ -3738,6 +3850,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
              || btor->quantifiers->count > 0)
     {
+      BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
+                  "quantifiers with functions not supported yet");
       btor->slv = btor_new_ef_solver (btor);
 #ifndef NDEBUG
       check = false;
@@ -3757,52 +3871,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
   assert (btor->slv);
 
-#ifndef NDEBUG
-  Btor *uclone = 0;
-  if (check && btor_get_opt (btor, BTOR_OPT_CHK_UNCONSTRAINED)
-      && btor_get_opt (btor, BTOR_OPT_UCOPT)
-      && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-      && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
-      && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
-  {
-    uclone = btor_clone_btor (btor);
-    btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
-    btor_set_opt (uclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
-    btor_set_opt (uclone, BTOR_OPT_CHK_MODEL, 0);
-    btor_set_opt (uclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-
-    btor_set_opt (uclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-    assert (uclone->slv);
-    uclone->slv->api.delet (uclone->slv);
-    uclone->slv = 0;
-  }
-
-  Btor *mclone             = 0;
-  BtorPtrHashTable *inputs = 0;
-  if (check && btor_get_opt (btor, BTOR_OPT_CHK_MODEL))
-  {
-    mclone = btor_clone_exp_layer (btor, 0);
-    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
-    btor_set_opt (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
-    btor_set_opt (mclone, BTOR_OPT_CHK_MODEL, 0);
-    btor_set_opt (mclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-
-    btor_set_opt (mclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-    assert (mclone->slv);
-    mclone->slv->api.delet (mclone->slv);
-    mclone->slv = 0;
-
-    inputs = map_inputs_check_model (btor, mclone);
-  }
-#endif
-
-#ifndef NBTORLOG
-  btor_log_opts (btor);
-#endif
-
-  res = btor_simplify (btor);
   if (res != BTOR_RESULT_UNSAT) res = btor->slv->api.sat (btor->slv);
   btor->last_sat_result = res;
   btor->btor_sat_btor_called++;
