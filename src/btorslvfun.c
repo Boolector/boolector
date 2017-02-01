@@ -1864,7 +1864,7 @@ generate_table (Btor *btor, BtorNode *fun)
       {
         assert (cur->is_array);
         static_rho = btor_lambda_get_static_rho (cur);
-        assert (static_rho);
+        assert (!BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized || static_rho);
       }
       else if (btor_is_fun_cond_node (cur))
       {

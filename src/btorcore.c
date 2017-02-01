@@ -3144,6 +3144,7 @@ extract_quantified_array_initialization (Btor *btor)
 {
   BtorPtrHashTableIterator it;
   BtorNode *cur, *eq, *app, *val, *var, *lambda, *param;
+  uint32_t num_extracted = 0;
 
   btor_init_substitutions (btor);
   btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -3173,7 +3174,7 @@ extract_quantified_array_initialization (Btor *btor)
     else
       continue;
 
-    if (!btor_is_uf_array_node (app->e[0])) continue;
+    if (btor_get_arity_fun_sort (btor, app->e[0]->sort_id) != 1) continue;
 
     if (!btor_is_param_node (app->e[1]->e[0])) continue;
 
@@ -3181,9 +3182,17 @@ extract_quantified_array_initialization (Btor *btor)
 
     if (!btor_param_is_forall_var (var) || var != cur->e[0]) continue;
 
-    param  = btor_param_exp (btor, var->sort_id, 0);
-    lambda = btor_lambda_exp (btor, param, val);
-    btor_insert_substitution (btor, app->e[0], lambda, 0);
+    // TODO: for now we can only extract exactly one initilization pattern
+    //       since we do not support extensionality over constant lambdas
+    //       yet
+    BTOR_ABORT (num_extracted, "multiple array initializations not supported");
+    num_extracted++;
+    param            = btor_param_exp (btor, var->sort_id, 0);
+    lambda           = btor_lambda_exp (btor, param, val);
+    lambda->is_array = app->e[0]->is_array;
+    eq               = btor_eq_exp (btor, app->e[0], lambda);
+    btor_assert_exp (btor, eq);
+    btor_release_exp (btor, eq);
     btor_release_exp (btor, param);
     btor_release_exp (btor, lambda);
     btor_insert_substitution (btor, cur, btor->true_exp, 0);
