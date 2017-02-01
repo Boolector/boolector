@@ -224,6 +224,7 @@ typedef enum BtorSMT2Tag
   BTOR_UFNIA_TAG_SMT2     = 22 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_BV_TAG_SMT2        = 23 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_UFBV_TAG_SMT2      = 24 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_ABV_TAG_SMT2       = 25 + BTOR_LOGIC_TAG_CLASS_SMT2,
 
 } BtorSMT2Tag;
 
@@ -1030,6 +1031,7 @@ insert_logics_smt2 (BtorSMT2Parser *parser)
   INSERT ("UFNIA", BTOR_UFNIA_TAG_SMT2);
   INSERT ("BV", BTOR_BV_TAG_SMT2);
   INSERT ("UFBV", BTOR_UFBV_TAG_SMT2);
+  INSERT ("ABV", BTOR_ABV_TAG_SMT2);
 }
 
 static BtorSMT2Parser *
@@ -4055,6 +4057,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
         case BTOR_QF_ABV_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_QF_AUFBV;
           break;
+        case BTOR_ABV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_ABV; break;
         case BTOR_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
         case BTOR_UFBV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_UFBV; break;
         default:
@@ -4380,7 +4383,8 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   else if (parser->commands.set_logic)
   {
     assert (!parser->need_functions || parser->res->logic == BTOR_LOGIC_QF_AUFBV
-            || parser->res->logic == BTOR_LOGIC_UFBV);
+            || parser->res->logic == BTOR_LOGIC_UFBV
+            || parser->res->logic == BTOR_LOGIC_ABV);
     if (!parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
