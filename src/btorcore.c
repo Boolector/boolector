@@ -3142,14 +3142,13 @@ update_assumptions (Btor *btor)
 void
 extract_quantified_array_initialization (Btor *btor)
 {
+  assert (btor->assumptions->count == 0);
+  assert (btor->synthesized_constraints->count == 0);
   BtorPtrHashTableIterator it;
   BtorNode *cur, *eq, *app, *val, *var, *lambda, *param;
   uint32_t num_extracted = 0;
 
-  btor_init_substitutions (btor);
   btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
     cur = btor_next_ptr_hash_table_iterator (&it);
@@ -3195,11 +3194,9 @@ extract_quantified_array_initialization (Btor *btor)
     btor_release_exp (btor, eq);
     btor_release_exp (btor, param);
     btor_release_exp (btor, lambda);
-    btor_insert_substitution (btor, cur, btor->true_exp, 0);
+    btor_remove_ptr_hash_table (btor->unsynthesized_constraints, cur, 0, 0);
+    btor_release_exp (btor, cur);
   }
-
-  btor_substitute_and_rebuild (btor, btor->substitutions);
-  btor_delete_substitutions (btor);
 }
 
 int
@@ -3313,10 +3310,14 @@ btor_simplify (Btor *btor)
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
-    {
       extract_quantified_array_initialization (btor);
+
+    if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
+      continue;
+
+    if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+        && btor_get_opt (btor, BTOR_OPT_EXTRACT_LAMBDAS))
       btor_extract_lambdas (btor);
-    }
 
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         && btor_get_opt (btor, BTOR_OPT_MERGE_LAMBDAS))
@@ -3824,63 +3825,66 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   btor_log_opts (btor);
 #endif
 
-  res    = btor_simplify (btor);
-  engine = btor_get_opt (btor, BTOR_OPT_ENGINE);
+  res = btor_simplify (btor);
 
-  if (!btor->slv)
+  if (res != BTOR_RESULT_UNSAT)
   {
-    /* eliminate lambdas (define-fun) in the QF_BV case */
-    if (btor->ufs->count == 0 && btor->feqs->count == 0
-        && btor->lambdas->count > 0)
-      btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+    engine = btor_get_opt (btor, BTOR_OPT_ENGINE);
 
-    /* these engines work on QF_BV only */
-    if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0
-        && btor->feqs->count == 0)
+    if (!btor->slv)
     {
-      assert (btor->lambdas->count == 0
-              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
-      btor->slv = btor_new_sls_solver (btor);
-    }
-    else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
-             && btor->feqs->count == 0)
-    {
-      assert (btor->lambdas->count == 0
-              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
-      btor->slv = btor_new_prop_solver (btor);
-    }
-    else if (engine == BTOR_ENGINE_AIGPROP && btor->ufs->count == 0
-             && btor->feqs->count == 0)
-    {
-      assert (btor->lambdas->count == 0
-              || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
-      btor->slv = btor_new_aigprop_solver (btor);
-    }
-    else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
-             || btor->quantifiers->count > 0)
-    {
-      BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
-                  "quantifiers with functions not supported yet");
-      btor->slv = btor_new_ef_solver (btor);
+      /* eliminate lambdas (define-fun) in the QF_BV case */
+      if (btor->ufs->count == 0 && btor->feqs->count == 0
+          && btor->lambdas->count > 0)
+        btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+
+      /* these engines work on QF_BV only */
+      if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0
+          && btor->feqs->count == 0)
+      {
+        assert (btor->lambdas->count == 0
+                || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
+        btor->slv = btor_new_sls_solver (btor);
+      }
+      else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
+               && btor->feqs->count == 0)
+      {
+        assert (btor->lambdas->count == 0
+                || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
+        btor->slv = btor_new_prop_solver (btor);
+      }
+      else if (engine == BTOR_ENGINE_AIGPROP && btor->ufs->count == 0
+               && btor->feqs->count == 0)
+      {
+        assert (btor->lambdas->count == 0
+                || btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL));
+        btor->slv = btor_new_aigprop_solver (btor);
+      }
+      else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
+               || btor->quantifiers->count > 0)
+      {
+        BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
+                    "quantifiers with functions not supported yet");
+        btor->slv = btor_new_ef_solver (btor);
 #ifndef NDEBUG
-      check = false;
+        check = false;
 #endif
-    }
-    else
-    {
-      /* disabling slice elimination is better on QF_ABV */
-      if (btor->ufs->count > 0)
-        btor_set_opt (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
+      }
+      else
+      {
+        /* disabling slice elimination is better on QF_ABV */
+        if (btor->ufs->count > 0)
+          btor_set_opt (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
 
-      btor->slv = btor_new_fun_solver (btor);
-      // TODO (ma): make options for lod_limit and sat_limit
-      BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
-      BTOR_FUN_SOLVER (btor)->sat_limit = sat_limit;
+        btor->slv = btor_new_fun_solver (btor);
+        // TODO (ma): make options for lod_limit and sat_limit
+        BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
+        BTOR_FUN_SOLVER (btor)->sat_limit = sat_limit;
+      }
     }
+    assert (btor->slv);
+    res = btor->slv->api.sat (btor->slv);
   }
-  assert (btor->slv);
-
-  if (res != BTOR_RESULT_UNSAT) res = btor->slv->api.sat (btor->slv);
   btor->last_sat_result = res;
   btor->btor_sat_btor_called++;
   btor->valid_assignments = 1;
