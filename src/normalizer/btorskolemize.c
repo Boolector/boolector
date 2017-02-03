@@ -117,8 +117,7 @@ btor_skolemize_node (Btor *btor,
             /* substitute param with variable in outermost scope */
             else
             {
-              result =
-                  btor_var_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+              result = btor_var_exp (btor, real_cur->sort_id, buf);
               if (skolem_consts)
                 btor_add_ptr_hash_table (skolem_consts,
                                          btor_copy_exp (btor, result));
@@ -132,8 +131,7 @@ btor_skolemize_node (Btor *btor,
               buf = btor_malloc (mm, len);
               sprintf (buf, "%s!0", symbol);
             }
-            result =
-                btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+            result = btor_param_exp (btor, real_cur->sort_id, buf);
           }
 
           if (buf) btor_freestr (mm, buf);

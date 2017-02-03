@@ -64,7 +64,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
 
   sprintf (buf, "ite_%d", ite->id);
   if (BTOR_EMPTY_STACK (params))
-    result = btor_var_exp (btor, btor_get_exp_width (btor, ite), buf);
+    result = btor_var_exp (btor, ite->sort_id, buf);
   else
   {
     domain  = btor_tuple_sort (btor, tsorts.start, BTOR_COUNT_STACK (tsorts));
@@ -113,7 +113,7 @@ mk_param_with_symbol (Btor *btor, BtorNode *node)
         break;
     }
   }
-  result = btor_param_exp (btor, btor_get_exp_width (btor, node), buf);
+  result = btor_param_exp (btor, node->sort_id, buf);
   if (buf) BTOR_DELETEN (mm, buf, len);
   return result;
 }

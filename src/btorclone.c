@@ -1663,8 +1663,11 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
             assert (cur_clone->kind == cur->kind);
           }
           else
-            cur_clone =
-                btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
+          {
+            sort = btor_bitvec_sort (clone, btor_get_exp_width (btor, cur));
+            cur_clone = btor_var_exp (clone, sort, symbol);
+            btor_release_sort (clone, sort);
+          }
           break;
         case BTOR_PARAM_NODE:
           b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
@@ -1676,8 +1679,11 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
             assert (cur_clone->kind == cur->kind);
           }
           else
-            cur_clone =
-                btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
+          {
+            sort = btor_bitvec_sort (clone, btor_get_exp_width (btor, cur));
+            cur_clone = btor_param_exp (clone, sort, symbol);
+            btor_release_sort (clone, sort);
+          }
           break;
         case BTOR_UF_NODE:
           b      = btor_get_ptr_hash_table (btor->node2symbol, cur);

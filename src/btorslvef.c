@@ -594,9 +594,11 @@ mk_dual_formula (Btor *btor,
       {
         if (btor_is_param_node (real_cur))
         {
-          sym    = btor_get_symbol_exp (btor, real_cur);
-          result = btor_param_exp (
-              dual_btor, btor_get_exp_width (btor, real_cur), sym);
+          sym = btor_get_symbol_exp (btor, real_cur);
+          sortid =
+              btor_bitvec_sort (dual_btor, btor_get_exp_width (btor, real_cur));
+          result = btor_param_exp (dual_btor, sortid, sym);
+          btor_release_sort (dual_btor, sortid);
 
           if (btor_param_is_forall_var (real_cur)
               || btor_param_is_exists_var (real_cur))
@@ -786,6 +788,7 @@ setup_efg_solvers (BtorEFSolver *slv,
       btor_new_ptr_hash_table (res->forall->mm,
                                (BtorHashPtr) btor_hash_bv_tuple,
                                (BtorCmpPtr) btor_compare_bv_tuple);
+  BTOR_INIT_STACK (res->forall->mm, res->forall_consts);
   collect_consts (res->forall, res->forall_formula, &res->forall_consts);
 
   /* store UFs in a separate table for later */
@@ -802,7 +805,7 @@ setup_efg_solvers (BtorEFSolver *slv,
   {
     cur = btor_next_ptr_hash_table_iterator (&it);
     assert (btor_param_is_forall_var (cur));
-    var = btor_var_exp (res->forall, btor_get_exp_width (res->forall, cur), 0);
+    var = btor_var_exp (res->forall, cur->sort_id, 0);
     btor_map_node (res->forall_uvars, cur, var);
     btor_release_exp (res->forall, var);
   }
@@ -822,8 +825,7 @@ setup_efg_solvers (BtorEFSolver *slv,
       btor_release_sort (res->forall, funsortid);
     }
     else
-      var =
-          btor_var_exp (res->forall, btor_get_exp_width (res->forall, cur), 0);
+      var = btor_var_exp (res->forall, cur->sort_id, 0);
 
     btor_map_node (res->forall_skolem, cur, var);
     btor_release_exp (res->forall, var);
@@ -947,6 +949,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
   BtorNodePtrStack visit, args;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
+  BtorSortId sort;
 
   mm   = btor->mm;
   mark = btor_new_int_hash_map (mm);
@@ -993,8 +996,10 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
       {
         assert (!btor_param_is_exists_var (real_cur));
         assert (!btor_param_is_forall_var (real_cur));
-        result = btor_param_exp (
-            btor, btor_get_exp_width (real_cur->btor, real_cur), 0);
+        sort   = btor_bitvec_sort (btor,
+                                 btor_get_exp_width (real_cur->btor, real_cur));
+        result = btor_param_exp (btor, sort, 0);
+        btor_release_sort (btor, sort);
       }
       else if (btor_is_slice_node (real_cur))
       {
@@ -1371,7 +1376,7 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
     BTOR_PUSH_STACK (params, btor_next_args_iterator (&ait));
 
   if (opt_synth_complete)
-    e_else = btor_zero_exp (btor, btor_get_exp_width (btor, evar));
+    e_else = btor_zero_exp (btor, evar->sort_id);
   else
   {
     ufsortid = btor_fun_sort (btor, args->sort_id, evar->sort_id);
@@ -1474,7 +1479,7 @@ filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   BtorPtrHashTable *r_evars_ufs;
   BtorMemMgr *mm;
   BtorSolverResult r;
-  BtorSortId sort_id;
+  BtorSortId sort_id, sort;
   BtorPtrHashTableIterator ce_it;
   BtorHashTableData d;
 
@@ -1515,7 +1520,9 @@ filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
     var_fs = it.it.bucket->data.as_ptr;
     uvar   = btor_next_node_map_iterator (&it);
 
-    var = btor_var_exp (r_solver, btor_get_exp_width (f_solver, uvar), 0);
+    sort = btor_bitvec_sort (r_solver, btor_get_exp_width (f_solver, uvar));
+    var  = btor_var_exp (r_solver, sort, 0);
+    btor_release_sort (r_solver, sort);
     btor_map_node (varmap, uvar, var);
     btor_map_node (rev_varmap, var, uvar);
 
@@ -1539,7 +1546,9 @@ filter_flat_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
         e_solver, r_solver, var_es->sort_id);
 
     a      = btor_mapped_node (gslv->forall_evar_deps, var_fs);
-    r_evar = btor_var_exp (r_solver, btor_get_exp_width (f_solver, var_fs), 0);
+    sort   = btor_bitvec_sort (r_solver, btor_get_exp_width (f_solver, var_fs));
+    r_evar = btor_var_exp (r_solver, sort, 0);
+    btor_release_sort (r_solver, sort);
     btor_map_node (varmap, var_fs, r_evar);
     if (!a) BTOR_PUSH_STACK (outer_evars, r_evar);
 
@@ -2494,6 +2503,7 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
   BtorHashTableData *d;
   BtorNodeMap *deps;
   Btor *btor;
+  BtorSortId sort;
 
   btor = gslv->exists;
   mm   = btor->mm;
@@ -2574,8 +2584,12 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
             result = btor_copy_exp (btor, evar);
         }
         else
-          result = btor_param_exp (
-              btor, btor_get_exp_width (real_cur->btor, real_cur), 0);
+        {
+          sort = btor_bitvec_sort (
+              btor, btor_get_exp_width (real_cur->btor, real_cur));
+          result = btor_param_exp (btor, sort, 0);
+          btor_release_sort (btor, sort);
+        }
       }
       else if (btor_is_slice_node (real_cur))
       {

@@ -3142,11 +3142,11 @@ update_assumptions (Btor *btor)
 void
 extract_quantified_array_initialization (Btor *btor)
 {
-  assert (btor->assumptions->count == 0);
-  assert (btor->synthesized_constraints->count == 0);
   BtorPtrHashTableIterator it;
   BtorNode *cur, *eq, *app, *val, *var, *lambda, *param;
   uint32_t num_extracted = 0;
+
+  if (btor->forall_vars->count == 0) return;
 
   btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -3775,6 +3775,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
 #ifndef NDEBUG
+  // NOTE: disable checking if quantifiers present for now (not supported yet)
+  if (btor->quantifiers->count) check = false;
+
   Btor *uclone = 0;
   if (check && btor_get_opt (btor, BTOR_OPT_CHK_UNCONSTRAINED)
       && btor_get_opt (btor, BTOR_OPT_UCOPT)
@@ -3866,9 +3869,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
         BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
                     "quantifiers with functions not supported yet");
         btor->slv = btor_new_ef_solver (btor);
-#ifndef NDEBUG
-        check = false;
-#endif
       }
       else
       {

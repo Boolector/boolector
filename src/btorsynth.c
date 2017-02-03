@@ -646,6 +646,7 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
   else
   {
     BTOR_CNEW (mm, exps);
+    BTOR_INIT_STACK (mm, *exps);
     btor_add_int_hash_map (sorted_exps, sort)->as_ptr = exps;
   }
   BTOR_PUSH_STACK (*exps, exp);
@@ -768,7 +769,7 @@ mk_fun (Btor * btor, BtorNode * params[], uint32_t nparams, BtorNode * body)
   for (i = 0; i < nparams; i++)
     {
       p = params[i];
-      new_p = btor_param_exp (btor, btor_get_exp_width (btor, p), 0);
+      new_p = btor_param_exp (btor, p->sort_id, 0);
       BTOR_PUSH_STACK (new_params, new_p);
       btor_map_node (map, p, new_p);
     }
@@ -1342,6 +1343,7 @@ synthesize (Btor *btor,
   memset (&candidates, 0, sizeof (Candidates));
   BTOR_INIT_STACK (mm, candidates.exps);
   BTOR_PUSH_STACK (candidates.exps, 0);
+  BTOR_INIT_STACK (mm, candidates.nexps_level);
   BTOR_PUSH_STACK (candidates.nexps_level, 0);
 
   target_sort = btor_bitvec_sort (btor, value_out[0]->width);
@@ -1642,6 +1644,7 @@ DONE:
   btor_delete_ptr_hash_table (sigs_exp);
   btor_delete_ptr_hash_table (matches);
   btor_delete_int_hash_table (cache);
+  btor_delete_int_hash_table (cone_hash);
   BTOR_RELEASE_STACK (trav_exps);
   BTOR_RELEASE_STACK (trav_cone);
 
