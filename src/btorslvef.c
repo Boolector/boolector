@@ -925,8 +925,8 @@ delete_efg_solvers (BtorEFSolver *slv, BtorEFGroundSolvers *gslv)
   btor_init_ptr_hash_table_iterator (&it, gslv->forall_ces);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    assert (it.bucket->data.as_ptr);
-    btor_free_bv_tuple (gslv->forall->mm, it.bucket->data.as_ptr);
+    if (it.bucket->data.as_ptr)
+      btor_free_bv_tuple (gslv->forall->mm, it.bucket->data.as_ptr);
     ce = btor_next_ptr_hash_table_iterator (&it);
     btor_free_bv_tuple (gslv->forall->mm, ce);
   }
@@ -1123,17 +1123,22 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
 
   //  printf ("evar (refine)\n");
   i        = 0;
-  evar_tup = btor_new_bv_tuple (f_solver->mm, gslv->forall_evars->table->count);
-  btor_init_node_map_iterator (&it, gslv->forall_evars);
-  while (btor_has_next_node_map_iterator (&it))
+  evar_tup = 0;
+  if (gslv->forall_evars->table->count)
   {
-    evar   = btor_next_node_map_iterator (&it);
-    var_fs = btor_mapped_node (evar_map, evar);
-    assert (var_fs);
-    bv = btor_get_bv_model (f_solver, btor_simplify_exp (f_solver, var_fs));
-    btor_add_to_bv_tuple (f_solver->mm, evar_tup, bv, i++);
-    //      printf ("%s = %zu ", btor_get_symbol_exp (f_solver, evar),
-    //      btor_bv_to_uint64_bv (bv)); btor_print_bv (bv);
+    evar_tup =
+        btor_new_bv_tuple (f_solver->mm, gslv->forall_evars->table->count);
+    btor_init_node_map_iterator (&it, gslv->forall_evars);
+    while (btor_has_next_node_map_iterator (&it))
+    {
+      evar   = btor_next_node_map_iterator (&it);
+      var_fs = btor_mapped_node (evar_map, evar);
+      assert (var_fs);
+      bv = btor_get_bv_model (f_solver, btor_simplify_exp (f_solver, var_fs));
+      btor_add_to_bv_tuple (f_solver->mm, evar_tup, bv, i++);
+      //      printf ("%s = %zu ", btor_get_symbol_exp (f_solver, evar),
+      //      btor_bv_to_uint64_bv (bv)); btor_print_bv (bv);
+    }
   }
 
   /* map existential variables to skolem constants */
@@ -1176,14 +1181,14 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   {
     gslv->forall_last_ce = b->key;
     btor_free_bv_tuple (f_solver->mm, ce);
-    btor_free_bv_tuple (f_solver->mm, evar_tup);
+    if (evar_tup) btor_free_bv_tuple (f_solver->mm, evar_tup);
     return false;
   }
 
   if (res == e_solver->true_exp)
   {
     btor_free_bv_tuple (f_solver->mm, ce);
-    btor_free_bv_tuple (f_solver->mm, evar_tup);
+    if (evar_tup) btor_free_bv_tuple (f_solver->mm, evar_tup);
     return false;
   }
 
