@@ -3192,7 +3192,7 @@ sat_ef_solver (BtorEFSolver *slv)
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   g = btor_normalize_quantifiers (slv->btor);
-  btor_dump_smt2_node (slv->btor, stdout, g, -1);
+  //  btor_dump_smt2_node (slv->btor, stdout, g, -1);
 
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_MINISCOPE))
   {

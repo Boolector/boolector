@@ -263,7 +263,7 @@ miniscope (Btor *btor,
   BtorIntHashTable *cone, *cache;
   BtorNodeIterator it;
   BtorNodePtrStack visit, *pushed;
-  BtorNode *cur, *real_cur, *e0, *e1, *tmp;
+  BtorNode *cur, *real_cur, *e0, *e1;
   int32_t cur_pol;
   bool e0_cone, e1_cone;
   BtorHashTableData *d;
@@ -288,7 +288,7 @@ miniscope (Btor *btor,
       BTOR_PUSH_STACK (visit, btor_next_parent_iterator (&it));
   }
 
-  printf ("miniscope(%s)\n", node2string (quant));
+  // printf ("miniscope(%s)\n", node2string (quant));
   cur_pol = 1;
   BTOR_PUSH_STACK (visit, quant->e[1]);
   while (!BTOR_EMPTY_STACK (visit))
@@ -352,7 +352,8 @@ miniscope (Btor *btor,
     }
     quant = BTOR_COND_INVERT_NODE (cur_pol == -1, quant);
     BTOR_PUSH_STACK (*pushed, quant);
-    printf ("%s new scope %s\n", node2string (quant), node2string (cur));
+    //      printf ("%s new scope %s\n", node2string (quant), node2string
+    //      (cur));
   }
 
   btor_delete_int_hash_table (cone);
@@ -366,7 +367,7 @@ rebuild (Btor *btor, BtorNode *root, BtorIntHashTable *pushed)
 {
   int32_t i;
   uint32_t j;
-  BtorNode *cur, *real_cur, *result, **e, *tmp, *q, *real_q, *top_q;
+  BtorNode *cur, *real_cur, *result, **e, *tmp, *q, *top_q;
   BtorNodePtrStack visit, args, *quants;
   BtorMemMgr *mm;
   BtorHashTableData *d, *d_p;
@@ -442,7 +443,8 @@ rebuild (Btor *btor, BtorNode *root, BtorIntHashTable *pushed)
         for (j = 0; j < BTOR_COUNT_STACK (*quants); j++)
         {
           q = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (*quants, j));
-          printf ("rebuild: %s (%s)\n", node2string (q), node2string (result));
+          //		  printf ("rebuild: %s (%s)\n", node2string (q),
+          //node2string (result));
           assert (btor_is_quantifier_node (q));
           d_p = btor_get_int_hash_map (map, q->e[0]->id);
           assert (d_p);
