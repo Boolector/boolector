@@ -861,6 +861,17 @@ btor_init_opts (Btor *btor)
             1,
             "apply constructive equality resolution (CER)");
   init_opt (btor,
+            BTOR_OPT_EF_MINISCOPE,
+            false,
+            true,
+            "ef:miniscoping",
+            "ef:ms",
+            0,
+            0,
+            1,
+            "apply miniscoping");
+
+  init_opt (btor,
             BTOR_OPT_EF_SYNTH,
             false,
             true,

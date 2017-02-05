@@ -675,14 +675,7 @@ enum BtorOption
   */
   BTOR_OPT_AIGPROP_USE_BANDIT,
 
-/* EF engine ---------------------------------------------------------- */
-#if 0
-  BTOR_OPT_EF_MINISCOPING,
-  BTOR_OPT_EF_DUAL_PROP,
-  BTOR_OPT_EF_DER,
-  BTOR_OPT_EF_CER,
-  BTOR_OPT_EF_QINST_MODE,
-#endif
+  /* EF engine ---------------------------------------------------------- */
   BTOR_OPT_EF_SYNTH,
   BTOR_OPT_EF_DUAL_SOLVER,
   BTOR_OPT_EF_FINDPM_MODE,
@@ -693,6 +686,7 @@ enum BtorOption
   BTOR_OPT_EF_SYNTH_QI,
   BTOR_OPT_EF_DER,
   BTOR_OPT_EF_CER,
+  BTOR_OPT_EF_MINISCOPE,
 
   /* internal options --------------------------------------------------- */
 
