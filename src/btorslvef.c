@@ -485,7 +485,7 @@ compute_var_deps (Btor *btor,
           BTOR_RESET_STACK (vars);
         }
         q = BTOR_POP_STACK (equants);
-        assert (q == cur);
+        assert (q == real_cur);
       }
       else if (btor_is_forall_node (real_cur))
       {
@@ -504,7 +504,7 @@ compute_var_deps (Btor *btor,
           BTOR_RESET_STACK (vars);
         }
         q = BTOR_POP_STACK (fquants);
-        assert (q == cur);
+        assert (q == real_cur);
       }
     }
   }
@@ -875,7 +875,11 @@ setup_efg_solvers (BtorEFSolver *slv,
       btor_release_sort (res->exists, funsortid);
     }
     else
-      var = btor_var_exp (res->exists, width, sym);
+    {
+      dsortid = btor_bitvec_sort (res->exists, width);
+      var     = btor_var_exp (res->exists, dsortid, sym);
+      btor_release_sort (res->exists, dsortid);
+    }
     btor_map_node (res->exists_evars, var, cur);
     btor_map_node (res->forall_evars, cur, var);
     btor_release_exp (res->exists, var);
@@ -3188,17 +3192,25 @@ sat_ef_solver (BtorEFSolver *slv)
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   g = btor_normalize_quantifiers (slv->btor);
+  btor_dump_smt2_node (slv->btor, stdout, g, -1);
+
+  tmp = btor_miniscope_node (slv->btor, g);
+  btor_release_exp (slv->btor, g);
+  g = tmp;
+  btor_dump_smt2_node (slv->btor, stdout, g, -1);
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DER))
   {
     tmp = btor_der_node (slv->btor, g);
     btor_release_exp (slv->btor, g);
     g = tmp;
+    btor_dump_smt2_node (slv->btor, stdout, g, -1);
   }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_CER))
   {
     tmp = btor_cer_node (slv->btor, g);
     btor_release_exp (slv->btor, g);
     g = tmp;
+    btor_dump_smt2_node (slv->btor, stdout, g, -1);
   }
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
