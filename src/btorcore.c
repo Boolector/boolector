@@ -3153,25 +3153,35 @@ extract_quantified_array_initialization (Btor *btor)
   {
     cur = btor_next_ptr_hash_table_iterator (&it);
 
-    if (BTOR_IS_INVERTED_NODE (cur) || !btor_is_forall_node (cur)
-        || BTOR_IS_INVERTED_NODE (cur->e[1]) || !btor_is_bv_eq_node (cur->e[1]))
-      continue;
+    if (BTOR_IS_INVERTED_NODE (cur) || !btor_is_forall_node (cur)) continue;
 
-    eq = cur->e[1];
-    if (!BTOR_IS_INVERTED_NODE (eq->e[0]) && btor_is_apply_node (eq->e[0])
-        && btor_is_bv_const_node (eq->e[1]))
+    app = 0;
+    if (btor_is_bool_sort (btor, BTOR_REAL_ADDR_NODE (cur->e[1])->sort_id)
+        && btor_is_apply_node (cur->e[1]))
     {
-      app = eq->e[0];
-      val = eq->e[1];
+      app = BTOR_REAL_ADDR_NODE (cur->e[1]);
+      val = BTOR_COND_INVERT_NODE (cur->e[1], btor->true_exp);
     }
-    else if (!BTOR_IS_INVERTED_NODE (eq->e[1]) && btor_is_apply_node (eq->e[1])
-             && btor_is_bv_const_node (eq->e[0]))
+    else if (!BTOR_IS_INVERTED_NODE (cur->e[1])
+             && btor_is_bv_eq_node (cur->e[1]))
     {
-      app = eq->e[1];
-      val = eq->e[0];
+      eq = cur->e[1];
+      if (!BTOR_IS_INVERTED_NODE (eq->e[0]) && btor_is_apply_node (eq->e[0])
+          && btor_is_bv_const_node (eq->e[1]))
+      {
+        app = eq->e[0];
+        val = eq->e[1];
+      }
+      else if (!BTOR_IS_INVERTED_NODE (eq->e[1])
+               && btor_is_apply_node (eq->e[1])
+               && btor_is_bv_const_node (eq->e[0]))
+      {
+        app = eq->e[1];
+        val = eq->e[0];
+      }
     }
-    else
-      continue;
+
+    if (!app) continue;
 
     if (btor_get_arity_fun_sort (btor, app->e[0]->sort_id) != 1) continue;
 
