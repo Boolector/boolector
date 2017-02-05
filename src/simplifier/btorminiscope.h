@@ -15,4 +15,6 @@
 
 void btor_miniscope (Btor* btor);
 
+BtorNode* btor_miniscope_node (Btor* btor, BtorNode* root);
+
 #endif
