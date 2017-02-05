@@ -3194,23 +3194,23 @@ sat_ef_solver (BtorEFSolver *slv)
   g = btor_normalize_quantifiers (slv->btor);
   btor_dump_smt2_node (slv->btor, stdout, g, -1);
 
-  tmp = btor_miniscope_node (slv->btor, g);
-  btor_release_exp (slv->btor, g);
-  g = tmp;
-  btor_dump_smt2_node (slv->btor, stdout, g, -1);
+  if (btor_get_opt (slv->btor, BTOR_OPT_EF_MINISCOPE))
+  {
+    tmp = btor_miniscope_node (slv->btor, g);
+    btor_release_exp (slv->btor, g);
+    g = tmp;
+  }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DER))
   {
     tmp = btor_der_node (slv->btor, g);
     btor_release_exp (slv->btor, g);
     g = tmp;
-    btor_dump_smt2_node (slv->btor, stdout, g, -1);
   }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_CER))
   {
     tmp = btor_cer_node (slv->btor, g);
     btor_release_exp (slv->btor, g);
     g = tmp;
-    btor_dump_smt2_node (slv->btor, stdout, g, -1);
   }
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists", 0, 0);
   btor_release_exp (slv->btor, g);
