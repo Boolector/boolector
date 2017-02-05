@@ -43,7 +43,7 @@ mk_param_with_symbol (Btor *btor, BtorNode *node)
         break;
     }
   }
-  result = btor_param_exp (btor, btor_get_exp_width (btor, node), buf);
+  result = btor_param_exp (btor, node->sort_id, buf);
   if (buf) BTOR_DELETEN (mm, buf, len);
   return result;
 }
@@ -140,7 +140,6 @@ map_subst_node (BtorIntHashTable *map, BtorNode *left, BtorNode *right)
     return;
   }
 
-  //  printf ("add subst: %s -> %s\n", node2string (left), node2string (right));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
 }
 
@@ -163,7 +162,7 @@ find_substitutions (Btor *btor,
   if (!btor_is_and_node (root)) return;
 
   if (is_cer && !BTOR_IS_INVERTED_NODE (root))
-    top_and = BTOR_REAL_ADDR_NODE (root);
+    top_and = root;
   else if (!is_cer && BTOR_IS_INVERTED_NODE (root))
     top_and = BTOR_REAL_ADDR_NODE (root);
 
