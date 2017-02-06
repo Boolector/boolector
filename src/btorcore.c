@@ -3137,8 +3137,10 @@ update_assumptions (Btor *btor)
 }
 
 // TODO: move to btorextract
-// TODO: this does not work with extensional benchmarks since we do not support
-//       constant lambdas as base case for extensionality yet
+// TODO: for extensional benchmarks (with real extensionality) we can only
+//       support one init pattern for now
+//       for all non-extensional benchmark very array can be initialized with
+//       \forall patterns
 void
 extract_quantified_array_initialization (Btor *btor)
 {
