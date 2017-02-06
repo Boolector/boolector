@@ -524,13 +524,12 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *result, **e;
   BtorNodePtrStack stack, args;
-  BtorIntHashTable *map, *inv;
+  BtorIntHashTable *map;
   BtorHashTableData *d;
   BtorSortId sortid;
 
   mm  = btor->mm;
   map = btor_new_int_hash_map (mm);
-  inv = btor_new_int_hash_table (mm);
 
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, args);
@@ -586,9 +585,9 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
       }
       /* invert quantifiers */
       else if (btor_is_forall_node (real_cur))
-        result = btor_exists_exp (btor, e[0], e[1]);
+        result = btor_exists_exp (dual_btor, e[0], e[1]);
       else if (btor_is_exists_node (real_cur))
-        result = btor_forall_exp (btor, e[0], e[1]);
+        result = btor_forall_exp (dual_btor, e[0], e[1]);
       else
         result =
             btor_create_exp (dual_btor, real_cur->kind, e, real_cur->arity);
@@ -3137,6 +3136,7 @@ sat_ef_solver (BtorEFSolver *slv)
     tmp = btor_miniscope_node (slv->btor, g);
     btor_release_exp (slv->btor, g);
     g = tmp;
+    //  btor_dump_smt2_node (slv->btor, stdout, g, -1);
   }
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_DER))
   {
