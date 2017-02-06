@@ -643,9 +643,7 @@ mk_dual_formula (Btor *btor,
 
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (dual_btor, e[i]);
     PUSH_RESULT:
-      /* quantifiers are never negated (but flipped) */
-      if (!btor_is_quantifier_node (real_cur))
-        result = BTOR_COND_INVERT_NODE (cur, result);
+      result = BTOR_COND_INVERT_NODE (cur, result);
       /* invert body */
       if (btor_contains_int_hash_table (inv, real_cur->id))
         result = BTOR_INVERT_NODE (result);
