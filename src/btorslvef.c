@@ -3112,13 +3112,6 @@ sat_ef_solver (BtorEFSolver *slv)
 
   // TODO (ma): incremental support
 
-  // FIXME (ma): not sound with slice elimination. see red-vsl.proof3106.smt2
-  btor_set_opt (slv->btor, BTOR_OPT_ELIMINATE_SLICES, 0);
-
-  /* simplify formula and normalize quantifiers */
-  res = btor_simplify (slv->btor);
-  if (res != BTOR_RESULT_UNKNOWN) return res;
-
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   g = btor_normalize_quantifiers (slv->btor);

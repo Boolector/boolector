@@ -3842,6 +3842,18 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   btor_log_opts (btor);
 #endif
 
+  /* set option based on formula characteristics */
+
+  /* eliminate lambdas (define-fun) in the QF_BV case */
+  if (btor->ufs->count == 0 && btor->feqs->count == 0
+      && btor->lambdas->count > 0)
+    btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+
+  // FIXME (ma): not sound with slice elimination. see red-vsl.proof3106.smt2
+  /* disabling slice elimination is better on QF_ABV and BV */
+  if (btor->ufs->count > 0 || btor->quantifiers->count > 0)
+    btor_set_opt (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
+
   res = btor_simplify (btor);
 
   if (res != BTOR_RESULT_UNSAT)
@@ -3850,11 +3862,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
     if (!btor->slv)
     {
-      /* eliminate lambdas (define-fun) in the QF_BV case */
-      if (btor->ufs->count == 0 && btor->feqs->count == 0
-          && btor->lambdas->count > 0)
-        btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
-
       /* these engines work on QF_BV only */
       if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0
           && btor->feqs->count == 0)
@@ -3886,10 +3893,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       }
       else
       {
-        /* disabling slice elimination is better on QF_ABV */
-        if (btor->ufs->count > 0)
-          btor_set_opt (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
-
         btor->slv = btor_new_fun_solver (btor);
         // TODO (ma): make options for lod_limit and sat_limit
         BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
