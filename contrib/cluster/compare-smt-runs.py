@@ -1070,6 +1070,32 @@ def _filter_common(data):
     for f in remove:
         g_benchmarks.remove(f)
 
+def _filter_sat(data):
+    global g_benchmarks
+
+    remove = []
+
+    for f in g_benchmarks:
+        s = set([data['result'][d][f] for d in g_args.dirs])
+        if 10 not in s or len(s) != 1:
+            remove.append(f)
+
+    for f in remove:
+        g_benchmarks.remove(f)
+
+def _filter_unsat(data):
+    global g_benchmarks
+
+    remove = []
+
+    for f in g_benchmarks:
+        s = set([data['result'][d][f] for d in g_args.dirs])
+        if 20 not in s or len(s) != 1:
+            remove.append(f)
+
+    for f in remove:
+        g_benchmarks.remove(f)
+
 
 if __name__ == "__main__":
     try:
@@ -1244,7 +1270,7 @@ if __name__ == "__main__":
               )
         aparser.add_argument \
               (
-                "-common",
+                "--common",
                 dest="common", action="store_true",
                 help="show commonly solved instances only"
               )
@@ -1254,6 +1280,18 @@ if __name__ == "__main__":
                 metavar="seconds[,second ...]", dest="pen", default=None,
                 help="CPU time penalty for memory out/error"
               )
+        aparser.add_argument \
+            (
+                "-sat",
+                dest="show_sat", action="store_true",
+                help="show satisfiable instances only"
+            )
+        aparser.add_argument \
+            (
+                "-unsat",
+                dest="show_unsat", action="store_true",
+                help="show unsatisfiable instances only"
+            )
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -1366,6 +1404,10 @@ if __name__ == "__main__":
 
             if g_args.common:
                 _filter_common (g_file_stats)
+            if g_args.show_sat:
+                _filter_sat (g_file_stats)
+            if g_args.show_unsat:
+                _filter_unsat (g_file_stats)
 
             _print_data ()
         else:
