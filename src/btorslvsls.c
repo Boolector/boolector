@@ -1168,7 +1168,8 @@ move (Btor *btor, uint32_t nmoves)
      * is chosen via justification. If a non-recoverable conflict is
      * encountered, no move is performed. */
     slv->max_move = BTOR_SLS_MOVE_PROP;
-    (void) btor_propsls_select_move_prop (btor, constr, &can, &neigh);
+    slv->stats.props +=
+        btor_propsls_select_move_prop (btor, constr, &can, &neigh);
     if (can)
     {
       assert (neigh);
@@ -1478,6 +1479,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int32_t j, max_steps, id, nmoves;
+  uint32_t nprops;
   BtorSolverResult sat_result;
   BtorNode *root;
   BtorSLSConstrData *d;
@@ -1488,6 +1490,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   btor = slv->btor;
   assert (!btor->inconsistent);
   nmoves      = 0;
+  nprops      = btor_get_opt (btor, BTOR_OPT_PROP_NPROPS);
   slv->nflips = btor_get_opt (btor, BTOR_OPT_SLS_NFLIPS);
 
   if (btor_terminate_btor (btor))
@@ -1589,7 +1592,8 @@ sat_sls_solver (BtorSLSSolver *slv)
          j++)
     {
       if (btor_terminate_btor (btor)
-          || (slv->nflips && slv->stats.flips >= slv->nflips))
+          || (slv->nflips && slv->stats.flips >= slv->nflips)
+          || (nprops && slv->stats.props >= nprops))
       {
         sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;
@@ -1679,6 +1683,7 @@ print_stats_sls_solver (BtorSLSSolver *slv)
   BTOR_MSG (btor->msg, 1, "sls restarts: %d", slv->stats.restarts);
   BTOR_MSG (btor->msg, 1, "sls moves: %d", slv->stats.moves);
   BTOR_MSG (btor->msg, 1, "sls flips: %d", slv->stats.flips);
+  BTOR_MSG (btor->msg, 1, "sls propagation steps: %u", slv->stats.props);
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
             1,

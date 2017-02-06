@@ -2225,15 +2225,11 @@ sat_fun_solver (BtorFunSolver *slv)
     {
       preslv = btor_new_prop_solver (btor);
       eopt   = BTOR_ENGINE_PROP;
-      if (!btor_get_opt (btor, BTOR_OPT_PROP_NPROPS))
-        btor_set_opt (btor, BTOR_OPT_PROP_NPROPS, 10000);
     }
     else
     {
       preslv = btor_new_sls_solver (btor);
       eopt   = BTOR_ENGINE_SLS;
-      if (!btor_get_opt (btor, BTOR_OPT_SLS_NFLIPS))
-        btor_set_opt (btor, BTOR_OPT_SLS_NFLIPS, 100);
     }
 
     btor->slv = preslv;
