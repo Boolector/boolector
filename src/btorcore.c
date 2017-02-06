@@ -3800,6 +3800,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (uclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
     btor_set_opt (uclone, BTOR_OPT_CHK_MODEL, 0);
     btor_set_opt (uclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+    btor_set_term_btor (uclone, 0, 0);
 
     btor_set_opt (uclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
     //      assert (uclone->slv);
@@ -3821,6 +3822,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
     btor_set_opt (mclone, BTOR_OPT_CHK_MODEL, 0);
     btor_set_opt (mclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+    btor_set_term_btor (mclone, 0, 0);
 
     btor_set_opt (mclone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
     //      assert (mclone->slv);
@@ -4294,6 +4296,7 @@ check_failed_assumptions (Btor *btor)
   btor_set_opt (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_set_opt (clone, BTOR_OPT_CHK_MODEL, 0);
   btor_set_opt (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+  btor_set_term_btor (clone, 0, 0);
 
   btor_set_opt (clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
   assert (clone->slv);
