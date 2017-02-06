@@ -2303,6 +2303,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
             }
             else
               result = btor_copy_exp (btor, fun);
+            btor_map_node (evar_map, real_cur, result);
           }
         }
         else
@@ -2324,13 +2325,6 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
 
       d->as_ptr = btor_copy_exp (btor, result);
-
-      if (btor_is_param_node (real_cur) && btor_param_is_exists_var (real_cur))
-      {
-        assert (!model);
-        btor_map_node (evar_map, real_cur, result);
-      }
-
     PUSH_RESULT:
       BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
     }
@@ -2351,7 +2345,6 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
    * the value for the counterexamples) */
   if (model)
   {
-    assert (evar_map->table->count == 0);
     btor_init_ptr_hash_table_iterator (&it, model);
     while (btor_has_next_ptr_hash_table_iterator (&it))
     {
