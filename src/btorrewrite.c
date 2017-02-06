@@ -6298,7 +6298,7 @@ rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
-  ADD_RW_RULE (param_free_forall, e0, e1);
+  //  ADD_RW_RULE (param_free_forall, e0, e1);
 
   assert (!result);
   result = btor_forall_exp_node (btor, e0, e1);
@@ -6315,7 +6315,7 @@ rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
-  ADD_RW_RULE (param_free_exists, e0, e1);
+  //  ADD_RW_RULE (param_free_exists, e0, e1);
 
   assert (!result);
   result = btor_exists_exp_node (btor, e0, e1);
