@@ -370,7 +370,7 @@ btor_miniscope_node (Btor *btor, BtorNode *root)
     else if (d->as_int == 0)
     {
       d->as_int = 1;
-      if (btor_is_quantifier_node (cur) && btor_is_exists_node (cur))
+      if (btor_is_quantifier_node (cur))
         miniscope (btor, cur, pushed_to, rev_pushed_to);
     }
   }
