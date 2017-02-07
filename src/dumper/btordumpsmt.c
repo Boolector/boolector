@@ -467,9 +467,6 @@ collect_and_children (BtorSMTDumpContext *sdc,
       continue;
     }
 
-    if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
-
-    btor_add_int_hash_table (cache, real_cur->id);
     assert (!btor_get_ptr_hash_table (sdc->dumped, real_cur));
     btor_add_ptr_hash_table (sdc->dumped, real_cur);
     for (i = 0; i < real_cur->arity; i++) BTOR_ENQUEUE (visit, real_cur->e[i]);
