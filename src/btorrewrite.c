@@ -4606,6 +4606,23 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
+/* QUANTIFIER rules */
+
+static inline int
+applies_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  (void) btor;
+  (void) param;
+  return !BTOR_REAL_ADDR_NODE (body)->parameterized;
+}
+
+static inline BtorNode *
+apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  assert (applies_const_quantifier (btor, param, body));
+  return btor_copy_exp (btor, body);
+}
+
 /* FORALL rules */
 
 /* match:  (\forall x . t) where x does not occur in t
@@ -6298,6 +6315,7 @@ rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
+  ADD_RW_RULE (const_quantifier, e0, e1);
   //  ADD_RW_RULE (param_free_forall, e0, e1);
 
   assert (!result);
@@ -6315,6 +6333,7 @@ rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
+  ADD_RW_RULE (const_quantifier, e0, e1);
   //  ADD_RW_RULE (param_free_exists, e0, e1);
 
   assert (!result);
