@@ -136,7 +136,7 @@ find_substitutions (Btor *btor,
                     BtorNode *root,
                     BtorIntHashTable *vars,
                     BtorIntHashTable *subst_map,
-                    bool exist_vars)
+                    bool elim_evars)
 {
   assert (btor);
   assert (root);
@@ -150,9 +150,9 @@ find_substitutions (Btor *btor,
 
   if (!btor_is_and_node (root)) return;
 
-  if (exist_vars && !BTOR_IS_INVERTED_NODE (root))
+  if (elim_evars && !BTOR_IS_INVERTED_NODE (root))
     top_and = root;
-  else if (!exist_vars && BTOR_IS_INVERTED_NODE (root))
+  else if (!elim_evars && BTOR_IS_INVERTED_NODE (root))
     top_and = BTOR_REAL_ADDR_NODE (root);
 
   if (!top_and) return;
@@ -190,54 +190,48 @@ find_substitutions (Btor *btor,
 }
 
 static BtorIntHashTable *
-collect_quantifier_block_vars (Btor *btor, BtorNode *quant)
+collect_quantifier_block_vars (Btor *btor,
+                               BtorNode *quant,
+                               BtorIntHashTable *qcache)
 {
+  assert (btor_is_quantifier_node (quant));
+
   BtorNode *cur;
   BtorNodeIterator it;
-  BtorIntHashTable *vars, *cache;
-  BtorNodePtrStack visit;
+  BtorIntHashTable *vars;
 
-  vars  = btor_new_int_hash_table (btor->mm);
-  cache = btor_new_int_hash_table (btor->mm);
-  BTOR_INIT_STACK (btor->mm, visit);
+  vars = btor_new_int_hash_table (btor->mm);
 
-  /* search quantifier block backwards and collect variables with the same
-   * quantification */
-  BTOR_PUSH_STACK (visit, quant);
-  do
+  /* collect variables in quantifier block 'quant' */
+  btor_init_binder_iterator (&it, quant);
+  while (btor_has_next_binder_iterator (&it))
   {
-    cur = BTOR_POP_STACK (visit);
+    cur = btor_next_binder_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
-
-    if (!btor_is_quantifier_node (cur)
-        || btor_contains_int_hash_table (cache, cur->id))
-      continue;
+    assert (btor_is_quantifier_node (cur));
     if (cur->kind == quant->kind) btor_add_int_hash_table (vars, cur->e[0]->id);
-    btor_init_parent_iterator (&it, cur);
-    while (btor_has_next_parent_iterator (&it))
-      BTOR_PUSH_STACK (visit, btor_next_parent_iterator (&it));
-  } while (!BTOR_EMPTY_STACK (visit));
-  BTOR_RELEASE_STACK (visit);
-  btor_delete_int_hash_table (cache);
+    btor_add_int_hash_table (qcache, cur->id);
+  }
+  assert (it.cur == btor_binder_get_body (quant));
   assert (vars->count > 0);
   return vars;
 }
 
 static BtorNode *
-elim_vars (Btor *btor, BtorNode *root, bool exist_vars)
+elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
 {
   uint32_t i, num_quant_vars = 0, num_elim_vars = 0;
   BtorNode *cur, *real_cur, *e[3], *result;
-  BtorNodePtrStack visit, quants;
+  BtorNodePtrStack visit;
   BtorMemMgr *mm;
-  BtorIntHashTable *mark, *map, *vars;
+  BtorIntHashTable *mark, *map, *vars, *qcache;
   BtorHashTableData *cur_d, *d;
 
-  mm   = btor->mm;
-  mark = btor_new_int_hash_map (mm);
-  map  = btor_new_int_hash_map (mm);
+  mm     = btor->mm;
+  mark   = btor_new_int_hash_map (mm);
+  map    = btor_new_int_hash_map (mm);
+  qcache = btor_new_int_hash_table (mm);
 
-  BTOR_INIT_STACK (mm, quants);
   BTOR_INIT_STACK (mm, visit);
   BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
@@ -250,19 +244,18 @@ elim_vars (Btor *btor, BtorNode *root, bool exist_vars)
     {
       btor_add_int_hash_map (mark, real_cur->id);
 
-      /* only search for the current quantifier block */
+      /* search for var substitutions in current quantifier block */
       if (btor_is_quantifier_node (real_cur)
-          && !btor_is_quantifier_node (real_cur->e[1])
-          && ((exist_vars && btor_is_exists_node (real_cur))
-              || (!exist_vars && btor_is_forall_node (real_cur))))
+          && !btor_contains_int_hash_table (qcache, real_cur->id))
       {
-        vars = collect_quantifier_block_vars (btor, real_cur);
-        find_substitutions (btor, real_cur->e[1], vars, map, exist_vars);
+        vars = collect_quantifier_block_vars (btor, real_cur, qcache);
+        find_substitutions (
+            btor, btor_binder_get_body (real_cur), vars, map, elim_evars);
         btor_delete_int_hash_table (vars);
       }
 
-      if ((exist_vars && btor_is_exists_node (real_cur))
-          || (!exist_vars && btor_is_forall_node (real_cur)))
+      if ((elim_evars && btor_is_exists_node (real_cur))
+          || (!elim_evars && btor_is_forall_node (real_cur)))
         num_quant_vars++;
 
       BTOR_PUSH_STACK (visit, real_cur);
@@ -323,7 +316,7 @@ elim_vars (Btor *btor, BtorNode *root, bool exist_vars)
   printf ("substituted %u out of %u %s variables\n",
           num_elim_vars,
           num_quant_vars,
-          exist_vars ? "existential" : "universal");
+          elim_evars ? "existential" : "universal");
 
   for (i = 0; i < mark->size; i++)
   {
@@ -332,6 +325,7 @@ elim_vars (Btor *btor, BtorNode *root, bool exist_vars)
   }
   btor_delete_int_hash_map (mark);
   btor_delete_int_hash_map (map);
+  btor_delete_int_hash_table (qcache);
   BTOR_RELEASE_STACK (visit);
   return result;
 }
