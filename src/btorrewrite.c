@@ -4644,6 +4644,33 @@ apply_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_copy_exp (btor, body);
 }
 
+/* match: \forall x . x = t    if x \not \in vars(t)
+ * match: \forall x . x != t    if x \not \in vars(t)
+ * result: false
+ */
+static inline int
+applies_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  (void) btor;
+  (void) body;
+  BtorNode *real_body;
+  real_body = BTOR_REAL_ADDR_NODE (body);
+  return btor_is_bv_eq_node (body)
+         && param->parents == 1  // only parent is body
+         && ((real_body->e[0] == param
+              && !BTOR_REAL_ADDR_NODE (real_body->e[1])->quantifier_below)
+             || (real_body->e[1] == param
+                 && !BTOR_REAL_ADDR_NODE (real_body->e[0])->quantifier_below));
+}
+
+static inline BtorNode *
+apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  assert (applies_eq_forall (btor, param, body));
+  (void) param;
+  return btor_false_exp (btor);
+}
+
 /* EXISTS rules */
 
 /* match:  (\exists x . t) where x does not occur in t
@@ -4663,6 +4690,33 @@ apply_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
   assert (applies_param_free_exists (btor, param, body));
   (void) param;
   return btor_copy_exp (btor, body);
+}
+
+/* match: \exists x . x = t    if x \not \in vars(t)
+ * match: \exists x . x != t    if x \not \in vars(t)
+ * result: true
+ */
+static inline int
+applies_eq_exists (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  (void) btor;
+  (void) body;
+  BtorNode *real_body;
+  real_body = BTOR_REAL_ADDR_NODE (body);
+  return btor_is_bv_eq_node (body)
+         && param->parents == 1  // only parent is body
+         && ((real_body->e[0] == param
+              && !BTOR_REAL_ADDR_NODE (real_body->e[1])->quantifier_below)
+             || (real_body->e[1] == param
+                 && !BTOR_REAL_ADDR_NODE (real_body->e[0])->quantifier_below));
+}
+
+static inline BtorNode *
+apply_eq_exists (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  assert (applies_eq_exists (btor, param, body));
+  (void) param;
+  return btor_true_exp (btor);
 }
 
 /* COND rules */
@@ -6316,6 +6370,7 @@ rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
 
   ADD_RW_RULE (const_quantifier, e0, e1);
+  ADD_RW_RULE (eq_forall, e0, e1);
   //  ADD_RW_RULE (param_free_forall, e0, e1);
 
   assert (!result);
@@ -6334,6 +6389,7 @@ rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
 
   ADD_RW_RULE (const_quantifier, e0, e1);
+  ADD_RW_RULE (eq_exists, e0, e1);
   //  ADD_RW_RULE (param_free_exists, e0, e1);
 
   assert (!result);
