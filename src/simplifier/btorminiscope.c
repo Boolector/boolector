@@ -266,8 +266,6 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
         quants = b->data.as_ptr;
         assert (!BTOR_EMPTY_STACK (*quants));
         tmp = rebuild_mk_quantifiers (btor, quants, e[0], map, pushed_quants);
-        assert (btor_is_quantifier_node (tmp));
-        //	      printf ("tmp: %s\n", node2string (tmp));
         btor_release_exp (btor, e[0]);
         e[0] = tmp;
         BTOR_RELEASE_STACK (*quants);
@@ -279,8 +277,6 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
         quants = b->data.as_ptr;
         assert (!BTOR_EMPTY_STACK (*quants));
         tmp = rebuild_mk_quantifiers (btor, quants, e[1], map, pushed_quants);
-        assert (btor_is_quantifier_node (tmp));
-        //	      printf ("tmp: %s\n", node2string (tmp));
         btor_release_exp (btor, e[1]);
         e[1] = tmp;
         BTOR_RELEASE_STACK (*quants);
