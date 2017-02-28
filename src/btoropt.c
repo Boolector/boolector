@@ -875,14 +875,6 @@ btor_init_opts (Btor *btor)
             "2=enumlearn modulo predicates,"
             "3=1+2 combined,"
             "4=enumlearn modulo formula");
-#if 0
-  init_opt (btor, BTOR_OPT_EF_QINST_MODE, false, true,
-	    "ef:qinstmode", 0,
-	    BTOR_EF_QINST_DEFAULT,
-	    BTOR_EF_QINST_MIN,
-	    BTOR_EF_QINST_MAX,
-	    "quantifier instantiation mode for refinment");
-#endif
   init_opt (btor,
             BTOR_OPT_EF_DUAL_SOLVER,
             false,
@@ -893,16 +885,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "dual EF solver");
-  init_opt (btor,
-            BTOR_OPT_EF_FINDPM_MODE,
-            false,
-            true,
-            "ef:findpm",
-            0,
-            BTOR_EF_FINDPM_DEFAULT,
-            BTOR_EF_FINDPM_MIN,
-            BTOR_EF_FINDPM_MAX,
-            "mode for instantiation finding");
   init_opt (btor,
             BTOR_OPT_EF_SYNTH_LIMIT,
             false,

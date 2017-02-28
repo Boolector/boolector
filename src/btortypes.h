@@ -678,7 +678,6 @@ enum BtorOption
   /* EF engine ---------------------------------------------------------- */
   BTOR_OPT_EF_SYNTH,
   BTOR_OPT_EF_DUAL_SOLVER,
-  BTOR_OPT_EF_FINDPM_MODE,
   BTOR_OPT_EF_SYNTH_LIMIT,
   BTOR_OPT_EF_SYNTH_ITE_COMPLETE,
   BTOR_OPT_EF_FIXSYNTH,
