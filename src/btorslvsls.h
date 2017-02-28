@@ -91,6 +91,7 @@ struct BtorSLSSolver
     uint32_t restarts;
     uint32_t moves;
     uint32_t flips;
+    uint32_t props;
     uint32_t move_flip;
     uint32_t move_inc;
     uint32_t move_dec;
