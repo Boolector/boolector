@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorslvef.h"
+#include "btorslvquant.h"
 #include "btorabort.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
