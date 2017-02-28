@@ -302,86 +302,6 @@ time_stamp (void)
 /*------------------------------------------------------------------------*/
 
 static void
-underapprox (Btor *btor, BtorPtrHashTable *vars, BtorPtrHashTable *assumptions)
-{
-  uint32_t w, upper;
-  BtorNode *var, *eq, *s, *z;
-  BtorPtrHashTableIterator it;
-
-  btor_init_ptr_hash_table_iterator (&it, vars);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-  {
-    upper = it.bucket->data.as_int;
-    var   = btor_next_ptr_hash_table_iterator (&it);
-    w     = btor_get_exp_width (btor, var) - 1;
-    if (w >= upper + 1)
-    {
-      s  = btor_slice_exp (btor, var, w, upper + 1);
-      z  = btor_zero_exp (btor, w - upper);
-      eq = btor_eq_exp (btor, s, z);
-      btor_release_exp (btor, z);
-      btor_release_exp (btor, s);
-      if (!btor_get_ptr_hash_table (assumptions, eq))
-      {
-        btor_assume_exp (btor, eq);
-        btor_add_ptr_hash_table (assumptions, eq)->data.as_ptr = var;
-      }
-      else
-        btor_release_exp (btor, eq);
-    }
-  }
-}
-
-static bool
-underapprox_check (Btor *btor,
-                   BtorPtrHashTable *vars,
-                   BtorPtrHashTable *assumptions,
-                   BtorNode *root)
-{
-  bool res = true;
-  BtorNode *cur, *var;
-  BtorPtrHashTableIterator it;
-  BtorPtrHashBucket *b;
-
-  btor_init_ptr_hash_table_iterator (&it, assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-  {
-    var = it.bucket->data.as_ptr;
-    cur = btor_next_ptr_hash_table_iterator (&it);
-    if (btor_failed_exp (btor, cur))
-    {
-      b = btor_get_ptr_hash_table (vars, var);
-      assert (b);
-      /* increase bit-width of var */
-      b->data.as_int = b->data.as_int * 2;
-      printf ("FAILED: %s\n", node2string (cur));
-      res = false;
-    }
-  }
-
-  if (!res && root)
-  {
-    btor_assume_exp (btor, BTOR_INVERT_NODE (root));
-    res = btor_sat_btor (btor, -1, -1) == BTOR_RESULT_UNSAT;
-  }
-
-  return res;
-}
-
-static void
-underapprox_release (Btor *btor, BtorPtrHashTable *assumptions)
-{
-  BtorPtrHashTableIterator it;
-
-  btor_init_ptr_hash_table_iterator (&it, assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_ptr_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (assumptions);
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
 print_cur_model (BtorEFGroundSolvers *gslv)
 {
   BtorNode *cur;
@@ -2747,32 +2667,18 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
-  bool opt_underapprox, failed_refinement = false, opt_synth_qi;
+  bool failed_refinement = false, opt_synth_qi;
   uint32_t opt_pmfind_mode;
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
   BtorPtrHashTable *synth_model = 0;
-  BtorPtrHashTable *assumptions = 0, *vars = 0;
-  BtorNodeMap *evar_map = 0;
-  BtorNodeMapIterator it;
-  FlatModel *flat_model = 0;
+  BtorNodeMap *evar_map         = 0;
+  FlatModel *flat_model         = 0;
 
   evar_map        = btor_new_node_map (gslv->forall);
-  opt_underapprox = btor_get_opt (gslv->forall, BTOR_OPT_EF_UNDERAPPROX) == 1;
   opt_pmfind_mode = btor_get_opt (gslv->forall, BTOR_OPT_EF_FINDPM_MODE);
   opt_synth_qi    = btor_get_opt (gslv->forall, BTOR_OPT_EF_SYNTH_QI) == 1;
-
-  /* initialize all universal variables with a bit-width of 1 */
-  if (opt_underapprox)
-  {
-    vars = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
-    btor_init_node_map_iterator (&it, gslv->forall_uvars);
-    while (btor_has_next_node_map_iterator (&it))
-      btor_add_ptr_hash_table (vars,
-                               btor_next_data_node_map_iterator (&it)->as_ptr)
-          ->data.as_int = 1;
-  }
 
   /* exists solver does not have any constraints, so it does not make much
    * sense to initialize every variable by zero and ask if the model
@@ -2837,15 +2743,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     goto DONE;
   }
 
-UNDERAPPROX:
   btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
-
-  if (opt_underapprox)
-  {
-    if (assumptions) underapprox_release (gslv->forall, assumptions);
-    assumptions = btor_new_ptr_hash_table (gslv->forall->mm, 0, 0);
-    underapprox (gslv->forall, vars, assumptions);
-  }
 
   /* query forall solver */
   start = time_stamp ();
@@ -2856,11 +2754,6 @@ UNDERAPPROX:
 
   if (r == BTOR_RESULT_UNSAT) /* formula is SAT */
   {
-    /* underapproximation failed, increase bit-widths and try again */
-    if (opt_underapprox
-        && !underapprox_check (gslv->forall, vars, assumptions, g))
-      goto UNDERAPPROX;
-
     res = BTOR_RESULT_SAT;
     goto DONE;
   }
@@ -2894,13 +2787,6 @@ UNDERAPPROX:
 DONE:
   btor_delete_node_map (evar_map);
   if (g) btor_release_exp (gslv->forall, g);
-  if (opt_underapprox)
-  {
-    assert (vars);
-    assert (assumptions);
-    underapprox_release (gslv->forall, assumptions);
-    btor_delete_ptr_hash_table (vars);
-  }
   return res;
 }
 

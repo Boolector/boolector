@@ -904,16 +904,6 @@ btor_init_opts (Btor *btor)
             BTOR_EF_FINDPM_MAX,
             "mode for instantiation finding");
   init_opt (btor,
-            BTOR_OPT_EF_UNDERAPPROX,
-            false,
-            true,
-            "ef:ua",
-            0,
-            0,
-            0,
-            1,
-            "under approximation for universal variables");
-  init_opt (btor,
             BTOR_OPT_EF_SYNTH_LIMIT,
             false,
             false,
