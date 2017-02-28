@@ -2512,119 +2512,6 @@ DONE:
   return res;
 }
 
-#if 0
-/* Create new refinement for 'gslv->exists' by instantiating 
- * the universal variables of 'gslv->exists' with 'dual_gslv->forall_synth_model'.
- */
-static void
-add_instantiation (BtorEFGroundSolvers * gslv, BtorEFGroundSolvers * dual_gslv,
-		   BtorNodeMap * var_map)
-{
-  BtorNode *ref;
-  Btor *btor;
-  BtorNodeMap *subst_map, *deps, *clone_map, *evar_map;
-  BtorPtrHashTableIterator it;
-  BtorNodeMapIterator nit;
-  BtorNode *evar, *uvar, *subst, *a, *fun, *cur, *mapped;
-  BtorNode *e_evar, *f_evar;
-  SynthResult *synth_res;
-  BtorArgsIterator ait;
-
-  if (!dual_gslv->forall_synth_model)
-    return;
-
-  btor = gslv->exists;
-  subst_map = btor_new_node_map (btor);
-  deps = dual_gslv->forall_evar_deps;
-
-  btor_init_ptr_hash_table_iterator (&it, dual_gslv->forall_synth_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    {
-      synth_res = it.bucket->data.as_ptr; 
-      evar = btor_next_ptr_hash_table_iterator (&it);
-
-      if (!btor_is_param_node (evar) || !btor_param_is_exists_var (evar))
-	continue;
-
-      uvar = btor_mapped_node (var_map, evar);
-      assert (btor_param_is_forall_var (uvar));
-
-      if (synth_res->type == BTOR_SYNTH_TYPE_SK_VAR)
-	{
-	  subst = btor_const_exp (btor, btor_const_get_bits (synth_res->value));
-	}
-      else
-	{
-	  assert (synth_res->type == BTOR_SYNTH_TYPE_SK_UF);
-	  fun = synth_res->value;
-	  clone_map = btor_new_node_map (btor);
-	  fun = btor_recursively_rebuild_exp_clone (dual_gslv->forall, btor, fun, clone_map, 3);
-	  btor_delete_node_map (clone_map);
-
-	  a = btor_mapped_node (deps, evar); 
-	  assert (a);
-	  evar_map = btor_new_node_map (btor);
-	  btor_init_args_iterator (&ait, a);
-	  while (btor_has_next_args_iterator (&ait))
-	    {
-	      /* get universal variable of 'dual_gslv->forall' */
-	      cur = btor_next_args_iterator (&ait);
-	      /* get existential variable of 'gslv->forall' */
-	      mapped = btor_mapped_node (var_map, cur);
-	      /* get existential variable of 'gslv->exists' */
-	      mapped = btor_mapped_node (gslv->forall_evars, mapped);
-	      btor_map_node (evar_map, cur, mapped);
-	    }
-	  // a contains universal variables of dual_gslv->forall
-	  // 1) remap universal vars of dual_gslv->forall to existential vars of
-	  //    gslv->forall
-	  a = instantiate_args (btor, a, evar_map);
-	  subst = btor_apply_exp (btor, fun, a);
-	  btor_delete_node_map (evar_map);
-	}
-
-      btor_map_node (subst_map, uvar, subst);
-      btor_release_exp (btor, subst);
-    }
-
-  /* map existential variables to skolem constants */
-  btor_init_node_map_iterator (&nit, gslv->forall_evars);
-  while (btor_has_next_node_map_iterator (&nit))
-    {
-      e_evar = nit.it.bucket->data.as_ptr;
-      f_evar = btor_next_node_map_iterator (&nit);
-
-      a = btor_mapped_node (gslv->forall_evar_deps, f_evar);
-      if (a)
-	{
-	  assert (btor_is_uf_node (e_evar));
-	  a = instantiate_args (btor, a, subst_map);
-	  e_evar = btor_apply_exp (btor, e_evar, a); 
-	  btor_map_node (subst_map, f_evar, e_evar);
-	  btor_release_exp (btor, a);
-	  btor_release_exp (btor, e_evar);
-	}
-      else
-	btor_map_node (subst_map, f_evar, e_evar);
-    }
-
-  /* map UFs */
-  btor_init_node_map_iterator (&nit, gslv->exists_ufs);
-  while (btor_has_next_node_map_iterator (&nit))
-    {
-      f_evar = nit.it.bucket->data.as_ptr;
-      e_evar = btor_next_node_map_iterator (&nit);
-      btor_map_node (subst_map, f_evar, e_evar);
-    }
-
-  ref = build_refinement (btor, gslv->forall_formula, subst_map);
-  btor_delete_node_map (subst_map);
-
-  btor_assert_exp (btor, ref);
-  btor_release_exp (btor, ref);
-}
-#endif
-
 bool thread_found_result            = false;
 pthread_mutex_t thread_result_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -2749,7 +2636,6 @@ sat_ef_solver (BtorEFSolver *slv)
   gslv->statistics = &slv->statistics;
 
   /* disable dual solver if UFs are present in the formula */
-  // TODO: eliminate UFs with ackermann
   if (gslv->exists_ufs->table->count > 0) opt_dual_solver = false;
 
   if (opt_dual_solver)
