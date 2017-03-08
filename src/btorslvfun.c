@@ -20,6 +20,7 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btorslvprop.h"
+#include "btorslvsls.h"
 #include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
@@ -2426,15 +2427,31 @@ sat_fun_solver (BtorFunSolver *slv)
   clone_root = 0;
   exp_map    = 0;
 
-  if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP) && btor->ufs->count == 0
-      && btor->feqs->count == 0 && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL))
+  if ((btor_get_opt (btor, BTOR_OPT_FUN_PREPROP)
+       || btor_get_opt (btor, BTOR_OPT_FUN_PRESLS))
+      && btor->ufs->count == 0 && btor->feqs->count == 0
+      && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL))
   {
-    BtorSolver *propslv;
+    BtorSolver *preslv;
+    BtorOption eopt;
+
     if (btor->lambdas->count) btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
-    propslv   = btor_new_prop_solver (btor);
-    btor->slv = propslv;
-    btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+
+    if (btor_get_opt (btor, BTOR_OPT_FUN_PREPROP))
+    {
+      preslv = btor_new_prop_solver (btor);
+      eopt   = BTOR_ENGINE_PROP;
+    }
+    else
+    {
+      preslv = btor_new_sls_solver (btor);
+      eopt   = BTOR_ENGINE_SLS;
+    }
+
+    btor->slv = preslv;
+    btor_set_opt (btor, BTOR_OPT_ENGINE, eopt);
     result = btor->slv->api.sat (btor->slv);
+
     if (result == BTOR_RESULT_SAT || result == BTOR_RESULT_UNSAT)
     {
       /* print fun solver statistics */
@@ -2445,17 +2462,18 @@ sat_fun_solver (BtorFunSolver *slv)
       /* delete fun solver */
       slv->api.delet ((BtorSolver *) slv);
       /* reset */
-      btor->slv = propslv;
-      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+      btor->slv = preslv;
+      btor_set_opt (btor, BTOR_OPT_ENGINE, eopt);
       goto DONE;
     }
     else
     {
-      /* print prop solver statistics */
+      /* print prop/sls solver statistics */
       btor->slv->api.print_stats (btor->slv);
       btor->slv->api.print_time_stats (btor->slv);
-      /* delete prop solver */
+      /* delete prop/sls solver */
       btor->slv->api.delet (btor->slv);
+      btor_delete_model (btor);
       /* reset */
       btor->slv = (BtorSolver *) slv;
       btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *  Copyright (C) 2016 Armin Biere.
  *
  *  All rights reserved.
@@ -278,6 +278,14 @@ enum BtorOption
   BTOR_OPT_FUN_PREPROP,
 
   /*!
+   * **BTOR_OPT_FUN_PRESLS**
+
+     Enable (``value``: 1) or disable (``value``: 0) sls engine as preprocessing
+   step within sequential portfolio setting.
+   */
+  BTOR_OPT_FUN_PRESLS,
+
+  /*!
     * **BTOR_OPT_FUN_DUAL_PROP**
 
       Enable (``value``: 1) or disable (``value``: 0) dual propagation
@@ -343,6 +351,13 @@ enum BtorOption
    **SLS Engine Options:**
    */
   /* --------------------------------------------------------------------- */
+
+  /*!
+   * **BTOR_OPT_SLS_NFIPS**
+      Set the number of bit flips used as a limit for the sls engine. Disabled
+   if 0.
+   */
+  BTOR_OPT_SLS_NFLIPS,
 
   /*!
     * **BTOR_OPT_SLS_STRATEGY**

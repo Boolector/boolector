@@ -64,6 +64,9 @@ struct BtorSLSSolver
   BtorIntHashTable *weights; /* also maintains assertion weights */
   BtorIntHashTable *score;   /* sls score */
 
+  uint32_t nflips; /* limit, disabled if 0 */
+  bool terminate;
+
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   uint32_t npropmoves;       /* record #no moves for prop moves */
   uint32_t nslsmoves;        /* record #no moves for sls moves */
@@ -88,6 +91,7 @@ struct BtorSLSSolver
     uint32_t restarts;
     uint32_t moves;
     uint32_t flips;
+    uint32_t props;
     uint32_t move_flip;
     uint32_t move_inc;
     uint32_t move_dec;

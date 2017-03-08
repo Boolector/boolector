@@ -1,3 +1,10 @@
+news for release 2.4.1 since 2.4.0
+--------------------------------------
++ sequential portfolio combination of bit-blasting and SLS engine
+  (option --fun:presls) analogous to combination with PROP engine
+  (option --fun:preprop)
++ fixed: dumping smt2 nodes in incremental mode
+
 news for release 2.4.0 since 2.3.1
 --------------------------------------
 + refactored, extended and improved btormbt

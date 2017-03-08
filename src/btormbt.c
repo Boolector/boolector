@@ -2661,7 +2661,8 @@ btormbt_state_opt (BtorMBT *mbt)
         || btoropt_engine->val == BTOR_ENGINE_PROP
         || btoropt_engine->val == BTOR_ENGINE_SLS
         || (btoropt_engine->val == BTOR_ENGINE_FUN
-            && btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)))
+            && (btor_get_opt (mbt->btor, BTOR_OPT_FUN_PREPROP)
+                || btor_get_opt (mbt->btor, BTOR_OPT_FUN_PRESLS))))
     {
       /* reset if forced engine does not support QF_(AUF)BV */
       mbt->round.logic = BTORMBT_LOGIC_QF_BV;
@@ -2898,9 +2899,7 @@ btormbt_state_opt (BtorMBT *mbt)
       g_btormbt->create_arrays = true;
   }
 
-  /* we currently do not allow to dump assumptions, hence dumping the
-   * formula when incremental mode is enabled is not supported */
-  if (!mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
+  if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
   {
     mbt->round.dump = true;
   }
@@ -3382,8 +3381,6 @@ btormbt_state_assume_assert (BtorMBT *mbt)
 static void *
 btormbt_state_dump (BtorMBT *mbt)
 {
-  assert (!mbt->round.inc);
-
   int tmppid;
   Btor *tmpbtor;
   FILE *outfile;

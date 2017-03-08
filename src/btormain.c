@@ -112,6 +112,7 @@ typedef struct BtorMainOpt
   uint32_t min;       /* min value */
   uint32_t max;       /* max value */
   bool candisable;    /* can be disabled via '-(-)no-XX'? */
+  bool isflag;        /* is option flag? */
   BtorMainOptArg arg; /* expects argument? */
 } BtorMainOpt;
 
@@ -138,6 +139,7 @@ static void
 init_main_opt (BtorMainApp *app,
                BtorMainOption opt,
                bool general,
+               bool isflag,
                char *lng,
                char *shrt,
                uint32_t val,
@@ -163,6 +165,7 @@ init_main_opt (BtorMainApp *app,
   app->options[opt].max        = max;
   app->options[opt].desc       = desc;
   app->options[opt].candisable = candisable;
+  app->options[opt].isflag     = isflag;
   app->options[opt].arg        = arg;
 }
 
@@ -176,6 +179,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_HELP,
                  true,
+                 true,
                  "help",
                  "h",
                  0,
@@ -186,6 +190,7 @@ btormain_init_opts (BtorMainApp *app)
                  "print this message and exit");
   init_main_opt (app,
                  BTORMAIN_OPT_COPYRIGHT,
+                 true,
                  true,
                  "copyright",
                  "c",
@@ -198,6 +203,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_VERSION,
                  true,
+                 true,
                  "version",
                  "V",
                  0,
@@ -209,6 +215,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_TIME,
                  true,
+                 false,
                  "time",
                  "t",
                  0,
@@ -220,6 +227,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_OUTPUT,
                  true,
+                 false,
                  "output",
                  "o",
                  0,
@@ -231,6 +239,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_ENGINE,
                  true,
+                 false,
                  (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE),
                  (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_ENGINE),
                  BTOR_ENGINE_DFLT,
@@ -243,6 +252,7 @@ btormain_init_opts (BtorMainApp *app)
       app,
       BTORMAIN_OPT_SAT_ENGINE,
       true,
+      false,
       (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE),
       (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_SAT_ENGINE),
       BTOR_SAT_ENGINE_DFLT,
@@ -255,6 +265,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_LGL_NOFORK,
                  true,
+                 true,
                  "lingeling-nofork",
                  0,
                  0,
@@ -266,6 +277,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_LGL_OPTS,
                  true,
+                 false,
                  "lingeling-opts",
                  0,
                  0,
@@ -278,6 +290,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_HEX,
                  true,
+                 true,
                  "hex",
                  "x",
                  0,
@@ -288,6 +301,7 @@ btormain_init_opts (BtorMainApp *app)
                  "force hexadecimal number output");
   init_main_opt (app,
                  BTORMAIN_OPT_DEC,
+                 true,
                  true,
                  "dec",
                  "d",
@@ -300,6 +314,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_BIN,
                  true,
+                 true,
                  "bin",
                  "b",
                  0,
@@ -310,6 +325,7 @@ btormain_init_opts (BtorMainApp *app)
                  "force binary number output");
   init_main_opt (app,
                  BTORMAIN_OPT_BTOR,
+                 true,
                  true,
                  "btor",
                  0,
@@ -322,6 +338,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_SMT2,
                  true,
+                 true,
                  "smt2",
                  0,
                  0,
@@ -332,6 +349,7 @@ btormain_init_opts (BtorMainApp *app)
                  "force SMT-LIB v2 input format");
   init_main_opt (app,
                  BTORMAIN_OPT_SMT1,
+                 true,
                  true,
                  "smt1",
                  0,
@@ -344,6 +362,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_BTOR,
                  true,
+                 true,
                  "dump-btor",
                  "db",
                  0,
@@ -353,12 +372,14 @@ btormain_init_opts (BtorMainApp *app)
                  BTORMAIN_OPT_ARG_NONE,
                  "dump formula in BTOR format");
 #if 0
-  init_main_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, "dump-btor2", "db2", 0, 0, 1,
+  init_main_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, true,
+	         "dump-btor2", "db2", 0, 0, 1,
 		 false, BTORMAIN_OPT_ARG_NONE,
 		 "dump formula in BTOR 2.0 format");
 #endif
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_SMT,
+                 true,
                  true,
                  "dump-smt",
                  "ds",
@@ -371,6 +392,7 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_AAG,
                  true,
+                 true,
                  "dump-aag",
                  "daa",
                  0,
@@ -381,6 +403,7 @@ btormain_init_opts (BtorMainApp *app)
                  "dump QF_BV formula in ascii AIGER format");
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_AIG,
+                 true,
                  true,
                  "dump-aig",
                  "dai",
@@ -393,17 +416,19 @@ btormain_init_opts (BtorMainApp *app)
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_AIGER_MERGE,
                  true,
+                 true,
                  "dump-aiger-merge",
                  "dam",
                  0,
                  0,
                  1,
-                 false,
+                 true,
                  BTORMAIN_OPT_ARG_NONE,
                  "merge all roots of AIG [0]");
   init_main_opt (app,
                  BTORMAIN_OPT_SMT2_MODEL,
                  false,
+                 true,
                  "smt2-model",
                  0,
                  0,
@@ -597,11 +622,16 @@ print_opt (BtorMainApp *app,
   BTOR_RELEASE_STACK (words);
 }
 
-#define PRINT_MAIN_OPT(app, opt)                                           \
-  do                                                                       \
-  {                                                                        \
-    print_opt (                                                            \
-        app, (opt)->lng, (opt)->shrt, false, (opt)->dflt, (opt)->desc, 0); \
+#define PRINT_MAIN_OPT(app, opt) \
+  do                             \
+  {                              \
+    print_opt (app,              \
+               (opt)->lng,       \
+               (opt)->shrt,      \
+               (opt)->isflag,    \
+               (opt)->dflt,      \
+               (opt)->desc,      \
+               0);               \
   } while (0)
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \

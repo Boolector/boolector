@@ -19,6 +19,13 @@
 
 /*------------------------------------------------------------------------*/
 
+#define BTOR_WARN(cond, msg...)                                  \
+  if (cond)                                                      \
+  {                                                              \
+    fprintf (stderr, "[%s] warning: %s\n", __FUNCTION__, ##msg); \
+    fflush (stderr);                                             \
+  }
+
 #define BTOR_WARN_DEPRECATED(msg...)                              \
   do                                                              \
   {                                                               \
