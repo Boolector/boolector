@@ -1589,7 +1589,6 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
   dump_smt_aux (btor, file, 0, 0);
 }
 

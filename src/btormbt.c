@@ -2899,9 +2899,7 @@ btormbt_state_opt (BtorMBT *mbt)
       g_btormbt->create_arrays = true;
   }
 
-  /* we currently do not allow to dump assumptions, hence dumping the
-   * formula when incremental mode is enabled is not supported */
-  if (!mbt->round.inc && btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
+  if (btor_pick_with_prob_rng (&mbt->round.rng, mbt->p_dump))
   {
     mbt->round.dump = true;
   }
@@ -3383,8 +3381,6 @@ btormbt_state_assume_assert (BtorMBT *mbt)
 static void *
 btormbt_state_dump (BtorMBT *mbt)
 {
-  assert (!mbt->round.inc);
-
   int tmppid;
   Btor *tmpbtor;
   FILE *outfile;

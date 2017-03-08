@@ -446,6 +446,7 @@ select_inc_dec_not_move (Btor *btor,
   BtorIntHashTableIterator iit;
   BtorSLSSolver *slv;
 
+  done      = false;
   slv       = BTOR_SLS_SOLVER (btor);
   sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
 
