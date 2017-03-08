@@ -3925,6 +3925,9 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_ABORT (!btor_can_be_dumped (btor),
               "formula cannot be dumped in BTOR format as it does "
               "not support uninterpreted functions yet.");
+  BTOR_WARN (btor->assumptions->count > 0,
+             "dumping in incremental mode only captures the current state "
+             "of the input formula without assumptions");
   btor_dump_btor (btor, file, 1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, stdout);
@@ -3969,6 +3972,9 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (file);
+  BTOR_WARN (btor->assumptions->count > 0,
+             "dumping in incremental mode only captures the current state "
+             "of the input formula without assumptions");
   btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2, stdout);
@@ -3983,6 +3989,9 @@ boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
   BTOR_ABORT_ARG_NULL (file);
   BTOR_ABORT (btor->lambdas->count > 0 || btor->ufs->count > 0,
               "dumping to ASCII AIGER is supported for QF_BV only");
+  BTOR_WARN (btor->assumptions->count > 0,
+             "dumping in incremental mode only captures the current state "
+             "of the input formula without assumptions");
   btor_dump_aiger (btor, file, false, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_ascii, stdout, merge_roots);
@@ -3997,6 +4006,9 @@ boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
   BTOR_ABORT_ARG_NULL (file);
   BTOR_ABORT (btor->lambdas->count > 0 || btor->ufs->count > 0,
               "dumping to binary AIGER is supported for QF_BV only");
+  BTOR_WARN (btor->assumptions->count > 0,
+             "dumping in incremental mode only captures the current state "
+             "of the input formula without assumptions");
   btor_dump_aiger (btor, file, true, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_binary, stdout, merge_roots);
