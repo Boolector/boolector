@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  All rights reserved.
  *
  *  This file is part of Boolector.
@@ -11,7 +11,9 @@
 #ifndef BTORBETA_H_INCLUDED
 #define BTORBETA_H_INCLUDED
 
+#include "btorexp.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 
 BtorNode* btor_beta_reduce_full (Btor* btor,
@@ -30,6 +32,11 @@ BtorNode* btor_beta_reduce_partial_collect (Btor* btor,
                                             BtorNode* exp,
                                             BtorPtrHashTable* cond_sel_if,
                                             BtorPtrHashTable* cond_sel_else);
+
+BtorNode* btor_beta_reduce_partial_collect_new (Btor* btor,
+                                                BtorNode* exp,
+                                                BtorNodePtrStack* exps,
+                                                BtorIntHashTable* cache);
 
 BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int bound);
 

@@ -564,7 +564,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
                               BtorNode *exp,
                               BtorPtrHashTable *cond_sel_if,
                               BtorPtrHashTable *cond_sel_else,
-                              BtorPtrHashTable *conds)
+                              BtorPtrHashTable *conds,
+                              BtorNodePtrStack *conds_stack,
+                              BtorIntHashTable *conds_cache)
 {
   assert (btor);
   assert (exp);
@@ -575,7 +577,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   double start;
   BtorBitVector *eval_res;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args;
+  BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args, *tmp;
   BtorNodePtrStack stack, arg_stack, reset;
   BtorPtrHashTable *t;
   BtorIntHashTable *mark;
@@ -794,12 +796,22 @@ btor_beta_reduce_partial_aux (Btor *btor,
           {
             if (cond_sel_if) t = cond_sel_if;
             next = real_cur->e[1];
+            tmp  = e[0];
           }
           else
           {
             assert (btor_is_false_bv (eval_res));
             if (cond_sel_else) t = cond_sel_else;
             next = real_cur->e[2];
+            tmp  = BTOR_INVERT_NODE (e[0]);
+          }
+
+          if (conds_cache
+              && !btor_contains_int_hash_table (conds_cache,
+                                                btor_exp_get_id (tmp)))
+          {
+            assert (conds_stack);
+            BTOR_PUSH_STACK (*conds_stack, btor_copy_exp (btor, tmp));
           }
 
           if (t && !btor_get_ptr_hash_table (t, e[0]))
@@ -903,7 +915,7 @@ BtorNode *
 btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorPtrHashTable *conds)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, conds);
+  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, conds, 0, 0);
 }
 
 BtorNode *
@@ -914,5 +926,15 @@ btor_beta_reduce_partial_collect (Btor *btor,
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel_if, cond_sel_else, 0);
+      btor, exp, cond_sel_if, cond_sel_else, 0, 0, 0);
+}
+
+BtorNode *
+btor_beta_reduce_partial_collect_new (Btor *btor,
+                                      BtorNode *exp,
+                                      BtorNodePtrStack *exps,
+                                      BtorIntHashTable *cache)
+{
+  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, 0, exps, cache);
 }
