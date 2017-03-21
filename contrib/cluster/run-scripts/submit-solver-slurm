@@ -1,0 +1,211 @@
+#!/bin/bash
+
+die ()
+{
+  echo "*** submit_solver: $*" 1>&2
+  exit 1
+}
+
+msg ()
+{
+  echo "[submit_solver] $*"
+}
+
+default_options=""
+while [ $# -gt 0 ]
+do
+  case $1 in
+    --default-options=*)
+      default_options=$(echo "$1" | sed 's,^--default-options=,,')
+      ;;
+    *)
+      [[ "$solver" != "" ]] && die "solver already set to '$solver'"
+      solver="$1"
+      ;;
+  esac
+  shift
+done
+
+[[ "$solver" == "" ]] && die "no solver binary specified"
+[[ ! -e "$solver" ]] && die "solver '$solver' does not exist"
+[[ -d "$solver" ]] && die "solver '$solver' is a directory"
+[[ ! -x "$solver" ]] && die "solver '$solver' is not executable"
+
+pwd=`pwd`
+solver=$(readlink -f "$solver")
+binary_name=$(basename "$solver")
+msg "using '$solver' as solver"
+
+ls benchmarks_* > /dev/null 2>&1
+[[ $? != 0 ]] && die "no benchmark files found in current directory"
+
+# select benchmark file
+cnt=0
+echo -e "\nbenchmarks available:"
+for f in $(ls $pwd/benchmarks_*); do
+  b=$(basename $f)
+  b=${b#benchmarks_}
+  benchmark_list[$cnt]=$b
+  num_benchmarks=$(wc -l $f | awk '{print $1}')
+  echo "  [$cnt] $b ($num_benchmarks)"
+  ((cnt+=1))
+done
+
+i=0
+while true;
+do
+  echo -n "select benchmarks (default: [0] ${benchmark_list[0]}): "
+  read i
+  if (( i >= 0 && i < cnt)); then
+    break
+  fi
+  msg "invalid benchmark set specified"
+done
+benchmarks_file=$pwd/benchmarks_${benchmark_list[$i]}
+
+# set working directory
+while true
+do
+  echo -n "choose working directory: "
+  read wdir
+  if [[ "$wdir" == "" ]]; then
+    msg "no working directory specified"
+    continue
+  fi
+  if [[ ! -d $wdir ]]; then
+    break
+  fi
+  msg "directory '$wdir' already exists"
+done
+
+wdir=$pwd/$(basename $wdir)
+mkdir -p $wdir
+
+# configure solver 
+echo -n "choose '$binary_name' options (default: $default_options): "
+read options
+options="$default_options $options"
+
+[[ "$options" != "" ]] && msg "using options '$options'"
+
+# choose time limit
+re='^[0-9]+$'
+while true
+do
+  echo -n "choose time limit (default: 1200): " 
+  read time_limit
+
+  if [[ "$time_limit" == "" ]]; then
+    time_limit=1200
+    break
+  fi
+  if [[ ! $time_limit =~ $re ]]; then
+    msg "time limit '$time_limit' is not a number"
+    continue
+  else
+    break
+  fi
+done
+
+# choose space limit
+while true
+do
+  echo -n "choose space limit (default: 7000): " 
+  read space_limit
+
+  if [[ "$space_limit" == "" ]]; then
+    space_limit=7000
+    break
+  fi
+  if [[ ! $space_limit =~ $re ]]; then
+    msg "space limit '$space_limit' is not a number"
+    continue
+  else
+    break
+  fi
+done
+
+while true
+do
+  echo -n "choose jobs per host (default: 1): " 
+  read cpus
+
+  if [[ "$cpus" == "" ]]; then
+    cpus=1
+    break
+  fi
+  if [[ ! $cpus =~ $re ]]; then
+    msg "jobs per host '$cpus' is not a number"
+    continue
+  fi
+  if [[ $cpus -lt 1 || $cpus -gt 32 ]]; then
+    msg "jobs per host must be between 1 and 32"
+    continue
+  else
+    break
+  fi
+done
+
+# save options, benchmarks file, solver
+cp $benchmarks_file $wdir/benchmarks
+cp $solver $wdir
+echo "time limit: $time_limit" > $wdir/options
+echo "space limit: $space_limit" >> $wdir/options
+echo "solver options: $options" >> $wdir/options
+
+ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
+# get most common prefix of all benchmark files
+prefix=$(
+python - <<EOF
+import os
+prefix = os.path.commonprefix(open('$benchmarks_file').readlines())
+path = os.path.dirname(prefix)
+if len(path) > 0:
+    print('{}/'.format(path))
+EOF
+)
+
+((cpus = 6 / cpus))
+
+runlim_options="--time-limit=$time_limit --space-limit=$space_limit"
+
+# create qsub script
+cat > $wdir/launch.sh << EOF
+#!/bin/sh
+#SBATCH -e /dev/null
+#SBATCH -o /dev/null
+#SBATCH -c $cpus
+#SBATCH -a 1-$ntasks
+#SBATCH -D $wdir
+
+prefix="$prefix"
+runlim_options="$runlim_options"
+solver="./$binary_name"
+solver_options="$options"
+benchmarks="./benchmarks"
+
+# pick benchmark file from list of benchmarks
+benchmark=\`sed \${SLURM_ARRAY_TASK_ID}'q;d' \$benchmarks\`
+out="\$(echo \${benchmark#\$prefix} | sed -e 's,/,-,g' -e 's,\.smt.*,,')"
+# set stdout log file
+log="\${out}.log"
+# set stderr log file
+err="\${out}.err"
+
+echo "c host: \`hostname\`" >> \$log
+echo "c start: \`date\`"
+echo "c benchmark: \$benchmark" >> \$log
+echo "c solver: \$solver" >> \$log
+echo "c solver options: \$solver_options" >> \$log
+
+\$HOME/bin/runlim \\
+  \$runlim_options \\
+  \$solver \\
+  \$solver_options \\
+  \$benchmark >> \$log 2> \$err
+
+echo "c launch: done" >> \$log
+EOF
+
+# create sub shell change working directory and execute launch script
+(cd $wdir && exec sbatch ./launch.sh)
