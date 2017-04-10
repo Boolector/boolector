@@ -127,11 +127,11 @@ done
 
 while true
 do
-  echo -n "choose jobs per host (default: 1): " 
+  echo -n "choose cpus per job (default: 2): " 
   read cpus
 
   if [[ "$cpus" == "" ]]; then
-    cpus=1
+    cpus=2
     break
   fi
   if [[ ! $cpus =~ $re ]]; then
@@ -164,8 +164,6 @@ if len(path) > 0:
     print('{}/'.format(path))
 EOF
 )
-
-((cpus = 6 / cpus))
 
 runlim_options="--time-limit=$time_limit --space-limit=$space_limit"
 
