@@ -1,6 +1,6 @@
 .SUFFIXES: .o .c .cc
 
-MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
+MAKEFLAGS=-j
 CC=@CC@
 CXX=@CXX@
 BINDIR=@BINDIR@
