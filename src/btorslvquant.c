@@ -27,8 +27,6 @@
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
-// TODO (ma): debug
-#include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
 
 #include <pthread.h>
@@ -630,7 +628,6 @@ setup_efg_solvers (BtorEFSolver *slv,
   }
   assert (!btor_is_proxy_node (root));
 
-  //  btor_dump_smt2_node (res->forall, stdout, root, -1);
   res->forall_formula   = root;
   res->forall_evar_deps = btor_new_node_map (res->forall);
   res->forall_uvar_deps = btor_new_node_map (res->forall);
@@ -712,7 +709,6 @@ setup_efg_solvers (BtorEFSolver *slv,
     assert (btor_param_is_exists_var (cur));
     width = btor_get_exp_width (res->forall, cur);
     sym   = btor_get_symbol_exp (res->forall, cur);
-    //      printf ("evar: %s\n", node2string (cur));
 
     if ((tmp = btor_mapped_node (res->forall_evar_deps, cur)))
     {
@@ -946,7 +942,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   BtorNode *var_es, *var_fs, *c, *res, *uvar, *evar, *a;
   const BtorBitVector *bv;
   BtorBitVectorTuple *ce, *evar_tup;
-  BtorPtrHashBucket *b;
 
   f_solver = gslv->forall;
   e_solver = gslv->exists;
@@ -1028,37 +1023,17 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
 
   btor_delete_node_map (map);
 
-  assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
-  //  // TODO (ma): need to check why this still occurs
-  //  //            probably because of findpm=1
-  //  if ((b = btor_get_ptr_hash_table (gslv->forall_ces, ce)))
-  //    {
-  //      gslv->forall_last_ce = b->key;
-  //      btor_free_bv_tuple (f_solver->mm, ce);
-  //      if (evar_tup)
-  //	btor_free_bv_tuple (f_solver->mm, evar_tup);
-  //      return false;
-  //    }
-
-  //  if (res == e_solver->true_exp)
-  //    {
-  //      btor_free_bv_tuple (f_solver->mm, ce);
-  //      if (evar_tup)
-  //	btor_free_bv_tuple (f_solver->mm, evar_tup);
-  //      return false;
-  //    }
-
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
       res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
   gslv->statistics->stats.refinements++;
+
   assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
   btor_add_ptr_hash_table (gslv->forall_ces, ce)->data.as_ptr = evar_tup;
   gslv->forall_last_ce                                        = ce;
 
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
-  //  return true;
 }
 
 BtorNode *
@@ -1131,7 +1106,6 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
     args_tuple = btor_next_ptr_hash_table_iterator (&it);
 
     /* create condition */
-    //      assert (btor_get_fun_arity (btor, uf) == args_tuple->arity);
     assert (BTOR_EMPTY_STACK (consts));
     assert (BTOR_COUNT_STACK (params) == args_tuple->arity);
     for (i = 0; i < args_tuple->arity; i++)
@@ -1787,16 +1761,6 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
         if (limit > opt_synth_limit * 10) limit = opt_synth_limit;
 
         candidate = synthesize (gslv, evar, flat_model, limit, prev_synth_fun);
-#if 0
-	      if (candidate)
-		{
-		  printf ("found candidate for %s\n", node2string (evar));
-		  btor_dump_smt2_node (gslv->forall, stdout, candidate, -1);
-		}
-	      else
-		printf ("no candidate found for %s\n", node2string (evar));
-#endif
-
         synth_res->limit = limit;
       }
 
@@ -2269,7 +2233,6 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   while (btor_has_next_node_map_iterator (&it))
   {
     cur = btor_next_node_map_iterator (&it);
-    //      printf ("%s -> %d\n", node2string (cur), pos);
     btor_add_int_hash_map (value_in_map, cur->id)->as_int = pos++;
   }
 
@@ -2313,7 +2276,6 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       build_input_output_values_quant_inst (gslv, uvar, &value_in, &value_out);
       d   = btor_get_int_hash_map (value_in_map, uvar->id);
       pos = d->as_int;
-      //      printf ("%s set to -1\n", node2string (uvar));
       /* 'uvar' is a special placeholder for constraint evaluation */
       d->as_int = -1;
 
@@ -2347,8 +2309,6 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
     {
       btor_map_node (map, uvar, result);
       btor_release_exp (f_solver, result);
-      //	  printf ("qinst for %s\n", node2string (uvar));
-      //	  btor_dump_smt2_node (f_solver, stdout, result, -1);
       num_synth++;
       btor_map_node (gslv->exists_cur_qi, uvar, result);
     }
@@ -2358,7 +2318,6 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       c  = btor_const_exp (f_solver, (BtorBitVector *) bv);
       btor_map_node (map, uvar, c);
       btor_release_exp (f_solver, c);
-      //	  printf ("no qinst for %s\n", node2string (uvar));
     }
   }
 
@@ -2398,7 +2357,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 static BtorSolverResult
 find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 {
-  bool failed_refinement = false, opt_synth_qi;
+  bool opt_synth_qi;
   double start;
   BtorSolverResult res          = BTOR_RESULT_UNKNOWN, r;
   BtorNode *g                   = 0;
@@ -2431,7 +2390,6 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
       goto DONE;
     }
 
-  RESTART:
     start      = time_stamp ();
     flat_model = flat_model_generate (gslv);
 
@@ -2490,16 +2448,8 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   /* if refinement fails, we got a counter-example that we already got in
    * a previous call. in this case we produce a model using all refinements */
   start = time_stamp ();
-  //  failed_refinement =
   refine_exists_solver (gslv, evar_map);
   gslv->statistics->time.refine += time_stamp () - start;
-  //  if (failed_refinement)
-  //    {
-  //      printf ("failed refinment\n");
-  //      btor_release_exp (gslv->forall, g);
-  //      gslv->statistics->stats.failed_refinements++;
-  //      goto RESTART;
-  //    }
 
   if (opt_synth_qi)
   {
@@ -2836,8 +2786,6 @@ BtorSolver *
 btor_new_ef_solver (Btor *btor)
 {
   assert (btor);
-  // TODO (ma): incremental calls not supported yet
-  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
 
   BtorEFSolver *slv;
 
