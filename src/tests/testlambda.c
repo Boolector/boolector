@@ -1568,15 +1568,17 @@ test_quantifier_hashing_1 (void)
 
   BtorNode *x0, *y0, *eq0, *f0, *e0;
   BtorNode *x1, *y1, *eq1, *f1, *e1;
+  BtorSortId sort;
 
-  x0  = btor_param_exp (g_btor, 32, 0);
-  y0  = btor_param_exp (g_btor, 32, 0);
-  eq0 = btor_eq_exp (g_btor, x0, y0);
-  f0  = btor_forall_exp (g_btor, y0, eq0);
-  e0  = btor_exists_exp (g_btor, x0, f0);
+  sort = btor_bitvec_sort (g_btor, 32);
+  x0   = btor_param_exp (g_btor, sort, 0);
+  y0   = btor_param_exp (g_btor, sort, 0);
+  eq0  = btor_eq_exp (g_btor, x0, y0);
+  f0   = btor_forall_exp (g_btor, y0, eq0);
+  e0   = btor_exists_exp (g_btor, x0, f0);
 
-  x1  = btor_param_exp (g_btor, 32, 0);
-  y1  = btor_param_exp (g_btor, 32, 0);
+  x1  = btor_param_exp (g_btor, sort, 0);
+  y1  = btor_param_exp (g_btor, sort, 0);
   eq1 = btor_eq_exp (g_btor, x1, y1);
   f1  = btor_forall_exp (g_btor, y1, eq1);
   e1  = btor_exists_exp (g_btor, x1, f1);
@@ -1592,6 +1594,7 @@ test_quantifier_hashing_1 (void)
   btor_release_exp (g_btor, eq1);
   btor_release_exp (g_btor, f1);
   btor_release_exp (g_btor, e1);
+  btor_release_sort (g_btor, sort);
   finish_lambda_test ();
 }
 
@@ -1606,15 +1609,17 @@ test_quantifier_hashing_2 (void)
   BtorNode *x10, *x11, *x12, *x13, *y10, *y11, *y12, *y13;
   BtorNode *a10, *a11, *a12, *a13, *a14, *a15, *a16, *r10;
   BtorNode *f10, *e10, *f11, *e11, *f12, *e12, *f13, *e13;
+  BtorSortId sort;
 
-  x0 = btor_param_exp (g_btor, 32, 0);
-  x1 = btor_param_exp (g_btor, 32, 0);
-  x2 = btor_param_exp (g_btor, 32, 0);
-  x3 = btor_param_exp (g_btor, 32, 0);
-  y0 = btor_param_exp (g_btor, 32, 0);
-  y1 = btor_param_exp (g_btor, 32, 0);
-  y2 = btor_param_exp (g_btor, 32, 0);
-  y3 = btor_param_exp (g_btor, 32, 0);
+  sort = btor_bitvec_sort (g_btor, 32);
+  x0   = btor_param_exp (g_btor, sort, 0);
+  x1   = btor_param_exp (g_btor, sort, 0);
+  x2   = btor_param_exp (g_btor, sort, 0);
+  x3   = btor_param_exp (g_btor, sort, 0);
+  y0   = btor_param_exp (g_btor, sort, 0);
+  y1   = btor_param_exp (g_btor, sort, 0);
+  y2   = btor_param_exp (g_btor, sort, 0);
+  y3   = btor_param_exp (g_btor, sort, 0);
 
   a0 = btor_and_exp (g_btor, x0, y0);
   a1 = btor_and_exp (g_btor, a0, x1);
@@ -1633,14 +1638,14 @@ test_quantifier_hashing_2 (void)
   f3 = btor_forall_exp (g_btor, x3, e2);
   e3 = btor_exists_exp (g_btor, y3, f3);
 
-  x10 = btor_param_exp (g_btor, 32, 0);
-  x11 = btor_param_exp (g_btor, 32, 0);
-  x12 = btor_param_exp (g_btor, 32, 0);
-  x13 = btor_param_exp (g_btor, 32, 0);
-  y10 = btor_param_exp (g_btor, 32, 0);
-  y11 = btor_param_exp (g_btor, 32, 0);
-  y12 = btor_param_exp (g_btor, 32, 0);
-  y13 = btor_param_exp (g_btor, 32, 0);
+  x10 = btor_param_exp (g_btor, sort, 0);
+  x11 = btor_param_exp (g_btor, sort, 0);
+  x12 = btor_param_exp (g_btor, sort, 0);
+  x13 = btor_param_exp (g_btor, sort, 0);
+  y10 = btor_param_exp (g_btor, sort, 0);
+  y11 = btor_param_exp (g_btor, sort, 0);
+  y12 = btor_param_exp (g_btor, sort, 0);
+  y13 = btor_param_exp (g_btor, sort, 0);
 
   a10 = btor_and_exp (g_btor, x10, y10);
   a11 = btor_and_exp (g_btor, a10, x11);
@@ -1709,6 +1714,7 @@ test_quantifier_hashing_2 (void)
   btor_release_exp (g_btor, e12);
   btor_release_exp (g_btor, f13);
   btor_release_exp (g_btor, e13);
+  btor_release_sort (g_btor, sort);
   finish_lambda_test ();
 }
 
