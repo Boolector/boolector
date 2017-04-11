@@ -100,7 +100,7 @@ u_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
           assert (result);
         else
         {
-          assert (exit_code = BTOR_UNSAT_EXIT);
+          assert (exit_code == BTOR_UNSAT_EXIT);
           assert (!result);
         }
       }
