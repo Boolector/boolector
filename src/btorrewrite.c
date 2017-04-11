@@ -4620,6 +4620,7 @@ static inline BtorNode *
 apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
 {
   assert (applies_const_quantifier (btor, param, body));
+  (void) param;
   return btor_copy_exp (btor, body);
 }
 
@@ -4668,6 +4669,7 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
 {
   assert (applies_eq_forall (btor, param, body));
   (void) param;
+  (void) body;
   return btor_false_exp (btor);
 }
 
@@ -4716,6 +4718,7 @@ apply_eq_exists (Btor *btor, BtorNode *param, BtorNode *body)
 {
   assert (applies_eq_exists (btor, param, body));
   (void) param;
+  (void) body;
   return btor_true_exp (btor);
 }
 
