@@ -526,6 +526,8 @@ find_symbol_smt2 (BtorSMT2Parser *parser, const char *name)
   unsigned h;
   BtorSMT2Node *s;
 
+  if (parser->symbol.size == 0) return 0;
+
   h = hash_name_smt2 (parser, name);
   for (s = parser->symbol.table[h]; s && strcmp (s->name, name); s = s->next)
     ;
@@ -849,7 +851,7 @@ init_char_classes_smt2 (BtorSMT2Parser *parser)
   {                                                        \
     BtorSMT2Node *NODE = new_node_smt2 (parser, (TAG));    \
     NODE->name         = btor_strdup (parser->mem, (STR)); \
-    assert (find_symbol_smt2 (parser, NODE->name));        \
+    assert (!find_symbol_smt2 (parser, NODE->name));       \
     insert_symbol_smt2 (parser, NODE);                     \
   } while (0)
 
@@ -1280,7 +1282,7 @@ RESTART:
         {
           node       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
           node->name = btor_strdup (parser->mem, parser->token.start);
-          assert (find_symbol_smt2 (parser, node->name));
+          assert (!find_symbol_smt2 (parser, node->name));
           insert_symbol_smt2 (parser, node);
         }
         parser->last_node = node;
@@ -1311,7 +1313,7 @@ RESTART:
     {
       node       = new_node_smt2 (parser, BTOR_ATTRIBUTE_TAG_SMT2);
       node->name = btor_strdup (parser->mem, parser->token.start);
-      assert (find_symbol_smt2 (parser, node->name));
+      assert (!find_symbol_smt2 (parser, node->name));
       insert_symbol_smt2 (parser, node);
     }
     parser->last_node = node;
@@ -1392,7 +1394,7 @@ RESTART:
     {
       node       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
       node->name = btor_strdup (parser->mem, parser->token.start);
-      assert (find_symbol_smt2 (parser, node->name));
+      assert (!find_symbol_smt2 (parser, node->name));
       insert_symbol_smt2 (parser, node);
     }
     parser->last_node = node;
