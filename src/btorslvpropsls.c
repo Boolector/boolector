@@ -2373,7 +2373,7 @@ inv_eq_bv (
   assert (eq);
   assert (BTOR_IS_REGULAR_NODE (eq));
   assert (bveq);
-  assert (bveq->width = 1);
+  assert (bveq->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_is_bv_const_node (eq->e[eidx]));
@@ -2438,7 +2438,7 @@ inv_ult_bv (Btor *btor,
   assert (ult);
   assert (BTOR_IS_REGULAR_NODE (ult));
   assert (bvult);
-  assert (bvult->width = 1);
+  assert (bvult->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_is_bv_const_node (ult->e[eidx]));
