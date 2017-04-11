@@ -12,8 +12,6 @@
 #include "normalizer/btornormquant.h"
 #include "testrunner.h"
 
-#include "dumper/btordumpsmt.h"
-
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -397,8 +395,6 @@ test_normquant_expand_quant (void)
   exists   = btor_exists_exp (g_btor, X, BTOR_INVERT_NODE (redandX));
   expected = btor_and_exp (g_btor, forall, exists);
 
-  btor_dump_smt2_node (g_btor, stdout, result, -1);
-  btor_dump_smt2_node (g_btor, stdout, expected, -1);
   assert (result == expected);
 
   btor_release_exp (g_btor, x);
@@ -572,8 +568,6 @@ test_normquant_elim_ite2 (void)
   forallX  = btor_forall_exp (g_btor, X, and1);
   expected = btor_exists_n_exp (g_btor, V, 2, forallX);
 
-  btor_dump_smt2_node (g_btor, stdout, result, -1);
-  btor_dump_smt2_node (g_btor, stdout, expected, -1);
   assert (result == expected);
 
   btor_release_exp (g_btor, v0);
