@@ -667,141 +667,9 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
 }
 
 #if 0
-static BtorNode *
-subst_params (Btor * btor, BtorNode * root, BtorNodeMap * map)
-{
-  size_t j;
-  int32_t i;
-  BtorMemMgr *mm;
-  BtorNodePtrStack visit, args;
-  BtorNode *cur, *real_cur, **e, *result;
-  BtorIntHashTable *mark;
-  BtorHashTableData *d;
-
-  mm = btor->mm;
-  mark = btor_new_int_hash_map (mm);
-  BTOR_INIT_STACK (mm, visit);
-  BTOR_INIT_STACK (mm, args);
-
-  BTOR_PUSH_STACK (visit, root);
-  while (!BTOR_EMPTY_STACK (visit))
-    {
-      cur = BTOR_POP_STACK (visit);
-      real_cur = BTOR_REAL_ADDR_NODE (cur);
-
-      d = btor_get_int_hash_map (mark, real_cur->id);
-      if (!d)
-        {
-          btor_add_int_hash_map (mark, real_cur->id);
-          BTOR_PUSH_STACK (visit, cur);
-          for (i = real_cur->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (visit, real_cur->e[i]);
-        }
-      else if (!d->as_ptr)
-        {
-          args.top -= real_cur->arity;
-          e = args.top;
-
-          if (real_cur->arity == 0)
-            {
-              if ((result = btor_mapped_node (map, real_cur)))
-                {
-                  assert (btor_is_param_node (real_cur));
-                  result = btor_copy_exp (btor, result);
-                }
-              else
-                result = btor_copy_exp (btor, real_cur);
-            }
-          else if (real_cur->arity == 1)
-            {
-              assert (btor_is_slice_node (real_cur));
-              result = btor_slice_exp (btor, e[0],
-                                       btor_slice_get_upper (real_cur),
-                                       btor_slice_get_lower (real_cur));
-            }
-          else
-            result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
-
-          d->as_ptr = btor_copy_exp (btor, result);
-
-          for (i = 0; i < real_cur->arity; i++)
-            btor_release_exp (btor, e[i]);
-PUSH_RESULT:
-          BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
-        }
-      else
-        {
-          assert (d->as_ptr);
-          result = btor_copy_exp (btor, d->as_ptr);
-          goto PUSH_RESULT;
-        }
-    }
-  assert (BTOR_COUNT_STACK (args) == 1);
-  result = BTOR_POP_STACK (args);
-
-  BTOR_RELEASE_STACK (args);
-  BTOR_RELEASE_STACK (visit);
-
-  for (j = 0; j < mark->size; j++)
-    {
-      if (!mark->keys[j]) continue;
-      assert (mark->data[j].as_ptr);
-      btor_release_exp (btor, mark->data[j].as_ptr);
-    }
-
-  btor_delete_int_hash_map (mark);
-
-  return result;
-}
-
-static BtorNode *
-mk_fun (Btor * btor, BtorNode * params[], uint32_t nparams, BtorNode * body)
-{
-  uint32_t i;
-  BtorNodePtrStack new_params;
-  BtorNode *p, *new_p, *new_body, *result;
-  BtorMemMgr *mm;
-  BtorNodeMap *map;
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (mm, new_params);
-  map = btor_new_node_map (btor);
-  for (i = 0; i < nparams; i++)
-    {
-      p = params[i];
-      new_p = btor_param_exp (btor, p->sort_id, 0);
-      BTOR_PUSH_STACK (new_params, new_p);
-      btor_map_node (map, p, new_p);
-    }
-  assert (BTOR_COUNT_STACK (new_params) == nparams);
-
-  new_body = subst_params (btor, body, map);
-  result = btor_fun_exp (btor, new_params.start, nparams, new_body);
-  assert (btor_get_fun_arity (btor, result) == nparams);
-
-  while (!BTOR_EMPTY_STACK (new_params))
-    btor_release_exp (btor, BTOR_POP_STACK (new_params));
-  BTOR_RELEASE_STACK (new_params);
-  btor_release_exp (btor, new_body);
-  btor_delete_node_map (map);
-//  assert (!BTOR_REAL_ADDR_NODE (result)->parameterized);
-  return result;
-}
-#endif
-
-#if 0
-struct BinOp
-{
-  bool assoc;
-  BtorBinOp op;
-};
-
-typedef struct BinOp BinOp;
-#endif
-
 struct Match
 {
-  uint32_t level;  // TODO: set level in which exp was created
+  uint32_t level; // TODO: set level in which exp was created
   uint32_t num_matches;
   BtorBitVector *matches;
   BtorNode *exp;
@@ -810,174 +678,37 @@ struct Match
 typedef struct Match Match;
 
 static Match *
-new_match (BtorMemMgr *mm,
-           uint32_t level,
-           uint32_t num_matches,
-           BtorBitVector *matches,
-           BtorNode *exp)
+new_match (BtorMemMgr * mm, uint32_t level, uint32_t num_matches,
+           BtorBitVector * matches, BtorNode * exp)
 {
   Match *res;
 
   BTOR_CNEW (mm, res);
-  res->level       = level;
+  res->level = level;
   res->num_matches = num_matches;
-  res->matches     = matches;
-  res->exp         = btor_copy_exp (BTOR_REAL_ADDR_NODE (exp)->btor, exp);
+  res->matches = matches;
+  res->exp = btor_copy_exp (BTOR_REAL_ADDR_NODE (exp)->btor, exp);
   return res;
 }
 
 static uint32_t
-hash_match (Match *m)
+hash_match (Match * m)
 {
   return btor_hash_bv (m->matches);
 }
 
-static int32_t
-cmp_match (const Match *m0, const Match *m1)
+static int32_t 
+cmp_match (const Match * m0, const Match * m1)
 {
   return btor_compare_bv (m0->matches, m1->matches);
 }
 
-#if 0
-static int32_t
-cmp_sort_match (const void * m0, const void * m1)
-{
-  const Match *m00 = *(Match **) m0;
-  const Match *m11 = *(Match **) m1;
-
-  if (m00->num_matches == m11->num_matches)
-    return m00->level - m11->level;
-//    return btor_compare_bv (m00->matches, m11->matches);
-  return m11->num_matches - m00->num_matches;
-}
-#endif
-
 static void
-delete_match (BtorMemMgr *mm, Match *m)
+delete_match (BtorMemMgr * mm, Match * m)
 {
   btor_free_bv (mm, m->matches);
   btor_release_exp (BTOR_REAL_ADDR_NODE (m->exp)->btor, m->exp);
   BTOR_DELETE (mm, m);
-}
-
-#if 0
-BTOR_DECLARE_STACK (MatchPtr, Match *);
-
-static bool 
-find_best_matches (Btor * btor,
-                   BtorPtrHashTable * matches, BtorNodePtrStack * results)
-{
-  bool full_cover = false;
-  int32_t j, w, u;
-  uint32_t i, cur_rem_bits, min_rem_bits, rem_bits, minpos;
-  BtorPtrHashTableIterator it;
-  MatchPtrStack stack;
-  BtorIntStack used;
-  Match *m, *minm;
-  BtorMemMgr *mm;
-  BtorBitVector *bv, *matchbv, *minbv;
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (mm, stack);
-  BTOR_INIT_STACK (mm, used);
-
-  btor_init_ptr_hash_table_iterator (&it, matches);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    {
-      m = btor_next_ptr_hash_table_iterator (&it);
-      BTOR_PUSH_STACK (stack, m);
-      BTOR_PUSH_STACK (used, 0);
-//      btor_print_bv (m->matches);
-    }
-
-#if 0
-  printf ("sorted:\n");
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-    {
-      m = BTOR_PEEK_STACK (stack, i);
-      printf ("%u %u ", m->num_matches, m->level);
-      btor_print_bv (m->matches);
-    }
-#endif
-
-  if (!BTOR_EMPTY_STACK (stack))
-    {
-      qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (Match *),
-             cmp_sort_match);
-//  printf ("collect:\n");
-      matchbv = 0;
-      m = BTOR_PEEK_STACK (stack, 0);
-      bv = btor_copy_bv (mm, m->matches);
-      w = bv->width;
-    //  printf ("more cov match: %u (%u), ", m->num_matches, m->level);
-    //  btor_print_bv (m->matches);
-      BTOR_PUSH_STACK (*results, btor_copy_exp (btor, m->exp));
-      full_cover = btor_is_ones_bv (m->matches);
-//      printf ("matches: %u, ", m->num_matches);
-//      btor_print_bv (m->matches);
-
-#if 0
-      do
-        {
-          rem_bits = 0;
-          for (j = w - 1; j >= 0; j--)
-            if (!btor_get_bit_bv (bv, j))
-              rem_bits++;
-
-          BTOR_POKE_STACK (used, 0, 1);
-          minm = 0;
-          min_rem_bits = rem_bits;
-          for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
-            {
-              m = BTOR_PEEK_STACK (stack, i);
-              u = BTOR_PEEK_STACK (used, i);
-              if (u) continue;
-
-              matchbv = m->matches;
-              cur_rem_bits = rem_bits;
-              for (j = w - 1; j >= 0; j--)
-                {
-                  if (!btor_get_bit_bv (bv, j) && btor_get_bit_bv (matchbv, j))
-                    cur_rem_bits--;
-                }
-              if (cur_rem_bits < min_rem_bits)
-                {
-                  min_rem_bits = cur_rem_bits;
-                  minm = m;
-                  minpos = i;
-    //              printf ("new min; %u\n", min_rem_bits);
-                }
-
-              if (cur_rem_bits == 0)
-                {
-    //              printf ("found full coverage\n");
-                  full_cover = true;
-                  break;
-                }
-            }
-
-          if (!minm)
-            break;
-
-          for (j = w - 1; j >= 0; j--)
-            {
-              if (!btor_get_bit_bv (bv, j)
-                  && btor_get_bit_bv (minm->matches, j))
-                btor_set_bit_bv (bv, j, 1);
-            }
-    //          printf ("more cov match: %u (%u), ", minm->num_matches, minm->level);
-    //          btor_print_bv (minm->matches);
-          BTOR_PUSH_STACK (*results, btor_copy_exp (btor, minm->exp));
-          BTOR_POKE_STACK (used, minpos, 1);
-        }
-      while (!full_cover && min_rem_bits > 0);
-#endif
-
-      btor_free_bv (mm, bv);
-      BTOR_RELEASE_STACK (stack);
-      BTOR_RELEASE_STACK (used);
-    }
-  return full_cover;
 }
 #endif
 
@@ -1086,16 +817,13 @@ check_candidate_exps (Btor *btor,
                       BtorIntHashTable *cache,
                       BtorPtrHashTable *sigs,
                       BtorPtrHashTable *sigs_exp,
-                      BtorPtrHashTable *matches,
                       Op *op)
 {
   bool found_candidate = false;
   int32_t id;
-  uint32_t num_matches    = 0;
   BtorBitVectorTuple *sig = 0, *sig_exp;
   BtorBitVector *matchbv  = 0;
   BtorMemMgr *mm;
-  Match *m;
 
   id = btor_exp_get_id (exp);
   mm = btor->mm;
@@ -1132,7 +860,7 @@ check_candidate_exps (Btor *btor,
                                             nvalues,
                                             value_in_map,
                                             &sig,
-                                            &num_matches,
+                                            0,
                                             &matchbv);
   }
 
@@ -1145,16 +873,7 @@ check_candidate_exps (Btor *btor,
     return false;
   }
 
-  if (num_matches > 0)
-  {
-    m = new_match (mm, cur_level, num_matches, matchbv, exp);
-    if (!btor_get_ptr_hash_table (matches, m))
-      btor_add_ptr_hash_table (matches, m);
-    else
-      delete_match (mm, m);
-  }
-  else if (matchbv)
-    btor_free_bv (mm, matchbv);
+  if (matchbv) btor_free_bv (mm, matchbv);
 
   if (sig) btor_add_ptr_hash_table (sigs, sig);
   btor_add_int_hash_table (cache, id);
@@ -1194,57 +913,6 @@ report_op_stats (Btor *btor, Op ops[], uint32_t nops)
     BTOR_MSG (btor->msg, 1, "%s: %u", ops[i].name, ops[i].num_added);
 }
 
-#if 0
-static void
-max_chain_length (BtorPtrHashTable * sigs)
-{
-  uint32_t i, max_len = 0, cur_len, empty_bucks = 0;
-  BtorPtrHashBucket *b;
-
-  for (i = 0; i < sigs->size; i++)
-    {
-      b = sigs->table[i];
-      cur_len = 0;
-      if (!b) empty_bucks++; 
-      while (b)
-        {
-          cur_len++;
-          if (cur_len > max_len)
-            max_len = cur_len;
-          b = b->chain;
-        }
-    }
-  printf ("max chain: %u, %u/%u\n", max_len, empty_bucks, sigs->size);
-}
-#endif
-
-#if 0
-static void
-add_consts (Btor * btor, uint32_t width, Candidates * candidates,
-            BtorIntHashTable * cache)
-{
-  BtorNode *c;
-
-  c = btor_zero_exp (btor, width);
-  if (!btor_contains_int_hash_table (cache, BTOR_GET_ID_NODE (c)))
-    {
-      btor_add_int_hash_table (cache, BTOR_GET_ID_NODE (c));
-      add_exp (btor, 1, candidates, c);
-    }
-  else
-    btor_release_exp (btor, c);
-
-  c = btor_ones_exp (btor, width);
-  if (!btor_contains_int_hash_table (cache, BTOR_GET_ID_NODE (c)))
-    {
-      btor_add_int_hash_table (cache, BTOR_GET_ID_NODE (c));
-      add_exp (btor, 1, candidates, c);
-    }
-  else
-    btor_release_exp (btor, c);
-}
-#endif
-
 #define CHECK_CANDIDATE(exp)                                              \
   {                                                                       \
     found_candidate = check_candidate_exps (btor,                         \
@@ -1263,7 +931,6 @@ add_consts (Btor * btor, uint32_t width, Candidates * candidates,
                                             cache,                        \
                                             sigs,                         \
                                             sigs_exp,                     \
-                                            matches,                      \
                                             &ops[i]);                     \
     num_checks++;                                                         \
     if (num_checks % 10000 == 0)                                          \
@@ -1311,7 +978,7 @@ synthesize (Btor *btor,
   BtorNodePtrStack *exps, trav_exps, trav_cone;
   Candidates candidates;
   BtorIntHashTable *cache, *e0_exps, *e1_exps, *e2_exps;
-  BtorPtrHashTable *matches, *sigs, *sigs_exp;
+  BtorPtrHashTable *sigs, *sigs_exp;
   BtorHashTableData *d;
   BtorMemMgr *mm;
   BtorPartitionGenerator pg;
@@ -1328,9 +995,7 @@ synthesize (Btor *btor,
   bool_sort = btor_bool_sort (btor);
   cache     = btor_new_int_hash_table (mm);
   cone_hash = btor_new_int_hash_table (mm);
-  matches   = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_match, (BtorCmpPtr) cmp_match);
-  sigs = btor_new_ptr_hash_table (
+  sigs      = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
   sigs_exp = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
@@ -1386,15 +1051,6 @@ synthesize (Btor *btor,
 
   if (prev_synth)
   {
-#if 0
-      exp = prev_synth;
-      found_candidate =
-        check_signature_exps (btor,
-                              trav_cone.start, BTOR_COUNT_STACK (trav_cone),
-                              value_caches.start, cone_hash,
-                              exp, value_in, value_out, nvalues, value_in_map,
-                              0, 0, 0);
-#else
     exp             = btor_copy_exp (btor, prev_synth);
     found_candidate = check_candidate_exps (btor,
                                             trav_cone.start,
@@ -1412,9 +1068,7 @@ synthesize (Btor *btor,
                                             cache,
                                             sigs,
                                             sigs_exp,
-                                            matches,
                                             0);
-#endif
     num_checks++;
     if (num_checks % 10000 == 0)
       report_stats (btor, start, cur_level, num_checks, &candidates);
@@ -1445,7 +1099,6 @@ synthesize (Btor *btor,
                                             cache,
                                             sigs,
                                             sigs_exp,
-                                            matches,
                                             0);
     num_checks++;
     if (num_checks % 10000 == 0)
@@ -1631,10 +1284,6 @@ DONE:
     btor_free_bv (mm, BTOR_POP_STACK (sig_constraints));
   BTOR_RELEASE_STACK (sig_constraints);
 
-  btor_init_ptr_hash_table_iterator (&it, matches);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    delete_match (mm, btor_next_ptr_hash_table_iterator (&it));
-
   btor_init_ptr_hash_table_iterator (&it, sigs);
   btor_queue_ptr_hash_table_iterator (&it, sigs_exp);
   while (btor_has_next_ptr_hash_table_iterator (&it))
@@ -1642,7 +1291,6 @@ DONE:
 
   btor_delete_ptr_hash_table (sigs);
   btor_delete_ptr_hash_table (sigs_exp);
-  btor_delete_ptr_hash_table (matches);
   btor_delete_int_hash_table (cache);
   btor_delete_int_hash_table (cone_hash);
   BTOR_RELEASE_STACK (trav_exps);
