@@ -1443,7 +1443,7 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
     width = btor_pick_rand_rng (&mbt->round.rng, mbt->min_bw, mbt->max_bw);
   else
   {
-    assert (type = BTORMBT_BB_T);
+    assert (type == BTORMBT_BB_T);
     width = btor_pick_rand_rng (&mbt->round.rng, 1, mbt->max_bw);
   }
   s   = boolector_bitvec_sort (mbt->btor, width);
