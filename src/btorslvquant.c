@@ -934,7 +934,7 @@ instantiate_args (Btor *btor, BtorNode *args, BtorNodeMap *map)
   return res;
 }
 
-static bool
+static void
 refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
 {
   assert (gslv->forall_uvars->table->count > 0);
@@ -948,7 +948,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   BtorBitVectorTuple *ce, *evar_tup;
   BtorPtrHashBucket *b;
 
-  //  printf ("  refine\n");
   f_solver = gslv->forall;
   e_solver = gslv->exists;
 
@@ -959,7 +958,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
   f_solver->slv->api.generate_model (f_solver->slv, false, false);
 
   /* instantiate universal vars with counter example */
-  //  printf ("CE (refine)\n");
   i  = 0;
   ce = btor_new_bv_tuple (f_solver->mm, gslv->forall_uvars->table->count);
   btor_init_node_map_iterator (&it, gslv->forall_uvars);
@@ -1030,22 +1028,25 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
 
   btor_delete_node_map (map);
 
-  // TODO (ma): need to check why this still occurs
-  //            probably because of findpm=1
-  if ((b = btor_get_ptr_hash_table (gslv->forall_ces, ce)))
-  {
-    gslv->forall_last_ce = b->key;
-    btor_free_bv_tuple (f_solver->mm, ce);
-    if (evar_tup) btor_free_bv_tuple (f_solver->mm, evar_tup);
-    return false;
-  }
+  assert (!btor_get_ptr_hash_table (gslv->forall_ces, ce));
+  //  // TODO (ma): need to check why this still occurs
+  //  //            probably because of findpm=1
+  //  if ((b = btor_get_ptr_hash_table (gslv->forall_ces, ce)))
+  //    {
+  //      gslv->forall_last_ce = b->key;
+  //      btor_free_bv_tuple (f_solver->mm, ce);
+  //      if (evar_tup)
+  //	btor_free_bv_tuple (f_solver->mm, evar_tup);
+  //      return false;
+  //    }
 
-  if (res == e_solver->true_exp)
-  {
-    btor_free_bv_tuple (f_solver->mm, ce);
-    if (evar_tup) btor_free_bv_tuple (f_solver->mm, evar_tup);
-    return false;
-  }
+  //  if (res == e_solver->true_exp)
+  //    {
+  //      btor_free_bv_tuple (f_solver->mm, ce);
+  //      if (evar_tup)
+  //	btor_free_bv_tuple (f_solver->mm, evar_tup);
+  //      return false;
+  //    }
 
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
@@ -1057,7 +1058,7 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
 
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
-  return true;
+  //  return true;
 }
 
 BtorNode *
@@ -1112,7 +1113,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   {
     uf   = btor_uf_exp (btor, funsortid, 0);
     args = btor_args_exp (btor, params.start, BTOR_COUNT_STACK (params));
-    assert (args->sort_id = btor_get_domain_fun_sort (btor, uf->sort_id));
+    assert (args->sort_id == btor_get_domain_fun_sort (btor, uf->sort_id));
     e_else = btor_apply_exp (btor, uf, args);
     assert (BTOR_REAL_ADDR_NODE (e_else)->sort_id
             == btor_get_codomain_fun_sort (btor, uf->sort_id));
@@ -2488,16 +2489,17 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
 
   /* if refinement fails, we got a counter-example that we already got in
    * a previous call. in this case we produce a model using all refinements */
-  start             = time_stamp ();
-  failed_refinement = !refine_exists_solver (gslv, evar_map);
+  start = time_stamp ();
+  //  failed_refinement =
+  refine_exists_solver (gslv, evar_map);
   gslv->statistics->time.refine += time_stamp () - start;
-  if (failed_refinement)
-  {
-    printf ("failed refinment\n");
-    btor_release_exp (gslv->forall, g);
-    gslv->statistics->stats.failed_refinements++;
-    goto RESTART;
-  }
+  //  if (failed_refinement)
+  //    {
+  //      printf ("failed refinment\n");
+  //      btor_release_exp (gslv->forall, g);
+  //      gslv->statistics->stats.failed_refinements++;
+  //      goto RESTART;
+  //    }
 
   if (opt_synth_qi)
   {
@@ -2577,7 +2579,9 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
     assert (dual_gslv->result != BTOR_RESULT_UNKNOWN);
     if (dual_gslv->result == BTOR_RESULT_SAT)
     {
-      printf ("DUAL SOLVER: SAT -> UNSAT\n");
+      BTOR_MSG (dual_gslv->forall->msg,
+                1,
+                "dual solver result: sat, original formula: unsat");
       res = BTOR_RESULT_UNSAT;
       print_cur_model (dual_gslv);
     }
@@ -2585,10 +2589,38 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
     {
       assert (dual_gslv->result == BTOR_RESULT_UNSAT);
       res = BTOR_RESULT_SAT;
-      printf ("DUAL SOLVER: VALID -> SAT\n");
+      BTOR_MSG (dual_gslv->forall->msg,
+                1,
+                "dual solver result: unsat, original formula: sat");
     }
   }
   return res;
+}
+
+static BtorNode *
+simplify (Btor *btor, BtorNode *g)
+{
+  BtorNode *tmp;
+
+  if (btor_get_opt (btor, BTOR_OPT_EF_MINISCOPE))
+  {
+    tmp = btor_miniscope_node (btor, g);
+    btor_release_exp (btor, g);
+    g = tmp;
+  }
+  if (btor_get_opt (btor, BTOR_OPT_EF_DER))
+  {
+    tmp = btor_der_node (btor, g);
+    btor_release_exp (btor, g);
+    g = tmp;
+  }
+  if (btor_get_opt (btor, BTOR_OPT_EF_CER))
+  {
+    tmp = btor_cer_node (btor, g);
+    btor_release_exp (btor, g);
+    g = tmp;
+  }
+  return g;
 }
 
 static BtorSolverResult
@@ -2599,38 +2631,20 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  //  double start;
   bool opt_dual_solver, skip_exists = true;
   BtorSolverResult res;
-  BtorNode *g, *tmp;
+  BtorNode *g;
   BtorEFGroundSolvers *gslv, *dual_gslv = 0;
 
-  // TODO (ma): incremental support
+  BTOR_ABORT (btor_get_opt (slv->btor, BTOR_OPT_INCREMENTAL),
+              "incremental mode not supported for BV");
 
   opt_dual_solver = btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
+  /* make sure that all quantifiers occur in the correct phase */
   g = btor_normalize_quantifiers (slv->btor);
-  //  btor_dump_smt2_node (slv->btor, stdout, g, -1);
+  g = simplify (slv->btor, g);
 
-  if (btor_get_opt (slv->btor, BTOR_OPT_EF_MINISCOPE))
-  {
-    tmp = btor_miniscope_node (slv->btor, g);
-    btor_release_exp (slv->btor, g);
-    g = tmp;
-    //  btor_dump_smt2_node (slv->btor, stdout, g, -1);
-  }
-  if (btor_get_opt (slv->btor, BTOR_OPT_EF_DER))
-  {
-    tmp = btor_der_node (slv->btor, g);
-    btor_release_exp (slv->btor, g);
-    g = tmp;
-  }
-  if (btor_get_opt (slv->btor, BTOR_OPT_EF_CER))
-  {
-    tmp = btor_cer_node (slv->btor, g);
-    btor_release_exp (slv->btor, g);
-    g = tmp;
-  }
   gslv = setup_efg_solvers (slv, g, false, "forall", "exists");
   btor_release_exp (slv->btor, g);
   gslv->statistics = &slv->statistics;
@@ -2680,44 +2694,13 @@ generate_model_ef_solver (BtorEFSolver *slv,
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  // TODO (ma): for now not supported
   (void) model_for_all_nodes;
   (void) reset;
 
-  //  BtorNode *cur, *param, *var_fs;
-  //  BtorNodeMapIterator it;
-  //  const BtorBitVector *bv;
-
   btor_init_bv_model (slv->btor, &slv->btor->bv_model);
   btor_init_fun_model (slv->btor, &slv->btor->fun_model);
-#if 0
-  btor_init_node_map_iterator (&it, slv->e_exists_vars);
-  while (btor_has_next_node_map_iterator (&it))
-    {
-      cur = btor_next_node_map_iterator (&it);
-      var_fs = btor_mapped_node (slv->e_exists_vars, cur);
-      param = btor_mapped_node (slv->f_exists_vars, var_fs);
 
-      bv = btor_get_bv_model (slv->e_solver,
-	       btor_simplify_exp (slv->e_solver, cur));
-      assert (btor_get_node_by_id (slv->btor, param->id));
-      btor_add_to_bv_model (
-	  slv->btor, slv->btor->bv_model,
-	  btor_get_node_by_id (slv->btor, param->id),
-	  (BtorBitVector *) bv);
-    }
-
-  return;
-  // TODO (ma): UF models
-  btor_init_node_map_iterator (&it, slv->f_synth_fun_models);
-  while (btor_has_next_node_map_iterator (&it))
-    {
-      printf ("model for %s\n", node2string (it.it.cur));
-      cur = btor_next_data_node_map_iterator (&it)->as_ptr;
-      btor_dump_btor_node (slv->f_solver, stdout, cur);
-      btor_dump_smt2_node (slv->f_solver, stdout, cur, -1);
-    }
-#endif
+  // TODO (ma): not supported for now (needs more general model infrastructure)
 }
 
 static void
