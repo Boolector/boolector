@@ -4131,6 +4131,8 @@ btor_update_exp (Btor *btor, BtorNode *fun, BtorNode *args, BtorNode *value)
   assert (btor_is_fun_node (e[0]));
   assert (btor_is_args_node (e[1]));
   assert (!btor_is_fun_node (e[2]));
+  assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
   assert (!BTOR_REAL_ADDR_NODE (e[2])->parameterized);
   res = create_exp (btor, BTOR_UPDATE_NODE, 3, e);
   if (fun->is_array) res->is_array = 1;
@@ -4158,7 +4160,9 @@ btor_write_exp (Btor *btor,
   e_value = btor_simplify_exp (btor, e_value);
   assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
 
-  if (btor_get_opt (btor, BTOR_OPT_FUN_STORE_LAMBDAS))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_STORE_LAMBDAS)
+      || BTOR_REAL_ADDR_NODE (e_index)->parameterized
+      || BTOR_REAL_ADDR_NODE (e_value)->parameterized)
   {
     param  = btor_param_exp (btor, btor_exp_get_sort_id (e_index), 0);
     e_cond = btor_eq_exp (btor, param, e_index);
