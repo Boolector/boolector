@@ -499,12 +499,17 @@ btor_print_stats_btor (Btor *btor)
   int num = 0;
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "applied rewriting rules:");
-  btor_init_ptr_hash_table_iterator (&it, btor->stats.rw_rules_applied);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  if (btor->stats.rw_rules_applied->count == 0)
+    BTOR_MSG (btor->msg, 1, "  none");
+  else
   {
-    num  = it.bucket->data.as_int;
-    rule = btor_next_ptr_hash_table_iterator (&it);
-    BTOR_MSG (btor->msg, 1, "  %5d %s", num, rule);
+    btor_init_ptr_hash_table_iterator (&it, btor->stats.rw_rules_applied);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
+    {
+      num  = it.bucket->data.as_int;
+      rule = btor_next_ptr_hash_table_iterator (&it);
+      BTOR_MSG (btor->msg, 1, "  %5d %s", num, rule);
+    }
   }
 #endif
 
