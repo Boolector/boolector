@@ -307,7 +307,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
 
   if (exp->av)
   {
-    btor_release_delete_aigvec (btor->avmgr, exp->av);
+    btor_aigvec_release_delete (btor->avmgr, exp->av);
     exp->av = 0;
   }
   exp->erased = 1;

@@ -211,8 +211,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_AIGVEC_NODE(btor, exp)                                     \
   (BTOR_IS_INVERTED_NODE (exp)                                          \
-       ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
-       : btor_copy_aigvec ((btor)->avmgr, exp->av))
+       ? btor_aigvec_not ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
+       : btor_aigvec_copy ((btor)->avmgr, exp->av))
 
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))

@@ -518,7 +518,7 @@ clone_exp (Btor *clone,
     }
   }
   else if (exp->av)
-    res->av = exp_layer_only ? 0 : btor_clone_aigvec (exp->av, clone->avmgr);
+    res->av = exp_layer_only ? 0 : btor_aigvec_clone (exp->av, clone->avmgr);
 
   assert (!exp->next || !btor_is_invalid_node (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, *nodes, &res->next);
@@ -852,7 +852,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorIntHashTableIterator iit, ciit;
   BtorSort *sort;
   char **ind, **val;
-  amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  amgr = exp_layer_only ? 0 : btor_aigvec_get_aig_mgr (btor->avmgr);
   BtorHashTableData *data, *cdata;
   BtorOption o;
 #endif
@@ -972,7 +972,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     if (exp_layer_only)
     {
-      clone->avmgr = btor_new_aigvec_mgr (clone);
+      clone->avmgr = btor_aigvec_new_mgr (clone);
       assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                             + sizeof (BtorSATMgr)
                             /* true and false AIGs */
@@ -983,7 +983,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     else
     {
       BTORLOG_TIMESTAMP (delta);
-      clone->avmgr = btor_clone_aigvec_mgr (clone, btor->avmgr);
+      clone->avmgr = btor_aigvec_clone_mgr (clone, btor->avmgr);
       BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
       assert (
           (allocated +=
