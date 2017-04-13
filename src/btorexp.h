@@ -1001,6 +1001,11 @@ BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_index,
                           BtorNode *e_value);
 
+BtorNode *btor_update_exp (Btor *btor,
+                           BtorNode *fun,
+                           BtorNode *args,
+                           BtorNode *value);
+
 /* Lambda expression with variable 'e_param' bound in 'e_exp'.
  */
 BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);

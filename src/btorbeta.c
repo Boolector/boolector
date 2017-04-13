@@ -475,6 +475,12 @@ btor_beta_reduce (Btor *btor,
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
+        case BTOR_UPDATE_NODE:
+          result = btor_update_exp (btor, e[2], e[1], e[0]);
+          btor_release_exp (btor, e[0]);
+          btor_release_exp (btor, e[1]);
+          btor_release_exp (btor, e[2]);
+          break;
         default:
           assert (btor_is_cond_node (real_cur));
           result = btor_cond_exp (btor, e[2], e[1], e[0]);
