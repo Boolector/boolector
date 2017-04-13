@@ -103,7 +103,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 }
 
 static void
-btor_release_cnf_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *aig)
+release_cnf_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (aig->cnf_id > 0);
@@ -120,7 +120,7 @@ delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (amgr);
   if (btor_aig_is_const (aig)) return;
-  if (aig->cnf_id) btor_release_cnf_id_aig_mgr (amgr, aig);
+  if (aig->cnf_id) release_cnf_id_aig_mgr (amgr, aig);
   amgr->id2aig.start[aig->id] = 0;
   if (aig->is_var)
   {
@@ -286,7 +286,7 @@ enlarge_aig_nodes_unique_table (BtorAIGMgr *amgr)
 }
 
 BtorAIG *
-btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_copy (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr);
   (void) amgr;
@@ -295,7 +295,7 @@ btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 void
-btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_release (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   BtorAIG *cur, *l, *r;
   BtorAIGPtrStack stack;
@@ -350,7 +350,7 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 BtorAIG *
-btor_var_aig (BtorAIGMgr *amgr)
+btor_aig_var (BtorAIGMgr *amgr)
 {
   BtorAIG *aig;
   assert (amgr);
@@ -364,7 +364,7 @@ btor_var_aig (BtorAIGMgr *amgr)
 }
 
 BtorAIG *
-btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_not (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr);
   (void) amgr;
@@ -403,7 +403,7 @@ find_and_contradiction_aig (
 }
 
 static BtorAIG *
-btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
+simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   int lit, val, repr, sign;
   BtorAIG *res;
@@ -426,7 +426,7 @@ btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 BtorAIG *
-btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+btor_aig_and (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
   BtorAIG *res, *real_left, *real_right;
   int32_t *lookup;
@@ -436,8 +436,8 @@ btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 
   if (amgr->smgr->initialized)
   {
-    left  = btor_simp_aig_by_sat (amgr, left);
-    right = btor_simp_aig_by_sat (amgr, right);
+    left  = simp_aig_by_sat (amgr, left);
+    right = simp_aig_by_sat (amgr, right);
   }
 
   calls = 0;
@@ -742,47 +742,47 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
 }
 
 BtorAIG *
-btor_or_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+btor_aig_or (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
   assert (amgr);
   return BTOR_INVERT_AIG (
-      btor_and_aig (amgr, BTOR_INVERT_AIG (left), BTOR_INVERT_AIG (right)));
+      btor_aig_and (amgr, BTOR_INVERT_AIG (left), BTOR_INVERT_AIG (right)));
 }
 
 BtorAIG *
-btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+btor_aig_eq (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
   BtorAIG *eq, *eq_left, *eq_right;
   assert (amgr);
 
   eq_left =
-      BTOR_INVERT_AIG (btor_and_aig (amgr, left, BTOR_INVERT_AIG (right)));
+      BTOR_INVERT_AIG (btor_aig_and (amgr, left, BTOR_INVERT_AIG (right)));
   eq_right =
-      BTOR_INVERT_AIG (btor_and_aig (amgr, BTOR_INVERT_AIG (left), right));
-  eq = btor_and_aig (amgr, eq_left, eq_right);
-  btor_release_aig (amgr, eq_left);
-  btor_release_aig (amgr, eq_right);
+      BTOR_INVERT_AIG (btor_aig_and (amgr, BTOR_INVERT_AIG (left), right));
+  eq = btor_aig_and (amgr, eq_left, eq_right);
+  btor_aig_release (amgr, eq_left);
+  btor_aig_release (amgr, eq_right);
   return eq;
 }
 
 BtorAIG *
-btor_cond_aig (BtorAIGMgr *amgr,
+btor_aig_cond (BtorAIGMgr *amgr,
                BtorAIG *a_cond,
                BtorAIG *a_if,
                BtorAIG *a_else)
 {
   BtorAIG *cond, *and1, *and2;
   assert (amgr);
-  and1 = btor_and_aig (amgr, a_if, a_cond);
-  and2 = btor_and_aig (amgr, a_else, BTOR_INVERT_AIG (a_cond));
-  cond = btor_or_aig (amgr, and1, and2);
-  btor_release_aig (amgr, and1);
-  btor_release_aig (amgr, and2);
+  and1 = btor_aig_and (amgr, a_if, a_cond);
+  and2 = btor_aig_and (amgr, a_else, BTOR_INVERT_AIG (a_cond));
+  cond = btor_aig_or (amgr, and1, and2);
+  btor_aig_release (amgr, and1);
+  btor_aig_release (amgr, and2);
   return cond;
 }
 
 BtorAIGMgr *
-btor_new_aig_mgr (Btor *btor)
+btor_aig_new_mgr (Btor *btor)
 {
   assert (btor);
 
@@ -875,7 +875,7 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
 }
 
 BtorAIGMgr *
-btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr)
+btor_aig_clone_mgr (Btor *btor, BtorAIGMgr *amgr)
 {
   assert (btor);
   assert (amgr);
@@ -900,7 +900,7 @@ btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr)
 }
 
 void
-btor_delete_aig_mgr (BtorAIGMgr *amgr)
+btor_aig_delete_mgr (BtorAIGMgr *amgr)
 {
   BtorMemMgr *mm;
   assert (amgr);
@@ -915,7 +915,7 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 }
 
 static int
-btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
+is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 {
 #ifdef BTOR_AIG_TO_CNF_EXTRACT_XOR
   BtorAIG *l, *r, *ll, *lr, *rl, *rr;
@@ -963,7 +963,7 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 }
 
 static int
-btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
+is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 {
 #ifdef BTOR_AIG_TO_CNF_EXTRACT_ITE
   BtorAIG *l, *r, *ll, *lr, *rl, *rr;
@@ -1036,7 +1036,7 @@ btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 }
 
 static void
-btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
+set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
 {
   assert (!BTOR_IS_INVERTED_AIG (root));
   assert (!root->cnf_id);
@@ -1050,7 +1050,7 @@ btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
 
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
 static int
-btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
+is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
 {
   assert (amgr);
   assert (root);
@@ -1151,7 +1151,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 
     if (btor_aig_is_var (root))
     {
-      btor_set_next_id_aig_mgr (amgr, root);
+      set_next_id_aig_mgr (amgr, root);
       continue;
     }
 
@@ -1160,10 +1160,10 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     assert (BTOR_EMPTY_STACK (tree));
     assert (BTOR_EMPTY_STACK (leafs));
 
-    if ((isxor = btor_is_xor_aig (amgr, root, &leafs)))
+    if ((isxor = is_xor_aig (amgr, root, &leafs)))
       isite = 0;
     else
-      isite = btor_is_ite_aig (amgr, root, &leafs);
+      isite = is_ite_aig (amgr, root, &leafs);
 
     if (!isxor && !isite)
     {
@@ -1207,7 +1207,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
       assert (root->mark == 1);
       root->mark = 2;
 
-      btor_set_next_id_aig_mgr (amgr, root);
+      set_next_id_aig_mgr (amgr, root);
       x = root->cnf_id;
       assert (x);
 
@@ -1315,7 +1315,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     if (cur == start) continue;
     assert (cur->refs >= local);
     if (cur->refs > local) continue;
-    btor_release_cnf_id_aig_mgr (amgr, cur);
+    release_cnf_id_aig_mgr (amgr, cur);
   }
   BTOR_RELEASE_STACK (marked);
 }
@@ -1340,7 +1340,7 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 void
-btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
+btor_aig_add_toplevel_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 {
   assert (amgr);
   assert (root);
@@ -1390,7 +1390,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     {
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
       BTOR_INIT_STACK (mm, leafs);
-      if (btor_is_or_aig (amgr, aig, &leafs))
+      if (is_or_aig (amgr, aig, &leafs))
       {
         assert (BTOR_COUNT_STACK (leafs) > 1);
         for (p = leafs.start; p < leafs.top; p++)
@@ -1460,13 +1460,13 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 }
 
 BtorSATMgr *
-btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr)
+btor_aig_get_sat_mgr (const BtorAIGMgr *amgr)
 {
   return amgr ? amgr->smgr : 0;
 }
 
 int
-btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_get_assignment (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr);
   if (aig == BTOR_AIG_TRUE) return 1;
@@ -1478,7 +1478,7 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 int
-btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1)
+btor_aig_compare (const BtorAIG *aig0, const BtorAIG *aig1)
 {
   if (aig0 == aig1) return 0;
   if (BTOR_INVERT_AIG (aig0) == aig1)
@@ -1494,7 +1494,7 @@ btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1)
 
 /* hash AIG by id */
 uint32_t
-btor_hash_aig_by_id (const BtorAIG *aig)
+btor_aig_hash_by_id (const BtorAIG *aig)
 {
   assert (aig);
   return (unsigned int) btor_aig_get_id (aig) * 7334147u;
@@ -1502,7 +1502,7 @@ btor_hash_aig_by_id (const BtorAIG *aig)
 
 /* compare AIG by id */
 int
-btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1)
+btor_aig_compare_by_id (const BtorAIG *aig0, const BtorAIG *aig1)
 {
   assert (aig0);
   assert (aig1);

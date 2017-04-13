@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -84,12 +84,12 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
     assert (av->len == 1);
     if (merge_roots)
     {
-      tmp = btor_and_aig (amgr, merged, av->aigs[0]);
-      btor_release_aig (amgr, merged);
+      tmp = btor_aig_and (amgr, merged, av->aigs[0]);
+      btor_aig_release (amgr, merged);
       merged = tmp;
     }
     else
-      BTOR_PUSH_STACK (roots, btor_copy_aig (amgr, av->aigs[0]));
+      BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[0]));
     btor_release_delete_aigvec (avmgr, av);
   }
   btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
@@ -110,7 +110,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
                        backannotation);
 
   while (!BTOR_EMPTY_STACK (roots))
-    btor_release_aig (amgr, BTOR_POP_STACK (roots));
+    btor_aig_release (amgr, BTOR_POP_STACK (roots));
   BTOR_RELEASE_STACK (roots);
 
   btor_init_ptr_hash_table_iterator (&it, backannotation);

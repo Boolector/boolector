@@ -1001,7 +1001,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         {
           case BTOR_FUN_EQ_NODE:
             a = BTOR_IS_SYNTH_NODE (cur)
-                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    ? btor_aig_get_assignment (amgr, cur->av->aigs[0])
                     : 0;  // 'x';
 
             if (a == 1 || a == 0) goto PUSH_CHILDREN;
@@ -1013,19 +1013,19 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
           case BTOR_AND_NODE:
 
             a = BTOR_IS_SYNTH_NODE (cur)
-                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    ? btor_aig_get_assignment (amgr, cur->av->aigs[0])
                     : 0;  // 'x'
 
             e0 = BTOR_REAL_ADDR_NODE (cur->e[0]);
             e1 = BTOR_REAL_ADDR_NODE (cur->e[1]);
 
             a0 = BTOR_IS_SYNTH_NODE (e0)
-                     ? btor_get_assignment_aig (amgr, e0->av->aigs[0])
+                     ? btor_aig_get_assignment (amgr, e0->av->aigs[0])
                      : 0;  // 'x'
             if (a0 && BTOR_IS_INVERTED_NODE (cur->e[0])) a0 *= -1;
 
             a1 = BTOR_IS_SYNTH_NODE (e1)
-                     ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
+                     ? btor_aig_get_assignment (amgr, e1->av->aigs[0])
                      : 0;  // 'x'
             if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
 
@@ -1075,7 +1075,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 		  case BTOR_BCOND_NODE:
 		    BTOR_PUSH_STACK (stack, cur->e[0]);
 		    a = BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[0]))
-			? btor_get_assignment_aig (
+			? btor_aig_get_assignment (
 			    amgr, BTOR_REAL_ADDR_NODE (cur->e[0])->av->aigs[0])
 			: 0;  // 'x';
 		    if (BTOR_IS_INVERTED_NODE (cur->e[0])) a *= -1;

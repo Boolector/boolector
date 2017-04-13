@@ -266,7 +266,7 @@ BtorSATMgr *
 btor_get_sat_mgr_btor (const Btor *btor)
 {
   assert (btor);
-  return btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_btor (btor));
+  return btor_aig_get_sat_mgr (btor_get_aig_mgr_btor (btor));
 }
 
 void
@@ -1042,8 +1042,8 @@ btor_process_unsynthesized_constraints (Btor *btor)
         btor->found_constraint_false = true;
         break;
       }
-      btor_add_toplevel_aig_to_sat (amgr, aig);
-      btor_release_aig (amgr, aig);
+      btor_aig_add_toplevel_to_sat (amgr, aig);
+      btor_aig_release (amgr, aig);
       (void) btor_add_ptr_hash_table (sc, cur);
       btor_remove_ptr_hash_table (uc, cur, 0, 0);
 
@@ -1720,7 +1720,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
     if (!aig->cnf_id) btor_aig_to_sat_tseitin (amgr, aig);
 
     res = aig->cnf_id;
-    btor_release_aig (amgr, aig);
+    btor_aig_release (amgr, aig);
 
     if ((val = btor_fixed_sat (smgr, res)))
     {
@@ -3579,7 +3579,7 @@ btor_add_again_assumptions (Btor *btor)
       assert (btor_aig_get_cnf_id (aig) != 0);
       btor_assume_sat (smgr, btor_aig_get_cnf_id (aig));
     }
-    btor_release_aig (amgr, aig);
+    btor_aig_release (amgr, aig);
   }
 
   BTOR_RELEASE_STACK (stack);
@@ -3871,9 +3871,9 @@ exp_to_aig (Btor *btor, BtorNode *exp)
   result = av->aigs[0];
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_not_aig (amgr, result);
+    result = btor_aig_not (amgr, result);
   else
-    result = btor_copy_aig (amgr, result);
+    result = btor_aig_copy (amgr, result);
 
   return result;
 }
