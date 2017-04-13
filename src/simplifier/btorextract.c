@@ -1109,12 +1109,12 @@ extract_lambdas (Btor *btor,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
     base    = subst;
     i_range = i_index = i_inc = 0;
+    i_index_r                 = 0;
     for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
     {
       value = BTOR_PEEK_STACK (values, i_value);
 
       /* create memset regions */
-      i_index_r = 0;
       for (; i_range < BTOR_COUNT_STACK (ranges) - 1; i_range += 2)
       {
         lower = BTOR_PEEK_STACK (ranges, i_range);
