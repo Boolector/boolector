@@ -3587,7 +3587,7 @@ btormbt_state_query_model (BtorMBT *mbt)
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;
   BtorConstCharPtrStack bvass_stack;
-  BtorCharPtrPtrStack arrass_stack, ufass_stack;
+  BtorCharPtrPtrStack funass_stack, ufass_stack;
   BtorIntStack arrsize_stack, ufsize_stack;
   BtorMBTExpStack *exp_stack;
   BtorMBTExpStack *exp_stacks[5] = {
@@ -3596,7 +3596,7 @@ btormbt_state_query_model (BtorMBT *mbt)
   assert (mbt->round.mgen);
 
   BTOR_INIT_STACK (mbt->mm, bvass_stack);
-  BTOR_INIT_STACK (mbt->mm, arrass_stack);
+  BTOR_INIT_STACK (mbt->mm, funass_stack);
   BTOR_INIT_STACK (mbt->mm, ufass_stack);
   BTOR_INIT_STACK (mbt->mm, arrsize_stack);
   BTOR_INIT_STACK (mbt->mm, ufsize_stack);
@@ -3636,8 +3636,8 @@ btormbt_state_query_model (BtorMBT *mbt)
         if (size > 0)
         {
           BTOR_PUSH_STACK (arrsize_stack, size);
-          BTOR_PUSH_STACK (arrass_stack, indices);
-          BTOR_PUSH_STACK (arrass_stack, values);
+          BTOR_PUSH_STACK (funass_stack, indices);
+          BTOR_PUSH_STACK (funass_stack, values);
         }
       }
       else
@@ -3676,11 +3676,11 @@ btormbt_state_query_model (BtorMBT *mbt)
   for (i = 0, j = 0; i < BTOR_COUNT_STACK (arrsize_stack); i++, j += 2)
   {
     size    = BTOR_PEEK_STACK (arrsize_stack, i);
-    indices = BTOR_PEEK_STACK (arrass_stack, j);
-    values  = BTOR_PEEK_STACK (arrass_stack, j + 1);
+    indices = BTOR_PEEK_STACK (funass_stack, j);
+    values  = BTOR_PEEK_STACK (funass_stack, j + 1);
     boolector_free_array_assignment (mbt->btor, indices, values, size);
   }
-  BTOR_RELEASE_STACK (arrass_stack);
+  BTOR_RELEASE_STACK (funass_stack);
   BTOR_RELEASE_STACK (arrsize_stack);
   for (i = 0, j = 0; i < BTOR_COUNT_STACK (ufsize_stack); i++, j += 2)
   {

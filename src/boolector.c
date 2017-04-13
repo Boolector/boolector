@@ -75,10 +75,10 @@ boolector_chkclone (Btor *btor)
   BTOR_TRAPI ("");
 
 #ifndef NDEBUG
-  BtorBVAssignment *bvass, *cbvass;
-  BtorBVAssignmentList *bvasslist, *cbvasslist;
-  BtorArrayAssignment *arrass, *carrass;
-  BtorArrayAssignmentList *arrasslist, *carrasslist;
+  BtorBVAss *bvass, *cbvass;
+  BtorBVAssList *bvasslist, *cbvasslist;
+  BtorFunAss *funass, *cfunass;
+  BtorFunAssList *funasslist, *cfunasslist;
   char **indices, **values, **cindices, **cvalues;
   int32_t i;
 
@@ -109,24 +109,24 @@ boolector_chkclone (Btor *btor)
                      btor_get_bv_assignment_str (cbvass)));
     bvass->cloned_assignment = btor_get_bv_assignment_str (cbvass);
   }
-  arrasslist  = btor->fun_assignments;
-  carrasslist = btor->clone->fun_assignments;
-  for (arrass = arrasslist->first, carrass = carrasslist->first; arrass;
-       arrass = arrass->next, carrass = carrass->next)
+  funasslist  = btor->fun_assignments;
+  cfunasslist = btor->clone->fun_assignments;
+  for (funass = funasslist->first, cfunass = cfunasslist->first; funass;
+       funass = funass->next, cfunass = cfunass->next)
   {
-    assert (carrass);
-    assert (arrass->size == carrass->size);
+    assert (cfunass);
+    assert (funass->size == cfunass->size);
     btor_get_array_assignment_indices_values (
-        arrass, &indices, &values, arrass->size);
+        funass, &indices, &values, funass->size);
     btor_get_array_assignment_indices_values (
-        carrass, &cindices, &cvalues, carrass->size);
-    for (i = 0; i < arrass->size; i++)
+        cfunass, &cindices, &cvalues, cfunass->size);
+    for (i = 0; i < funass->size; i++)
     {
       assert (!strcmp (indices[i], cindices[i]));
       assert (!strcmp (values[i], cvalues[i]));
     }
-    arrass->cloned_indices = cindices;
-    arrass->cloned_values  = cvalues;
+    funass->cloned_indices = cindices;
+    funass->cloned_values  = cvalues;
   }
   btor_chkclone (btor, btor->clone);
 #endif
@@ -2942,7 +2942,7 @@ const char *
 boolector_get_bits (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp, *real;
-  BtorBVAssignment *bvass;
+  BtorBVAss *bvass;
   char *bits;
   const char *res;
 
@@ -3227,7 +3227,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   char *ass;
   const char *res;
   BtorNode *exp;
-  BtorBVAssignment *bvass;
+  BtorBVAss *bvass;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
@@ -3349,7 +3349,7 @@ fun_assignment (Btor *btor,
                 char ***args,
                 char ***values,
                 int *size,
-                BtorArrayAssignment **ass)
+                BtorFunAss **ass)
 {
   assert (btor);
   assert (n);
@@ -3386,7 +3386,7 @@ boolector_array_assignment (Btor *btor,
                             int *size)
 {
   BtorNode *e_array;
-  BtorArrayAssignment *ass;
+  BtorFunAss *ass;
 
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL (btor);
@@ -3438,7 +3438,7 @@ boolector_free_array_assignment (Btor *btor,
                                  char **values,
                                  int size)
 {
-  BtorArrayAssignment *arrass;
+  BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", indices, values, size);
@@ -3447,13 +3447,13 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
-  arrass = btor_get_array_assignment (
+  funass = btor_get_array_assignment (
       (const char **) indices, (const char **) values, size);
-  (void) arrass;
+  (void) funass;
 #ifndef NDEBUG
   char **cindices, **cvalues;
-  cindices = arrass->cloned_indices;
-  cvalues  = arrass->cloned_values;
+  cindices = funass->cloned_indices;
+  cvalues  = funass->cloned_values;
 #endif
   btor_release_array_assignment (btor->fun_assignments, indices, values, size);
 #ifndef NDEBUG
@@ -3466,7 +3466,7 @@ boolector_uf_assignment (
     Btor *btor, BoolectorNode *n_uf, char ***args, char ***values, int *size)
 {
   BtorNode *e_uf;
-  BtorArrayAssignment *ass;
+  BtorFunAss *ass;
 
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL (btor);
@@ -3515,7 +3515,7 @@ boolector_uf_assignment (
 void
 boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
 {
-  BtorArrayAssignment *arrass;
+  BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", args, values, size);
@@ -3524,13 +3524,13 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && args, "non zero 'args' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
-  arrass = btor_get_array_assignment (
+  funass = btor_get_array_assignment (
       (const char **) args, (const char **) values, size);
-  (void) arrass;
+  (void) funass;
 #ifndef NDEBUG
   char **cargs, **cvalues;
-  cargs   = arrass->cloned_indices;
-  cvalues = arrass->cloned_values;
+  cargs   = funass->cloned_indices;
+  cvalues = funass->cloned_values;
 #endif
   btor_release_array_assignment (btor->fun_assignments, args, values, size);
 #ifndef NDEBUG

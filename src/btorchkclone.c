@@ -765,8 +765,8 @@ chkclone_node_unique_table (Btor *btor, Btor *clone)
 static void
 chkclone_assignment_lists (Btor *btor, Btor *clone)
 {
-  BtorBVAssignment *bvass, *cbvass;
-  BtorArrayAssignment *arrass, *carrass;
+  BtorBVAss *bvass, *cbvass;
+  BtorFunAss *funass, *cfunass;
   char **ind, **val, **cind, **cval;
   int32_t i;
 
@@ -784,17 +784,17 @@ chkclone_assignment_lists (Btor *btor, Btor *clone)
 
   assert (btor->fun_assignments->count == clone->fun_assignments->count);
 
-  for (arrass = btor->fun_assignments->first,
-      carrass = clone->fun_assignments->first;
-       arrass;
-       arrass = arrass->next, carrass = carrass->next)
+  for (funass = btor->fun_assignments->first,
+      cfunass = clone->fun_assignments->first;
+       funass;
+       funass = funass->next, cfunass = cfunass->next)
   {
-    assert (carrass);
-    assert (arrass->size == carrass->size);
-    btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);
+    assert (cfunass);
+    assert (funass->size == cfunass->size);
+    btor_get_array_assignment_indices_values (funass, &ind, &val, funass->size);
     btor_get_array_assignment_indices_values (
-        carrass, &cind, &cval, carrass->size);
-    for (i = 0; i < arrass->size; i++)
+        cfunass, &cind, &cval, cfunass->size);
+    for (i = 0; i < funass->size; i++)
     {
       assert (!strcmp (ind[i], cind[i]));
       assert (!strcmp (val[i], cval[i]));

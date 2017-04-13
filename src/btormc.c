@@ -1166,7 +1166,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     res = boolector_copy (mc->btor, res);
   }
 
-  // TODO wrap into Aina's BtorBVAssignment ....
+  // TODO wrap into Aina's BtorBVAss ....
 
   return res;
 }

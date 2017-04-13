@@ -846,8 +846,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   size_t allocated;
   BtorNode *cur;
   BtorAIGMgr *amgr;
-  BtorBVAssignment *bvass;
-  BtorArrayAssignment *arrass;
+  BtorBVAss *bvass;
+  BtorFunAss *funass;
   BtorPtrHashTableIterator cpit, ncpit;
   BtorIntHashTableIterator iit, ciit;
   BtorSort *sort;
@@ -922,8 +922,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   if (exp_layer_only)
   {
     clone->bv_assignments = btor_new_bv_assignment_list (mm);
-    assert ((allocated += sizeof (BtorBVAssignmentList))
-            == clone->mm->allocated);
+    assert ((allocated += sizeof (BtorBVAssList)) == clone->mm->allocated);
   }
   else
   {
@@ -933,18 +932,16 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     BTORLOG (1, "  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
-      allocated += sizeof (BtorBVAssignment)
-                   + strlen (btor_get_bv_assignment_str (bvass)) + 1;
-    assert ((allocated += sizeof (BtorBVAssignmentList))
-            == clone->mm->allocated);
+      allocated +=
+          sizeof (BtorBVAss) + strlen (btor_get_bv_assignment_str (bvass)) + 1;
+    assert ((allocated += sizeof (BtorBVAssList)) == clone->mm->allocated);
 #endif
   }
 
   if (exp_layer_only)
   {
     clone->fun_assignments = btor_new_array_assignment_list (mm);
-    assert ((allocated += sizeof (BtorArrayAssignmentList))
-            == clone->mm->allocated);
+    assert ((allocated += sizeof (BtorFunAssList)) == clone->mm->allocated);
   }
   else
   {
@@ -954,17 +951,15 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     BTORLOG (
         1, "  clone array assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-    for (arrass = btor->fun_assignments->first; arrass; arrass = arrass->next)
+    for (funass = btor->fun_assignments->first; funass; funass = funass->next)
     {
-      allocated +=
-          sizeof (BtorArrayAssignment) + 2 * arrass->size * sizeof (char *);
+      allocated += sizeof (BtorFunAss) + 2 * funass->size * sizeof (char *);
       btor_get_array_assignment_indices_values (
-          arrass, &ind, &val, arrass->size);
-      for (i = 0; i < arrass->size; i++)
+          funass, &ind, &val, funass->size);
+      for (i = 0; i < funass->size; i++)
         allocated += strlen (ind[i]) + 1 + strlen (val[i]) + 1;
     }
-    assert ((allocated += sizeof (BtorArrayAssignmentList))
-            == clone->mm->allocated);
+    assert ((allocated += sizeof (BtorFunAssList)) == clone->mm->allocated);
 #endif
   }
 
