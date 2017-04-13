@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
@@ -3281,7 +3281,7 @@ btor_synthesize_exp (Btor *btor,
             {
               b = btor_add_ptr_hash_table (backannotation, cur->av->aigs[i]);
               assert (b->key == cur->av->aigs[i]);
-              sprintf (indexed_name, "%s[%d]", name, i);
+              sprintf (indexed_name, "%s[%d]", name, cur->av->len - i - 1);
               b->data.as_str = btor_strdup (mm, indexed_name);
             }
             btor_free (mm, indexed_name, len);
