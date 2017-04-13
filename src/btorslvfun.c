@@ -2404,40 +2404,43 @@ print_stats_fun_solver (BtorFunSolver *slv)
 
   if (!(slv = BTOR_FUN_SOLVER (btor))) return;
 
-  BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
-  BTOR_MSG (btor->msg,
-            1,
-            "%4d refinement iterations",
-            slv->stats.refinement_iterations);
-  BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
-  if (slv->stats.lod_refinements)
+  if (btor->ufs->count || btor->lambdas->count)
   {
+    BTOR_MSG (btor->msg, 1, "");
+    BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
     BTOR_MSG (btor->msg,
               1,
-              "  %4d function congruence conflicts",
-              slv->stats.function_congruence_conflicts);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %4d beta reduction conflicts",
-              slv->stats.beta_reduction_conflicts);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %4d extensionality lemmas",
-              slv->stats.extensionality_lemmas);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %.1f average lemma size",
-              BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
-                                 slv->stats.lod_refinements));
-    for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
+              "%4d refinement iterations",
+              slv->stats.refinement_iterations);
+    BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
+    if (slv->stats.lod_refinements)
     {
-      if (!slv->stats.lemmas_size.start[i]) continue;
       BTOR_MSG (btor->msg,
                 1,
-                "    %4d lemmas of size %d",
-                slv->stats.lemmas_size.start[i],
-                i);
+                "  %4d function congruence conflicts",
+                slv->stats.function_congruence_conflicts);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %4d beta reduction conflicts",
+                slv->stats.beta_reduction_conflicts);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %4d extensionality lemmas",
+                slv->stats.extensionality_lemmas);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %.1f average lemma size",
+                BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
+                                   slv->stats.lod_refinements));
+      for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
+      {
+        if (!slv->stats.lemmas_size.start[i]) continue;
+        BTOR_MSG (btor->msg,
+                  1,
+                  "    %4d lemmas of size %d",
+                  slv->stats.lemmas_size.start[i],
+                  i);
+      }
     }
   }
 
