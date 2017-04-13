@@ -476,6 +476,10 @@ recursively_compute_function_model (Btor *btor,
         // TODO: what do we have to do here?
       }
     }
+    else if (btor_is_update_node (cur_fun))
+    {
+      cur_fun = cur_fun->e[0];
+    }
     else if (btor_is_fun_cond_node (cur_fun))
     {
       if (cur_fun->parameterized)
