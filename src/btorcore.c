@@ -659,8 +659,8 @@ btor_new_btor (void)
 
   btor_init_rng (&btor->rng, btor_get_opt (btor, BTOR_OPT_SEED));
 
-  btor->bv_assignments  = btor_new_bv_assignment_list (mm);
-  btor->fun_assignments = btor_new_array_assignment_list (mm);
+  btor->bv_assignments  = btor_ass_new_bv_list (mm);
+  btor->fun_assignments = btor_ass_new_fun_list (mm);
 
   btor->symbols = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
@@ -837,11 +837,11 @@ btor_delete_btor (Btor *btor)
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
-  btor_delete_bv_assignment_list (
+  btor_ass_delete_bv_list (
       btor->bv_assignments,
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
-  btor_delete_array_assignment_list (
+  btor_ass_delete_fun_list (
       btor->fun_assignments,
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));

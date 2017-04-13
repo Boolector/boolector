@@ -105,9 +105,9 @@ boolector_chkclone (Btor *btor)
        bvass = bvass->next, cbvass = cbvass->next)
   {
     assert (cbvass);
-    assert (!strcmp (btor_get_bv_assignment_str (bvass),
-                     btor_get_bv_assignment_str (cbvass)));
-    bvass->cloned_assignment = btor_get_bv_assignment_str (cbvass);
+    assert (
+        !strcmp (btor_ass_get_bv_str (bvass), btor_ass_get_bv_str (cbvass)));
+    bvass->cloned_assignment = btor_ass_get_bv_str (cbvass);
   }
   funasslist  = btor->fun_assignments;
   cfunasslist = btor->clone->fun_assignments;
@@ -116,9 +116,8 @@ boolector_chkclone (Btor *btor)
   {
     assert (cfunass);
     assert (funass->size == cfunass->size);
-    btor_get_array_assignment_indices_values (
-        funass, &indices, &values, funass->size);
-    btor_get_array_assignment_indices_values (
+    btor_ass_get_fun_indices_values (funass, &indices, &values, funass->size);
+    btor_ass_get_fun_indices_values (
         cfunass, &cindices, &cvalues, cfunass->size);
     for (i = 0; i < funass->size; i++)
     {
@@ -2960,9 +2959,9 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
     bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (exp));
   else
     bits = btor_bv_to_char_bv (btor->mm, btor_const_get_invbits (real));
-  bvass = btor_new_bv_assignment (btor->bv_assignments, bits);
+  bvass = btor_ass_new_bv (btor->bv_assignments, bits);
   btor_freestr (btor->mm, bits);
-  res = btor_get_bv_assignment_str (bvass);
+  res = btor_ass_get_bv_str (bvass);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
   if (btor->clone)
@@ -2985,10 +2984,9 @@ boolector_free_bits (Btor *btor, const char *bits)
   BTOR_ABORT_ARG_NULL (bits);
 #ifndef NDEBUG
   char *cass;
-  cass =
-      (char *) btor_get_bv_assignment ((const char *) bits)->cloned_assignment;
+  cass = (char *) btor_ass_get_bv ((const char *) bits)->cloned_assignment;
 #endif
-  btor_release_bv_assignment (btor->bv_assignments, bits);
+  btor_ass_release_bv (btor->bv_assignments, bits);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_bits, cass);
 #endif
@@ -3241,9 +3239,9 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
   ass   = btor_bv_to_char_bv (btor->mm, btor_get_bv_model (btor, exp));
-  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
+  bvass = btor_ass_new_bv (btor->bv_assignments, ass);
   btor_freestr (btor->mm, ass);
-  res = btor_get_bv_assignment_str (bvass);
+  res = btor_ass_get_bv_str (bvass);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
   if (btor->clone)
@@ -3266,10 +3264,10 @@ boolector_free_bv_assignment (Btor *btor, const char *assignment)
   BTOR_ABORT_ARG_NULL (assignment);
 #ifndef NDEBUG
   char *cass;
-  cass = (char *) btor_get_bv_assignment ((const char *) assignment)
-             ->cloned_assignment;
+  cass =
+      (char *) btor_ass_get_bv ((const char *) assignment)->cloned_assignment;
 #endif
-  btor_release_bv_assignment (btor->bv_assignments, assignment);
+  btor_ass_release_bv (btor->bv_assignments, assignment);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_bv_assignment, cass);
 #endif
@@ -3366,7 +3364,7 @@ fun_assignment (Btor *btor,
 
   if (*size)
   {
-    *ass = btor_new_array_assignment (btor->fun_assignments, a, v, *size);
+    *ass = btor_ass_new_fun (btor->fun_assignments, a, v, *size);
     for (i = 0; i < *size; i++)
     {
       btor_freestr (btor->mm, a[i]);
@@ -3374,7 +3372,7 @@ fun_assignment (Btor *btor,
     }
     btor_free (btor->mm, a, *size * sizeof (*a));
     btor_free (btor->mm, v, *size * sizeof (*v));
-    btor_get_array_assignment_indices_values (*ass, args, values, *size);
+    btor_ass_get_fun_indices_values (*ass, args, values, *size);
   }
 }
 
@@ -3447,15 +3445,15 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
-  funass = btor_get_array_assignment (
-      (const char **) indices, (const char **) values, size);
+  funass =
+      btor_ass_get_fun ((const char **) indices, (const char **) values, size);
   (void) funass;
 #ifndef NDEBUG
   char **cindices, **cvalues;
   cindices = funass->cloned_indices;
   cvalues  = funass->cloned_values;
 #endif
-  btor_release_array_assignment (btor->fun_assignments, indices, values, size);
+  btor_ass_release_fun (btor->fun_assignments, indices, values, size);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cindices, cvalues, size);
 #endif
@@ -3524,15 +3522,15 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && args, "non zero 'args' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
-  funass = btor_get_array_assignment (
-      (const char **) args, (const char **) values, size);
+  funass =
+      btor_ass_get_fun ((const char **) args, (const char **) values, size);
   (void) funass;
 #ifndef NDEBUG
   char **cargs, **cvalues;
   cargs   = funass->cloned_indices;
   cvalues = funass->cloned_values;
 #endif
-  btor_release_array_assignment (btor->fun_assignments, args, values, size);
+  btor_ass_release_fun (btor->fun_assignments, args, values, size);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cargs, cvalues, size);
 #endif

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -17,7 +17,7 @@
 /*------------------------------------------------------------------------*/
 
 BtorBVAssList *
-btor_new_bv_assignment_list (BtorMemMgr *mm)
+btor_ass_new_bv_list (BtorMemMgr *mm)
 {
   assert (mm);
 
@@ -30,7 +30,7 @@ btor_new_bv_assignment_list (BtorMemMgr *mm)
 }
 
 BtorBVAssList *
-btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssList *list)
+btor_ass_clone_bv_list (BtorMemMgr *mm, BtorBVAssList *list)
 {
   assert (mm);
   assert (list);
@@ -38,16 +38,15 @@ btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssList *list)
   BtorBVAssList *res;
   BtorBVAss *bvass;
 
-  res = btor_new_bv_assignment_list (mm);
+  res = btor_ass_new_bv_list (mm);
   for (bvass = list->first; bvass; bvass = bvass->next)
-    (void) btor_new_bv_assignment (res,
-                                   (char *) btor_get_bv_assignment_str (bvass));
+    (void) btor_ass_new_bv (res, (char *) btor_ass_get_bv_str (bvass));
 
   return res;
 }
 
 void
-btor_delete_bv_assignment_list (BtorBVAssList *list, bool auto_cleanup)
+btor_ass_delete_bv_list (BtorBVAssList *list, bool auto_cleanup)
 {
   assert (list);
 
@@ -62,28 +61,27 @@ btor_delete_bv_assignment_list (BtorBVAssList *list, bool auto_cleanup)
     {
       tmp   = bvass;
       bvass = bvass->next;
-      btor_release_bv_assignment (list,
-                                  (char *) btor_get_bv_assignment_str (tmp));
+      btor_ass_release_bv (list, (char *) btor_ass_get_bv_str (tmp));
     }
   }
   BTOR_DELETE (list->mm, list);
 }
 
 BtorBVAss *
-btor_get_bv_assignment (const char *ass)
+btor_ass_get_bv (const char *ass)
 {
   assert (ass);
   return (BtorBVAss *) (ass - sizeof (BtorBVAss));
 }
 
 const char *
-btor_get_bv_assignment_str (BtorBVAss *ass)
+btor_ass_get_bv_str (BtorBVAss *ass)
 {
   return (const char *) ((char *) ass + sizeof (BtorBVAss));
 }
 
 BtorBVAss *
-btor_new_bv_assignment (BtorBVAssList *list, char *ass)
+btor_ass_new_bv (BtorBVAssList *list, char *ass)
 {
   assert (list);
   assert (ass);
@@ -120,7 +118,7 @@ btor_find_bv_assignment_dbg (BtorBVAssList *list, BtorBVAss *ass)
 }
 
 void
-btor_release_bv_assignment (BtorBVAssList *list, const char *ass)
+btor_ass_release_bv (BtorBVAssList *list, const char *ass)
 {
   assert (list);
   assert (ass);
@@ -130,7 +128,7 @@ btor_release_bv_assignment (BtorBVAssList *list, const char *ass)
   assert (list->count);
   list->count -= 1;
 
-  bvass = btor_get_bv_assignment (ass);
+  bvass = btor_ass_get_bv (ass);
   assert (btor_find_bv_assignment_dbg (list, bvass));
 
   if (bvass->prev)
@@ -148,7 +146,7 @@ btor_release_bv_assignment (BtorBVAssList *list, const char *ass)
 /*------------------------------------------------------------------------*/
 
 BtorFunAssList *
-btor_new_array_assignment_list (BtorMemMgr *mm)
+btor_ass_new_fun_list (BtorMemMgr *mm)
 {
   assert (mm);
 
@@ -161,7 +159,7 @@ btor_new_array_assignment_list (BtorMemMgr *mm)
 }
 
 BtorFunAssList *
-btor_clone_array_assignment_list (BtorMemMgr *mm, BtorFunAssList *list)
+btor_ass_clone_fun_list (BtorMemMgr *mm, BtorFunAssList *list)
 {
   assert (mm);
   assert (list);
@@ -170,12 +168,12 @@ btor_clone_array_assignment_list (BtorMemMgr *mm, BtorFunAssList *list)
   BtorFunAss *funass;
   char **ind, **val, **cind, **cval;
 
-  res = btor_new_array_assignment_list (mm);
+  res = btor_ass_new_fun_list (mm);
   for (funass = list->first; funass; funass = funass->next)
   {
-    btor_get_array_assignment_indices_values (funass, &ind, &val, funass->size);
-    btor_get_array_assignment_indices_values (
-        btor_new_array_assignment (res, ind, val, funass->size),
+    btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
+    btor_ass_get_fun_indices_values (
+        btor_ass_new_fun (res, ind, val, funass->size),
         &cind,
         &cval,
         funass->size);
@@ -187,7 +185,7 @@ btor_clone_array_assignment_list (BtorMemMgr *mm, BtorFunAssList *list)
 }
 
 void
-btor_delete_array_assignment_list (BtorFunAssList *list, int auto_cleanup)
+btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup)
 {
   assert (list);
 
@@ -198,14 +196,14 @@ btor_delete_array_assignment_list (BtorFunAssList *list, int auto_cleanup)
 
   for (funass = list->first; auto_cleanup && funass; funass = funass->next)
   {
-    btor_get_array_assignment_indices_values (funass, &ind, &val, funass->size);
-    btor_release_array_assignment (list, ind, val, funass->size);
+    btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
+    btor_ass_release_fun (list, ind, val, funass->size);
   }
   BTOR_DELETE (list->mm, list);
 }
 
 BtorFunAss *
-btor_get_array_assignment (const char **indices, const char **values, int size)
+btor_ass_get_fun (const char **indices, const char **values, int size)
 {
   assert (indices);
   assert (values);
@@ -221,10 +219,10 @@ btor_get_array_assignment (const char **indices, const char **values, int size)
 }
 
 void
-btor_get_array_assignment_indices_values (BtorFunAss *ass,
-                                          char ***indices,
-                                          char ***values,
-                                          int size)
+btor_ass_get_fun_indices_values (BtorFunAss *ass,
+                                 char ***indices,
+                                 char ***values,
+                                 int size)
 {
   assert (ass);
   assert (indices);
@@ -239,10 +237,7 @@ btor_get_array_assignment_indices_values (BtorFunAss *ass,
 }
 
 BtorFunAss *
-btor_new_array_assignment (BtorFunAssList *list,
-                           char **indices,
-                           char **values,
-                           int size)
+btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
 {
   assert (list);
   assert (indices);
@@ -262,7 +257,7 @@ btor_new_array_assignment (BtorFunAssList *list,
     list->first = res;
   list->last = res;
 
-  btor_get_array_assignment_indices_values (res, &ind, &val, size);
+  btor_ass_get_fun_indices_values (res, &ind, &val, size);
   for (i = 0; i < size; i++)
   {
     ind[i] = btor_strdup (list->mm, indices[i]);
@@ -289,10 +284,10 @@ btor_find_array_assignment_dbg (BtorFunAssList *list, BtorFunAss *ass)
 }
 
 void
-btor_release_array_assignment (BtorFunAssList *list,
-                               char **indices,
-                               char **values,
-                               int size)
+btor_ass_release_fun (BtorFunAssList *list,
+                      char **indices,
+                      char **values,
+                      int size)
 
 {
   assert (list);
@@ -306,8 +301,8 @@ btor_release_array_assignment (BtorFunAssList *list,
   assert (list->count);
   list->count -= 1;
 
-  funass = btor_get_array_assignment (
-      (const char **) indices, (const char **) values, size);
+  funass =
+      btor_ass_get_fun ((const char **) indices, (const char **) values, size);
   assert (size == funass->size);
   assert (btor_find_array_assignment_dbg (list, funass));
 

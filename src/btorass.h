@@ -38,26 +38,25 @@ struct BtorBVAssList
 };
 
 /* Create new bv assignment list. */
-BtorBVAssList *btor_new_bv_assignment_list (BtorMemMgr *mm);
+BtorBVAssList *btor_ass_new_bv_list (BtorMemMgr *mm);
 
 /* Clone bv assignment list. */
-BtorBVAssList *btor_clone_bv_assignment_list (BtorMemMgr *mm,
-                                              BtorBVAssList *list);
+BtorBVAssList *btor_ass_clone_bv_list (BtorMemMgr *mm, BtorBVAssList *list);
 
 /* Delete bv assignment list. */
-void btor_delete_bv_assignment_list (BtorBVAssList *list, bool auto_cleanup);
+void btor_ass_delete_bv_list (BtorBVAssList *list, bool auto_cleanup);
 
 /* Get BtorBVAss bucket reference from bv assignment string. */
-BtorBVAss *btor_get_bv_assignment (const char *ass);
+BtorBVAss *btor_ass_get_bv (const char *ass);
 
 /* Get bv assignment string from BtorBVAss bucket. */
-const char *btor_get_bv_assignment_str (BtorBVAss *ass);
+const char *btor_ass_get_bv_str (BtorBVAss *ass);
 
 /* Create new bv assignment and add it to the list. */
-BtorBVAss *btor_new_bv_assignment (BtorBVAssList *list, char *ass);
+BtorBVAss *btor_ass_new_bv (BtorBVAssList *list, char *ass);
 
 /* Release bv assignment and remove it from the list. */
-void btor_release_bv_assignment (BtorBVAssList *list, const char *ass);
+void btor_ass_release_bv (BtorBVAssList *list, const char *ass);
 
 /*------------------------------------------------------------------------*/
 
@@ -82,28 +81,35 @@ struct BtorFunAssList
 };
 
 /* Create new array assignment list. */
-BtorFunAssList *btor_new_array_assignment_list (BtorMemMgr *);
+BtorFunAssList *btor_ass_new_fun_list (BtorMemMgr *mm);
 
 /* Clone array assignment list. */
-BtorFunAssList *btor_clone_array_assignment_list (BtorMemMgr *,
-                                                  BtorFunAssList *);
+BtorFunAssList *btor_ass_clone_fun_list (BtorMemMgr *mm, BtorFunAssList *list);
 
 /* Delete array assignment list. */
-void btor_delete_array_assignment_list (BtorFunAssList *, int);
+void btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup);
 
 /* Get BtorFunAss bucket reference from indices reference. */
-BtorFunAss *btor_get_array_assignment (const char **, const char **, int);
+BtorFunAss *btor_ass_get_fun (const char **indices,
+                              const char **values,
+                              int size);
 
 /* Get indices and values references from BtorFunAss bucket. */
-void btor_get_array_assignment_indices_values (BtorFunAss *,
-                                               char ***,
-                                               char ***,
-                                               int size);
+void btor_ass_get_fun_indices_values (BtorFunAss *ass,
+                                      char ***indices,
+                                      char ***values,
+                                      int size);
 
 /* Create new array assignment and add it to the list. */
-BtorFunAss *btor_new_array_assignment (BtorFunAssList *, char **, char **, int);
+BtorFunAss *btor_ass_new_fun (BtorFunAssList *list,
+                              char **indices,
+                              char **values,
+                              int size);
 
 /* Release array assignment and remove it from the list. */
-void btor_release_array_assignment (BtorFunAssList *, char **, char **, int);
+void btor_ass_release_fun (BtorFunAssList *list,
+                           char **indices,
+                           char **values,
+                           int size);
 
 #endif

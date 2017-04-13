@@ -921,41 +921,40 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   if (exp_layer_only)
   {
-    clone->bv_assignments = btor_new_bv_assignment_list (mm);
+    clone->bv_assignments = btor_ass_new_bv_list (mm);
     assert ((allocated += sizeof (BtorBVAssList)) == clone->mm->allocated);
   }
   else
   {
     BTORLOG_TIMESTAMP (delta);
     clone->bv_assignments =
-        btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
+        btor_ass_clone_bv_list (clone->mm, btor->bv_assignments);
     BTORLOG (1, "  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
       allocated +=
-          sizeof (BtorBVAss) + strlen (btor_get_bv_assignment_str (bvass)) + 1;
+          sizeof (BtorBVAss) + strlen (btor_ass_get_bv_str (bvass)) + 1;
     assert ((allocated += sizeof (BtorBVAssList)) == clone->mm->allocated);
 #endif
   }
 
   if (exp_layer_only)
   {
-    clone->fun_assignments = btor_new_array_assignment_list (mm);
+    clone->fun_assignments = btor_ass_new_fun_list (mm);
     assert ((allocated += sizeof (BtorFunAssList)) == clone->mm->allocated);
   }
   else
   {
     BTORLOG_TIMESTAMP (delta);
     clone->fun_assignments =
-        btor_clone_array_assignment_list (clone->mm, btor->fun_assignments);
+        btor_ass_clone_fun_list (clone->mm, btor->fun_assignments);
     BTORLOG (
         1, "  clone array assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     for (funass = btor->fun_assignments->first; funass; funass = funass->next)
     {
       allocated += sizeof (BtorFunAss) + 2 * funass->size * sizeof (char *);
-      btor_get_array_assignment_indices_values (
-          funass, &ind, &val, funass->size);
+      btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
       for (i = 0; i < funass->size; i++)
         allocated += strlen (ind[i]) + 1 + strlen (val[i]) + 1;
     }

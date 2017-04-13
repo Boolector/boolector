@@ -778,8 +778,8 @@ chkclone_assignment_lists (Btor *btor, Btor *clone)
        bvass = bvass->next, cbvass = cbvass->next)
   {
     assert (cbvass);
-    assert (!strcmp (btor_get_bv_assignment_str (bvass),
-                     btor_get_bv_assignment_str (cbvass)));
+    assert (
+        !strcmp (btor_ass_get_bv_str (bvass), btor_ass_get_bv_str (cbvass)));
   }
 
   assert (btor->fun_assignments->count == clone->fun_assignments->count);
@@ -791,9 +791,8 @@ chkclone_assignment_lists (Btor *btor, Btor *clone)
   {
     assert (cfunass);
     assert (funass->size == cfunass->size);
-    btor_get_array_assignment_indices_values (funass, &ind, &val, funass->size);
-    btor_get_array_assignment_indices_values (
-        cfunass, &cind, &cval, cfunass->size);
+    btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
+    btor_ass_get_fun_indices_values (cfunass, &cind, &cval, cfunass->size);
     for (i = 0; i < funass->size; i++)
     {
       assert (!strcmp (ind[i], cind[i]));
