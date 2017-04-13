@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -257,7 +257,7 @@ btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
 
   for (i = 0, j = len - 1; i < len; i++, j--)
   {
-    bit = btor_get_assignment_aig (amgr, av->aigs[j]);
+    bit = btor_aig_get_assignment (amgr, av->aigs[j]);
     if (init_x_values && bit == 0) bit = -1;
     if (inv) bit *= -1;
     assert (bit == -1 || bit == 1);

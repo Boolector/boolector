@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
@@ -266,7 +266,7 @@ BtorSATMgr *
 btor_get_sat_mgr_btor (const Btor *btor)
 {
   assert (btor);
-  return btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_btor (btor));
+  return btor_aig_get_sat_mgr (btor_get_aig_mgr_btor (btor));
 }
 
 void
@@ -499,12 +499,17 @@ btor_print_stats_btor (Btor *btor)
   int num = 0;
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "applied rewriting rules:");
-  btor_init_ptr_hash_table_iterator (&it, btor->stats.rw_rules_applied);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  if (btor->stats.rw_rules_applied->count == 0)
+    BTOR_MSG (btor->msg, 1, "  none");
+  else
   {
-    num  = it.bucket->data.as_int;
-    rule = btor_next_ptr_hash_table_iterator (&it);
-    BTOR_MSG (btor->msg, 1, "  %5d %s", num, rule);
+    btor_init_ptr_hash_table_iterator (&it, btor->stats.rw_rules_applied);
+    while (btor_has_next_ptr_hash_table_iterator (&it))
+    {
+      num  = it.bucket->data.as_int;
+      rule = btor_next_ptr_hash_table_iterator (&it);
+      BTOR_MSG (btor->msg, 1, "  %5d %s", num, rule);
+    }
   }
 #endif
 
@@ -1037,8 +1042,8 @@ btor_process_unsynthesized_constraints (Btor *btor)
         btor->found_constraint_false = true;
         break;
       }
-      btor_add_toplevel_aig_to_sat (amgr, aig);
-      btor_release_aig (amgr, aig);
+      btor_aig_add_toplevel_to_sat (amgr, aig);
+      btor_aig_release (amgr, aig);
       (void) btor_add_ptr_hash_table (sc, cur);
       btor_remove_ptr_hash_table (uc, cur, 0, 0);
 
@@ -1715,7 +1720,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
     if (!aig->cnf_id) btor_aig_to_sat_tseitin (amgr, aig);
 
     res = aig->cnf_id;
-    btor_release_aig (amgr, aig);
+    btor_aig_release (amgr, aig);
 
     if ((val = btor_fixed_sat (smgr, res)))
     {
@@ -3283,7 +3288,7 @@ btor_synthesize_exp (Btor *btor,
             {
               b = btor_add_ptr_hash_table (backannotation, cur->av->aigs[i]);
               assert (b->key == cur->av->aigs[i]);
-              sprintf (indexed_name, "%s[%d]", name, i);
+              sprintf (indexed_name, "%s[%d]", name, cur->av->len - i - 1);
               b->data.as_str = btor_strdup (mm, indexed_name);
             }
             btor_free (mm, indexed_name, len);
@@ -3576,7 +3581,7 @@ btor_add_again_assumptions (Btor *btor)
       assert (btor_aig_get_cnf_id (aig) != 0);
       btor_assume_sat (smgr, btor_aig_get_cnf_id (aig));
     }
-    btor_release_aig (amgr, aig);
+    btor_aig_release (amgr, aig);
   }
 
   BTOR_RELEASE_STACK (stack);
@@ -3868,9 +3873,9 @@ exp_to_aig (Btor *btor, BtorNode *exp)
   result = av->aigs[0];
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_not_aig (amgr, result);
+    result = btor_aig_not (amgr, result);
   else
-    result = btor_copy_aig (amgr, result);
+    result = btor_aig_copy (amgr, result);
 
   return result;
 }

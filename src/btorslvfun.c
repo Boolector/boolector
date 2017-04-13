@@ -1001,7 +1001,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         {
           case BTOR_FUN_EQ_NODE:
             a = BTOR_IS_SYNTH_NODE (cur)
-                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    ? btor_aig_get_assignment (amgr, cur->av->aigs[0])
                     : 0;  // 'x';
 
             if (a == 1 || a == 0) goto PUSH_CHILDREN;
@@ -1013,19 +1013,19 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
           case BTOR_AND_NODE:
 
             a = BTOR_IS_SYNTH_NODE (cur)
-                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    ? btor_aig_get_assignment (amgr, cur->av->aigs[0])
                     : 0;  // 'x'
 
             e0 = BTOR_REAL_ADDR_NODE (cur->e[0]);
             e1 = BTOR_REAL_ADDR_NODE (cur->e[1]);
 
             a0 = BTOR_IS_SYNTH_NODE (e0)
-                     ? btor_get_assignment_aig (amgr, e0->av->aigs[0])
+                     ? btor_aig_get_assignment (amgr, e0->av->aigs[0])
                      : 0;  // 'x'
             if (a0 && BTOR_IS_INVERTED_NODE (cur->e[0])) a0 *= -1;
 
             a1 = BTOR_IS_SYNTH_NODE (e1)
-                     ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
+                     ? btor_aig_get_assignment (amgr, e1->av->aigs[0])
                      : 0;  // 'x'
             if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
 
@@ -1075,7 +1075,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 		  case BTOR_BCOND_NODE:
 		    BTOR_PUSH_STACK (stack, cur->e[0]);
 		    a = BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[0]))
-			? btor_get_assignment_aig (
+			? btor_aig_get_assignment (
 			    amgr, BTOR_REAL_ADDR_NODE (cur->e[0])->av->aigs[0])
 			: 0;  // 'x';
 		    if (BTOR_IS_INVERTED_NODE (cur->e[0])) a *= -1;
@@ -2188,6 +2188,7 @@ sat_fun_solver (BtorFunSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   int i;
+  bool done;
   BtorSolverResult result;
   Btor *btor, *clone;
   BtorNode *clone_root, *lemma;
@@ -2209,8 +2210,7 @@ sat_fun_solver (BtorFunSolver *slv)
 
   if ((btor_get_opt (btor, BTOR_OPT_FUN_PREPROP)
        || btor_get_opt (btor, BTOR_OPT_FUN_PRESLS))
-      && btor->ufs->count == 0 && btor->feqs->count == 0
-      && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL))
+      && btor->ufs->count == 0 && btor->feqs->count == 0)
   {
     BtorSolver *preslv;
     BtorOption eopt;
@@ -2231,33 +2231,27 @@ sat_fun_solver (BtorFunSolver *slv)
     btor->slv = preslv;
     btor_set_opt (btor, BTOR_OPT_ENGINE, eopt);
     result = btor->slv->api.sat (btor->slv);
-
-    if (result == BTOR_RESULT_SAT || result == BTOR_RESULT_UNSAT)
+    done   = result == BTOR_RESULT_SAT || result == BTOR_RESULT_UNSAT;
+    /* print prop/sls solver statistics */
+    btor->slv->api.print_stats (btor->slv);
+    btor->slv->api.print_time_stats (btor->slv);
+    /* delete prop/sls solver */
+    btor->slv->api.delet (btor->slv);
+    /* reset */
+    btor->slv = (BtorSolver *) slv;
+    btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+    if (done)
     {
-      /* print fun solver statistics */
-      btor->slv = (BtorSolver *) slv;
-      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-      slv->api.print_stats ((BtorSolver *) slv);
-      slv->api.print_time_stats ((BtorSolver *) slv);
-      /* delete fun solver */
-      slv->api.delet ((BtorSolver *) slv);
-      /* reset */
-      btor->slv = preslv;
-      btor_set_opt (btor, BTOR_OPT_ENGINE, eopt);
+      BTOR_MSG (btor->msg, 1, "");
+      BTOR_MSG (btor->msg,
+                1,
+                "%s engine determined %s",
+                eopt == BTOR_ENGINE_PROP ? "PROP" : "SLS",
+                result == BTOR_RESULT_SAT ? "'sat'" : "'unsat'");
       goto DONE;
     }
-    else
-    {
-      /* print prop/sls solver statistics */
-      btor->slv->api.print_stats (btor->slv);
-      btor->slv->api.print_time_stats (btor->slv);
-      /* delete prop/sls solver */
-      btor->slv->api.delet (btor->slv);
-      btor_delete_model (btor);
-      /* reset */
-      btor->slv = (BtorSolver *) slv;
-      btor_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-    }
+    /* reset */
+    btor_delete_model (btor);
   }
 
   if (btor_terminate_btor (btor))
@@ -2400,40 +2394,43 @@ print_stats_fun_solver (BtorFunSolver *slv)
 
   if (!(slv = BTOR_FUN_SOLVER (btor))) return;
 
-  BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
-  BTOR_MSG (btor->msg,
-            1,
-            "%4d refinement iterations",
-            slv->stats.refinement_iterations);
-  BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
-  if (slv->stats.lod_refinements)
+  if (btor->ufs->count || btor->lambdas->count)
   {
+    BTOR_MSG (btor->msg, 1, "");
+    BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
     BTOR_MSG (btor->msg,
               1,
-              "  %4d function congruence conflicts",
-              slv->stats.function_congruence_conflicts);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %4d beta reduction conflicts",
-              slv->stats.beta_reduction_conflicts);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %4d extensionality lemmas",
-              slv->stats.extensionality_lemmas);
-    BTOR_MSG (btor->msg,
-              1,
-              "  %.1f average lemma size",
-              BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
-                                 slv->stats.lod_refinements));
-    for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
+              "%4d refinement iterations",
+              slv->stats.refinement_iterations);
+    BTOR_MSG (btor->msg, 1, "%4d LOD refinements", slv->stats.lod_refinements);
+    if (slv->stats.lod_refinements)
     {
-      if (!slv->stats.lemmas_size.start[i]) continue;
       BTOR_MSG (btor->msg,
                 1,
-                "    %4d lemmas of size %d",
-                slv->stats.lemmas_size.start[i],
-                i);
+                "  %4d function congruence conflicts",
+                slv->stats.function_congruence_conflicts);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %4d beta reduction conflicts",
+                slv->stats.beta_reduction_conflicts);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %4d extensionality lemmas",
+                slv->stats.extensionality_lemmas);
+      BTOR_MSG (btor->msg,
+                1,
+                "  %.1f average lemma size",
+                BTOR_AVERAGE_UTIL (slv->stats.lemmas_size_sum,
+                                   slv->stats.lod_refinements));
+      for (i = 1; i < BTOR_SIZE_STACK (slv->stats.lemmas_size); i++)
+      {
+        if (!slv->stats.lemmas_size.start[i]) continue;
+        BTOR_MSG (btor->msg,
+                  1,
+                  "    %4d lemmas of size %d",
+                  slv->stats.lemmas_size.start[i],
+                  i);
+      }
     }
   }
 
