@@ -2745,9 +2745,9 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
   /* eliminate nested functions */
   if (btor_is_lambda_node (e[0]) && e[0]->parameterized)
   {
-    btor_assign_args (btor, e[0], args);
+    btor_beta_assign_args (btor, e[0], args);
     BtorNode *result = btor_beta_reduce_bounded (btor, e[0], 1);
-    btor_unassign_params (btor, e[0]);
+    btor_beta_unassign_params (btor, e[0]);
     return result;
   }
   assert (!btor_is_fun_cond_node (e[0])

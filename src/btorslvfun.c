@@ -1261,10 +1261,10 @@ collect_premisses (Btor *btor,
 
       assert (btor_is_lambda_node (fun));
 
-      btor_assign_args (btor, fun, args);
+      btor_beta_assign_args (btor, fun, args);
       result = btor_beta_reduce_partial_collect (
           btor, fun, cond_sel_if, cond_sel_else);
-      btor_unassign_params (btor, fun);
+      btor_beta_unassign_params (btor, fun);
       result = BTOR_REAL_ADDR_NODE (result);
 
       assert (btor_is_apply_node (result));
@@ -1279,10 +1279,10 @@ collect_premisses (Btor *btor,
     assert (btor_is_lambda_node (from));
     fun = from;
 
-    btor_assign_args (btor, fun, args);
+    btor_beta_assign_args (btor, fun, args);
     result = btor_beta_reduce_partial_collect (
         btor, fun, cond_sel_if, cond_sel_else);
-    btor_unassign_params (btor, fun);
+    btor_beta_unassign_params (btor, fun);
     assert (BTOR_REAL_ADDR_NODE (result) == to);
     btor_release_exp (btor, result);
   }
@@ -1483,9 +1483,9 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   else
   {
     args = app0->e[1];
-    btor_assign_args (btor, fun, args);
+    btor_beta_assign_args (btor, fun, args);
     value = btor_beta_reduce_partial (btor, fun, 0);
-    btor_unassign_params (btor, fun);
+    btor_beta_unassign_params (btor, fun);
     assert (!btor_is_lambda_node (value));
 
     /* path from app0 to conflicting fun */
@@ -1739,10 +1739,10 @@ propagate (Btor *btor,
     conds = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
-    btor_assign_args (btor, fun, args);
+    btor_beta_assign_args (btor, fun, args);
     fun_value = btor_beta_reduce_partial (btor, fun, conds);
     assert (!btor_is_fun_node (fun_value));
-    btor_unassign_params (btor, fun);
+    btor_beta_unassign_params (btor, fun);
 
     prop_down = false;
     if (!BTOR_IS_INVERTED_NODE (fun_value) && btor_is_apply_node (fun_value))

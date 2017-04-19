@@ -4211,10 +4211,10 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *body;
 
   body = btor_lambda_get_body (e0);
-  btor_assign_args (btor, e0, e1);
+  btor_beta_assign_args (btor, e0, e1);
   result = btor_copy_exp (
       btor, btor_param_get_assigned_exp (BTOR_REAL_ADDR_NODE (body)));
-  btor_unassign_params (btor, e0);
+  btor_beta_unassign_params (btor, e0);
   result = BTOR_COND_INVERT_NODE (body, result);
   return result;
 }
@@ -4243,9 +4243,9 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   body      = btor_lambda_get_body (e0);
   real_body = BTOR_REAL_ADDR_NODE (body);
   BTOR_INC_REC_RW_CALL (btor);
-  btor_assign_args (btor, e0, e1);
+  btor_beta_assign_args (btor, e0, e1);
   e1 = btor_beta_reduce_bounded (btor, real_body->e[1], 1);
-  btor_unassign_params (btor, e0);
+  btor_beta_unassign_params (btor, e0);
   e0 = btor_simplify_exp (btor, real_body->e[0]);
   assert (btor_is_fun_node (e0));
   assert (btor_is_args_node (e1));
@@ -4343,7 +4343,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
        * 'inv_result_tmp'. */
       if (BTOR_IS_INVERTED_NODE (cur_cond)) inv_result_tmp = !inv_result_tmp;
 
-      btor_assign_args (btor, cur_fun, cur_args);
+      btor_beta_assign_args (btor, cur_fun, cur_args);
       beta_cond = btor_beta_reduce_bounded (btor, e_cond, 1);
       /* condition of bv cond is either true or false */
       if (btor_is_bv_const_node (beta_cond))
@@ -4380,9 +4380,9 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
           if (btor_is_lambda_node (real_cur_branch->e[0])
               && real_cur_branch->e[0]->parameterized)
           {
-            btor_assign_args (btor, real_cur_branch->e[0], args);
+            btor_beta_assign_args (btor, real_cur_branch->e[0], args);
             result = btor_beta_reduce_bounded (btor, real_cur_branch->e[0], 1);
-            btor_unassign_params (btor, real_cur_branch->e[0]);
+            btor_beta_unassign_params (btor, real_cur_branch->e[0]);
             assert (!btor_is_fun_node (result));
 
             /* propagate down to 'next_fun' */
@@ -4475,7 +4475,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
         assert (!result);
         done = 1;
       }
-      btor_unassign_params (btor, cur_fun);
+      btor_beta_unassign_params (btor, cur_fun);
       btor_release_exp (btor, beta_cond);
     }
 

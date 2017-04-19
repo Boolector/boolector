@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2016 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -200,12 +200,12 @@ btor_merge_lambdas (Btor *btor)
       cur   = btor_next_lambda_iterator (&nit);
       param = btor_param_exp (btor, btor_exp_get_sort_id (cur->e[0]), 0);
       BTOR_PUSH_STACK (params, param);
-      btor_assign_param (btor, cur, param);
+      btor_beta_assign_param (btor, cur, param);
     }
     /* merge lambdas that are in 'merge_lambdas' table */
     body = btor_beta_reduce_merge (
         btor, btor_lambda_get_body (lambda), merge_lambdas);
-    btor_unassign_params (btor, lambda);
+    btor_beta_unassign_params (btor, lambda);
     subst = btor_fun_exp (btor, params.start, BTOR_COUNT_STACK (params), body);
     if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);

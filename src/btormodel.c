@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2016 Mathias Preiner.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -666,7 +666,7 @@ btor_recursively_compute_assignment (Btor *btor,
       else if (btor_is_lambda_node (real_cur) && cur_parent
                && btor_is_apply_node (cur_parent))
       {
-        btor_assign_args (btor, real_cur, cur_parent->e[1]);
+        btor_beta_assign_args (btor, real_cur, cur_parent->e[1]);
         assert (!btor_contains_int_hash_map (assigned, real_cur->id));
         btor_add_int_hash_map (assigned, real_cur->id)->as_ptr = cur_parent;
 
@@ -828,7 +828,7 @@ btor_recursively_compute_assignment (Btor *btor,
               && btor_is_apply_node (cur_parent))
           {
             assert (btor_contains_int_hash_map (assigned, real_cur->id));
-            btor_unassign_params (btor, real_cur);
+            btor_beta_unassign_params (btor, real_cur);
             btor_remove_int_hash_map (assigned, real_cur->id, 0);
 
             /* reset 'eval_mark' of all parameterized nodes
