@@ -15,7 +15,7 @@
 #define BTORDUMPSMT_H_INCLUDED
 
 #include <stdio.h>
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 
 void btor_dump_smt2_node (Btor* btor,

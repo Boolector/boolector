@@ -9,8 +9,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "testbitvec.h"
-#include "btorbitvec.h"
+#include "testbv.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btoropt.h"
 #include "testrunner.h"

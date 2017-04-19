@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorcore.h"

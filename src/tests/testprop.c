@@ -9,7 +9,7 @@
  */
 
 #include "testprop.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"

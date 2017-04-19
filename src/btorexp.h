@@ -15,7 +15,7 @@
 #define BTOREXP_H_INCLUDED
 
 #include "btoraigvec.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btorhashptr.h"

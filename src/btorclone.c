@@ -13,7 +13,7 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btorlog.h"
 #include "btormodel.h"

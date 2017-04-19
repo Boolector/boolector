@@ -13,7 +13,7 @@
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btoropt.h"
 #include "btorslv.h"

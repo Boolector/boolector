@@ -12,7 +12,7 @@
  */
 
 #include "btorbeta.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btorlog.h"
 #include "utils/btorhashint.h"

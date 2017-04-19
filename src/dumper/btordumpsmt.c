@@ -11,7 +11,6 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbitvec.h"
 #include "btorexit.h"
 #include "btorsort.h"
 #ifndef NDEBUG

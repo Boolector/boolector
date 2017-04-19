@@ -12,7 +12,7 @@
 
 #include "testaigvec.h"
 #include "btoraigvec.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "testrunner.h"
 #include "utils/btormem.h"

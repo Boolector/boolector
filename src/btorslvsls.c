@@ -10,7 +10,7 @@
  */
 
 #include "btorslvsls.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btormodel.h"

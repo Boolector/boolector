@@ -15,7 +15,7 @@
 #define BTORAIGVEC_H_INCLUDED
 
 #include "btoraig.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btoropt.h"
 #include "btortypes.h"
 #include "utils/btormem.h"

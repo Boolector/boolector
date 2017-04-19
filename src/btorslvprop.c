@@ -12,7 +12,7 @@
 #include "btorslvpropsls.h"
 
 #include "btorabort.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
