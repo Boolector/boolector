@@ -4121,6 +4121,42 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   return btor_apply_exps (btor, &e_index, 1, e_array);
 }
 
+static BtorNode *
+create_write_lambda (Btor *btor,
+                     BtorNode *e_array,
+                     BtorNode *e_index,
+                     BtorNode *e_value)
+{
+  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *args;
+  BtorLambdaNode *lambda;
+  BtorPtrHashBucket *b;
+
+  param  = btor_param_exp (btor, btor_exp_get_sort_id (e_index), 0);
+  e_cond = btor_eq_exp (btor, param, e_index);
+  e_if   = btor_copy_exp (btor, e_value);
+  e_else = btor_read_exp (btor, e_array, param);
+  bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
+  lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
+  if (!lambda->static_rho)
+  {
+    lambda->static_rho =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+    args           = btor_args_exp (btor, &e_index, 1);
+    b              = btor_add_ptr_hash_table (lambda->static_rho, args);
+    b->data.as_ptr = btor_copy_exp (btor, e_value);
+  }
+  btor_release_exp (btor, e_if);
+  btor_release_exp (btor, e_else);
+  btor_release_exp (btor, e_cond);
+  btor_release_exp (btor, bvcond);
+  btor_release_exp (btor, param);
+
+  lambda->is_array = 1;
+  return (BtorNode *) lambda;
+}
+
 BtorNode *
 btor_update_exp (Btor *btor, BtorNode *fun, BtorNode *args, BtorNode *value)
 {
@@ -4131,9 +4167,15 @@ btor_update_exp (Btor *btor, BtorNode *fun, BtorNode *args, BtorNode *value)
   assert (btor_is_fun_node (e[0]));
   assert (btor_is_args_node (e[1]));
   assert (!btor_is_fun_node (e[2]));
-  assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
-  assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
-  assert (!BTOR_REAL_ADDR_NODE (e[2])->parameterized);
+
+  if (BTOR_REAL_ADDR_NODE (e[0])->parameterized
+      || BTOR_REAL_ADDR_NODE (e[1])->parameterized
+      || BTOR_REAL_ADDR_NODE (e[2])->parameterized)
+  {
+    assert (btor_get_args_arity (btor, args) == 1);
+    return create_write_lambda (btor, fun, args->e[0], value);
+  }
+
   res = create_exp (btor, BTOR_UPDATE_NODE, 3, e);
   if (fun->is_array) res->is_array = 1;
   return res;
@@ -4151,10 +4193,6 @@ btor_write_exp (Btor *btor,
   assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_value)->btor);
 
-  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *args;
-  BtorLambdaNode *lambda;
-  BtorPtrHashBucket *b;
-
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   e_value = btor_simplify_exp (btor, e_value);
@@ -4164,53 +4202,7 @@ btor_write_exp (Btor *btor,
       || BTOR_REAL_ADDR_NODE (e_index)->parameterized
       || BTOR_REAL_ADDR_NODE (e_value)->parameterized)
   {
-    param  = btor_param_exp (btor, btor_exp_get_sort_id (e_index), 0);
-    e_cond = btor_eq_exp (btor, param, e_index);
-    e_if   = btor_copy_exp (btor, e_value);
-    e_else = btor_read_exp (btor, e_array, param);
-    bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
-    lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
-    if (!lambda->static_rho)
-    {
-      lambda->static_rho =
-          btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
-      args           = btor_args_exp (btor, &e_index, 1);
-      b              = btor_add_ptr_hash_table (lambda->static_rho, args);
-      b->data.as_ptr = btor_copy_exp (btor, e_value);
-    }
-    //#ifndef NDEBUG
-    //  else
-    //    {
-    //      if (lambda->static_rho->count == 1)
-    //	{
-    //	  assert ((args = lambda->static_rho->first->key)
-    //		  && args->e[0] == e_index);
-    //	  assert (((BtorNode *) lambda->static_rho->first->data.as_ptr)
-    //		  == e_value);
-    //	}
-    //      else
-    //	{
-    //	  BtorPtrHashTableIterator it;
-    //	  btor_init_ptr_hash_table_iterator (&it, lambda->static_rho);
-    //	  while (btor_has_next_ptr_hash_table_iterator (&it))
-    //	    {
-    //	      assert (it.bucket->data.as_ptr == e_value);
-    //	      (void) btor_next_ptr_hash_table_iterator (&it);
-    //	    }
-    //	}
-    //    }
-    //#endif
-
-    btor_release_exp (btor, e_if);
-    btor_release_exp (btor, e_else);
-    btor_release_exp (btor, e_cond);
-    btor_release_exp (btor, bvcond);
-    btor_release_exp (btor, param);
-
-    lambda->is_array = 1;
-    return (BtorNode *) lambda;
+    return create_write_lambda (btor, e_array, e_index, e_value);
   }
   else
   {
