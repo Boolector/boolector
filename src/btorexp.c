@@ -4121,11 +4121,11 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   return btor_apply_exps (btor, &e_index, 1, e_array);
 }
 
-static BtorNode *
-create_write_lambda (Btor *btor,
-                     BtorNode *e_array,
-                     BtorNode *e_index,
-                     BtorNode *e_value)
+BtorNode *
+btor_lambda_write_exp (Btor *btor,
+                       BtorNode *e_array,
+                       BtorNode *e_index,
+                       BtorNode *e_value)
 {
   BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *args;
   BtorLambdaNode *lambda;
@@ -4173,7 +4173,7 @@ btor_update_exp (Btor *btor, BtorNode *fun, BtorNode *args, BtorNode *value)
       || BTOR_REAL_ADDR_NODE (e[2])->parameterized)
   {
     assert (btor_get_args_arity (btor, args) == 1);
-    return create_write_lambda (btor, fun, args->e[0], value);
+    return btor_lambda_write_exp (btor, fun, args->e[0], value);
   }
 
   res = create_exp (btor, BTOR_UPDATE_NODE, 3, e);
@@ -4202,7 +4202,7 @@ btor_write_exp (Btor *btor,
       || BTOR_REAL_ADDR_NODE (e_index)->parameterized
       || BTOR_REAL_ADDR_NODE (e_value)->parameterized)
   {
-    return create_write_lambda (btor, e_array, e_index, e_value);
+    return btor_lambda_write_exp (btor, e_array, e_index, e_value);
   }
   else
   {
