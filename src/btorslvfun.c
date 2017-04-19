@@ -247,14 +247,14 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   if ((d = btor_get_int_hash_map (btor->bv_model, real_exp->id)))
-    bv = btor_copy_bv (btor->mm, d->as_ptr);
+    bv = btor_bv_copy (btor->mm, d->as_ptr);
   else /* cache assignment to avoid querying the sat solver multiple times */
   {
     /* synthesized nodes are always encoded and have an assignment */
     if (BTOR_IS_SYNTH_NODE (real_exp))
-      bv = btor_get_assignment_bv (btor->mm, real_exp, false);
+      bv = btor_bv_get_assignment (btor->mm, real_exp, false);
     else if (btor_is_bv_const_node (real_exp))
-      bv = btor_copy_bv (btor->mm, btor_const_get_bits (real_exp));
+      bv = btor_bv_copy (btor->mm, btor_const_get_bits (real_exp));
     /* initialize var, apply, and feq nodes if they are not yet synthesized
      * and encoded (not in the BV skeleton yet, and thus unconstrained). */
     else if (btor_is_bv_var_node (real_exp) || btor_is_apply_node (real_exp)
@@ -262,7 +262,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
     {
       if (!BTOR_IS_SYNTH_NODE (real_exp))
         BTORLOG (1, "zero-initialize: %s", node2string (real_exp));
-      bv = btor_get_assignment_bv (btor->mm, real_exp, true);
+      bv = btor_bv_get_assignment (btor->mm, real_exp, true);
     }
     else
       bv = btor_eval_exp (btor, real_exp);
@@ -271,8 +271,8 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_INVERTED_NODE (exp))
   {
-    result = btor_not_bv (btor->mm, bv);
-    btor_free_bv (btor->mm, bv);
+    result = btor_bv_not (btor->mm, bv);
+    btor_bv_free (btor->mm, bv);
   }
   else
     result = bv;
@@ -388,7 +388,7 @@ assume_inputs (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     bv       = get_bv_assignment (btor, cur_btor);
     bv_const = btor_const_exp (clone, bv);
-    btor_free_bv (btor->mm, bv);
+    btor_bv_free (btor->mm, bv);
     bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
     BTORLOG (1,
              "assume input: %s (%s)",
@@ -1118,9 +1118,9 @@ equal_bv_assignments (BtorNode *exp0, BtorNode *exp1)
   btor  = BTOR_REAL_ADDR_NODE (exp0)->btor;
   bv0   = get_bv_assignment (btor, exp0);
   bv1   = get_bv_assignment (btor, exp1);
-  equal = btor_compare_bv (bv0, bv1) == 0;
-  btor_free_bv (btor->mm, bv0);
-  btor_free_bv (btor->mm, bv1);
+  equal = btor_bv_compare (bv0, bv1) == 0;
+  btor_bv_free (btor->mm, bv0);
+  btor_bv_free (btor->mm, bv1);
   return equal;
 }
 
@@ -1153,9 +1153,9 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
     bv0 = get_bv_assignment (btor, arg0);
     bv1 = get_bv_assignment (btor, arg1);
 
-    equal = btor_compare_bv (bv0, bv1) == 0;
-    btor_free_bv (btor->mm, bv0);
-    btor_free_bv (btor->mm, bv1);
+    equal = btor_bv_compare (bv0, bv1) == 0;
+    btor_bv_free (btor->mm, bv0);
+    btor_bv_free (btor->mm, bv1);
 
     if (!equal) return 1;
   }
@@ -1183,8 +1183,8 @@ hash_args_assignment (BtorNode *exp)
   {
     arg = btor_next_args_iterator (&it);
     bv  = get_bv_assignment (btor, arg);
-    hash += btor_hash_bv (bv);
-    btor_free_bv (btor->mm, bv);
+    hash += btor_bv_hash (bv);
+    btor_bv_free (btor->mm, bv);
   }
   return hash;
 }
@@ -1242,7 +1242,7 @@ collect_premisses (Btor *btor,
         bv_assignment = get_bv_assignment (btor, fun->e[0]);
 
         /* propagate over function ite */
-        if (btor_is_true_bv (bv_assignment))
+        if (btor_bv_is_true (bv_assignment))
         {
           result = fun->e[1];
           t      = cond_sel_if;
@@ -1252,7 +1252,7 @@ collect_premisses (Btor *btor,
           result = fun->e[2];
           t      = cond_sel_else;
         }
-        btor_free_bv (mm, bv_assignment);
+        btor_bv_free (mm, bv_assignment);
         if (!btor_get_ptr_hash_table (t, fun->e[0]))
           btor_add_ptr_hash_table (t, btor_copy_exp (btor, fun->e[0]));
         fun = result;
@@ -1727,11 +1727,11 @@ propagate (Btor *btor,
       BTORLOG (1, "  propagate down: %s", node2string (app));
       app->propagated = 0;
       BTOR_PUSH_STACK (*prop_stack, app);
-      if (btor_is_true_bv (bv))
+      if (btor_bv_is_true (bv))
         BTOR_PUSH_STACK (*prop_stack, fun->e[1]);
       else
         BTOR_PUSH_STACK (*prop_stack, fun->e[2]);
-      btor_free_bv (mm, bv);
+      btor_bv_free (mm, bv);
       continue;
     }
 
@@ -1867,11 +1867,11 @@ generate_table (Btor *btor, BtorNode *fun)
       else if (btor_is_fun_cond_node (cur))
       {
         evalbv = get_bv_assignment (btor, cur->e[0]);
-        if (btor_is_true_bv (evalbv))
+        if (btor_bv_is_true (evalbv))
           BTOR_PUSH_STACK (visit, cur->e[1]);
         else
           BTOR_PUSH_STACK (visit, cur->e[2]);
-        btor_free_bv (mm, evalbv);
+        btor_bv_free (mm, evalbv);
       }
 
       if (rho)
@@ -1954,8 +1954,8 @@ add_extensionality_lemmas (Btor *btor)
 
     evalbv = get_bv_assignment (btor, cur);
     assert (evalbv);
-    skip = btor_is_false_bv (evalbv);
-    btor_free_bv (btor->mm, evalbv);
+    skip = btor_bv_is_false (evalbv);
+    btor_bv_free (btor->mm, evalbv);
 
     if (skip) continue;
 
@@ -2153,7 +2153,7 @@ check_and_resolve_conflicts (Btor *btor,
     {
       /* generate model for apply */
       if (!found_conflicts)
-        btor_free_bv (btor->mm, get_bv_assignment (btor, cur));
+        btor_bv_free (btor->mm, get_bv_assignment (btor, cur));
       cur->propagated = 0;
     }
     else
@@ -2645,7 +2645,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       }
       else if (btor_is_bv_const_node (real_cur))
       {
-        result = btor_copy_bv (mm, btor_const_get_bits (real_cur));
+        result = btor_bv_copy (mm, btor_const_get_bits (real_cur));
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -2680,70 +2680,70 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_bv (mm,
+          result = btor_bv_slice (mm,
                                   e[0],
                                   btor_slice_get_upper (real_cur),
                                   btor_slice_get_lower (real_cur));
-          btor_free_bv (mm, e[0]);
+          btor_bv_free (mm, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_and (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_BV_EQ_NODE:
-          result = btor_eq_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_eq (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_add (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_mul (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_ult (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_sll (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_srl (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_udiv (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_urem (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_concat (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_COND_NODE:
-          if (btor_is_true_bv (e[2]))
-            result = btor_copy_bv (mm, e[1]);
+          if (btor_bv_is_true (e[2]))
+            result = btor_bv_copy (mm, e[1]);
           else
-            result = btor_copy_bv (mm, e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
-          btor_free_bv (mm, e[2]);
+            result = btor_bv_copy (mm, e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
+          btor_bv_free (mm, e[2]);
           break;
         default:
           BTORLOG (1, "  *** %s", node2string (real_cur));
@@ -2753,13 +2753,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       assert (!btor_get_ptr_hash_table (cache, real_cur));
       btor_add_ptr_hash_table (cache, real_cur)->data.as_ptr =
-          btor_copy_bv (mm, result);
+          btor_bv_copy (mm, result);
 
     EVAL_EXP_PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
-        inv_result = btor_not_bv (mm, result);
-        btor_free_bv (mm, result);
+        inv_result = btor_bv_not (mm, result);
+        btor_bv_free (mm, result);
         result = inv_result;
       }
 
@@ -2770,7 +2770,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (d->as_int == 1);
       b = btor_get_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (mm, (BtorBitVector *) b->data.as_ptr);
+      result = btor_bv_copy (mm, (BtorBitVector *) b->data.as_ptr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -2781,13 +2781,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   while (!BTOR_EMPTY_STACK (arg_stack))
   {
     inv_result = BTOR_POP_STACK (arg_stack);
-    btor_free_bv (mm, inv_result);
+    btor_bv_free (mm, inv_result);
   }
 
   btor_init_ptr_hash_table_iterator (&it, cache);
   while (btor_has_next_ptr_hash_table_iterator (&it))
   {
-    btor_free_bv (mm, (BtorBitVector *) it.bucket->data.as_ptr);
+    btor_bv_free (mm, (BtorBitVector *) it.bucket->data.as_ptr);
     real_cur = btor_next_ptr_hash_table_iterator (&it);
   }
 

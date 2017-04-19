@@ -57,8 +57,8 @@ btor_propsls_non_rec_conf (
   (void) op;
 
 #ifndef NDEBUG
-  char* sbve   = btor_bv_to_char_bv (btor->mm, bve);
-  char* sbvexp = btor_bv_to_char_bv (btor->mm, bvexp);
+  char* sbve   = btor_bv_to_char (btor->mm, bve);
+  char* sbvexp = btor_bv_to_char (btor->mm, bvexp);
   if (eidx)
     BTORLOG (2, "prop CONFLICT: %s := %s %s x", sbvexp, sbve, op);
   else

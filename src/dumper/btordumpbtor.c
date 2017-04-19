@@ -356,33 +356,33 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_BV_CONST_NODE:
       bits = btor_const_get_bits (node);
       opt  = btor_get_opt (bdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
-      if (btor_is_zero_bv (bits))
+      if (btor_bv_is_zero (bits))
       {
         op = "zero";
       }
-      else if (btor_is_one_bv (bits))
+      else if (btor_bv_is_one (bits))
       {
         op = "one";
       }
-      else if (btor_is_ones_bv (bits))
+      else if (btor_bv_is_ones (bits))
       {
         op = "ones";
       }
       else if (opt == BTOR_OUTPUT_BASE_HEX)
       {
         op    = "consth";
-        cbits = btor_bv_to_hex_char_bv (bdc->btor->mm, bits);
+        cbits = btor_bv_to_hex_char (bdc->btor->mm, bits);
       }
       else if (opt == BTOR_OUTPUT_BASE_DEC
-               || btor_small_positive_int_bv (bits) > 0)
+               || btor_bv_small_positive_int (bits) > 0)
       {
         op    = "constd";
-        cbits = btor_bv_to_dec_char_bv (bdc->btor->mm, bits);
+        cbits = btor_bv_to_dec_char (bdc->btor->mm, bits);
       }
       else
       {
         op    = "const";
-        cbits = btor_bv_to_char_bv (bdc->btor->mm, bits);
+        cbits = btor_bv_to_char (bdc->btor->mm, bits);
       }
       break;
     case BTOR_PARAM_NODE: op = "param"; break;

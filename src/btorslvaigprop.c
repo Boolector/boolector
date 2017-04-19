@@ -88,17 +88,17 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
   BtorBitVector *res;
   BtorAIGVec *av;
 
-  if (!exp->av) return btor_new_bv (mm, btor_get_exp_width (exp->btor, exp));
+  if (!exp->av) return btor_bv_new (mm, btor_get_exp_width (exp->btor, exp));
 
   av  = exp->av;
   len = av->len;
-  res = btor_new_bv (mm, len);
+  res = btor_bv_new (mm, len);
 
   for (i = 0, j = len - 1; i < len; i++, j--)
   {
     bit = get_assignment_aig (aprop, av->aigs[j]);
     assert (bit == -1 || bit == 1);
-    btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
+    btor_bv_set_bit (res, i, bit == 1 ? 1 : 0);
   }
   return res;
 }
@@ -150,7 +150,7 @@ generate_model_from_aig_model (Btor *btor)
     {
       bv = get_assignment_bv (btor->mm, real_cur, aprop);
       btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
-      btor_free_bv (btor->mm, bv);
+      btor_bv_free (btor->mm, bv);
     }
     for (i = 0; i < real_cur->arity; i++)
       BTOR_PUSH_STACK (stack, real_cur->e[i]);

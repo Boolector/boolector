@@ -42,13 +42,13 @@ test_new_delete_aigvec_mgr (void)
 static void
 test_const_aigvec (void)
 {
-  BtorBitVector *bits  = btor_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
+  BtorBitVector *bits  = btor_bv_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
   BtorAIGVec *av       = btor_aigvec_const (avmgr, bits);
   assert (av->len == 4);
   btor_aigvec_release_delete (avmgr, av);
   btor_aigvec_delete_mgr (avmgr);
-  btor_free_bv (g_btor->mm, bits);
+  btor_bv_free (g_btor->mm, bits);
 }
 
 static void
@@ -66,7 +66,7 @@ test_invert_aigvec (void)
 {
   int i                = 0;
   int len              = 0;
-  BtorBitVector *bits  = btor_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
+  BtorBitVector *bits  = btor_bv_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_const (avmgr, bits);
@@ -102,7 +102,7 @@ test_invert_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_delete_mgr (avmgr);
-  btor_free_bv (g_btor->mm, bits);
+  btor_bv_free (g_btor->mm, bits);
 }
 
 static void

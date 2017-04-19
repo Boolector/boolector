@@ -81,7 +81,7 @@ btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
   assert (mm);
   assert (t);
   (void) map;
-  return btor_copy_bv_tuple (mm, (BtorBitVectorTuple *) t);
+  return btor_bv_copy_tuple (mm, (BtorBitVectorTuple *) t);
 }
 
 void
@@ -166,7 +166,7 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
   assert (cloned_data);
 
   (void) map;
-  cloned_data->as_ptr = btor_copy_bv (mm, (BtorBitVector *) data->as_ptr);
+  cloned_data->as_ptr = btor_bv_copy (mm, (BtorBitVector *) data->as_ptr);
 }
 
 void
@@ -500,9 +500,9 @@ clone_exp (Btor *clone,
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (btor_is_bv_const_node (exp))
   {
-    bits = btor_copy_bv (mm, btor_const_get_bits (exp));
+    bits = btor_bv_copy (mm, btor_const_get_bits (exp));
     btor_const_set_bits (res, bits);
-    bits = btor_copy_bv (mm, btor_const_get_invbits (exp));
+    bits = btor_bv_copy (mm, btor_const_get_invbits (exp));
     btor_const_set_invbits (res, bits);
   }
 
@@ -1136,9 +1136,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     {
       data  = btor_next_data_int_hash_table_iterator (&iit);
       cdata = btor_next_data_int_hash_table_iterator (&ciit);
-      assert (btor_size_bv ((BtorBitVector *) data->as_ptr)
-              == btor_size_bv ((BtorBitVector *) cdata->as_ptr));
-      allocated += btor_size_bv ((BtorBitVector *) cdata->as_ptr);
+      assert (btor_bv_size ((BtorBitVector *) data->as_ptr)
+              == btor_bv_size ((BtorBitVector *) cdata->as_ptr));
+      allocated += btor_bv_size ((BtorBitVector *) cdata->as_ptr);
     }
 #endif
   }
@@ -1175,8 +1175,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                                          ((BtorPtrHashTable *) data->as_ptr));
       while (btor_has_next_ptr_hash_table_iterator (&ncpit))
       {
-        allocated += btor_size_bv ((BtorBitVector *) ncpit.bucket->data.as_ptr);
-        allocated += btor_size_bv_tuple (
+        allocated += btor_bv_size ((BtorBitVector *) ncpit.bucket->data.as_ptr);
+        allocated += btor_bv_size_tuple (
             (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&ncpit));
       }
     }
@@ -1363,7 +1363,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         allocated += MEM_PTR_HASH_TABLE (m->cans);
         btor_init_int_hash_table_iterator (&iit, m->cans);
         while (btor_has_next_int_hash_table_iterator (&iit))
-          allocated += btor_size_bv (
+          allocated += btor_bv_size (
               btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
       }
 
@@ -1374,7 +1374,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         allocated += MEM_PTR_HASH_TABLE (cslv->max_cans);
         btor_init_int_hash_table_iterator (&iit, cslv->max_cans);
         while (btor_has_next_int_hash_table_iterator (&iit))
-          allocated += btor_size_bv (
+          allocated += btor_bv_size (
               btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
       }
     }

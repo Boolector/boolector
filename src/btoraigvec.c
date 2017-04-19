@@ -54,7 +54,7 @@ btor_aigvec_const (BtorAIGVecMgr *avmgr, const BtorBitVector *bits)
   result = new_aigvec (avmgr, len);
   for (i = 0; i < len; i++)
     result->aigs[i] =
-        !btor_get_bit_bv (bits, len - 1 - i) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+        !btor_bv_get_bit (bits, len - 1 - i) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
   return result;
 }
 

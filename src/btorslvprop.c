@@ -60,7 +60,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
-    if (btor_is_false_bv (btor_get_bv_model (btor, root)))
+    if (btor_bv_is_false (btor_get_bv_model (btor, root)))
       assert (btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
     else
       assert (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
@@ -112,7 +112,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   }
 
   assert (res);
-  assert (btor_is_zero_bv (btor_get_bv_model (btor, res)));
+  assert (btor_bv_is_zero (btor_get_bv_model (btor, res)));
 
   BTORLOG (1, "");
   BTORLOG (1, "select constraint: %s", node2string (res));
@@ -148,7 +148,7 @@ move (Btor *btor, uint32_t nmoves)
   char *a;
   BtorBitVector *ass;
   ass = (BtorBitVector *) btor_get_bv_model (btor, input);
-  a   = btor_bv_to_char_bv (btor->mm, ass);
+  a   = btor_bv_to_char (btor->mm, ass);
   BTORLOG (1, "");
   BTORLOG (1, "move");
   BTORLOG (1,
@@ -157,7 +157,7 @@ move (Btor *btor, uint32_t nmoves)
            node2string (input));
   BTORLOG (1, "  prev. assignment: %s", a);
   btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, assignment);
+  a = btor_bv_to_char (btor->mm, assignment);
   BTORLOG (1, "  new   assignment: %s", a);
   btor_freestr (btor->mm, a);
 #endif
@@ -180,7 +180,7 @@ move (Btor *btor, uint32_t nmoves)
   btor_delete_int_hash_map (exps);
 
   slv->stats.moves += 1;
-  btor_free_bv (btor->mm, assignment);
+  btor_bv_free (btor->mm, assignment);
 
   return 1;
 }
@@ -272,7 +272,7 @@ sat_prop_solver_aux (Btor *btor)
       root = btor_next_ptr_hash_table_iterator (&it);
 
       if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
-          && btor_is_zero_bv (btor_get_bv_model (btor, root)))
+          && btor_bv_is_zero (btor_get_bv_model (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */

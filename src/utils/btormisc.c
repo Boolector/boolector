@@ -86,7 +86,7 @@ node2string (BtorNode *exp)
   }
   else if (btor_is_bv_const_node (exp))
   {
-    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (real_exp));
+    bits = btor_bv_to_char (btor->mm, btor_const_get_bits (real_exp));
     new_len += strlen (bits) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", bits);
     btor_freestr (btor->mm, bits);

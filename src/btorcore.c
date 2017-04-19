@@ -1073,8 +1073,8 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   {
     bits = btor_const_get_bits (exp);
     assert (bits->width == 1);
-    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
-        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0)))
     {
       btor->inconsistent = true;
       return;
@@ -1082,8 +1082,8 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
     else
     {
       /* we do not add true */
-      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
-              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0)));
       return;
     }
   }
@@ -1301,13 +1301,13 @@ normalize_substitution (Btor *btor,
     if (!btor_is_bv_const_node (right)) return 0;
 
     if (BTOR_IS_INVERTED_NODE (right))
-      bits = btor_not_bv (mm, btor_const_get_bits (right));
+      bits = btor_bv_not (mm, btor_const_get_bits (right));
     else
-      bits = btor_copy_bv (mm, btor_const_get_bits (right));
+      bits = btor_bv_copy (mm, btor_const_get_bits (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
-      leadings = btor_get_num_leading_zeros_bv (bits);
+      leadings = btor_bv_get_num_leading_zeros (bits);
       if (leadings > 0)
       {
         sort      = btor_bitvec_sort (btor, leadings);
@@ -1328,7 +1328,7 @@ normalize_substitution (Btor *btor,
     {
       assert (comp == BTOR_SUBST_COMP_UGT_KIND
               || comp == BTOR_SUBST_COMP_UGTE_KIND);
-      leadings = btor_get_num_leading_ones_bv (bits);
+      leadings = btor_bv_get_num_leading_ones (bits);
       if (leadings > 0)
       {
         sort      = btor_bitvec_sort (btor, leadings);
@@ -1346,7 +1346,7 @@ normalize_substitution (Btor *btor,
       }
     }
 
-    btor_free_bv (btor->mm, bits);
+    btor_bv_free (btor->mm, bits);
     return 0;
   }
 
@@ -1393,10 +1393,10 @@ normalize_substitution (Btor *btor,
     btor->stats.gaussian_eliminations++;
 
     btor_release_exp (btor, tmp);
-    ic = btor_mod_inverse_bv (btor->mm, fc);
-    btor_free_bv (btor->mm, fc);
+    ic = btor_bv_mod_inverse (btor->mm, fc);
+    btor_bv_free (btor->mm, fc);
     inv = btor_const_exp (btor, ic);
-    btor_free_bv (btor->mm, ic);
+    btor_bv_free (btor->mm, ic);
     tmp = btor_mul_exp (btor, *right_result, inv);
     btor_release_exp (btor, inv);
     btor_release_exp (btor, *right_result);
@@ -1488,13 +1488,13 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
     bits = btor_const_get_bits (real_exp);
     assert (bits->width == 1);
     /* we do not add true/false */
-    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
-        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0)))
       btor->inconsistent = true;
     else
     {
-      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
-              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0)));
     }
     return;
   }

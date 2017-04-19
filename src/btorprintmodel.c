@@ -31,11 +31,11 @@ print_fmt_bv_model_btor (Btor *btor,
   char *ass;
 
   if (base == BTOR_OUTPUT_BASE_HEX)
-    ass = btor_bv_to_hex_char_bv (btor->mm, assignment);
+    ass = btor_bv_to_hex_char (btor->mm, assignment);
   else if (base == BTOR_OUTPUT_BASE_DEC)
-    ass = btor_bv_to_dec_char_bv (btor->mm, assignment);
+    ass = btor_bv_to_dec_char (btor->mm, assignment);
   else
-    ass = btor_bv_to_char_bv (btor->mm, assignment);
+    ass = btor_bv_to_char (btor->mm, assignment);
   fprintf (file, "%s", ass);
   btor_freestr (btor->mm, ass);
 }
@@ -215,9 +215,9 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   if (assignment) /* get rid of compiler warning */
   {
     fprintf (file, "%6c", ' ');
-    tmp = btor_new_bv (btor->mm, assignment->width);
+    tmp = btor_bv_new (btor->mm, assignment->width);
     btor_dump_const_value_smt (btor, tmp, base, file);
-    btor_free_bv (btor->mm, tmp);
+    btor_bv_free (btor->mm, tmp);
   }
 
   for (i = 0; i < n; i++) fprintf (file, ")");

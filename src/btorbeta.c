@@ -790,14 +790,14 @@ beta_reduce_partial_aux (Btor *btor,
           }
 
           t = 0;
-          if (btor_is_true_bv (eval_res))
+          if (btor_bv_is_true (eval_res))
           {
             if (cond_sel_if) t = cond_sel_if;
             next = real_cur->e[1];
           }
           else
           {
-            assert (btor_is_false_bv (eval_res));
+            assert (btor_bv_is_false (eval_res));
             if (cond_sel_else) t = cond_sel_else;
             next = real_cur->e[2];
           }
@@ -805,7 +805,7 @@ beta_reduce_partial_aux (Btor *btor,
           if (t && !btor_get_ptr_hash_table (t, e[0]))
             btor_add_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
 
-          btor_free_bv (btor->mm, eval_res);
+          btor_bv_free (btor->mm, eval_res);
           btor_release_exp (btor, e[0]);
 
           assert (next);

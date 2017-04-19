@@ -114,7 +114,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
     {
       id = btor_next_int_hash_table_iterator (&it);
       assert (!btor_is_bv_const_node (btor_get_node_by_id (btor, id))
-              || !btor_is_zero_bv (
+              || !btor_bv_is_zero (
                      btor_get_bv_model (btor, btor_get_node_by_id (btor, id))));
       assert (btor_contains_int_hash_map (slv->weights, id));
       d = btor_get_int_hash_map (slv->weights, id)->as_ptr;
@@ -144,7 +144,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
       id  = btor_next_int_hash_table_iterator (&it);
       cur = btor_get_node_by_id (btor, id);
       assert (!btor_is_bv_const_node (cur)
-              || !btor_is_zero_bv (btor_get_bv_model (btor, cur)));
+              || !btor_bv_is_zero (btor_get_bv_model (btor, cur)));
       assert (btor_contains_int_hash_map (slv->score, id));
       score = btor_get_int_hash_map (slv->score, id)->as_dbl;
       assert (score < 1.0);
@@ -208,7 +208,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
         && btor_get_exp_width (btor, real_cur) == 1)
     {
       bv = btor_get_bv_model (btor, real_cur);
-      if (!btor_is_zero_bv (bv)) /* push all */
+      if (!btor_bv_is_zero (bv)) /* push all */
         goto PUSH_CHILDREN;
       else /* push one controlling input */
       {
@@ -216,7 +216,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
         for (i = 0; i < real_cur->arity; i++)
         {
           e = real_cur->e[i];
-          if (btor_is_zero_bv (btor_get_bv_model (btor, e)))
+          if (btor_bv_is_zero (btor_get_bv_model (btor, e)))
             BTOR_PUSH_STACK (controlling, real_cur->e[i]);
         }
         assert (BTOR_COUNT_STACK (controlling));
@@ -337,10 +337,10 @@ try_move (Btor *btor,
              "      candidate: %s%s",
              BTOR_IS_REGULAR_NODE (can) ? "" : "-",
              node2string (can));
-    a = btor_bv_to_char_bv (btor->mm, prev_ass);
+    a = btor_bv_to_char (btor->mm, prev_ass);
     BTORLOG (2, "        prev. assignment: %s", a);
     btor_freestr (btor->mm, a);
-    a = btor_bv_to_char_bv (btor->mm, new_ass);
+    a = btor_bv_to_char (btor->mm, new_ass);
     BTORLOG (2, "        new   assignment: %s", a);
     btor_freestr (btor->mm, a);
   }
@@ -380,7 +380,7 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
     while (btor_has_next_int_hash_table_iterator (&iit))                    \
     {                                                                       \
       assert (cans->data[iit.cur_pos].as_ptr);                              \
-      btor_free_bv (btor->mm,                                               \
+      btor_bv_free (btor->mm,                                               \
                     btor_next_data_int_hash_table_iterator (&iit)->as_ptr); \
     }                                                                       \
     btor_delete_int_hash_map (cans);                                        \
@@ -404,7 +404,7 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
         while (btor_has_next_int_hash_table_iterator (&iit))              \
         {                                                                 \
           assert (slv->max_cans->data[iit.cur_pos].as_ptr);               \
-          btor_free_bv (                                                  \
+          btor_bv_free (                                                  \
               btor->mm,                                                   \
               btor_next_data_int_hash_table_iterator (&iit)->as_ptr);     \
         }                                                                 \
@@ -450,13 +450,13 @@ select_inc_dec_not_move (Btor *btor,
   slv       = BTOR_SLS_SOLVER (btor);
   sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
 
-  if (fun == btor_inc_bv)
+  if (fun == btor_bv_inc)
     mk = BTOR_SLS_MOVE_INC;
-  else if (fun == btor_dec_bv)
+  else if (fun == btor_bv_dec)
     mk = BTOR_SLS_MOVE_DEC;
   else
   {
-    assert (fun == btor_not_bv);
+    assert (fun == btor_bv_not);
     mk = BTOR_SLS_MOVE_NOT;
   }
 
@@ -545,8 +545,8 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
       btor_add_int_hash_map (cans, can->id)->as_ptr =
           btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
-              ? btor_flipped_bit_bv (btor->mm, max_neigh, cpos)
-              : btor_flipped_bit_bv (btor->mm, ass, cpos);
+              ? btor_bv_flipped_bit (btor->mm, max_neigh, cpos)
+              : btor_bv_flipped_bit (btor->mm, ass, cpos);
     }
 
     sc = try_move (btor, bv_model, score, cans, &done);
@@ -623,8 +623,8 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
       btor_add_int_hash_map (cans, can->id)->as_ptr =
           btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
-              ? btor_flipped_bit_range_bv (btor->mm, max_neigh, cup, clo)
-              : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
+              ? btor_bv_flipped_bit_range (btor->mm, max_neigh, cup, clo)
+              : btor_bv_flipped_bit_range (btor->mm, ass, cup, clo);
     }
 
     sc = try_move (btor, bv_model, score, cans, &done);
@@ -708,8 +708,8 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
         btor_add_int_hash_map (cans, can->id)->as_ptr =
             btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
-                ? btor_flipped_bit_range_bv (btor->mm, max_neigh, cup, clo)
-                : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
+                ? btor_bv_flipped_bit_range (btor->mm, max_neigh, cup, clo)
+                : btor_bv_flipped_bit_range (btor->mm, ass, cup, clo);
       }
 
       sc = try_move (btor, bv_model, score, cans, &done);
@@ -782,7 +782,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         cup = ass->width - 1;
       }
       btor_add_int_hash_map (cans, can->id)->as_ptr =
-          btor_new_random_bit_range_bv (
+          btor_bv_new_random_bit_range (
               btor->mm, &btor->rng, ass->width, cup, clo);
     }
 
@@ -832,19 +832,19 @@ select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
     {
       case BTOR_SLS_MOVE_INC:
         if ((done =
-                 select_inc_dec_not_move (btor, btor_inc_bv, candidates, gw)))
+                 select_inc_dec_not_move (btor, btor_bv_inc, candidates, gw)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_DEC:
         if ((done =
-                 select_inc_dec_not_move (btor, btor_dec_bv, candidates, gw)))
+                 select_inc_dec_not_move (btor, btor_bv_dec, candidates, gw)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_NOT:
         if ((done =
-                 select_inc_dec_not_move (btor, btor_not_bv, candidates, gw)))
+                 select_inc_dec_not_move (btor, btor_bv_not, candidates, gw)))
           return done;
         break;
 
@@ -938,7 +938,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     btor_init_int_hash_table_iterator (&iit, m->cans);
     while (btor_has_next_int_hash_table_iterator (&iit))
     {
-      neigh = btor_copy_bv (btor->mm, m->cans->data[iit.cur_pos].as_ptr);
+      neigh = btor_bv_copy (btor->mm, m->cans->data[iit.cur_pos].as_ptr);
       can =
           btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
       assert (BTOR_IS_REGULAR_NODE (can));
@@ -967,10 +967,10 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
         can = BTOR_PEEK_STACK (*candidates, r);
         assert (BTOR_IS_REGULAR_NODE (can));
         if (btor_get_exp_width (btor, can) == 1)
-          neigh = btor_flipped_bit_bv (
+          neigh = btor_bv_flipped_bit (
               btor->mm, (BtorBitVector *) btor_get_bv_model (btor, can), 0);
         else
-          neigh = btor_new_random_bv (
+          neigh = btor_bv_new_random (
               btor->mm, &btor->rng, btor_get_exp_width (btor, can));
 
         btor_add_int_hash_map (slv->max_cans, can->id)->as_ptr = neigh;
@@ -989,7 +989,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
 
       if (btor_get_exp_width (btor, can) == 1)
       {
-        neigh = btor_flipped_bit_bv (
+        neigh = btor_bv_flipped_bit (
             btor->mm, (BtorBitVector *) btor_get_bv_model (btor, can), 0);
         btor_add_int_hash_map (slv->max_cans, can->id)->as_ptr = neigh;
       }
@@ -1004,7 +1004,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       }
       else
       {
-        neigh = btor_new_random_bv (
+        neigh = btor_bv_new_random (
             btor->mm, &btor->rng, btor_get_exp_width (btor, can));
         btor_add_int_hash_map (slv->max_cans, can->id)->as_ptr = neigh;
       }
@@ -1022,7 +1022,7 @@ DONE:
     m = BTOR_POP_STACK (slv->moves);
     btor_init_int_hash_table_iterator (&iit, m->cans);
     while (btor_has_next_int_hash_table_iterator (&iit))
-      btor_free_bv (btor->mm,
+      btor_bv_free (btor->mm,
                     btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
     btor_delete_int_hash_map (m->cans);
     BTOR_DELETE (btor->mm, m);
@@ -1097,23 +1097,23 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
     switch (mk)
     {
-      case BTOR_SLS_MOVE_INC: neigh = btor_inc_bv (btor->mm, ass); break;
-      case BTOR_SLS_MOVE_DEC: neigh = btor_dec_bv (btor->mm, ass); break;
-      case BTOR_SLS_MOVE_NOT: neigh = btor_not_bv (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_INC: neigh = btor_bv_inc (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_DEC: neigh = btor_bv_dec (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_NOT: neigh = btor_bv_not (btor->mm, ass); break;
       case BTOR_SLS_MOVE_FLIP_RANGE:
         up = btor_pick_rand_rng (
             &btor->rng, ass->width > 1 ? 1 : 0, ass->width - 1);
-        neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, 0);
+        neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, 0);
         break;
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
         lo = btor_pick_rand_rng (&btor->rng, 0, ass->width - 1);
         up = btor_pick_rand_rng (
             &btor->rng, lo < ass->width - 1 ? lo + 1 : lo, ass->width - 1);
-        neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, lo);
+        neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, lo);
         break;
       default:
         assert (mk == BTOR_SLS_MOVE_FLIP);
-        neigh = btor_flipped_bit_bv (
+        neigh = btor_bv_flipped_bit (
             btor->mm, ass, btor_pick_rand_rng (&btor->rng, 0, ass->width - 1));
         break;
     }
@@ -1247,14 +1247,14 @@ move (Btor *btor, uint32_t nmoves)
     neigh = (BtorBitVector *) slv->max_cans->data[iit.cur_pos].as_ptr;
     can = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
     ass = (BtorBitVector *) btor_get_bv_model (btor, can);
-    a   = btor_bv_to_char_bv (btor->mm, ass);
+    a   = btor_bv_to_char (btor->mm, ass);
     BTORLOG (1,
              "  candidate: %s%s",
              BTOR_IS_REGULAR_NODE (can) ? "" : "-",
              node2string (can));
     BTORLOG (1, "  prev. assignment: %s", a);
     btor_freestr (btor->mm, a);
-    a = btor_bv_to_char_bv (btor->mm, neigh);
+    a = btor_bv_to_char (btor->mm, neigh);
     BTORLOG (1, "  new   assignment: %s", a);
     btor_freestr (btor->mm, a);
   }
@@ -1340,7 +1340,7 @@ DONE:
   while (btor_has_next_int_hash_table_iterator (&iit))
   {
     assert (slv->max_cans->data[iit.cur_pos].as_ptr);
-    btor_free_bv (btor->mm,
+    btor_bv_free (btor->mm,
                   btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
   }
   btor_delete_int_hash_map (slv->max_cans);
@@ -1450,7 +1450,7 @@ delete_sls_solver (BtorSLSSolver *slv)
     m = BTOR_POP_STACK (slv->moves);
     btor_init_int_hash_table_iterator (&it, m->cans);
     while (btor_has_next_int_hash_table_iterator (&it))
-      btor_free_bv (btor->mm,
+      btor_bv_free (btor->mm,
                     btor_next_data_int_hash_table_iterator (&it)->as_ptr);
     btor_delete_int_hash_map (m->cans);
   }
@@ -1461,7 +1461,7 @@ delete_sls_solver (BtorSLSSolver *slv)
     while (btor_has_next_int_hash_table_iterator (&it))
     {
       assert (slv->max_cans->data[it.cur_pos].as_ptr);
-      btor_free_bv (btor->mm,
+      btor_bv_free (btor->mm,
                     btor_next_data_int_hash_table_iterator (&it)->as_ptr);
     }
     btor_delete_int_hash_map (slv->max_cans);
@@ -1574,7 +1574,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     {
       root = btor_next_ptr_hash_table_iterator (&pit);
       if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
-          && btor_is_zero_bv (btor_get_bv_model (btor, root)))
+          && btor_bv_is_zero (btor_get_bv_model (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */

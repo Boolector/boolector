@@ -60,7 +60,7 @@ cmp_data_as_bv_ptr (const BtorHashTableData *d1, const BtorHashTableData *d2)
   assert (d1);
   assert (d2);
 
-  return btor_compare_bv (d1->as_ptr, d2->as_ptr);
+  return btor_bv_compare (d1->as_ptr, d2->as_ptr);
 }
 
 static int
@@ -512,14 +512,14 @@ btor_chkclone_exp (Btor *btor,
   {
     assert (btor_const_get_bits (real_exp)->width
             == btor_const_get_bits (real_cexp)->width);
-    assert (btor_compare_bv (btor_const_get_bits (real_exp),
+    assert (btor_bv_compare (btor_const_get_bits (real_exp),
                              btor_const_get_bits (real_cexp))
             == 0);
     if (btor_const_get_invbits (real_exp))
     {
       assert (btor_const_get_invbits (real_exp)->width
               == btor_const_get_invbits (real_cexp)->width);
-      assert (btor_compare_bv (btor_const_get_invbits (real_exp),
+      assert (btor_bv_compare (btor_const_get_invbits (real_exp),
                                btor_const_get_invbits (real_cexp))
               == 0);
     }
@@ -911,7 +911,7 @@ chkclone_tables (Btor *btor, Btor *clone)
       assert (btor_has_next_int_hash_table_iterator (&ciit));
       assert (btor->bv_model->data[iit.cur_pos].as_ptr);
       assert (clone->bv_model->data[ciit.cur_pos].as_ptr);
-      assert (!btor_compare_bv (btor->bv_model->data[iit.cur_pos].as_ptr,
+      assert (!btor_bv_compare (btor->bv_model->data[iit.cur_pos].as_ptr,
                                 clone->bv_model->data[ciit.cur_pos].as_ptr));
       assert (btor_next_int_hash_table_iterator (&iit)
               == btor_next_int_hash_table_iterator (&ciit));
@@ -942,9 +942,9 @@ chkclone_tables (Btor *btor, Btor *clone)
       while (btor_has_next_ptr_hash_table_iterator (&npit))
       {
         assert (btor_has_next_ptr_hash_table_iterator (&cnpit));
-        assert (!btor_compare_bv ((BtorBitVector *) npit.bucket->data.as_ptr,
+        assert (!btor_bv_compare ((BtorBitVector *) npit.bucket->data.as_ptr,
                                   (BtorBitVector *) cnpit.bucket->data.as_ptr));
-        assert (!btor_compare_bv_tuple ((BtorBitVectorTuple *) npit.cur,
+        assert (!btor_bv_compare_tuple ((BtorBitVectorTuple *) npit.cur,
                                         (BtorBitVectorTuple *) cnpit.cur));
         (void) btor_next_ptr_hash_table_iterator (&npit);
         (void) btor_next_ptr_hash_table_iterator (&cnpit);

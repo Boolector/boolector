@@ -1471,16 +1471,16 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                 {
                   tmpbv = 0;
                   if (!strcmp (tmp, ""))
-                    extbv = btor_new_bv (parser->mem, len - tlen);
+                    extbv = btor_bv_new (parser->mem, len - tlen);
                   else
                   {
-                    tmpbv = btor_char_to_bv (parser->mem, tmp);
-                    extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+                    tmpbv = btor_bv_char_to_bv (parser->mem, tmp);
+                    extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
                   }
-                  ext = btor_bv_to_char_bv (parser->mem, extbv);
+                  ext = btor_bv_to_char (parser->mem, extbv);
                   btor_freestr (parser->mem, tmp);
-                  btor_free_bv (parser->mem, extbv);
-                  if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+                  btor_bv_free (parser->mem, extbv);
+                  if (tmpbv) btor_bv_free (parser->mem, tmpbv);
                   tmp = ext;
                 }
 
@@ -1522,16 +1522,16 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
           {
             tmpbv = 0;
             if (!strcmp (tmp, ""))
-              extbv = btor_new_bv (parser->mem, len - tlen);
+              extbv = btor_bv_new (parser->mem, len - tlen);
             else
             {
-              tmpbv = btor_char_to_bv (parser->mem, tmp);
-              extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+              tmpbv = btor_bv_char_to_bv (parser->mem, tmp);
+              extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
             }
-            ext = btor_bv_to_char_bv (parser->mem, extbv);
+            ext = btor_bv_to_char (parser->mem, extbv);
             btor_freestr (parser->mem, tmp);
-            btor_free_bv (parser->mem, extbv);
-            if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+            btor_bv_free (parser->mem, extbv);
+            if (tmpbv) btor_bv_free (parser->mem, tmpbv);
             tmp = ext;
           }
           symbol->exp = boolector_const (parser->btor, tmp);

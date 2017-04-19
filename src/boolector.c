@@ -888,10 +888,10 @@ boolector_const (Btor *btor, const char *bits)
   BTOR_TRAPI ("%s", bits);
   BTOR_ABORT_ARG_NULL (bits);
   BTOR_ABORT (*bits == '\0', "'bits' must not be empty");
-  bv  = btor_char_to_bv (btor->mm, (char *) bits);
+  bv  = btor_bv_char_to_bv (btor->mm, (char *) bits);
   res = btor_const_exp (btor, bv);
   btor_inc_exp_ext_ref_counter (btor, res);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, const, bits);
@@ -2956,9 +2956,9 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   /* representations of bits of const nodes are maintained analogously
    * to bv assignment strings */
   if (!BTOR_IS_INVERTED_NODE (exp))
-    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (exp));
+    bits = btor_bv_to_char (btor->mm, btor_const_get_bits (exp));
   else
-    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_invbits (real));
+    bits = btor_bv_to_char (btor->mm, btor_const_get_invbits (real));
   bvass = btor_ass_new_bv (btor->bv_assignments, bits);
   btor_freestr (btor->mm, bits);
   res = btor_ass_get_bv_str (bvass);
@@ -3238,7 +3238,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  ass   = btor_bv_to_char_bv (btor->mm, btor_get_bv_model (btor, exp));
+  ass   = btor_bv_to_char (btor->mm, btor_get_bv_model (btor, exp));
   bvass = btor_ass_new_bv (btor->bv_assignments, ass);
   btor_freestr (btor->mm, ass);
   res = btor_ass_get_bv_str (bvass);
@@ -3322,13 +3322,13 @@ generate_fun_model_str (
     BTOR_NEWN (btor->mm, arg, len);
     tmp = arg;
 
-    bv = btor_bv_to_char_bv (btor->mm, t->bv[0]);
+    bv = btor_bv_to_char (btor->mm, t->bv[0]);
     strcpy (tmp, bv);
     btor_freestr (btor->mm, bv);
 
     for (j = 1; j < t->arity; j++)
     {
-      bv = btor_bv_to_char_bv (btor->mm, t->bv[j]);
+      bv = btor_bv_to_char (btor->mm, t->bv[j]);
       strcat (tmp, " ");
       strcat (tmp, bv);
       btor_freestr (btor->mm, bv);
@@ -3336,7 +3336,7 @@ generate_fun_model_str (
     assert (strlen (arg) == len - 1);
 
     (*args)[i]   = arg;
-    (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
+    (*values)[i] = (char *) btor_bv_to_char (btor->mm, value);
     i++;
   }
 }
