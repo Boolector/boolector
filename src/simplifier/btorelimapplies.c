@@ -16,6 +16,36 @@
 #include "utils/btorexpiter.h"
 #include "utils/btorutil.h"
 
+static void
+eliminate_update_nodes (Btor *btor)
+{
+  uint32_t i;
+  BtorNode *cur, *p, *cond, *eq, *app, *lambda;
+
+  btor_init_substitutions (btor);
+
+  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+    if (!cur || !btor_is_update_node (cur)) continue;
+    p      = btor_param_exp (btor, btor_exp_get_sort_id (cur->e[1]->e[0]), 0);
+    app    = btor_apply_exps (btor, &p, 1, cur->e[0]);
+    eq     = btor_eq_exp (btor, p, cur->e[1]->e[0]);
+    cond   = btor_cond_exp (btor, eq, cur->e[2], app);
+    lambda = btor_lambda_exp (btor, p, cond);
+
+    btor_insert_substitution (btor, cur, lambda, 0);
+    btor_release_exp (btor, p);
+    btor_release_exp (btor, app);
+    btor_release_exp (btor, eq);
+    btor_release_exp (btor, cond);
+    btor_release_exp (btor, lambda);
+  }
+
+  btor_substitute_and_rebuild (btor, btor->substitutions);
+  btor_delete_substitutions (btor);
+}
+
 void
 btor_eliminate_applies (Btor *btor)
 {
@@ -27,6 +57,8 @@ btor_eliminate_applies (Btor *btor)
   BtorNodeIterator it;
   BtorPtrHashTableIterator h_it;
   BtorPtrHashTable *cache;
+
+  eliminate_update_nodes (btor);
 
   if (btor->lambdas->count == 0) return;
 
