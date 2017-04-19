@@ -739,11 +739,11 @@ set_up_dual_and_collect (Btor *btor,
     default:
       assert (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP_QSORT)
               == BTOR_DP_QSORT_JUST);
-      btor_compute_scores_dual_prop (btor);
+      btor_dcr_compute_scores_dual_prop (btor);
       qsort (sorted.start,
              BTOR_COUNT_STACK (sorted),
              sizeof (BtorNode *),
-             btor_compare_scores_qsort);
+             btor_dcr_compare_scores_qsort);
   }
   assume_inputs (btor, clone, &sorted, exp_map, key_map, assumptions);
   slv->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
@@ -970,7 +970,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
   BTOR_INIT_STACK (mm, stack);
 
-  btor_compute_scores (btor);
+  btor_dcr_compute_scores (btor);
 
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -1042,7 +1042,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
                 if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
                     || h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
                 {
-                  if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
+                  if (btor_dcr_compare_scores (btor, cur->e[0], cur->e[1]))
                     BTOR_PUSH_STACK (stack, cur->e[0]);
                   else
                     BTOR_PUSH_STACK (stack, cur->e[1]);

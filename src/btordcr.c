@@ -224,7 +224,7 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 }
 
 void
-btor_compute_scores (Btor *btor)
+btor_dcr_compute_scores (Btor *btor)
 {
   assert (btor);
 
@@ -246,7 +246,7 @@ btor_compute_scores (Btor *btor)
    * only need the children of AND nodes. If dual prop is enabled, we only need
    * APPLY nodes (BV var nodes always have score 0 or 1 depending on the
    * selected heuristic and are treated as such in compare_scores).
-   * -> see btor_compute_scores_dual_prop */
+   * -> see btor_dcr_compute_scores_dual_prop */
 
   start = btor_time_stamp ();
   mm    = btor->mm;
@@ -298,7 +298,7 @@ btor_compute_scores (Btor *btor)
 }
 
 void
-btor_compute_scores_dual_prop (Btor *btor)
+btor_dcr_compute_scores_dual_prop (Btor *btor)
 {
   assert (btor);
 
@@ -327,7 +327,7 @@ btor_compute_scores_dual_prop (Btor *btor)
    * only need the children of AND nodes. If dual prop is enabled, we only need
    * APPLY nodes (BV var nodes always have score 0 or 1 depending on the
    * selected heuristic and are treated as such in compare_scores).
-   * -> see btor_compute_scores */
+   * -> see btor_dcr_compute_scores */
 
   BTOR_INIT_STACK (mm, nodes);
 
@@ -377,7 +377,7 @@ btor_compute_scores_dual_prop (Btor *btor)
 }
 
 int
-btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
+btor_dcr_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
 {
   assert (btor);
   assert (a);
@@ -431,7 +431,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
 }
 
 int
-btor_compare_scores_qsort (const void *p1, const void *p2)
+btor_dcr_compare_scores_qsort (const void *p1, const void *p2)
 {
   int h, sa, sb;
   BtorFunSolver *slv;

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -13,9 +13,9 @@
 
 #include "btortypes.h"
 
-void btor_compute_scores (Btor* btor);
-void btor_compute_scores_dual_prop (Btor* btor);
+void btor_dcr_compute_scores (Btor* btor);
+void btor_dcr_compute_scores_dual_prop (Btor* btor);
 
-int btor_compare_scores (Btor* btor, BtorNode* a, BtorNode* b);
-int btor_compare_scores_qsort (const void* p1, const void* p2);
+int btor_dcr_compare_scores (Btor* btor, BtorNode* a, BtorNode* b);
+int btor_dcr_compare_scores_qsort (const void* p1, const void* p2);
 #endif
