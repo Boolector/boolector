@@ -995,7 +995,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
       }
 
       if (!cur->parameterized && !btor_is_fun_node (cur)
-          && btor_get_exp_width (btor, cur) == 1)
+          && !btor_is_args_node (cur) && btor_get_exp_width (btor, cur) == 1)
       {
         switch (cur->kind)
         {
