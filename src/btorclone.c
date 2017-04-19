@@ -1456,7 +1456,7 @@ btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map)
 }
 
 BtorNode *
-btor_recursively_rebuild_exp_clone (Btor *btor,
+btor_clone_recursively_rebuild_exp (Btor *btor,
                                     Btor *clone,
                                     BtorNode *exp,
                                     BtorNodeMap *exp_map,

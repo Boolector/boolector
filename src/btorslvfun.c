@@ -872,7 +872,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 
   /* clone and rebuild lemma with rewrite level 0 (as we want the exact
    * expression) */
-  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map, 0);
+  clemma = btor_clone_recursively_rebuild_exp (btor, clone, lemma, exp_map, 0);
   assert (clemma);
   and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);
