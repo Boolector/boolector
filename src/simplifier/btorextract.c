@@ -702,11 +702,14 @@ collect_indices_updates (Btor *btor,
         prev_index = index;
         prev_value = value;
       }
-      if (btor_get_ptr_hash_table (map_value_index, top_upd))
+      if (btor_is_update_node (top_upd))
       {
-        assert (!btor_get_ptr_hash_table (map_lambda_base, top_upd));
-        btor_add_ptr_hash_table (map_lambda_base, top_upd)->data.as_ptr =
-            cur_upd;
+        if (btor_get_ptr_hash_table (map_value_index, top_upd))
+        {
+          assert (!btor_get_ptr_hash_table (map_lambda_base, top_upd));
+          btor_add_ptr_hash_table (map_lambda_base, top_upd)->data.as_ptr =
+              cur_upd;
+        }
       }
       btor_delete_int_hash_table (index_cache);
       btor_add_int_hash_table (visit_cache, btor_exp_get_id (top_upd));
