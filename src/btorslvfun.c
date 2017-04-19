@@ -540,9 +540,9 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
-  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-  assert (btor_check_assumptions_simp_free_dbg (btor));
+  assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+  assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+  assert (btor_dbg_check_assumptions_simp_free (btor));
 
   btor_add_again_assumptions (btor);
 
@@ -2290,8 +2290,8 @@ sat_fun_solver (BtorFunSolver *slv)
       goto DONE;
     }
     assert (btor->unsynthesized_constraints->count == 0);
-    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+    assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+    assert (btor_dbg_check_all_hash_tables_simp_free (btor));
 
     /* make SAT call on bv skeleton */
     btor_add_again_assumptions (btor);

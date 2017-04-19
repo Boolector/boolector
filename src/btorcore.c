@@ -1661,7 +1661,7 @@ add_constraint (Btor *btor, BtorNode *exp)
     insert_new_constraint (btor, exp);
 
   btor_delete_int_hash_table (mark);
-  assert (btor_check_constraints_not_const_dbg (btor));
+  assert (btor_dbg_check_constraints_not_const (btor));
 }
 
 void
@@ -2431,7 +2431,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 
   update_node_hash_tables (btor);
   btor_delete_int_hash_map (mark);
-  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_dbg_check_lambdas_static_rho_proxy_free (btor));
 }
 
 static void
@@ -2936,11 +2936,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   BTOR_RELEASE_STACK (roots);
 
-  assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+  assert (btor_dbg_check_unique_table_children_proxy_free (btor));
   btor_delete_int_hash_map (mark);
 
   update_node_hash_tables (btor);
-  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_dbg_check_lambdas_static_rho_proxy_free (btor));
   btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
@@ -3097,17 +3097,17 @@ btor_simplify (Btor *btor)
   do
   {
     rounds++;
-    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-    assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+    assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+    assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+    assert (btor_dbg_check_unique_table_children_proxy_free (btor));
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1)
     {
       if (btor_get_opt (btor, BTOR_OPT_VAR_SUBST))
       {
         substitute_var_exps (btor);
-        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+        assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+        assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 
         if (btor->inconsistent) break;
 
@@ -3116,9 +3116,9 @@ btor_simplify (Btor *btor)
       }
 
       process_embedded_constraints (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+      assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+      assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 
       if (btor->inconsistent) break;
 
@@ -3145,9 +3145,9 @@ btor_simplify (Btor *btor)
       if (skelrounds <= 1)  // TODO only one?
       {
         btor_process_skeleton (btor);
-        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+        assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+        assert (btor_dbg_check_unique_table_children_proxy_free (btor));
         if (btor->inconsistent) break;
       }
 
@@ -3166,9 +3166,9 @@ btor_simplify (Btor *btor)
         && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
     {
       btor_optimize_unconstrained (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+      assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+      assert (btor_dbg_check_unique_table_children_proxy_free (btor));
       if (btor->inconsistent) break;
     }
 
@@ -3510,7 +3510,7 @@ void
 btor_add_again_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (btor_check_assumptions_simp_free_dbg (btor));
+  assert (btor_dbg_check_assumptions_simp_free (btor));
 
   int i;
   BtorNode *exp, *cur, *e;

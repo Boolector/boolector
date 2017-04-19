@@ -222,8 +222,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     goto DONE;
   }
   assert (btor->unsynthesized_constraints->count == 0);
-  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+  assert (btor_dbg_check_all_hash_tables_simp_free (btor));
 
 #ifndef NDEBUG
   btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
