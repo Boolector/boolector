@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2016 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -16,21 +16,21 @@
 #ifndef NDEBUG
 #include "btorcore.h"
 
-bool btor_check_lambdas_static_rho_proxy_free_dbg (const Btor* btor);
+bool btor_dbg_check_lambdas_static_rho_proxy_free (const Btor* btor);
 
-bool btor_check_unique_table_children_proxy_free_dbg (const Btor* btor);
+bool btor_dbg_check_unique_table_children_proxy_free (const Btor* btor);
 
-bool btor_check_hash_table_proxy_free_dbg (BtorPtrHashTable* table);
+bool btor_dbg_check_hash_table_proxy_free (BtorPtrHashTable* table);
 
-bool btor_check_all_hash_tables_proxy_free_dbg (const Btor* btor);
+bool btor_dbg_check_all_hash_tables_proxy_free (const Btor* btor);
 
-bool btor_check_hash_table_simp_free_dbg (BtorPtrHashTable* table);
+bool btor_dbg_check_hash_table_simp_free (BtorPtrHashTable* table);
 
-bool btor_check_all_hash_tables_simp_free_dbg (const Btor* btor);
+bool btor_dbg_check_all_hash_tables_simp_free (const Btor* btor);
 
-bool btor_check_constraints_not_const_dbg (const Btor* btor);
+bool btor_dbg_check_constraints_not_const (const Btor* btor);
 
-bool btor_check_assumptions_simp_free_dbg (const Btor* btor);
+bool btor_dbg_check_assumptions_simp_free (const Btor* btor);
 
 #endif
 #endif

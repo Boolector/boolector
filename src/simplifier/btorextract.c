@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,7 +10,7 @@
  */
 
 #include "simplifier/btorextract.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "utils/btorexpiter.h"
 #include "utils/btormisc.h"
@@ -72,7 +72,7 @@ cmp_abs_rel_indices (const void *a, const void *b)
   }
   assert (bx);
   assert (by);
-  return btor_compare_bv (bx, by);
+  return btor_bv_compare (bx, by);
 }
 
 /*
@@ -123,9 +123,9 @@ create_range (Btor *btor,
   and = btor_and_exp (btor, le0, le1);
 
   /* increment by one */
-  if (btor_is_one_bv (offset)) res = btor_copy_exp (btor, and);
+  if (btor_bv_is_one (offset)) res = btor_copy_exp (btor, and);
   /* increment by power of two */
-  else if ((pos = btor_power_of_two_bv (offset)) > -1)
+  else if ((pos = btor_bv_power_of_two (offset)) > -1)
   {
     assert (pos > 0);
     sub   = btor_sub_exp (btor, upper, param);
@@ -868,12 +868,12 @@ find_ranges (Btor *btor,
         }
         assert (b0);
         assert (b1);
-        inc = btor_sub_bv (mm, b1, b0);
+        inc = btor_bv_sub (mm, b1, b0);
 
-        if (!prev_inc) prev_inc = btor_copy_bv (mm, inc);
+        if (!prev_inc) prev_inc = btor_bv_copy (mm, inc);
 
         /* increment upper bound of range */
-        in_range = btor_compare_bv (inc, prev_inc) == 0;
+        in_range = btor_bv_compare (inc, prev_inc) == 0;
         if (in_range) upper += 1;
       }
 
@@ -891,7 +891,7 @@ find_ranges (Btor *btor,
         /* range is too small, push separate indices */
         else if (upper - lower <= 1
                  /* range with an offset greater than 1 */
-                 && btor_power_of_two_bv (prev_inc) != 0)
+                 && btor_bv_power_of_two (prev_inc) != 0)
         {
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */
@@ -924,7 +924,7 @@ find_ranges (Btor *btor,
 #ifndef NDEBUG
           num_indices += upper - lower + 1;
 #endif
-          if (btor_is_one_bv (prev_inc))
+          if (btor_bv_is_one (prev_inc))
           {
             size_pattern += upper - lower + 1;
             num_pattern++;
@@ -940,14 +940,14 @@ find_ranges (Btor *btor,
           /* reset range */
           upper += 1;
           lower = upper;
-          if (inc) btor_free_bv (mm, inc);
+          if (inc) btor_bv_free (mm, inc);
           inc = 0;
         }
       }
-      if (prev_inc) btor_free_bv (mm, prev_inc);
+      if (prev_inc) btor_bv_free (mm, prev_inc);
       prev_inc = inc;
     }
-    if (inc) btor_free_bv (mm, inc);
+    if (inc) btor_bv_free (mm, inc);
     assert (num_indices == cnt);
   }
 
@@ -1131,7 +1131,7 @@ extract_lambdas (Btor *btor,
         tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_free_bv (mm, inc);
+        btor_bv_free (mm, inc);
         i_inc++;
 
         assert (i_index_r < BTOR_COUNT_STACK (indices_ranges));
@@ -1200,7 +1200,7 @@ extract_lambdas (Btor *btor,
         tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_free_bv (mm, inc);
+        btor_bv_free (mm, inc);
 
         assert (i_index_r < BTOR_COUNT_STACK (indices_ranges));
         static_rho = create_static_rho (
@@ -1241,7 +1241,7 @@ extract_lambdas (Btor *btor,
         tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_free_bv (mm, inc);
+        btor_bv_free (mm, inc);
 
         assert (i_index_r < BTOR_COUNT_STACK (indices_ranges));
         static_rho = create_static_rho (
@@ -1289,7 +1289,7 @@ extract_lambdas (Btor *btor,
         tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_free_bv (mm, inc);
+        btor_bv_free (mm, inc);
 
         assert (i_index_r < BTOR_COUNT_STACK (indices_ranges));
         static_rho = create_static_rho (

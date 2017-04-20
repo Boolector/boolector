@@ -90,7 +90,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
     }
     else
       BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[0]));
-    btor_release_delete_aigvec (avmgr, av);
+    btor_aigvec_release_delete (avmgr, av);
   }
   btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
   if (merge_roots) BTOR_PUSH_STACK (roots, merged);

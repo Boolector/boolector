@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2014 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -12,7 +12,7 @@
 
 #include "btorsmt2.h"
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -2025,9 +2025,9 @@ translate_ext_rotate_smt2 (Btor *btor,
 
   /* max width of a bit vector is uint32_t -> conversion not a problem */
   shift_width_bv =
-      btor_char_to_bv (btor->mm, (char *) boolector_get_bits (btor, shift));
-  shift_width = (uint32_t) btor_bv_to_uint64_bv (shift_width_bv);
-  btor_free_bv (btor->mm, shift_width_bv);
+      btor_bv_char_to_bv (btor->mm, (char *) boolector_get_bits (btor, shift));
+  shift_width = (uint32_t) btor_bv_to_uint64 (shift_width_bv);
+  btor_bv_free (btor->mm, shift_width_bv);
 
   assert (shift_width < boolector_get_width (btor, exp));
 
@@ -2994,18 +2994,18 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                 BtorBitVector *constrbv = 0, *uconstrbv;
                 char *uconstr;
                 if (!strcmp (constr, ""))
-                  uconstrbv = btor_new_bv (parser->mem, width - width2);
+                  uconstrbv = btor_bv_new (parser->mem, width - width2);
                 else
                 {
-                  constrbv = btor_char_to_bv (parser->mem, constr);
+                  constrbv = btor_bv_char_to_bv (parser->mem, constr);
                   uconstrbv =
-                      btor_uext_bv (parser->mem, constrbv, width - width2);
+                      btor_bv_uext (parser->mem, constrbv, width - width2);
                 }
-                uconstr = btor_bv_to_char_bv (parser->mem, uconstrbv);
+                uconstr = btor_bv_to_char (parser->mem, uconstrbv);
                 exp     = boolector_const (parser->btor, uconstr);
                 btor_freestr (parser->mem, uconstr);
-                btor_free_bv (parser->mem, uconstrbv);
-                if (constrbv) btor_free_bv (parser->mem, constrbv);
+                btor_bv_free (parser->mem, uconstrbv);
+                if (constrbv) btor_bv_free (parser->mem, constrbv);
               }
             UNDERSCORE_DONE:
               btor_freestr (parser->mem, decstr);
@@ -3095,15 +3095,15 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         else
         {
           if (!strcmp (constr, ""))
-            uconstrbv = btor_new_bv (parser->mem, width - width2);
+            uconstrbv = btor_bv_new (parser->mem, width - width2);
           else
           {
-            constrbv  = btor_char_to_bv (parser->mem, constr);
-            uconstrbv = btor_uext_bv (parser->mem, constrbv, width - width2);
+            constrbv  = btor_bv_char_to_bv (parser->mem, constr);
+            uconstrbv = btor_bv_uext (parser->mem, constrbv, width - width2);
           }
-          uconstr = btor_bv_to_char_bv (parser->mem, uconstrbv);
-          btor_free_bv (parser->mem, uconstrbv);
-          if (constrbv) btor_free_bv (parser->mem, constrbv);
+          uconstr = btor_bv_to_char (parser->mem, uconstrbv);
+          btor_bv_free (parser->mem, uconstrbv);
+          if (constrbv) btor_bv_free (parser->mem, constrbv);
         }
         p->tag = BTOR_EXP_TAG_SMT2;
         p->exp = boolector_const (parser->btor, uconstr);

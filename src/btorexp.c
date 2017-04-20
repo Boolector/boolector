@@ -177,7 +177,7 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
   unsigned int hash = 0;
 
   if (btor_is_bv_const_node (exp))
-    hash = btor_hash_bv (btor_const_get_bits (exp));
+    hash = btor_bv_hash (btor_const_get_bits (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -261,9 +261,9 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   switch (exp->kind)
   {
     case BTOR_BV_CONST_NODE:
-      btor_free_bv (mm, btor_const_get_bits (exp));
+      btor_bv_free (mm, btor_const_get_bits (exp));
       if (btor_const_get_invbits (exp))
-        btor_free_bv (mm, btor_const_get_invbits (exp));
+        btor_bv_free (mm, btor_const_get_invbits (exp));
       btor_const_set_bits (exp, 0);
       btor_const_set_invbits (exp, 0);
       break;
@@ -307,7 +307,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
 
   if (exp->av)
   {
-    btor_release_delete_aigvec (btor->avmgr, exp->av);
+    btor_aigvec_release_delete (btor->avmgr, exp->av);
     exp->av = 0;
   }
   exp->erased = 1;
@@ -514,9 +514,9 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   if (btor_is_bv_const_node (exp))
   {
-    btor_free_bv (btor->mm, btor_const_get_bits (exp));
+    btor_bv_free (btor->mm, btor_const_get_bits (exp));
     if (btor_const_get_invbits (exp))
-      btor_free_bv (btor->mm, btor_const_get_invbits (exp));
+      btor_bv_free (btor->mm, btor_const_get_invbits (exp));
   }
   btor_free (mm, exp, exp->bytes);
 }
@@ -1519,8 +1519,8 @@ new_const_exp_node (Btor *btor, BtorBitVector *bits)
   exp->bytes = sizeof *exp;
   btor_exp_set_sort_id ((BtorNode *) exp, btor_bitvec_sort (btor, bits->width));
   setup_node_and_add_to_id_table (btor, exp);
-  btor_const_set_bits ((BtorNode *) exp, btor_copy_bv (btor->mm, bits));
-  btor_const_set_invbits ((BtorNode *) exp, btor_not_bv (btor->mm, bits));
+  btor_const_set_bits ((BtorNode *) exp, btor_bv_copy (btor->mm, bits));
+  btor_const_set_invbits ((BtorNode *) exp, btor_bv_not (btor->mm, bits));
   return (BtorNode *) exp;
 }
 
@@ -1765,7 +1765,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = btor_hash_bv (bits);
+  hash = btor_bv_hash (bits);
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
@@ -1774,7 +1774,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (btor_is_bv_const_node (cur)
         && btor_get_exp_width (btor, cur) == bits->width
-        && !btor_compare_bv (btor_const_get_bits (cur), bits))
+        && !btor_bv_compare (btor_const_get_bits (cur), bits))
       break;
     else
     {
@@ -2119,14 +2119,14 @@ btor_const_exp (Btor *btor, const BtorBitVector *bits)
   BtorNode **lookup;
 
   /* normalize constants, constants are always even */
-  if (btor_get_bit_bv (bits, 0))
+  if (btor_bv_get_bit (bits, 0))
   {
-    lookupbits = btor_not_bv (btor->mm, bits);
+    lookupbits = btor_bv_not (btor->mm, bits);
     inv        = true;
   }
   else
   {
-    lookupbits = btor_copy_bv (btor->mm, bits);
+    lookupbits = btor_bv_copy (btor->mm, bits);
     inv        = false;
   }
 
@@ -2148,7 +2148,7 @@ btor_const_exp (Btor *btor, const BtorBitVector *bits)
 
   assert (BTOR_IS_REGULAR_NODE (*lookup));
 
-  btor_free_bv (btor->mm, lookupbits);
+  btor_bv_free (btor->mm, lookupbits);
 
   if (inv) return BTOR_INVERT_NODE (*lookup);
   return *lookup;
@@ -2163,10 +2163,10 @@ int_min_exp (Btor *btor, uint32_t width)
   BtorBitVector *bv;
   BtorNode *result;
 
-  bv = btor_new_bv (btor->mm, width);
-  btor_set_bit_bv (bv, bv->width - 1, 1);
+  bv = btor_bv_new (btor->mm, width);
+  btor_bv_set_bit (bv, bv->width - 1, 1);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2182,9 +2182,9 @@ btor_zero_exp (Btor *btor, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_new_bv (btor->mm, width);
+  bv     = btor_bv_new (btor->mm, width);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2200,9 +2200,9 @@ btor_ones_exp (Btor *btor, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_ones_bv (btor->mm, width);
+  bv     = btor_bv_ones (btor->mm, width);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2218,9 +2218,9 @@ btor_one_exp (Btor *btor, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_one_bv (btor->mm, width);
+  bv     = btor_bv_one (btor->mm, width);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2236,9 +2236,9 @@ btor_int_exp (Btor *btor, int32_t i, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_int64_to_bv (btor->mm, i, width);
+  bv     = btor_bv_int64_to_bv (btor->mm, i, width);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2254,9 +2254,9 @@ btor_unsigned_exp (Btor *btor, uint32_t u, BtorSortId sort)
   BtorBitVector *bv;
 
   width  = btor_get_width_bitvec_sort (btor, sort);
-  bv     = btor_uint64_to_bv (btor->mm, u, width);
+  bv     = btor_bv_uint64_to_bv (btor->mm, u, width);
   result = btor_const_exp (btor, bv);
-  btor_free_bv (btor->mm, bv);
+  btor_bv_free (btor->mm, bv);
   return result;
 }
 
@@ -2745,9 +2745,9 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
   /* eliminate nested functions */
   if (btor_is_lambda_node (e[0]) && e[0]->parameterized)
   {
-    btor_assign_args (btor, e[0], args);
+    btor_beta_assign_args (btor, e[0], args);
     BtorNode *result = btor_beta_reduce_bounded (btor, e[0], 1);
-    btor_unassign_params (btor, e[0]);
+    btor_beta_unassign_params (btor, e[0]);
     return result;
   }
   assert (!btor_is_fun_cond_node (e[0])

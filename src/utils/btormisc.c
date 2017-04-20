@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -86,7 +86,7 @@ node2string (BtorNode *exp)
   }
   else if (btor_is_bv_const_node (exp))
   {
-    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (real_exp));
+    bits = btor_bv_to_char (btor->mm, btor_const_get_bits (real_exp));
     new_len += strlen (bits) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", bits);
     btor_freestr (btor->mm, bits);

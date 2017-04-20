@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2016 Mathias Preiner.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -43,7 +43,7 @@ btor_delete_bv_model (Btor *btor, BtorIntHashTable **bv_model)
   {
     bv  = (BtorBitVector *) (*bv_model)->data[it.cur_pos].as_ptr;
     cur = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
-    btor_free_bv (btor->mm, bv);
+    btor_bv_free (btor->mm, bv);
     btor_release_exp (btor, cur);
   }
   btor_delete_int_hash_map (*bv_model);
@@ -106,7 +106,7 @@ btor_add_to_bv_model (Btor *btor,
       !btor_contains_int_hash_map (bv_model, BTOR_REAL_ADDR_NODE (exp)->id));
   btor_copy_exp (btor, exp);
   btor_add_int_hash_map (bv_model, BTOR_REAL_ADDR_NODE (exp)->id)->as_ptr =
-      btor_copy_bv (btor->mm, assignment);
+      btor_bv_copy (btor->mm, assignment);
 }
 
 /*------------------------------------------------------------------------*/
@@ -126,12 +126,12 @@ btor_remove_from_bv_model (Btor *btor,
   id = btor_exp_get_id (exp);
   assert (btor_contains_int_hash_map (bv_model, id));
   btor_remove_int_hash_map (bv_model, id, &d);
-  btor_free_bv (btor->mm, d.as_ptr);
+  btor_bv_free (btor->mm, d.as_ptr);
   btor_release_exp (btor, exp);
   if (btor_contains_int_hash_map (bv_model, -id))
   {
     btor_remove_int_hash_map (bv_model, id, &d);
-    btor_free_bv (btor->mm, d.as_ptr);
+    btor_bv_free (btor->mm, d.as_ptr);
     btor_release_exp (btor, exp);
   }
 }
@@ -185,7 +185,7 @@ btor_get_bv_model_aux (Btor *btor,
   {
     result =
         btor_recursively_compute_assignment (btor, bv_model, fun_model, exp);
-    btor_free_bv (btor->mm, result);
+    btor_bv_free (btor->mm, result);
     d = btor_get_int_hash_map (bv_model, BTOR_REAL_ADDR_NODE (exp)->id);
   }
   if (!d) return 0;
@@ -197,7 +197,7 @@ btor_get_bv_model_aux (Btor *btor,
   {
     /* we don't use add_to_bv_model in order to avoid redundant
      * hash table queries and copying/freeing of the resulting bv */
-    result = btor_not_bv (btor->mm, result);
+    result = btor_bv_not (btor->mm, result);
     btor_copy_exp (btor, exp);
     btor_add_int_hash_map (bv_model, btor_exp_get_id (exp))->as_ptr = result;
   }
@@ -242,8 +242,8 @@ delete_fun_model (Btor *btor, BtorIntHashTable **fun_model)
     {
       value = (BtorBitVector *) it2.bucket->data.as_ptr;
       tup   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it2);
-      btor_free_bv_tuple (btor->mm, tup);
-      btor_free_bv (btor->mm, value);
+      btor_bv_free_tuple (btor->mm, tup);
+      btor_bv_free (btor->mm, value);
     }
     btor_release_exp (btor, cur);
     btor_delete_ptr_hash_table (t);
@@ -314,18 +314,18 @@ add_to_fun_model (Btor *btor,
   else
   {
     model = btor_new_ptr_hash_table (btor->mm,
-                                     (BtorHashPtr) btor_hash_bv_tuple,
-                                     (BtorCmpPtr) btor_compare_bv_tuple);
+                                     (BtorHashPtr) btor_bv_hash_tuple,
+                                     (BtorCmpPtr) btor_bv_compare_tuple);
     btor_copy_exp (btor, exp);
     btor_add_int_hash_map (fun_model, exp->id)->as_ptr = model;
   }
   if ((b = btor_get_ptr_hash_table (model, t)))
   {
-    assert (btor_compare_bv (b->data.as_ptr, value) == 0);
+    assert (btor_bv_compare (b->data.as_ptr, value) == 0);
     return;
   }
-  b = btor_add_ptr_hash_table (model, btor_copy_bv_tuple (btor->mm, t));
-  b->data.as_ptr = btor_copy_bv (btor->mm, value);
+  b = btor_add_ptr_hash_table (model, btor_bv_copy_tuple (btor->mm, t));
+  b->data.as_ptr = btor_bv_copy (btor->mm, value);
 }
 
 /*------------------------------------------------------------------------*/
@@ -352,7 +352,7 @@ get_value_from_fun_model (Btor *btor,
   model = (BtorPtrHashTable *) d->as_ptr;
   b     = btor_get_ptr_hash_table (model, t);
   if (!b) return 0;
-  return btor_copy_bv (btor->mm, (BtorBitVector *) b->data.as_ptr);
+  return btor_bv_copy (btor->mm, (BtorBitVector *) b->data.as_ptr);
 }
 
 /*------------------------------------------------------------------------*/
@@ -414,7 +414,7 @@ recursively_compute_function_model (Btor *btor,
       assert (btor_is_args_node (args));
       assert (!args->parameterized);
 
-      t   = btor_new_bv_tuple (mm, btor_get_args_arity (btor, args));
+      t   = btor_bv_new_tuple (mm, btor_get_args_arity (btor, args));
       pos = 0;
       btor_init_args_iterator (&ait, args);
       while (btor_has_next_args_iterator (&ait))
@@ -422,8 +422,8 @@ recursively_compute_function_model (Btor *btor,
         arg    = btor_next_args_iterator (&ait);
         bv_arg = btor_recursively_compute_assignment (
             btor, bv_model, fun_model, arg);
-        btor_add_to_bv_tuple (mm, t, bv_arg, pos++);
-        btor_free_bv (mm, bv_arg);
+        btor_bv_add_to_tuple (mm, t, bv_arg, pos++);
+        btor_bv_free (mm, bv_arg);
       }
       bv_value = btor_recursively_compute_assignment (
           btor, bv_model, fun_model, value);
@@ -443,8 +443,8 @@ recursively_compute_function_model (Btor *btor,
       else if (!btor_get_ptr_hash_table (model, t))
         add_to_fun_model (btor, fun_model, fun, t, bv_value);
 
-      btor_free_bv (btor->mm, bv_value);
-      btor_free_bv_tuple (btor->mm, t);
+      btor_bv_free (btor->mm, bv_value);
+      btor_bv_free_tuple (btor->mm, t);
     }
 
     if (btor_is_lambda_node (cur_fun))
@@ -490,14 +490,14 @@ recursively_compute_function_model (Btor *btor,
         bv_value = btor_recursively_compute_assignment (
             btor, bv_model, fun_model, value);
 
-        if (btor_is_true_bv (bv_value))
+        if (btor_bv_is_true (bv_value))
           cur_fun = cur_fun->e[1];
         else
         {
-          assert (btor_is_false_bv (bv_value));
+          assert (btor_bv_is_false (bv_value));
           cur_fun = cur_fun->e[2];
         }
-        btor_free_bv (mm, bv_value);
+        btor_bv_free (mm, bv_value);
       }
     }
     else
@@ -622,13 +622,13 @@ btor_recursively_compute_assignment (Btor *btor,
       num_args = btor_get_args_arity (btor, cur_parent->e[1]);
       e        = (BtorBitVector **) arg_stack.top - num_args;
 
-      t = btor_new_bv_tuple (mm, num_args);
+      t = btor_bv_new_tuple (mm, num_args);
       for (i = 0; i < num_args; i++)
-        btor_add_to_bv_tuple (mm, t, e[i], num_args - 1 - i);
+        btor_bv_add_to_tuple (mm, t, e[i], num_args - 1 - i);
 
       /* check if there is already a value for given arguments */
       result = get_value_from_fun_model (btor, fun_model, cur_parent->e[0], t);
-      btor_free_bv_tuple (mm, t);
+      btor_bv_free_tuple (mm, t);
 
       if (result) goto PUSH_RESULT;
     }
@@ -640,12 +640,12 @@ btor_recursively_compute_assignment (Btor *btor,
        * it doesn't have one) */
       if (btor_is_bv_var_node (real_cur))
       {
-        result = btor_get_assignment_bv (mm, real_cur, true);
+        result = btor_bv_get_assignment (mm, real_cur, true);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (btor_is_bv_const_node (real_cur))
       {
-        result = btor_copy_bv (mm, btor_const_get_bits (real_cur));
+        result = btor_bv_copy (mm, btor_const_get_bits (real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -660,13 +660,13 @@ btor_recursively_compute_assignment (Btor *btor,
       }
       else if (btor_is_fun_eq_node (real_cur))
       {
-        result = btor_get_assignment_bv (mm, real_cur, true);
+        result = btor_bv_get_assignment (mm, real_cur, true);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (btor_is_lambda_node (real_cur) && cur_parent
                && btor_is_apply_node (cur_parent))
       {
-        btor_assign_args (btor, real_cur, cur_parent->e[1]);
+        btor_beta_assign_args (btor, real_cur, cur_parent->e[1]);
         assert (!btor_contains_int_hash_map (assigned, real_cur->id));
         btor_add_int_hash_map (assigned, real_cur->id)->as_ptr = cur_parent;
 
@@ -742,69 +742,69 @@ btor_recursively_compute_assignment (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_bv (mm,
+          result = btor_bv_slice (mm,
                                   e[0],
                                   btor_slice_get_upper (real_cur),
                                   btor_slice_get_lower (real_cur));
-          btor_free_bv (mm, e[0]);
+          btor_bv_free (mm, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_and (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_BV_EQ_NODE:
-          result = btor_eq_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_eq (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_add (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_mul (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_ult (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_sll (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_srl (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_udiv (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_urem (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_bv (mm, e[1], e[0]);
-          btor_free_bv (mm, e[0]);
-          btor_free_bv (mm, e[1]);
+          result = btor_bv_concat (mm, e[1], e[0]);
+          btor_bv_free (mm, e[0]);
+          btor_bv_free (mm, e[1]);
           break;
         case BTOR_APPLY_NODE:
           assert (num_args);
-          t = btor_new_bv_tuple (mm, num_args);
+          t = btor_bv_new_tuple (mm, num_args);
           for (i = 0; i < num_args; i++)
           {
-            btor_add_to_bv_tuple (mm, t, e[i], num_args - 1 - i);
-            btor_free_bv (mm, e[i]);
+            btor_bv_add_to_tuple (mm, t, e[i], num_args - 1 - i);
+            btor_bv_free (mm, e[i]);
           }
 
           /* check if there is already a value for given arguments */
@@ -817,18 +817,18 @@ btor_recursively_compute_assignment (Btor *btor,
             add_to_fun_model (btor, fun_model, real_cur->e[0], t, result);
           }
           else
-            btor_free_bv (mm, e[num_args]);
+            btor_bv_free (mm, e[num_args]);
 
-          btor_free_bv_tuple (mm, t);
+          btor_bv_free_tuple (mm, t);
           break;
         case BTOR_LAMBDA_NODE:
           result = e[0];
-          btor_free_bv (mm, e[1]);
+          btor_bv_free (mm, e[1]);
           if (btor_is_lambda_node (real_cur) && cur_parent
               && btor_is_apply_node (cur_parent))
           {
             assert (btor_contains_int_hash_map (assigned, real_cur->id));
-            btor_unassign_params (btor, real_cur);
+            btor_beta_unassign_params (btor, real_cur);
             btor_remove_int_hash_map (assigned, real_cur->id, 0);
 
             /* reset 'eval_mark' of all parameterized nodes
@@ -842,12 +842,12 @@ btor_recursively_compute_assignment (Btor *btor,
               assert (next->parameterized);
               btor_remove_int_hash_map (mark, next->id, 0);
               btor_remove_int_hash_map (param_model_cache, next->id, &dd);
-              btor_free_bv (mm, dd.as_ptr);
+              btor_bv_free (mm, dd.as_ptr);
             }
           }
           break;
         case BTOR_UF_NODE:
-          result = btor_get_assignment_bv (mm, cur_parent, true);
+          result = btor_bv_get_assignment (mm, cur_parent, true);
           break;
         default:
           assert (btor_is_cond_node (real_cur));
@@ -856,14 +856,14 @@ btor_recursively_compute_assignment (Btor *btor,
           if (md->as_int == 2)
           {
             /* select branch w.r.t. condition */
-            next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
+            next = btor_bv_is_true (e[0]) ? real_cur->e[1] : real_cur->e[2];
             BTOR_PUSH_STACK (work_stack, cur);
             BTOR_PUSH_STACK (work_stack, cur_parent);
             /* for function conditionals we push the function and the
              * apply */
             BTOR_PUSH_STACK (work_stack, next);
             BTOR_PUSH_STACK (work_stack, cur_parent);
-            btor_free_bv (mm, e[0]);
+            btor_bv_free (mm, e[0]);
             /* no result yet, we need to evaluate the selected function
              */
             md->as_int = 0;
@@ -904,7 +904,7 @@ btor_recursively_compute_assignment (Btor *btor,
          * when parameters are unassigned */
         assert (!btor_contains_int_hash_map (param_model_cache, real_cur->id));
         btor_add_int_hash_map (param_model_cache, real_cur->id)->as_ptr =
-            btor_copy_bv (mm, result);
+            btor_bv_copy (mm, result);
       }
       else
       {
@@ -915,8 +915,8 @@ btor_recursively_compute_assignment (Btor *btor,
     PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
-        inv_result = btor_not_bv (mm, result);
-        btor_free_bv (mm, result);
+        inv_result = btor_bv_not (mm, result);
+        btor_bv_free (mm, result);
         result = inv_result;
       }
       BTOR_PUSH_STACK (arg_stack, result);
@@ -929,7 +929,7 @@ btor_recursively_compute_assignment (Btor *btor,
         d = btor_get_int_hash_map (param_model_cache, real_cur->id);
       else
         d = btor_get_int_hash_map (bv_model, real_cur->id);
-      result = btor_copy_bv (mm, (BtorBitVector *) d->as_ptr);
+      result = btor_bv_copy (mm, (BtorBitVector *) d->as_ptr);
       goto PUSH_RESULT;
     }
   }
@@ -1025,7 +1025,7 @@ btor_generate_model (Btor *btor,
     else
     {
       bv = btor_recursively_compute_assignment (btor, bv_model, fun_model, cur);
-      btor_free_bv (btor->mm, bv);
+      btor_bv_free (btor->mm, bv);
     }
   }
   BTOR_RELEASE_STACK (stack);
@@ -1086,7 +1086,7 @@ extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,
       assert (btor_is_args_node (args));
       assert (!args->parameterized);
 
-      t = btor_new_bv_tuple (btor->mm, btor_get_args_arity (btor, args));
+      t = btor_bv_new_tuple (btor->mm, btor_get_args_arity (btor, args));
 
       pos = 0;
       btor_init_args_iterator (&ait, args);
@@ -1097,20 +1097,20 @@ extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,
 	   * 'static_rho' might not be encoded and thus we have to obtain the
 	   * assignment from the constructed model. */
 	  if (btor_is_encoded_exp (arg))
-	    bv_arg = btor_get_assignment_bv (btor->mm, arg, 0);
+	    bv_arg = btor_bv_get_assignment (btor->mm, arg, 0);
 	  else
-	    bv_arg = btor_copy_bv (btor->mm, btor_get_bv_model (btor, arg));
-	  btor_add_to_bv_tuple (btor->mm, t, bv_arg, pos++);
-	  btor_free_bv (btor->mm, bv_arg);
+	    bv_arg = btor_bv_copy (btor->mm, btor_get_bv_model (btor, arg));
+	  btor_bv_add_to_tuple (btor->mm, t, bv_arg, pos++);
+	  btor_bv_free (btor->mm, bv_arg);
 	}
 
       /* values in 'rho' are encoded, however some values in 'static_rho' might
        * not be encoded and thus we have to obtain the assignment from the
        * constructed model. */
       if (btor_is_encoded_exp (value))
-	bv_value = btor_get_assignment_bv (btor->mm, value, 0);
+	bv_value = btor_bv_get_assignment (btor->mm, value, 0);
       else
-	bv_value = btor_copy_bv (btor->mm, btor_get_bv_model (btor, value));
+	bv_value = btor_bv_copy (btor->mm, btor_get_bv_model (btor, value));
 
       if (!model)
 	{
@@ -1125,8 +1125,8 @@ extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,
       else if (!btor_get_ptr_hash_table (model, t))
 	add_to_fun_model (btor, fun_model, fun, t, bv_value);
 
-      btor_free_bv (btor->mm, bv_value);
-      btor_free_bv_tuple (btor->mm, t);
+      btor_bv_free (btor->mm, bv_value);
+      btor_bv_free_tuple (btor->mm, t);
     }
 }
 #endif

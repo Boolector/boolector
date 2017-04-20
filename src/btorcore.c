@@ -259,7 +259,7 @@ BtorAIGMgr *
 btor_get_aig_mgr_btor (const Btor *btor)
 {
   assert (btor);
-  return btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  return btor_aigvec_get_aig_mgr (btor->avmgr);
 }
 
 BtorSATMgr *
@@ -655,12 +655,12 @@ btor_new_btor (void)
 
   btor_init_opts (btor);
 
-  btor->avmgr = btor_new_aigvec_mgr (btor);
+  btor->avmgr = btor_aigvec_new_mgr (btor);
 
   btor_init_rng (&btor->rng, btor_get_opt (btor, BTOR_OPT_SEED));
 
-  btor->bv_assignments  = btor_new_bv_assignment_list (mm);
-  btor->fun_assignments = btor_new_array_assignment_list (mm);
+  btor->bv_assignments  = btor_ass_new_bv_list (mm);
+  btor->fun_assignments = btor_ass_new_fun_list (mm);
 
   btor->symbols = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
@@ -837,11 +837,11 @@ btor_delete_btor (Btor *btor)
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
-  btor_delete_bv_assignment_list (
+  btor_ass_delete_bv_list (
       btor->bv_assignments,
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
-  btor_delete_array_assignment_list (
+  btor_ass_delete_fun_list (
       btor->fun_assignments,
       btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
@@ -959,7 +959,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->stats.rw_rules_applied);
 #endif
 
-  if (btor->avmgr) btor_delete_aigvec_mgr (btor->avmgr);
+  if (btor->avmgr) btor_aigvec_delete_mgr (btor->avmgr);
   btor_delete_opts (btor);
 
   assert (btor->rec_rw_calls == 0);
@@ -1073,8 +1073,8 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   {
     bits = btor_const_get_bits (exp);
     assert (bits->width == 1);
-    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
-        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0)))
     {
       btor->inconsistent = true;
       return;
@@ -1082,8 +1082,8 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
     else
     {
       /* we do not add true */
-      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
-              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0)));
       return;
     }
   }
@@ -1301,13 +1301,13 @@ normalize_substitution (Btor *btor,
     if (!btor_is_bv_const_node (right)) return 0;
 
     if (BTOR_IS_INVERTED_NODE (right))
-      bits = btor_not_bv (mm, btor_const_get_bits (right));
+      bits = btor_bv_not (mm, btor_const_get_bits (right));
     else
-      bits = btor_copy_bv (mm, btor_const_get_bits (right));
+      bits = btor_bv_copy (mm, btor_const_get_bits (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
-      leadings = btor_get_num_leading_zeros_bv (bits);
+      leadings = btor_bv_get_num_leading_zeros (bits);
       if (leadings > 0)
       {
         sort      = btor_bitvec_sort (btor, leadings);
@@ -1328,7 +1328,7 @@ normalize_substitution (Btor *btor,
     {
       assert (comp == BTOR_SUBST_COMP_UGT_KIND
               || comp == BTOR_SUBST_COMP_UGTE_KIND);
-      leadings = btor_get_num_leading_ones_bv (bits);
+      leadings = btor_bv_get_num_leading_ones (bits);
       if (leadings > 0)
       {
         sort      = btor_bitvec_sort (btor, leadings);
@@ -1346,7 +1346,7 @@ normalize_substitution (Btor *btor,
       }
     }
 
-    btor_free_bv (btor->mm, bits);
+    btor_bv_free (btor->mm, bits);
     return 0;
   }
 
@@ -1393,10 +1393,10 @@ normalize_substitution (Btor *btor,
     btor->stats.gaussian_eliminations++;
 
     btor_release_exp (btor, tmp);
-    ic = btor_mod_inverse_bv (btor->mm, fc);
-    btor_free_bv (btor->mm, fc);
+    ic = btor_bv_mod_inverse (btor->mm, fc);
+    btor_bv_free (btor->mm, fc);
     inv = btor_const_exp (btor, ic);
-    btor_free_bv (btor->mm, ic);
+    btor_bv_free (btor->mm, ic);
     tmp = btor_mul_exp (btor, *right_result, inv);
     btor_release_exp (btor, inv);
     btor_release_exp (btor, *right_result);
@@ -1488,13 +1488,13 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
     bits = btor_const_get_bits (real_exp);
     assert (bits->width == 1);
     /* we do not add true/false */
-    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
-        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0)))
       btor->inconsistent = true;
     else
     {
-      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
-              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_bv_get_bit (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_bv_get_bit (bits, 0)));
     }
     return;
   }
@@ -1661,7 +1661,7 @@ add_constraint (Btor *btor, BtorNode *exp)
     insert_new_constraint (btor, exp);
 
   btor_delete_int_hash_table (mark);
-  assert (btor_check_constraints_not_const_dbg (btor));
+  assert (btor_dbg_check_constraints_not_const (btor));
 }
 
 void
@@ -2431,7 +2431,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 
   update_node_hash_tables (btor);
   btor_delete_int_hash_map (mark);
-  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_dbg_check_lambdas_static_rho_proxy_free (btor));
 }
 
 static void
@@ -2936,11 +2936,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   BTOR_RELEASE_STACK (roots);
 
-  assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+  assert (btor_dbg_check_unique_table_children_proxy_free (btor));
   btor_delete_int_hash_map (mark);
 
   update_node_hash_tables (btor);
-  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_dbg_check_lambdas_static_rho_proxy_free (btor));
   btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
@@ -3097,17 +3097,17 @@ btor_simplify (Btor *btor)
   do
   {
     rounds++;
-    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-    assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+    assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+    assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+    assert (btor_dbg_check_unique_table_children_proxy_free (btor));
     if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1)
     {
       if (btor_get_opt (btor, BTOR_OPT_VAR_SUBST))
       {
         substitute_var_exps (btor);
-        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+        assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+        assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 
         if (btor->inconsistent) break;
 
@@ -3116,9 +3116,9 @@ btor_simplify (Btor *btor)
       }
 
       process_embedded_constraints (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+      assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+      assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 
       if (btor->inconsistent) break;
 
@@ -3145,9 +3145,9 @@ btor_simplify (Btor *btor)
       if (skelrounds <= 1)  // TODO only one?
       {
         btor_process_skeleton (btor);
-        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+        assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+        assert (btor_dbg_check_unique_table_children_proxy_free (btor));
         if (btor->inconsistent) break;
       }
 
@@ -3166,9 +3166,9 @@ btor_simplify (Btor *btor)
         && !btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
     {
       btor_optimize_unconstrained (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+      assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+      assert (btor_dbg_check_unique_table_children_proxy_free (btor));
       if (btor->inconsistent) break;
     }
 
@@ -3263,7 +3263,7 @@ btor_synthesize_exp (Btor *btor,
     {
       if (btor_is_bv_const_node (cur))
       {
-        cur->av = btor_const_aigvec (avmgr, btor_const_get_bits (cur));
+        cur->av = btor_aigvec_const (avmgr, btor_const_get_bits (cur));
         BTORLOG (2, "  synthesized: %s", node2string (cur));
         /* no need to call btor_aigvec_to_sat_tseitin here */
       }
@@ -3273,7 +3273,7 @@ btor_synthesize_exp (Btor *btor,
                || btor_is_fun_eq_node (cur))
       {
         assert (!cur->parameterized);
-        cur->av = btor_var_aigvec (avmgr, btor_get_exp_width (btor, cur));
+        cur->av = btor_aigvec_var (avmgr, btor_get_exp_width (btor, cur));
 
         if (btor_is_bv_var_node (cur) && backannotation
             && (name = btor_get_symbol_exp (btor, cur)))
@@ -3369,10 +3369,10 @@ btor_synthesize_exp (Btor *btor,
         assert (btor_is_slice_node (cur));
         invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
         av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
-        if (invert_av0) btor_invert_aigvec (avmgr, av0);
-        cur->av = btor_slice_aigvec (
+        if (invert_av0) btor_aigvec_invert (avmgr, av0);
+        cur->av = btor_aigvec_slice (
             avmgr, av0, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
-        if (invert_av0) btor_invert_aigvec (avmgr, av0);
+        if (invert_av0) btor_aigvec_invert (avmgr, av0);
       }
       else if (cur->arity == 2)
       {
@@ -3393,55 +3393,55 @@ btor_synthesize_exp (Btor *btor,
         {
           invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
           av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
-          if (invert_av0) btor_invert_aigvec (avmgr, av0);
+          if (invert_av0) btor_aigvec_invert (avmgr, av0);
           invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
           av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
-          if (invert_av1) btor_invert_aigvec (avmgr, av1);
+          if (invert_av1) btor_aigvec_invert (avmgr, av1);
         }
         switch (cur->kind)
         {
           case BTOR_AND_NODE:
-            cur->av = btor_and_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_and (avmgr, av0, av1);
             break;
           case BTOR_BV_EQ_NODE:
-            cur->av = btor_eq_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_eq (avmgr, av0, av1);
             break;
           case BTOR_ADD_NODE:
-            cur->av = btor_add_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_add (avmgr, av0, av1);
             break;
           case BTOR_MUL_NODE:
-            cur->av = btor_mul_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_mul (avmgr, av0, av1);
             break;
           case BTOR_ULT_NODE:
-            cur->av = btor_ult_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_ult (avmgr, av0, av1);
             break;
           case BTOR_SLL_NODE:
-            cur->av = btor_sll_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_sll (avmgr, av0, av1);
             break;
           case BTOR_SRL_NODE:
-            cur->av = btor_srl_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_srl (avmgr, av0, av1);
             break;
           case BTOR_UDIV_NODE:
-            cur->av = btor_udiv_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_udiv (avmgr, av0, av1);
             break;
           case BTOR_UREM_NODE:
-            cur->av = btor_urem_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_urem (avmgr, av0, av1);
             break;
           default:
             assert (cur->kind == BTOR_CONCAT_NODE);
-            cur->av = btor_concat_aigvec (avmgr, av0, av1);
+            cur->av = btor_aigvec_concat (avmgr, av0, av1);
             break;
         }
 
         if (same_children_mem)
         {
-          btor_release_delete_aigvec (avmgr, av0);
-          btor_release_delete_aigvec (avmgr, av1);
+          btor_aigvec_release_delete (avmgr, av0);
+          btor_aigvec_release_delete (avmgr, av1);
         }
         else
         {
-          if (invert_av0) btor_invert_aigvec (avmgr, av0);
-          if (invert_av1) btor_invert_aigvec (avmgr, av1);
+          if (invert_av0) btor_aigvec_invert (avmgr, av0);
+          if (invert_av1) btor_aigvec_invert (avmgr, av1);
         }
         if (!opt_lazy_synth) btor_aigvec_to_sat_tseitin (avmgr, cur->av);
       }
@@ -3467,26 +3467,26 @@ btor_synthesize_exp (Btor *btor,
           {
             invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
             av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
-            if (invert_av0) btor_invert_aigvec (avmgr, av0);
+            if (invert_av0) btor_aigvec_invert (avmgr, av0);
             invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
             av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
-            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+            if (invert_av1) btor_aigvec_invert (avmgr, av1);
             invert_av2 = BTOR_IS_INVERTED_NODE (cur->e[2]);
             av2        = BTOR_REAL_ADDR_NODE (cur->e[2])->av;
-            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+            if (invert_av2) btor_aigvec_invert (avmgr, av2);
           }
-          cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
+          cur->av = btor_aigvec_cond (avmgr, av0, av1, av2);
           if (same_children_mem)
           {
-            btor_release_delete_aigvec (avmgr, av2);
-            btor_release_delete_aigvec (avmgr, av1);
-            btor_release_delete_aigvec (avmgr, av0);
+            btor_aigvec_release_delete (avmgr, av2);
+            btor_aigvec_release_delete (avmgr, av1);
+            btor_aigvec_release_delete (avmgr, av0);
           }
           else
           {
-            if (invert_av0) btor_invert_aigvec (avmgr, av0);
-            if (invert_av1) btor_invert_aigvec (avmgr, av1);
-            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+            if (invert_av0) btor_aigvec_invert (avmgr, av0);
+            if (invert_av1) btor_aigvec_invert (avmgr, av1);
+            if (invert_av2) btor_aigvec_invert (avmgr, av2);
           }
         }
       }
@@ -3510,7 +3510,7 @@ void
 btor_add_again_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (btor_check_assumptions_simp_free_dbg (btor));
+  assert (btor_dbg_check_assumptions_simp_free (btor));
 
   int i;
   BtorNode *exp, *cur, *e;
@@ -3893,9 +3893,9 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   assert (result);
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_not_aigvec (avmgr, result);
+    result = btor_aigvec_not (avmgr, result);
   else
-    result = btor_copy_aigvec (avmgr, result);
+    result = btor_aigvec_copy (avmgr, result);
 
   return result;
 }

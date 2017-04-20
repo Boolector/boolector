@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -14,7 +14,7 @@
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorexp.h"
 #include "btorlog.h"
 #include "btormodel.h"
@@ -57,8 +57,8 @@ btor_propsls_non_rec_conf (
   (void) op;
 
 #ifndef NDEBUG
-  char* sbve   = btor_bv_to_char_bv (btor->mm, bve);
-  char* sbvexp = btor_bv_to_char_bv (btor->mm, bvexp);
+  char* sbve   = btor_bv_to_char (btor->mm, bve);
+  char* sbvexp = btor_bv_to_char (btor->mm, bvexp);
   if (eidx)
     BTORLOG (2, "prop CONFLICT: %s := %s %s x", sbvexp, sbve, op);
   else

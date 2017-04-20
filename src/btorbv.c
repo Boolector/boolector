@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorcore.h"
@@ -43,7 +43,7 @@ check_bits_sll_dbg (const BtorBitVector *bv,
   unsigned i;
 
   for (i = 0; shift + i < bv->width; i++)
-    assert (btor_get_bit_bv (bv, i) == btor_get_bit_bv (res, shift + i));
+    assert (btor_bv_get_bit (bv, i) == btor_bv_get_bit (res, shift + i));
 
   return 1;
 }
@@ -59,7 +59,7 @@ set_rem_bits_to_zero (BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_new_bv (BtorMemMgr *mm, uint32_t bw)
+btor_bv_new (BtorMemMgr *mm, uint32_t bw)
 {
   assert (mm);
   assert (bw > 0);
@@ -80,7 +80,7 @@ btor_new_bv (BtorMemMgr *mm, uint32_t bw)
 }
 
 BtorBitVector *
-btor_new_random_range_bv (BtorMemMgr *mm,
+btor_bv_new_random_range (BtorMemMgr *mm,
                           BtorRNG *rng,
                           uint32_t bw,
                           const BtorBitVector *from,
@@ -91,41 +91,41 @@ btor_new_random_range_bv (BtorMemMgr *mm,
   assert (bw > 0);
   assert (bw == from->width);
   assert (from->width == to->width);
-  assert (btor_compare_bv (from, to) <= 0);
+  assert (btor_bv_compare (from, to) <= 0);
 
   BtorBitVector *res, *resext, *fromext, *toext, *tmp1, *tmp2;
 
   /* we allow to = 1...1 */
-  fromext = btor_uext_bv (mm, from, 1);
-  toext   = btor_uext_bv (mm, to, 1);
+  fromext = btor_bv_uext (mm, from, 1);
+  toext   = btor_bv_uext (mm, to, 1);
 
-  res    = btor_new_random_bv (mm, rng, bw);
-  resext = btor_uext_bv (mm, res, 1);
-  btor_free_bv (mm, res);
+  res    = btor_bv_new_random (mm, rng, bw);
+  resext = btor_bv_uext (mm, res, 1);
+  btor_bv_free (mm, res);
 
-  tmp1 = btor_inc_bv (mm, toext);          // to + 1
-  tmp2 = btor_sub_bv (mm, tmp1, fromext);  // to + 1 - from
-  btor_free_bv (mm, tmp1);
-
-  tmp1   = resext;
-  resext = btor_urem_bv (mm, tmp1, tmp2);  // res %= to + 1 - from
-  btor_free_bv (mm, tmp1);
+  tmp1 = btor_bv_inc (mm, toext);          // to + 1
+  tmp2 = btor_bv_sub (mm, tmp1, fromext);  // to + 1 - from
+  btor_bv_free (mm, tmp1);
 
   tmp1   = resext;
-  resext = btor_add_bv (mm, tmp1, fromext);  // res += from
+  resext = btor_bv_urem (mm, tmp1, tmp2);  // res %= to + 1 - from
+  btor_bv_free (mm, tmp1);
 
-  btor_free_bv (mm, tmp1);
-  btor_free_bv (mm, tmp2);
-  btor_free_bv (mm, fromext);
-  btor_free_bv (mm, toext);
+  tmp1   = resext;
+  resext = btor_bv_add (mm, tmp1, fromext);  // res += from
 
-  res = btor_slice_bv (mm, resext, from->width - 1, 0);
-  btor_free_bv (mm, resext);
+  btor_bv_free (mm, tmp1);
+  btor_bv_free (mm, tmp2);
+  btor_bv_free (mm, fromext);
+  btor_bv_free (mm, toext);
+
+  res = btor_bv_slice (mm, resext, from->width - 1, 0);
+  btor_bv_free (mm, resext);
   return res;
 }
 
 BtorBitVector *
-btor_new_random_bit_range_bv (
+btor_bv_new_random_bit_range (
     BtorMemMgr *mm, BtorRNG *rng, uint32_t bw, uint32_t up, uint32_t lo)
 {
   assert (mm);
@@ -136,14 +136,14 @@ btor_new_random_bit_range_bv (
   uint32_t i;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bw);
+  res = btor_bv_new (mm, bw);
   for (i = 1; i < res->len; i++)
     res->bits[i] = (BTOR_BV_TYPE) btor_rand_rng (rng);
   res->bits[0] = (BTOR_BV_TYPE) btor_pick_rand_rng (
       rng, 0, ((~0) >> (BTOR_BV_TYPE_BW - bw % BTOR_BV_TYPE_BW)) - 1);
 
-  for (i = 0; i < lo; i++) btor_set_bit_bv (res, i, 0);
-  for (i = up + 1; i < res->width; i++) btor_set_bit_bv (res, i, 0);
+  for (i = 0; i < lo; i++) btor_bv_set_bit (res, i, 0);
+  for (i = up + 1; i < res->width; i++) btor_bv_set_bit (res, i, 0);
 
   set_rem_bits_to_zero (res);
 
@@ -151,15 +151,15 @@ btor_new_random_bit_range_bv (
 }
 
 BtorBitVector *
-btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
+btor_bv_new_random (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
 {
-  return btor_new_random_bit_range_bv (mm, rng, bw, bw - 1, 0);
+  return btor_bv_new_random_bit_range (mm, rng, bw, bw - 1, 0);
 }
 
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_char_to_bv (BtorMemMgr *mm, const char *assignment)
+btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment)
 {
   assert (mm);
   assert (assignment);
@@ -168,28 +168,28 @@ btor_char_to_bv (BtorMemMgr *mm, const char *assignment)
   uint32_t i, j, bit;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, strlen (assignment));
+  res = btor_bv_new (mm, strlen (assignment));
 
   for (i = 0; i < res->width; i++)
   {
     j = res->width - 1 - i;
     assert (assignment[j] == '0' || assignment[j] == '1');
     bit = assignment[j] == '0' ? 0 : 1;
-    btor_set_bit_bv (res, i, bit);
+    btor_bv_set_bit (res, i, bit);
   }
 
   return res;
 }
 
 BtorBitVector *
-btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
+btor_bv_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
 {
   assert (mm);
   assert (bw > 0);
 
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bw);
+  res = btor_bv_new (mm, bw);
   assert (res->len > 0);
   res->bits[res->len - 1] = (BTOR_BV_TYPE) value;
   if (res->width > 32)
@@ -201,21 +201,21 @@ btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
 }
 
 BtorBitVector *
-btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
+btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
 {
   assert (mm);
   assert (bw > 0);
 
   BtorBitVector *res, *tmp;
 
-  res = btor_new_bv (mm, bw);
+  res = btor_bv_new (mm, bw);
   assert (res->len > 0);
 
   /* ensure that all bits > 64 are set to 1 in case of negative values */
   if (value < 0 && bw > 64)
   {
-    tmp = btor_not_bv (mm, res);
-    btor_free_bv (mm, res);
+    tmp = btor_bv_not (mm, res);
+    btor_bv_free (mm, res);
     res = tmp;
   }
 
@@ -231,7 +231,7 @@ btor_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
+btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
 {
   assert (mm);
   assert (exp);
@@ -247,12 +247,12 @@ btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
   if (!real_exp->av)
-    return btor_new_bv (mm, btor_get_exp_width (real_exp->btor, real_exp));
+    return btor_bv_new (mm, btor_get_exp_width (real_exp->btor, real_exp));
 
   amgr = btor_get_aig_mgr_btor (real_exp->btor);
   av   = real_exp->av;
   len  = av->len;
-  res  = btor_new_bv (mm, len);
+  res  = btor_bv_new (mm, len);
   inv  = BTOR_IS_INVERTED_NODE (exp);
 
   for (i = 0, j = len - 1; i < len; i++, j--)
@@ -261,7 +261,7 @@ btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
     if (init_x_values && bit == 0) bit = -1;
     if (inv) bit *= -1;
     assert (bit == -1 || bit == 1);
-    btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
+    btor_bv_set_bit (res, i, bit == 1 ? 1 : 0);
   }
   return res;
 }
@@ -269,32 +269,32 @@ btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_copy (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
 
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bv->width);
+  res = btor_bv_new (mm, bv->width);
   assert (res->width == bv->width);
   assert (res->len == bv->len);
   memcpy (res->bits, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  assert (btor_compare_bv (res, (BtorBitVector *) bv) == 0);
+  assert (btor_bv_compare (res, (BtorBitVector *) bv) == 0);
   return res;
 }
 
 /*------------------------------------------------------------------------*/
 
 size_t
-btor_size_bv (const BtorBitVector *bv)
+btor_bv_size (const BtorBitVector *bv)
 {
   assert (bv);
   return sizeof (BtorBitVector) + bv->len * sizeof (BTOR_BV_TYPE);
 }
 
 void
-btor_free_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_bv_free (BtorMemMgr *mm, BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -302,7 +302,7 @@ btor_free_bv (BtorMemMgr *mm, BtorBitVector *bv)
 }
 
 int
-btor_compare_bv (const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_compare (const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (a);
   assert (b);
@@ -328,7 +328,7 @@ static uint32_t hash_primes[] = {333444569u, 76891121u, 456790003u};
 #define NPRIMES ((int) (sizeof hash_primes / sizeof *hash_primes))
 
 uint32_t
-btor_hash_bv (const BtorBitVector *bv)
+btor_bv_hash (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -352,18 +352,18 @@ btor_hash_bv (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 void
-btor_print_bv (const BtorBitVector *bv)
+btor_bv_print (const BtorBitVector *bv)
 {
   assert (bv);
 
   int i;
 
-  for (i = bv->width - 1; i >= 0; i--) printf ("%d", btor_get_bit_bv (bv, i));
+  for (i = bv->width - 1; i >= 0; i--) printf ("%d", btor_bv_get_bit (bv, i));
   printf ("\n");
 }
 
 void
-btor_print_all_bv (const BtorBitVector *bv)
+btor_bv_print_all (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -375,7 +375,7 @@ btor_print_all_bv (const BtorBitVector *bv)
       printf ("|");
     if (i > 0 && (BTOR_BV_TYPE_BW * bv->len - 1 - i) % BTOR_BV_TYPE_BW == 0)
       printf (".");
-    printf ("%d", btor_get_bit_bv (bv, i));
+    printf ("%d", btor_bv_get_bit (bv, i));
   }
   printf ("\n");
 }
@@ -383,7 +383,7 @@ btor_print_all_bv (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 char *
-btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_to_char (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -395,7 +395,7 @@ btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   BTOR_NEWN (mm, res, bw + 1);
   for (i = 0; i < bw; i++)
   {
-    bit             = btor_get_bit_bv (bv, i);
+    bit             = btor_bv_get_bit (bv, i);
     res[bw - 1 - i] = bit ? '1' : '0';
   }
   res[bw] = '\0';
@@ -404,7 +404,7 @@ btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 }
 
 char *
-btor_bv_to_hex_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_to_hex_char (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -417,9 +417,9 @@ btor_bv_to_hex_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   BTOR_CNEWN (mm, res, len + 1);
   for (i = 0, j = len - 1; i < bv->width;)
   {
-    tmp = btor_get_bit_bv (bv, i++);
+    tmp = btor_bv_get_bit (bv, i++);
     for (k = 1; i < bv->width && k <= 3; i++, k++)
-      tmp |= btor_get_bit_bv (bv, i) << k;
+      tmp |= btor_bv_get_bit (bv, i) << k;
     ch       = tmp < 10 ? '0' + tmp : 'a' + (tmp - 10);
     res[j--] = ch;
   }
@@ -436,14 +436,14 @@ get_first_one_bit_idx (const BtorBitVector *bv)
 
   for (i = bv->width - 1; i < UINT_MAX; i--)
   {
-    if (btor_get_bit_bv (bv, i)) break;
+    if (btor_bv_get_bit (bv, i)) break;
     if (i == 0) return UINT_MAX;
   }
   return i;
 }
 
 char *
-btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_to_dec_char (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -453,7 +453,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   char *res, ch, *p, *q;
   BtorCharStack stack;
 
-  if (btor_is_zero_bv (bv))
+  if (btor_bv_is_zero (bv))
   {
     BTOR_CNEWN (mm, res, 2);
     res[0] = '0';
@@ -464,33 +464,33 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 
   if (bv->width < 4)
   {
-    ten = btor_uint64_to_bv (mm, 10, 4);
-    tmp = btor_uext_bv (mm, (BtorBitVector *) bv, 4 - bv->width);
+    ten = btor_bv_uint64_to_bv (mm, 10, 4);
+    tmp = btor_bv_uext (mm, (BtorBitVector *) bv, 4 - bv->width);
   }
   else
   {
-    ten = btor_uint64_to_bv (mm, 10, bv->width);
-    tmp = btor_copy_bv (mm, bv);
+    ten = btor_bv_uint64_to_bv (mm, 10, bv->width);
+    tmp = btor_bv_copy (mm, bv);
   }
-  while (!btor_is_zero_bv (tmp))
+  while (!btor_bv_is_zero (tmp))
   {
-    div = btor_udiv_bv (mm, tmp, ten);
-    rem = btor_urem_bv (mm, tmp, ten);
+    div = btor_bv_udiv (mm, tmp, ten);
+    rem = btor_bv_urem (mm, tmp, ten);
     ch  = 0;
     for (i = get_first_one_bit_idx (rem); i < UINT_MAX; i--)
     {
       ch <<= 1;
-      if (btor_get_bit_bv (rem, i)) ch += 1;
+      if (btor_bv_get_bit (rem, i)) ch += 1;
     }
     assert (ch < 10);
     ch += '0';
     BTOR_PUSH_STACK (stack, ch);
-    btor_free_bv (mm, rem);
-    btor_free_bv (mm, tmp);
+    btor_bv_free (mm, rem);
+    btor_bv_free (mm, tmp);
     tmp = div;
   }
-  btor_free_bv (mm, tmp);
-  btor_free_bv (mm, ten);
+  btor_bv_free (mm, tmp);
+  btor_bv_free (mm, ten);
   if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (stack, '0');
   BTOR_NEWN (mm, res, BTOR_COUNT_STACK (stack) + 1);
   q = res;
@@ -506,7 +506,7 @@ btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 uint64_t
-btor_bv_to_uint64_bv (const BtorBitVector *bv)
+btor_bv_to_uint64 (const BtorBitVector *bv)
 {
   assert (bv);
   assert ((unsigned) bv->width <= sizeof (uint64_t) * 8);
@@ -525,7 +525,7 @@ btor_bv_to_uint64_bv (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 int
-btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos)
+btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos)
 {
   assert (bv);
 
@@ -538,7 +538,7 @@ btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos)
 }
 
 void
-btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit)
+btor_bv_set_bit (BtorBitVector *bv, uint32_t pos, uint32_t bit)
 {
   assert (bv);
   assert (bv->len > 0);
@@ -558,37 +558,37 @@ btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit)
 }
 
 void
-btor_flip_bit_bv (BtorBitVector *bv, uint32_t pos)
+btor_bv_flip_bit (BtorBitVector *bv, uint32_t pos)
 {
   assert (bv);
   assert (bv->len > 0);
   assert (pos < bv->width);
 
-  btor_set_bit_bv (bv, pos, btor_get_bit_bv (bv, pos) ? 0 : 1);
+  btor_bv_set_bit (bv, pos, btor_bv_get_bit (bv, pos) ? 0 : 1);
 }
 
 /*------------------------------------------------------------------------*/
 
 bool
-btor_is_true_bv (const BtorBitVector *bv)
+btor_bv_is_true (const BtorBitVector *bv)
 {
   assert (bv);
 
   if (bv->width != 1) return 0;
-  return btor_get_bit_bv (bv, 0);
+  return btor_bv_get_bit (bv, 0);
 }
 
 bool
-btor_is_false_bv (const BtorBitVector *bv)
+btor_bv_is_false (const BtorBitVector *bv)
 {
   assert (bv);
 
   if (bv->width != 1) return 0;
-  return !btor_get_bit_bv (bv, 0);
+  return !btor_bv_get_bit (bv, 0);
 }
 
 bool
-btor_is_zero_bv (const BtorBitVector *bv)
+btor_bv_is_zero (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -599,7 +599,7 @@ btor_is_zero_bv (const BtorBitVector *bv)
 }
 
 bool
-btor_is_ones_bv (const BtorBitVector *bv)
+btor_bv_is_ones (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -618,7 +618,7 @@ btor_is_ones_bv (const BtorBitVector *bv)
 }
 
 bool
-btor_is_one_bv (const BtorBitVector *bv)
+btor_bv_is_one (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -631,7 +631,7 @@ btor_is_one_bv (const BtorBitVector *bv)
 }
 
 int
-btor_power_of_two_bv (const BtorBitVector *bv)
+btor_bv_power_of_two (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -641,7 +641,7 @@ btor_power_of_two_bv (const BtorBitVector *bv)
 
   for (i = 0, j = 0, iszero = true; i < bv->width; i++)
   {
-    bit = btor_get_bit_bv (bv, i);
+    bit = btor_bv_get_bit (bv, i);
     if (!bit) continue;
     if (bit && !iszero) return -1;
     assert (bit && iszero);
@@ -652,7 +652,7 @@ btor_power_of_two_bv (const BtorBitVector *bv)
 }
 
 int
-btor_small_positive_int_bv (const BtorBitVector *bv)
+btor_bv_small_positive_int (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -665,7 +665,7 @@ btor_small_positive_int_bv (const BtorBitVector *bv)
 }
 
 uint32_t
-btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
+btor_bv_get_num_trailing_zeros (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -674,7 +674,7 @@ btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
 
   for (i = 0, res = 0; i < bv->width; i++)
   {
-    if (btor_get_bit_bv (bv, i)) break;
+    if (btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
 
@@ -682,7 +682,7 @@ btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
 }
 
 uint32_t
-btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
+btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -691,7 +691,7 @@ btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
 
   for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
   {
-    if (btor_get_bit_bv (bv, i)) break;
+    if (btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
 
@@ -699,7 +699,7 @@ btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
 }
 
 uint32_t
-btor_get_num_leading_ones_bv (const BtorBitVector *bv)
+btor_bv_get_num_leading_ones (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -708,7 +708,7 @@ btor_get_num_leading_ones_bv (const BtorBitVector *bv)
 
   for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
   {
-    if (!btor_get_bit_bv (bv, i)) break;
+    if (!btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
 
@@ -718,50 +718,50 @@ btor_get_num_leading_ones_bv (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_one_bv (BtorMemMgr *mm, uint32_t bw)
+btor_bv_one (BtorMemMgr *mm, uint32_t bw)
 {
   assert (mm);
   assert (bw);
 
-  BtorBitVector *res = btor_new_bv (mm, bw);
-  btor_set_bit_bv (res, 0, 1);
+  BtorBitVector *res = btor_bv_new (mm, bw);
+  btor_bv_set_bit (res, 0, 1);
   return res;
 }
 
 BtorBitVector *
-btor_ones_bv (BtorMemMgr *mm, uint32_t bw)
+btor_bv_ones (BtorMemMgr *mm, uint32_t bw)
 {
   assert (mm);
   assert (bw);
 
   BtorBitVector *res, *tmp;
 
-  tmp = btor_new_bv (mm, bw);
-  res = btor_not_bv (mm, tmp);
-  btor_free_bv (mm, tmp);
+  tmp = btor_bv_new (mm, bw);
+  res = btor_bv_not (mm, tmp);
+  btor_bv_free (mm, tmp);
 
   return res;
 }
 
 BtorBitVector *
-btor_neg_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_neg (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
 
   BtorBitVector *not_bv, *one, *neg_b;
 
-  not_bv = btor_not_bv (mm, bv);
-  one    = btor_uint64_to_bv (mm, 1, bv->width);
-  neg_b  = btor_add_bv (mm, not_bv, one);
-  btor_free_bv (mm, not_bv);
-  btor_free_bv (mm, one);
+  not_bv = btor_bv_not (mm, bv);
+  one    = btor_bv_uint64_to_bv (mm, 1, bv->width);
+  neg_b  = btor_bv_add (mm, not_bv, one);
+  btor_bv_free (mm, not_bv);
+  btor_bv_free (mm, one);
 
   return neg_b;
 }
 
 BtorBitVector *
-btor_not_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_not (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -769,7 +769,7 @@ btor_not_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   uint32_t i;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bv->width);
+  res = btor_bv_new (mm, bv->width);
   for (i = 0; i < bv->len; i++) res->bits[i] = ~bv->bits[i];
 
   set_rem_bits_to_zero (res);
@@ -778,39 +778,39 @@ btor_not_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 }
 
 BtorBitVector *
-btor_inc_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_inc (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
 
   BtorBitVector *res, *one;
 
-  one = btor_uint64_to_bv (mm, 1, bv->width);
-  res = btor_add_bv (mm, bv, one);
-  btor_free_bv (mm, one);
+  one = btor_bv_uint64_to_bv (mm, 1, bv->width);
+  res = btor_bv_add (mm, bv, one);
+  btor_bv_free (mm, one);
   return res;
 }
 
 BtorBitVector *
-btor_dec_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_dec (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
 
   BtorBitVector *res, *one, *negone;
 
-  one    = btor_uint64_to_bv (mm, 1, bv->width);
-  negone = btor_neg_bv (mm, one);
-  res    = btor_add_bv (mm, bv, negone);
-  btor_free_bv (mm, one);
-  btor_free_bv (mm, negone);
+  one    = btor_bv_uint64_to_bv (mm, 1, bv->width);
+  negone = btor_bv_neg (mm, one);
+  res    = btor_bv_add (mm, bv, negone);
+  btor_bv_free (mm, one);
+  btor_bv_free (mm, negone);
   return res;
 }
 
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_add_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_add (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -825,13 +825,13 @@ btor_add_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   if (a->width <= 64)
   {
-    x   = btor_bv_to_uint64_bv (a);
-    y   = btor_bv_to_uint64_bv (b);
-    res = btor_uint64_to_bv (mm, x + y, a->width);
+    x   = btor_bv_to_uint64 (a);
+    y   = btor_bv_to_uint64 (b);
+    res = btor_bv_uint64_to_bv (mm, x + y, a->width);
   }
   else
   {
-    res   = btor_new_bv (mm, a->width);
+    res   = btor_bv_new (mm, a->width);
     carry = 0;
     for (i = a->len - 1; i >= 0; i--)
     {
@@ -847,7 +847,7 @@ btor_add_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_sub_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_sub (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -857,14 +857,14 @@ btor_sub_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   BtorBitVector *negb, *res;
 
-  negb = btor_neg_bv (mm, b);
-  res  = btor_add_bv (mm, a, negb);
-  btor_free_bv (mm, negb);
+  negb = btor_bv_neg (mm, b);
+  res  = btor_bv_add (mm, a, negb);
+  btor_bv_free (mm, negb);
   return res;
 }
 
 BtorBitVector *
-btor_and_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_and (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -875,7 +875,7 @@ btor_and_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   int i;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, a->width);
+  res = btor_bv_new (mm, a->width);
   for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] & b->bits[i];
 
   assert (rem_bits_zero_dbg (res));
@@ -883,7 +883,7 @@ btor_and_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_xor_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_xor (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -894,7 +894,7 @@ btor_xor_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   int i;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, a->width);
+  res = btor_bv_new (mm, a->width);
   for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] ^ b->bits[i];
 
   assert (rem_bits_zero_dbg (res));
@@ -902,7 +902,7 @@ btor_xor_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_eq_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_eq (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -913,7 +913,7 @@ btor_eq_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   uint32_t i, bit;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, 1);
+  res = btor_bv_new (mm, 1);
   bit = 1;
   for (i = 0; i < a->len; i++)
   {
@@ -923,14 +923,14 @@ btor_eq_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
       break;
     }
   }
-  btor_set_bit_bv (res, 0, bit);
+  btor_bv_set_bit (res, 0, bit);
 
   assert (rem_bits_zero_dbg (res));
   return res;
 }
 
 BtorBitVector *
-btor_ult_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_ult (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -941,7 +941,7 @@ btor_ult_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   uint32_t i, bit;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, 1);
+  res = btor_bv_new (mm, 1);
   bit = 1;
 
   /* find index on which a and b differ */
@@ -951,7 +951,7 @@ btor_ult_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   /* a == b */
   if (i == a->len || a->bits[i] >= b->bits[i]) bit = 0;
 
-  btor_set_bit_bv (res, 0, bit);
+  btor_bv_set_bit (res, 0, bit);
 
   assert (rem_bits_zero_dbg (res));
   return res;
@@ -967,7 +967,7 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, int shift)
   BtorBitVector *res;
   BTOR_BV_TYPE v;
 
-  res  = btor_new_bv (mm, a->width);
+  res  = btor_bv_new (mm, a->width);
   k    = shift % BTOR_BV_TYPE_BW;
   skip = shift / BTOR_BV_TYPE_BW;
 
@@ -986,7 +986,7 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, int shift)
 }
 
 BtorBitVector *
-btor_sll_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -995,12 +995,12 @@ btor_sll_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (btor_log_2_util (a->width) == b->width);
 
   uint64_t shift;
-  shift = btor_bv_to_uint64_bv (b);
+  shift = btor_bv_to_uint64 (b);
   return sll_bv (mm, a, (int) shift);
 }
 
 BtorBitVector *
-btor_srl_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1011,8 +1011,8 @@ btor_srl_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   BtorBitVector *res;
   BTOR_BV_TYPE v;
 
-  res   = btor_new_bv (mm, a->width);
-  shift = btor_bv_to_uint64_bv (b);
+  res   = btor_bv_new (mm, a->width);
+  shift = btor_bv_to_uint64 (b);
   k     = shift % BTOR_BV_TYPE_BW;
   skip  = shift / BTOR_BV_TYPE_BW;
 
@@ -1029,7 +1029,7 @@ btor_srl_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_mul_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_mul (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1043,24 +1043,24 @@ btor_mul_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   if (a->width <= 64)
   {
-    x   = btor_bv_to_uint64_bv (a);
-    y   = btor_bv_to_uint64_bv (b);
-    res = btor_uint64_to_bv (mm, x * y, a->width);
+    x   = btor_bv_to_uint64 (a);
+    y   = btor_bv_to_uint64 (b);
+    res = btor_bv_uint64_to_bv (mm, x * y, a->width);
   }
   else
   {
-    res = btor_new_bv (mm, a->width);
+    res = btor_bv_new (mm, a->width);
     for (i = 0; i < a->width; i++)
     {
-      if (btor_get_bit_bv (b, i))
-        and = btor_copy_bv (mm, a);
+      if (btor_bv_get_bit (b, i))
+        and = btor_bv_copy (mm, a);
       else
-        and = btor_new_bv (mm, a->width);
+        and = btor_bv_new (mm, a->width);
       shift = sll_bv (mm, and, i);
-      add   = btor_add_bv (mm, res, shift);
-      btor_free_bv (mm, and);
-      btor_free_bv (mm, shift);
-      btor_free_bv (mm, res);
+      add   = btor_bv_add (mm, res, shift);
+      btor_bv_free (mm, and);
+      btor_bv_free (mm, shift);
+      btor_bv_free (mm, res);
       res = add;
     }
   }
@@ -1087,8 +1087,8 @@ udiv_urem_bv (BtorMemMgr *mm,
 
   if (a->width <= 64)
   {
-    x = btor_bv_to_uint64_bv (a);
-    y = btor_bv_to_uint64_bv (b);
+    x = btor_bv_to_uint64 (a);
+    y = btor_bv_to_uint64 (b);
     if (y == 0)
     {
       y = x;
@@ -1100,57 +1100,57 @@ udiv_urem_bv (BtorMemMgr *mm,
       y = x % y;
       x = z;
     }
-    quot = btor_uint64_to_bv (mm, x, a->width);
-    rem  = btor_uint64_to_bv (mm, y, a->width);
+    quot = btor_bv_uint64_to_bv (mm, x, a->width);
+    rem  = btor_bv_uint64_to_bv (mm, y, a->width);
   }
   else
   {
-    neg_b = btor_neg_bv (mm, b);
-    quot  = btor_new_bv (mm, a->width);
-    rem   = btor_new_bv (mm, a->width);
+    neg_b = btor_bv_neg (mm, b);
+    quot  = btor_bv_new (mm, a->width);
+    rem   = btor_bv_new (mm, a->width);
 
     for (i = a->width - 1; i >= 0; i--)
     {
       tmp = sll_bv (mm, rem, 1);
-      btor_free_bv (mm, rem);
+      btor_bv_free (mm, rem);
       rem = tmp;
-      btor_set_bit_bv (rem, 0, btor_get_bit_bv (a, i));
+      btor_bv_set_bit (rem, 0, btor_bv_get_bit (a, i));
 
-      ult     = btor_ult_bv (mm, b, rem);
-      is_true = btor_is_true_bv (ult);
-      btor_free_bv (mm, ult);
+      ult     = btor_bv_ult (mm, b, rem);
+      is_true = btor_bv_is_true (ult);
+      btor_bv_free (mm, ult);
 
       if (is_true) goto UDIV_UREM_SUBTRACT;
 
-      eq      = btor_eq_bv (mm, b, rem);
-      is_true = btor_is_true_bv (eq);
-      btor_free_bv (mm, eq);
+      eq      = btor_bv_eq (mm, b, rem);
+      is_true = btor_bv_is_true (eq);
+      btor_bv_free (mm, eq);
 
       if (is_true)
       {
       UDIV_UREM_SUBTRACT:
-        tmp = btor_add_bv (mm, rem, neg_b);
-        btor_free_bv (mm, rem);
+        tmp = btor_bv_add (mm, rem, neg_b);
+        btor_bv_free (mm, rem);
         rem = tmp;
-        btor_set_bit_bv (quot, i, 1);
+        btor_bv_set_bit (quot, i, 1);
       }
     }
-    btor_free_bv (mm, neg_b);
+    btor_bv_free (mm, neg_b);
   }
 
   if (q)
     *q = quot;
   else
-    btor_free_bv (mm, quot);
+    btor_bv_free (mm, quot);
 
   if (r)
     *r = rem;
   else
-    btor_free_bv (mm, rem);
+    btor_bv_free (mm, rem);
 }
 
 BtorBitVector *
-btor_udiv_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_udiv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1165,7 +1165,7 @@ btor_udiv_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_urem_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_urem (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1180,7 +1180,7 @@ btor_urem_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_concat_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+btor_bv_concat (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
   assert (a);
@@ -1190,7 +1190,7 @@ btor_concat_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   BTOR_BV_TYPE v;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, a->width + b->width);
+  res = btor_bv_new (mm, a->width + b->width);
 
   j = res->len - 1;
 
@@ -1226,7 +1226,7 @@ btor_concat_bv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
-btor_slice_bv (BtorMemMgr *mm,
+btor_bv_slice (BtorMemMgr *mm,
                const BtorBitVector *bv,
                uint32_t upper,
                uint32_t lower)
@@ -1237,16 +1237,16 @@ btor_slice_bv (BtorMemMgr *mm,
   uint32_t i, j;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, upper - lower + 1);
+  res = btor_bv_new (mm, upper - lower + 1);
   for (i = lower, j = 0; i <= upper; i++)
-    btor_set_bit_bv (res, j++, btor_get_bit_bv (bv, i));
+    btor_bv_set_bit (res, j++, btor_bv_get_bit (bv, i));
 
   assert (rem_bits_zero_dbg (res));
   return res;
 }
 
 BtorBitVector *
-btor_sext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
+btor_bv_sext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
@@ -1255,10 +1255,10 @@ btor_sext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
   int i;
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bv->width + len);
+  res = btor_bv_new (mm, bv->width + len);
   memcpy (
       res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  if (btor_get_bit_bv (bv, bv->width - 1))
+  if (btor_bv_get_bit (bv, bv->width - 1))
   {
     i = (bv->width % BTOR_BV_TYPE_BW);
     res->bits[res->len - bv->len] |= (((uint64_t) -1) >> i) << i;
@@ -1269,7 +1269,7 @@ btor_sext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 }
 
 BtorBitVector *
-btor_uext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
+btor_bv_uext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
@@ -1277,7 +1277,7 @@ btor_uext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 
   BtorBitVector *res;
 
-  res = btor_new_bv (mm, bv->width + len);
+  res = btor_bv_new (mm, bv->width + len);
   memcpy (
       res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
 
@@ -1285,7 +1285,7 @@ btor_uext_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 }
 
 BtorBitVector *
-btor_flipped_bit_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
+btor_bv_flipped_bit (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
 {
   assert (bv);
   assert (bv->len > 0);
@@ -1293,8 +1293,8 @@ btor_flipped_bit_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
 
   BtorBitVector *res;
 
-  res = btor_copy_bv (mm, bv);
-  btor_set_bit_bv (res, pos, btor_get_bit_bv (res, pos) ? 0 : 1);
+  res = btor_bv_copy (mm, bv);
+  btor_bv_set_bit (res, pos, btor_bv_get_bit (res, pos) ? 0 : 1);
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
 
@@ -1302,7 +1302,7 @@ btor_flipped_bit_bv (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
 }
 
 BtorBitVector *
-btor_flipped_bit_range_bv (BtorMemMgr *mm,
+btor_bv_flipped_bit_range (BtorMemMgr *mm,
                            const BtorBitVector *bv,
                            uint32_t upper,
                            uint32_t lower)
@@ -1314,9 +1314,9 @@ btor_flipped_bit_range_bv (BtorMemMgr *mm,
   uint32_t i;
   BtorBitVector *res;
 
-  res = btor_copy_bv (mm, bv);
+  res = btor_bv_copy (mm, bv);
   for (i = lower; i <= upper; i++)
-    btor_set_bit_bv (res, i, btor_get_bit_bv (res, i) ? 0 : 1);
+    btor_bv_set_bit (res, i, btor_bv_get_bit (res, i) ? 0 : 1);
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
@@ -1325,7 +1325,7 @@ btor_flipped_bit_range_bv (BtorMemMgr *mm,
 /*------------------------------------------------------------------------*/
 
 bool
-btor_is_umulo_bv (BtorMemMgr *mm,
+btor_bv_is_umulo (BtorMemMgr *mm,
                   const BtorBitVector *a,
                   const BtorBitVector *b)
 {
@@ -1342,15 +1342,15 @@ btor_is_umulo_bv (BtorMemMgr *mm,
 
   if (a->width > 1)
   {
-    aext = btor_uext_bv (mm, a, a->width);
-    bext = btor_uext_bv (mm, b, b->width);
-    mul  = btor_mul_bv (mm, aext, bext);
-    o    = btor_slice_bv (mm, mul, mul->width - 1, a->width);
-    if (!btor_is_zero_bv (o)) res = true;
-    btor_free_bv (mm, aext);
-    btor_free_bv (mm, bext);
-    btor_free_bv (mm, mul);
-    btor_free_bv (mm, o);
+    aext = btor_bv_uext (mm, a, a->width);
+    bext = btor_bv_uext (mm, b, b->width);
+    mul  = btor_bv_mul (mm, aext, bext);
+    o    = btor_bv_slice (mm, mul, mul->width - 1, a->width);
+    if (!btor_bv_is_zero (o)) res = true;
+    btor_bv_free (mm, aext);
+    btor_bv_free (mm, bext);
+    btor_bv_free (mm, mul);
+    btor_bv_free (mm, o);
   }
 
   return res;
@@ -1360,7 +1360,7 @@ btor_is_umulo_bv (BtorMemMgr *mm,
 
 #if 0
 BtorBitVector *
-btor_gcd_ext_bv (Btor * btor,
+btor_bv_gcd_ext (Btor * btor,
 		 const BtorBitVector * bv1,
 		 const BtorBitVector * bv2,
 		 BtorBitVector ** fx,
@@ -1369,72 +1369,72 @@ btor_gcd_ext_bv (Btor * btor,
   assert (bv1);
   assert (bv2);
   assert (bv1->width == bv2->width);
-  assert (btor_compare_bv (bv1, bv2) <= 0);
+  assert (btor_bv_compare (bv1, bv2) <= 0);
   assert (fx);
   assert (fy);
 
   BtorBitVector *a, *b, *x, *y, *lx, *ly, *gcd = 0;
   BtorBitVector *zero, *mul, *neg, *tx, *ty, *r, *q = 0;
 
-  zero = btor_new_bv (btor->mm, bv1->width);
+  zero = btor_bv_new (btor->mm, bv1->width);
 
-  a = btor_copy_bv (btor->mm, bv1);
-  b = btor_copy_bv (btor->mm, bv2);
+  a = btor_bv_copy (btor->mm, bv1);
+  b = btor_bv_copy (btor->mm, bv2);
 
-  x = btor_copy_bv (btor->mm, zero);            // 0
-  y = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
+  x = btor_bv_copy (btor->mm, zero);            // 0
+  y = btor_bv_flipped_bit (btor->mm, zero, 0);  // 1
 
-  lx = btor_flipped_bit_bv (btor->mm, zero, 0); // 1
-  ly = btor_copy_bv (btor->mm, zero);           // 0
+  lx = btor_bv_flipped_bit (btor->mm, zero, 0); // 1
+  ly = btor_bv_copy (btor->mm, zero);           // 0
 
-  r = btor_copy_bv (btor->mm, bv1);
+  r = btor_bv_copy (btor->mm, bv1);
 
-  while (btor_compare_bv (b, zero) > 0)
+  while (btor_bv_compare (b, zero) > 0)
     {
-      if (gcd) btor_free_bv (btor->mm, gcd);
-      gcd = btor_copy_bv (btor->mm, r);
+      if (gcd) btor_bv_free (btor->mm, gcd);
+      gcd = btor_bv_copy (btor->mm, r);
 
-      btor_free_bv (btor->mm, r);
-      r = btor_urem_bv (btor->mm, a, b);    // r = a % b
+      btor_bv_free (btor->mm, r);
+      r = btor_bv_urem (btor->mm, a, b);    // r = a % b
 
-      if (q) btor_free_bv (btor->mm, q);
-      q = btor_udiv_bv (btor->mm, a, b);    // q = a / b
+      if (q) btor_bv_free (btor->mm, q);
+      q = btor_bv_udiv (btor->mm, a, b);    // q = a / b
 
-      btor_free_bv (btor->mm, a);
-      a = btor_copy_bv (btor->mm, b);       // a = b
-      btor_free_bv (btor->mm, b);
-      b = btor_copy_bv (btor->mm, r);       // b = r
+      btor_bv_free (btor->mm, a);
+      a = btor_bv_copy (btor->mm, b);       // a = b
+      btor_bv_free (btor->mm, b);
+      b = btor_bv_copy (btor->mm, r);       // b = r
 
-      tx = btor_copy_bv (btor->mm, x);      // tx = x
-      mul = btor_mul_bv (btor->mm, x, q);
-      neg = btor_neg_bv (btor->mm, mul);
-      btor_free_bv (btor->mm, x);
-      x = btor_add_bv (btor->mm, lx, neg);  // x = lx - x * q
-      btor_free_bv (btor->mm, neg);
-      btor_free_bv (btor->mm, mul);
-      btor_free_bv (btor->mm, lx);
+      tx = btor_bv_copy (btor->mm, x);      // tx = x
+      mul = btor_bv_mul (btor->mm, x, q);
+      neg = btor_bv_neg (btor->mm, mul);
+      btor_bv_free (btor->mm, x);
+      x = btor_bv_add (btor->mm, lx, neg);  // x = lx - x * q
+      btor_bv_free (btor->mm, neg);
+      btor_bv_free (btor->mm, mul);
+      btor_bv_free (btor->mm, lx);
       lx = tx;                              // lx = tx
       
-      ty = btor_copy_bv (btor->mm, y);      // ty = y
-      mul = btor_mul_bv (btor->mm, y, q);
-      neg = btor_neg_bv (btor->mm, mul);
-      btor_free_bv (btor->mm, y);
-      y = btor_add_bv (btor->mm, ly, neg);  // y = ly - y * q
-      btor_free_bv (btor->mm, neg);
-      btor_free_bv (btor->mm, mul);
-      btor_free_bv (btor->mm, ly);
+      ty = btor_bv_copy (btor->mm, y);      // ty = y
+      mul = btor_bv_mul (btor->mm, y, q);
+      neg = btor_bv_neg (btor->mm, mul);
+      btor_bv_free (btor->mm, y);
+      y = btor_bv_add (btor->mm, ly, neg);  // y = ly - y * q
+      btor_bv_free (btor->mm, neg);
+      btor_bv_free (btor->mm, mul);
+      btor_bv_free (btor->mm, ly);
       ly = ty;                              // ly = ty
     }
 
   *fx = lx;
   *fy = ly;
-  btor_free_bv (btor->mm, r);
-  btor_free_bv (btor->mm, q);
-  btor_free_bv (btor->mm, a);
-  btor_free_bv (btor->mm, b);
-  btor_free_bv (btor->mm, x);
-  btor_free_bv (btor->mm, y);
-  btor_free_bv (btor->mm, zero);
+  btor_bv_free (btor->mm, r);
+  btor_bv_free (btor->mm, q);
+  btor_bv_free (btor->mm, a);
+  btor_bv_free (btor->mm, b);
+  btor_bv_free (btor->mm, x);
+  btor_bv_free (btor->mm, y);
+  btor_bv_free (btor->mm, zero);
   return gcd;
 }
 #endif
@@ -1443,11 +1443,11 @@ btor_gcd_ext_bv (Btor * btor,
  * Algorithm. Note that c must be odd (the greatest
  * common divisor gcd (c, 2^bw) must be and is in this case always 1).  */
 BtorBitVector *
-btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
-  assert (btor_get_bit_bv (bv, 0)); /* bv must be odd */
+  assert (btor_bv_get_bit (bv, 0)); /* bv must be odd */
 
   uint32_t i;
   BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r, *res;
@@ -1459,47 +1459,47 @@ btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv)
    * -> ly * b = bv^-1 * bv = 1
    * -> ly is modular inverse of bv */
 
-  a = btor_new_bv (mm, bv->width + 1);
-  btor_set_bit_bv (a, a->width - 1, 1); /* 2^bw */
+  a = btor_bv_new (mm, bv->width + 1);
+  btor_bv_set_bit (a, a->width - 1, 1); /* 2^bw */
 
-  b = btor_new_bv (mm, bv->width + 1); /* extend to bw of a */
+  b = btor_bv_new (mm, bv->width + 1); /* extend to bw of a */
   for (i = 0; i < bv->width; i++)
-    btor_set_bit_bv (b, i, btor_get_bit_bv (bv, i));
+    btor_bv_set_bit (b, i, btor_bv_get_bit (bv, i));
 
-  y  = btor_one_bv (mm, bv->width + 1);
-  ly = btor_new_bv (mm, bv->width + 1);
+  y  = btor_bv_one (mm, bv->width + 1);
+  ly = btor_bv_new (mm, bv->width + 1);
 
-  while (!btor_is_zero_bv (b))
+  while (!btor_bv_is_zero (b))
   {
     udiv_urem_bv (mm, a, b, &q, &r);
-    btor_free_bv (mm, a);
+    btor_bv_free (mm, a);
 
     a = b;
     b = r;
 
     ty = y;
-    yq = btor_mul_bv (mm, y, q);
-    btor_free_bv (mm, q);
-    y = btor_sub_bv (mm, ly, yq); /* y = ly - y * q */
-    btor_free_bv (mm, yq);
+    yq = btor_bv_mul (mm, y, q);
+    btor_bv_free (mm, q);
+    y = btor_bv_sub (mm, ly, yq); /* y = ly - y * q */
+    btor_bv_free (mm, yq);
 
-    btor_free_bv (mm, ly);
+    btor_bv_free (mm, ly);
     ly = ty;
   }
 
-  res = btor_slice_bv (mm, ly, bv->width - 1, 0);
+  res = btor_bv_slice (mm, ly, bv->width - 1, 0);
 
 #ifndef NDEBUG
   assert (res->width == bv->width);
-  ty = btor_mul_bv (mm, bv, res);
-  assert (btor_is_one_bv (ty));
-  btor_free_bv (mm, ty);
+  ty = btor_bv_mul (mm, bv, res);
+  assert (btor_bv_is_one (ty));
+  btor_bv_free (mm, ty);
 #endif
 
-  btor_free_bv (mm, ly);
-  btor_free_bv (mm, y);
-  btor_free_bv (mm, b);
-  btor_free_bv (mm, a);
+  btor_bv_free (mm, ly);
+  btor_bv_free (mm, y);
+  btor_bv_free (mm, b);
+  btor_bv_free (mm, a);
 
   return res;
 }
@@ -1507,15 +1507,15 @@ btor_mod_inverse_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorSpecialConstBitVector
-btor_is_special_const_bv (const BtorBitVector *bv)
+btor_bv_is_special_const (const BtorBitVector *bv)
 {
   assert (bv);
 
-  if (btor_is_zero_bv (bv)) return BTOR_SPECIAL_CONST_BV_ZERO;
-  if (btor_is_one_bv (bv))
+  if (btor_bv_is_zero (bv)) return BTOR_SPECIAL_CONST_BV_ZERO;
+  if (btor_bv_is_one (bv))
     return bv->width == 1 ? BTOR_SPECIAL_CONST_BV_ONE_ONES
                           : BTOR_SPECIAL_CONST_BV_ONE;
-  if (btor_is_ones_bv (bv))
+  if (btor_bv_is_ones (bv))
   {
     assert (bv->width > 1);
     return BTOR_SPECIAL_CONST_BV_ONES;
@@ -1526,7 +1526,7 @@ btor_is_special_const_bv (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorBitVectorTuple *
-btor_new_bv_tuple (BtorMemMgr *mm, uint32_t arity)
+btor_bv_new_tuple (BtorMemMgr *mm, uint32_t arity)
 {
   assert (mm);
   assert (arity > 0);
@@ -1540,7 +1540,7 @@ btor_new_bv_tuple (BtorMemMgr *mm, uint32_t arity)
 }
 
 void
-btor_add_to_bv_tuple (BtorMemMgr *mm,
+btor_bv_add_to_tuple (BtorMemMgr *mm,
                       BtorBitVectorTuple *t,
                       BtorBitVector *bv,
                       uint32_t pos)
@@ -1550,24 +1550,24 @@ btor_add_to_bv_tuple (BtorMemMgr *mm,
   assert (bv);
   assert (pos < t->arity);
   assert (!t->bv[pos]);
-  t->bv[pos] = btor_copy_bv (mm, bv);
+  t->bv[pos] = btor_bv_copy (mm, bv);
 }
 
 void
-btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
+btor_bv_free_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 {
   assert (mm);
   assert (t);
 
   uint32_t i;
-  for (i = 0; i < t->arity; i++) btor_free_bv (mm, t->bv[i]);
+  for (i = 0; i < t->arity; i++) btor_bv_free (mm, t->bv[i]);
 
   btor_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
   btor_free (mm, t, sizeof (BtorBitVectorTuple));
 }
 
 int
-btor_compare_bv_tuple (const BtorBitVectorTuple *t0,
+btor_bv_compare_tuple (const BtorBitVectorTuple *t0,
                        const BtorBitVectorTuple *t1)
 {
   assert (t0);
@@ -1582,14 +1582,14 @@ btor_compare_bv_tuple (const BtorBitVectorTuple *t0,
     assert (t0->bv[i]);
     assert (t1->bv[i]);
     if (t0->bv[i]->width != t1->bv[i]->width
-        || btor_compare_bv (t0->bv[i], t1->bv[i]) != 0)
+        || btor_bv_compare (t0->bv[i], t1->bv[i]) != 0)
       return 1;
   }
   return 0;
 }
 
 uint32_t
-btor_hash_bv_tuple (const BtorBitVectorTuple *t)
+btor_bv_hash_tuple (const BtorBitVectorTuple *t)
 {
   assert (t);
 
@@ -1598,7 +1598,7 @@ btor_hash_bv_tuple (const BtorBitVectorTuple *t)
   for (i = 0; i < t->arity; i++)
   {
     assert (t->bv[i]);
-    hash += btor_hash_bv (t->bv[i]) * hash_primes[j++];
+    hash += btor_bv_hash (t->bv[i]) * hash_primes[j++];
     if (j == NPRIMES) j = 0;
   }
 
@@ -1606,7 +1606,7 @@ btor_hash_bv_tuple (const BtorBitVectorTuple *t)
 }
 
 BtorBitVectorTuple *
-btor_copy_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
+btor_bv_copy_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 {
   assert (mm);
   assert (t);
@@ -1614,19 +1614,19 @@ btor_copy_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
   uint32_t i;
   BtorBitVectorTuple *res;
 
-  res = btor_new_bv_tuple (mm, t->arity);
+  res = btor_bv_new_tuple (mm, t->arity);
 
   for (i = 0; i < t->arity; i++)
   {
     assert (t->bv[i]);
-    res->bv[i] = btor_copy_bv (mm, t->bv[i]);
+    res->bv[i] = btor_bv_copy (mm, t->bv[i]);
   }
 
   return res;
 }
 
 size_t
-btor_size_bv_tuple (BtorBitVectorTuple *t)
+btor_bv_size_tuple (BtorBitVectorTuple *t)
 {
   assert (t);
 
@@ -1634,7 +1634,7 @@ btor_size_bv_tuple (BtorBitVectorTuple *t)
   size_t res;
 
   res = sizeof (BtorBitVectorTuple) + t->arity * sizeof (BtorBitVector *);
-  for (i = 0; i < t->arity; i++) res += btor_size_bv (t->bv[i]);
+  for (i = 0; i < t->arity; i++) res += btor_bv_size (t->bv[i]);
 
   return res;
 }

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2015-2016 Mathias Preiner.
  *  Copyright (C) 2015 Armin Biere.
  *
@@ -25,7 +25,7 @@ Btor *btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map);
  * 'btor' in an existing boolector instance 'clone' with rewrite level
  * 'rewrite_level'. 'exp_map' must contain all previously cloned expressions.
  */
-BtorNode *btor_recursively_rebuild_exp_clone (Btor *btor,
+BtorNode *btor_clone_recursively_rebuild_exp (Btor *btor,
                                               Btor *clone,
                                               BtorNode *exp,
                                               BtorNodeMap *exp_map,

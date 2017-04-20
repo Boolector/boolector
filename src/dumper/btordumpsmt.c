@@ -11,7 +11,6 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbitvec.h"
 #include "btorexit.h"
 #include "btorsort.h"
 #ifndef NDEBUG
@@ -66,7 +65,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   sdc->const_cache = btor_new_ptr_hash_table (
-      btor->mm, (BtorHashPtr) btor_hash_bv, (BtorCmpPtr) btor_compare_bv);
+      btor->mm, (BtorHashPtr) btor_bv_hash, (BtorCmpPtr) btor_bv_compare);
   /* use pointer for hashing and comparison */
   sdc->roots        = btor_new_ptr_hash_table (btor->mm, 0, 0);
   sdc->file         = file;
@@ -96,7 +95,7 @@ delete_smt_dump_context (BtorSMTDumpContext *sdc)
   {
     assert (it.bucket->data.as_str);
     btor_freestr (sdc->btor->mm, it.bucket->data.as_str);
-    btor_free_bv (sdc->btor->mm,
+    btor_bv_free (sdc->btor->mm,
                   (BtorBitVector *) btor_next_ptr_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (sdc->const_cache);
@@ -202,17 +201,17 @@ btor_dump_const_value_smt (Btor *btor,
   /* SMT-LIB v1.2 only supports decimal output */
   if (base == BTOR_OUTPUT_BASE_DEC)
   {
-    val = btor_bv_to_dec_char_bv (btor->mm, bits);
+    val = btor_bv_to_dec_char (btor->mm, bits);
     fprintf (file, "(_ bv%s %d)", val, bits->width);
   }
   else if (base == BTOR_OUTPUT_BASE_HEX && bits->width % 4 == 0)
   {
-    val = btor_bv_to_hex_char_bv (btor->mm, bits);
+    val = btor_bv_to_hex_char (btor->mm, bits);
     fprintf (file, "#x%s", val);
   }
   else
   {
-    val = btor_bv_to_char_bv (btor->mm, bits);
+    val = btor_bv_to_char (btor->mm, bits);
     fprintf (file, "#b%s", val);
   }
   btor_freestr (btor->mm, val);
@@ -245,9 +244,9 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
     }
     else
     {
-      val = btor_bv_to_dec_char_bv (sdc->btor->mm, bits);
+      val = btor_bv_to_dec_char (sdc->btor->mm, bits);
       btor_add_ptr_hash_table (sdc->const_cache,
-                               btor_copy_bv (sdc->btor->mm, bits))
+                               btor_bv_copy (sdc->btor->mm, bits))
           ->data.as_str = val;
     }
     fprintf (file, "(_ bv%s %d)", val, bits->width);
@@ -261,9 +260,9 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
     }
     else
     {
-      val = btor_bv_to_hex_char_bv (sdc->btor->mm, bits);
+      val = btor_bv_to_hex_char (sdc->btor->mm, bits);
       btor_add_ptr_hash_table (sdc->const_cache,
-                               btor_copy_bv (sdc->btor->mm, bits))
+                               btor_bv_copy (sdc->btor->mm, bits))
           ->data.as_str = val;
     }
     fprintf (file, "#x%s", val);
@@ -541,9 +540,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           fputs ("false", sdc->file);
         else if (BTOR_IS_INVERTED_NODE (exp))
         {
-          bits = btor_not_bv (sdc->btor->mm, btor_const_get_bits (real_exp));
+          bits = btor_bv_not (sdc->btor->mm, btor_const_get_bits (real_exp));
           dump_const_value_aux_smt (sdc, bits);
-          btor_free_bv (sdc->btor->mm, bits);
+          btor_bv_free (sdc->btor->mm, bits);
         }
         else
         {
@@ -559,9 +558,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (expect_bool && !is_bool)
       {
         fputs ("(= ", sdc->file);
-        bits = btor_one_bv (sdc->btor->mm, 1);
+        bits = btor_bv_one (sdc->btor->mm, 1);
         dump_const_value_aux_smt (sdc, bits);
-        btor_free_bv (sdc->btor->mm, bits);
+        btor_bv_free (sdc->btor->mm, bits);
         fputc (' ', sdc->file);
       }
 
@@ -739,13 +738,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (is_bool && expect_bv && !btor_is_bv_const_node (real_exp))
       {
         fputc (' ', sdc->file);
-        bits = btor_one_bv (sdc->btor->mm, 1);
+        bits = btor_bv_one (sdc->btor->mm, 1);
         dump_const_value_aux_smt (sdc, bits);
-        btor_free_bv (sdc->btor->mm, bits);
+        btor_bv_free (sdc->btor->mm, bits);
         fputc (' ', sdc->file);
-        bits = btor_new_bv (sdc->btor->mm, 1);
+        bits = btor_bv_new (sdc->btor->mm, 1);
         dump_const_value_aux_smt (sdc, bits);
-        btor_free_bv (sdc->btor->mm, bits);
+        btor_bv_free (sdc->btor->mm, bits);
         fputc (')', sdc->file);
       }
 

@@ -96,7 +96,7 @@ cached_beta_result (Btor *btor,
 }
 
 void
-btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
+btor_beta_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   assert (btor);
   assert (fun);
@@ -122,12 +122,12 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
     assert (btor_has_next_lambda_iterator (&it));
     cur_arg    = btor_next_args_iterator (&ait);
     cur_lambda = btor_next_lambda_iterator (&it);
-    btor_assign_param (btor, cur_lambda, cur_arg);
+    btor_beta_assign_param (btor, cur_lambda, cur_arg);
   }
 }
 
 void
-btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
+btor_beta_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
   (void) btor;
   assert (btor);
@@ -140,7 +140,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 }
 
 void
-btor_unassign_params (Btor *btor, BtorNode *lambda)
+btor_beta_unassign_params (Btor *btor, BtorNode *lambda)
 {
   (void) btor;
   assert (lambda);
@@ -168,12 +168,12 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
  *			       lambdas
  */
 static BtorNode *
-btor_beta_reduce (Btor *btor,
-                  BtorNode *exp,
-                  int mode,
-                  int bound,
-                  BtorPtrHashTable *merge_lambdas,
-                  BtorPtrHashTable *cache)
+beta_reduce (Btor *btor,
+             BtorNode *exp,
+             int mode,
+             int bound,
+             BtorPtrHashTable *merge_lambdas,
+             BtorPtrHashTable *cache)
 {
   assert (btor);
   assert (exp);
@@ -302,7 +302,7 @@ btor_beta_reduce (Btor *btor,
 #ifndef NDEBUG
         BTOR_PUSH_STACK (unassign_stack, real_cur);
 #endif
-        btor_assign_args (btor, real_cur, args);
+        btor_beta_assign_args (btor, real_cur, args);
         BTOR_PUSH_STACK (reset, real_cur);
       }
       /* do not try to reduce lambdas below equalities as lambdas cannot
@@ -491,7 +491,7 @@ btor_beta_reduce (Btor *btor,
           && btor_is_apply_node (cur_parent)
           && btor_param_get_assigned_exp (real_cur->e[0]))
       {
-        btor_unassign_params (btor, real_cur);
+        btor_beta_unassign_params (btor, real_cur);
 #ifndef NDEBUG
         (void) BTOR_POP_STACK (unassign_stack);
 #endif
@@ -560,11 +560,11 @@ btor_beta_reduce (Btor *btor,
 }
 
 static BtorNode *
-btor_beta_reduce_partial_aux (Btor *btor,
-                              BtorNode *exp,
-                              BtorPtrHashTable *cond_sel_if,
-                              BtorPtrHashTable *cond_sel_else,
-                              BtorPtrHashTable *conds)
+beta_reduce_partial_aux (Btor *btor,
+                         BtorNode *exp,
+                         BtorPtrHashTable *cond_sel_if,
+                         BtorPtrHashTable *cond_sel_else,
+                         BtorPtrHashTable *conds)
 {
   assert (btor);
   assert (exp);
@@ -637,7 +637,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
         // TODO: there are no nested lambdas anymore is this still possible?
         args = BTOR_TOP_STACK (arg_stack);
         assert (btor_is_args_node (args));
-        btor_assign_args (btor, real_cur, args);
+        btor_beta_assign_args (btor, real_cur, args);
         BTOR_PUSH_STACK (reset, real_cur);
       }
 
@@ -790,14 +790,14 @@ btor_beta_reduce_partial_aux (Btor *btor,
           }
 
           t = 0;
-          if (btor_is_true_bv (eval_res))
+          if (btor_bv_is_true (eval_res))
           {
             if (cond_sel_if) t = cond_sel_if;
             next = real_cur->e[1];
           }
           else
           {
-            assert (btor_is_false_bv (eval_res));
+            assert (btor_bv_is_false (eval_res));
             if (cond_sel_else) t = cond_sel_else;
             next = real_cur->e[2];
           }
@@ -805,7 +805,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           if (t && !btor_get_ptr_hash_table (t, e[0]))
             btor_add_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
 
-          btor_free_bv (btor->mm, eval_res);
+          btor_bv_free (btor->mm, eval_res);
           btor_release_exp (btor, e[0]);
 
           assert (next);
@@ -825,7 +825,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
       if (btor_is_lambda_node (real_cur))
       {
-        btor_unassign_params (btor, real_cur);
+        btor_beta_unassign_params (btor, real_cur);
         next = BTOR_POP_STACK (reset);
         do
         {
@@ -879,7 +879,7 @@ BtorNode *
 btor_beta_reduce_full (Btor *btor, BtorNode *exp, BtorPtrHashTable *cache)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0, 0, cache);
+  return beta_reduce (btor, exp, BETA_RED_FULL, 0, 0, cache);
 }
 
 BtorNode *
@@ -888,22 +888,21 @@ btor_beta_reduce_merge (Btor *btor,
                         BtorPtrHashTable *merge_lambdas)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (
-      btor, exp, BETA_RED_LAMBDA_MERGE, 0, merge_lambdas, 0);
+  return beta_reduce (btor, exp, BETA_RED_LAMBDA_MERGE, 0, merge_lambdas, 0);
 }
 
 BtorNode *
 btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED, bound, 0, 0);
+  return beta_reduce (btor, exp, BETA_RED_BOUNDED, bound, 0, 0);
 }
 
 BtorNode *
 btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorPtrHashTable *conds)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, conds);
+  return beta_reduce_partial_aux (btor, exp, 0, 0, conds);
 }
 
 BtorNode *
@@ -913,6 +912,5 @@ btor_beta_reduce_partial_collect (Btor *btor,
                                   BtorPtrHashTable *cond_sel_else)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel_if, cond_sel_else, 0);
+  return beta_reduce_partial_aux (btor, exp, cond_sel_if, cond_sel_else, 0);
 }

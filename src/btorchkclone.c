@@ -13,7 +13,7 @@
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btoropt.h"
 #include "btorslv.h"
@@ -60,7 +60,7 @@ cmp_data_as_bv_ptr (const BtorHashTableData *d1, const BtorHashTableData *d2)
   assert (d1);
   assert (d2);
 
-  return btor_compare_bv (d1->as_ptr, d2->as_ptr);
+  return btor_bv_compare (d1->as_ptr, d2->as_ptr);
 }
 
 static int
@@ -397,8 +397,8 @@ chkclone_aig_unique_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorAIGUniqueTable *btable, *ctable;
 
-  btable = &btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table;
-  ctable = &btor_get_aig_mgr_aigvec_mgr (clone->avmgr)->table;
+  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->table;
+  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->table;
   assert (btable != ctable);
 
   assert (btable->size == ctable->size);
@@ -414,8 +414,8 @@ chkclone_aig_id_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorAIGPtrStack *btable, *ctable;
 
-  btable = &btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->id2aig;
-  ctable = &btor_get_aig_mgr_aigvec_mgr (clone->avmgr)->id2aig;
+  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->id2aig;
+  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->id2aig;
   assert (btable != ctable);
 
   for (i = 0; i < BTOR_COUNT_STACK (*btable); i++)
@@ -428,8 +428,8 @@ chkclone_aig_cnf_id_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorIntStack *btable, *ctable;
 
-  btable = &btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->cnfid2aig;
-  ctable = &btor_get_aig_mgr_aigvec_mgr (clone->avmgr)->cnfid2aig;
+  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->cnfid2aig;
+  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->cnfid2aig;
   assert (btable != ctable);
 
   for (i = 0; i < BTOR_SIZE_STACK (*btable); i++)
@@ -512,14 +512,14 @@ btor_chkclone_exp (Btor *btor,
   {
     assert (btor_const_get_bits (real_exp)->width
             == btor_const_get_bits (real_cexp)->width);
-    assert (btor_compare_bv (btor_const_get_bits (real_exp),
+    assert (btor_bv_compare (btor_const_get_bits (real_exp),
                              btor_const_get_bits (real_cexp))
             == 0);
     if (btor_const_get_invbits (real_exp))
     {
       assert (btor_const_get_invbits (real_exp)->width
               == btor_const_get_invbits (real_cexp)->width);
-      assert (btor_compare_bv (btor_const_get_invbits (real_exp),
+      assert (btor_bv_compare (btor_const_get_invbits (real_exp),
                                btor_const_get_invbits (real_cexp))
               == 0);
     }
@@ -765,8 +765,8 @@ chkclone_node_unique_table (Btor *btor, Btor *clone)
 static void
 chkclone_assignment_lists (Btor *btor, Btor *clone)
 {
-  BtorBVAssignment *bvass, *cbvass;
-  BtorArrayAssignment *arrass, *carrass;
+  BtorBVAss *bvass, *cbvass;
+  BtorFunAss *funass, *cfunass;
   char **ind, **val, **cind, **cval;
   int32_t i;
 
@@ -778,23 +778,22 @@ chkclone_assignment_lists (Btor *btor, Btor *clone)
        bvass = bvass->next, cbvass = cbvass->next)
   {
     assert (cbvass);
-    assert (!strcmp (btor_get_bv_assignment_str (bvass),
-                     btor_get_bv_assignment_str (cbvass)));
+    assert (
+        !strcmp (btor_ass_get_bv_str (bvass), btor_ass_get_bv_str (cbvass)));
   }
 
   assert (btor->fun_assignments->count == clone->fun_assignments->count);
 
-  for (arrass = btor->fun_assignments->first,
-      carrass = clone->fun_assignments->first;
-       arrass;
-       arrass = arrass->next, carrass = carrass->next)
+  for (funass = btor->fun_assignments->first,
+      cfunass = clone->fun_assignments->first;
+       funass;
+       funass = funass->next, cfunass = cfunass->next)
   {
-    assert (carrass);
-    assert (arrass->size == carrass->size);
-    btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);
-    btor_get_array_assignment_indices_values (
-        carrass, &cind, &cval, carrass->size);
-    for (i = 0; i < arrass->size; i++)
+    assert (cfunass);
+    assert (funass->size == cfunass->size);
+    btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
+    btor_ass_get_fun_indices_values (cfunass, &cind, &cval, cfunass->size);
+    for (i = 0; i < funass->size; i++)
     {
       assert (!strcmp (ind[i], cind[i]));
       assert (!strcmp (val[i], cval[i]));
@@ -912,7 +911,7 @@ chkclone_tables (Btor *btor, Btor *clone)
       assert (btor_has_next_int_hash_table_iterator (&ciit));
       assert (btor->bv_model->data[iit.cur_pos].as_ptr);
       assert (clone->bv_model->data[ciit.cur_pos].as_ptr);
-      assert (!btor_compare_bv (btor->bv_model->data[iit.cur_pos].as_ptr,
+      assert (!btor_bv_compare (btor->bv_model->data[iit.cur_pos].as_ptr,
                                 clone->bv_model->data[ciit.cur_pos].as_ptr));
       assert (btor_next_int_hash_table_iterator (&iit)
               == btor_next_int_hash_table_iterator (&ciit));
@@ -943,9 +942,9 @@ chkclone_tables (Btor *btor, Btor *clone)
       while (btor_has_next_ptr_hash_table_iterator (&npit))
       {
         assert (btor_has_next_ptr_hash_table_iterator (&cnpit));
-        assert (!btor_compare_bv ((BtorBitVector *) npit.bucket->data.as_ptr,
+        assert (!btor_bv_compare ((BtorBitVector *) npit.bucket->data.as_ptr,
                                   (BtorBitVector *) cnpit.bucket->data.as_ptr));
-        assert (!btor_compare_bv_tuple ((BtorBitVectorTuple *) npit.cur,
+        assert (!btor_bv_compare_tuple ((BtorBitVectorTuple *) npit.cur,
                                         (BtorBitVectorTuple *) cnpit.cur));
         (void) btor_next_ptr_hash_table_iterator (&npit);
         (void) btor_next_ptr_hash_table_iterator (&cnpit);

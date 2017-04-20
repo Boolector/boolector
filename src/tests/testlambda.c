@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -107,7 +107,7 @@ apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (btor_is_lambda_node (cur));
-    btor_assign_param (btor, cur, args[i]);
+    btor_beta_assign_param (btor, cur, args[i]);
     BTOR_PUSH_STACK (unassign, cur);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
@@ -117,7 +117,7 @@ apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
   while (!BTOR_EMPTY_STACK (unassign))
   {
     cur = BTOR_POP_STACK (unassign);
-    btor_unassign_params (btor, cur);
+    btor_beta_unassign_params (btor, cur);
   }
 
   BTOR_RELEASE_STACK (unassign);
@@ -1057,18 +1057,18 @@ test_lambda_bounded_reduce1 (void)
   expected = btor_apply_exps (g_btor, &v, 1, l2);
 
   /* bound 2: stop at second lambda */
-  btor_assign_param (g_btor, l1, v);
+  btor_beta_assign_param (g_btor, l1, v);
   result = btor_beta_reduce_bounded (g_btor, l1, 2);
-  btor_unassign_params (g_btor, l1);
+  btor_beta_unassign_params (g_btor, l1);
 
   assert (result == expected);
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, expected);
 
   /* bound 3: stop at third lambda */
-  btor_assign_param (g_btor, l1, v);
+  btor_beta_assign_param (g_btor, l1, v);
   result = btor_beta_reduce_bounded (g_btor, l1, 3);
-  btor_unassign_params (g_btor, l1);
+  btor_beta_unassign_params (g_btor, l1);
 
   assert (result == v);
 
@@ -1097,7 +1097,7 @@ test_lambda_bounded_reduce2 (void)
   j        = btor_var_exp (g_btor, g_index_sort, "j");
   expected = btor_eq_exp (g_btor, i, j);
 
-  btor_assign_param (g_btor, l, j);
+  btor_beta_assign_param (g_btor, l, j);
   result = btor_beta_reduce_bounded (g_btor, l, 0);
   assert (result == expected);
   btor_release_exp (g_btor, result);
@@ -1112,7 +1112,7 @@ test_lambda_bounded_reduce2 (void)
 
   result = btor_beta_reduce_bounded (g_btor, l, 2);
   assert (result == expected);
-  btor_unassign_params (g_btor, l);
+  btor_beta_unassign_params (g_btor, l);
 
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, expected);
@@ -1140,7 +1140,7 @@ test_lambda_bounded_reduce3 (void)
   i        = btor_var_exp (g_btor, g_index_sort, "i");
   expected = btor_apply_exps (g_btor, &i, 1, l1);
 
-  btor_assign_param (g_btor, l2, i);
+  btor_beta_assign_param (g_btor, l2, i);
   result = btor_beta_reduce_bounded (g_btor, l2, 1);
   assert (result == l2);
   btor_release_exp (g_btor, result);
@@ -1151,7 +1151,7 @@ test_lambda_bounded_reduce3 (void)
 
   result = btor_beta_reduce_bounded (g_btor, l2, 3);
   assert (result == i);
-  btor_unassign_params (g_btor, l2);
+  btor_beta_unassign_params (g_btor, l2);
 
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, expected);

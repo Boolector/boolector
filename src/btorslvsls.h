@@ -13,7 +13,7 @@
 
 #include "utils/btornodemap.h"
 #ifndef NDEBUG
-#include "btorbitvec.h"
+#include "btorbv.h"
 #endif
 
 #include "btorslv.h"
