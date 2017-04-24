@@ -12,18 +12,18 @@
 #include <assert.h>
 #include "boolector.h"
 #include "testrunner.h"
-#include "utils/boolectormap.h"
+#include "utils/boolectornodemap.h"
 
 static Btor *g_btor;
 
 void
-init_boolectormap_tests (void)
+init_boolectornodemap_tests (void)
 {
   assert (!g_btor);
 }
 
 void
-finish_boolectormap_tests (void)
+finish_boolectornodemap_tests (void)
 {
   assert (!g_btor);
 }
@@ -31,7 +31,7 @@ finish_boolectormap_tests (void)
 /*------------------------------------------------------------------------*/
 
 static void
-init_boolectormap_test (void)
+init_boolectornodemap_test (void)
 {
   assert (!g_btor);
   g_btor = boolector_new ();
@@ -39,7 +39,7 @@ init_boolectormap_test (void)
 }
 
 static void
-finish_boolectormap_test (void)
+finish_boolectornodemap_test (void)
 {
   assert (g_btor);
   boolector_delete (g_btor);
@@ -49,9 +49,9 @@ finish_boolectormap_test (void)
 /*------------------------------------------------------------------------*/
 
 void
-test_boolectormap0 ()
+test_boolectornodemap0 ()
 {
-  init_boolectormap_test ();
+  init_boolectornodemap_test ();
 
   BoolectorSort sort = boolector_bitvec_sort (g_btor, 32);
   BoolectorNode *a   = boolector_var (g_btor, sort, "a");
@@ -76,13 +76,13 @@ test_boolectormap0 ()
   boolector_release (g_btor, t);
   boolector_release_sort (g_btor, sort);
 
-  finish_boolectormap_test ();
+  finish_boolectornodemap_test ();
 }
 
 /*------------------------------------------------------------------------*/
 
 static BoolectorNode *
-test_boolectormap1_mapper (Btor *btor, void *state, BoolectorNode *node)
+test_boolectornodemap1_mapper (Btor *btor, void *state, BoolectorNode *node)
 {
   const char *symbol;
   (void) state;
@@ -94,9 +94,9 @@ test_boolectormap1_mapper (Btor *btor, void *state, BoolectorNode *node)
 }
 
 void
-test_boolectormap1 ()
+test_boolectornodemap1 ()
 {
-  init_boolectormap_test ();
+  init_boolectornodemap_test ();
 
   BoolectorSort sort = boolector_bitvec_sort (g_btor, 8);
   BoolectorNode *a   = boolector_var (g_btor, sort, "11");
@@ -111,7 +111,7 @@ test_boolectormap1 ()
   BoolectorNodeMap *map = boolector_new_node_map (g_btor);
   BoolectorNode *d, *g;
   d = boolector_non_recursive_extended_substitute_node (
-      g_btor, map, 0, test_boolectormap1_mapper, boolector_release, s);
+      g_btor, map, 0, test_boolectornodemap1_mapper, boolector_release, s);
   (void) d;
   g = boolector_int (g_btor, 66, sort);
   assert (d == g);
@@ -124,14 +124,14 @@ test_boolectormap1 ()
   boolector_release (g_btor, s);
   boolector_release_sort (g_btor, sort);
 
-  finish_boolectormap_test ();
+  finish_boolectornodemap_test ();
 }
 
 /*------------------------------------------------------------------------*/
 
 void
-run_boolectormap_tests (int argc, char **argv)
+run_boolectornodemap_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (boolectormap0);
-  BTOR_RUN_TEST (boolectormap1);
+  BTOR_RUN_TEST (boolectornodemap0);
+  BTOR_RUN_TEST (boolectornodemap1);
 }

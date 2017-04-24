@@ -9,8 +9,8 @@
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
-#ifndef BOOLECTORMAP_H_INCLUDED
-#define BOOLECTORMAP_H_INCLUDED
+#ifndef BOOLECTORNODEMAP_H_INCLUDED
+#define BOOLECTORNODEMAP_H_INCLUDED
 
 /*------------------------------------------------------------------------*/
 

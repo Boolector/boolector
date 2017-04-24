@@ -14,7 +14,7 @@
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
-#include "testboolectormap.h"
+#include "testboolectornodemap.h"
 #include "testbv.h"
 #include "testcomp.h"
 #include "testexp.h"
@@ -134,7 +134,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (aigvec);
   BTOR_RUN_TESTS (exp);
   BTOR_RUN_TESTS (map);
-  BTOR_RUN_TESTS (boolectormap);
+  BTOR_RUN_TESTS (boolectornodemap);
   BTOR_RUN_TESTS (lambda);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);

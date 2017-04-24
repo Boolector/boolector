@@ -19,7 +19,7 @@
 #include "btormsg.h"
 #include "btoropt.h"
 #include "dumper/btordumpbtor.h"
-#include "utils/boolectormap.h"
+#include "utils/boolectornodemap.h"
 
 /*------------------------------------------------------------------------*/
 
