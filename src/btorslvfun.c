@@ -704,8 +704,8 @@ set_up_dual_and_collect (Btor *btor,
   delta = btor_time_stamp ();
   slv   = BTOR_FUN_SOLVER (btor);
 
-  assumptions = btor_new_node_map (btor);
-  key_map     = btor_new_node_map (btor);
+  assumptions = btor_nodemap_new (btor);
+  key_map     = btor_nodemap_new (btor);
 
   BTOR_INIT_STACK (btor->mm, sorted);
   BTOR_FIT_STACK (sorted, BTOR_COUNT_STACK (*inputs));

@@ -34,7 +34,7 @@ typedef struct BtorNodeMap BtorNodeMap;
 
 /*------------------------------------------------------------------------*/
 
-BtorNodeMap *btor_new_node_map (Btor *btor);
+BtorNodeMap *btor_nodemap_new (Btor *btor);
 BtorNode *btor_mapped_node (BtorNodeMap *map, const BtorNode *node);
 void btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst);
 void btor_delete_node_map (BtorNodeMap *map);

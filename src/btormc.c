@@ -245,8 +245,8 @@ mc_release_assignment (BtorMC *mc)
     BTOR_MSG (boolector_get_btor_msg (mc->btor),
               1,
               "releasing forward to constant mapping of size %d",
-              boolector_count_map (mc->forward2const));
-    boolector_delete_node_map (mc->forward2const);
+              boolector_nodemap_count (mc->forward2const));
+    boolector_nodemap_delete (mc->forward2const);
     mc->forward2const = 0;
   }
 
@@ -256,9 +256,9 @@ mc_release_assignment (BtorMC *mc)
       BTOR_MSG (boolector_get_btor_msg (mc->btor),
                 1,
                 "releasing model to constant mapping of size %d at time %d",
-                boolector_count_map (f->model2const),
+                boolector_nodemap_count (f->model2const),
                 (int) (f - mc->frames.start));
-      boolector_delete_node_map (f->model2const);
+      boolector_nodemap_delete (f->model2const);
       f->model2const = 0;
     }
 }
@@ -656,7 +656,8 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
     src = latch->next;
     if (src)
     {
-      dst = boolector_non_recursive_substitute_node (mc->forward, map, src);
+      dst = boolector_nodemap_non_recursive_substitute_node (
+          mc->forward, map, src);
       dst = boolector_copy (mc->forward, dst);
       BTOR_PUSH_STACK (f->next, dst);
       nextstates++;
@@ -693,7 +694,8 @@ initialize_constraints_of_frame (BtorMC *mc,
   {
     src = BTOR_PEEK_STACK (mc->constraints, i);
     assert (src);
-    dst = boolector_non_recursive_substitute_node (mc->forward, map, src);
+    dst =
+        boolector_nodemap_non_recursive_substitute_node (mc->forward, map, src);
     if (constraint)
     {
       BoolectorNode *tmp = boolector_and (mc->forward, constraint, dst);
@@ -738,7 +740,8 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
     {
       src = BTOR_PEEK_STACK (mc->bad, i);
       assert (src);
-      dst = boolector_non_recursive_substitute_node (mc->forward, map, src);
+      dst = boolector_nodemap_non_recursive_substitute_node (
+          mc->forward, map, src);
       dst = boolector_copy (mc->forward, dst);
     }
     else
@@ -761,7 +764,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   assert (BTOR_COUNT_STACK (f->inputs) == mc->inputs->count);
   assert (BTOR_COUNT_STACK (f->latches) == mc->latches->count);
 
-  res = boolector_new_node_map (mc->forward);
+  res = boolector_nodemap_new (mc->forward);
 
   BTOR_MSG (boolector_get_btor_msg (mc->btor),
             2,
@@ -774,7 +777,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   {
     src = (BoolectorNode *) btor_next_ptr_hash_table_iterator (&it);
     dst = BTOR_PEEK_STACK (f->inputs, i);
-    boolector_map_node (res, src, dst);
+    boolector_nodemap_map (res, src, dst);
     i += 1;
   }
 
@@ -784,11 +787,11 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   {
     src = (BoolectorNode *) btor_next_ptr_hash_table_iterator (&it);
     dst = BTOR_PEEK_STACK (f->latches, i);
-    boolector_map_node (res, src, dst);
+    boolector_nodemap_map (res, src, dst);
     i += 1;
   }
 
-  assert ((unsigned) boolector_count_map (res)
+  assert ((unsigned) boolector_nodemap_count (res)
           == mc->inputs->count + mc->latches->count);
 
   return res;
@@ -837,7 +840,7 @@ initialize_new_forward_frame (BtorMC *mc)
   initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);
 
-  boolector_delete_node_map (map);
+  boolector_nodemap_delete (map);
 
   assert (old_mc_btor_num_nodes == mc->btor->nodes_unique_table.num_elements);
 
@@ -1029,7 +1032,7 @@ boolector_mc_bmc (BtorMC *mc, int mink, int maxk)
 static BoolectorNodeMap *
 get_mc_forward2const (BtorMC *mc)
 {
-  if (!mc->forward2const) mc->forward2const = boolector_new_node_map (mc->btor);
+  if (!mc->forward2const) mc->forward2const = boolector_nodemap_new (mc->btor);
   return mc->forward2const;
 }
 
@@ -1037,7 +1040,7 @@ static BoolectorNodeMap *
 get_mc_model2const_map (BtorMC *mc, BtorMcFrame *frame)
 {
   if (!frame->model2const)
-    frame->model2const = boolector_new_node_map (mc->btor);
+    frame->model2const = boolector_nodemap_new (mc->btor);
   return frame->model2const;
 }
 
@@ -1084,7 +1087,7 @@ mc_forward2const (BtorMC *mc, BoolectorNode *node)
   BoolectorNodeMap *map;
   assert (BTOR_REAL_ADDR_NODE (node)->btor == mc->forward);
   map = get_mc_forward2const (mc);
-  return boolector_non_recursive_extended_substitute_node (
+  return boolector_nodemap_non_recursive_extended_substitute_node (
       mc->btor, map, mc, mc_forward2const_mapper, boolector_release, node);
 }
 
@@ -1180,7 +1183,7 @@ mc_model2const (BtorMC *mc, BoolectorNode *node, int time)
   mapper.time = time;
   f           = mc->frames.start + time;
   map         = get_mc_model2const_map (mc, f);
-  return boolector_non_recursive_extended_substitute_node (
+  return boolector_nodemap_non_recursive_extended_substitute_node (
       mc->btor, map, &mapper, mc_model2const_mapper, boolector_release, node);
 }
 

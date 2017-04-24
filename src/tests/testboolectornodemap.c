@@ -60,14 +60,14 @@ test_boolectornodemap0 ()
   BoolectorNode *o   = boolector_one (g_btor, sort);
   BoolectorNode *t   = boolector_unsigned_int (g_btor, 2, sort);
 
-  BoolectorNodeMap *map = boolector_new_node_map (g_btor);
+  BoolectorNodeMap *map = boolector_nodemap_new (g_btor);
   BoolectorNode *d;
-  boolector_map_node (map, a, t);
-  boolector_map_node (map, b, o);
-  d = boolector_non_recursive_substitute_node (g_btor, map, s);
+  boolector_nodemap_map (map, a, t);
+  boolector_nodemap_map (map, b, o);
+  d = boolector_nodemap_non_recursive_substitute_node (g_btor, map, s);
   (void) d;
   assert (d == o);
-  boolector_delete_node_map (map);
+  boolector_nodemap_delete (map);
 
   boolector_release (g_btor, a);
   boolector_release (g_btor, b);
@@ -108,15 +108,15 @@ test_boolectornodemap1 ()
   s                  = boolector_add (g_btor, sum, c);
   boolector_release (g_btor, sum);
 
-  BoolectorNodeMap *map = boolector_new_node_map (g_btor);
+  BoolectorNodeMap *map = boolector_nodemap_new (g_btor);
   BoolectorNode *d, *g;
-  d = boolector_non_recursive_extended_substitute_node (
+  d = boolector_nodemap_non_recursive_extended_substitute_node (
       g_btor, map, 0, test_boolectornodemap1_mapper, boolector_release, s);
   (void) d;
   g = boolector_int (g_btor, 66, sort);
   assert (d == g);
   boolector_release (g_btor, g);
-  boolector_delete_node_map (map);
+  boolector_nodemap_delete (map);
 
   boolector_release (g_btor, a);
   boolector_release (g_btor, b);

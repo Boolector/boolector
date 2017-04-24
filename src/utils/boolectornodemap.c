@@ -22,7 +22,7 @@
 /*------------------------------------------------------------------------*/
 
 BoolectorNodeMap *
-boolector_new_node_map (Btor *btor)
+boolector_nodemap_new (Btor *btor)
 {
   BoolectorNodeMap *res;
 
@@ -38,7 +38,7 @@ boolector_new_node_map (Btor *btor)
 }
 
 void
-boolector_delete_node_map (BoolectorNodeMap *map)
+boolector_nodemap_delete (BoolectorNodeMap *map)
 {
   assert (map);
 
@@ -64,7 +64,7 @@ boolector_delete_node_map (BoolectorNodeMap *map)
 }
 
 BoolectorNode *
-boolector_mapped_node (BoolectorNodeMap *map, const BoolectorNode *n)
+boolector_nodemap_mapped (BoolectorNodeMap *map, const BoolectorNode *n)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *real_node;
@@ -86,16 +86,16 @@ boolector_mapped_node (BoolectorNodeMap *map, const BoolectorNode *n)
 }
 
 int
-boolector_count_map (const BoolectorNodeMap *map)
+boolector_nodemap_count (const BoolectorNodeMap *map)
 {
   assert (map);
   return map->table->count;
 }
 
 void
-boolector_map_node (BoolectorNodeMap *map,
-                    BoolectorNode *nsrc,
-                    BoolectorNode *ndst)
+boolector_nodemap_map (BoolectorNodeMap *map,
+                       BoolectorNode *nsrc,
+                       BoolectorNode *ndst)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *esrc, *edst;
@@ -156,7 +156,7 @@ boolector_map_node_internal (Btor *btor,
   {
     src = e->e[i];
     dst = BTOR_IMPORT_BOOLECTOR_NODE (
-        boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (src)));
+        boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (src)));
     tmp  = dst ? dst : src;
     m[i] = BTOR_EXPORT_BOOLECTOR_NODE (tmp);
     assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
@@ -204,12 +204,13 @@ boolector_map_node_internal (Btor *btor,
 }
 
 BoolectorNode *
-boolector_non_recursive_extended_substitute_node (Btor *btor,
-                                                  BoolectorNodeMap *map,
-                                                  void *state,
-                                                  BoolectorNodeMapper mapper,
-                                                  BoolectorNodeReleaser release,
-                                                  BoolectorNode *nroot)
+boolector_nodemap_non_recursive_extended_substitute_node (
+    Btor *btor,
+    BoolectorNodeMap *map,
+    void *state,
+    BoolectorNodeMapper mapper,
+    BoolectorNodeReleaser release,
+    BoolectorNode *nroot)
 {
   BtorNodePtrStack working_stack;
   BtorNode *node, *mapped;
@@ -235,7 +236,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     node = BTOR_REAL_ADDR_NODE (node);
     btor_inc_exp_ext_ref_counter (node->btor, node);
     assert (!btor_is_proxy_node (node));
-    if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
+    if (boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
     d = btor_get_int_hash_map (mark, node->id);
     if (d && d->as_int == 1) goto DEC_EXT_REFS_AND_CONTINUE;
@@ -243,9 +244,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
         mapper (btor, state, BTOR_EXPORT_BOOLECTOR_NODE (node)));
     if (mapped)
     {
-      boolector_map_node (map,
-                          BTOR_EXPORT_BOOLECTOR_NODE (node),
-                          BTOR_EXPORT_BOOLECTOR_NODE (mapped));
+      boolector_nodemap_map (map,
+                             BTOR_EXPORT_BOOLECTOR_NODE (node),
+                             BTOR_EXPORT_BOOLECTOR_NODE (mapped));
       release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
     }
     else if (!d)
@@ -259,9 +260,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     {
       mapped = BTOR_IMPORT_BOOLECTOR_NODE (boolector_map_node_internal (
           btor, map, BTOR_EXPORT_BOOLECTOR_NODE (node)));
-      boolector_map_node (map,
-                          BTOR_EXPORT_BOOLECTOR_NODE (node),
-                          BTOR_EXPORT_BOOLECTOR_NODE (mapped));
+      boolector_nodemap_map (map,
+                             BTOR_EXPORT_BOOLECTOR_NODE (node),
+                             BTOR_EXPORT_BOOLECTOR_NODE (mapped));
       boolector_release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
       assert (d->as_int == 0);
       d->as_int = 1;
@@ -272,7 +273,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   }
   BTOR_RELEASE_STACK (working_stack);
   btor_delete_int_hash_map (mark);
-  res = boolector_mapped_node (map, nroot);
+  res = boolector_nodemap_mapped (map, nroot);
   assert (res);
   return res;
 }
@@ -287,10 +288,10 @@ boolector_never_map_mapper (Btor *btor, void *state, BoolectorNode *node)
 }
 
 BoolectorNode *
-boolector_non_recursive_substitute_node (Btor *btor,
-                                         BoolectorNodeMap *map,
-                                         BoolectorNode *root)
+boolector_nodemap_non_recursive_substitute_node (Btor *btor,
+                                                 BoolectorNodeMap *map,
+                                                 BoolectorNode *root)
 {
-  return boolector_non_recursive_extended_substitute_node (
+  return boolector_nodemap_non_recursive_extended_substitute_node (
       btor, map, 0, boolector_never_map_mapper, 0, root);
 }

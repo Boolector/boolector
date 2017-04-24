@@ -1016,7 +1016,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert (allocated == clone->mm->allocated);
 #endif
 
-  emap = btor_new_node_map (clone);
+  emap = btor_nodemap_new (clone);
   assert ((allocated += sizeof (*emap) + MEM_PTR_HASH_TABLE (emap->table))
           == clone->mm->allocated);
 
@@ -1474,7 +1474,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
   BtorIntHashTable *mark;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  BtorNodeMap *key_map = btor_new_node_map (btor);
+  BtorNodeMap *key_map = btor_nodemap_new (btor);
 #endif
 
   mm   = btor->mm;

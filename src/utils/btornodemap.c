@@ -17,7 +17,7 @@
 /*------------------------------------------------------------------------*/
 
 BtorNodeMap *
-btor_new_node_map (Btor *btor)
+btor_nodemap_new (Btor *btor)
 {
   BtorNodeMap *res;
 
