@@ -29,7 +29,7 @@ btor_msg_new (Btor *btor)
 }
 
 void
-btor_msg_new (BtorMsg *msg)
+btor_msg_delete (BtorMsg *msg)
 {
   assert (msg);
 

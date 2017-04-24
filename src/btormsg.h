@@ -35,7 +35,7 @@ typedef struct
 
 BtorMsg *btor_msg_new (Btor *btor);
 
-void btor_msg_new (BtorMsg *msg);
+void btor_msg_delete (BtorMsg *msg);
 
 void btor_msg (
     BtorMsg *msg, bool log, const char *filename, const char *fmt, ...);

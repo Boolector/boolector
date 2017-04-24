@@ -963,7 +963,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_opts (btor);
 
   assert (btor->rec_rw_calls == 0);
-  btor_msg_new (btor->msg);
+  btor_msg_delete (btor->msg);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
 }
