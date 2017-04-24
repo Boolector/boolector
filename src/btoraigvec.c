@@ -728,19 +728,19 @@ btor_aigvec_release_delete (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_aigvec_new_mgr (Btor *btor)
+btor_aigvec_mgr_new (Btor *btor)
 {
   assert (btor);
 
   BtorAIGVecMgr *avmgr;
   BTOR_CNEW (btor->mm, avmgr);
   avmgr->btor = btor;
-  avmgr->amgr = btor_aig_new_mgr (btor);
+  avmgr->amgr = btor_aig_mgr_new (btor);
   return avmgr;
 }
 
 BtorAIGVecMgr *
-btor_aigvec_clone_mgr (Btor *btor, BtorAIGVecMgr *avmgr)
+btor_aigvec_mgr_clone (Btor *btor, BtorAIGVecMgr *avmgr)
 {
   assert (btor);
   assert (avmgr);
@@ -749,17 +749,17 @@ btor_aigvec_clone_mgr (Btor *btor, BtorAIGVecMgr *avmgr)
   BTOR_NEW (btor->mm, res);
 
   res->btor            = btor;
-  res->amgr            = btor_aig_clone_mgr (btor, avmgr->amgr);
+  res->amgr            = btor_aig_mgr_clone (btor, avmgr->amgr);
   res->max_num_aigvecs = avmgr->max_num_aigvecs;
   res->cur_num_aigvecs = avmgr->cur_num_aigvecs;
   return res;
 }
 
 void
-btor_aigvec_delete_mgr (BtorAIGVecMgr *avmgr)
+btor_aigvec_mgr_delete (BtorAIGVecMgr *avmgr)
 {
   assert (avmgr);
-  btor_aig_delete_mgr (avmgr->amgr);
+  btor_aig_mgr_delete (avmgr->amgr);
   BTOR_DELETE (avmgr->btor->mm, avmgr);
 }
 

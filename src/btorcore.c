@@ -654,7 +654,7 @@ btor_new_btor (void)
 
   btor_opt_init_opts (btor);
 
-  btor->avmgr = btor_aigvec_new_mgr (btor);
+  btor->avmgr = btor_aigvec_mgr_new (btor);
 
   btor_init_rng (&btor->rng, btor_opt_get (btor, BTOR_OPT_SEED));
 
@@ -958,7 +958,7 @@ btor_delete_btor (Btor *btor)
   btor_hashptr_table_delete (btor->stats.rw_rules_applied);
 #endif
 
-  if (btor->avmgr) btor_aigvec_delete_mgr (btor->avmgr);
+  if (btor->avmgr) btor_aigvec_mgr_delete (btor->avmgr);
   btor_opt_delete_opts (btor);
 
   assert (btor->rec_rw_calls == 0);

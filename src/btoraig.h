@@ -167,9 +167,9 @@ btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
 }
 
 /*------------------------------------------------------------------------*/
-BtorAIGMgr *btor_aig_new_mgr (Btor *btor);
-BtorAIGMgr *btor_aig_clone_mgr (Btor *btor, BtorAIGMgr *amgr);
-void btor_aig_delete_mgr (BtorAIGMgr *amgr);
+BtorAIGMgr *btor_aig_mgr_new (Btor *btor);
+BtorAIGMgr *btor_aig_mgr_clone (Btor *btor, BtorAIGMgr *amgr);
+void btor_aig_mgr_delete (BtorAIGMgr *amgr);
 
 BtorSATMgr *btor_aig_get_sat_mgr (const BtorAIGMgr *amgr);
 

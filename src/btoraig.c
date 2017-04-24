@@ -783,7 +783,7 @@ btor_aig_cond (BtorAIGMgr *amgr,
 }
 
 BtorAIGMgr *
-btor_aig_new_mgr (Btor *btor)
+btor_aig_mgr_new (Btor *btor)
 {
   assert (btor);
 
@@ -876,7 +876,7 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
 }
 
 BtorAIGMgr *
-btor_aig_clone_mgr (Btor *btor, BtorAIGMgr *amgr)
+btor_aig_mgr_clone (Btor *btor, BtorAIGMgr *amgr)
 {
   assert (btor);
   assert (amgr);
@@ -901,7 +901,7 @@ btor_aig_clone_mgr (Btor *btor, BtorAIGMgr *amgr)
 }
 
 void
-btor_aig_delete_mgr (BtorAIGMgr *amgr)
+btor_aig_mgr_delete (BtorAIGMgr *amgr)
 {
   BtorMemMgr *mm;
   assert (amgr);

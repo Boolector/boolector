@@ -37,47 +37,47 @@ init_aig_tests (void)
 static void
 test_new_delete_aig_mgr (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
-  btor_aig_delete_mgr (amgr);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
 test_false_aig (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   btor_dump_aig (amgr, 0, g_logfile, BTOR_AIG_FALSE);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
 test_true_aig (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   btor_dump_aig (amgr, 0, g_logfile, BTOR_AIG_TRUE);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
 test_var_aig (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   BtorAIG *var     = btor_aig_var (amgr);
   assert (btor_aig_is_var (var));
   btor_dump_aig (amgr, 0, g_logfile, var);
   btor_aig_release (amgr, var);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
 test_not_aig (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   BtorAIG *var     = btor_aig_var (amgr);
   BtorAIG *not     = btor_aig_not (amgr, var);
   btor_dump_aig (amgr, 0, g_logfile, not);
   btor_aig_release (amgr, var);
   btor_aig_release (amgr, not);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
@@ -85,7 +85,7 @@ binary_commutative_aig_test (BtorAIG *(*func) (BtorAIGMgr *,
                                                BtorAIG *,
                                                BtorAIG *) )
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   BtorAIG *aig1    = btor_aig_var (amgr);
   BtorAIG *aig2    = btor_aig_var (amgr);
   BtorAIG *aig3    = func (amgr, aig1, aig2);
@@ -99,7 +99,7 @@ binary_commutative_aig_test (BtorAIG *(*func) (BtorAIGMgr *,
   btor_aig_release (amgr, aig3);
   btor_aig_release (amgr, aig4);
   btor_aig_release (amgr, aig5);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
@@ -123,7 +123,7 @@ test_eq_aig (void)
 static void
 test_cond_aig (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   BtorAIG *aig1    = btor_aig_var (amgr);
   BtorAIG *aig2    = btor_aig_var (amgr);
   BtorAIG *aig3    = btor_aig_var (amgr);
@@ -136,13 +136,13 @@ test_cond_aig (void)
   btor_aig_release (amgr, aig3);
   btor_aig_release (amgr, aig4);
   btor_aig_release (amgr, aig5);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 static void
 test_aig_to_sat (void)
 {
-  BtorAIGMgr *amgr = btor_aig_new_mgr (g_btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (g_btor);
   BtorSATMgr *smgr = btor_aig_get_sat_mgr (amgr);
   BtorAIG *var1    = btor_aig_var (amgr);
   BtorAIG *var2    = btor_aig_var (amgr);
@@ -161,7 +161,7 @@ test_aig_to_sat (void)
   btor_aig_release (amgr, and1);
   btor_aig_release (amgr, and2);
   btor_aig_release (amgr, and3);
-  btor_aig_delete_mgr (amgr);
+  btor_aig_mgr_delete (amgr);
 }
 
 void

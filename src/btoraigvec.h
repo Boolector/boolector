@@ -44,9 +44,9 @@ struct BtorAIGVecMgr
 
 /*------------------------------------------------------------------------*/
 
-BtorAIGVecMgr *btor_aigvec_new_mgr (Btor *btor);
-BtorAIGVecMgr *btor_aigvec_clone_mgr (Btor *btor, BtorAIGVecMgr *avmgr);
-void btor_aigvec_delete_mgr (BtorAIGVecMgr *avmgr);
+BtorAIGVecMgr *btor_aigvec_mgr_new (Btor *btor);
+BtorAIGVecMgr *btor_aigvec_mgr_clone (Btor *btor, BtorAIGVecMgr *avmgr);
+void btor_aigvec_mgr_delete (BtorAIGVecMgr *avmgr);
 
 BtorAIGMgr *btor_aigvec_get_aig_mgr (const BtorAIGVecMgr *avmgr);
 
