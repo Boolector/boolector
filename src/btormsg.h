@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -33,9 +33,9 @@ typedef struct
   char *prefix;
 } BtorMsg;
 
-BtorMsg *btor_new_btor_msg (Btor *btor);
+BtorMsg *btor_msg_new (Btor *btor);
 
-void btor_delete_btor_msg (BtorMsg *msg);
+void btor_msg_new (BtorMsg *msg);
 
 void btor_msg (
     BtorMsg *msg, bool log, const char *filename, const char *fmt, ...);

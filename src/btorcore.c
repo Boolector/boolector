@@ -644,7 +644,7 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
 
   btor->mm  = mm;
-  btor->msg = btor_new_btor_msg (btor);
+  btor->msg = btor_msg_new (btor);
   btor_set_msg_prefix_btor (btor, "btor");
 
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
@@ -963,7 +963,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_opts (btor);
 
   assert (btor->rec_rw_calls == 0);
-  btor_delete_btor_msg (btor->msg);
+  btor_msg_new (btor->msg);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
 }

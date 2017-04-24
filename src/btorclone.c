@@ -904,7 +904,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   }
 
-  clone->msg = btor_new_btor_msg (clone);
+  clone->msg = btor_msg_new (clone);
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
 
   /* set msg prefix for clone */
