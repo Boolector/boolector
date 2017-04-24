@@ -45,14 +45,14 @@ cache_beta_result (Btor *btor,
   BtorPtrHashBucket *bucket;
 
   pair   = btor_new_exp_pair (btor, lambda, exp);
-  bucket = btor_get_ptr_hash_table (cache, pair);
+  bucket = btor_hashptr_table_get (cache, pair);
   if (bucket)
   {
     btor_delete_exp_pair (btor, pair);
     assert ((BtorNode *) bucket->data.as_ptr == result);
   }
   else
-    btor_add_ptr_hash_table (cache, pair)->data.as_ptr =
+    btor_hashptr_table_add (cache, pair)->data.as_ptr =
         btor_copy_exp (btor, result);
   BTORLOG (3,
            "%s: (%s, %s) -> %s",
@@ -78,7 +78,7 @@ cached_beta_result (Btor *btor,
   BtorPtrHashBucket *bucket;
 
   pair   = btor_new_exp_pair (btor, lambda, exp);
-  bucket = btor_get_ptr_hash_table (cache, pair);
+  bucket = btor_hashptr_table_get (cache, pair);
   btor_delete_exp_pair (btor, pair);
 
   if (bucket)
@@ -247,7 +247,7 @@ beta_reduce (Btor *btor,
       }
       /* skip all lambdas that are not marked for merge */
       else if (mode == BETA_RED_LAMBDA_MERGE && btor_is_lambda_node (real_cur)
-               && !btor_get_ptr_hash_table (merge_lambdas, real_cur)
+               && !btor_hashptr_table_get (merge_lambdas, real_cur)
                /* do not stop at parameterized lambdas, otherwise the
                 * result may contain parameters that are not bound by any
                 * lambda anymore */
@@ -783,9 +783,9 @@ beta_reduce_partial_aux (Btor *btor,
 
           /* save condition for consistency checking */
           if (conds
-              && !btor_get_ptr_hash_table (conds, BTOR_REAL_ADDR_NODE (e[0])))
+              && !btor_hashptr_table_get (conds, BTOR_REAL_ADDR_NODE (e[0])))
           {
-            btor_add_ptr_hash_table (
+            btor_hashptr_table_add (
                 conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
           }
 
@@ -802,8 +802,8 @@ beta_reduce_partial_aux (Btor *btor,
             next = real_cur->e[2];
           }
 
-          if (t && !btor_get_ptr_hash_table (t, e[0]))
-            btor_add_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
+          if (t && !btor_hashptr_table_get (t, e[0]))
+            btor_hashptr_table_add (t, btor_copy_exp (btor, e[0]));
 
           btor_bv_free (btor->mm, eval_res);
           btor_release_exp (btor, e[0]);

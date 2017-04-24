@@ -29,7 +29,7 @@ btor_aigmap_new (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
   res->btor     = btor;
   res->amgr_src = amgr_src;
   res->amgr_dst = amgr_dst;
-  res->table    = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  res->table    = btor_hashptr_table_new (btor->mm, 0, 0);
   return res;
 }
 
@@ -43,7 +43,7 @@ btor_aigmap_mapped (BtorAIGMap *map, BtorAIG *aig)
   BtorAIG *real_aig, *res;
 
   real_aig = BTOR_REAL_ADDR_AIG (aig);
-  bucket   = btor_get_ptr_hash_table (map->table, real_aig);
+  bucket   = btor_hashptr_table_get (map->table, real_aig);
   if (!bucket) return 0;
   assert (bucket->key == real_aig);
   res = bucket->data.as_ptr;
@@ -66,8 +66,8 @@ btor_aigmap_map (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
     src = BTOR_INVERT_AIG (src);
     dst = BTOR_INVERT_AIG (dst);
   }
-  assert (!btor_get_ptr_hash_table (map->table, src));
-  bucket = btor_add_ptr_hash_table (map->table, src);
+  assert (!btor_hashptr_table_get (map->table, src));
+  bucket = btor_hashptr_table_add (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
   bucket->key = btor_aig_copy (map->amgr_src, src);
@@ -85,12 +85,12 @@ btor_aigmap_delete (BtorAIGMap *map)
 
   btor = map->btor;
 
-  btor_init_ptr_hash_table_iterator (&it, map->table);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, map->table);
+  while (btor_iter_hashptr_has_next (&it))
   {
     btor_aig_release (map->amgr_dst, it.bucket->data.as_ptr);
-    btor_aig_release (map->amgr_src, btor_next_ptr_hash_table_iterator (&it));
+    btor_aig_release (map->amgr_src, btor_iter_hashptr_next (&it));
   }
-  btor_delete_ptr_hash_table (map->table);
+  btor_hashptr_table_delete (map->table);
   BTOR_DELETE (btor->mm, map);
 }

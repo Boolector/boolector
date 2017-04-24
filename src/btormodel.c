@@ -236,16 +236,16 @@ delete_fun_model (Btor *btor, BtorIntHashTable **fun_model)
   {
     t   = (BtorPtrHashTable *) (*fun_model)->data[it1.cur_pos].as_ptr;
     cur = btor_get_node_by_id (btor, btor_iter_hashint_next (&it1));
-    btor_init_ptr_hash_table_iterator (&it2, t);
-    while (btor_has_next_ptr_hash_table_iterator (&it2))
+    btor_iter_hashptr_init (&it2, t);
+    while (btor_iter_hashptr_has_next (&it2))
     {
       value = (BtorBitVector *) it2.bucket->data.as_ptr;
-      tup   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it2);
+      tup   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it2);
       btor_bv_free_tuple (btor->mm, tup);
       btor_bv_free (btor->mm, value);
     }
     btor_release_exp (btor, cur);
-    btor_delete_ptr_hash_table (t);
+    btor_hashptr_table_delete (t);
   }
   btor_hashint_map_delete (*fun_model);
   *fun_model = 0;
@@ -312,18 +312,18 @@ add_to_fun_model (Btor *btor,
     model = btor_hashint_map_get (fun_model, exp->id)->as_ptr;
   else
   {
-    model = btor_new_ptr_hash_table (btor->mm,
-                                     (BtorHashPtr) btor_bv_hash_tuple,
-                                     (BtorCmpPtr) btor_bv_compare_tuple);
+    model = btor_hashptr_table_new (btor->mm,
+                                    (BtorHashPtr) btor_bv_hash_tuple,
+                                    (BtorCmpPtr) btor_bv_compare_tuple);
     btor_copy_exp (btor, exp);
     btor_hashint_map_add (fun_model, exp->id)->as_ptr = model;
   }
-  if ((b = btor_get_ptr_hash_table (model, t)))
+  if ((b = btor_hashptr_table_get (model, t)))
   {
     assert (btor_bv_compare (b->data.as_ptr, value) == 0);
     return;
   }
-  b = btor_add_ptr_hash_table (model, btor_bv_copy_tuple (btor->mm, t));
+  b = btor_hashptr_table_add (model, btor_bv_copy_tuple (btor->mm, t));
   b->data.as_ptr = btor_bv_copy (btor->mm, value);
 }
 
@@ -349,7 +349,7 @@ get_value_from_fun_model (Btor *btor,
   d = btor_hashint_map_get (fun_model, exp->id);
   if (!d) return 0;
   model = (BtorPtrHashTable *) d->as_ptr;
-  b     = btor_get_ptr_hash_table (model, t);
+  b     = btor_hashptr_table_get (model, t);
   if (!b) return 0;
   return btor_bv_copy (btor->mm, (BtorBitVector *) b->data.as_ptr);
 }
@@ -394,20 +394,20 @@ recursively_compute_function_model (Btor *btor,
   {
     assert (btor_is_fun_node (cur_fun));
 
-    if (cur_fun->rho) btor_init_ptr_hash_table_iterator (&it, cur_fun->rho);
+    if (cur_fun->rho) btor_iter_hashptr_init (&it, cur_fun->rho);
     if (btor_is_lambda_node (cur_fun)
         && (static_rho = btor_lambda_get_static_rho (cur_fun)))
     {
       if (cur_fun->rho)
-        btor_queue_ptr_hash_table_iterator (&it, static_rho);
+        btor_iter_hashptr_queue (&it, static_rho);
       else
-        btor_init_ptr_hash_table_iterator (&it, static_rho);
+        btor_iter_hashptr_init (&it, static_rho);
     }
 
-    while (btor_has_next_ptr_hash_table_iterator (&it))
+    while (btor_iter_hashptr_has_next (&it))
     {
       value = (BtorNode *) it.bucket->data.as_ptr;
-      args  = btor_next_ptr_hash_table_iterator (&it);
+      args  = btor_iter_hashptr_next (&it);
       assert (!BTOR_REAL_ADDR_NODE (value)->parameterized);
       assert (BTOR_IS_REGULAR_NODE (args));
       assert (btor_is_args_node (args));
@@ -430,7 +430,7 @@ recursively_compute_function_model (Btor *btor,
       /* if static_rho contains arguments with the same assignments, but map
        * to different values, we consider the argument which occurs
        * earlier in static_rho. */
-      if (!model || !btor_get_ptr_hash_table (model, t))
+      if (!model || !btor_hashptr_table_get (model, t))
       {
         add_to_fun_model (btor, fun_model, fun, t, bv_value);
         if (!model)
@@ -439,7 +439,7 @@ recursively_compute_function_model (Btor *btor,
           model = btor_hashint_map_get (fun_model, fun->id)->as_ptr;
         }
       }
-      else if (!btor_get_ptr_hash_table (model, t))
+      else if (!btor_hashptr_table_get (model, t))
         add_to_fun_model (btor, fun_model, fun, t, bv_value);
 
       btor_bv_free (btor->mm, bv_value);
@@ -972,17 +972,17 @@ btor_model_generate (Btor *btor,
   BTOR_INIT_STACK (btor->mm, stack);
 
   /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
-  btor_init_ptr_hash_table_iterator (&it, btor->fun_rhs);
+  btor_iter_hashptr_init (&it, btor->fun_rhs);
   if (!model_for_all_nodes)
   {
-    btor_queue_ptr_hash_table_iterator (&it, btor->var_rhs);
-    btor_queue_ptr_hash_table_iterator (&it, btor->bv_vars);
-    btor_queue_ptr_hash_table_iterator (&it, btor->ufs);
+    btor_iter_hashptr_queue (&it, btor->var_rhs);
+    btor_iter_hashptr_queue (&it, btor->bv_vars);
+    btor_iter_hashptr_queue (&it, btor->ufs);
   }
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_pointer_chase_simplified_exp (
-        btor, btor_next_ptr_hash_table_iterator (&it));
+    cur =
+        btor_pointer_chase_simplified_exp (btor, btor_iter_hashptr_next (&it));
     BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
@@ -999,12 +999,12 @@ btor_model_generate (Btor *btor,
   }
   else /* push roots only */
   {
-    btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-    while (btor_has_next_ptr_hash_table_iterator (&it))
+    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->assumptions);
+    while (btor_iter_hashptr_has_next (&it))
     {
-      cur = btor_next_ptr_hash_table_iterator (&it);
+      cur = btor_iter_hashptr_next (&it);
       BTOR_PUSH_STACK (stack, cur);
     }
   }

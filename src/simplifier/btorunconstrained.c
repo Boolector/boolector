@@ -116,11 +116,11 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
-  btor_init_ptr_hash_table_iterator (&it, btor->bv_vars);
-  btor_queue_ptr_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->bv_vars);
+  btor_iter_hashptr_queue (&it, btor->ufs);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
     {

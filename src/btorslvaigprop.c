@@ -133,10 +133,10 @@ generate_model_from_aig_model (Btor *btor)
   BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_hashint_table_new (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (stack, btor_next_ptr_hash_table_iterator (&it));
+  btor_iter_hashptr_init (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    BTOR_PUSH_STACK (stack, btor_iter_hashptr_next (&it));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -226,10 +226,9 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (btor_dbg_check_all_hash_tables_simp_free (btor));
 
 #ifndef NDEBUG
-  btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (
-                 ((BtorNode *) btor_next_ptr_hash_table_iterator (&it)))
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    assert (!BTOR_REAL_ADDR_NODE (((BtorNode *) btor_iter_hashptr_next (&it)))
                  ->simplified);
 #endif
 
@@ -247,11 +246,11 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   /* collect roots AIGs */
   roots = btor_hashint_table_new (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
-  btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    root = btor_next_ptr_hash_table_iterator (&it);
+    root = btor_iter_hashptr_next (&it);
 
     if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);

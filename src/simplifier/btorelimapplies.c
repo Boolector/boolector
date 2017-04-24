@@ -32,9 +32,9 @@ btor_eliminate_applies (Btor *btor)
 
   start = btor_time_stamp ();
   round = 1;
-  cache = btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_exp_pair,
-                                   (BtorCmpPtr) btor_compare_exp_pair);
+  cache = btor_hashptr_table_new (btor->mm,
+                                  (BtorHashPtr) btor_hash_exp_pair,
+                                  (BtorCmpPtr) btor_compare_exp_pair);
 
   /* NOTE: in some cases substitute_and_rebuild creates applies that can be
    * beta-reduced. this can happen when parameterized applies become not
@@ -46,10 +46,10 @@ btor_eliminate_applies (Btor *btor)
     btor_init_substitutions (btor);
 
     /* collect function applications */
-    btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
-    while (btor_has_next_ptr_hash_table_iterator (&h_it))
+    btor_iter_hashptr_init (&h_it, btor->lambdas);
+    while (btor_iter_hashptr_has_next (&h_it))
     {
-      fun = btor_next_ptr_hash_table_iterator (&h_it);
+      fun = btor_iter_hashptr_next (&h_it);
 
       btor_init_apply_parent_iterator (&it, fun);
       while (btor_has_next_apply_parent_iterator (&it))
@@ -60,7 +60,7 @@ btor_eliminate_applies (Btor *btor)
 
         num_applies++;
         subst = btor_beta_reduce_full (btor, app, cache);
-        assert (!btor_get_ptr_hash_table (btor->substitutions, app));
+        assert (!btor_hashptr_table_get (btor->substitutions, app));
         btor_insert_substitution (btor, app, subst, 0);
         btor_release_exp (btor, subst);
       }
@@ -79,10 +79,10 @@ btor_eliminate_applies (Btor *btor)
   } while (num_applies > 0);
 
 #ifndef NDEBUG
-  btor_init_ptr_hash_table_iterator (&h_it, btor->lambdas);
-  while (btor_has_next_ptr_hash_table_iterator (&h_it))
+  btor_iter_hashptr_init (&h_it, btor->lambdas);
+  while (btor_iter_hashptr_has_next (&h_it))
   {
-    fun = btor_next_ptr_hash_table_iterator (&h_it);
+    fun = btor_iter_hashptr_next (&h_it);
 
     btor_init_apply_parent_iterator (&it, fun);
     while (btor_has_next_apply_parent_iterator (&it))
@@ -93,13 +93,13 @@ btor_eliminate_applies (Btor *btor)
   }
 #endif
 
-  btor_init_ptr_hash_table_iterator (&h_it, cache);
-  while (btor_has_next_ptr_hash_table_iterator (&h_it))
+  btor_iter_hashptr_init (&h_it, cache);
+  while (btor_iter_hashptr_has_next (&h_it))
   {
     btor_release_exp (btor, h_it.bucket->data.as_ptr);
-    btor_delete_exp_pair (btor, btor_next_ptr_hash_table_iterator (&h_it));
+    btor_delete_exp_pair (btor, btor_iter_hashptr_next (&h_it));
   }
-  btor_delete_ptr_hash_table (cache);
+  btor_hashptr_table_delete (cache);
 
   delta = btor_time_stamp () - start;
   btor->time.elimapplies += delta;

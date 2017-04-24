@@ -30,9 +30,9 @@ boolector_nodemap_new (Btor *btor)
 
   BTOR_NEW (btor->mm, res);
   res->btor  = btor;
-  res->table = btor_new_ptr_hash_table (btor->mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
+  res->table = btor_hashptr_table_new (btor->mm,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
 
   return res;
 }
@@ -46,20 +46,20 @@ boolector_nodemap_delete (BoolectorNodeMap *map)
   BtorNode *e;
   Btor *btor;
 
-  btor_init_ptr_hash_table_iterator (&it, map->table);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, map->table);
+  while (btor_iter_hashptr_has_next (&it))
   {
     e    = it.bucket->data.as_ptr;
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
 
-    e    = btor_next_ptr_hash_table_iterator (&it);
+    e    = btor_iter_hashptr_next (&it);
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
   }
-  btor_delete_ptr_hash_table (map->table);
+  btor_hashptr_table_delete (map->table);
   BTOR_DELETE (map->btor->mm, map);
 }
 
@@ -76,7 +76,7 @@ boolector_nodemap_mapped (BoolectorNodeMap *map, const BoolectorNode *n)
   e = btor_simplify_exp (BTOR_REAL_ADDR_NODE (e)->btor, e);
 
   real_node = BTOR_REAL_ADDR_NODE (e);
-  bucket    = btor_get_ptr_hash_table (map->table, real_node);
+  bucket    = btor_hashptr_table_get (map->table, real_node);
   if (!bucket) return 0;
   assert (bucket->key == real_node);
   eres = bucket->data.as_ptr;
@@ -116,8 +116,8 @@ boolector_nodemap_map (BoolectorNodeMap *map,
     esrc = BTOR_INVERT_NODE (esrc);
     edst = BTOR_INVERT_NODE (edst);
   }
-  assert (!btor_get_ptr_hash_table (map->table, esrc));
-  bucket = btor_add_ptr_hash_table (map->table, esrc);
+  assert (!btor_hashptr_table_get (map->table, esrc));
+  bucket = btor_hashptr_table_add (map->table, esrc);
   assert (bucket);
 
   sbtor = BTOR_REAL_ADDR_NODE (esrc)->btor;

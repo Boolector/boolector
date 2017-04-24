@@ -133,7 +133,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
   while (!BTOR_EMPTY_STACK (vars))
   {
-    slices = btor_new_ptr_hash_table (
+    slices = btor_hashptr_table_new (
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
     var = BTOR_POP_STACK (vars);
     assert (BTOR_IS_REGULAR_NODE (var));
@@ -148,22 +148,22 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       {
         s1 = new_slice (
             btor, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
-        assert (!btor_get_ptr_hash_table (slices, s1));
-        btor_add_ptr_hash_table (slices, s1);
+        assert (!btor_hashptr_table_get (slices, s1));
+        btor_hashptr_table_add (slices, s1);
       }
     }
 
     /* no splitting necessary? */
     if (slices->count == 0u)
     {
-      btor_delete_ptr_hash_table (slices);
+      btor_hashptr_table_delete (slices);
       continue;
     }
 
     /* add full slice */
     s1 = new_slice (btor, btor_get_exp_width (btor, var) - 1, 0);
-    assert (!btor_get_ptr_hash_table (slices, s1));
-    btor_add_ptr_hash_table (slices, s1);
+    assert (!btor_hashptr_table_get (slices, s1));
+    btor_hashptr_table_add (slices, s1);
 
   BTOR_SPLIT_SLICES_RESTART:
     for (b1 = slices->last; b1 != NULL; b1 = b1->prev)
@@ -186,19 +186,19 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
           max    = BTOR_MAX_UTIL (s1->lower, s2->lower);
           min    = BTOR_MIN_UTIL (s1->lower, s2->lower);
           new_s1 = new_slice (btor, max - 1, min);
-          if (!btor_get_ptr_hash_table (slices, new_s1))
-            btor_add_ptr_hash_table (slices, new_s1);
+          if (!btor_hashptr_table_get (slices, new_s1))
+            btor_hashptr_table_add (slices, new_s1);
           else
             delete_slice (btor, new_s1);
 
           if (min == s1->lower)
           {
-            btor_remove_ptr_hash_table (slices, s1, 0, 0);
+            btor_hashptr_table_remove (slices, s1, 0, 0);
             delete_slice (btor, s1);
           }
           else
           {
-            btor_remove_ptr_hash_table (slices, s2, 0, 0);
+            btor_hashptr_table_remove (slices, s2, 0, 0);
             delete_slice (btor, s2);
           }
           goto BTOR_SPLIT_SLICES_RESTART;
@@ -210,18 +210,18 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
           max    = BTOR_MAX_UTIL (s1->upper, s2->upper);
           min    = BTOR_MIN_UTIL (s1->upper, s2->upper);
           new_s1 = new_slice (btor, max, min + 1);
-          if (!btor_get_ptr_hash_table (slices, new_s1))
-            btor_add_ptr_hash_table (slices, new_s1);
+          if (!btor_hashptr_table_get (slices, new_s1))
+            btor_hashptr_table_add (slices, new_s1);
           else
             delete_slice (btor, new_s1);
           if (max == s1->upper)
           {
-            btor_remove_ptr_hash_table (slices, s1, 0, 0);
+            btor_hashptr_table_remove (slices, s1, 0, 0);
             delete_slice (btor, s1);
           }
           else
           {
-            btor_remove_ptr_hash_table (slices, s2, NULL, NULL);
+            btor_hashptr_table_remove (slices, s2, NULL, NULL);
             delete_slice (btor, s2);
           }
           goto BTOR_SPLIT_SLICES_RESTART;
@@ -236,20 +236,20 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
         new_s1 = new_slice (btor, vals[3], vals[2] + 1);
         new_s2 = new_slice (btor, vals[2], vals[1]);
         new_s3 = new_slice (btor, vals[1] - 1, vals[0]);
-        btor_remove_ptr_hash_table (slices, s1, 0, 0);
-        btor_remove_ptr_hash_table (slices, s2, NULL, NULL);
+        btor_hashptr_table_remove (slices, s1, 0, 0);
+        btor_hashptr_table_remove (slices, s2, NULL, NULL);
         delete_slice (btor, s1);
         delete_slice (btor, s2);
-        if (!btor_get_ptr_hash_table (slices, new_s1))
-          btor_add_ptr_hash_table (slices, new_s1);
+        if (!btor_hashptr_table_get (slices, new_s1))
+          btor_hashptr_table_add (slices, new_s1);
         else
           delete_slice (btor, new_s1);
-        if (!btor_get_ptr_hash_table (slices, new_s2))
-          btor_add_ptr_hash_table (slices, new_s2);
+        if (!btor_hashptr_table_get (slices, new_s2))
+          btor_hashptr_table_add (slices, new_s2);
         else
           delete_slice (btor, new_s2);
-        if (!btor_get_ptr_hash_table (slices, new_s3))
-          btor_add_ptr_hash_table (slices, new_s3);
+        if (!btor_hashptr_table_get (slices, new_s3))
+          btor_hashptr_table_add (slices, new_s3);
         else
           delete_slice (btor, new_s3);
         goto BTOR_SPLIT_SLICES_RESTART;
@@ -288,7 +288,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       delete_slice (btor, s1);
     }
     BTOR_DELETEN (mm, sorted_slices, slices->count);
-    btor_delete_ptr_hash_table (slices);
+    btor_hashptr_table_delete (slices);
 
     count++;
     btor->stats.eliminated_slices++;

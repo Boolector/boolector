@@ -1506,12 +1506,12 @@ sat_sls_solver (BtorSLSSolver *slv)
   assert (!slv->weights);
   slv->weights = btor_hashint_map_new (btor->mm);
   assert (btor->synthesized_constraints->count == 0);
-  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&pit);
-    assert (!btor_get_ptr_hash_table (btor->unsynthesized_constraints,
-                                      BTOR_INVERT_NODE (root)));
+    root = btor_iter_hashptr_next (&pit);
+    assert (!btor_hashptr_table_get (btor->unsynthesized_constraints,
+                                     BTOR_INVERT_NODE (root)));
     id = btor_exp_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))
     {
@@ -1520,14 +1520,14 @@ sat_sls_solver (BtorSLSSolver *slv)
       btor_hashint_map_add (slv->weights, id)->as_ptr = d;
     }
   }
-  btor_init_ptr_hash_table_iterator (&pit, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  btor_iter_hashptr_init (&pit, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&pit);
-    if (btor_get_ptr_hash_table (btor->unsynthesized_constraints,
-                                 BTOR_INVERT_NODE (root)))
+    root = btor_iter_hashptr_next (&pit);
+    if (btor_hashptr_table_get (btor->unsynthesized_constraints,
+                                BTOR_INVERT_NODE (root)))
       goto UNSAT;
-    if (btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)))
+    if (btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)))
       goto UNSAT;
     id = btor_exp_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))
@@ -1560,11 +1560,11 @@ sat_sls_solver (BtorSLSSolver *slv)
     assert (!slv->roots);
     slv->roots = btor_hashint_map_new (btor->mm);
     assert (btor->synthesized_constraints->count == 0);
-    btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
-    while (btor_has_next_ptr_hash_table_iterator (&pit))
+    btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+    btor_iter_hashptr_queue (&pit, btor->assumptions);
+    while (btor_iter_hashptr_has_next (&pit))
     {
-      root = btor_next_ptr_hash_table_iterator (&pit);
+      root = btor_iter_hashptr_next (&pit);
       if (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {

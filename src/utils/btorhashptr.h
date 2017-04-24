@@ -67,26 +67,26 @@ struct BtorPtrHashTable
 
 /*------------------------------------------------------------------------*/
 
-BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
-                                           BtorHashPtr,
-                                           BtorCmpPtr);
+BtorPtrHashTable *btor_hashptr_table_new (BtorMemMgr *,
+                                          BtorHashPtr,
+                                          BtorCmpPtr);
 
 /* Clone hash table. 'ckey' is a function mapping key to cloned key,
  * 'cdata' is a function mapping data to cloned data (note: as_ptr vs.
  * as_int!). 'key_map' represents a map mapping key to cloned key values.
  * 'data_map' represents a map mapping data to cloned data values. */
-BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mm,
-                                             BtorPtrHashTable *table,
-                                             BtorCloneKeyPtr ckey,
-                                             BtorCloneDataPtr cdata,
-                                             const void *key_map,
-                                             const void *data_map);
+BtorPtrHashTable *btor_hashptr_table_clone (BtorMemMgr *mm,
+                                            BtorPtrHashTable *table,
+                                            BtorCloneKeyPtr ckey,
+                                            BtorCloneDataPtr cdata,
+                                            const void *key_map,
+                                            const void *data_map);
 
-void btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht);
+void btor_hashptr_table_delete (BtorPtrHashTable *p2iht);
 
-BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
+BtorPtrHashBucket *btor_hashptr_table_get (BtorPtrHashTable *p2iht, void *key);
 
-BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
+BtorPtrHashBucket *btor_hashptr_table_add (BtorPtrHashTable *p2iht, void *key);
 
 /* Remove from hash table the bucket with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
@@ -95,10 +95,10 @@ BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key);
  * through the chronological chains, then you can remove elements while
  * traversing the hash table.
  */
-void btor_remove_ptr_hash_table (BtorPtrHashTable *,
-                                 void *key,
-                                 void **stored_key_ptr,
-                                 BtorHashTableData *stored_data_ptr);
+void btor_hashptr_table_remove (BtorPtrHashTable *,
+                                void *key,
+                                void **stored_key_ptr,
+                                BtorHashTableData *stored_data_ptr);
 
 unsigned btor_hash_str (const void *str);
 
@@ -120,16 +120,15 @@ typedef struct BtorPtrHashTableIterator
   const BtorPtrHashTable *stack[BTOR_PTR_HASH_TABLE_ITERATOR_STACK_SIZE];
 } BtorPtrHashTableIterator;
 
-void btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                        const BtorPtrHashTable *t);
-void btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                                 const BtorPtrHashTable *t);
-void btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                         const BtorPtrHashTable *t);
-bool btor_has_next_ptr_hash_table_iterator (const BtorPtrHashTableIterator *it);
-void *btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it);
-BtorHashTableData *btor_next_data_ptr_hash_table_iterator (
-    BtorPtrHashTableIterator *it);
+void btor_iter_hashptr_init (BtorPtrHashTableIterator *it,
+                             const BtorPtrHashTable *t);
+void btor_iter_hashptr_init_reversed (BtorPtrHashTableIterator *it,
+                                      const BtorPtrHashTable *t);
+void btor_iter_hashptr_queue (BtorPtrHashTableIterator *it,
+                              const BtorPtrHashTable *t);
+bool btor_iter_hashptr_has_next (const BtorPtrHashTableIterator *it);
+void *btor_iter_hashptr_next (BtorPtrHashTableIterator *it);
+BtorHashTableData *btor_iter_hashptr_next_data (BtorPtrHashTableIterator *it);
 
 /*------------------------------------------------------------------------*/
 #endif

@@ -25,9 +25,9 @@ btor_nodemap_new (Btor *btor)
 
   BTOR_NEW (btor->mm, res);
   res->btor  = btor;
-  res->table = btor_new_ptr_hash_table (btor->mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
+  res->table = btor_hashptr_table_new (btor->mm,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
   return res;
 }
 
@@ -39,16 +39,16 @@ btor_delete_node_map (BtorNodeMap *map)
   BtorPtrHashTableIterator it;
   BtorNode *cur;
 
-  btor_init_ptr_hash_table_iterator (&it, map->table);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, map->table);
+  while (btor_iter_hashptr_has_next (&it))
   {
     btor_release_exp (
         BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.as_ptr)->btor,
         it.bucket->data.as_ptr);
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
-  btor_delete_ptr_hash_table (map->table);
+  btor_hashptr_table_delete (map->table);
   BTOR_DELETE (map->btor->mm, map);
 }
 
@@ -60,7 +60,7 @@ btor_mapped_node (BtorNodeMap *map, const BtorNode *node)
   BtorNode *res;
 
   real_node = BTOR_REAL_ADDR_NODE (node);
-  bucket    = btor_get_ptr_hash_table (map->table, real_node);
+  bucket    = btor_hashptr_table_get (map->table, real_node);
   if (!bucket) return 0;
   assert (bucket->key == real_node);
   res = bucket->data.as_ptr;
@@ -82,8 +82,8 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
     src = BTOR_INVERT_NODE (src);
     dst = BTOR_INVERT_NODE (dst);
   }
-  assert (!btor_get_ptr_hash_table (map->table, src));
-  bucket = btor_add_ptr_hash_table (map->table, src);
+  assert (!btor_hashptr_table_get (map->table, src));
+  bucket = btor_hashptr_table_add (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
   bucket->key = btor_copy_exp (BTOR_REAL_ADDR_NODE (src)->btor, src);
@@ -99,7 +99,7 @@ void
 btor_init_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
-  btor_init_ptr_hash_table_iterator (&it->it, map->table);
+  btor_iter_hashptr_init (&it->it, map->table);
 }
 
 void
@@ -107,32 +107,32 @@ btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
                                       const BtorNodeMap *map)
 {
   assert (map);
-  btor_init_reversed_ptr_hash_table_iterator (&it->it, map->table);
+  btor_iter_hashptr_init_reversed (&it->it, map->table);
 }
 
 bool
 btor_has_next_node_map_iterator (const BtorNodeMapIterator *it)
 {
-  return btor_has_next_ptr_hash_table_iterator (&it->it);
+  return btor_iter_hashptr_has_next (&it->it);
 }
 
 void
 btor_queue_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
-  btor_queue_ptr_hash_table_iterator (&it->it, map->table);
+  btor_iter_hashptr_queue (&it->it, map->table);
 }
 
 BtorNode *
 btor_next_node_map_iterator (BtorNodeMapIterator *it)
 {
-  return btor_next_ptr_hash_table_iterator (&it->it);
+  return btor_iter_hashptr_next (&it->it);
 }
 
 BtorHashTableData *
 btor_next_data_node_map_iterator (BtorNodeMapIterator *it)
 {
-  return btor_next_data_ptr_hash_table_iterator (&it->it);
+  return btor_iter_hashptr_next_data (&it->it);
 }
 
 /*------------------------------------------------------------------------*/

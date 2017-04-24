@@ -180,12 +180,12 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   /* fun model as ite over args and assignments */
   n          = 0;
   assignment = 0;
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     fprintf (file, "%4c(ite ", ' ');
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     x          = 0;
     if (args->arity > 1)
     {
@@ -248,11 +248,11 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   symbol = btor_get_symbol_exp (btor, node);
   id     = btor_exp_get_btor_id (node);
 
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     // TODO: distinguish between functions and arrays (ma)
     //       needs proper sort handling
     fprintf (file, "%d[", id ? id : node->id);
@@ -298,10 +298,10 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
-  btor_init_ptr_hash_table_iterator (&it, btor->inputs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->inputs);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else
@@ -369,8 +369,8 @@ print_fun_value_smt2 (
   fprintf (file, "(");
 
   n = 0;
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     if (symbol)
       fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
@@ -383,7 +383,7 @@ print_fun_value_smt2 (
                id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
     }
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     if (args->arity > 1)
     {
       for (i = 0; i < args->arity; i++)

@@ -70,7 +70,7 @@ init_opt (Btor *btor,
   uint32_t v;
   char *valstr;
 
-  assert (!btor_get_ptr_hash_table (btor->str2opt, lng));
+  assert (!btor_hashptr_table_get (btor->str2opt, lng));
 
   btor->options[opt].internal = internal;
   btor->options[opt].isflag   = isflag;
@@ -82,7 +82,7 @@ init_opt (Btor *btor,
   btor->options[opt].max      = max;
   btor->options[opt].desc     = desc;
 
-  btor_add_ptr_hash_table (btor->str2opt, lng)->data.as_int = opt;
+  btor_hashptr_table_add (btor->str2opt, lng)->data.as_int = opt;
 
   if ((valstr = getenv_value (lng)))
   {
@@ -106,7 +106,7 @@ btor_opt_init_opts (Btor *btor)
   assert (btor);
 
   BTOR_CNEWN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
-  btor->str2opt = btor_new_ptr_hash_table (
+  btor->str2opt = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   init_opt (btor,
@@ -947,12 +947,12 @@ btor_opt_clone_opts (Btor *btor, Btor *clone)
   }
   if (btor->str2opt)
   {
-    clone->str2opt = btor_clone_ptr_hash_table (clone->mm,
-                                                btor->str2opt,
-                                                btor_clone_key_as_static_str,
-                                                btor_clone_data_as_int,
-                                                0,
-                                                0);
+    clone->str2opt = btor_hashptr_table_clone (clone->mm,
+                                               btor->str2opt,
+                                               btor_clone_key_as_static_str,
+                                               btor_clone_data_as_int,
+                                               0,
+                                               0);
   }
 }
 
@@ -979,7 +979,7 @@ btor_opt_delete_opts (Btor *btor)
   }
   if (btor->str2opt)
   {
-    btor_delete_ptr_hash_table (btor->str2opt);
+    btor_hashptr_table_delete (btor->str2opt);
     btor->str2opt = 0;
   }
 }

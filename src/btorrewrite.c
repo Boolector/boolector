@@ -90,24 +90,23 @@
 // TODO: special_const_binary rewriting may return 0, hence the check if
 //       (result), may be obsolete if special_const_binary will be split
 #ifndef NDEBUG
-#define ADD_RW_RULE(rw_rule, ...)                                             \
-  if (applies_##rw_rule (btor, __VA_ARGS__))                                  \
-  {                                                                           \
-    assert (!result);                                                         \
-    result = apply_##rw_rule (btor, __VA_ARGS__);                             \
-    if (result)                                                               \
-    {                                                                         \
-      if (btor->stats.rw_rules_applied)                                       \
-      {                                                                       \
-        BtorPtrHashBucket *b =                                                \
-            btor_get_ptr_hash_table (btor->stats.rw_rules_applied, #rw_rule); \
-        if (!b)                                                               \
-          b = btor_add_ptr_hash_table (btor->stats.rw_rules_applied,          \
-                                       #rw_rule);                             \
-        b->data.as_int += 1;                                                  \
-      }                                                                       \
-      goto DONE;                                                              \
-    }                                                                         \
+#define ADD_RW_RULE(rw_rule, ...)                                              \
+  if (applies_##rw_rule (btor, __VA_ARGS__))                                   \
+  {                                                                            \
+    assert (!result);                                                          \
+    result = apply_##rw_rule (btor, __VA_ARGS__);                              \
+    if (result)                                                                \
+    {                                                                          \
+      if (btor->stats.rw_rules_applied)                                        \
+      {                                                                        \
+        BtorPtrHashBucket *b =                                                 \
+            btor_hashptr_table_get (btor->stats.rw_rules_applied, #rw_rule);   \
+        if (!b)                                                                \
+          b = btor_hashptr_table_add (btor->stats.rw_rules_applied, #rw_rule); \
+        b->data.as_int += 1;                                                   \
+      }                                                                        \
+      goto DONE;                                                               \
+    }                                                                          \
   }
 #else
 #define ADD_RW_RULE(rw_rule, ...)                 \
@@ -5095,15 +5094,15 @@ normalize_bin_comm_ass_exp (Btor *btor,
 
   mm    = btor->mm;
   kind  = e0->kind;
-  left  = btor_new_ptr_hash_table (mm,
+  left  = btor_hashptr_table_new (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  right = btor_hashptr_table_new (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  right = btor_new_ptr_hash_table (mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  comm  = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  comm  = btor_hashptr_table_new (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
   cache = btor_hashint_table_new (mm);
 
   BTOR_INIT_STACK (mm, stack);
@@ -5124,9 +5123,9 @@ normalize_bin_comm_ass_exp (Btor *btor,
     }
     else
     {
-      b = btor_get_ptr_hash_table (left, cur);
+      b = btor_hashptr_table_get (left, cur);
       if (!b)
-        btor_add_ptr_hash_table (left, cur)->data.as_int = 1;
+        btor_hashptr_table_add (left, cur)->data.as_int = 1;
       else
         b->data.as_int++;
     }
@@ -5151,7 +5150,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     }
     else
     {
-      b = btor_get_ptr_hash_table (left, cur);
+      b = btor_hashptr_table_get (left, cur);
       if (b)
       {
         /* we found one common operand */
@@ -5162,22 +5161,22 @@ normalize_bin_comm_ass_exp (Btor *btor,
         else
         {
           assert (b->data.as_int == 1);
-          btor_remove_ptr_hash_table (left, cur, 0, 0);
+          btor_hashptr_table_remove (left, cur, 0, 0);
         }
 
         /* insert into common table */
-        b = btor_get_ptr_hash_table (comm, cur);
+        b = btor_hashptr_table_get (comm, cur);
         if (!b)
-          btor_add_ptr_hash_table (comm, cur)->data.as_int = 1;
+          btor_hashptr_table_add (comm, cur)->data.as_int = 1;
         else
           b->data.as_int++;
       }
       else
       {
         /* operand is not common */
-        b = btor_get_ptr_hash_table (right, cur);
+        b = btor_hashptr_table_get (right, cur);
         if (!b)
-          btor_add_ptr_hash_table (right, cur)->data.as_int = 1;
+          btor_hashptr_table_add (right, cur)->data.as_int = 1;
         else
           b->data.as_int++;
       }
@@ -5190,9 +5189,9 @@ normalize_bin_comm_ass_exp (Btor *btor,
   {
   RETURN_NO_RESULT:
     /* clean up */
-    btor_delete_ptr_hash_table (left);
-    btor_delete_ptr_hash_table (right);
-    btor_delete_ptr_hash_table (comm);
+    btor_hashptr_table_delete (left);
+    btor_hashptr_table_delete (right);
+    btor_hashptr_table_delete (comm);
     btor_hashint_table_delete (cache);
     *e0_norm = btor_copy_exp (btor, e0);
     *e1_norm = btor_copy_exp (btor, e1);
@@ -5237,11 +5236,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
 #if 0
   /* normalize left side */
   result = btor_copy_exp (btor, common);
-  btor_init_ptr_hash_table_iterator (&it, left);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, left);
+  while (btor_iter_hashptr_has_next (&it))
     {
       b = it.bucket;
-      cur = btor_next_ptr_hash_table_iterator (&it);
+      cur = btor_iter_hashptr_next (&it);
       for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -5253,11 +5252,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
 
   /* normalize right side */
   result = btor_copy_exp (btor, common);
-  btor_init_ptr_hash_table_iterator (&it, right);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, right);
+  while (btor_iter_hashptr_has_next (&it))
     {
       b = it.bucket;
-      cur = btor_next_ptr_hash_table_iterator (&it);
+      cur = btor_iter_hashptr_next (&it);
       for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -5270,11 +5269,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
   /* Bubble up common part.
    */
   result = 0;
-  btor_init_ptr_hash_table_iterator (&it, left);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, left);
+  while (btor_iter_hashptr_has_next (&it))
   {
     b   = it.bucket;
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     for (i = 0; i < b->data.as_int; i++)
     {
       if (result)
@@ -5300,11 +5299,11 @@ normalize_bin_comm_ass_exp (Btor *btor,
   *e0_norm = result;
 
   result = 0;
-  btor_init_ptr_hash_table_iterator (&it, right);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, right);
+  while (btor_iter_hashptr_has_next (&it))
   {
     b   = it.bucket;
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     for (i = 0; i < b->data.as_int; i++)
     {
       if (result)
@@ -5332,9 +5331,9 @@ normalize_bin_comm_ass_exp (Btor *btor,
 
   /* clean up */
   btor_release_exp (btor, common);
-  btor_delete_ptr_hash_table (left);
-  btor_delete_ptr_hash_table (right);
-  btor_delete_ptr_hash_table (comm);
+  btor_hashptr_table_delete (left);
+  btor_hashptr_table_delete (right);
+  btor_hashptr_table_delete (comm);
   btor_hashint_table_delete (cache);
 }
 

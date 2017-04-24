@@ -30,7 +30,7 @@ aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 
   real_aig = BTOR_REAL_ADDR_AIG (aig);
 
-  b = btor_get_ptr_hash_table (table, real_aig);
+  b = btor_hashptr_table_get (table, real_aig);
   assert (b);
 
   res = 2 * (unsigned) b->data.as_int;
@@ -64,7 +64,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   BTOR_INIT_STACK (btor->mm, roots);
   amgr           = btor_get_aig_mgr_btor (btor);
   avmgr          = btor->avmgr;
-  backannotation = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  backannotation = btor_hashptr_table_new (btor->mm, 0, 0);
 
   BTOR_ABORT (
       btor->ops[BTOR_UF_NODE].cur > 0 || btor->ops[BTOR_LAMBDA_NODE].cur > 0,
@@ -74,13 +74,13 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   /* do not encode AIGs to SAT */
   lazy_synthesize = btor_opt_get (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE);
   btor_opt_set (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, 1);
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
   merged = BTOR_AIG_TRUE;
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  while (btor_iter_hashptr_has_next (&it))
   {
-    av = btor_exp_to_aigvec (
-        btor, btor_next_ptr_hash_table_iterator (&it), backannotation);
+    av =
+        btor_exp_to_aigvec (btor, btor_iter_hashptr_next (&it), backannotation);
     assert (av->len == 1);
     if (merge_roots)
     {
@@ -113,13 +113,13 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
     btor_aig_release (amgr, BTOR_POP_STACK (roots));
   BTOR_RELEASE_STACK (roots);
 
-  btor_init_ptr_hash_table_iterator (&it, backannotation);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, backannotation);
+  while (btor_iter_hashptr_has_next (&it))
   {
     btor_freestr (btor->mm, it.bucket->data.as_str);
-    (void) btor_next_ptr_hash_table_iterator (&it);
+    (void) btor_iter_hashptr_next (&it);
   }
-  btor_delete_ptr_hash_table (backannotation);
+  btor_hashptr_table_delete (backannotation);
 }
 
 void
@@ -146,8 +146,8 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
   mm = amgr->btor->mm;
 
-  table   = btor_new_ptr_hash_table (mm, 0, 0);
-  latches = btor_new_ptr_hash_table (mm, 0, 0);
+  table   = btor_hashptr_table_new (mm, 0, 0);
+  latches = btor_hashptr_table_new (mm, 0, 0);
 
   /* First add latches and inputs to hash tables.
    */
@@ -155,8 +155,8 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   {
     aig = regs[i];
     assert (!btor_aig_is_const (aig));
-    assert (!btor_get_ptr_hash_table (latches, aig));
-    btor_add_ptr_hash_table (latches, aig);
+    assert (!btor_hashptr_table_get (latches, aig));
+    btor_hashptr_table_add (latches, aig);
   }
 
   BTOR_INIT_STACK (mm, stack);
@@ -188,9 +188,9 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
     if (btor_aig_is_var (aig))
     {
-      if (btor_get_ptr_hash_table (latches, aig)) continue;
+      if (btor_hashptr_table_get (latches, aig)) continue;
 
-      p              = btor_add_ptr_hash_table (table, aig);
+      p              = btor_hashptr_table_add (table, aig);
       p->data.as_int = ++M;
       assert (M > 0);
     }
@@ -210,9 +210,9 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   {
     aig = regs[i];
     assert (!btor_aig_is_const (aig));
-    assert (btor_get_ptr_hash_table (latches, aig));
-    assert (!btor_get_ptr_hash_table (table, aig));
-    p              = btor_add_ptr_hash_table (table, aig);
+    assert (btor_hashptr_table_get (latches, aig));
+    assert (!btor_hashptr_table_get (table, aig));
+    p              = btor_hashptr_table_add (table, aig);
     p->data.as_int = ++M;
     assert (M > 0);
   }
@@ -273,7 +273,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
       assert (BTOR_REAL_ADDR_AIG (aig) == aig);
       assert (btor_aig_is_and (aig));
 
-      p              = btor_add_ptr_hash_table (table, aig);
+      p              = btor_hashptr_table_add (table, aig);
       p->data.as_int = ++M;
       assert (M > 0);
     }
@@ -299,7 +299,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
 
     if (!btor_aig_is_var (aig)) break;
 
-    if (btor_get_ptr_hash_table (latches, aig)) continue;
+    if (btor_hashptr_table_get (latches, aig)) continue;
 
     if (!binary) fprintf (file, "%d\n", 2 * p->data.as_int);
 
@@ -378,20 +378,20 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
       aig = p->key;
       if (!btor_aig_is_var (aig)) break;
 
-      b = btor_get_ptr_hash_table (backannotation, aig);
+      b = btor_hashptr_table_get (backannotation, aig);
 
       if (!b) continue;
 
       assert (b->key == aig);
       assert (b->data.as_str);
       //	  assert (p->data.as_int == i + l + 1);
-      if (btor_get_ptr_hash_table (latches, aig))
+      if (btor_hashptr_table_get (latches, aig))
         fprintf (file, "l%d %s\n", l++, b->data.as_str);
       else
         fprintf (file, "i%d %s\n", i++, b->data.as_str);
     }
   }
 
-  btor_delete_ptr_hash_table (table);
-  btor_delete_ptr_hash_table (latches);
+  btor_hashptr_table_delete (table);
+  btor_hashptr_table_delete (latches);
 }

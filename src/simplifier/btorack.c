@@ -35,11 +35,11 @@ btor_add_ackermann_constraints (Btor *btor)
   cache = btor_hashint_table_new (mm);
   BTOR_INIT_STACK (mm, visit);
 
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (visit, btor_next_ptr_hash_table_iterator (&it));
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    BTOR_PUSH_STACK (visit, btor_iter_hashptr_next (&it));
 
   /* mark reachable nodes */
   while (!BTOR_EMPTY_STACK (visit))
@@ -53,10 +53,10 @@ btor_add_ackermann_constraints (Btor *btor)
   }
   BTOR_RELEASE_STACK (visit);
 
-  btor_init_ptr_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->ufs);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    uf = btor_next_ptr_hash_table_iterator (&it);
+    uf = btor_iter_hashptr_next (&it);
     BTOR_INIT_STACK (btor->mm, applies);
     btor_init_apply_parent_iterator (&nit, uf);
     while (btor_has_next_apply_parent_iterator (&nit))

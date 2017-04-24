@@ -426,10 +426,10 @@ btor_propsls_compute_sls_scores (Btor *btor,
   mark = btor_hashint_map_new (mm);
 
   /* collect roots */
-  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
-    BTOR_PUSH_STACK (stack, btor_next_ptr_hash_table_iterator (&pit));
+  btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&pit, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&pit))
+    BTOR_PUSH_STACK (stack, btor_iter_hashptr_next (&pit));
 
   /* compute score */
   while (!BTOR_EMPTY_STACK (stack))
@@ -571,15 +571,15 @@ btor_propsls_update_cone (Btor *btor,
 #ifndef NDEBUG
   BtorPtrHashTableIterator pit;
   BtorNode *root;
-  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&pit, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&pit);
-    assert (!btor_get_ptr_hash_table (btor->unsynthesized_constraints,
-                                      BTOR_INVERT_NODE (root)));
+    root = btor_iter_hashptr_next (&pit);
+    assert (!btor_hashptr_table_get (btor->unsynthesized_constraints,
+                                     BTOR_INVERT_NODE (root)));
     assert (
-        !btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)));
+        !btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)));
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
     else
@@ -632,9 +632,9 @@ btor_propsls_update_cone (Btor *btor,
     d = btor_hashint_map_get (bv_model, exp->id);
     assert (d);
     if (update_roots
-        && (exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
-            || btor_get_ptr_hash_table (btor->assumptions,
-                                        BTOR_INVERT_NODE (exp)))
+        && (exp->constraint || btor_hashptr_table_get (btor->assumptions, exp)
+            || btor_hashptr_table_get (btor->assumptions,
+                                       BTOR_INVERT_NODE (exp)))
         && btor_bv_compare (d->as_ptr, ass))
     {
       /* old assignment != new assignment */
@@ -726,9 +726,9 @@ btor_propsls_update_cone (Btor *btor,
 
     /* update roots table */
     if (update_roots
-        && (cur->constraint || btor_get_ptr_hash_table (btor->assumptions, cur)
-            || btor_get_ptr_hash_table (btor->assumptions,
-                                        BTOR_INVERT_NODE (cur))))
+        && (cur->constraint || btor_hashptr_table_get (btor->assumptions, cur)
+            || btor_hashptr_table_get (btor->assumptions,
+                                       BTOR_INVERT_NODE (cur))))
     {
       assert (d); /* must be contained, is root */
       /* old assignment != new assignment */
@@ -791,11 +791,11 @@ btor_propsls_update_cone (Btor *btor,
   BTOR_RELEASE_STACK (cone);
 
 #ifndef NDEBUG
-  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&pit, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&pit);
+    root = btor_iter_hashptr_next (&pit);
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
     else

@@ -95,15 +95,15 @@ test_add_int_hash_table (void)
 
   srand (129);
   BtorPtrHashTable *ht;
-  ht = btor_new_ptr_hash_table (mem, 0, 0);
+  ht = btor_hashptr_table_new (mem, 0, 0);
   start = btor_time_stamp ();
   for (i = num_items; i > 0; i--)
     {
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      if (!btor_get_ptr_hash_table (ht, (void *) (size_t) val))
-	btor_add_ptr_hash_table (ht, (void *) (size_t) val);
+      if (!btor_hashptr_table_get (ht, (void *) (size_t) val))
+	btor_hashptr_table_add (ht, (void *) (size_t) val);
     }
   printf ("%.3f insert\n", btor_time_stamp () - start);
 
@@ -114,7 +114,7 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      assert (btor_get_ptr_hash_table (ht, (void *) (size_t) val));
+      assert (btor_hashptr_table_get (ht, (void *) (size_t) val));
     }
   printf ("%.3f find\n", btor_time_stamp () - start);
 
@@ -137,8 +137,8 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      if (btor_get_ptr_hash_table (ht, (void *) (size_t) val))
-      btor_remove_ptr_hash_table (ht, (void *) (size_t) val, 0, 0);
+      if (btor_hashptr_table_get (ht, (void *) (size_t) val))
+      btor_hashptr_table_remove (ht, (void *) (size_t) val, 0, 0);
     }
   printf ("%.3f remove\n", btor_time_stamp () - start);
 
@@ -155,7 +155,7 @@ test_add_int_hash_table (void)
 	  (double) ht->count / (ht->size + num_free) * 100); 
 
 
-  btor_delete_ptr_hash_table (ht);
+  btor_hashptr_table_delete (ht);
   finish_int_hash_table_test ();
 }
 #endif

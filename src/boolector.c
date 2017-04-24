@@ -1051,13 +1051,13 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
               "'sort' is not a bit vector sort");
   symb = (char *) symbol;
   BTOR_TRAPI (SORT_FMT " %s", sort, btor, symb);
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
+  BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, (char *) symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_var_exp (btor, s, symb);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
+  (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, var, sort, symbol);
 #endif
@@ -1082,13 +1082,13 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
                          != 1,
               "'sort' is not an array sort");
   BTOR_TRAPI (SORT_FMT " %s", sort, btor, symb);
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_array_exp (btor, s, symb);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
+  (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, sort, symbol);
 #endif
@@ -1115,14 +1115,14 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               symbol ? " '" : "",
               symbol ? symbol : "",
               symbol ? "'" : "");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
 
   res = btor_uf_exp (btor, s, symb);
   assert (BTOR_IS_REGULAR_NODE (res));
   btor_inc_exp_ext_ref_counter (btor, res);
-  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
+  (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, uf, sort, symbol);
@@ -2536,7 +2536,7 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+  BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
   res = btor_param_exp (btor, s, symb);
@@ -3310,13 +3310,13 @@ generate_fun_model_str (
   BTOR_NEWN (btor->mm, *values, *size);
 
   i = 0;
-  btor_init_ptr_hash_table_iterator (&it, (BtorPtrHashTable *) model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, (BtorPtrHashTable *) model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     value = (BtorBitVector *) it.bucket->data.as_ptr;
 
     /* build assignment string for all arguments */
-    t   = (BtorBitVectorTuple *) btor_next_ptr_hash_table_iterator (&it);
+    t   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
     len = t->arity;
     for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
     BTOR_NEWN (btor->mm, arg, len);
