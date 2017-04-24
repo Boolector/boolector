@@ -134,28 +134,28 @@ enum BtorOptSatEngines
 
 /*------------------------------------------------------------------------*/
 
-void btor_init_opts (Btor *btor);
-void btor_clone_opts (Btor *btor, Btor *clone);
-void btor_delete_opts (Btor *btor);
+void btor_opt_init_opts (Btor *btor);
+void btor_opt_clone_opts (Btor *btor, Btor *clone);
+void btor_opt_delete_opts (Btor *btor);
 
-bool btor_has_opt (Btor *btor, const BtorOption opt);
+bool btor_opt_is_valid (Btor *btor, const BtorOption opt);
 
-uint32_t btor_get_opt (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_min (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_max (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_dflt (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_lng (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_shrt (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_desc (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_valstr (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_min (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_max (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_dflt (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_lng (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_shrt (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_desc (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_valstr (Btor *btor, const BtorOption opt);
 
-void btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val);
-void btor_set_opt_str (Btor *btor, const BtorOption opt, const char *str);
+void btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val);
+void btor_opt_set_str (Btor *btor, const BtorOption opt, const char *str);
 
-BtorOption btor_first_opt (Btor *btor);
-BtorOption btor_next_opt (Btor *btor, BtorOption cur);
+BtorOption btor_opt_first (Btor *btor);
+BtorOption btor_opt_next (Btor *btor, BtorOption cur);
 
 #ifndef NBTORLOG
-void btor_log_opts (Btor *btor);
+void btor_opt_log_opts (Btor *btor);
 #endif
 #endif

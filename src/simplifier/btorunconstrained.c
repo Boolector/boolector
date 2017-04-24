@@ -83,9 +83,9 @@ void
 btor_optimize_unconstrained (Btor *btor)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
-  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
-  assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
+  assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
+  assert (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL));
+  assert (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
 
   double start, delta;
   unsigned num_ucs;

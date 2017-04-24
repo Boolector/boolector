@@ -69,7 +69,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
 
   res = 0;
 
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
   {
     assert (slv->score);
 
@@ -169,7 +169,7 @@ move (Btor *btor, uint32_t nmoves)
       btor,
       btor->bv_model,
       slv->roots,
-      btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
+      btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
       exps,
       true,
       &slv->stats.updates,
@@ -243,7 +243,7 @@ sat_prop_solver_aux (Btor *btor)
 
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
-  nprops = btor_get_opt (btor, BTOR_OPT_PROP_NPROPS);
+  nprops = btor_opt_get (btor, BTOR_OPT_PROP_NPROPS);
 
   nmoves = 0;
 
@@ -280,7 +280,7 @@ sat_prop_solver_aux (Btor *btor)
       }
     }
 
-    if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    if (!slv->score && btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
       slv->score = btor_new_int_hash_map (btor->mm);
 
     if (btor_terminate_btor (btor))
@@ -293,13 +293,13 @@ sat_prop_solver_aux (Btor *btor)
     if (!slv->roots->count) goto SAT;
 
     /* compute initial sls score */
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
       btor_propsls_compute_sls_scores (
           btor, btor->bv_model, btor->fun_model, slv->score);
 
     /* init */
     slv->flip_cond_const_prob =
-        btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
+        btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->flip_cond_const_prob_delta =
         slv->flip_cond_const_prob > (BTOR_PROB_MAX / 2)
             ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
@@ -307,7 +307,7 @@ sat_prop_solver_aux (Btor *btor)
 
     /* move */
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
-         !btor_get_opt (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
+         !btor_opt_get (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
     {
       if (btor_terminate_btor (btor) || (nprops && slv->stats.props >= nprops))
@@ -327,7 +327,7 @@ sat_prop_solver_aux (Btor *btor)
     slv->api.generate_model ((BtorSolver *) slv, false, true);
     btor_delete_int_hash_map (slv->roots);
     slv->roots = 0;
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
       btor_delete_int_hash_map (slv->score);
       slv->score = btor_new_int_hash_map (btor->mm);
@@ -378,7 +378,7 @@ sat_prop_solver (BtorPropSolver *slv)
   }
 
   BTOR_ABORT (btor->ufs->count != 0
-                  || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "prop engine supports QF_BV only");
 
@@ -508,7 +508,7 @@ print_time_stats_prop_solver (BtorPropSolver *slv)
             1,
             "%.2f seconds for updating cone (model gen)",
             slv->time.update_cone_model_gen);
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds for updating cone (compute score)",

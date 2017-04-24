@@ -1160,7 +1160,7 @@ boolector_main (int argc, char **argv)
           break;
 
         case BTORMAIN_OPT_LGL_OPTS:
-          btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
+          btor_opt_set_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
           break;
 #endif
 
@@ -1231,7 +1231,7 @@ boolector_main (int argc, char **argv)
 
       for (k = boolector_first_opt (g_app->btor), o = 0;
            boolector_has_opt (g_app->btor, k);
-           k = btor_next_opt (g_app->btor, k))
+           k = btor_opt_next (g_app->btor, k))
       {
         o = &g_app->btor->options[k];
         if ((isshrt && o->shrt && !strcmp (o->shrt, opt.start))

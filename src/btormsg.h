@@ -22,7 +22,7 @@
 #define BTOR_MSG(btormsg, level, msg...)                                   \
   do                                                                       \
   {                                                                        \
-    if (level && btor_get_opt (btormsg->btor, BTOR_OPT_VERBOSITY) < level) \
+    if (level && btor_opt_get (btormsg->btor, BTOR_OPT_VERBOSITY) < level) \
       break;                                                               \
     btor_msg (btormsg, false, __FILE__, ##msg);                            \
   } while (0)

@@ -293,7 +293,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   BtorPtrHashTableIterator it;
   int base;
 
-  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
@@ -417,7 +417,7 @@ btor_print_value_smt2 (Btor *btor, BtorNode *exp, char *symbol_str, FILE *file)
 
   int base;
 
-  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
     print_fun_value_smt2 (btor, exp, symbol_str, base, file);
   else

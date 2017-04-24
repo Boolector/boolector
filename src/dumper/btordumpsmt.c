@@ -70,7 +70,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
   sdc->roots        = btor_new_ptr_hash_table (btor->mm, 0, 0);
   sdc->file         = file;
   sdc->maxid        = 1;
-  sdc->pretty_print = btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT);
+  sdc->pretty_print = btor_opt_get (btor, BTOR_OPT_PRETTY_PRINT);
   return sdc;
 }
 
@@ -228,7 +228,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
   char *val;
   BtorPtrHashBucket *b;
 
-  base = btor_get_opt (sdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  base = btor_opt_get (sdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   file = sdc->file;
 
   /* converting consts to decimal/hex is costly. we now always dump the value of

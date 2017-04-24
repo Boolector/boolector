@@ -211,7 +211,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   unsigned int hash;
   int32_t *result;
 
-  if (btor_get_opt (amgr->btor, BTOR_OPT_SORT_AIG) > 0
+  if (btor_opt_get (amgr->btor, BTOR_OPT_SORT_AIG) > 0
       && BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
   {
     BTOR_SWAP (BtorAIG *, left, right);
@@ -230,7 +230,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
         && btor_aig_get_right_child (amgr, cur) == right)
       break;
 #ifndef NDEBUG
-    if (btor_get_opt (amgr->btor, BTOR_OPT_SORT_AIG) > 0)
+    if (btor_opt_get (amgr->btor, BTOR_OPT_SORT_AIG) > 0)
       assert (btor_aig_get_left_child (amgr, cur) != right
               || btor_aig_get_right_child (amgr, cur) != left);
 #endif
@@ -722,7 +722,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       enlarge_aig_nodes_unique_table (amgr);
       lookup = find_and_aig (amgr, left, right);
     }
-    if (btor_get_opt (amgr->btor, BTOR_OPT_SORT_AIG) > 0
+    if (btor_opt_get (amgr->btor, BTOR_OPT_SORT_AIG) > 0
         && real_right->id < real_left->id)
     {
       BTOR_SWAP (BtorAIG *, left, right);
@@ -950,7 +950,7 @@ is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
     return 1;
   }
 
-  assert (!btor_get_opt (amgr->btor, BTOR_OPT_SORT_AIG)
+  assert (!btor_opt_get (amgr->btor, BTOR_OPT_SORT_AIG)
           || ll != BTOR_INVERT_AIG (rr) || lr != BTOR_INVERT_AIG (rl));
 
   return 0;

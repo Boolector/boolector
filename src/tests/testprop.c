@@ -34,16 +34,16 @@ static BtorRNG *g_rng;
     g_btor            = btor_new_btor ();                          \
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
-    btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
-    btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
-    btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
-    btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
-    /*btor_set_opt (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
+    btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
+    btor_opt_set (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
+    btor_opt_set (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
+    btor_opt_set (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
+    /*btor_opt_set (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
     g_mm  = g_btor->mm;                                            \
     g_rng = &g_btor->rng;                                          \
   } while (0)

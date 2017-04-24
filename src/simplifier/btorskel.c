@@ -247,9 +247,9 @@ btor_process_skeleton (Btor *btor)
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
 
-  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY) >= 2)
+  if (btor_opt_get (btor, BTOR_OPT_VERBOSITY) >= 2)
   {
-    lglsetopt (lgl, "verbose", btor_get_opt (btor, BTOR_OPT_VERBOSITY) - 1);
+    lglsetopt (lgl, "verbose", btor_opt_get (btor, BTOR_OPT_VERBOSITY) - 1);
     lglbnr ("Lingeling", "[lglskel] ", stdout);
     fflush (stdout);
   }
@@ -284,7 +284,7 @@ btor_process_skeleton (Btor *btor)
 
   res = lglsimp (lgl, 0);
 
-  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY))
+  if (btor_opt_get (btor, BTOR_OPT_VERBOSITY))
   {
     BTOR_MSG (btor->msg, 1, "skeleton preprocessing result %d", res);
     lglstats (lgl);

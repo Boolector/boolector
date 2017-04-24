@@ -209,7 +209,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   }
 
   BTOR_ABORT (btor->ufs->count != 0
-                  || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "aigprop engine supports QF_BV only");
 
@@ -238,11 +238,11 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (!slv->aprop->score);
   assert (!slv->aprop->model);
 #ifndef NBTORLOG
-  slv->aprop->loglevel = btor_get_opt (btor, BTOR_OPT_LOGLEVEL);
+  slv->aprop->loglevel = btor_opt_get (btor, BTOR_OPT_LOGLEVEL);
 #endif
-  slv->aprop->seed         = btor_get_opt (btor, BTOR_OPT_SEED);
-  slv->aprop->use_restarts = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_RESTARTS);
-  slv->aprop->use_bandit   = btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
+  slv->aprop->seed         = btor_opt_get (btor, BTOR_OPT_SEED);
+  slv->aprop->use_restarts = btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS);
+  slv->aprop->use_bandit   = btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
   roots = btor_new_int_hash_table (btor->mm);
@@ -332,7 +332,7 @@ print_time_stats_aigprop_solver (BtorAIGPropSolver *slv)
             1,
             "%.2f seconds for updating cone (model gen)",
             slv->time.aprop_update_cone_model_gen);
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds for updating cone (compute score)",
@@ -364,13 +364,13 @@ btor_new_aigprop_solver (Btor *btor)
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
 #ifndef NBTORLOG
-                           btor_get_opt (btor, BTOR_OPT_LOGLEVEL),
+                           btor_opt_get (btor, BTOR_OPT_LOGLEVEL),
 #else
                            0,
 #endif
-                           btor_get_opt (btor, BTOR_OPT_SEED),
-                           btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
-                           btor_get_opt (btor, BTOR_OPT_AIGPROP_USE_BANDIT));
+                           btor_opt_get (btor, BTOR_OPT_SEED),
+                           btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
+                           btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT));
 
   BTOR_MSG (btor->msg, 1, "enabled aigprop engine");
 

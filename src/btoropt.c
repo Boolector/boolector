@@ -96,12 +96,12 @@ init_opt (Btor *btor,
     if (!internal)
       boolector_set_opt (btor, opt, v);
     else
-      btor_set_opt (btor, opt, v);
+      btor_opt_set (btor, opt, v);
   }
 }
 
 void
-btor_init_opts (Btor *btor)
+btor_opt_init_opts (Btor *btor)
 {
   assert (btor);
 
@@ -927,7 +927,7 @@ btor_init_opts (Btor *btor)
 }
 
 void
-btor_clone_opts (Btor *btor, Btor *clone)
+btor_opt_clone_opts (Btor *btor, Btor *clone)
 {
   assert (btor);
 
@@ -936,8 +936,8 @@ btor_clone_opts (Btor *btor, Btor *clone)
   if (btor->options)
   {
     BTOR_CNEWN (clone->mm, clone->options, BTOR_OPT_NUM_OPTS);
-    for (o = btor_first_opt (btor); btor_has_opt (btor, o);
-         o = btor_next_opt (btor, o))
+    for (o = btor_opt_first (btor); btor_opt_is_valid (btor, o);
+         o = btor_opt_next (btor, o))
     {
       memcpy (&clone->options[o], &btor->options[o], sizeof (BtorOpt));
       if (btor->options[o].valstr)
@@ -957,7 +957,7 @@ btor_clone_opts (Btor *btor, Btor *clone)
 }
 
 void
-btor_delete_opts (Btor *btor)
+btor_opt_delete_opts (Btor *btor)
 {
   assert (btor);
 
@@ -965,8 +965,8 @@ btor_delete_opts (Btor *btor)
 
   if (btor->options)
   {
-    for (o = btor_first_opt (btor); btor_has_opt (btor, o);
-         o = btor_next_opt (btor, o))
+    for (o = btor_opt_first (btor); btor_opt_is_valid (btor, o);
+         o = btor_opt_next (btor, o))
     {
       if (btor->options[o].valstr)
       {
@@ -985,7 +985,7 @@ btor_delete_opts (Btor *btor)
 }
 
 bool
-btor_has_opt (Btor *btor, const BtorOption opt)
+btor_opt_is_valid (Btor *btor, const BtorOption opt)
 {
   assert (btor);
   (void) btor;
@@ -993,82 +993,82 @@ btor_has_opt (Btor *btor, const BtorOption opt)
 }
 
 uint32_t
-btor_get_opt (Btor *btor, const BtorOption opt)
+btor_opt_get (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return btor->options[opt].val;
 }
 
 uint32_t
-btor_get_opt_min (Btor *btor, const BtorOption opt)
+btor_opt_get_min (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return btor->options[opt].min;
 }
 
 uint32_t
-btor_get_opt_max (Btor *btor, const BtorOption opt)
+btor_opt_get_max (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return btor->options[opt].max;
 }
 
 uint32_t
-btor_get_opt_dflt (Btor *btor, const BtorOption opt)
+btor_opt_get_dflt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return btor->options[opt].dflt;
 }
 
 const char *
-btor_get_opt_lng (Btor *btor, const BtorOption opt)
+btor_opt_get_lng (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return (const char *) btor->options[opt].lng;
 }
 
 const char *
-btor_get_opt_shrt (Btor *btor, const BtorOption opt)
+btor_opt_get_shrt (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return (const char *) btor->options[opt].shrt;
 }
 
 const char *
-btor_get_opt_desc (Btor *btor, const BtorOption opt)
+btor_opt_get_desc (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return (const char *) btor->options[opt].desc;
 }
 
 const char *
-btor_get_opt_valstr (Btor *btor, const BtorOption opt)
+btor_opt_get_valstr (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   return (const char *) btor->options[opt].valstr;
 }
 
 void
-btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
+btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
 
   BtorOpt *o;
 
@@ -1089,19 +1089,19 @@ btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
   else if (opt == BTOR_OPT_ENGINE)
   {
     if (val == BTOR_ENGINE_SLS)
-      btor_set_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 1);
+      btor_opt_set (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 1);
     else if (val == BTOR_ENGINE_PROP)
-      btor_set_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 0);
+      btor_opt_set (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 0);
   }
   else if (opt == BTOR_OPT_MODEL_GEN)
   {
-    if (!val && btor_get_opt (btor, opt)) btor_model_delete (btor);
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_UCOPT));
+    if (!val && btor_opt_get (btor, opt)) btor_model_delete (btor);
+    assert (!val || !btor_opt_get (btor, BTOR_OPT_UCOPT));
   }
   else if (opt == BTOR_OPT_UCOPT)
   {
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+    assert (!val || !btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
+    assert (!val || !btor_opt_get (btor, BTOR_OPT_INCREMENTAL));
   }
 #ifndef NDEBUG
   else if (opt == BTOR_OPT_INCREMENTAL)
@@ -1110,11 +1110,11 @@ btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
   }
   else if (opt == BTOR_OPT_FUN_DUAL_PROP)
   {
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_FUN_JUST));
+    assert (!val || !btor_opt_get (btor, BTOR_OPT_FUN_JUST));
   }
   else if (opt == BTOR_OPT_FUN_JUST)
   {
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP));
+    assert (!val || !btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP));
   }
   else if (opt == BTOR_OPT_REWRITE_LEVEL)
   {
@@ -1125,17 +1125,17 @@ btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
 }
 
 void
-btor_set_opt_str (Btor *btor, const BtorOption opt, const char *str)
+btor_opt_set_str (Btor *btor, const BtorOption opt, const char *str)
 {
   assert (btor);
-  assert (btor_has_opt (btor, opt));
+  assert (btor_opt_is_valid (btor, opt));
   assert (opt == BTOR_OPT_SAT_ENGINE);
 
   btor->options[opt].valstr = btor_strdup (btor->mm, str);
 }
 
 BtorOption
-btor_first_opt (Btor *btor)
+btor_opt_first (Btor *btor)
 {
   assert (btor);
   (void) btor;
@@ -1143,27 +1143,27 @@ btor_first_opt (Btor *btor)
 }
 
 BtorOption
-btor_next_opt (Btor *btor, BtorOption cur)
+btor_opt_next (Btor *btor, BtorOption cur)
 {
   assert (btor);
-  assert (btor_has_opt (btor, cur));
+  assert (btor_opt_is_valid (btor, cur));
   (void) btor;
   return (BtorOption) cur + 1;
 }
 
 #ifndef NBTORLOG
 void
-btor_log_opts (Btor *btor)
+btor_opt_log_opts (Btor *btor)
 {
   assert (btor);
 
   BtorOption opt;
 
-  for (opt = btor_first_opt (btor); btor_has_opt (btor, opt);
-       opt = btor_next_opt (btor, opt))
+  for (opt = btor_opt_first (btor); btor_opt_is_valid (btor, opt);
+       opt = btor_opt_next (btor, opt))
     BTORLOG (2,
              "set option '%s' to %u",
-             btor_get_opt_lng (btor, opt),
-             btor_get_opt (btor, opt));
+             btor_opt_get_lng (btor, opt),
+             btor_opt_get (btor, opt));
 }
 #endif

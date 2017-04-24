@@ -174,7 +174,7 @@ compute_sls_score_node (Btor *btor,
       s1 = btor_get_int_hash_map (score, -btor_exp_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
-      if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
+      if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
       {
         a0 = btor_bv_to_char (
             btor->mm,
@@ -206,7 +206,7 @@ compute_sls_score_node (Btor *btor,
       s1 = btor_get_int_hash_map (score, btor_exp_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
-      if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
+      if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
       {
         a0 = btor_bv_to_char (
             btor->mm,
@@ -238,7 +238,7 @@ compute_sls_score_node (Btor *btor,
     bv1 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[1]);
 #ifndef NBTORLOG
-    if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
+    if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
       a0 = btor_bv_to_char (
           btor->mm,
@@ -272,7 +272,7 @@ compute_sls_score_node (Btor *btor,
     bv1 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[1]);
 #ifndef NBTORLOG
-    if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
+    if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
       a0 = btor_bv_to_char (
           btor->mm,
@@ -305,7 +305,7 @@ compute_sls_score_node (Btor *btor,
   {
     assert (btor_get_exp_width (btor, real_exp) == 1);
 #ifndef NBTORLOG
-    if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
+    if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
       a0 = btor_bv_to_char (
           btor->mm,
@@ -404,8 +404,8 @@ btor_propsls_compute_sls_scores (Btor *btor,
                                  BtorIntHashTable *score)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (bv_model);
   assert (fun_model);
   assert (score);
@@ -540,13 +540,13 @@ btor_propsls_update_cone (Btor *btor,
                           double *time_update_cone_compute_score)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (bv_model);
   assert (roots);
   assert (exps);
   assert (exps->count);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_PROP
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_PROP
           || update_roots);
   assert (time_update_cone);
   assert (time_update_cone_reset);
@@ -894,7 +894,7 @@ select_path_and (Btor *btor,
 
   if (eidx == -1)
   {
-    opt = btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL);
+    opt = btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL);
 
     if (opt == BTOR_PROP_PATH_SEL_RANDOM)
     {
@@ -995,7 +995,7 @@ select_path_ult (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax = btor_bv_ones (mm, bve[0]->width);
@@ -1046,7 +1046,7 @@ select_path_sll (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       shift = btor_bv_to_uint64 (bve[1]);
@@ -1104,7 +1104,7 @@ select_path_srl (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       shift = btor_bv_to_uint64 (bve[1]);
@@ -1164,7 +1164,7 @@ select_path_mul (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       iszerobve0 = btor_bv_is_zero (bve[0]);
@@ -1235,7 +1235,7 @@ select_path_udiv (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax        = btor_bv_ones (mm, bve[0]->width);
@@ -1315,7 +1315,7 @@ select_path_urem (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       bvmax = btor_bv_ones (mm, bve[0]->width);
@@ -1395,7 +1395,7 @@ select_path_concat (Btor *btor,
 
   if (eidx == -1)
   {
-    if (btor_get_opt (btor, BTOR_OPT_PROP_PATH_SEL)
+    if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
       /* bve[0] o bve[1] = bvconcat
@@ -1467,8 +1467,8 @@ select_path_cond (Btor *btor,
                   BtorBitVector *bve0)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (cond);
   assert (BTOR_IS_REGULAR_NODE (cond));
   assert (bvcond);
@@ -1501,23 +1501,23 @@ select_path_cond (Btor *btor,
         && btor_pick_with_prob_rng (
                &btor->rng,
                (prob =
-                    btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST))))
+                    btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST))))
     {
       eidx = 0;
 
-      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+      if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
       {
         BtorPropSolver *slv;
         slv = BTOR_PROP_SOLVER (btor);
         if (++slv->nflip_cond_const
-            == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
+            == btor_opt_get (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
         {
           slv->nflip_cond_const = 0;
           slv->flip_cond_const_prob_delta =
               prob == 0
                   ? 100
                   : (prob == 1000 ? -100 : slv->flip_cond_const_prob_delta);
-          btor_set_opt (btor,
+          btor_opt_set (btor,
                         BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
                         prob + slv->flip_cond_const_prob_delta);
         }
@@ -1527,21 +1527,21 @@ select_path_cond (Btor *btor,
         BtorSLSSolver *slv;
         slv = BTOR_SLS_SOLVER (btor);
         if (++slv->prop_nflip_cond_const
-            == btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
+            == btor_opt_get (btor, BTOR_OPT_PROP_FLIP_COND_CONST_NPATHSEL))
         {
           slv->prop_nflip_cond_const = 0;
           slv->prop_flip_cond_const_prob_delta =
               prob == 0 ? 100
                         : (prob == 1000 ? -100
                                         : slv->prop_flip_cond_const_prob_delta);
-          btor_set_opt (btor,
+          btor_opt_set (btor,
                         BTOR_OPT_PROP_PROB_FLIP_COND_CONST,
                         prob + slv->prop_flip_cond_const_prob_delta);
         }
       }
     }
     else if (btor_pick_with_prob_rng (
-                 &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND)))
+                 &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND)))
     {
       eidx = 0;
     }
@@ -1602,7 +1602,7 @@ cons_add_bv (Btor *btor,
   (void) eidx;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_add++;
 #endif
   return btor_bv_new_random (btor->mm, &btor->rng, bvadd->width);
@@ -1632,11 +1632,11 @@ cons_and_bv (Btor *btor,
   (void) bve;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_and++;
 #endif
   b = btor_pick_with_prob_rng (
-      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
+      &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (btor->mm, dcbits);
 
   res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, and->e[eidx]));
@@ -1683,12 +1683,12 @@ cons_eq_bv (
   BtorBitVector *res;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_eq++;
 #endif
 
   if (btor_pick_with_prob_rng (&btor->rng,
-                               btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
+                               btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
   {
     res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
     btor_bv_flip_bit (res, btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
@@ -1724,7 +1724,7 @@ cons_ult_bv (Btor *btor,
   (void) ult;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_ult++;
 #endif
   mm    = btor->mm;
@@ -1783,7 +1783,7 @@ cons_sll_bv (Btor *btor,
   (void) bve;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_sll++;
 #endif
   mm  = btor->mm;
@@ -1839,7 +1839,7 @@ cons_srl_bv (Btor *btor,
   (void) bve;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_srl++;
 #endif
   mm  = btor->mm;
@@ -1896,7 +1896,7 @@ cons_mul_bv (Btor *btor,
   (void) eidx;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_mul++;
 #endif
   mm  = btor->mm;
@@ -1988,7 +1988,7 @@ cons_udiv_bv (Btor *btor,
   (void) bve;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_udiv++;
 #endif
   if (eidx)
@@ -2070,7 +2070,7 @@ cons_urem_bv (Btor *btor,
   (void) bve;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_urem++;
 #endif
   mm    = btor->mm;
@@ -2131,7 +2131,7 @@ cons_concat_bv (Btor *btor,
   const BtorBitVector *bvcur;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_concat++;
 #endif
 
@@ -2144,7 +2144,7 @@ cons_concat_bv (Btor *btor,
 
   if (btor_is_bv_const_node (concat->e[idx])
       && btor_pick_with_prob_rng (
-             &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
+             &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
     bvcur = btor_model_get_bv (btor, concat);
     res =
@@ -2171,7 +2171,7 @@ cons_slice_bv (Btor *btor,
                BtorBitVector *bve)
 {
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_slice++;
 #endif
   return inv_slice_bv (btor, slice, bvslice, bve);
@@ -2252,7 +2252,7 @@ inv_add_bv (Btor *btor,
   (void) eidx;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_add++;
 #endif
 
@@ -2293,7 +2293,7 @@ inv_and_bv (Btor *btor,
   bool b;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_and++;
 #endif
 
@@ -2302,7 +2302,7 @@ inv_and_bv (Btor *btor,
   assert (e);
 
   b = btor_pick_with_prob_rng (
-      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
+      &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (mm, dcbits);
 
   res = btor_bv_copy (mm, btor_model_get_bv (btor, and->e[eidx]));
@@ -2318,7 +2318,7 @@ inv_and_bv (Btor *btor,
     {
       btor_bv_free (mm, res);
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+      if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvand, eidx, "AND");
@@ -2384,7 +2384,7 @@ inv_eq_bv (
   BtorMemMgr *mm;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_eq++;
 #endif
 
@@ -2394,7 +2394,7 @@ inv_eq_bv (
   if (btor_bv_is_zero (bveq))
   {
     if (btor_pick_with_prob_rng (
-            &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
+            &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
     {
       res = 0;
       do
@@ -2455,7 +2455,7 @@ inv_ult_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_ult++;
 #endif
   mm = btor->mm;
@@ -2477,7 +2477,7 @@ inv_ult_bv (Btor *btor,
     {
     BVULT_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+      if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvult, eidx, "<");
@@ -2570,7 +2570,7 @@ inv_sll_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_sll++;
 #endif
   mm = btor->mm;
@@ -2612,7 +2612,7 @@ inv_sll_bv (Btor *btor,
           assert (btor_bv_is_zero (bvsll));
         BVSLL_CONF:
           /* check for non-recoverable conflict */
-          if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+          if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_is_bv_const_node (e))
           {
             res = btor_propsls_non_rec_conf (btor, bve, bvsll, eidx, "<<");
@@ -2712,7 +2712,7 @@ inv_srl_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_srl++;
 #endif
   mm = btor->mm;
@@ -2754,7 +2754,7 @@ inv_srl_bv (Btor *btor,
           assert (btor_bv_is_zero (bvsrl));
         BVSRL_CONF:
           /* check for non-recoverable conflict */
-          if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+          if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_is_bv_const_node (e))
           {
             res = btor_propsls_non_rec_conf (btor, bve, bvsrl, eidx, ">>");
@@ -2854,7 +2854,7 @@ inv_mul_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_mul++;
 #endif
   mm = btor->mm;
@@ -2900,7 +2900,7 @@ inv_mul_bv (Btor *btor,
     {
     BVMUL_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+      if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvmul, eidx, "*");
@@ -3047,7 +3047,7 @@ inv_udiv_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_udiv++;
 #endif
   mm  = btor->mm;
@@ -3103,7 +3103,7 @@ inv_udiv_bv (Btor *btor,
       {
       BVUDIV_CONF:
         /* check for non-recoverable conflict */
-        if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+        if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_is_bv_const_node (e))
         {
           res = btor_propsls_non_rec_conf (btor, bve, bvudiv, eidx, "/");
@@ -3292,7 +3292,7 @@ inv_urem_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_urem++;
 #endif
   mm = btor->mm;
@@ -3322,7 +3322,7 @@ inv_urem_bv (Btor *btor,
       {
       BVUREM_CONF:
         /* check for non-recoverable conflict */
-        if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+        if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_is_bv_const_node (e))
         {
           res = btor_propsls_non_rec_conf (btor, bve, bvurem, eidx, "%");
@@ -3612,7 +3612,7 @@ inv_concat_bv (Btor *btor,
 #endif
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_concat++;
 #endif
   mm = btor->mm;
@@ -3631,7 +3631,7 @@ inv_concat_bv (Btor *btor,
     {
     BVCONCAT_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
+      if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_is_bv_const_node (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvconcat, eidx, "o");
@@ -3698,7 +3698,7 @@ inv_slice_bv (Btor *btor,
   bool bkeep, bflip;
 
 #ifndef NDEBUG
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.inv_slice++;
 #endif
   mm = btor->mm;
@@ -3706,12 +3706,12 @@ inv_slice_bv (Btor *btor,
   assert (e);
 
   bflip = btor_pick_with_prob_rng (
-      &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_FLIP));
+      &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_FLIP));
 
   bkeep = bflip ? true
                 : btor_pick_with_prob_rng (
                       &btor->rng,
-                      btor_get_opt (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
+                      btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
   upper = btor_slice_get_upper (slice);
   lower = btor_slice_get_lower (slice);
@@ -3871,7 +3871,7 @@ btor_propsls_select_move_prop (Btor *btor,
        * as path assignment, depending on the given probability p
        * -> if b then inverse else consistent */
       b = btor_pick_with_prob_rng (
-          &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE));
+          &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE));
 
       /* select path and determine path assignment */
       switch (real_cur->kind)

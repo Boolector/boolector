@@ -868,11 +868,11 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
-  btor_clone_opts (btor, clone);
+  btor_opt_clone_opts (btor, clone);
 #ifndef NDEBUG
   allocated += BTOR_OPT_NUM_OPTS * sizeof (BtorOpt);
-  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
-       o = btor_next_opt (btor, o))
+  for (o = btor_opt_first (btor); btor_opt_is_valid (btor, o);
+       o = btor_opt_next (btor, o))
   {
     if (btor->options[o].valstr)
       allocated += strlen (btor->options[o].valstr) + 1;
@@ -883,8 +883,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   /* always auto cleanup internal and external references (may be dangling
    * otherise) */
-  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
-  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+  btor_opt_set (clone, BTOR_OPT_AUTO_CLEANUP, 1);
+  btor_opt_set (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 
   if (exp_layer_only)
   {
@@ -1298,7 +1298,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
       if (slv->score)
       {
-        h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
+        h = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
         if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
           CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
@@ -1482,8 +1482,8 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
-  rwl = btor_get_opt (clone, BTOR_OPT_REWRITE_LEVEL);
-  if (rwl > 0) btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rewrite_level);
+  rwl = btor_opt_get (clone, BTOR_OPT_REWRITE_LEVEL);
+  if (rwl > 0) btor_opt_set (clone, BTOR_OPT_REWRITE_LEVEL, rewrite_level);
 
   BTOR_INIT_STACK (mm, work_stack);
 
@@ -1588,7 +1588,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
   btor_delete_int_hash_table (mark);
 
   /* reset rewrite_level to original value */
-  btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rwl);
+  btor_opt_set (clone, BTOR_OPT_REWRITE_LEVEL, rwl);
 #ifndef NDEBUG
   btor_delete_node_map (key_map);
 #endif

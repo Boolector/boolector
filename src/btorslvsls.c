@@ -103,7 +103,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
 
   res = 0;
 
-  if (btor_get_opt (btor, BTOR_OPT_SLS_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_SLS_USE_BANDIT))
   {
     double value, max_value;
     BtorSLSConstrData *d;
@@ -204,7 +204,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) && btor_is_and_node (real_cur)
+    if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_is_and_node (real_cur)
         && btor_get_exp_width (btor, real_cur) == 1)
     {
       bv = btor_model_get_bv (btor, real_cur);
@@ -448,7 +448,7 @@ select_inc_dec_not_move (Btor *btor,
 
   done      = false;
   slv       = BTOR_SLS_SOLVER (btor);
-  sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
+  sls_strat = btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY);
 
   if (fun == btor_bv_inc)
     mk = BTOR_SLS_MOVE_INC;
@@ -480,7 +480,7 @@ select_inc_dec_not_move (Btor *btor,
                     : 0;
 
     btor_add_int_hash_map (cans, can->id)->as_ptr =
-        btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
+        btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
             ? fun (btor->mm, max_neigh)
             : fun (btor->mm, ass);
   }
@@ -515,7 +515,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   BtorSLSSolver *slv;
 
   slv       = BTOR_SLS_SOLVER (btor);
-  sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
+  sls_strat = btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY);
 
   mk = BTOR_SLS_MOVE_FLIP;
 
@@ -544,7 +544,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       cpos = pos % ass->width;
 
       btor_add_int_hash_map (cans, can->id)->as_ptr =
-          btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
+          btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
               ? btor_bv_flipped_bit (btor->mm, max_neigh, cpos)
               : btor_bv_flipped_bit (btor->mm, ass, cpos);
     }
@@ -580,7 +580,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   BtorSLSSolver *slv;
 
   slv       = BTOR_SLS_SOLVER (btor);
-  sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
+  sls_strat = btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY);
 
   mk = BTOR_SLS_MOVE_FLIP_RANGE;
 
@@ -622,7 +622,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       }
 
       btor_add_int_hash_map (cans, can->id)->as_ptr =
-          btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
+          btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
               ? btor_bv_flipped_bit_range (btor->mm, max_neigh, cup, clo)
               : btor_bv_flipped_bit_range (btor->mm, ass, cup, clo);
     }
@@ -658,7 +658,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
   BtorSLSSolver *slv;
 
   slv       = BTOR_SLS_SOLVER (btor);
-  sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
+  sls_strat = btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY);
 
   mk = BTOR_SLS_MOVE_FLIP_SEGMENT;
 
@@ -707,7 +707,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         }
 
         btor_add_int_hash_map (cans, can->id)->as_ptr =
-            btor_get_opt (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
+            btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
                 ? btor_bv_flipped_bit_range (btor->mm, max_neigh, cup, clo)
                 : btor_bv_flipped_bit_range (btor->mm, ass, cup, clo);
       }
@@ -745,7 +745,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
   done      = false;
   slv       = BTOR_SLS_SOLVER (btor);
-  sls_strat = btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY);
+  sls_strat = btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY);
 
   mk = BTOR_SLS_MOVE_RAND;
 
@@ -849,12 +849,12 @@ select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
         break;
 
       case BTOR_SLS_MOVE_FLIP_RANGE:
-        if (!btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RANGE)) continue;
+        if (!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RANGE)) continue;
         if ((done = select_flip_range_move (btor, candidates, gw))) return done;
         break;
 
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
-        if (!btor_get_opt (btor, BTOR_OPT_SLS_MOVE_SEGMENT)) continue;
+        if (!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_SEGMENT)) continue;
         if ((done = select_flip_segment_move (btor, candidates, gw)))
           return done;
         break;
@@ -904,7 +904,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   }
 
   /* groupwise */
-  if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_GW)
+  if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_GW)
       && BTOR_COUNT_STACK (*candidates) > 1)
   {
     if ((done = select_move_aux (btor, candidates, 1))) goto DONE;
@@ -914,7 +914,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   /* select probabilistic random walk move
    * (weighted by score; the higher the score, the higher the probability
    * that a move gets chosen) */
-  if (btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY) == BTOR_SLS_STRAT_RAND_WALK)
+  if (btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY) == BTOR_SLS_STRAT_RAND_WALK)
   {
     assert (slv->max_cans->count == 0);
     assert (BTOR_COUNT_STACK (slv->moves));
@@ -952,7 +952,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     assert (slv->max_move == BTOR_SLS_MOVE_DONE);
 
     /* randomize if no best move was found */
-    randomizeall = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_ALL)
+    randomizeall = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RAND_ALL)
                        ? btor_pick_with_prob_rng (&btor->rng,
                                                   BTOR_SLS_PROB_RAND_ALL_VS_ONE)
                        : false;
@@ -994,7 +994,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
         btor_add_int_hash_map (slv->max_cans, can->id)->as_ptr = neigh;
       }
       /* pick neighbor with randomized bit range (best guess) */
-      else if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_RANGE))
+      else if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RAND_RANGE))
       {
         assert (!BTOR_COUNT_STACK (cans));
         BTOR_PUSH_STACK (cans, can);
@@ -1052,7 +1052,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
   slv->max_move = BTOR_SLS_MOVE_RAND_WALK;
 
   /* select candidate(s) */
-  if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_GW)
+  if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_GW)
       && btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SINGLE_VS_GW))
   {
     pcans       = candidates;
@@ -1087,9 +1087,9 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
       mk = (BtorSLSMoveKind) r - ass->width + 1;
     assert (mk >= 0);
 
-    if ((!btor_get_opt (btor, BTOR_OPT_SLS_MOVE_SEGMENT)
+    if ((!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_SEGMENT)
          && mk == BTOR_SLS_MOVE_FLIP_SEGMENT)
-        || (!btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RANGE)
+        || (!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RANGE)
             && mk == BTOR_SLS_MOVE_FLIP_RANGE))
     {
       mk = BTOR_SLS_MOVE_FLIP;
@@ -1154,13 +1154,13 @@ move (Btor *btor, uint32_t nmoves)
 
   res = 1;
 
-  nprops = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_N_PROP);
-  nsls   = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_N_SLS);
+  nprops = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP_N_PROP);
+  nsls   = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP_N_SLS);
 
   /* Always perform propagation moves first, i.e. perform moves
    * with ratio nprops:nsls of propagation to sls moves */
-  if (btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY) == BTOR_SLS_STRAT_ALWAYS_PROP
-      || (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_SLS_STRATEGY) == BTOR_SLS_STRAT_ALWAYS_PROP
+      || (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP)
           && slv->npropmoves < nprops))
   {
     slv->npropmoves += 1;
@@ -1181,7 +1181,7 @@ move (Btor *btor, uint32_t nmoves)
     {
       slv->stats.move_prop_non_rec_conf += 1;
       /* force random walk if prop move fails */
-      if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_FORCE_RW))
+      if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP_FORCE_RW))
       {
         select_candidates (btor, constr, &candidates);
         /* root is const false -> unsat */
@@ -1213,10 +1213,10 @@ move (Btor *btor, uint32_t nmoves)
     slv->max_move  = BTOR_SLS_MOVE_DONE;
     slv->max_gw    = -1;
 
-    if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_WALK)
+    if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RAND_WALK)
         && btor_pick_with_prob_rng (
                &btor->rng,
-               btor_get_opt (btor, BTOR_OPT_SLS_PROB_MOVE_RAND_WALK)))
+               btor_opt_get (btor, BTOR_OPT_SLS_PROB_MOVE_RAND_WALK)))
     {
     SLS_MOVE_RAND_WALK:
       select_random_move (btor, &candidates);
@@ -1491,8 +1491,8 @@ sat_sls_solver (BtorSLSSolver *slv)
   btor = slv->btor;
   assert (!btor->inconsistent);
   nmoves      = 0;
-  nprops      = btor_get_opt (btor, BTOR_OPT_PROP_NPROPS);
-  slv->nflips = btor_get_opt (btor, BTOR_OPT_SLS_NFLIPS);
+  nprops      = btor_opt_get (btor, BTOR_OPT_PROP_NPROPS);
+  slv->nflips = btor_opt_get (btor, BTOR_OPT_SLS_NFLIPS);
 
   if (btor_terminate_btor (btor))
   {
@@ -1501,7 +1501,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   }
 
   BTOR_ABORT (btor->ufs->count != 0
-                  || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "sls engine supports QF_BV only");
 
@@ -1558,7 +1558,7 @@ sat_sls_solver (BtorSLSSolver *slv)
 
     /* init */
     slv->prop_flip_cond_const_prob =
-        btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
+        btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->prop_flip_cond_const_prob_delta =
         slv->prop_flip_cond_const_prob > (BTOR_PROB_MAX / 2)
             ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
@@ -1589,7 +1589,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     if (!slv->roots->count) goto SAT;
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (slv->stats.restarts + 1);
-         !btor_get_opt (btor, BTOR_OPT_SLS_USE_RESTARTS) || j < max_steps;
+         !btor_opt_get (btor, BTOR_OPT_SLS_USE_RESTARTS) || j < max_steps;
          j++)
     {
       if (btor_terminate_btor (btor)

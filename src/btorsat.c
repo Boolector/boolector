@@ -133,7 +133,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT (result <= 0, "CNF id overflow");
-  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
+  if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
       && !(result % 100000))
     BTOR_MSG (smgr->msg, 2, "reached CNF id %d", result);
   return result;
@@ -204,7 +204,7 @@ btor_init_sat (BtorSATMgr *smgr)
 
   smgr->solver = smgr->api.init (smgr);
   smgr->api.enable_verbosity (
-      smgr, btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY));
+      smgr, btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY));
   smgr->initialized  = true;
   smgr->inc_required = true;
   smgr->sat_time     = 0;
@@ -641,7 +641,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
 
-  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
+  if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
@@ -745,7 +745,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       (void)
 #endif
           lglsat (clone);
-      if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 0)
+      if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 0)
         lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);

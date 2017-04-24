@@ -310,8 +310,8 @@ chkclone_opts (Btor *btor, Btor *clone)
   assert (btor->options);
   assert (clone->options);
 
-  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
-       o = btor_next_opt (btor, o))
+  for (o = btor_opt_first (btor); btor_opt_is_valid (btor, o);
+       o = btor_opt_next (btor, o))
   {
     opt  = &btor->options[o];
     copt = &clone->options[o];
@@ -1029,7 +1029,7 @@ chkclone_slv (Btor *btor, Btor *clone)
 {
   int i, h;
 
-  h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
+  h = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
 
   assert ((!btor->slv && !clone->slv) || (btor->slv && clone->slv));
   if (!btor->slv) return;
@@ -1239,7 +1239,7 @@ btor_chkclone (Btor *btor, Btor *clone)
   assert (clone);
   assert (btor != clone);
 
-  if (btor_get_opt (btor, BTOR_OPT_SAT_ENGINE) != BTOR_SAT_ENGINE_LINGELING)
+  if (btor_opt_get (btor, BTOR_OPT_SAT_ENGINE) != BTOR_SAT_ENGINE_LINGELING)
     return;
 
   chkclone_mem (btor, clone);

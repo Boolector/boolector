@@ -47,7 +47,7 @@ init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
   g_mm   = g_btor->mm;
-  btor_init_rng (&g_btor->rng, btor_get_opt (g_btor, BTOR_OPT_SEED));
+  btor_init_rng (&g_btor->rng, btor_opt_get (g_btor, BTOR_OPT_SEED));
   g_rng = &g_btor->rng;
 }
 

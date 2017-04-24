@@ -267,7 +267,7 @@ btor_aigvec_add (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   BtorAIG *cout, *cin;
   int i;
 
-  if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
+  if (btor_opt_get (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
       && compare_aigvec_lsb_first (av1, av2) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, av1, av2);
@@ -413,7 +413,7 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len > 0);
   assert (len == b->len);
 
-  if (btor_get_opt (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
+  if (btor_opt_get (avmgr->btor, BTOR_OPT_SORT_AIGVEC) > 0
       && compare_aigvec_lsb_first (a, b) > 0)
   {
     BTOR_SWAP (BtorAIGVec *, a, b);

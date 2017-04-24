@@ -85,7 +85,7 @@ boolector_chkclone (Btor *btor)
   if (btor->clone)
   {
     /* force auto cleanup (might have been disabled via btormbt) */
-    btor_set_opt (btor->clone, BTOR_OPT_AUTO_CLEANUP, 1);
+    btor_opt_set (btor->clone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_delete_btor (btor->clone);
     btor->clone = 0;
   }
@@ -191,7 +191,7 @@ boolector_print_value_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol_str);
   BTOR_ABORT_ARG_NULL (file);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   btor_print_value_smt2 (btor, exp, symbol_str, file);
@@ -382,7 +382,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
               "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
@@ -409,7 +409,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
               "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
               "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
@@ -432,7 +432,7 @@ boolector_fixate_assumptions (Btor *btor)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
   BTOR_ABORT (
-      !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+      !btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_fixate_assumptions (btor);
 #ifndef NDEBUG
@@ -446,7 +446,7 @@ boolector_reset_assumptions (Btor *btor)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
   BTOR_ABORT (
-      !btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+      !btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
       "incremental usage has not been enabled, no assumptions available");
   btor_reset_assumptions (btor);
 #ifndef NDEBUG
@@ -461,7 +461,7 @@ boolector_sat (Btor *btor)
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
                   && btor->btor_sat_btor_called > 0,
               "incremental usage has not been enabled."
               "'boolector_sat' may only be called once");
@@ -479,7 +479,7 @@ boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
   int res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d %d", lod_limit, sat_limit);
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
                   && btor->btor_sat_btor_called > 0,
               "incremental usage has not been enabled."
               "'boolector_limited_sat' may only be called once");
@@ -540,7 +540,7 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 #endif
     BTOR_ABORT (1, "invalid sat engine '%s' selected", solver);
 
-  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, sat_engine);
+  btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, sat_engine);
   BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver, solver);
@@ -557,9 +557,9 @@ boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
   BTOR_ABORT (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
-  btor_set_opt_str (btor, BTOR_OPT_SAT_ENGINE, optstr);
-  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, nofork ? 0 : 1);
+  btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+  btor_opt_set_str (btor, BTOR_OPT_SAT_ENGINE, optstr);
+  btor_opt_set (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, nofork ? 0 : 1);
   BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_lingeling, optstr, nofork);
@@ -577,7 +577,7 @@ boolector_set_sat_solver_picosat (Btor *btor)
   BTOR_ABORT (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
+  btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
   BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_picosat);
@@ -595,7 +595,7 @@ boolector_set_sat_solver_minisat (Btor *btor)
   BTOR_ABORT (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+  btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
   BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_minisat);
@@ -610,13 +610,13 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d %s %d", opt, btor_get_opt_lng (btor, opt), val);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
+  BTOR_TRAPI ("%d %s %d", opt, btor_opt_get_lng (btor, opt), val);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   BTOR_ABORT (
-      val < btor_get_opt_min (btor, opt) || val > btor_get_opt_max (btor, opt),
+      val < btor_opt_get_min (btor, opt) || val > btor_opt_get_max (btor, opt),
       "invalid option value '%u' for option '%s'",
       val,
-      btor_get_opt_lng (btor, opt));
+      btor_opt_get_lng (btor, opt));
 
   if (val)
   {
@@ -625,38 +625,38 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
       BTOR_ABORT (btor->btor_sat_btor_called > 0,
                   "enabling/disabling incremental usage must be done "
                   "before calling 'boolector_sat'");
-      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_UCOPT),
                   "incremental solving cannot be enabled "
                   "if unconstrained optimization is enabled");
     }
     else if (opt == BTOR_OPT_MODEL_GEN)
     {
-      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_UCOPT),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_UCOPT),
                   "model generation cannot be enabled "
                   "if unconstrained optimization is enabled");
     }
     else if (opt == BTOR_OPT_UCOPT)
     {
-      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
                   "Unconstrained optimization cannot be enabled "
                   "if model generation is enabled");
-      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
                   "Unconstrained optimization cannot be enabled "
                   "in incremental mode");
     }
     else if (opt == BTOR_OPT_FUN_DUAL_PROP)
     {
-      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
+      BTOR_ABORT (val && btor_opt_get (btor, BTOR_OPT_FUN_JUST),
                   "enabling multiple optimization techniques is not allowed");
     }
     else if (opt == BTOR_OPT_FUN_JUST)
     {
-      BTOR_ABORT (val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
+      BTOR_ABORT (val && btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP),
                   "enabling multiple optimization techniques is not allowed");
     }
     else if (opt == BTOR_OPT_UCOPT)
     {
-      BTOR_ABORT (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
                   "Unconstrained optimization cannot be enabled "
                   "if model generation is enabled");
     }
@@ -669,7 +669,7 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
         "setting rewrite level must be done before creating expressions");
   }
 
-  btor_set_opt (btor, opt, val);
+  btor_opt_set (btor, opt, val);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_opt, opt, val);
 #endif
@@ -681,8 +681,8 @@ boolector_get_opt (Btor *btor, BtorOption opt)
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt, opt);
@@ -696,8 +696,8 @@ boolector_get_opt_min (Btor *btor, BtorOption opt)
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_min (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_min (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_min, opt);
@@ -711,8 +711,8 @@ boolector_get_opt_max (Btor *btor, BtorOption opt)
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_max (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_max (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_max, opt);
@@ -726,8 +726,8 @@ boolector_get_opt_dflt (Btor *btor, BtorOption opt)
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_dflt (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_dflt (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_dflt, opt);
@@ -741,8 +741,8 @@ boolector_get_opt_lng (Btor *btor, BtorOption opt)
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_lng (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_lng (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_opt_lng, opt);
@@ -756,8 +756,8 @@ boolector_get_opt_shrt (Btor *btor, BtorOption opt)
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_shrt (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_shrt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_opt_shrt, opt);
@@ -771,8 +771,8 @@ boolector_get_opt_desc (Btor *btor, BtorOption opt)
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_get_opt_desc (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_get_desc (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_opt_desc, opt);
@@ -786,7 +786,7 @@ boolector_has_opt (Btor *btor, BtorOption opt)
   bool res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  res = btor_has_opt (btor, opt);
+  res = btor_opt_is_valid (btor, opt);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_BOOL (res, next_opt, opt);
@@ -800,7 +800,7 @@ boolector_first_opt (Btor *btor)
   BtorOption res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  res = btor_first_opt (btor);
+  res = btor_opt_first (btor);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, first_opt);
@@ -814,8 +814,8 @@ boolector_next_opt (Btor *btor, BtorOption opt)
   BtorOption res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", opt);
-  BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
-  res = btor_next_opt (btor, opt);
+  BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
+  res = btor_opt_next (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, next_opt, opt);
@@ -3231,7 +3231,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
               "cannot retrieve model if input formula is not SAT");
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
@@ -3390,7 +3390,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
               "cannot retrieve model if input formula is not SAT");
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (e_array);
   BTOR_TRAPI_UNFUN (e_array);
@@ -3470,7 +3470,7 @@ boolector_uf_assignment (
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
               "cannot retrieve model if input formula is not SAT");
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT_ARG_NULL (e_uf);
   BTOR_TRAPI_UNFUN (e_uf);
@@ -3548,7 +3548,7 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
               format);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
               "cannot retrieve model if input formula is not SAT");
-  BTOR_ABORT (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   btor_print_model (btor, format, file);
 #ifndef NDEBUG
