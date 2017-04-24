@@ -831,7 +831,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 {
   assert (btor);
   assert (exp_layer_only
-          || btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
+          || btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor)));
   Btor *clone;
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
@@ -1445,7 +1445,7 @@ btor_clone_btor (Btor *btor)
 {
   assert (btor);
   return clone_aux_btor (
-      btor, 0, !btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
+      btor, 0, !btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor)));
 }
 
 Btor *

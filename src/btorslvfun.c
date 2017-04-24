@@ -158,13 +158,13 @@ configure_sat_mgr (Btor *btor)
   BtorSATMgr *smgr;
 
   smgr = btor_get_sat_mgr_btor (btor);
-  if (btor_is_initialized_sat (smgr)) return;
+  if (btor_sat_is_initialized (smgr)) return;
 
   switch (btor_opt_get (btor, BTOR_OPT_SAT_ENGINE))
   {
 #ifdef BTOR_USE_LINGELING
     case BTOR_SAT_ENGINE_LINGELING:
-      if (!btor_enable_lingeling_sat (
+      if (!btor_sat_enable_lingeling (
               smgr,
               btor_opt_get_valstr (btor, BTOR_OPT_SAT_ENGINE),
               btor_opt_get (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1))
@@ -172,15 +172,15 @@ configure_sat_mgr (Btor *btor)
       break;
 #endif
 #ifdef BTOR_USE_PICOSAT
-    case BTOR_SAT_ENGINE_PICOSAT: btor_enable_picosat_sat (smgr); break;
+    case BTOR_SAT_ENGINE_PICOSAT: btor_sat_enable_picosat (smgr); break;
 #endif
 #ifdef BTOR_USE_MINISAT
-    case BTOR_SAT_ENGINE_MINISAT: btor_enable_minisat_sat (smgr); break;
+    case BTOR_SAT_ENGINE_MINISAT: btor_sat_enable_minisat (smgr); break;
 #endif
     default: BTOR_ABORT (1, "no SAT solver configured");
   }
 
-  btor_init_sat (smgr);
+  btor_sat_init (smgr);
 
   /* reset SAT solver to non-incremental if all functions have been
    * eliminated */
@@ -314,7 +314,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
-  assert (!btor_is_initialized_sat (btor_get_sat_mgr_btor (clone)));
+  assert (!btor_sat_is_initialized (btor_get_sat_mgr_btor (clone)));
   btor_opt_set_str (clone, BTOR_OPT_SAT_ENGINE, "plain=1");
   configure_sat_mgr (clone);
 

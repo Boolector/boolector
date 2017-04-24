@@ -92,7 +92,7 @@ boolector_chkclone (Btor *btor)
   /* do not generate shadow clone if sat solver does not support cloning
    * (else only expression layer will be cloned and shadowed API function
    *  calls may fail) */
-  if (!btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))) return;
+  if (!btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor))) return;
   btor->clone           = btor_clone_btor (btor);
   btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
@@ -327,7 +327,7 @@ boolector_print_stats (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  btor_print_stats_sat (btor_get_sat_mgr_btor (btor));
+  btor_sat_print_stats (btor_get_sat_mgr_btor (btor));
   btor_print_stats_btor (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_stats);

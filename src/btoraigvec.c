@@ -705,7 +705,7 @@ btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (avmgr);
   assert (av);
   amgr = btor_aigvec_get_aig_mgr (avmgr);
-  if (!btor_is_initialized_sat (amgr->smgr)) return;
+  if (!btor_sat_is_initialized (amgr->smgr)) return;
   len = av->len;
   for (i = 0; i < len; i++) btor_aig_to_sat_tseitin (amgr, av->aigs[i]);
 }

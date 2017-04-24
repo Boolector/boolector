@@ -764,8 +764,8 @@ btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
   btor->cbs.term.state   = state;
 
   smgr = btor_get_sat_mgr_btor (btor);
-  if (btor_has_term_support_sat_mgr (smgr))
-    btor_set_term_sat_mgr (smgr, terminate_aux_btor, btor);
+  if (btor_sat_mgr_has_term_support (smgr))
+    btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
 }
 
 static void
@@ -1722,7 +1722,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
     res = aig->cnf_id;
     btor_aig_release (amgr, aig);
 
-    if ((val = btor_fixed_sat (smgr, res)))
+    if ((val = btor_sat_fixed (smgr, res)))
     {
       res = smgr->true_lit;
       if (val < 0) sign *= -1;
@@ -1809,7 +1809,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   {
     res = true;
   }
-  else if (!btor_is_initialized_sat (smgr))
+  else if (!btor_sat_is_initialized (smgr))
   {
     res = true;
   }
@@ -1844,7 +1844,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
         if (abs (lit) == smgr->true_lit)
           res = lit < 0;
         else
-          res = btor_failed_sat (smgr, lit) > 0;
+          res = btor_sat_failed (smgr, lit) > 0;
       }
     }
   }
@@ -1890,7 +1890,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       lit = exp_to_cnf_lit (btor, cur);
       if (lit == smgr->true_lit) continue;
       if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
-      if (btor_failed_sat (smgr, lit))
+      if (btor_sat_failed (smgr, lit))
       {
       ASSUMPTION_FAILED:
         BTOR_RELEASE_STACK (work_stack);
@@ -3574,10 +3574,10 @@ btor_add_again_assumptions (Btor *btor)
     aig = exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
     if (aig == BTOR_AIG_TRUE) continue;
-    if (btor_is_initialized_sat (smgr))
+    if (btor_sat_is_initialized (smgr))
     {
       assert (btor_aig_get_cnf_id (aig) != 0);
-      btor_assume_sat (smgr, btor_aig_get_cnf_id (aig));
+      btor_sat_assume (smgr, btor_aig_get_cnf_id (aig));
     }
     btor_aig_release (amgr, aig);
   }
@@ -3607,7 +3607,7 @@ update_sat_assignments (Btor * btor)
 #else
   (void) timed_sat_sat (btor, -1);
 #endif
-  return btor_changed_sat (smgr);
+  return btor_sat_changed (smgr);
 }
 #endif
 
