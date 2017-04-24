@@ -12,7 +12,7 @@
 #include "btorprintmodel.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* print model                                                            */

@@ -12,7 +12,6 @@
 #include "simplifier/btorextract.h"
 #include "btorbv.h"
 #include "btorcore.h"
-#include "utils/btormisc.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 

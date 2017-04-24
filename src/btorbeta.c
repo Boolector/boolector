@@ -15,7 +15,6 @@
 #include "btorrewrite.h"
 #include "btorslvfun.h"
 #include "utils/btorhashint.h"
-#include "utils/btormisc.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 

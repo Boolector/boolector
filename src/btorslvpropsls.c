@@ -11,7 +11,6 @@
 #include "btorslvpropsls.h"
 
 #include "btorprintmodel.h"
-#include "utils/btormisc.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 

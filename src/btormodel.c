@@ -18,7 +18,6 @@
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
-#include "utils/btormisc.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 

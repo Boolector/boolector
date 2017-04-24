@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2015-2016 Aina Niemetz.
- *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,6 +14,7 @@
 #ifndef BTORUTIL_H_INCLUDED
 #define BTORUTIL_H_INCLUDED
 
+#include "btortypes.h"
 #include "utils/btormem.h"
 
 #include <stdbool.h>
@@ -76,5 +77,8 @@ double btor_util_time_stamp (void);
 int btor_util_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
+
+char *node2string (BtorNode *);
+int btor_vis_exp (Btor *btor, BtorNode *exp);
 
 #endif
