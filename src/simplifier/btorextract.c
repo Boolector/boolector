@@ -12,8 +12,8 @@
 #include "simplifier/btorextract.h"
 #include "btorbv.h"
 #include "btorcore.h"
-#include "utils/btorexpiter.h"
 #include "utils/btormisc.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 #define BTOR_CONST_GET_BITS(c)                           \

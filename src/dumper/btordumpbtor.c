@@ -17,9 +17,9 @@
 #include "btorexp.h"
 #include "btoropt.h"
 #include "btorsort.h"
-#include "utils/btorexpiter.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorstack.h"
 
 typedef struct BtorDumpContextLatch BtorDumpContextLatch;

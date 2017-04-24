@@ -14,8 +14,8 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorlog.h"
-#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 //#ifndef NDEBUG

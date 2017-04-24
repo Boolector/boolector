@@ -13,7 +13,7 @@
 
 #include "simplifier/btorelimslices.h"
 #include "btorcore.h"
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 struct BtorSlice

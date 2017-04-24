@@ -11,7 +11,7 @@
 
 #include "simplifier/btorack.h"
 #include "btorcore.h"
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 void

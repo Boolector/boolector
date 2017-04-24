@@ -11,7 +11,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators					                  */

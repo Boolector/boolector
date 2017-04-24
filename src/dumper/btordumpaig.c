@@ -14,7 +14,7 @@
 
 #include "btorabort.h"
 #include "btoraigvec.h"
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 static unsigned

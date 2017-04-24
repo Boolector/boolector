@@ -26,9 +26,9 @@
 #include "simplifier/btorextract.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
-#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
 #include "utils/btormisc.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"

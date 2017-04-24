@@ -19,10 +19,10 @@
 #include "btorbeta.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
-#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormisc.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>

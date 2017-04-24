@@ -14,9 +14,9 @@
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "btorslvfun.h"
-#include "utils/btorexpiter.h"
 #include "utils/btorhashint.h"
 #include "utils/btormisc.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 #define BETA_RED_LAMBDA_MERGE -2

@@ -16,8 +16,8 @@
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif
-#include "utils/btorexpiter.h"
 #include "utils/btorhashptr.h"
+#include "utils/btornodeiter.h"
 
 #include "btordumpsmt.h"
 
