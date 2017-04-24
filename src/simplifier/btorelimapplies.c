@@ -51,10 +51,10 @@ btor_eliminate_applies (Btor *btor)
     {
       fun = btor_iter_hashptr_next (&h_it);
 
-      btor_init_apply_parent_iterator (&it, fun);
-      while (btor_has_next_apply_parent_iterator (&it))
+      btor_iter_apply_parent_init (&it, fun);
+      while (btor_iter_apply_parent_has_next (&it))
       {
-        app = btor_next_apply_parent_iterator (&it);
+        app = btor_iter_apply_parent_next (&it);
 
         if (app->parameterized) continue;
 
@@ -84,10 +84,10 @@ btor_eliminate_applies (Btor *btor)
   {
     fun = btor_iter_hashptr_next (&h_it);
 
-    btor_init_apply_parent_iterator (&it, fun);
-    while (btor_has_next_apply_parent_iterator (&it))
+    btor_iter_apply_parent_init (&it, fun);
+    while (btor_iter_apply_parent_has_next (&it))
     {
-      app = btor_next_apply_parent_iterator (&it);
+      app = btor_iter_apply_parent_next (&it);
       assert (app->parameterized);
     }
   }

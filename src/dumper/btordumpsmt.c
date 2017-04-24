@@ -618,10 +618,10 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
         case BTOR_APPLY_NODE:
           /* we need the arguments in reversed order */
-          btor_init_args_iterator (&it, real_exp->e[1]);
-          while (btor_has_next_args_iterator (&it))
+          btor_iter_args_init (&it, real_exp->e[1]);
+          while (btor_iter_args_has_next (&it))
           {
-            arg = btor_next_args_iterator (&it);
+            arg = btor_iter_args_next (&it);
             BTOR_PUSH_STACK (args, arg);
           }
           while (!BTOR_EMPTY_STACK (args))
@@ -880,10 +880,10 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   dump_smt_id (sdc, fun);
   fputs (" (", sdc->file);
 
-  btor_init_lambda_iterator (&it, fun);
-  while (btor_has_next_lambda_iterator (&it))
+  btor_iter_lambda_init (&it, fun);
+  while (btor_iter_lambda_has_next (&it))
   {
-    cur   = btor_next_lambda_iterator (&it);
+    cur   = btor_iter_lambda_next (&it);
     param = cur->e[0];
     if (!btor_hashptr_table_get (mark, cur)) btor_hashptr_table_add (mark, cur);
     if (!btor_hashptr_table_get (mark, param))
@@ -936,14 +936,14 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
    * the resp. lambda have already been dumped as otherwise all expressions
    * below have to be removed from 'sdc->dumped' as they will be dumped
    * again in a different function definition. */
-  btor_init_lambda_iterator (&it, fun);
-  while (btor_has_next_lambda_iterator (&it))
+  btor_iter_lambda_init (&it, fun);
+  while (btor_iter_lambda_has_next (&it))
   {
-    cur = btor_next_lambda_iterator (&it);
-    btor_init_parent_iterator (&iit, cur);
-    while (btor_has_next_parent_iterator (&iit))
+    cur = btor_iter_lambda_next (&it);
+    btor_iter_parent_init (&iit, cur);
+    while (btor_iter_parent_has_next (&iit))
     {
-      p = btor_next_parent_iterator (&iit);
+      p = btor_iter_parent_next (&iit);
       /* find lambda parent that needs to be dumped but has not yet been
        * dumped */
       if (btor_hashptr_table_get (sdc->dump, p)
@@ -1030,10 +1030,10 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
   if (btor_hashptr_table_get (sdc->roots, exp)) refs++;
   if (btor_hashptr_table_get (sdc->roots, BTOR_INVERT_NODE (exp))) refs++;
 
-  btor_init_parent_iterator (&it, exp);
-  while (btor_has_next_parent_iterator (&it))
+  btor_iter_parent_init (&it, exp);
+  while (btor_iter_parent_has_next (&it))
   {
-    cur = btor_next_parent_iterator (&it);
+    cur = btor_iter_parent_next (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     b = btor_hashptr_table_get (sdc->dump, cur);
     /* argument nodes are counted differently */
@@ -1048,10 +1048,10 @@ has_lambda_parents_only (BtorNode *exp)
 {
   BtorNode *p;
   BtorNodeIterator it;
-  btor_init_parent_iterator (&it, exp);
-  while (btor_has_next_parent_iterator (&it))
+  btor_iter_parent_init (&it, exp);
+  while (btor_iter_parent_has_next (&it))
   {
-    p = btor_next_parent_iterator (&it);
+    p = btor_iter_parent_next (&it);
     if (!btor_is_lambda_node (p)) return false;
   }
   return true;
@@ -1178,10 +1178,10 @@ dump_smt (BtorSMTDumpContext *sdc)
     /* update references for expressions under argument nodes */
     if (btor_is_args_node (cur) && b->data.as_int > 0)
     {
-      btor_init_args_iterator (&ait, cur);
-      while (btor_has_next_args_iterator (&ait))
+      btor_iter_args_init (&ait, cur);
+      while (btor_iter_args_has_next (&ait))
       {
-        e = BTOR_REAL_ADDR_NODE (btor_next_args_iterator (&ait));
+        e = BTOR_REAL_ADDR_NODE (btor_iter_args_next (&ait));
         assert (btor_hashptr_table_get (sdc->dump, e));
         btor_hashptr_table_get (sdc->dump, e)->data.as_int += b->data.as_int;
       }
@@ -1418,10 +1418,10 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
     /* update references for expressions under argument nodes */
     if (btor_is_args_node (cur) && b->data.as_int > 0)
     {
-      btor_init_args_iterator (&ait, cur);
-      while (btor_has_next_args_iterator (&ait))
+      btor_iter_args_init (&ait, cur);
+      while (btor_iter_args_has_next (&ait))
       {
-        cur = BTOR_REAL_ADDR_NODE (btor_next_args_iterator (&ait));
+        cur = BTOR_REAL_ADDR_NODE (btor_iter_args_next (&ait));
         assert (btor_hashptr_table_get (sdc->dump, cur));
         btor_hashptr_table_get (sdc->dump, cur)->data.as_int += b->data.as_int;
       }

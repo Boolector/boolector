@@ -611,9 +611,9 @@ btor_propsls_update_cone (Btor *btor,
     *stats_updates += 1;
 
     /* push parents */
-    btor_init_parent_iterator (&nit, cur);
-    while (btor_has_next_parent_iterator (&nit))
-      BTOR_PUSH_STACK (stack, btor_next_parent_iterator (&nit));
+    btor_iter_parent_init (&nit, cur);
+    while (btor_iter_parent_has_next (&nit))
+      BTOR_PUSH_STACK (stack, btor_iter_parent_next (&nit));
   }
   BTOR_RELEASE_STACK (stack);
   btor_hashint_table_delete (cache);

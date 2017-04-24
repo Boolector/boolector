@@ -270,10 +270,10 @@ has_lambda_parent (BtorNode *exp)
 {
   BtorNode *p;
   BtorNodeIterator it;
-  btor_init_parent_iterator (&it, exp);
-  while (btor_has_next_parent_iterator (&it))
+  btor_iter_parent_init (&it, exp);
+  while (btor_iter_parent_has_next (&it))
   {
-    p = btor_next_parent_iterator (&it);
+    p = btor_iter_parent_next (&it);
     if (btor_is_lambda_node (p)) return true;
   }
   return false;
@@ -433,9 +433,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     if (btor_is_apply_node (node))
     {
       fprintf (file, " %d", bdcid (bdc, node->e[0]));
-      btor_init_args_iterator (&ait, node->e[1]);
-      while (btor_has_next_args_iterator (&ait))
-        fprintf (file, " %d", bdcid (bdc, btor_next_args_iterator (&ait)));
+      btor_iter_args_init (&ait, node->e[1]);
+      while (btor_iter_args_has_next (&ait))
+        fprintf (file, " %d", bdcid (bdc, btor_iter_args_next (&ait)));
       goto DONE;
     }
   }
@@ -450,18 +450,18 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     if (btor_is_apply_node (node))
     {
       fprintf (file, " %d", bdcid (bdc, node->e[0]));
-      btor_init_args_iterator (&ait, node->e[1]);
-      while (btor_has_next_args_iterator (&ait))
-        fprintf (file, " %d", bdcid (bdc, btor_next_args_iterator (&ait)));
+      btor_iter_args_init (&ait, node->e[1]);
+      while (btor_iter_args_has_next (&ait))
+        fprintf (file, " %d", bdcid (bdc, btor_iter_args_next (&ait)));
       goto DONE;
     }
     else if (strcmp (op, "fun") == 0)
     {
       assert (!has_lambda_parent (node));
-      btor_init_lambda_iterator (&nit, node);
-      while (btor_has_next_lambda_iterator (&nit))
+      btor_iter_lambda_init (&nit, node);
+      while (btor_iter_lambda_has_next (&nit))
       {
-        n = btor_next_lambda_iterator (&nit);
+        n = btor_iter_lambda_next (&nit);
         fprintf (file, " %d", bdcid (bdc, n->e[0]));
       }
       fprintf (file, " %d", bdcid (bdc, btor_lambda_get_body (node)));

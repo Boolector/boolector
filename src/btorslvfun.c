@@ -1140,14 +1140,14 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
 
   if (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1)) return 1;
 
-  btor_init_args_iterator (&it0, e0);
-  btor_init_args_iterator (&it1, e1);
+  btor_iter_args_init (&it0, e0);
+  btor_iter_args_init (&it1, e1);
 
-  while (btor_has_next_args_iterator (&it0))
+  while (btor_iter_args_has_next (&it0))
   {
-    assert (btor_has_next_args_iterator (&it1));
-    arg0 = btor_next_args_iterator (&it0);
-    arg1 = btor_next_args_iterator (&it1);
+    assert (btor_iter_args_has_next (&it1));
+    arg0 = btor_iter_args_next (&it0);
+    arg1 = btor_iter_args_next (&it1);
 
     bv0 = get_bv_assignment (btor, arg0);
     bv1 = get_bv_assignment (btor, arg1);
@@ -1177,10 +1177,10 @@ hash_args_assignment (BtorNode *exp)
 
   btor = exp->btor;
   hash = 0;
-  btor_init_args_iterator (&it, exp);
-  while (btor_has_next_args_iterator (&it))
+  btor_iter_args_init (&it, exp);
+  while (btor_iter_args_has_next (&it))
   {
-    arg = btor_next_args_iterator (&it);
+    arg = btor_iter_args_next (&it);
     bv  = get_bv_assignment (btor, arg);
     hash += btor_bv_hash (bv);
     btor_bv_free (btor->mm, bv);
@@ -1331,14 +1331,14 @@ add_symbolic_lemma (Btor *btor,
   {
     assert (btor_exp_get_sort_id (args0) == btor_exp_get_sort_id (args1));
 
-    btor_init_args_iterator (&it0, args0);
-    btor_init_args_iterator (&it1, args1);
+    btor_iter_args_init (&it0, args0);
+    btor_iter_args_init (&it1, args1);
 
-    while (btor_has_next_args_iterator (&it0))
+    while (btor_iter_args_has_next (&it0))
     {
-      assert (btor_has_next_args_iterator (&it1));
-      arg0 = btor_next_args_iterator (&it0);
-      arg1 = btor_next_args_iterator (&it1);
+      assert (btor_iter_args_has_next (&it1));
+      arg0 = btor_iter_args_next (&it0);
+      arg1 = btor_iter_args_next (&it1);
       BTORLOG (2, "  p %s = %s", node2string (arg0), node2string (arg1));
       eq = btor_eq_exp (btor, arg0, arg1);
       if (premise)

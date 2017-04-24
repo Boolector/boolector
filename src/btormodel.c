@@ -415,10 +415,10 @@ recursively_compute_function_model (Btor *btor,
 
       t   = btor_bv_new_tuple (mm, btor_get_args_arity (btor, args));
       pos = 0;
-      btor_init_args_iterator (&ait, args);
-      while (btor_has_next_args_iterator (&ait))
+      btor_iter_args_init (&ait, args);
+      while (btor_iter_args_has_next (&ait))
       {
-        arg    = btor_next_args_iterator (&ait);
+        arg    = btor_iter_args_next (&ait);
         bv_arg = btor_model_recursively_compute_assignment (
             btor, bv_model, fun_model, arg);
         btor_bv_add_to_tuple (mm, t, bv_arg, pos++);

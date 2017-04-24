@@ -1940,14 +1940,14 @@ compare_lambda_exp (Btor *btor,
 
   if (btor_is_lambda_node (body) && btor_is_lambda_node (lambda->e[1]))
   {
-    btor_init_lambda_iterator (&it, body);
-    btor_init_lambda_iterator (&iit, lambda->e[1]);
-    while (btor_has_next_lambda_iterator (&it))
+    btor_iter_lambda_init (&it, body);
+    btor_iter_lambda_init (&iit, lambda->e[1]);
+    while (btor_iter_lambda_has_next (&it))
     {
-      if (!btor_has_next_lambda_iterator (&iit)) goto NOT_EQUAL;
+      if (!btor_iter_lambda_has_next (&iit)) goto NOT_EQUAL;
 
-      l0 = btor_next_lambda_iterator (&it);
-      l1 = btor_next_lambda_iterator (&iit);
+      l0 = btor_iter_lambda_next (&it);
+      l1 = btor_iter_lambda_next (&iit);
 
       if (btor_exp_get_sort_id (l0) != btor_exp_get_sort_id (l1))
         goto NOT_EQUAL;

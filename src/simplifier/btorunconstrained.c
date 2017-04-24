@@ -145,9 +145,9 @@ btor_optimize_unconstrained (Btor *btor)
         BTOR_PUSH_STACK (roots, cur);
       else
       {
-        btor_init_parent_iterator (&pit, cur);
-        while (btor_has_next_parent_iterator (&pit))
-          BTOR_PUSH_STACK (stack, btor_next_parent_iterator (&pit));
+        btor_iter_parent_init (&pit, cur);
+        while (btor_iter_parent_has_next (&pit))
+          BTOR_PUSH_STACK (stack, btor_iter_parent_next (&pit));
       }
     }
   }

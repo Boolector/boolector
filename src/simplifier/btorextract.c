@@ -615,10 +615,10 @@ collect_indices_writes (Btor *btor,
     if (!lambda->is_array || !btor_lambda_get_static_rho (lambda)) continue;
 
     is_top = 0;
-    btor_init_apply_parent_iterator (&pit, lambda);
-    while (btor_has_next_apply_parent_iterator (&pit))
+    btor_iter_apply_parent_init (&pit, lambda);
+    while (btor_iter_apply_parent_has_next (&pit))
     {
-      tmp = btor_next_apply_parent_iterator (&pit);
+      tmp = btor_iter_apply_parent_next (&pit);
 
       if (!tmp->parameterized)
       {

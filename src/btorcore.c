@@ -2344,12 +2344,12 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     if (!btor_hashint_map_contains (mark, cur->id))
     {
       btor_hashint_map_add (mark, cur->id);
-      btor_init_parent_iterator (&nit, cur);
+      btor_iter_parent_init (&nit, cur);
       /* are we at a root ? */
       pushed = 0;
-      while (btor_has_next_parent_iterator (&nit))
+      while (btor_iter_parent_has_next (&nit))
       {
-        cur_parent = btor_next_parent_iterator (&nit);
+        cur_parent = btor_iter_parent_next (&nit);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
         pushed = 1;
         BTOR_PUSH_STACK (stack, cur_parent);
@@ -2847,10 +2847,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
       if (cur->parents == 0) BTOR_PUSH_STACK (roots, btor_copy_exp (btor, cur));
 
-      btor_init_parent_iterator (&it, cur);
-      while (btor_has_next_parent_iterator (&it))
+      btor_iter_parent_init (&it, cur);
+      while (btor_iter_parent_has_next (&it))
       {
-        cur_parent = btor_next_parent_iterator (&it);
+        cur_parent = btor_iter_parent_next (&it);
         BTOR_ENQUEUE (queue, cur_parent);
       }
     }
@@ -2888,10 +2888,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
       /* traverse upwards and enqueue all parents that are not yet
        * in the queue. */
-      btor_init_parent_iterator (&it, cur);
-      while (btor_has_next_parent_iterator (&it))
+      btor_iter_parent_init (&it, cur);
+      while (btor_iter_parent_has_next (&it))
       {
-        cur_parent = btor_next_parent_iterator (&it);
+        cur_parent = btor_iter_parent_next (&it);
         d          = btor_hashint_map_get (mark, cur_parent->id);
         if (d && d->as_int == 1) continue;
         assert (!d || d->as_int == 0);

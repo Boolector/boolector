@@ -194,10 +194,10 @@ btor_merge_lambdas (Btor *btor)
     }
 
     /* assign parameters of top-most lambda with fresh parameters */
-    btor_init_lambda_iterator (&nit, lambda);
-    while (btor_has_next_lambda_iterator (&nit))
+    btor_iter_lambda_init (&nit, lambda);
+    while (btor_iter_lambda_has_next (&nit))
     {
-      cur   = btor_next_lambda_iterator (&nit);
+      cur   = btor_iter_lambda_next (&nit);
       param = btor_param_exp (btor, btor_exp_get_sort_id (cur->e[0]), 0);
       BTOR_PUSH_STACK (params, param);
       btor_beta_assign_param (btor, cur, param);

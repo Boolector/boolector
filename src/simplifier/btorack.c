@@ -58,10 +58,10 @@ btor_add_ackermann_constraints (Btor *btor)
   {
     uf = btor_iter_hashptr_next (&it);
     BTOR_INIT_STACK (btor->mm, applies);
-    btor_init_apply_parent_iterator (&nit, uf);
-    while (btor_has_next_apply_parent_iterator (&nit))
+    btor_iter_apply_parent_init (&nit, uf);
+    while (btor_iter_apply_parent_has_next (&nit))
     {
-      app_i = btor_next_apply_parent_iterator (&nit);
+      app_i = btor_iter_apply_parent_next (&nit);
       if (app_i->parameterized) continue;
       if (!btor_hashint_table_contains (cache, app_i->id)) continue;
       BTOR_PUSH_STACK (applies, app_i);
@@ -76,12 +76,12 @@ btor_add_ackermann_constraints (Btor *btor)
         p     = 0;
         assert (btor_exp_get_sort_id (app_i->e[1])
                 == btor_exp_get_sort_id (app_j->e[1]));
-        btor_init_args_iterator (&ait_i, app_i->e[1]);
-        btor_init_args_iterator (&ait_j, app_j->e[1]);
-        while (btor_has_next_args_iterator (&ait_i))
+        btor_iter_args_init (&ait_i, app_i->e[1]);
+        btor_iter_args_init (&ait_j, app_j->e[1]);
+        while (btor_iter_args_has_next (&ait_i))
         {
-          a_i = btor_next_args_iterator (&ait_i);
-          a_j = btor_next_args_iterator (&ait_j);
+          a_i = btor_iter_args_next (&ait_i);
+          a_j = btor_iter_args_next (&ait_j);
           eq  = btor_eq_exp (btor, a_i, a_j);
 
           if (!p)

@@ -114,14 +114,14 @@ btor_beta_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   BtorNodeIterator it;
   BtorArgsIterator ait;
 
-  btor_init_args_iterator (&ait, args);
-  btor_init_lambda_iterator (&it, fun);
+  btor_iter_args_init (&ait, args);
+  btor_iter_lambda_init (&it, fun);
 
-  while (btor_has_next_args_iterator (&ait))
+  while (btor_iter_args_has_next (&ait))
   {
-    assert (btor_has_next_lambda_iterator (&it));
-    cur_arg    = btor_next_args_iterator (&ait);
-    cur_lambda = btor_next_lambda_iterator (&it);
+    assert (btor_iter_lambda_has_next (&it));
+    cur_arg    = btor_iter_args_next (&ait);
+    cur_lambda = btor_iter_lambda_next (&it);
     btor_beta_assign_param (btor, cur_lambda, cur_arg);
   }
 }
