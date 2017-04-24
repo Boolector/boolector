@@ -436,8 +436,7 @@ btor_hashint_map_clone (BtorMemMgr *mm,
 /*------------------------------------------------------------------------*/
 
 void
-btor_iter_hashint_table_init (BtorIntHashTableIterator *it,
-                              const BtorIntHashTable *t)
+btor_iter_hashint_init (BtorIntHashTableIterator *it, const BtorIntHashTable *t)
 {
   assert (it);
   assert (t);
@@ -449,14 +448,14 @@ btor_iter_hashint_table_init (BtorIntHashTableIterator *it,
 }
 
 bool
-btor_iter_hashint_table_has_next (const BtorIntHashTableIterator *it)
+btor_iter_hashint_has_next (const BtorIntHashTableIterator *it)
 {
   assert (it);
   return it->cur_pos < it->t->size;
 }
 
 int32_t
-btor_iter_hashint_table_next (BtorIntHashTableIterator *it)
+btor_iter_hashint_next (BtorIntHashTableIterator *it)
 {
   assert (it);
 
@@ -469,7 +468,7 @@ btor_iter_hashint_table_next (BtorIntHashTableIterator *it)
 }
 
 BtorHashTableData *
-btor_iter_hashint_table_next_data (BtorIntHashTableIterator *it)
+btor_iter_hashint_next_data (BtorIntHashTableIterator *it)
 {
   assert (it);
   assert (it->t->data);

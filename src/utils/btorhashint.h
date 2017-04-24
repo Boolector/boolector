@@ -95,15 +95,14 @@ typedef struct BtorIntHashTableIterator
   const BtorIntHashTable *t;
 } BtorIntHashTableIterator;
 
-void btor_iter_hashint_table_init (BtorIntHashTableIterator *it,
-                                   const BtorIntHashTable *t);
+void btor_iter_hashint_init (BtorIntHashTableIterator *it,
+                             const BtorIntHashTable *t);
 
-bool btor_iter_hashint_table_has_next (const BtorIntHashTableIterator *it);
+bool btor_iter_hashint_has_next (const BtorIntHashTableIterator *it);
 
-int32_t btor_iter_hashint_table_next (BtorIntHashTableIterator *it);
+int32_t btor_iter_hashint_next (BtorIntHashTableIterator *it);
 
-BtorHashTableData *btor_iter_hashint_table_next_data (
-    BtorIntHashTableIterator *it);
+BtorHashTableData *btor_iter_hashint_next_data (BtorIntHashTableIterator *it);
 
 /*------------------------------------------------------------------------*/
 

@@ -591,10 +591,10 @@ btor_propsls_update_cone (Btor *btor,
 
   BTOR_INIT_STACK (mm, cone);
   BTOR_INIT_STACK (mm, stack);
-  btor_iter_hashint_table_init (&iit, exps);
-  while (btor_iter_hashint_table_has_next (&iit))
+  btor_iter_hashint_init (&iit, exps);
+  while (btor_iter_hashint_has_next (&iit))
   {
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&iit));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (btor_is_bv_var_node (exp));
     BTOR_PUSH_STACK (stack, exp);
@@ -622,11 +622,11 @@ btor_propsls_update_cone (Btor *btor,
 
   /* update assignment and score of exps ----------------------------------- */
 
-  btor_iter_hashint_table_init (&iit, exps);
-  while (btor_iter_hashint_table_has_next (&iit))
+  btor_iter_hashint_init (&iit, exps);
+  while (btor_iter_hashint_has_next (&iit))
   {
     ass = (BtorBitVector *) exps->data[iit.cur_pos].as_ptr;
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&iit));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
 
     /* update model */
     d = btor_hashint_map_get (bv_model, exp->id);

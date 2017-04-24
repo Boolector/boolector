@@ -38,11 +38,11 @@ btor_model_delete_bv (Btor *btor, BtorIntHashTable **bv_model)
 
   if (!*bv_model) return;
 
-  btor_iter_hashint_table_init (&it, *bv_model);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, *bv_model);
+  while (btor_iter_hashint_has_next (&it))
   {
     bv  = (BtorBitVector *) (*bv_model)->data[it.cur_pos].as_ptr;
-    cur = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it));
+    cur = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
     btor_bv_free (btor->mm, bv);
     btor_release_exp (btor, cur);
   }
@@ -78,10 +78,10 @@ btor_model_clone_bv (Btor *btor, BtorIntHashTable *bv_model, bool inc_ref_cnt)
   res =
       btor_hashint_map_clone (btor->mm, bv_model, btor_clone_data_as_bv_ptr, 0);
 
-  btor_iter_hashint_table_init (&it, res);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, res);
+  while (btor_iter_hashint_has_next (&it))
   {
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
     assert (exp);
     if (inc_ref_cnt) btor_copy_exp (btor, exp);
   }
@@ -231,11 +231,11 @@ delete_fun_model (Btor *btor, BtorIntHashTable **fun_model)
 
   if (!*fun_model) return;
 
-  btor_iter_hashint_table_init (&it1, *fun_model);
-  while (btor_iter_hashint_table_has_next (&it1))
+  btor_iter_hashint_init (&it1, *fun_model);
+  while (btor_iter_hashint_has_next (&it1))
   {
     t   = (BtorPtrHashTable *) (*fun_model)->data[it1.cur_pos].as_ptr;
-    cur = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it1));
+    cur = btor_get_node_by_id (btor, btor_iter_hashint_next (&it1));
     btor_init_ptr_hash_table_iterator (&it2, t);
     while (btor_has_next_ptr_hash_table_iterator (&it2))
     {
@@ -279,10 +279,10 @@ btor_model_clone_fun (Btor *btor, BtorIntHashTable *fun_model, bool inc_ref_cnt)
   res = btor_hashint_map_clone (
       btor->mm, fun_model, btor_clone_data_as_bv_ptr_htable, 0);
 
-  btor_iter_hashint_table_init (&it, res);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, res);
+  while (btor_iter_hashint_has_next (&it))
   {
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
     assert (exp);
     if (inc_ref_cnt) btor_copy_exp (btor, exp);
   }

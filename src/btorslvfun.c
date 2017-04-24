@@ -2132,10 +2132,10 @@ check_and_resolve_conflicts (Btor *btor,
    * model construction */
   if (!found_conflicts)
   {
-    btor_iter_hashint_table_init (&iit, btor->bv_model);
-    while (btor_iter_hashint_table_has_next (&iit))
+    btor_iter_hashint_init (&iit, btor->bv_model);
+    while (btor_iter_hashint_has_next (&iit))
     {
-      cur = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&iit));
+      cur = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
       if (btor_is_apply_node (cur) && !cur->propagated)
         btor_model_remove_from_bv (btor, btor->bv_model, cur);
     }

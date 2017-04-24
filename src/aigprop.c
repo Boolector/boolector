@@ -294,11 +294,10 @@ compute_scores (AIGProp *aprop)
   if (!aprop->score) aprop->score = btor_hashint_map_new (mm);
 
   /* collect roots */
-  btor_iter_hashint_table_init (&it, aprop->roots);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, aprop->roots);
+  while (btor_iter_hashint_has_next (&it))
     BTOR_PUSH_STACK (
-        stack,
-        btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it)));
+        stack, btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it)));
 
   /* compute scores */
   while (!BTOR_EMPTY_STACK (stack))
@@ -441,11 +440,10 @@ aigprop_generate_model (AIGProp *aprop, int reset)
 
   if (reset) aigprop_init_model (aprop);
 
-  btor_iter_hashint_table_init (&it, aprop->roots);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, aprop->roots);
+  while (btor_iter_hashint_has_next (&it))
     recursively_compute_assignment (
-        aprop,
-        btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it)));
+        aprop, btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it)));
 }
 
 /*------------------------------------------------------------------------*/
@@ -516,10 +514,10 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
 #ifndef NDEBUG
   BtorIntHashTableIterator it;
   BtorAIG *root;
-  btor_iter_hashint_table_init (&it, aprop->roots);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, aprop->roots);
+  while (btor_iter_hashint_has_next (&it))
   {
-    root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it));
+    root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
     assert (!btor_aig_is_false (root));
     if ((!BTOR_IS_INVERTED_AIG (root)
          && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root)) == -1)
@@ -673,10 +671,10 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   BTOR_RELEASE_STACK (cone);
 
 #ifndef NDEBUG
-  btor_iter_hashint_table_init (&it, aprop->roots);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, aprop->roots);
+  while (btor_iter_hashint_has_next (&it))
   {
-    root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it));
+    root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
     if ((!BTOR_IS_INVERTED_AIG (root)
          && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root)) == -1)
         || (BTOR_IS_INVERTED_AIG (root)
@@ -726,12 +724,11 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     BtorHashTableData *d;
 
     max_value = 0.0;
-    btor_iter_hashint_table_init (&it, aprop->unsatroots);
-    while (btor_iter_hashint_table_has_next (&it))
+    btor_iter_hashint_init (&it, aprop->unsatroots);
+    while (btor_iter_hashint_has_next (&it))
     {
       selected = &aprop->unsatroots->data[it.cur_pos].as_int;
-      cur =
-          btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it));
+      cur      = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
       assert (!btor_aig_is_const (cur));
       d = btor_hashint_map_get (aprop->score, btor_aig_get_id (cur));
@@ -758,11 +755,10 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     uint32_t r;
     BtorAIGPtrStack stack;
     BTOR_INIT_STACK (mm, stack);
-    btor_iter_hashint_table_init (&it, aprop->unsatroots);
-    while (btor_iter_hashint_table_has_next (&it))
+    btor_iter_hashint_init (&it, aprop->unsatroots);
+    while (btor_iter_hashint_has_next (&it))
     {
-      cur =
-          btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it));
+      cur = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
       assert (aigprop_get_assignment_aig (aprop, cur) != 1);
       assert (!btor_aig_is_const (cur));
       BTOR_PUSH_STACK (stack, cur);
@@ -937,10 +933,10 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
   assert (!aprop->parents);
   aprop->parents = btor_hashint_map_new (mm);
 
-  btor_iter_hashint_table_init (&it, roots);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, roots);
+  while (btor_iter_hashint_has_next (&it))
   {
-    cur = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_table_next (&it));
+    cur = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
     if (btor_aig_is_const (cur)) continue;
     BTOR_PUSH_STACK (stack, cur);
   }
@@ -997,10 +993,10 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!aprop->unsatroots);
     aprop->unsatroots = btor_hashint_map_new (mm);
-    btor_iter_hashint_table_init (&it, roots);
-    while (btor_iter_hashint_table_has_next (&it))
+    btor_iter_hashint_init (&it, roots);
+    while (btor_iter_hashint_has_next (&it))
     {
-      rootid = btor_iter_hashint_table_next (&it);
+      rootid = btor_iter_hashint_next (&it);
       root   = btor_aig_get_by_id (aprop->amgr, rootid);
       if (btor_aig_is_true (root)) continue;
       if (btor_aig_is_false (root)) goto UNSAT;
@@ -1039,10 +1035,10 @@ SAT:
 UNSAT:
   sat_result = AIGPROP_UNSAT;
 DONE:
-  btor_iter_hashint_table_init (&it, aprop->parents);
-  while (btor_iter_hashint_table_has_next (&it))
+  btor_iter_hashint_init (&it, aprop->parents);
+  while (btor_iter_hashint_has_next (&it))
   {
-    childparents = btor_iter_hashint_table_next_data (&it)->as_ptr;
+    childparents = btor_iter_hashint_next_data (&it)->as_ptr;
     assert (childparents);
     BTOR_RELEASE_STACK (*childparents);
     BTOR_DELETE (mm, childparents);

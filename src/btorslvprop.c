@@ -76,11 +76,11 @@ select_constraint (Btor *btor, uint32_t nmoves)
     int *selected;
     double value, max_value, score;
     max_value = 0.0;
-    btor_iter_hashint_table_init (&it, slv->roots);
-    while (btor_iter_hashint_table_has_next (&it))
+    btor_iter_hashint_init (&it, slv->roots);
+    while (btor_iter_hashint_has_next (&it))
     {
       selected = &slv->roots->data[it.cur_pos].as_int;
-      cur      = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it));
+      cur      = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
 
       assert (btor_hashint_map_contains (slv->score, btor_exp_get_id (cur)));
       score = btor_hashint_map_get (slv->score, btor_exp_get_id (cur))->as_dbl;
@@ -101,10 +101,10 @@ select_constraint (Btor *btor, uint32_t nmoves)
 
     j = 0;
     r = btor_pick_rand_rng (&btor->rng, 0, slv->roots->count - 1);
-    btor_iter_hashint_table_init (&it, slv->roots);
-    while (btor_iter_hashint_table_has_next (&it) && j <= r)
+    btor_iter_hashint_init (&it, slv->roots);
+    while (btor_iter_hashint_has_next (&it) && j <= r)
     {
-      res = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&it));
+      res = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
       j += 1;
     }
     assert (res);
