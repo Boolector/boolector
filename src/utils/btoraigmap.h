@@ -34,10 +34,10 @@ typedef struct BtorAIGMap BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
-BtorAIGMap *btor_new_aig_map (Btor *, BtorAIGMgr *, BtorAIGMgr *);
-BtorAIG *btor_mapped_aig (BtorAIGMap *, BtorAIG *);
-void btor_map_aig (BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
-void btor_delete_aig_map (BtorAIGMap *);
+BtorAIGMap *btor_aigmap_new (Btor *, BtorAIGMgr *, BtorAIGMgr *);
+BtorAIG *btor_aigmap_mapped (BtorAIGMap *, BtorAIG *);
+void btor_aigmap_map (BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
+void btor_aigmap_delete (BtorAIGMap *);
 
 /*------------------------------------------------------------------------*/
 

@@ -17,7 +17,7 @@
 /*------------------------------------------------------------------------*/
 
 BtorAIGMap *
-btor_new_aig_map (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
+btor_aigmap_new (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
 {
   assert (btor);
   assert (amgr_src);
@@ -34,7 +34,7 @@ btor_new_aig_map (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
 }
 
 BtorAIG *
-btor_mapped_aig (BtorAIGMap *map, BtorAIG *aig)
+btor_aigmap_mapped (BtorAIGMap *map, BtorAIG *aig)
 {
   assert (map);
   assert (aig);
@@ -52,7 +52,7 @@ btor_mapped_aig (BtorAIGMap *map, BtorAIG *aig)
 }
 
 void
-btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
+btor_aigmap_map (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
 {
   assert (map);
   assert (src);
@@ -76,7 +76,7 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
 }
 
 void
-btor_delete_aig_map (BtorAIGMap *map)
+btor_aigmap_delete (BtorAIGMap *map)
 {
   assert (map);
 
