@@ -3238,7 +3238,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  ass   = btor_bv_to_char (btor->mm, btor_get_bv_model (btor, exp));
+  ass   = btor_bv_to_char (btor->mm, btor_model_get_bv (btor, exp));
   bvass = btor_ass_new_bv (btor->bv_assignments, ass);
   btor_freestr (btor->mm, ass);
   res = btor_ass_get_bv_str (bvass);
@@ -3294,7 +3294,7 @@ generate_fun_model_str (
   exp = btor_simplify_exp (btor, exp);
   assert (btor_is_fun_node (exp));
 
-  model = btor_get_fun_model_aux (btor, btor->bv_model, btor->fun_model, exp);
+  model = btor_model_get_fun_aux (btor, btor->bv_model, btor->fun_model, exp);
 
   if ((btor_is_lambda_node (exp) && btor_get_fun_arity (btor, exp) > 1)
       || !btor->fun_model || !model)

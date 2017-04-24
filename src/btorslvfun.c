@@ -266,7 +266,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
     }
     else
       bv = btor_eval_exp (btor, real_exp);
-    btor_add_to_bv_model (btor, btor->bv_model, real_exp, bv);
+    btor_model_add_to_bv (btor, btor->bv_model, real_exp, bv);
   }
 
   if (BTOR_IS_INVERTED_NODE (exp))
@@ -2062,7 +2062,7 @@ check_and_resolve_conflicts (Btor *btor,
 
   /* initialize new bit vector model, which will be constructed while
    * consistency checking. this also deletes the model from the previous run */
-  btor_init_bv_model (btor, &btor->bv_model);
+  btor_model_init_bv (btor, &btor->bv_model);
 
   assert (!found_conflicts);
   cleanup_table = btor_new_ptr_hash_table (mm,
@@ -2139,7 +2139,7 @@ check_and_resolve_conflicts (Btor *btor,
       cur =
           btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
       if (btor_is_apply_node (cur) && !cur->propagated)
-        btor_remove_from_bv_model (btor, btor->bv_model, cur);
+        btor_model_remove_from_bv (btor, btor->bv_model, cur);
     }
   }
 
@@ -2255,7 +2255,7 @@ sat_fun_solver (BtorFunSolver *slv)
       goto DONE;
     }
     /* reset */
-    btor_delete_model (btor);
+    btor_model_delete (btor);
   }
 
   if (btor_terminate_btor (btor))
@@ -2374,10 +2374,10 @@ generate_model_fun_solver (BtorFunSolver *slv,
 
   /* already created during check_and_resolve_conflicts */
   if (!slv->btor->bv_model)
-    btor_init_bv_model (slv->btor, &slv->btor->bv_model);
-  btor_init_fun_model (slv->btor, &slv->btor->fun_model);
+    btor_model_init_bv (slv->btor, &slv->btor->bv_model);
+  btor_model_init_fun (slv->btor, &slv->btor->fun_model);
 
-  btor_generate_model (slv->btor,
+  btor_model_generate (slv->btor,
                        slv->btor->bv_model,
                        slv->btor->fun_model,
                        model_for_all_nodes);

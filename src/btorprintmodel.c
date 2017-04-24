@@ -78,7 +78,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   char *symbol;
   const BtorBitVector *ass;
 
-  ass    = btor_get_bv_model (btor, node);
+  ass    = btor_model_get_bv (btor, node);
   symbol = btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
@@ -140,7 +140,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorSortId sort;
   BtorTupleSortIterator iit;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
@@ -241,7 +241,7 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorPtrHashTable *fun_model;
   BtorPtrHashTableIterator it;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
@@ -326,7 +326,7 @@ print_bv_value_smt2 (
   const BtorBitVector *ass;
   int32_t id;
 
-  ass    = btor_get_bv_model (btor, node);
+  ass    = btor_model_get_bv (btor, node);
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
 
   if (symbol)
@@ -361,7 +361,7 @@ print_fun_value_smt2 (
   BtorBitVectorTuple *args;
   BtorBitVector *assignment;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (btor, node);
   if (!fun_model) return;
 
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);

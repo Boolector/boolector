@@ -1481,9 +1481,9 @@ init_propinv_tests (void)
   btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);
   g_mm  = g_btor->mm;
   g_rng = &g_btor->rng;
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_generate_model (g_btor, g_btor->bv_model, g_btor->fun_model, 0);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_generate (g_btor, g_btor->bv_model, g_btor->fun_model, 0);
 }
 
 void

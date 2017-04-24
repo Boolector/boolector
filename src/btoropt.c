@@ -1095,7 +1095,7 @@ btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val)
   }
   else if (opt == BTOR_OPT_MODEL_GEN)
   {
-    if (!val && btor_get_opt (btor, opt)) btor_delete_model (btor);
+    if (!val && btor_get_opt (btor, opt)) btor_model_delete (btor);
     assert (!val || !btor_get_opt (btor, BTOR_OPT_UCOPT));
   }
   else if (opt == BTOR_OPT_UCOPT)

@@ -123,8 +123,8 @@ generate_model_from_aig_model (Btor *btor)
   assert (aprop);
   assert (aprop->model);
 
-  btor_init_bv_model (btor, &btor->bv_model);
-  btor_init_fun_model (btor, &btor->fun_model);
+  btor_model_init_bv (btor, &btor->bv_model);
+  btor_model_init_fun (btor, &btor->fun_model);
 
   /* map inputs back to expression layer
    * Note: we can only map inputs back, since other nodes might have partial
@@ -144,12 +144,12 @@ generate_model_from_aig_model (Btor *btor)
     if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
     btor_add_int_hash_table (cache, real_cur->id);
     if (btor_is_bv_const_node (real_cur))
-      btor_add_to_bv_model (
+      btor_model_add_to_bv (
           btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
     if (btor_is_bv_var_node (real_cur))
     {
       bv = get_assignment_bv (btor->mm, real_cur, aprop);
-      btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
+      btor_model_add_to_bv (btor, btor->bv_model, real_cur, bv);
       btor_bv_free (btor->mm, bv);
     }
     for (i = 0; i < real_cur->arity; i++)
@@ -170,15 +170,15 @@ generate_model_aigprop_solver (BtorAIGPropSolver *slv,
 
   if (reset)
   {
-    btor_init_bv_model (btor, &btor->bv_model);
-    btor_init_fun_model (btor, &btor->fun_model);
-    btor_generate_model (
+    btor_model_init_bv (btor, &btor->bv_model);
+    btor_model_init_fun (btor, &btor->fun_model);
+    btor_model_generate (
         btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
     return;
   }
 
   /* generate model for non-input nodes */
-  btor_generate_model (
+  btor_model_generate (
       btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 

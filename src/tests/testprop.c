@@ -99,11 +99,11 @@ prop_complete_binary_eidx (
   bvexptmp = create_bv (g_mm, bvetmp[0], bvetmp[1]);
 
   /* init bv model */
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
   // printf ("eidx %d bvetmp[0] %s bvetmp[1] %s\n", eidx, btor_bv_to_char (g_mm,
   // bvetmp[0]), btor_bv_to_char (g_mm, bvetmp[1]));
@@ -140,11 +140,11 @@ prop_complete_binary_eidx (
    *    (we must find a solution within n move(s)) */
   ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
   btor_assume_exp (g_btor, eq);
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
   btor_bv_free (g_mm, bvetmp[0]);
   btor_bv_free (g_mm, bvetmp[1]);
   btor_bv_free (g_mm, bvexptmp);
@@ -421,10 +421,10 @@ test_prop_complete_slice_bv (void)
           bvetmp   = btor_bv_new_random (g_mm, g_rng, bw);
           bvexptmp = btor_bv_slice (g_mm, bvetmp, up, lo);
           /* init bv model */
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
           /* -> first test local completeness
            *    we must find a solution within one move */
@@ -452,10 +452,10 @@ test_prop_complete_slice_bv (void)
            *    (we must find a solution within one move) */
           ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
           btor_assume_exp (g_btor, eq);
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
           btor_bv_free (g_mm, bve);
           btor_bv_free (g_mm, bvexp);
           btor_bv_free (g_mm, bvetmp);

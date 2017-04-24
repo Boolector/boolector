@@ -178,11 +178,11 @@ compute_sls_score_node (Btor *btor,
       {
         a0 = btor_bv_to_char (
             btor->mm,
-            btor_get_bv_model_aux (
+            btor_model_get_bv_aux (
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
         a1 = btor_bv_to_char (
             btor->mm,
-            btor_get_bv_model_aux (
+            btor_model_get_bv_aux (
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
@@ -210,11 +210,11 @@ compute_sls_score_node (Btor *btor,
       {
         a0 = btor_bv_to_char (
             btor->mm,
-            btor_get_bv_model_aux (
+            btor_model_get_bv_aux (
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
         a1 = btor_bv_to_char (
             btor->mm,
-            btor_get_bv_model_aux (
+            btor_model_get_bv_aux (
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
@@ -233,20 +233,20 @@ compute_sls_score_node (Btor *btor,
   /* EQ --------------------------------------------------------- */
   else if (btor_is_bv_eq_node (real_exp))
   {
-    bv0 = (BtorBitVector *) btor_get_bv_model_aux (
+    bv0 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[0]);
-    bv1 = (BtorBitVector *) btor_get_bv_model_aux (
+    bv1 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[1]);
 #ifndef NBTORLOG
     if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
       a0 = btor_bv_to_char (
           btor->mm,
-          btor_get_bv_model_aux (
+          btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
       a1 = btor_bv_to_char (
           btor->mm,
-          btor_get_bv_model_aux (
+          btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
@@ -267,20 +267,20 @@ compute_sls_score_node (Btor *btor,
   /* ULT -------------------------------------------------------- */
   else if (btor_is_ult_node (real_exp))
   {
-    bv0 = (BtorBitVector *) btor_get_bv_model_aux (
+    bv0 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[0]);
-    bv1 = (BtorBitVector *) btor_get_bv_model_aux (
+    bv1 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[1]);
 #ifndef NBTORLOG
     if (btor_get_opt (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
       a0 = btor_bv_to_char (
           btor->mm,
-          btor_get_bv_model_aux (
+          btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
       a1 = btor_bv_to_char (
           btor->mm,
-          btor_get_bv_model_aux (
+          btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
@@ -309,13 +309,13 @@ compute_sls_score_node (Btor *btor,
     {
       a0 = btor_bv_to_char (
           btor->mm,
-          btor_get_bv_model_aux (
+          btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (exp)));
       BTORLOG (3, "      assignment : %s", a0);
       btor_freestr (mm, a0);
     }
 #endif
-    res = ((BtorBitVector *) btor_get_bv_model_aux (
+    res = ((BtorBitVector *) btor_model_get_bv_aux (
                btor, bv_model, fun_model, exp))
               ->bits[0];
   }
@@ -478,7 +478,7 @@ update_roots_table (Btor *btor,
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (bv);
-  assert (btor_bv_compare (btor_get_bv_model (btor, exp), bv));
+  assert (btor_bv_compare (btor_model_get_bv (btor, exp), bv));
 
   (void) btor;
 
@@ -487,7 +487,7 @@ update_roots_table (Btor *btor,
   if (btor_get_int_hash_map (roots, exp->id))
   {
     btor_remove_int_hash_map (roots, exp->id, 0);
-    assert (btor_bv_is_false (btor_get_bv_model (btor, exp)));
+    assert (btor_bv_is_false (btor_model_get_bv (btor, exp)));
     assert (btor_bv_is_true (bv));
   }
   /* -exp: old assignment = 0, new assignment = 1 (bv = 0)
@@ -496,7 +496,7 @@ update_roots_table (Btor *btor,
   {
     btor_remove_int_hash_map (roots, -exp->id, 0);
     assert (
-        btor_bv_is_false (btor_get_bv_model (btor, BTOR_INVERT_NODE (exp))));
+        btor_bv_is_false (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
     assert (btor_bv_is_false (bv));
   }
   /* exp: old assignment = 1, new assignment = 0 (bv = 0)
@@ -504,7 +504,7 @@ update_roots_table (Btor *btor,
   else if (btor_bv_is_false (bv))
   {
     btor_add_int_hash_map (roots, exp->id);
-    assert (btor_bv_is_true (btor_get_bv_model (btor, exp)));
+    assert (btor_bv_is_true (btor_model_get_bv (btor, exp)));
   }
   /* -exp: old assignment = 1, new assignment = 0 (bv = 1)
    * -> unsatisfied, add */
@@ -512,7 +512,7 @@ update_roots_table (Btor *btor,
   {
     assert (btor_bv_is_true (bv));
     btor_add_int_hash_map (roots, -exp->id);
-    assert (btor_bv_is_true (btor_get_bv_model (btor, BTOR_INVERT_NODE (exp))));
+    assert (btor_bv_is_true (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
   }
 }
 
@@ -580,7 +580,7 @@ btor_propsls_update_cone (Btor *btor,
                                       BTOR_INVERT_NODE (root)));
     assert (
         !btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)));
-    if (btor_bv_is_false (btor_get_bv_model (btor, root)))
+    if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
     else
       assert (!btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
@@ -690,7 +690,7 @@ btor_propsls_update_cone (Btor *btor,
         /* Note: generate model enabled branch for ite (and does not
          * generate model for nodes in the branch, hence !b may happen */
         if (!d)
-          e[j] = btor_recursively_compute_assignment (
+          e[j] = btor_model_recursively_compute_assignment (
               btor, bv_model, btor->fun_model, cur->e[j]);
         else
           e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
@@ -796,7 +796,7 @@ btor_propsls_update_cone (Btor *btor,
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
-    if (btor_bv_is_false (btor_get_bv_model (btor, root)))
+    if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
     else
       assert (!btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
@@ -1561,10 +1561,10 @@ select_path_cond (Btor *btor,
   a = btor_bv_to_char (mm, bve0);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (cond->e[0]), a);
   btor_freestr (mm, a);
-  a = btor_bv_to_char (mm, btor_get_bv_model (btor, cond->e[1]));
+  a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[1]));
   BTORLOG (2, "       e[1]: %s (%s)", node2string (cond->e[1]), a);
   btor_freestr (mm, a);
-  a = btor_bv_to_char (mm, btor_get_bv_model (btor, cond->e[2]));
+  a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[2]));
   BTORLOG (2, "       e[2]: %s (%s)", node2string (cond->e[2]), a);
   btor_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
@@ -1639,7 +1639,7 @@ cons_and_bv (Btor *btor,
       &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (btor->mm, dcbits);
 
-  res = btor_bv_copy (btor->mm, btor_get_bv_model (btor, and->e[eidx]));
+  res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, and->e[eidx]));
 
   /* bve & res = bvand
    * -> all bits set in bvand must be set in res
@@ -1690,7 +1690,7 @@ cons_eq_bv (
   if (btor_pick_with_prob_rng (&btor->rng,
                                btor_get_opt (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
   {
-    res = btor_bv_copy (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
+    res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
     btor_bv_flip_bit (res, btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
   }
   else
@@ -2146,7 +2146,7 @@ cons_concat_bv (Btor *btor,
       && btor_pick_with_prob_rng (
              &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
-    bvcur = btor_get_bv_model (btor, concat);
+    bvcur = btor_model_get_bv (btor, concat);
     res =
         eidx ? btor_bv_slice (
                    btor->mm, bvcur, bvconcat->width - bve->width - 1, 0)
@@ -2305,7 +2305,7 @@ inv_and_bv (Btor *btor,
       &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (mm, dcbits);
 
-  res = btor_bv_copy (mm, btor_get_bv_model (btor, and->e[eidx]));
+  res = btor_bv_copy (mm, btor_model_get_bv (btor, and->e[eidx]));
   assert (res);
 
   for (i = 0; i < bvand->width; i++)
@@ -2400,7 +2400,7 @@ inv_eq_bv (
       do
       {
         if (res) btor_bv_free (btor->mm, res);
-        res = btor_bv_copy (btor->mm, btor_get_bv_model (btor, eq->e[eidx]));
+        res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
         btor_bv_flip_bit (res,
                           btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
       } while (!btor_bv_compare (res, bve));
@@ -3805,7 +3805,7 @@ btor_propsls_select_move_prop (Btor *btor,
 {
   assert (btor);
   assert (root);
-  assert (btor_bv_to_uint64 ((BtorBitVector *) btor_get_bv_model (btor, root))
+  assert (btor_bv_to_uint64 ((BtorBitVector *) btor_model_get_bv (btor, root))
           == 0);
 
   bool b;
@@ -3855,7 +3855,7 @@ btor_propsls_select_move_prop (Btor *btor,
       /* check if all paths are const, if yes -> conflict */
       for (i = 0, nconst = 0; i < real_cur->arity; i++)
       {
-        bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
+        bve[i] = (BtorBitVector *) btor_model_get_bv (btor, real_cur->e[i]);
         if (btor_is_bv_const_node (real_cur->e[i])) nconst += 1;
       }
       if (nconst > real_cur->arity - 1) break;
@@ -3957,7 +3957,7 @@ btor_propsls_select_move_prop (Btor *btor,
           assert (btor_is_bv_cond_node (real_cur));
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
-          tmp  = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
+          tmp  = (BtorBitVector *) btor_model_get_bv (btor, real_cur->e[0]);
           eidx = select_path_cond (btor, real_cur, bvcur, tmp);
           /* flip condition */
           if (eidx == 0) bvenew = btor_bv_not (btor->mm, tmp);

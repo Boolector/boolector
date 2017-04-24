@@ -873,7 +873,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->var_rhs);
   btor_delete_ptr_hash_table (btor->fun_rhs);
 
-  btor_delete_model (btor);
+  btor_model_delete (btor);
   btor_release_exp (btor, btor->true_exp);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
@@ -1605,7 +1605,7 @@ btor_reset_incremental_usage (Btor *btor)
   btor_reset_assumptions (btor);
   reset_functions_with_model (btor);
   btor->valid_assignments = 0;
-  btor_delete_model (btor);
+  btor_model_delete (btor);
 }
 
 static void
@@ -4031,7 +4031,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
     if (btor_is_fun_node (real_simp_clone))
     {
-      fmodel = btor_get_fun_model (btor, simp);
+      fmodel = btor_model_get_fun (btor, simp);
       if (!fmodel) continue;
 
       BTORLOG (2, "assert model for %s", node2string (real_simp_clone));
@@ -4072,7 +4072,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       /* we need to invert the assignment if simplified is inverted */
       model =
           btor_const_exp (clone,
-                          (BtorBitVector *) btor_get_bv_model (
+                          (BtorBitVector *) btor_model_get_bv (
                               btor, BTOR_COND_INVERT_NODE (simp_clone, simp)));
       eq = btor_eq_exp (clone, real_simp_clone, model);
       btor_assert_exp (clone, eq);

@@ -60,7 +60,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
-    if (btor_bv_is_false (btor_get_bv_model (btor, root)))
+    if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
     else
       assert (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
@@ -112,7 +112,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   }
 
   assert (res);
-  assert (btor_bv_is_zero (btor_get_bv_model (btor, res)));
+  assert (btor_bv_is_zero (btor_model_get_bv (btor, res)));
 
   BTORLOG (1, "");
   BTORLOG (1, "select constraint: %s", node2string (res));
@@ -147,7 +147,7 @@ move (Btor *btor, uint32_t nmoves)
 #ifndef NBTORLOG
   char *a;
   BtorBitVector *ass;
-  ass = (BtorBitVector *) btor_get_bv_model (btor, input);
+  ass = (BtorBitVector *) btor_model_get_bv (btor, input);
   a   = btor_bv_to_char (btor->mm, ass);
   BTORLOG (1, "");
   BTORLOG (1, "move");
@@ -272,7 +272,7 @@ sat_prop_solver_aux (Btor *btor)
       root = btor_next_ptr_hash_table_iterator (&it);
 
       if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
-          && btor_bv_is_zero (btor_get_bv_model (btor, root)))
+          && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */
@@ -404,9 +404,9 @@ generate_model_prop_solver (BtorPropSolver *slv,
   Btor *btor = slv->btor;
 
   if (!reset && btor->bv_model) return;
-  btor_init_bv_model (btor, &btor->bv_model);
-  btor_init_fun_model (btor, &btor->fun_model);
-  btor_generate_model (
+  btor_model_init_bv (btor, &btor->bv_model);
+  btor_model_init_fun (btor, &btor->fun_model);
+  btor_model_generate (
       btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
