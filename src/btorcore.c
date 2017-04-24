@@ -656,7 +656,7 @@ btor_new_btor (void)
 
   btor->avmgr = btor_aigvec_mgr_new (btor);
 
-  btor_init_rng (&btor->rng, btor_opt_get (btor, BTOR_OPT_SEED));
+  btor_rng_init (&btor->rng, btor_opt_get (btor, BTOR_OPT_SEED));
 
   btor->bv_assignments  = btor_ass_new_bv_list (mm);
   btor->fun_assignments = btor_ass_new_fun_list (mm);

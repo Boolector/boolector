@@ -47,7 +47,7 @@ init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
   g_mm   = g_btor->mm;
-  btor_init_rng (&g_btor->rng, btor_opt_get (g_btor, BTOR_OPT_SEED));
+  btor_rng_init (&g_btor->rng, btor_opt_get (g_btor, BTOR_OPT_SEED));
   g_rng = &g_btor->rng;
 }
 
@@ -965,7 +965,7 @@ concat_bitvec (int32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    bw1 = btor_pick_rand_rng (g_rng, 1, bit_width - 1);
+    bw1 = btor_rng_pick_rand (g_rng, 1, bit_width - 1);
     bw2 = bit_width - bw1;
     bv1 = random_bv (bw1);
     bv2 = random_bv (bw2);
@@ -1049,7 +1049,7 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    len = btor_pick_rand_rng (g_rng, 1, bit_width - 1);
+    len = btor_rng_pick_rand (g_rng, 1, bit_width - 1);
     bv  = random_bv (bit_width - len);
 
     res = ext_func (g_mm, bv, len);
@@ -1099,7 +1099,7 @@ flipped_bit_bitvec (uint32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    pos = btor_pick_rand_rng (g_rng, 0, bit_width - 1);
+    pos = btor_rng_pick_rand (g_rng, 0, bit_width - 1);
     bv  = random_bv (bit_width);
     res = btor_bv_flipped_bit (g_mm, bv, pos);
     assert (btor_bv_get_bit (bv, pos) == !btor_bv_get_bit (res, pos));
@@ -1133,10 +1133,10 @@ flipped_bit_range_bitvec (uint32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    lo = btor_pick_rand_rng (g_rng, 0, bit_width - 1);
+    lo = btor_rng_pick_rand (g_rng, 0, bit_width - 1);
     up = lo == bit_width - 1
              ? bit_width - 1
-             : btor_pick_rand_rng (g_rng, lo + 1, bit_width - 1);
+             : btor_rng_pick_rand (g_rng, lo + 1, bit_width - 1);
     bv  = random_bv (bit_width);
     res = btor_bv_flipped_bit_range (g_mm, bv, up, lo);
     for (j = lo; j <= up; j++)

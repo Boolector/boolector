@@ -139,8 +139,8 @@ btor_bv_new_random_bit_range (
 
   res = btor_bv_new (mm, bw);
   for (i = 1; i < res->len; i++)
-    res->bits[i] = (BTOR_BV_TYPE) btor_rand_rng (rng);
-  res->bits[0] = (BTOR_BV_TYPE) btor_pick_rand_rng (
+    res->bits[i] = (BTOR_BV_TYPE) btor_rng_rand (rng);
+  res->bits[0] = (BTOR_BV_TYPE) btor_rng_pick_rand (
       rng, 0, ((~0) >> (BTOR_BV_TYPE_BW - bw % BTOR_BV_TYPE_BW)) - 1);
 
   for (i = 0; i < lo; i++) btor_bv_set_bit (res, i, 0);

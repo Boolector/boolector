@@ -980,7 +980,7 @@ PROP_INV_CONF_MUL_TESTS:
       bve = btor_bv_new (g_mm, bw);
       btor_bv_set_bit (bve, i, 1);
       bvmul = btor_bv_new_random (g_mm, &g_btor->rng, bw);
-      r     = btor_pick_rand_rng (&g_btor->rng, 0, i - 1);
+      r     = btor_rng_pick_rand (&g_btor->rng, 0, i - 1);
       for (j = 0; j < r; j++) btor_bv_set_bit (bvmul, j, 0);
       if (!btor_bv_get_bit (bvmul, r)) btor_bv_set_bit (bvmul, r, 1);
       TEST_PROP_INV_CONF_MUL (true);
@@ -1002,7 +1002,7 @@ PROP_INV_CONF_MUL_TESTS:
       }
       if (btor_bv_get_bit (bve, 0))
       {
-        r = btor_pick_rand_rng (&g_btor->rng, 1, bw - 1);
+        r = btor_rng_pick_rand (&g_btor->rng, 1, bw - 1);
         for (j = 0; j < r; j++) btor_bv_set_bit (bve, j, 0);
       }
       else
@@ -1011,7 +1011,7 @@ PROP_INV_CONF_MUL_TESTS:
           if (btor_bv_get_bit (bve, j)) break;
       }
       bvmul = btor_bv_new_random (g_mm, &g_btor->rng, bw);
-      r     = btor_pick_rand_rng (&g_btor->rng, 0, j - 1);
+      r     = btor_rng_pick_rand (&g_btor->rng, 0, j - 1);
       for (j = 0; j < r; j++) btor_bv_set_bit (bvmul, j, 0);
       if (!btor_bv_get_bit (bvmul, r)) btor_bv_set_bit (bvmul, r, 1);
       TEST_PROP_INV_CONF_MUL (true);
@@ -1322,7 +1322,7 @@ PROP_INV_CONF_CONCAT_TESTS:
 
   for (k = 0; bw > 1 && k < 10; k++)
   {
-    bws[0]   = btor_pick_rand_rng (&g_btor->rng, 1, bw - 1);
+    bws[0]   = btor_rng_pick_rand (&g_btor->rng, 1, bw - 1);
     bws[1]   = bw - bws[0];
     sorts[0] = btor_sort_bitvec (g_btor, bw);
     sorts[1] = btor_sort_bitvec (g_btor, bw);
@@ -1341,7 +1341,7 @@ PROP_INV_CONF_CONCAT_TESTS:
       {
         for (i = 0; i < bws[j]; i++)
         {
-          if (btor_pick_rand_rng (&g_btor->rng, 0, 5))
+          if (btor_rng_pick_rand (&g_btor->rng, 0, 5))
           {
             btor_bv_set_bit (bve[j], i, btor_bv_get_bit (bve[j], i) ? 0 : 1);
             cnt += 1;

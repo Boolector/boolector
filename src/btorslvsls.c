@@ -151,7 +151,7 @@ select_candidate_constraint (Btor *btor, int nmoves)
       BTOR_PUSH_STACK (stack, cur);
     }
     assert (BTOR_COUNT_STACK (stack));
-    r   = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (stack) - 1);
+    r   = btor_rng_pick_rand (&btor->rng, 0, BTOR_COUNT_STACK (stack) - 1);
     res = stack.start[r];
     BTOR_RELEASE_STACK (stack);
   }
@@ -224,7 +224,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
             stack,
             BTOR_PEEK_STACK (
                 controlling,
-                btor_pick_rand_rng (
+                btor_rng_pick_rand (
                     &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
       }
     }
@@ -266,7 +266,7 @@ update_assertion_weights (Btor *btor)
 
   slv = BTOR_SLS_SOLVER (btor);
 
-  if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SCORE_F))
+  if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_SCORE_F))
   {
     /* decrease the weight of all satisfied assertions */
     btor_iter_hashint_init (&it, slv->weights);
@@ -612,7 +612,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       }
 
       /* range from MSB rather than LSB with given prob */
-      if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
+      if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
@@ -696,7 +696,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         if (lo >= ass->width - 1) clo = ass->width < seg ? 0 : ass->width - seg;
 
         /* range from MSB rather than LSB with given prob */
-        if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
+        if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
         {
           ctmp = clo;
           clo  = ass->width - 1 - cup;
@@ -773,7 +773,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       }
 
       /* range from MSB rather than LSB with given prob */
-      if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
+      if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
@@ -921,7 +921,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
            sizeof (BtorSLSMove *),
            cmp_sls_moves_qsort);
 
-    rd = btor_pick_rand_dbl_rng (&btor->rng, 0, slv->sum_score);
+    rd = btor_rng_pick_rand_dbl (&btor->rng, 0, slv->sum_score);
     m  = BTOR_PEEK_STACK (slv->moves, 0);
     for (i = 0, sum = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
     {
@@ -949,7 +949,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
 
     /* randomize if no best move was found */
     randomizeall = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RAND_ALL)
-                       ? btor_pick_with_prob_rng (&btor->rng,
+                       ? btor_rng_pick_with_prob (&btor->rng,
                                                   BTOR_SLS_PROB_RAND_ALL_VS_ONE)
                        : false;
 
@@ -979,7 +979,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
 
       can = BTOR_PEEK_STACK (
           *candidates,
-          btor_pick_rand_rng (
+          btor_rng_pick_rand (
               &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1));
       assert (BTOR_IS_REGULAR_NODE (can));
 
@@ -1048,7 +1048,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
   /* select candidate(s) */
   if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_GW)
-      && btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SINGLE_VS_GW))
+      && btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_SINGLE_VS_GW))
   {
     pcans       = candidates;
     slv->max_gw = 1;
@@ -1059,7 +1059,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
         cans,
         BTOR_PEEK_STACK (
             *candidates,
-            btor_pick_rand_rng (
+            btor_rng_pick_rand (
                 &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1)));
     pcans       = &cans;
     slv->max_gw = 0;
@@ -1073,7 +1073,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
     ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     assert (ass);
 
-    r = btor_pick_rand_rng (
+    r = btor_rng_pick_rand (
         &btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + ass->width - 1);
 
     if (r < ass->width)
@@ -1096,20 +1096,20 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
       case BTOR_SLS_MOVE_DEC: neigh = btor_bv_dec (btor->mm, ass); break;
       case BTOR_SLS_MOVE_NOT: neigh = btor_bv_not (btor->mm, ass); break;
       case BTOR_SLS_MOVE_FLIP_RANGE:
-        up = btor_pick_rand_rng (
+        up = btor_rng_pick_rand (
             &btor->rng, ass->width > 1 ? 1 : 0, ass->width - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, 0);
         break;
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
-        lo = btor_pick_rand_rng (&btor->rng, 0, ass->width - 1);
-        up = btor_pick_rand_rng (
+        lo = btor_rng_pick_rand (&btor->rng, 0, ass->width - 1);
+        up = btor_rng_pick_rand (
             &btor->rng, lo < ass->width - 1 ? lo + 1 : lo, ass->width - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, lo);
         break;
       default:
         assert (mk == BTOR_SLS_MOVE_FLIP);
         neigh = btor_bv_flipped_bit (
-            btor->mm, ass, btor_pick_rand_rng (&btor->rng, 0, ass->width - 1));
+            btor->mm, ass, btor_rng_pick_rand (&btor->rng, 0, ass->width - 1));
         break;
     }
 
@@ -1209,7 +1209,7 @@ move (Btor *btor, uint32_t nmoves)
     slv->max_gw    = -1;
 
     if (btor_opt_get (btor, BTOR_OPT_SLS_MOVE_RAND_WALK)
-        && btor_pick_with_prob_rng (
+        && btor_rng_pick_with_prob (
                &btor->rng,
                btor_opt_get (btor, BTOR_OPT_SLS_PROB_MOVE_RAND_WALK)))
     {

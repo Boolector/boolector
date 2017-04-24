@@ -764,7 +764,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
       BTOR_PUSH_STACK (stack, cur);
     }
     assert (BTOR_COUNT_STACK (stack));
-    r   = btor_pick_rand_rng (&aprop->rng, 0, BTOR_COUNT_STACK (stack) - 1);
+    r   = btor_rng_pick_rand (&aprop->rng, 0, BTOR_COUNT_STACK (stack) - 1);
     res = stack.start[r];
     BTOR_RELEASE_STACK (stack);
   }
@@ -841,7 +841,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
         else if (ass[0] == 1 && ass[1] == -1)
           eidx = 1;
         else
-          eidx = btor_pick_rand_rng (&aprop->rng, 0, 1);
+          eidx = btor_rng_pick_rand (&aprop->rng, 0, 1);
       }
       assert (eidx >= 0);
       if (asscur == 1)
@@ -850,7 +850,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
         assnew = -1;
       else
       {
-        assnew = btor_pick_rand_rng (&aprop->rng, 0, 1);
+        assnew = btor_rng_pick_rand (&aprop->rng, 0, 1);
         if (!assnew) assnew = -1;
       }
 
@@ -1092,7 +1092,7 @@ aigprop_new_aigprop (BtorAIGMgr *amgr,
 
   BTOR_CNEW (amgr->btor->mm, res);
   res->amgr = amgr;
-  btor_init_rng (&res->rng, seed);
+  btor_rng_init (&res->rng, seed);
   res->loglevel     = loglevel;
   res->seed         = seed;
   res->use_restarts = use_restarts;

@@ -1084,7 +1084,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
 
   if (opt == BTOR_OPT_SEED)
   {
-    btor_init_rng (&btor->rng, val);
+    btor_rng_init (&btor->rng, val);
   }
   else if (opt == BTOR_OPT_ENGINE)
   {

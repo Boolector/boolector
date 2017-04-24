@@ -833,7 +833,7 @@ select_path_random (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return (int) btor_pick_rand_rng (&btor->rng, 0, exp->arity - 1);
+  return (int) btor_rng_pick_rand (&btor->rng, 0, exp->arity - 1);
 }
 
 static inline int
@@ -1498,7 +1498,7 @@ select_path_cond (Btor *btor,
      * which is constant and will not be updated */
     if (((e1const && btor_bv_is_true (bve0))
          || (e2const && btor_bv_is_false (bve0)))
-        && btor_pick_with_prob_rng (
+        && btor_rng_pick_with_prob (
                &btor->rng,
                (prob =
                     btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST))))
@@ -1540,7 +1540,7 @@ select_path_cond (Btor *btor,
         }
       }
     }
-    else if (btor_pick_with_prob_rng (
+    else if (btor_rng_pick_with_prob (
                  &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND)))
     {
       eidx = 0;
@@ -1635,7 +1635,7 @@ cons_and_bv (Btor *btor,
   if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.cons_and++;
 #endif
-  b = btor_pick_with_prob_rng (
+  b = btor_rng_pick_with_prob (
       &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (btor->mm, dcbits);
 
@@ -1651,7 +1651,7 @@ cons_and_bv (Btor *btor,
     else if (b)
       BTOR_PUSH_STACK (dcbits, i);
     else
-      btor_bv_set_bit (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+      btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
   }
 
   if (b && BTOR_COUNT_STACK (dcbits))
@@ -1659,7 +1659,7 @@ cons_and_bv (Btor *btor,
         res,
         BTOR_PEEK_STACK (
             dcbits,
-            btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
+            btor_rng_pick_rand (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
 
   BTOR_RELEASE_STACK (dcbits);
   return res;
@@ -1687,11 +1687,11 @@ cons_eq_bv (
     BTOR_PROP_SOLVER (btor)->stats.cons_eq++;
 #endif
 
-  if (btor_pick_with_prob_rng (&btor->rng,
+  if (btor_rng_pick_with_prob (&btor->rng,
                                btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
   {
     res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
-    btor_bv_flip_bit (res, btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+    btor_bv_flip_bit (res, btor_rng_pick_rand (&btor->rng, 0, res->width - 1));
   }
   else
   {
@@ -1807,7 +1807,7 @@ cons_sll_bv (Btor *btor,
     s   = btor_bv_to_uint64 (shift);
     res = btor_bv_srl (mm, bvsll, shift);
     for (i = 0; i < s; i++)
-      btor_bv_set_bit (res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+      btor_bv_set_bit (res, bw - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
     btor_bv_free (mm, shift);
   }
 
@@ -1864,7 +1864,7 @@ cons_srl_bv (Btor *btor,
     s   = btor_bv_to_uint64 (shift);
     res = btor_bv_srl (mm, bvsrl, shift);
     for (i = 0; i < s; i++)
-      btor_bv_set_bit (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+      btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
     btor_bv_free (mm, shift);
   }
 
@@ -1921,19 +1921,19 @@ cons_mul_bv (Btor *btor,
     {
       ctz_bvmul = btor_bv_get_num_trailing_zeros (bvmul);
       /* choose res as 2^n with ctz(bvmul) >= ctz(res) with prob 0.1 */
-      if (btor_pick_with_prob_rng (&btor->rng, 100))
+      if (btor_rng_pick_with_prob (&btor->rng, 100))
       {
         btor_bv_free (mm, res);
         res = btor_bv_new (mm, bw);
         btor_bv_set_bit (
-            res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
+            res, btor_rng_pick_rand (&btor->rng, 0, ctz_bvmul - 1), 1);
       }
       /* choose res as bvmul / 2^n with prob 0.1
        * (note: bw not necessarily power of 2 -> do not use srl) */
-      else if (btor_pick_with_prob_rng (&btor->rng, 100))
+      else if (btor_rng_pick_with_prob (&btor->rng, 100))
       {
         btor_bv_free (mm, res);
-        if ((r = btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul)))
+        if ((r = btor_rng_pick_rand (&btor->rng, 0, ctz_bvmul)))
         {
           tmp = btor_bv_slice (mm, bvmul, bw - 1, r);
           res = btor_bv_uext (mm, tmp, r);
@@ -1950,7 +1950,7 @@ cons_mul_bv (Btor *btor,
         ctz_res = btor_bv_get_num_trailing_zeros (res);
         if (ctz_res > ctz_bvmul)
           btor_bv_set_bit (
-              res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
+              res, btor_rng_pick_rand (&btor->rng, 0, ctz_bvmul - 1), 1);
       }
     }
   }
@@ -1997,7 +1997,7 @@ cons_udiv_bv (Btor *btor,
      * -> else choose res s.t. res * bvudiv does not overflow */
     if (!btor_bv_compare (bvudiv, bvmax))
       res =
-          btor_bv_uint64_to_bv (mm, btor_pick_rand_rng (&btor->rng, 0, 1), bw);
+          btor_bv_uint64_to_bv (mm, btor_rng_pick_rand (&btor->rng, 0, 1), bw);
     else
     {
       res = btor_bv_new_random_range (mm, &btor->rng, bw, one, bvmax);
@@ -2143,7 +2143,7 @@ cons_concat_bv (Btor *btor,
    */
 
   if (btor_is_bv_const_node (concat->e[idx])
-      && btor_pick_with_prob_rng (
+      && btor_rng_pick_with_prob (
              &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
     bvcur = btor_model_get_bv (btor, concat);
@@ -2151,7 +2151,7 @@ cons_concat_bv (Btor *btor,
         eidx ? btor_bv_slice (
                    btor->mm, bvcur, bvconcat->width - bve->width - 1, 0)
              : btor_bv_slice (btor->mm, bvcur, bvconcat->width - 1, bve->width);
-    r = btor_pick_rand_rng (&btor->rng, 0, res->width);
+    r = btor_rng_pick_rand (&btor->rng, 0, res->width);
     if (r) btor_bv_flip_bit (res, r - 1);
   }
   else
@@ -2301,7 +2301,7 @@ inv_and_bv (Btor *btor,
   e  = and->e[eidx ? 0 : 1];
   assert (e);
 
-  b = btor_pick_with_prob_rng (
+  b = btor_rng_pick_with_prob (
       &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_AND_FLIP));
   BTOR_INIT_STACK (mm, dcbits);
 
@@ -2343,7 +2343,7 @@ inv_and_bv (Btor *btor,
     else if (b)
       BTOR_PUSH_STACK (dcbits, i);
     else
-      btor_bv_set_bit (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+      btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
   }
 
   if (b && BTOR_COUNT_STACK (dcbits))
@@ -2351,7 +2351,7 @@ inv_and_bv (Btor *btor,
         res,
         BTOR_PEEK_STACK (
             dcbits,
-            btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
+            btor_rng_pick_rand (&btor->rng, 0, BTOR_COUNT_STACK (dcbits) - 1)));
 
 #ifndef NDEBUG
   check_result_binary_dbg (
@@ -2393,7 +2393,7 @@ inv_eq_bv (
   /* res != bveq -> choose random res != bveq */
   if (btor_bv_is_zero (bveq))
   {
-    if (btor_pick_with_prob_rng (
+    if (btor_rng_pick_with_prob (
             &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
     {
       res = 0;
@@ -2402,7 +2402,7 @@ inv_eq_bv (
         if (res) btor_bv_free (btor->mm, res);
         res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
         btor_bv_flip_bit (res,
-                          btor_pick_rand_rng (&btor->rng, 0, res->width - 1));
+                          btor_rng_pick_rand (&btor->rng, 0, res->width - 1));
       } while (!btor_bv_compare (res, bve));
     }
     else
@@ -2672,7 +2672,7 @@ inv_sll_bv (Btor *btor,
     res = btor_bv_srl (mm, bvsll, bve);
     for (i = 0; i < shift; i++)
       btor_bv_set_bit (
-          res, res->width - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+          res, res->width - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
   }
 #ifndef NDEBUG
   if (is_inv)
@@ -2813,7 +2813,7 @@ inv_srl_bv (Btor *btor,
 
     res = btor_bv_sll (mm, bvsrl, bve);
     for (i = 0; i < shift; i++)
-      btor_bv_set_bit (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+      btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
   }
 
 #ifndef NDEBUG
@@ -2963,7 +2963,7 @@ inv_mul_bv (Btor *btor,
           assert (res->width == bw);
           for (i = 0; i < (uint32_t) ispow2_bve; i++)
             btor_bv_set_bit (
-                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+                res, bw - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
           btor_bv_free (mm, tmp);
         }
       }
@@ -3001,7 +3001,7 @@ inv_mul_bv (Btor *btor,
           /* choose one of all possible values */
           for (i = 0; i < j; i++)
             btor_bv_set_bit (
-                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+                res, bw - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
           btor_bv_free (mm, tmp);
           btor_bv_free (mm, inv);
         }
@@ -3080,7 +3080,7 @@ inv_udiv_bv (Btor *btor,
       /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
        * with prob 0.5 */
       if (!btor_bv_compare (bve, bvudiv)
-          && btor_pick_with_prob_rng (&btor->rng, 500))
+          && btor_rng_pick_with_prob (&btor->rng, 500))
         res = btor_bv_one (mm, bw);
       /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 */
       else
@@ -3130,7 +3130,7 @@ inv_udiv_bv (Btor *btor,
       /* if bvudiv is a divisor of bve, choose e[1] = bve / bvudiv
        * with prob = 0.5 and a bve s.t. bve / e[1] = bvudiv otherwise */
       tmp = btor_bv_urem (mm, bve, bvudiv);
-      if (btor_bv_is_zero (tmp) && btor_pick_with_prob_rng (rng, 500))
+      if (btor_bv_is_zero (tmp) && btor_rng_pick_with_prob (rng, 500))
       {
         btor_bv_free (mm, tmp);
         res = btor_bv_udiv (mm, bve, bvudiv);
@@ -3214,7 +3214,7 @@ inv_udiv_bv (Btor *btor,
       /* ^^----------------------------------------------------------^^ */
       else
       {
-        if (btor_pick_with_prob_rng (rng, 500))
+        if (btor_rng_pick_with_prob (rng, 500))
           res = btor_bv_mul (mm, bve, bvudiv);
         else
         {
@@ -3350,7 +3350,7 @@ inv_urem_bv (Btor *btor,
       if (cmp == 0)
       {
         /* choose e[1] = 0 with prob = 0.25*/
-        if (btor_pick_with_prob_rng (&btor->rng, 250))
+        if (btor_rng_pick_with_prob (&btor->rng, 250))
           res = btor_bv_new (mm, bw);
         /* bvurem < res <= 2^bw - 1 */
         else
@@ -3391,7 +3391,7 @@ inv_urem_bv (Btor *btor,
          * with prob = 0.5 */
         else
         {
-          if (btor_pick_with_prob_rng (&btor->rng, 500))
+          if (btor_rng_pick_with_prob (&btor->rng, 500))
           {
             res = btor_bv_copy (mm, sub);
           }
@@ -3510,7 +3510,7 @@ inv_urem_bv (Btor *btor,
     {
       /* choose simplest solution (0 <= res < bve -> res = bvurem)
        * with prob 0.5 */
-      if (btor_pick_with_prob_rng (&btor->rng, 500))
+      if (btor_rng_pick_with_prob (&btor->rng, 500))
       {
       BVUREM_EQ_0:
         res = btor_bv_copy (mm, bvurem);
@@ -3705,11 +3705,11 @@ inv_slice_bv (Btor *btor,
   e  = slice->e[0];
   assert (e);
 
-  bflip = btor_pick_with_prob_rng (
+  bflip = btor_rng_pick_with_prob (
       &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_FLIP));
 
   bkeep = bflip ? true
-                : btor_pick_with_prob_rng (
+                : btor_rng_pick_with_prob (
                       &btor->rng,
                       btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
@@ -3724,7 +3724,7 @@ inv_slice_bv (Btor *btor,
     btor_bv_set_bit (res,
                      i,
                      bkeep ? btor_bv_get_bit (bve, i)
-                           : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+                           : (int) btor_rng_pick_rand (&btor->rng, 0, 1));
 
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
@@ -3736,7 +3736,7 @@ inv_slice_bv (Btor *btor,
     btor_bv_set_bit (res,
                      i,
                      bkeep ? btor_bv_get_bit (bve, i)
-                           : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
+                           : (int) btor_rng_pick_rand (&btor->rng, 0, 1));
 
   if (bflip)
   {
@@ -3747,13 +3747,13 @@ inv_slice_bv (Btor *btor,
     if (lower)
     {
       rboth += 1;
-      rlower = btor_pick_rand_rng (&btor->rng, 0, lower - 1);
+      rlower = btor_rng_pick_rand (&btor->rng, 0, lower - 1);
     }
 
     if (upper + 1 < res->width)
     {
       rboth += 2;
-      rupper = btor_pick_rand_rng (&btor->rng, upper + 1, res->width - 1);
+      rupper = btor_rng_pick_rand (&btor->rng, upper + 1, res->width - 1);
     }
 
     switch (rboth)
@@ -3762,7 +3762,7 @@ inv_slice_bv (Btor *btor,
         assert (rupper >= upper + 1 && rupper < res->width);
         assert (rlower < lower);
         btor_bv_flip_bit (
-            res, btor_pick_with_prob_rng (&btor->rng, 500) ? rupper : rlower);
+            res, btor_rng_pick_with_prob (&btor->rng, 500) ? rupper : rlower);
         break;
       case 2:
         assert (rupper >= upper + 1 && rupper < res->width);
@@ -3870,7 +3870,7 @@ btor_propsls_select_move_prop (Btor *btor,
       /* we either select a consistent or inverse value
        * as path assignment, depending on the given probability p
        * -> if b then inverse else consistent */
-      b = btor_pick_with_prob_rng (
+      b = btor_rng_pick_with_prob (
           &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE));
 
       /* select path and determine path assignment */

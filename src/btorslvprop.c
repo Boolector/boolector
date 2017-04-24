@@ -100,7 +100,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
     size_t j, r;
 
     j = 0;
-    r = btor_pick_rand_rng (&btor->rng, 0, slv->roots->count - 1);
+    r = btor_rng_pick_rand (&btor->rng, 0, slv->roots->count - 1);
     btor_iter_hashint_init (&it, slv->roots);
     while (btor_iter_hashint_has_next (&it) && j <= r)
     {
