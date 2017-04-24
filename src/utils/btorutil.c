@@ -149,9 +149,9 @@ add_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
   a = strip_zeroes (a);
   b = strip_zeroes (b);
 
-  if (!*a) return btor_strdup (mm, b);
+  if (!*a) return btor_mem_strdup (mm, b);
 
-  if (!*b) return btor_strdup (mm, a);
+  if (!*b) return btor_mem_strdup (mm, a);
 
   alen = strlen (a);
   blen = strlen (b);
@@ -180,8 +180,8 @@ add_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
   p = strip_zeroes (res);
   if ((p != res))
   {
-    tmp = btor_strdup (mm, p);
-    btor_freestr (mm, res);
+    tmp = btor_mem_strdup (mm, p);
+    btor_mem_freestr (mm, res);
     res = tmp;
   }
 
@@ -202,15 +202,15 @@ mult_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
 
   a = strip_zeroes (a);
 
-  if (!*a) return btor_strdup (mm, "");
+  if (!*a) return btor_mem_strdup (mm, "");
 
-  if (a[0] == '1' && !a[1]) return btor_strdup (mm, b);
+  if (a[0] == '1' && !a[1]) return btor_mem_strdup (mm, b);
 
   b = strip_zeroes (b);
 
-  if (!*b) return btor_strdup (mm, "");
+  if (!*b) return btor_mem_strdup (mm, "");
 
-  if (b[0] == '1' && !b[1]) return btor_strdup (mm, a);
+  if (b[0] == '1' && !b[1]) return btor_mem_strdup (mm, a);
 
   alen = strlen (a);
   blen = strlen (b);
@@ -261,17 +261,17 @@ btor_dec_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
   const char *end, *p;
   char *res, *tmp;
 
-  res = btor_strdup (mm, "");
+  res = btor_mem_strdup (mm, "");
 
   end = str + len;
   for (p = str; p < end; p++)
   {
     tmp = mult_unbounded_bin_str (mm, res, "1010"); /* *10 */
-    btor_freestr (mm, res);
+    btor_mem_freestr (mm, res);
     res = tmp;
 
     tmp = add_unbounded_bin_str (mm, res, digit2const (*p));
-    btor_freestr (mm, res);
+    btor_mem_freestr (mm, res);
     res = tmp;
   }
 
@@ -415,8 +415,8 @@ btor_hex_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
   assert (tmp + blen == q);
   *q++ = 0;
 
-  res = btor_strdup (mm, strip_zeroes (tmp));
-  btor_freestr (mm, tmp);
+  res = btor_mem_strdup (mm, strip_zeroes (tmp));
+  btor_mem_freestr (mm, tmp);
 
   return res;
 }

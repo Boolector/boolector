@@ -103,11 +103,11 @@ btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
+    bytes = btor_mem_parse_error_msg_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
-    parser->error = btor_parse_error_message (
+    parser->error = btor_mem_parse_error_msg (
         parser->mem, parser->infile_name, parser->lineno, 0, fmt, ap, bytes);
     va_end (ap);
   }
@@ -583,7 +583,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
                            "hexadecimal constant '%s' exceeds bit width %d",
                            parser->constant.start,
                            width);
-    btor_freestr (parser->mem, tmp);
+    btor_mem_freestr (parser->mem, tmp);
     return 0;
   }
 
@@ -598,7 +598,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
       extbv = btor_bv_uext (parser->mem, tmpbv, width - cwidth);
     }
     ext = btor_bv_to_char (parser->mem, extbv);
-    btor_freestr (parser->mem, tmp);
+    btor_mem_freestr (parser->mem, tmp);
     btor_bv_free (parser->mem, extbv);
     if (tmpbv) btor_bv_free (parser->mem, tmpbv);
     tmp = ext;
@@ -606,7 +606,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
 
   assert (width == strlen (tmp));
   res = boolector_const (parser->btor, tmp);
-  btor_freestr (parser->mem, tmp);
+  btor_mem_freestr (parser->mem, tmp);
 
   assert (boolector_get_width (parser->btor, res) == width);
 
@@ -645,7 +645,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
       return 0;
     }
 
-    tmp = btor_strdup (parser->mem, "");
+    tmp = btor_mem_strdup (parser->mem, "");
   }
   else
   {
@@ -670,7 +670,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
                            "decimal constant '%s' exceeds bit width %d",
                            parser->constant.start,
                            width);
-    btor_freestr (parser->mem, tmp);
+    btor_mem_freestr (parser->mem, tmp);
     return 0;
   }
 
@@ -685,7 +685,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
       extbv = btor_bv_uext (parser->mem, tmpbv, width - cwidth);
     }
     ext = btor_bv_to_char (parser->mem, extbv);
-    btor_freestr (parser->mem, tmp);
+    btor_mem_freestr (parser->mem, tmp);
     btor_bv_free (parser->mem, extbv);
     if (tmpbv) btor_bv_free (parser->mem, tmpbv);
     tmp = ext;
@@ -693,7 +693,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
 
   assert (width == strlen (tmp));
   res = boolector_const (parser->btor, tmp);
-  btor_freestr (parser->mem, tmp);
+  btor_mem_freestr (parser->mem, tmp);
 
   assert (boolector_get_width (parser->btor, res) == width);
 
@@ -1698,7 +1698,7 @@ find_parser (BtorBTORParser *parser, const char *op)
 static BtorBTORParser *
 btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
 {
-  BtorMemMgr *mem = btor_new_mem_mgr ();
+  BtorMemMgr *mem = btor_mem_mgr_new ();
   BtorBTORParser *res;
 
   (void) opts->incremental;  // TODO what about incremental?
@@ -1827,9 +1827,9 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_DELETEN (mm, parser->parsers, SIZE_PARSERS);
   BTOR_DELETEN (mm, parser->ops, SIZE_PARSERS);
 
-  btor_freestr (mm, parser->error);
+  btor_mem_freestr (mm, parser->error);
   BTOR_DELETE (mm, parser);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 /* Note: we need prefix in case of stdin as input (also applies to compressed

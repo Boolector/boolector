@@ -37,7 +37,7 @@ print_fmt_bv_model_btor (Btor *btor,
   else
     ass = btor_bv_to_char (btor->mm, assignment);
   fprintf (file, "%s", ass);
-  btor_freestr (btor->mm, ass);
+  btor_mem_freestr (btor->mm, ass);
 }
 
 static void

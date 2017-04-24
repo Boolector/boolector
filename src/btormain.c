@@ -450,7 +450,7 @@ btormain_new_btormain (Btor *btor)
   BtorMainApp *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEWN (mm, res, 1);
   res->mm          = mm;
   res->btor        = btor;
@@ -472,7 +472,7 @@ btormain_delete_btormain (BtorMainApp *app)
   BTOR_DELETEN (mm, app->options, BTORMAIN_OPT_NUM_OPTS);
   boolector_delete (app->btor);
   BTOR_DELETE (mm, app);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 /*------------------------------------------------------------------------*/
@@ -587,7 +587,7 @@ print_opt (BtorMainApp *app,
   word = strtok (descstr, " ");
   while (word)
   {
-    BTOR_PUSH_STACK (words, btor_strdup (app->mm, word));
+    BTOR_PUSH_STACK (words, btor_mem_strdup (app->mm, word));
     word = strtok (0, " ");
   }
   BTOR_DELETEN (app->mm, descstr, len + 1);
@@ -618,7 +618,7 @@ print_opt (BtorMainApp *app,
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (words))
-    btor_freestr (app->mm, BTOR_POP_STACK (words));
+    btor_mem_freestr (app->mm, BTOR_POP_STACK (words));
   BTOR_RELEASE_STACK (words);
 }
 

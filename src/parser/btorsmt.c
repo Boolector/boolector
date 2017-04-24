@@ -339,7 +339,7 @@ delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
   assert (parser->symbols > 0);
   parser->symbols--;
 
-  btor_freestr (parser->mem, symbol->name);
+  btor_mem_freestr (parser->mem, symbol->name);
 
   if ((exp = symbol->exp)) boolector_release (parser->btor, exp);
 
@@ -578,7 +578,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
 
   btor_release_smt_internals (parser);
 
-  btor_freestr (mm, parser->error);
+  btor_mem_freestr (mm, parser->error);
   btor_release_smt_vars (parser);
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
@@ -586,7 +586,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   BTOR_RELEASE_STACK (parser->outputs);
 
   BTOR_DELETE (mm, parser);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static char *
@@ -598,11 +598,11 @@ btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
+    bytes = btor_mem_parse_error_msg_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
-    parser->error = btor_parse_error_message (
+    parser->error = btor_mem_parse_error_msg (
         parser->mem, parser->infile_name, parser->lineno, -1, fmt, ap, bytes);
     va_end (ap);
   }
@@ -654,7 +654,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
     BTOR_CLR (res);
 
     res->token = BTOR_SMTOK_IDENTIFIER;
-    res->name  = btor_strdup (parser->mem, name);
+    res->name  = btor_mem_strdup (parser->mem, name);
 
     parser->symbols++;
     *p = res;
@@ -672,7 +672,7 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   unsigned char type;
   int ch;
 
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
@@ -1478,7 +1478,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                     extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
                   }
                   ext = btor_bv_to_char (parser->mem, extbv);
-                  btor_freestr (parser->mem, tmp);
+                  btor_mem_freestr (parser->mem, tmp);
                   btor_bv_free (parser->mem, extbv);
                   if (tmpbv) btor_bv_free (parser->mem, tmpbv);
                   tmp = ext;
@@ -1488,7 +1488,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                 parser->constants++;
               }
 
-              btor_freestr (parser->mem, tmp);
+              btor_mem_freestr (parser->mem, tmp);
             }
           }
         }
@@ -1529,13 +1529,13 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
               extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
             }
             ext = btor_bv_to_char (parser->mem, extbv);
-            btor_freestr (parser->mem, tmp);
+            btor_mem_freestr (parser->mem, tmp);
             btor_bv_free (parser->mem, extbv);
             if (tmpbv) btor_bv_free (parser->mem, tmpbv);
             tmp = ext;
           }
           symbol->exp = boolector_const (parser->btor, tmp);
-          btor_freestr (parser->mem, tmp);
+          btor_mem_freestr (parser->mem, tmp);
           parser->constants++;
         }
       }

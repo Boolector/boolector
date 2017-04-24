@@ -1395,8 +1395,8 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   size        = nesting_lvl * sizeof (BtorNode *);
   var         = btor_var_exp (g_btor, g_elem_sort, 0);
 
-  params  = btor_malloc (g_btor->mm, size);
-  indices = btor_malloc (g_btor->mm, size);
+  params  = btor_mem_malloc (g_btor->mm, size);
+  indices = btor_mem_malloc (g_btor->mm, size);
 
   for (i = nesting_lvl - 1; i >= 0; i--)
   {
@@ -1419,8 +1419,8 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
     btor_release_exp (g_btor, indices[i]);
   }
 
-  btor_free (g_btor->mm, params, size);
-  btor_free (g_btor->mm, indices, size);
+  btor_mem_free (g_btor->mm, params, size);
+  btor_mem_free (g_btor->mm, indices, size);
 
   btor_release_exp (g_btor, fun);
   btor_release_exp (g_btor, apply);
@@ -1611,9 +1611,9 @@ test_lambda_define_fun (void)
   init_lambda_test ();
 
   size    = nesting_lvl * sizeof (BtorNode *);
-  params  = btor_malloc (g_btor->mm, size);
-  lambdas = btor_malloc (g_btor->mm, size);
-  ands    = btor_malloc (g_btor->mm, size - sizeof (BtorNode *));
+  params  = btor_mem_malloc (g_btor->mm, size);
+  lambdas = btor_mem_malloc (g_btor->mm, size);
+  ands    = btor_mem_malloc (g_btor->mm, size - sizeof (BtorNode *));
 
   for (i = 0; i < nesting_lvl; i++)
     params[i] = btor_param_exp (g_btor, g_elem_sort, 0);
@@ -1653,9 +1653,9 @@ test_lambda_define_fun (void)
     if (i < nesting_lvl - 1) btor_release_exp (g_btor, ands[i]);
   }
 
-  btor_free (g_btor->mm, params, size);
-  btor_free (g_btor->mm, lambdas, size);
-  btor_free (g_btor->mm, ands, size - sizeof (BtorNode *));
+  btor_mem_free (g_btor->mm, params, size);
+  btor_mem_free (g_btor->mm, lambdas, size);
+  btor_mem_free (g_btor->mm, ands, size - sizeof (BtorNode *));
   btor_release_exp (g_btor, result);
   finish_lambda_test ();
 }

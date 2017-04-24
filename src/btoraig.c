@@ -91,7 +91,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   size_t size;
 
   size = sizeof (BtorAIG) + 2 * sizeof (int32_t);
-  aig  = btor_malloc (amgr->btor->mm, size);
+  aig  = btor_mem_malloc (amgr->btor->mm, size);
   memset (aig, 0, size);
   setup_aig_and_add_to_id_table (amgr, aig);
   aig->children[0] = btor_aig_get_id (left);
@@ -130,7 +130,8 @@ delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
   else
   {
     amgr->cur_num_aigs--;
-    btor_free (amgr->btor->mm, aig, sizeof (BtorAIG) + 2 * sizeof (int32_t));
+    btor_mem_free (
+        amgr->btor->mm, aig, sizeof (BtorAIG) + 2 * sizeof (int32_t));
   }
 }
 
@@ -814,7 +815,7 @@ clone_aig (BtorMemMgr *mm, BtorAIG *aig)
   real_aig = BTOR_REAL_ADDR_AIG (aig);
   size     = sizeof (BtorAIG);
   if (!real_aig->is_var) size += 2 * sizeof (int32_t);
-  res = btor_malloc (mm, size);
+  res = btor_mem_malloc (mm, size);
   memcpy (res, real_aig, size);
 
   res = BTOR_IS_INVERTED_AIG (aig) ? BTOR_INVERT_AIG (res) : res;

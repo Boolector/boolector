@@ -44,7 +44,7 @@ init_shift_tests (void)
 
   assert (f != NULL);
   fclose (f);
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 
   pos_rwr = 0;
 
@@ -73,7 +73,7 @@ int_to_str (int x, int num_bits)
   int i        = 0;
   assert (x >= 0);
   assert (num_bits > 0);
-  result = (char *) btor_malloc (g_mm, sizeof (char) * (num_bits + 1));
+  result = (char *) btor_mem_malloc (g_mm, sizeof (char) * (num_bits + 1));
   for (i = num_bits - 1; i >= 0; i--)
   {
     result[i] = x % 2 ? '1' : '0';
@@ -121,7 +121,7 @@ shift_test (char *(*func) (int, int, int),
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
@@ -270,7 +270,7 @@ finish_shift_tests (void)
 {
   int result = remove (BTOR_TEST_SHIFT_TEMP_FILE_NAME);
   assert (result == 0);
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
   free (g_btor_str);
   free (g_argv);
 }

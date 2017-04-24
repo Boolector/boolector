@@ -748,7 +748,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
             len       = (int) strspn (bvstr + pos, tmpstr);
-            btor_freestr (btor->mm, bvstr);
+            btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (btor,
                                       BTOR_INVERT_NODE (real_e1->e[0]),
                                       width_e0 - 1 - pos,
@@ -789,7 +789,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
             len       = (int) strspn (bvstr + pos, tmpstr);
-            btor_freestr (btor->mm, bvstr);
+            btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (
                 btor, e1->e[0], width_e0 - 1 - pos, width_e0 - pos - len);
             tmp2 = rewrite_slice_exp (
@@ -1015,7 +1015,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
             len       = (int) strspn (bvstr + pos, tmpstr);
-            btor_freestr (btor->mm, bvstr);
+            btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (btor,
                                       BTOR_INVERT_NODE (real_e0->e[0]),
                                       width_e1 - 1 - pos,
@@ -1056,7 +1056,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
             len       = (int) strspn (bvstr + pos, tmpstr);
-            btor_freestr (btor->mm, bvstr);
+            btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (
                 btor, e0->e[0], width_e1 - 1 - pos, width_e1 - pos - len);
             tmp2 = rewrite_slice_exp (

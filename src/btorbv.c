@@ -71,7 +71,8 @@ btor_bv_new (BtorMemMgr *mm, uint32_t bw)
   if (bw % BTOR_BV_TYPE_BW > 0) i += 1;
 
   assert (i > 0);
-  res = btor_malloc (mm, sizeof (BtorBitVector) + sizeof (BTOR_BV_TYPE) * i);
+  res =
+      btor_mem_malloc (mm, sizeof (BtorBitVector) + sizeof (BTOR_BV_TYPE) * i);
   BTOR_CLRN (res->bits, i);
   res->len = i;
   assert (res->len);
@@ -298,7 +299,8 @@ btor_bv_free (BtorMemMgr *mm, BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
-  btor_free (mm, bv, sizeof (BtorBitVector) + sizeof (BTOR_BV_TYPE) * bv->len);
+  btor_mem_free (
+      mm, bv, sizeof (BtorBitVector) + sizeof (BTOR_BV_TYPE) * bv->len);
 }
 
 int
@@ -1562,8 +1564,8 @@ btor_bv_free_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
   uint32_t i;
   for (i = 0; i < t->arity; i++) btor_bv_free (mm, t->bv[i]);
 
-  btor_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
-  btor_free (mm, t, sizeof (BtorBitVectorTuple));
+  btor_mem_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
+  btor_mem_free (mm, t, sizeof (BtorBitVectorTuple));
 }
 
 int

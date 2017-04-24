@@ -156,10 +156,10 @@ move (Btor *btor, uint32_t nmoves)
            BTOR_IS_REGULAR_NODE (input) ? "" : "-",
            node2string (input));
   BTORLOG (1, "  prev. assignment: %s", a);
-  btor_freestr (btor->mm, a);
+  btor_mem_freestr (btor->mm, a);
   a = btor_bv_to_char (btor->mm, assignment);
   BTORLOG (1, "  new   assignment: %s", a);
-  btor_freestr (btor->mm, a);
+  btor_mem_freestr (btor->mm, a);
 #endif
 
   exps = btor_hashint_map_new (btor->mm);

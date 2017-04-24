@@ -116,7 +116,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   btor_iter_hashptr_init (&it, backannotation);
   while (btor_iter_hashptr_has_next (&it))
   {
-    btor_freestr (btor->mm, it.bucket->data.as_str);
+    btor_mem_freestr (btor->mm, it.bucket->data.as_str);
     (void) btor_iter_hashptr_next (&it);
   }
   btor_hashptr_table_delete (backannotation);

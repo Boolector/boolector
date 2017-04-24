@@ -186,8 +186,8 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
-        btor_freestr (mm, a0);
-        btor_freestr (mm, a1);
+        btor_mem_freestr (mm, a0);
+        btor_mem_freestr (mm, a1);
         BTORLOG (3, "      sls score e[0]: %f", s0);
         BTORLOG (3, "      sls score e[1]: %f", s1);
       }
@@ -218,8 +218,8 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
-        btor_freestr (mm, a0);
-        btor_freestr (mm, a1);
+        btor_mem_freestr (mm, a0);
+        btor_mem_freestr (mm, a1);
         BTORLOG (3, "      sls score e[0]: %f", s0);
         BTORLOG (3, "      sls score e[1]: %f", s1);
       }
@@ -250,8 +250,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
-      btor_freestr (mm, a0);
-      btor_freestr (mm, a1);
+      btor_mem_freestr (mm, a0);
+      btor_mem_freestr (mm, a1);
     }
 #endif
     if (BTOR_IS_INVERTED_NODE (exp))
@@ -284,8 +284,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
-      btor_freestr (mm, a0);
-      btor_freestr (mm, a1);
+      btor_mem_freestr (mm, a0);
+      btor_mem_freestr (mm, a1);
     }
 #endif
     if (BTOR_IS_INVERTED_NODE (exp))
@@ -312,7 +312,7 @@ compute_sls_score_node (Btor *btor,
           btor_model_get_bv_aux (
               btor, bv_model, fun_model, BTOR_INVERT_NODE (exp)));
       BTORLOG (3, "      assignment : %s", a0);
-      btor_freestr (mm, a0);
+      btor_mem_freestr (mm, a0);
     }
 #endif
     res = ((BtorBitVector *) btor_model_get_bv_aux (
@@ -863,10 +863,10 @@ select_path_add (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (add));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (add->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (add->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -930,10 +930,10 @@ select_path_and (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (and));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (and->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (and->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -965,10 +965,10 @@ select_path_eq (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (eq));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (eq->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (eq->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1018,10 +1018,10 @@ select_path_ult (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (ult));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (ult->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (ult->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1076,10 +1076,10 @@ DONE:
   BTORLOG (2, "select path: %s", node2string (sll));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (sll->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (sll->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1135,10 +1135,10 @@ DONE:
   BTORLOG (2, "select path: %s", node2string (srl));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (srl->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (srl->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1204,10 +1204,10 @@ select_path_mul (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (mul));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (mul->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (mul->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1285,10 +1285,10 @@ select_path_udiv (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (udiv));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (udiv->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (udiv->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1365,10 +1365,10 @@ select_path_urem (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (urem));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (urem->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (urem->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1419,10 +1419,10 @@ select_path_concat (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (concat));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (concat->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
   BTORLOG (2, "       e[1]: %s (%s)", node2string (concat->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -1453,7 +1453,7 @@ select_path_slice (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (slice));
   a = btor_bv_to_char (mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (slice->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: 0");
 #endif
 
@@ -1560,13 +1560,13 @@ select_path_cond (Btor *btor,
   BTORLOG (2, "select path: %s", node2string (cond));
   a = btor_bv_to_char (mm, bve0);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (cond->e[0]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[1]));
   BTORLOG (2, "       e[1]: %s (%s)", node2string (cond->e[1]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[2]));
   BTORLOG (2, "       e[2]: %s (%s)", node2string (cond->e[2]), a);
-  btor_freestr (mm, a);
+  btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
   return eidx;
@@ -2220,9 +2220,9 @@ check_result_binary_dbg (Btor *btor,
            op,
            eidx ? sres : sbve);
   btor_bv_free (btor->mm, tmp);
-  btor_freestr (btor->mm, sbvexp);
-  btor_freestr (btor->mm, sbve);
-  btor_freestr (btor->mm, sres);
+  btor_mem_freestr (btor->mm, sbvexp);
+  btor_mem_freestr (btor->mm, sbve);
+  btor_mem_freestr (btor->mm, sres);
 }
 #endif
 
@@ -3789,8 +3789,8 @@ inv_slice_bv (Btor *btor,
            sres,
            lower,
            upper);
-  btor_freestr (mm, sbvslice);
-  btor_freestr (mm, sres);
+  btor_mem_freestr (mm, sbvslice);
+  btor_mem_freestr (mm, sres);
 #endif
   return res;
 }
@@ -3864,7 +3864,7 @@ btor_propsls_select_move_prop (Btor *btor,
       a = btor_bv_to_char (btor->mm, bvcur);
       BTORLOG (2, "");
       BTORLOG (2, "propagate: %s", a);
-      btor_freestr (btor->mm, a);
+      btor_mem_freestr (btor->mm, a);
 #endif
 
       /* we either select a consistent or inverse value

@@ -218,7 +218,7 @@ test_int64_to_bv_bitvec (void)
     str_a = btor_bv_to_char (g_mm, a);
     assert (strcmp (str_a, s) == 0);
     btor_bv_free (g_mm, a);
-    btor_freestr (g_mm, str_a);
+    btor_mem_freestr (g_mm, str_a);
   }
 }
 
@@ -456,7 +456,7 @@ test_char_to_bitvec (void)
       b = s[i - k - 1] == '0' ? 0 : 1;       \
       assert (b == btor_bv_get_bit (bv, k)); \
     }                                        \
-    btor_freestr (g_mm, s);                  \
+    btor_mem_freestr (g_mm, s);              \
     btor_bv_free (g_mm, bv);                 \
   } while (0)
 
@@ -519,7 +519,7 @@ bv_to_hex_char_bitvec (FILE *g_logfile, char *c)
   BtorBitVector *bv = btor_bv_char_to_bv (g_mm, c);
   char *h           = btor_bv_to_hex_char (g_mm, bv);
   fprintf (g_logfile, "2'%s = 16'%s\n", c, h);
-  btor_freestr (g_mm, h);
+  btor_mem_freestr (g_mm, h);
   btor_bv_free (g_mm, bv);
 }
 
@@ -557,7 +557,7 @@ bv_to_dec_char_bitvec (FILE *g_logfile, char *c)
   BtorBitVector *bv = btor_bv_char_to_bv (g_mm, c);
   char *d           = btor_bv_to_dec_char (g_mm, bv);
   fprintf (g_logfile, "2'%s = 10'%s\n", c, d);
-  btor_freestr (g_mm, d);
+  btor_mem_freestr (g_mm, d);
   btor_bv_free (g_mm, bv);
 }
 
@@ -790,7 +790,7 @@ test_one_bitvec (void)
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
-    btor_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sbv);
   }
 }
 
@@ -810,7 +810,7 @@ test_ones_bitvec (void)
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
-    btor_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sbv);
   }
 }
 
@@ -1017,8 +1017,8 @@ slice_bitvec (uint32_t num_tests, uint32_t bit_width)
 
     assert (!strncmp (sbv + bit_width - upper - 1, sres, upper - lower + 1));
 
-    btor_freestr (g_mm, sbv);
-    btor_freestr (g_mm, sres);
+    btor_mem_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sres);
     btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bv);
   }
@@ -1062,8 +1062,8 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
     for (j = 0; j < len; j++)
       assert (sres[j] == (ext_func == btor_bv_uext ? '0' : sbv[0]));
 
-    btor_freestr (g_mm, sbv);
-    btor_freestr (g_mm, sres);
+    btor_mem_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sres);
     btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bv);
   }

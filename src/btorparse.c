@@ -75,7 +75,7 @@ parse_aux (Btor *btor,
            parser, prefix, infile, infile_name, outfile, &parse_res)))
   {
     res                   = BOOLECTOR_PARSE_ERROR;
-    btor->parse_error_msg = btor_strdup (btor->mm, emsg);
+    btor->parse_error_msg = btor_mem_strdup (btor->mm, emsg);
     *error_msg            = btor->parse_error_msg;
   }
   else
@@ -159,7 +159,7 @@ btor_parse (Btor *btor,
 
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
   BTOR_INIT_STACK (mem, prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
@@ -239,7 +239,7 @@ btor_parse (Btor *btor,
 
   /* cleanup */
   BTOR_RELEASE_STACK (prefix);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
   BTOR_DELETEN (btor->mm, msg, len);
 
   return res;

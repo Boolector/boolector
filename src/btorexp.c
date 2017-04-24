@@ -344,7 +344,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, bool keep_symbol)
     if (data.as_str[0] != 0)
     {
       btor_hashptr_table_remove (btor->symbols, data.as_str, 0, 0);
-      btor_freestr (btor->mm, data.as_str);
+      btor_mem_freestr (btor->mm, data.as_str);
     }
   }
 
@@ -518,7 +518,7 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
     if (btor_const_get_invbits (exp))
       btor_bv_free (btor->mm, btor_const_get_invbits (exp));
   }
-  btor_free (mm, exp, exp->bytes);
+  btor_mem_free (mm, exp, exp->bytes);
 }
 
 static void
@@ -715,14 +715,14 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
   char *sym;
 
   exp = BTOR_REAL_ADDR_NODE (exp);
-  sym = btor_strdup (btor->mm, symbol);
+  sym = btor_mem_strdup (btor->mm, symbol);
   btor_hashptr_table_add (btor->symbols, sym)->data.as_ptr = exp;
   b = btor_hashptr_table_get (btor->node2symbol, exp);
 
   if (b)
   {
     btor_hashptr_table_remove (btor->symbols, b->data.as_str, 0, 0);
-    btor_freestr (btor->mm, b->data.as_str);
+    btor_mem_freestr (btor->mm, b->data.as_str);
   }
   else
     b = btor_hashptr_table_add (btor->node2symbol, exp);

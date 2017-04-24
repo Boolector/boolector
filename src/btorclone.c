@@ -64,7 +64,7 @@ btor_clone_key_as_str (BtorMemMgr *mm, const void *map, const void *key)
 
   (void) map;
 
-  return btor_strdup (mm, (char *) key);
+  return btor_mem_strdup (mm, (char *) key);
 }
 
 void *
@@ -494,7 +494,7 @@ clone_exp (Btor *clone,
 
   mm = clone->mm;
 
-  res = btor_malloc (mm, exp->bytes);
+  res = btor_mem_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
@@ -861,7 +861,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   start = btor_time_stamp ();
   btor->stats.clone_calls += 1;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, clone);
 #ifndef NDEBUG
   allocated = sizeof (Btor);

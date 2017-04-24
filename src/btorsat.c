@@ -110,7 +110,7 @@ btor_sat_mgr_clone (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
   res->msg    = msg;
   assert (res->mm->sat_allocated == smgr->mm->sat_allocated);
   res->name   = smgr->name;
-  res->optstr = btor_strdup (mm, smgr->optstr);
+  res->optstr = btor_mem_strdup (mm, smgr->optstr);
   memcpy (&res->inc_required,
           &smgr->inc_required,
           (char *) smgr + sizeof (*smgr) - (char *) &smgr->inc_required);
@@ -168,7 +168,7 @@ btor_sat_mgr_delete (BtorSATMgr *smgr)
    * reset_sat has not been called
    */
   if (smgr->initialized) btor_sat_reset (smgr);
-  if (smgr->optstr) btor_freestr (smgr->mm, smgr->optstr);
+  if (smgr->optstr) btor_mem_freestr (smgr->mm, smgr->optstr);
   BTOR_DELETE (smgr->mm, smgr);
 }
 
@@ -187,12 +187,12 @@ btor_sat_set_output (BtorSATMgr *smgr, FILE *output)
   smgr->api.set_output (smgr, output);
   smgr->output = output;
 
-  prefix = btor_malloc (smgr->mm, strlen (smgr->name) + 4);
+  prefix = btor_mem_malloc (smgr->mm, strlen (smgr->name) + 4);
   sprintf (prefix, "[%s] ", smgr->name);
   q = prefix + 1;
   for (p = smgr->name; *p; p++) *q++ = tolower ((int) *p);
   smgr->api.set_prefix (smgr, prefix);
-  btor_free (smgr->mm, prefix, strlen (smgr->name) + 4);
+  btor_mem_free (smgr->mm, prefix, strlen (smgr->name) + 4);
 }
 
 void
@@ -292,7 +292,7 @@ btor_sat_reset (BtorSATMgr *smgr)
   smgr->solver = 0;
   if (smgr->optstr)
   {
-    btor_freestr (smgr->mm, smgr->optstr);
+    btor_mem_freestr (smgr->mm, smgr->optstr);
     smgr->optstr = 0;
   }
   smgr->initialized = false;
@@ -362,9 +362,9 @@ picosat_init (BtorSATMgr *smgr)
   BTOR_MSG (smgr->msg, 1, "PicoSAT Version %s", picosat_version ());
 
   res = picosat_minit (smgr->mm,
-                       (picosat_malloc) btor_sat_malloc,
-                       (picosat_realloc) btor_sat_realloc,
-                       (picosat_free) btor_sat_free);
+                       (picosat_malloc) btor_mem_sat_malloc,
+                       (picosat_realloc) btor_mem_sat_realloc,
+                       (picosat_free) btor_mem_sat_free);
 
   picosat_set_global_default_phase (res, 0);
 
@@ -649,9 +649,9 @@ lingeling_init (BtorSATMgr *smgr)
 
   BTOR_CNEW (smgr->mm, res);
   res->lgl = lglminit (smgr->mm,
-                       (lglalloc) btor_sat_malloc,
-                       (lglrealloc) btor_sat_realloc,
-                       (lgldealloc) btor_sat_free);
+                       (lglalloc) btor_mem_sat_malloc,
+                       (lglrealloc) btor_mem_sat_realloc,
+                       (lgldealloc) btor_mem_sat_free);
 
   if (smgr->optstr) passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
 
@@ -898,9 +898,9 @@ lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
   res->blimit  = blgl->blimit;
   res->lgl     = lglmclone (blgl->lgl,
                         mm,
-                        (lglalloc) btor_sat_malloc,
-                        (lglrealloc) btor_sat_realloc,
-                        (lgldealloc) btor_sat_free);
+                        (lglalloc) btor_mem_sat_malloc,
+                        (lglrealloc) btor_mem_sat_realloc,
+                        (lgldealloc) btor_mem_sat_free);
   return res;
 }
 
@@ -924,7 +924,7 @@ btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_lingeling'");
 
-  smgr->optstr = btor_strdup (smgr->mm, optstr);
+  smgr->optstr = btor_mem_strdup (smgr->mm, optstr);
   if (smgr->optstr && !passdown_lingeling_options (smgr, optstr, 0))
     return false;
 

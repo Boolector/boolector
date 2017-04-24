@@ -80,7 +80,7 @@ new_btorunt (void)
   BtorUNT *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
   BTOR_INIT_STACK (mm, res->btor_opts);
@@ -100,12 +100,12 @@ delete_btorunt (BtorUNT *unt)
   {
     o = BTOR_PEEK_STACK (unt->btor_opts, i);
     assert (o);
-    btor_freestr (mm, o->name);
+    btor_mem_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
   BTOR_RELEASE_STACK (unt->btor_opts);
   BTOR_DELETE (mm, unt);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static bool
@@ -1697,7 +1697,7 @@ main (int argc, char **argv)
       if (tmp[0] != 0) btorunt_error ("invalid argument to '-b' (try -h)");
       BTOR_NEW (g_btorunt->mm, btoropt);
       btoropt->kind = o;
-      btoropt->name = btor_strdup (g_btorunt->mm, lng);
+      btoropt->name = btor_mem_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }

@@ -2960,7 +2960,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   else
     bits = btor_bv_to_char (btor->mm, btor_const_get_invbits (real));
   bvass = btor_ass_new_bv (btor->bv_assignments, bits);
-  btor_freestr (btor->mm, bits);
+  btor_mem_freestr (btor->mm, bits);
   res = btor_ass_get_bv_str (bvass);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
@@ -3240,7 +3240,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IS_NOT_BV (exp);
   ass   = btor_bv_to_char (btor->mm, btor_model_get_bv (btor, exp));
   bvass = btor_ass_new_bv (btor->bv_assignments, ass);
-  btor_freestr (btor->mm, ass);
+  btor_mem_freestr (btor->mm, ass);
   res = btor_ass_get_bv_str (bvass);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
@@ -3324,14 +3324,14 @@ generate_fun_model_str (
 
     bv = btor_bv_to_char (btor->mm, t->bv[0]);
     strcpy (tmp, bv);
-    btor_freestr (btor->mm, bv);
+    btor_mem_freestr (btor->mm, bv);
 
     for (j = 1; j < t->arity; j++)
     {
       bv = btor_bv_to_char (btor->mm, t->bv[j]);
       strcat (tmp, " ");
       strcat (tmp, bv);
-      btor_freestr (btor->mm, bv);
+      btor_mem_freestr (btor->mm, bv);
     }
     assert (strlen (arg) == len - 1);
 
@@ -3367,11 +3367,11 @@ fun_assignment (Btor *btor,
     *ass = btor_ass_new_fun (btor->fun_assignments, a, v, *size);
     for (i = 0; i < *size; i++)
     {
-      btor_freestr (btor->mm, a[i]);
-      btor_freestr (btor->mm, v[i]);
+      btor_mem_freestr (btor->mm, a[i]);
+      btor_mem_freestr (btor->mm, v[i]);
     }
-    btor_free (btor->mm, a, *size * sizeof (*a));
-    btor_free (btor->mm, v, *size * sizeof (*v));
+    btor_mem_free (btor->mm, a, *size * sizeof (*a));
+    btor_mem_free (btor->mm, v, *size * sizeof (*v));
     btor_ass_get_fun_indices_values (*ass, args, values, *size);
   }
 }

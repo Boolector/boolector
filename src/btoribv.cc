@@ -202,7 +202,7 @@ BtorIBV::delete_ibv_release_variable (BtorIBVNode *node)
   BTOR_RELEASE_STACK (node->atoms);
 
   for (BtorIBVRangeName *r = node->ranges.start; r < node->ranges.top; r++)
-    btor_freestr (btor->mm, r->name);
+    btor_mem_freestr (btor->mm, r->name);
   BTOR_RELEASE_STACK (node->ranges);
 
   if (node->assigned) BTOR_DELETEN (btor->mm, node->assigned, node->width);
@@ -217,7 +217,7 @@ BtorIBV::delete_ibv_node (BtorIBVNode *node)
 {
   assert (node);
   assert (node->name);
-  btor_freestr (btor->mm, node->name);
+  btor_mem_freestr (btor->mm, node->name);
   if (node->cached) boolector_release (btor, node->cached);
   delete_ibv_release_variable (node);
   BTOR_DELETEN (btor->mm, node->flags, node->width);
@@ -357,7 +357,7 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   node = new_node (id, width);
   for (size_t i = 0; i < str.size (); i++)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
-  node->name        = btor_strdup (btor->mm, str.c_str ());
+  node->name        = btor_mem_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
   msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
 }
@@ -375,7 +375,7 @@ BtorIBV::addVariable (unsigned id,
   assert (0 < id);
   assert (0 < width);
   BtorIBVNode *n   = new_node (id, width);
-  n->name          = btor_strdup (btor->mm, str.c_str ());
+  n->name          = btor_mem_strdup (btor->mm, str.c_str ());
   n->is_next_state = isNextState;
   n->direction     = direction;
   n->source        = src;
@@ -428,7 +428,7 @@ BtorIBV::addRangeName (BitVector::BitRange br,
   BtorIBVRangeName rn;
   rn.from.msb = fmsb, rn.from.lsb = flsb;
   rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
-  rn.name = btor_strdup (btor->mm, name.c_str ());
+  rn.name = btor_mem_strdup (btor->mm, name.c_str ());
   BTOR_PUSH_STACK (n->ranges, rn);
   assert (n->name);
   msg (3,
@@ -2913,7 +2913,7 @@ btor_ibv_atom_base_name (Btor *btor,
     sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
   len = strlen (n->name) + strlen (suffix) + 1;
   if (prefix) len += strlen (prefix) + 2;
-  res = (char *) btor_malloc (btor->mm, len);
+  res = (char *) btor_mem_malloc (btor->mm, len);
   if (!prefix)
     sprintf (res, "%s%s", n->name, suffix);
   else
@@ -3002,7 +3002,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     {
       char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
       a->current.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
-      btor_freestr (btor->mm, nextname);
+      btor_mem_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
     }
@@ -3014,7 +3014,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
       a->current.exp = boolector_mc_latch (btormc, r.getWidth (), name);
-      btor_freestr (btor->mm, name);
+      btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
     }
@@ -3024,7 +3024,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
       a->current.exp = boolector_mc_input (btormc, r.getWidth (), name);
-      btor_freestr (btor->mm, name);
+      btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
     }
@@ -3037,7 +3037,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           char *currentname = btor_ibv_atom_base_name (btor, n, r, 0);
           a->current.exp =
               boolector_mc_latch (btormc, r.getWidth (), currentname);
-          btor_freestr (btor->mm, currentname);
+          btor_mem_freestr (btor->mm, currentname);
           (void) boolector_copy (btor, a->current.exp);
           stats.latches++;
         }
@@ -3059,7 +3059,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           char *nextname =
               btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
           a->next.exp = boolector_mc_input (btormc, nr.getWidth (), nextname);
-          btor_freestr (btor->mm, nextname);
+          btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
         }
@@ -3068,7 +3068,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           char *nextname = btor_ibv_atom_base_name (
               btor, n, r, "BtorIBV::past2");  // TODO Why?
           a->next.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
-          btor_freestr (btor->mm, nextname);
+          btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
         }
@@ -3079,7 +3079,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
       a->current.exp = boolector_mc_latch (btormc, r.getWidth (), name);
-      btor_freestr (btor->mm, name);
+      btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
     }
@@ -3486,12 +3486,12 @@ BtorIBV::bmc (int mink, int maxk)
 static string
 repeat_char (Btor *btor, unsigned length, char ch)
 {
-  char *cstr = (char *) btor_malloc (btor->mm, length + 1);
+  char *cstr = (char *) btor_mem_malloc (btor->mm, length + 1);
   unsigned i;
   for (i = 0; i < length; i++) cstr[i] = ch;
   cstr[i] = 0;
   string res (cstr);
-  btor_free (btor->mm, cstr, length + 1);
+  btor_mem_free (btor->mm, cstr, length + 1);
   return res;
 }
 

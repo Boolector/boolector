@@ -473,7 +473,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   if (cbits)
   {
     fprintf (file, " %s", cbits);
-    btor_freestr (bdc->btor->mm, cbits);
+    btor_mem_freestr (bdc->btor->mm, cbits);
   }
   else if (btor_is_proxy_node (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));

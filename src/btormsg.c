@@ -33,7 +33,7 @@ btor_msg_delete (BtorMsg *msg)
 {
   assert (msg);
 
-  btor_freestr (msg->btor->mm, msg->prefix);
+  btor_mem_freestr (msg->btor->mm, msg->prefix);
   BTOR_DELETE (msg->btor->mm, msg);
 }
 

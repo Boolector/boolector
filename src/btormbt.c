@@ -843,7 +843,7 @@ btormbt_new_btormbt (void)
   Btor *tmpbtor;
   BtorMBTBtorOpt *btoropt;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
@@ -856,8 +856,8 @@ btormbt_new_btormbt (void)
   {
     BTOR_CNEW (mm, btoropt);
     btoropt->kind = opt;
-    btoropt->name = btor_strdup (mm, boolector_get_opt_lng (tmpbtor, opt));
-    btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
+    btoropt->name = btor_mem_strdup (mm, boolector_get_opt_lng (tmpbtor, opt));
+    btoropt->shrt = btor_mem_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
     btoropt->val  = boolector_get_opt (tmpbtor, opt);
     btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
@@ -1005,13 +1005,13 @@ btormbt_delete_btormbt (BtorMBT *mbt)
   while (!BTOR_EMPTY_STACK (mbt->btor_opts))
   {
     opt = BTOR_POP_STACK (mbt->btor_opts);
-    btor_freestr (mbt->mm, opt->name);
-    if (opt->shrt) btor_freestr (mbt->mm, opt->shrt);
+    btor_mem_freestr (mbt->mm, opt->name);
+    if (opt->shrt) btor_mem_freestr (mbt->mm, opt->shrt);
     BTOR_DELETE (mm, opt);
   }
   BTOR_RELEASE_STACK (mbt->btor_opts);
   BTOR_DELETE (mm, mbt);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static void

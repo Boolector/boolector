@@ -94,7 +94,7 @@ delete_smt_dump_context (BtorSMTDumpContext *sdc)
   while (btor_iter_hashptr_has_next (&it))
   {
     assert (it.bucket->data.as_str);
-    btor_freestr (sdc->btor->mm, it.bucket->data.as_str);
+    btor_mem_freestr (sdc->btor->mm, it.bucket->data.as_str);
     btor_bv_free (sdc->btor->mm,
                   (BtorBitVector *) btor_iter_hashptr_next (&it));
   }
@@ -214,7 +214,7 @@ btor_dump_const_value_smt (Btor *btor,
     val = btor_bv_to_char (btor->mm, bits);
     fprintf (file, "#b%s", val);
   }
-  btor_freestr (btor->mm, val);
+  btor_mem_freestr (btor->mm, val);
 }
 
 static void

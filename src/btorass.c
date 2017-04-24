@@ -90,7 +90,7 @@ btor_ass_new_bv (BtorBVAssList *list, char *ass)
   int len;
 
   len = strlen (ass) + 1;
-  res = btor_calloc (list->mm, sizeof (BtorBVAss) + len, sizeof (char));
+  res = btor_mem_calloc (list->mm, sizeof (BtorBVAss) + len, sizeof (char));
   strcpy ((char *) res + sizeof (BtorBVAss), ass);
   res->prev = list->last;
   if (list->first)
@@ -140,7 +140,7 @@ btor_ass_release_bv (BtorBVAssList *list, const char *ass)
     bvass->next->prev = bvass->prev;
   else
     list->last = bvass->prev;
-  btor_free (list->mm, bvass, sizeof (BtorBVAss) + strlen (ass) + 1);
+  btor_mem_free (list->mm, bvass, sizeof (BtorBVAss) + strlen (ass) + 1);
 }
 
 /*------------------------------------------------------------------------*/
@@ -247,9 +247,9 @@ btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
   char **ind, **val;
   int i;
 
-  res       = btor_calloc (list->mm,
-                     sizeof (BtorFunAss) + 2 * size * sizeof (char *),
-                     sizeof (char));
+  res       = btor_mem_calloc (list->mm,
+                         sizeof (BtorFunAss) + 2 * size * sizeof (char *),
+                         sizeof (char));
   res->size = size;
   if (list->first)
     list->last->next = res;
@@ -260,8 +260,8 @@ btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
   btor_ass_get_fun_indices_values (res, &ind, &val, size);
   for (i = 0; i < size; i++)
   {
-    ind[i] = btor_strdup (list->mm, indices[i]);
-    val[i] = btor_strdup (list->mm, values[i]);
+    ind[i] = btor_mem_strdup (list->mm, indices[i]);
+    val[i] = btor_mem_strdup (list->mm, values[i]);
   }
 
   list->count += 1;
@@ -318,9 +318,9 @@ btor_ass_release_fun (BtorFunAssList *list,
 
   for (i = 0; i < size; i++)
   {
-    btor_freestr (list->mm, indices[i]);
-    btor_freestr (list->mm, values[i]);
+    btor_mem_freestr (list->mm, indices[i]);
+    btor_mem_freestr (list->mm, values[i]);
   }
-  btor_free (
+  btor_mem_free (
       list->mm, funass, sizeof (BtorFunAss) + 2 * size * sizeof (char *));
 }

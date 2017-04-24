@@ -339,10 +339,10 @@ try_move (Btor *btor,
              node2string (can));
     a = btor_bv_to_char (btor->mm, prev_ass);
     BTORLOG (2, "        prev. assignment: %s", a);
-    btor_freestr (btor->mm, a);
+    btor_mem_freestr (btor->mm, a);
     a = btor_bv_to_char (btor->mm, new_ass);
     BTORLOG (2, "        new   assignment: %s", a);
-    btor_freestr (btor->mm, a);
+    btor_mem_freestr (btor->mm, a);
   }
 #endif
 
@@ -1248,10 +1248,10 @@ move (Btor *btor, uint32_t nmoves)
              BTOR_IS_REGULAR_NODE (can) ? "" : "-",
              node2string (can));
     BTORLOG (1, "  prev. assignment: %s", a);
-    btor_freestr (btor->mm, a);
+    btor_mem_freestr (btor->mm, a);
     a = btor_bv_to_char (btor->mm, neigh);
     BTORLOG (1, "  new   assignment: %s", a);
-    btor_freestr (btor->mm, a);
+    btor_mem_freestr (btor->mm, a);
   }
 #endif
 

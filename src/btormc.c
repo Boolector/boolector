@@ -503,7 +503,7 @@ timed_symbol (Btor *btor, BoolectorNode *node, int time)
   sprintf (suffix, "@%d", time);
   symlen = strlen (symbol);
   reslen = symlen + strlen (suffix) + 1;
-  res    = btor_malloc (btor->mm, reslen);
+  res    = btor_mem_malloc (btor->mm, reslen);
   (void) strcpy (res, symbol);
   strcpy (res + symlen, suffix);
   return res;
@@ -550,7 +550,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
     s   = boolector_bitvec_sort (mc->forward, w);
     dst = boolector_var (mc->forward, s, sym);
     boolector_release_sort (mc->forward, s);
-    btor_freestr (mc->btor->mm, sym);
+    btor_mem_freestr (mc->btor->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
     BTOR_PUSH_STACK (f->inputs, dst);
   }
@@ -611,7 +611,7 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
       s   = boolector_bitvec_sort (mc->forward, w);
       dst = boolector_var (mc->forward, s, sym);
       boolector_release_sort (mc->forward, s);
-      btor_freestr (mc->btor->mm, sym);
+      btor_mem_freestr (mc->btor->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->latches) == i);
     BTOR_PUSH_STACK (f->latches, dst);
@@ -883,7 +883,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  btor_freestr (f->btor->mm, a);
+	  btor_mem_freestr (f->btor->mm, a);
 	}
     }
   fflush (stdout);
@@ -1072,10 +1072,10 @@ mc_forward2const_mapper (Btor *btor, void *state, BoolectorNode *node)
   res = 0;
 
   assignment = boolector_bv_assignment (mc->forward, node);
-  normalized = btor_strdup (mc->btor->mm, assignment);
+  normalized = btor_mem_strdup (mc->btor->mm, assignment);
   zero_normalize_assignment (normalized);
   res = boolector_const (mc->btor, normalized);
-  btor_freestr (mc->btor->mm, normalized);
+  btor_mem_freestr (mc->btor->mm, normalized);
   boolector_free_bv_assignment (mc->forward, assignment);
 
   return res;
@@ -1140,11 +1140,11 @@ mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     assert (node_at_time);
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
     constbits = boolector_bv_assignment (mc->forward, node_at_time);
-    bits      = btor_strdup (mc->btor->mm, constbits);
+    bits      = btor_mem_strdup (mc->btor->mm, constbits);
     boolector_free_bv_assignment (mc->forward, constbits);
     zero_normalize_assignment (bits);
     res = boolector_const (mc->btor, bits);
-    btor_freestr (mc->btor->mm, bits);
+    btor_mem_freestr (mc->btor->mm, bits);
   }
   else
   {
@@ -1229,7 +1229,7 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
     bits_owned_by_forward = boolector_bv_assignment (mc->forward, node_at_time);
-    res                   = btor_strdup (mc->btor->mm, bits_owned_by_forward);
+    res = btor_mem_strdup (mc->btor->mm, bits_owned_by_forward);
     zero_normalize_assignment (res);
     boolector_free_bv_assignment (mc->forward, bits_owned_by_forward);
   }
@@ -1240,7 +1240,7 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
     assert (boolector_is_const (mc->btor, const_node));
     assert (boolector_get_btor (const_node) == mc->btor);
     bits = boolector_get_bits (mc->btor, const_node);
-    res  = btor_strdup (mc->btor->mm, bits);
+    res  = btor_mem_strdup (mc->btor->mm, bits);
     boolector_free_bits (mc->btor, bits);
   }
 
@@ -1252,7 +1252,7 @@ boolector_mc_free_assignment (BtorMC *mc, char *assignment)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_ARG_NULL (assignment);
-  btor_freestr (mc->btor->mm, assignment);
+  btor_mem_freestr (mc->btor->mm, assignment);
 }
 
 void

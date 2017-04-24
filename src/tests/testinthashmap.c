@@ -27,7 +27,7 @@ static BtorIntHashTable *h;
 void
 init_int_hash_map_tests (void)
 {
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
 }
 
 static void
@@ -104,5 +104,5 @@ run_int_hash_map_tests (int argc, char **argv)
 void
 finish_int_hash_map_tests (void)
 {
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }

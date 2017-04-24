@@ -32,8 +32,8 @@ new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 
   BtorAIGVec *result;
 
-  result      = btor_malloc (avmgr->btor->mm,
-                        sizeof (BtorAIGVec) + sizeof (BtorAIG *) * len);
+  result      = btor_mem_malloc (avmgr->btor->mm,
+                            sizeof (BtorAIGVec) + sizeof (BtorAIG *) * len);
   result->len = len;
   avmgr->cur_num_aigvecs++;
   if (avmgr->max_num_aigvecs < avmgr->cur_num_aigvecs)
@@ -723,7 +723,7 @@ btor_aigvec_release_delete (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   amgr = avmgr->amgr;
   len  = av->len;
   for (i = 0; i < len; i++) btor_aig_release (amgr, av->aigs[i]);
-  btor_free (mm, av, sizeof (BtorAIGVec) + sizeof (BtorAIG *) * av->len);
+  btor_mem_free (mm, av, sizeof (BtorAIGVec) + sizeof (BtorAIG *) * av->len);
   avmgr->cur_num_aigvecs--;
 }
 

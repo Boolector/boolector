@@ -942,7 +942,7 @@ btor_opt_clone_opts (Btor *btor, Btor *clone)
       memcpy (&clone->options[o], &btor->options[o], sizeof (BtorOpt));
       if (btor->options[o].valstr)
         clone->options[o].valstr =
-            btor_strdup (clone->mm, btor->options[o].valstr);
+            btor_mem_strdup (clone->mm, btor->options[o].valstr);
     }
   }
   if (btor->str2opt)
@@ -970,7 +970,7 @@ btor_opt_delete_opts (Btor *btor)
     {
       if (btor->options[o].valstr)
       {
-        btor_freestr (btor->mm, btor->options[o].valstr);
+        btor_mem_freestr (btor->mm, btor->options[o].valstr);
         btor->options[o].valstr = 0;
       }
     }
@@ -1131,7 +1131,7 @@ btor_opt_set_str (Btor *btor, const BtorOption opt, const char *str)
   assert (btor_opt_is_valid (btor, opt));
   assert (opt == BTOR_OPT_SAT_ENGINE);
 
-  btor->options[opt].valstr = btor_strdup (btor->mm, str);
+  btor->options[opt].valstr = btor_mem_strdup (btor->mm, str);
 }
 
 BtorOption

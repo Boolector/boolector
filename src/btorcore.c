@@ -639,7 +639,7 @@ btor_new_btor (void)
   BtorMemMgr *mm;
   Btor *btor;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, btor);
 
   btor->mm  = mm;
@@ -834,7 +834,7 @@ btor_delete_btor (Btor *btor)
 
   if (btor->slv) btor->slv->api.delet (btor->slv);
 
-  if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
+  if (btor->parse_error_msg) btor_mem_freestr (mm, btor->parse_error_msg);
 
   btor_ass_delete_bv_list (
       btor->bv_assignments,
@@ -946,7 +946,7 @@ btor_delete_btor (Btor *btor)
   btor_hashptr_table_delete (btor->node2symbol);
   btor_iter_hashptr_init (&it, btor->symbols);
   while (btor_iter_hashptr_has_next (&it))
-    btor_freestr (btor->mm, (char *) btor_iter_hashptr_next (&it));
+    btor_mem_freestr (btor->mm, (char *) btor_iter_hashptr_next (&it));
   btor_hashptr_table_delete (btor->symbols);
 
   btor_hashptr_table_delete (btor->bv_vars);
@@ -964,7 +964,7 @@ btor_delete_btor (Btor *btor)
   assert (btor->rec_rw_calls == 0);
   btor_msg_delete (btor->msg);
   BTOR_DELETE (mm, btor);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 void
@@ -972,8 +972,9 @@ btor_set_msg_prefix_btor (Btor *btor, const char *prefix)
 {
   assert (btor);
 
-  btor_freestr (btor->mm, btor->msg->prefix);
-  btor->msg->prefix = prefix ? btor_strdup (btor->mm, prefix) : (char *) prefix;
+  btor_mem_freestr (btor->mm, btor->msg->prefix);
+  btor->msg->prefix =
+      prefix ? btor_mem_strdup (btor->mm, prefix) : (char *) prefix;
 }
 
 /* synthesizes unsynthesized constraints and updates constraints tables. */
@@ -3278,22 +3279,22 @@ btor_synthesize_exp (Btor *btor,
           len = strlen (name) + 40;
           if (btor_get_exp_width (btor, cur) > 1)
           {
-            indexed_name = btor_malloc (mm, len);
+            indexed_name = btor_mem_malloc (mm, len);
             for (i = 0; i < cur->av->len; i++)
             {
               b = btor_hashptr_table_add (backannotation, cur->av->aigs[i]);
               assert (b->key == cur->av->aigs[i]);
               sprintf (indexed_name, "%s[%d]", name, cur->av->len - i - 1);
-              b->data.as_str = btor_strdup (mm, indexed_name);
+              b->data.as_str = btor_mem_strdup (mm, indexed_name);
             }
-            btor_free (mm, indexed_name, len);
+            btor_mem_free (mm, indexed_name, len);
           }
           else
           {
             assert (btor_get_exp_width (btor, cur) == 1);
             b = btor_hashptr_table_add (backannotation, cur->av->aigs[0]);
             assert (b->key == cur->av->aigs[0]);
-            b->data.as_str = btor_strdup (mm, name);
+            b->data.as_str = btor_mem_strdup (mm, name);
           }
         }
         BTORLOG (2, "  synthesized: %s", node2string (cur));
