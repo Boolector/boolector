@@ -95,11 +95,11 @@ process_skeleton_tseitin (Btor *btor,
     exp = BTOR_POP_STACK (*work_stack);
     assert (exp);
     exp = BTOR_REAL_ADDR_NODE (exp);
-    d   = btor_get_int_hash_map (mark, exp->id);
+    d   = btor_hashint_map_get (mark, exp->id);
 
     if (!d)
     {
-      btor_add_int_hash_map (mark, exp->id);
+      btor_hashint_map_add (mark, exp->id);
 
       BTOR_PUSH_STACK (*work_stack, exp);
       for (i = exp->arity - 1; i >= 0; i--)
@@ -117,7 +117,7 @@ process_skeleton_tseitin (Btor *btor,
       {
         BtorNode *child = exp->e[i];
         child           = BTOR_REAL_ADDR_NODE (child);
-        d               = btor_get_int_hash_map (mark, child->id);
+        d               = btor_hashint_map_get (mark, child->id);
         assert (d->as_int == 1);
         if (!btor_is_fun_node (child) && !btor_is_args_node (child)
             && !child->parameterized && btor_get_exp_width (btor, child) == 1)
@@ -259,7 +259,7 @@ btor_process_skeleton (Btor *btor)
   count = 0;
 
   BTOR_INIT_STACK (mm, work_stack);
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -274,7 +274,7 @@ btor_process_skeleton (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (work_stack);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 
   BTOR_MSG (btor->msg,
             1,

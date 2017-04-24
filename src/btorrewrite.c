@@ -5104,7 +5104,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   comm  = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  cache = btor_new_int_hash_table (mm);
+  cache = btor_hashint_table_new (mm);
 
   BTOR_INIT_STACK (mm, stack);
   BTOR_PUSH_STACK (stack, e0);
@@ -5113,12 +5113,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == kind)
     {
-      if (btor_contains_int_hash_table (cache, cur->id))
+      if (btor_hashint_table_contains (cache, cur->id))
       {
         BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
-      btor_add_int_hash_table (cache, cur->id);
+      btor_hashint_table_add (cache, cur->id);
       BTOR_PUSH_STACK (stack, cur->e[1]);
       BTOR_PUSH_STACK (stack, cur->e[0]);
     }
@@ -5131,8 +5131,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
         b->data.as_int++;
     }
   } while (!BTOR_EMPTY_STACK (stack));
-  btor_delete_int_hash_table (cache);
-  cache = btor_new_int_hash_table (mm);
+  btor_hashint_table_delete (cache);
+  cache = btor_hashint_table_new (mm);
 
   BTOR_PUSH_STACK (stack, e1);
   do
@@ -5140,12 +5140,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == kind)
     {
-      if (btor_contains_int_hash_table (cache, cur->id))
+      if (btor_hashint_table_contains (cache, cur->id))
       {
         BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
-      btor_add_int_hash_table (cache, cur->id);
+      btor_hashint_table_add (cache, cur->id);
       BTOR_PUSH_STACK (stack, cur->e[1]);
       BTOR_PUSH_STACK (stack, cur->e[0]);
     }
@@ -5193,7 +5193,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     btor_delete_ptr_hash_table (left);
     btor_delete_ptr_hash_table (right);
     btor_delete_ptr_hash_table (comm);
-    btor_delete_int_hash_table (cache);
+    btor_hashint_table_delete (cache);
     *e0_norm = btor_copy_exp (btor, e0);
     *e1_norm = btor_copy_exp (btor, e1);
     return;
@@ -5335,7 +5335,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   btor_delete_ptr_hash_table (left);
   btor_delete_ptr_hash_table (right);
   btor_delete_ptr_hash_table (comm);
-  btor_delete_int_hash_table (cache);
+  btor_hashint_table_delete (cache);
 }
 
 // TODO (ma): what does this do?

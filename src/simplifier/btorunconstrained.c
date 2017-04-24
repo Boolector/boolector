@@ -46,8 +46,8 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
 
   BtorNode *subst;
 
-  assert (!btor_contains_int_hash_table (uc, exp->id));
-  btor_add_int_hash_table (uc, exp->id);
+  assert (!btor_hashint_table_contains (uc, exp->id));
+  btor_hashint_table_add (uc, exp->id);
 
   BTOR_MSG (btor->msg,
             2,
@@ -109,9 +109,9 @@ btor_optimize_unconstrained (Btor *btor)
   BTOR_INIT_STACK (mm, roots);
   uc[0] = uc[1] = uc[2] = ucp[0] = ucp[1] = ucp[2] = false;
 
-  mark = btor_new_int_hash_map (mm);
-  ucs  = btor_new_int_hash_table (mm);
-  ucsp = btor_new_int_hash_table (mm);
+  mark = btor_hashint_map_new (mm);
+  ucs  = btor_hashint_table_new (mm);
+  ucsp = btor_hashint_table_new (mm);
   btor_init_substitutions (btor);
 
   /* collect nodes that might contribute to a unconstrained candidate
@@ -125,7 +125,7 @@ btor_optimize_unconstrained (Btor *btor)
     if (cur->parents == 1)
     {
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-      btor_add_int_hash_table (ucs, cur->id);
+      btor_hashint_table_add (ucs, cur->id);
       BTOR_MSG (btor->msg, 2, "found uc input %s", node2string (cur));
       // TODO (ma): why not just collect ufs and vars?
       if (btor_is_uf_node (cur)
@@ -138,9 +138,9 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (!btor_contains_int_hash_map (mark, cur->id))
+    if (!btor_hashint_map_contains (mark, cur->id))
     {
-      btor_add_int_hash_map (mark, cur->id);
+      btor_hashint_map_add (mark, cur->id);
       if (!cur->parents)
         BTOR_PUSH_STACK (roots, cur);
       else
@@ -159,7 +159,7 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    d = btor_get_int_hash_map (mark, cur->id);
+    d = btor_hashint_map_get (mark, cur->id);
 
     if (!d) continue;
 
@@ -178,16 +178,16 @@ btor_optimize_unconstrained (Btor *btor)
     else
     {
       assert (d->as_int == 1);
-      btor_remove_int_hash_map (mark, cur->id, 0);
+      btor_hashint_map_remove (mark, cur->id, 0);
 
       /* propagate unconstrained candidates */
       if (cur->parents == 0 || (cur->parents == 1 && !cur->constraint))
       {
         for (i = 0; i < cur->arity; i++)
         {
-          uc[i] = btor_contains_int_hash_table (
+          uc[i] = btor_hashint_table_contains (
               ucs, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
-          ucp[i] = btor_contains_int_hash_table (
+          ucp[i] = btor_hashint_table_contains (
               ucsp, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
           assert (!uc[i] || uc[i] != ucp[i]);
           assert (!ucp[i] || uc[i] != ucp[i]);
@@ -250,15 +250,15 @@ btor_optimize_unconstrained (Btor *btor)
       }
     }
   }
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 
   num_ucs = btor->substitutions->count;
   btor_substitute_and_rebuild (btor, btor->substitutions);
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  btor_delete_int_hash_table (ucs);
-  btor_delete_int_hash_table (ucsp);
+  btor_hashint_table_delete (ucs);
+  btor_hashint_table_delete (ucsp);
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (roots);
 

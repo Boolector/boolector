@@ -71,7 +71,7 @@ get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_contains_int_hash_map (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
+  if (!btor_hashint_map_contains (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
   return aigprop_get_assignment_aig (aprop, aig);
 }
@@ -131,7 +131,7 @@ generate_model_from_aig_model (Btor *btor)
    *       assignments only (e.g. for a slice we may have AIGs for the sliced
    *       bits of its input only) */
   BTOR_INIT_STACK (btor->mm, stack);
-  cache = btor_new_int_hash_table (btor->mm);
+  cache = btor_hashint_table_new (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -141,8 +141,8 @@ generate_model_from_aig_model (Btor *btor)
   {
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
-    btor_add_int_hash_table (cache, real_cur->id);
+    if (btor_hashint_table_contains (cache, real_cur->id)) continue;
+    btor_hashint_table_add (cache, real_cur->id);
     if (btor_is_bv_const_node (real_cur))
       btor_model_add_to_bv (
           btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
@@ -156,7 +156,7 @@ generate_model_from_aig_model (Btor *btor)
       BTOR_PUSH_STACK (stack, real_cur->e[i]);
   }
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_table (cache);
+  btor_hashint_table_delete (cache);
 }
 
 static void
@@ -245,7 +245,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   slv->aprop->use_bandit   = btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
 
   /* collect roots AIGs */
-  roots = btor_new_int_hash_table (btor->mm);
+  roots = btor_hashint_table_new (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
@@ -259,8 +259,8 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
-    if (!btor_contains_int_hash_table (roots, btor_aig_get_id (aig)))
-      (void) btor_add_int_hash_table (roots, btor_aig_get_id (aig));
+    if (!btor_hashint_table_contains (roots, btor_aig_get_id (aig)))
+      (void) btor_hashint_table_add (roots, btor_aig_get_id (aig));
   }
 
   if ((sat_result = aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)
@@ -279,10 +279,10 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
 DONE:
   if (slv->aprop->model)
   {
-    btor_delete_int_hash_map (slv->aprop->model);
+    btor_hashint_map_delete (slv->aprop->model);
     slv->aprop->model = 0;
   }
-  if (roots) btor_delete_int_hash_table (roots);
+  if (roots) btor_hashint_table_delete (roots);
   return sat_result;
 }
 

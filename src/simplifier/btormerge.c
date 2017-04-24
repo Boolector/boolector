@@ -100,8 +100,8 @@ btor_merge_lambdas (Btor *btor)
   start = btor_time_stamp ();
   mm    = btor->mm;
 
-  mark        = btor_new_int_hash_table (mm);
-  mark_lambda = btor_new_int_hash_table (mm);
+  mark        = btor_hashint_table_new (mm);
+  mark_lambda = btor_hashint_table_new (mm);
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, visit);
@@ -132,9 +132,9 @@ btor_merge_lambdas (Btor *btor)
     lambda = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
-    if (btor_contains_int_hash_table (mark_lambda, lambda->id)) continue;
+    if (btor_hashint_table_contains (mark_lambda, lambda->id)) continue;
 
-    btor_add_int_hash_table (mark_lambda, lambda->id);
+    btor_hashint_table_add (mark_lambda, lambda->id);
     /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
     BTOR_PUSH_STACK (visit, btor_lambda_get_body (lambda));
@@ -147,7 +147,7 @@ btor_merge_lambdas (Btor *btor)
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-      if (btor_contains_int_hash_table (mark, cur->id)
+      if (btor_hashint_table_contains (mark, cur->id)
           || (!btor_is_lambda_node (cur) && !cur->parameterized)
           || !cur->lambda_below)
         continue;
@@ -183,7 +183,7 @@ btor_merge_lambdas (Btor *btor)
       {
         for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
       }
-      btor_add_int_hash_table (mark, cur->id);
+      btor_hashint_table_add (mark, cur->id);
     }
 
     /* no lambdas to merge found */
@@ -263,8 +263,8 @@ btor_merge_lambdas (Btor *btor)
   btor_delete_substitutions (btor);
   btor->stats.lambdas_merged += num_merged_lambdas;
 
-  btor_delete_int_hash_table (mark);
-  btor_delete_int_hash_table (mark_lambda);
+  btor_hashint_table_delete (mark);
+  btor_hashint_table_delete (mark_lambda);
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (params);

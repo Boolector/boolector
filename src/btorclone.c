@@ -206,7 +206,7 @@ btor_clone_data_as_int_htable (BtorMemMgr *mm,
 
   table = (BtorIntHashTable *) data->as_ptr;
 
-  res = btor_new_int_hash_table (mm);
+  res = btor_hashint_table_new (mm);
 
   BTOR_DELETEN (mm, res->keys, res->size);
   BTOR_DELETEN (mm, res->hop_info, res->size);
@@ -816,7 +816,7 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   do                                                                          \
   {                                                                           \
     BTORLOG_TIMESTAMP (delta);                                                \
-    clone->table = btor_clone_int_hash_map (mm, btor->table, data_func, 0);   \
+    clone->table = btor_hashint_map_clone (mm, btor->table, data_func, 0);    \
     BTORLOG (                                                                 \
         1, "  clone " #table " table: %.3f s", (btor_time_stamp () - delta)); \
     CHKCLONE_MEM_INT_HASH_MAP (btor->table, clone->table);                    \
@@ -1130,12 +1130,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     clone->bv_model = btor_model_clone_bv (clone, btor->bv_model, false);
 #ifndef NDEBUG
-    btor_init_int_hash_table_iterator (&iit, btor->bv_model);
-    btor_init_int_hash_table_iterator (&ciit, clone->bv_model);
-    while (btor_has_next_int_hash_table_iterator (&iit))
+    btor_iter_hashint_table_init (&iit, btor->bv_model);
+    btor_iter_hashint_table_init (&ciit, clone->bv_model);
+    while (btor_iter_hashint_table_has_next (&iit))
     {
-      data  = btor_next_data_int_hash_table_iterator (&iit);
-      cdata = btor_next_data_int_hash_table_iterator (&ciit);
+      data  = btor_iter_hashint_table_next_data (&iit);
+      cdata = btor_iter_hashint_table_next_data (&ciit);
       assert (btor_bv_size ((BtorBitVector *) data->as_ptr)
               == btor_bv_size ((BtorBitVector *) cdata->as_ptr));
       allocated += btor_bv_size ((BtorBitVector *) cdata->as_ptr);
@@ -1162,12 +1162,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     clone->fun_model = btor_model_clone_fun (clone, btor->fun_model, false);
 #ifndef NDEBUG
-    btor_init_int_hash_table_iterator (&iit, btor->fun_model);
-    btor_init_int_hash_table_iterator (&ciit, clone->fun_model);
-    while (btor_has_next_int_hash_table_iterator (&iit))
+    btor_iter_hashint_table_init (&iit, btor->fun_model);
+    btor_iter_hashint_table_init (&ciit, clone->fun_model);
+    while (btor_iter_hashint_table_has_next (&iit))
     {
-      data  = btor_next_data_int_hash_table_iterator (&iit);
-      cdata = btor_next_data_int_hash_table_iterator (&ciit);
+      data  = btor_iter_hashint_table_next_data (&iit);
+      cdata = btor_iter_hashint_table_next_data (&ciit);
       assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->as_ptr)
               == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cdata->as_ptr));
       allocated += MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->as_ptr);
@@ -1246,9 +1246,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   btor_init_ptr_hash_table_iterator (&cpit, clone->parameterized);
   while (btor_has_next_ptr_hash_table_iterator (&pit))
   {
-    assert (btor_size_int_hash_table (pit.bucket->data.as_ptr)
-            == btor_size_int_hash_table (cpit.bucket->data.as_ptr));
-    allocated += btor_size_int_hash_table (cpit.bucket->data.as_ptr);
+    assert (btor_hashint_table_size (pit.bucket->data.as_ptr)
+            == btor_hashint_table_size (cpit.bucket->data.as_ptr));
+    allocated += btor_hashint_table_size (cpit.bucket->data.as_ptr);
     (void) btor_next_ptr_hash_table_iterator (&pit);
     (void) btor_next_ptr_hash_table_iterator (&cpit);
   }
@@ -1361,10 +1361,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         assert (MEM_PTR_HASH_TABLE (m->cans)
                 == MEM_PTR_HASH_TABLE (BTOR_PEEK_STACK (cslv->moves, i)->cans));
         allocated += MEM_PTR_HASH_TABLE (m->cans);
-        btor_init_int_hash_table_iterator (&iit, m->cans);
-        while (btor_has_next_int_hash_table_iterator (&iit))
-          allocated += btor_bv_size (
-              btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
+        btor_iter_hashint_table_init (&iit, m->cans);
+        while (btor_iter_hashint_table_has_next (&iit))
+          allocated +=
+              btor_bv_size (btor_iter_hashint_table_next_data (&iit)->as_ptr);
       }
 
       if (cslv->max_cans)
@@ -1372,10 +1372,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
         assert (slv->max_cans);
         assert (slv->max_cans->count == cslv->max_cans->count);
         allocated += MEM_PTR_HASH_TABLE (cslv->max_cans);
-        btor_init_int_hash_table_iterator (&iit, cslv->max_cans);
-        while (btor_has_next_int_hash_table_iterator (&iit))
-          allocated += btor_bv_size (
-              btor_next_data_int_hash_table_iterator (&iit)->as_ptr);
+        btor_iter_hashint_table_init (&iit, cslv->max_cans);
+        while (btor_iter_hashint_table_has_next (&iit))
+          allocated +=
+              btor_bv_size (btor_iter_hashint_table_next_data (&iit)->as_ptr);
       }
     }
     else if (clone->slv->kind == BTOR_PROP_SOLVER_KIND)
@@ -1478,7 +1478,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
 #endif
 
   mm   = btor->mm;
-  mark = btor_new_int_hash_table (mm);
+  mark = btor_hashint_table_new (mm);
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
@@ -1495,9 +1495,9 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
 
     if (btor_mapped_node (exp_map, cur)) continue;
 
-    if (!btor_contains_int_hash_table (mark, cur->id))
+    if (!btor_hashint_table_contains (mark, cur->id))
     {
-      btor_add_int_hash_table (mark, cur->id);
+      btor_hashint_table_add (mark, cur->id);
       BTOR_PUSH_STACK (work_stack, cur);
       for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (work_stack, cur->e[i]);
     }
@@ -1585,7 +1585,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
   }
 
   BTOR_RELEASE_STACK (work_stack);
-  btor_delete_int_hash_table (mark);
+  btor_hashint_table_delete (mark);
 
   /* reset rewrite_level to original value */
   btor_opt_set (clone, BTOR_OPT_REWRITE_LEVEL, rwl);

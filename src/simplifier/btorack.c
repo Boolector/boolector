@@ -32,7 +32,7 @@ btor_add_ackermann_constraints (Btor *btor)
 
   start = btor_time_stamp ();
   mm    = btor->mm;
-  cache = btor_new_int_hash_table (mm);
+  cache = btor_hashint_table_new (mm);
   BTOR_INIT_STACK (mm, visit);
 
   btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -46,8 +46,8 @@ btor_add_ackermann_constraints (Btor *btor)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-    if (btor_contains_int_hash_table (cache, cur->id)) continue;
-    btor_add_int_hash_table (cache, cur->id);
+    if (btor_hashint_table_contains (cache, cur->id)) continue;
+    btor_hashint_table_add (cache, cur->id);
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
@@ -63,7 +63,7 @@ btor_add_ackermann_constraints (Btor *btor)
     {
       app_i = btor_next_apply_parent_iterator (&nit);
       if (app_i->parameterized) continue;
-      if (!btor_contains_int_hash_table (cache, app_i->id)) continue;
+      if (!btor_hashint_table_contains (cache, app_i->id)) continue;
       BTOR_PUSH_STACK (applies, app_i);
     }
 
@@ -106,7 +106,7 @@ btor_add_ackermann_constraints (Btor *btor)
     }
     BTOR_RELEASE_STACK (applies);
   }
-  btor_delete_int_hash_table (cache);
+  btor_hashint_table_delete (cache);
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,

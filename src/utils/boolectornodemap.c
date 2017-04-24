@@ -225,7 +225,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
 
   mm   = btor->mm;
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   BTOR_INIT_STACK (mm, working_stack);
   BTOR_PUSH_STACK (working_stack, eroot);
@@ -238,7 +238,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     assert (!btor_is_proxy_node (node));
     if (boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
-    d = btor_get_int_hash_map (mark, node->id);
+    d = btor_hashint_map_get (mark, node->id);
     if (d && d->as_int == 1) goto DEC_EXT_REFS_AND_CONTINUE;
     mapped = BTOR_IMPORT_BOOLECTOR_NODE (
         mapper (btor, state, BTOR_EXPORT_BOOLECTOR_NODE (node)));
@@ -251,7 +251,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     }
     else if (!d)
     {
-      btor_add_int_hash_map (mark, node->id);
+      btor_hashint_map_add (mark, node->id);
       BTOR_PUSH_STACK (working_stack, node);
       for (i = node->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (working_stack, node->e[i]);
@@ -272,7 +272,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     btor_dec_exp_ext_ref_counter (node->btor, node);
   }
   BTOR_RELEASE_STACK (working_stack);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
   res = boolector_nodemap_mapped (map, nroot);
   assert (res);
   return res;

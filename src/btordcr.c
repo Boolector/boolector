@@ -41,7 +41,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
 
   slv   = BTOR_FUN_SOLVER (btor);
   score = slv->score;
-  mark  = btor_new_int_hash_map (mm);
+  mark  = btor_hashint_map_new (mm);
 
   for (j = 0; j < BTOR_COUNT_STACK (*nodes); j++)
   {
@@ -50,13 +50,13 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      d   = btor_get_int_hash_map (mark, cur->id);
+      d   = btor_hashint_map_get (mark, cur->id);
 
       if (d && d->as_int == 1) continue;
 
       if (!d)
       {
-        d = btor_add_int_hash_map (mark, cur->id);
+        d = btor_hashint_map_add (mark, cur->id);
         BTOR_PUSH_STACK (stack, cur);
 
         if (cur->arity == 0)
@@ -95,7 +95,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 }
 
 /* heuristic: minimum number of unique applies on a path to the inputs
@@ -185,20 +185,20 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         }
         else
         {
-          mark = btor_new_int_hash_table (mm);
+          mark = btor_hashint_table_new (mm);
           /* search unique applies */
           BTOR_PUSH_STACK (stack, e);
           while (!BTOR_EMPTY_STACK (stack))
           {
             e = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-            if (btor_contains_int_hash_table (mark, e->id)) continue;
-            btor_add_int_hash_table (mark, e->id);
+            if (btor_hashint_table_contains (mark, e->id)) continue;
+            btor_hashint_table_add (mark, e->id);
             if (!e->parameterized && btor_is_apply_node (e)
                 && !btor_get_ptr_hash_table (in, e))
               btor_add_ptr_hash_table (in, btor_copy_exp (btor, e));
             for (j = 0; j < e->arity; j++) BTOR_PUSH_STACK (stack, e->e[j]);
           }
-          btor_delete_int_hash_table (mark);
+          btor_hashint_table_delete (mark);
         }
       }
     }
@@ -252,7 +252,7 @@ btor_compute_scores (Btor *btor)
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, nodes);
-  mark = btor_new_int_hash_table (mm);
+  mark = btor_hashint_table_new (mm);
 
   slv = BTOR_FUN_SOLVER (btor);
 
@@ -270,8 +270,8 @@ btor_compute_scores (Btor *btor)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      if (btor_contains_int_hash_table (mark, cur->id)) continue;
-      btor_add_int_hash_table (mark, cur->id);
+      if (btor_hashint_table_contains (mark, cur->id)) continue;
+      btor_hashint_table_add (mark, cur->id);
       for (i = 0; i < cur->arity; i++)
       {
         e = BTOR_REAL_ADDR_NODE (cur->e[i]);
@@ -288,7 +288,7 @@ btor_compute_scores (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_table (mark);
+  btor_hashint_table_delete (mark);
 
   compute_scores_aux (btor, &nodes);
 
@@ -319,7 +319,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   start = btor_time_stamp ();
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
-  mark = btor_new_int_hash_table (mm);
+  mark = btor_hashint_table_new (mm);
 
   slv = BTOR_FUN_SOLVER (btor);
 
@@ -346,8 +346,8 @@ btor_compute_scores_dual_prop (Btor *btor)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      if (btor_contains_int_hash_table (mark, cur->id)) continue;
-      btor_add_int_hash_table (mark, cur->id);
+      if (btor_hashint_table_contains (mark, cur->id)) continue;
+      btor_hashint_table_add (mark, cur->id);
 
       if (btor_is_apply_node (cur) || btor_is_fun_eq_node (cur))
       {
@@ -366,7 +366,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_table (mark);
+  btor_hashint_table_delete (mark);
 
   /* compute scores from applies downwards */
   compute_scores_aux (btor, &nodes);

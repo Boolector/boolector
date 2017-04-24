@@ -205,7 +205,7 @@ beta_reduce (Btor *btor,
   BTOR_INIT_STACK (mm, arg_stack);
   BTOR_INIT_STACK (mm, cleanup_stack);
   BTOR_INIT_STACK (mm, reset);
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
@@ -223,7 +223,7 @@ beta_reduce (Btor *btor,
       cur = btor_simplify_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    d = btor_get_int_hash_map (mark, real_cur->id);
+    d = btor_hashint_map_get (mark, real_cur->id);
 
     if (!d)
     {
@@ -326,7 +326,7 @@ beta_reduce (Btor *btor,
         continue;
       }
 
-      btor_add_int_hash_map (mark, real_cur->id);
+      btor_hashint_map_add (mark, real_cur->id);
       BTOR_PUSH_STACK (stack, cur);
       BTOR_PUSH_STACK (stack, cur_parent);
       BTOR_PUSH_STACK (cleanup_stack, real_cur);
@@ -498,7 +498,7 @@ beta_reduce (Btor *btor,
         next = BTOR_POP_STACK (reset);
         do
         {
-          btor_remove_int_hash_map (mark, next->id, &md);
+          btor_hashint_map_remove (mark, next->id, &md);
           btor_release_exp (btor, md.as_ptr);
           next = BTOR_POP_STACK (reset);
         } while (next != real_cur);
@@ -548,7 +548,7 @@ beta_reduce (Btor *btor,
 #ifndef NDEBUG
   BTOR_RELEASE_STACK (unassign_stack);
 #endif
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 
   BTORLOG (2,
            "%s: result %s (%d)",
@@ -591,7 +591,7 @@ beta_reduce_partial_aux (Btor *btor,
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, arg_stack);
   BTOR_INIT_STACK (mm, reset);
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
@@ -607,7 +607,7 @@ beta_reduce_partial_aux (Btor *btor,
     cur        = BTOR_POP_STACK (stack);
     real_cur   = BTOR_REAL_ADDR_NODE (cur);
 
-    d = btor_get_int_hash_map (mark, real_cur->id);
+    d = btor_hashint_map_get (mark, real_cur->id);
 
     if (!d)
     {
@@ -641,7 +641,7 @@ beta_reduce_partial_aux (Btor *btor,
         BTOR_PUSH_STACK (reset, real_cur);
       }
 
-      btor_add_int_hash_map (mark, real_cur->id);
+      btor_hashint_map_add (mark, real_cur->id);
       BTOR_PUSH_STACK (stack, cur);
       BTOR_PUSH_STACK (stack, cur_parent);
 
@@ -815,7 +815,7 @@ beta_reduce_partial_aux (Btor *btor,
           /* conditionals are not cached (e[0] is cached, and thus, the
            * resp. branch can always be selected without further
            * overhead. */
-          btor_remove_int_hash_map (mark, real_cur->id, 0);
+          btor_hashint_map_remove (mark, real_cur->id, 0);
           continue;
       }
 
@@ -829,7 +829,7 @@ beta_reduce_partial_aux (Btor *btor,
         next = BTOR_POP_STACK (reset);
         do
         {
-          btor_remove_int_hash_map (mark, next->id, &md);
+          btor_hashint_map_remove (mark, next->id, &md);
           btor_release_exp (btor, md.as_ptr);
           next = BTOR_POP_STACK (reset);
         } while (next != real_cur);
@@ -863,7 +863,7 @@ beta_reduce_partial_aux (Btor *btor,
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (arg_stack);
   BTOR_RELEASE_STACK (reset);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 
   BTORLOG (2,
            "%s: result %s (%d)",

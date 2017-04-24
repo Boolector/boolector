@@ -35,14 +35,14 @@ static void
 init_int_hash_table_test (void)
 {
   assert (!h);
-  h = btor_new_int_hash_table (mem);
+  h = btor_hashint_table_new (mem);
 }
 
 static void
 finish_int_hash_table_test (void)
 {
   assert (h);
-  btor_delete_int_hash_table (h);
+  btor_hashint_table_delete (h);
   h = 0;
 }
 
@@ -62,8 +62,8 @@ test_add_int_hash_table (void)
     {
       val = rand() % 2123541 + 1;
 //      val = i * 7;
-      if (!btor_contains_int_hash_table (h, val))
-	btor_add_int_hash_table (h, val);
+      if (!btor_hashint_table_contains (h, val))
+	btor_hashint_table_add (h, val);
     }
   printf ("%.3f add\n", btor_time_stamp () - start);
 
@@ -74,12 +74,12 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      assert (btor_contains_int_hash_table (h, val));
+      assert (btor_hashint_table_contains (h, val));
     }
   printf ("%.3f contains\n", btor_time_stamp () - start);
 
   printf ("size: %.3f MB (%.2f %% full)\n",
-	  (double) btor_size_int_hash_table (h) / 1024 / 1024,
+	  (double) btor_hashint_table_size (h) / 1024 / 1024,
 	  (double) h->count / h->size * 100);
 
   srand (129);
@@ -89,7 +89,7 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      btor_remove_int_hash_table (h, val);
+      btor_hashint_table_remove (h, val);
     }
   printf ("%.3f remove\n", btor_time_stamp () - start);
 
@@ -164,8 +164,8 @@ static void
 test_new_delete_int_hash_table (void)
 {
   size_t allocated     = mem->allocated;
-  BtorIntHashTable *ht = btor_new_int_hash_table (mem);
-  btor_delete_int_hash_table (ht);
+  BtorIntHashTable *ht = btor_hashint_table_new (mem);
+  btor_hashint_table_delete (ht);
   assert (allocated == mem->allocated);
 }
 
@@ -186,18 +186,18 @@ test_add_int_hash_table (void)
 
   for (i = 0; items[i] != 0; i++)
   {
-    btor_add_int_hash_table (h, items[i]);
-    assert (btor_get_pos_int_hash_table (h, items[i]) < h->size);
+    btor_hashint_table_add (h, items[i]);
+    assert (btor_hashint_table_get_pos (h, items[i]) < h->size);
   }
 
   for (i = 0; items[i] != 0; i++)
-    assert (btor_contains_int_hash_table (h, items[i]));
+    assert (btor_hashint_table_contains (h, items[i]));
 
   for (i = 0; items[i] != 0; i++)
   {
-    btor_remove_int_hash_table (h, items[i]);
-    assert (!btor_contains_int_hash_table (h, items[i]));
-    assert (btor_get_pos_int_hash_table (h, items[i]) == h->size);
+    btor_hashint_table_remove (h, items[i]);
+    assert (!btor_hashint_table_contains (h, items[i]));
+    assert (btor_hashint_table_get_pos (h, items[i]) == h->size);
   }
 
   finish_int_hash_table_test ();

@@ -352,7 +352,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, bool keep_symbol)
   {
     btor_remove_ptr_hash_table (btor->parameterized, exp, 0, &data);
     assert (data.as_ptr);
-    btor_delete_int_hash_table (data.as_ptr);
+    btor_hashint_table_delete (data.as_ptr);
   }
 }
 
@@ -1343,7 +1343,7 @@ hash_lambda_exp (Btor *btor,
   BtorNodePtrStack visit;
   BtorIntHashTable *marked;
 
-  marked = btor_new_int_hash_table (btor->mm);
+  marked = btor_hashint_table_new (btor->mm);
   BTOR_INIT_STACK (btor->mm, visit);
   BTOR_PUSH_STACK (visit, (BtorNode *) body);
 
@@ -1352,7 +1352,7 @@ hash_lambda_exp (Btor *btor,
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (btor_contains_int_hash_table (marked, real_cur->id)) continue;
+    if (btor_hashint_table_contains (marked, real_cur->id)) continue;
 
     if (!real_cur->parameterized)
     {
@@ -1370,15 +1370,15 @@ hash_lambda_exp (Btor *btor,
       continue;
     }
     else if (btor_is_param_node (real_cur) && real_cur != param && params)
-      btor_add_int_hash_table (params, real_cur->id);
+      btor_hashint_table_add (params, real_cur->id);
 
-    btor_add_int_hash_table (marked, real_cur->id);
+    btor_hashint_table_add (marked, real_cur->id);
     hash += BTOR_IS_INVERTED_NODE (cur) ? -real_cur->kind : real_cur->kind;
     for (i = 0; i < real_cur->arity; i++)
       BTOR_PUSH_STACK (visit, real_cur->e[i]);
   }
   BTOR_RELEASE_STACK (visit);
-  btor_delete_int_hash_table (marked);
+  btor_hashint_table_delete (marked);
   return hash;
 }
 
@@ -1598,7 +1598,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     if ((b = btor_get_ptr_hash_table (btor->parameterized, e_exp)))
     {
       params = b->data.as_ptr;
-      btor_remove_int_hash_table (params, e_param->id);
+      btor_hashint_table_remove (params, e_param->id);
       btor_remove_ptr_hash_table (btor->parameterized, e_exp, 0, 0);
       if (params->count > 0)
       {
@@ -1607,7 +1607,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
         lambda_exp->parameterized = 1;
       }
       else
-        btor_delete_int_hash_table (params);
+        btor_hashint_table_delete (params);
     }
   }
   else
@@ -2444,7 +2444,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
 
   /* collect params only for function bodies */
   if (kind == BTOR_LAMBDA_NODE && !btor_is_lambda_node (e[1]))
-    params = btor_new_int_hash_table (btor->mm);
+    params = btor_hashint_table_new (btor->mm);
 
   lookup = find_exp (btor, kind, simp_e, arity, &lambda_hash, params);
   if (!*lookup)
@@ -2471,7 +2471,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
             (*lookup)->parameterized = 1;
           }
           else
-            btor_delete_int_hash_table (params);
+            btor_hashint_table_delete (params);
         }
         break;
       case BTOR_ARGS_NODE:
@@ -2486,7 +2486,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
   else
   {
     inc_exp_ref_counter (btor, *lookup);
-    if (params) btor_delete_int_hash_table (params);
+    if (params) btor_hashint_table_delete (params);
   }
   assert (BTOR_IS_REGULAR_NODE (*lookup));
   return *lookup;

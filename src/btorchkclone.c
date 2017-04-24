@@ -904,19 +904,19 @@ chkclone_tables (Btor *btor, Btor *clone)
     assert (clone->bv_model);
     assert (btor->bv_model->size == clone->bv_model->size);
     assert (btor->bv_model->count == clone->bv_model->count);
-    btor_init_int_hash_table_iterator (&iit, btor->bv_model);
-    btor_init_int_hash_table_iterator (&ciit, clone->bv_model);
-    while (btor_has_next_int_hash_table_iterator (&iit))
+    btor_iter_hashint_table_init (&iit, btor->bv_model);
+    btor_iter_hashint_table_init (&ciit, clone->bv_model);
+    while (btor_iter_hashint_table_has_next (&iit))
     {
-      assert (btor_has_next_int_hash_table_iterator (&ciit));
+      assert (btor_iter_hashint_table_has_next (&ciit));
       assert (btor->bv_model->data[iit.cur_pos].as_ptr);
       assert (clone->bv_model->data[ciit.cur_pos].as_ptr);
       assert (!btor_bv_compare (btor->bv_model->data[iit.cur_pos].as_ptr,
                                 clone->bv_model->data[ciit.cur_pos].as_ptr));
-      assert (btor_next_int_hash_table_iterator (&iit)
-              == btor_next_int_hash_table_iterator (&ciit));
+      assert (btor_iter_hashint_table_next (&iit)
+              == btor_iter_hashint_table_next (&ciit));
     }
-    assert (!btor_has_next_int_hash_table_iterator (&ciit));
+    assert (!btor_iter_hashint_table_has_next (&ciit));
   }
 
   if (!btor->fun_model)
@@ -926,11 +926,11 @@ chkclone_tables (Btor *btor, Btor *clone)
     assert (clone->fun_model);
     assert (btor->fun_model->size == clone->fun_model->size);
     assert (btor->fun_model->count == clone->fun_model->count);
-    btor_init_int_hash_table_iterator (&iit, btor->fun_model);
-    btor_init_int_hash_table_iterator (&ciit, clone->fun_model);
-    while (btor_has_next_int_hash_table_iterator (&iit))
+    btor_iter_hashint_table_init (&iit, btor->fun_model);
+    btor_iter_hashint_table_init (&ciit, clone->fun_model);
+    while (btor_iter_hashint_table_has_next (&iit))
     {
-      assert (btor_has_next_int_hash_table_iterator (&ciit));
+      assert (btor_iter_hashint_table_has_next (&ciit));
       assert (btor->fun_model->data[iit.cur_pos].as_ptr);
       assert (clone->fun_model->data[ciit.cur_pos].as_ptr);
       btor_init_ptr_hash_table_iterator (
@@ -950,10 +950,10 @@ chkclone_tables (Btor *btor, Btor *clone)
         (void) btor_next_ptr_hash_table_iterator (&cnpit);
       }
       assert (!btor_has_next_ptr_hash_table_iterator (&cnpit));
-      assert (btor_next_int_hash_table_iterator (&iit)
-              == btor_next_int_hash_table_iterator (&ciit));
+      assert (btor_iter_hashint_table_next (&iit)
+              == btor_iter_hashint_table_next (&ciit));
     }
-    assert (!btor_has_next_int_hash_table_iterator (&ciit));
+    assert (!btor_iter_hashint_table_has_next (&ciit));
   }
 }
 

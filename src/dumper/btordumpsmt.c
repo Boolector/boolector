@@ -432,7 +432,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
   BtorPtrHashBucket *b;
   BtorIntHashTable *cache;
 
-  cache = btor_new_int_hash_table (sdc->btor->mm);
+  cache = btor_hashint_table_new (sdc->btor->mm);
 
   /* get children of multi-input and */
   BTOR_INIT_QUEUE (sdc->btor->mm, visit);
@@ -444,10 +444,10 @@ collect_and_children (BtorSMTDumpContext *sdc,
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     id       = btor_exp_get_id (cur);
 
-    skip = btor_contains_int_hash_table (cache, id);
+    skip = btor_hashint_table_contains (cache, id);
     if (!skip)
     {
-      btor_add_int_hash_table (cache, id);
+      btor_hashint_table_add (cache, id);
       b = btor_get_ptr_hash_table (sdc->dump, real_cur);
     }
     else
@@ -465,7 +465,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
     for (i = 0; i < real_cur->arity; i++) BTOR_ENQUEUE (visit, real_cur->e[i]);
   }
   BTOR_RELEASE_QUEUE (visit);
-  btor_delete_int_hash_table (cache);
+  btor_hashint_table_delete (cache);
 }
 
 static void

@@ -165,13 +165,13 @@ compute_sls_score_node (Btor *btor,
     /* OR --------------------------------------------------------- */
     if (BTOR_IS_INVERTED_NODE (exp))
     {
-      assert (btor_contains_int_hash_map (score,
-                                          -btor_exp_get_id ((real_exp->e[0]))));
-      assert (btor_contains_int_hash_map (score,
-                                          -btor_exp_get_id ((real_exp->e[1]))));
-      s0 = btor_get_int_hash_map (score, -btor_exp_get_id ((real_exp->e[0])))
+      assert (btor_hashint_map_contains (score,
+                                         -btor_exp_get_id ((real_exp->e[0]))));
+      assert (btor_hashint_map_contains (score,
+                                         -btor_exp_get_id ((real_exp->e[1]))));
+      s0 = btor_hashint_map_get (score, -btor_exp_get_id ((real_exp->e[0])))
                ->as_dbl;
-      s1 = btor_get_int_hash_map (score, -btor_exp_get_id ((real_exp->e[1])))
+      s1 = btor_hashint_map_get (score, -btor_exp_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
       if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
@@ -197,13 +197,13 @@ compute_sls_score_node (Btor *btor,
     /* AND -------------------------------------------------------- */
     else
     {
-      assert (btor_contains_int_hash_map (score,
-                                          btor_exp_get_id ((real_exp->e[0]))));
-      assert (btor_contains_int_hash_map (score,
-                                          btor_exp_get_id ((real_exp->e[1]))));
-      s0 = btor_get_int_hash_map (score, btor_exp_get_id ((real_exp->e[0])))
+      assert (btor_hashint_map_contains (score,
+                                         btor_exp_get_id ((real_exp->e[0]))));
+      assert (btor_hashint_map_contains (score,
+                                         btor_exp_get_id ((real_exp->e[1]))));
+      s0 = btor_hashint_map_get (score, btor_exp_get_id ((real_exp->e[0])))
                ->as_dbl;
-      s1 = btor_get_int_hash_map (score, btor_exp_get_id ((real_exp->e[1])))
+      s1 = btor_hashint_map_get (score, btor_exp_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
       if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
@@ -350,27 +350,27 @@ recursively_compute_sls_score_node (Btor *btor,
   assert (btor_is_bv_eq_node (exp) || btor_is_ult_node (exp)
           || btor_get_exp_width (btor, exp) == 1);
 
-  if (btor_contains_int_hash_map (score, btor_exp_get_id (exp)))
-    return btor_get_int_hash_map (score, btor_exp_get_id (exp))->as_dbl;
+  if (btor_hashint_map_contains (score, btor_exp_get_id (exp)))
+    return btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl;
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, stack);
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   BTOR_PUSH_STACK (stack, exp);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    d        = btor_get_int_hash_map (mark, real_cur->id);
+    d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
-        || btor_get_int_hash_map (score, btor_exp_get_id (cur)))
+        || btor_hashint_map_get (score, btor_exp_get_id (cur)))
       continue;
 
     if (!d)
     {
-      btor_add_int_hash_map (mark, real_cur->id);
+      btor_hashint_map_add (mark, real_cur->id);
       BTOR_PUSH_STACK (stack, cur);
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (stack, real_cur->e[i]);
@@ -384,16 +384,16 @@ recursively_compute_sls_score_node (Btor *btor,
 
       res = compute_sls_score_node (btor, bv_model, fun_model, score, cur);
 
-      assert (!btor_contains_int_hash_map (score, btor_exp_get_id (cur)));
-      btor_add_int_hash_map (score, btor_exp_get_id (cur))->as_dbl = res;
+      assert (!btor_hashint_map_contains (score, btor_exp_get_id (cur)));
+      btor_hashint_map_add (score, btor_exp_get_id (cur))->as_dbl = res;
     }
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 
-  assert (btor_contains_int_hash_map (score, btor_exp_get_id (exp)));
-  assert (res == btor_get_int_hash_map (score, btor_exp_get_id (exp))->as_dbl);
+  assert (btor_hashint_map_contains (score, btor_exp_get_id (exp)));
+  assert (res == btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl);
   return res;
 }
 
@@ -423,7 +423,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, stack);
-  mark = btor_new_int_hash_map (mm);
+  mark = btor_hashint_map_new (mm);
 
   /* collect roots */
   btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
@@ -436,15 +436,15 @@ btor_propsls_compute_sls_scores (Btor *btor,
   {
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    d        = btor_get_int_hash_map (mark, real_cur->id);
+    d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
-        || btor_contains_int_hash_map (score, btor_exp_get_id (cur)))
+        || btor_hashint_map_contains (score, btor_exp_get_id (cur)))
       continue;
 
     if (!d)
     {
-      btor_add_int_hash_map (mark, real_cur->id);
+      btor_hashint_map_add (mark, real_cur->id);
       BTOR_PUSH_STACK (stack, cur);
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (stack, real_cur->e[i]);
@@ -462,7 +462,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
   }
 
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_map (mark);
+  btor_hashint_map_delete (mark);
 }
 
 /*========================================================================*/
@@ -484,17 +484,17 @@ update_roots_table (Btor *btor,
 
   /* exp: old assignment = 0, new assignment = 1 (bv = 1)
    *      -> satisfied, remove */
-  if (btor_get_int_hash_map (roots, exp->id))
+  if (btor_hashint_map_get (roots, exp->id))
   {
-    btor_remove_int_hash_map (roots, exp->id, 0);
+    btor_hashint_map_remove (roots, exp->id, 0);
     assert (btor_bv_is_false (btor_model_get_bv (btor, exp)));
     assert (btor_bv_is_true (bv));
   }
   /* -exp: old assignment = 0, new assignment = 1 (bv = 0)
    * -> satisfied, remove */
-  else if (btor_get_int_hash_map (roots, -exp->id))
+  else if (btor_hashint_map_get (roots, -exp->id))
   {
-    btor_remove_int_hash_map (roots, -exp->id, 0);
+    btor_hashint_map_remove (roots, -exp->id, 0);
     assert (
         btor_bv_is_false (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
     assert (btor_bv_is_false (bv));
@@ -503,7 +503,7 @@ update_roots_table (Btor *btor,
    * -> unsatisfied, add */
   else if (btor_bv_is_false (bv))
   {
-    btor_add_int_hash_map (roots, exp->id);
+    btor_hashint_map_add (roots, exp->id);
     assert (btor_bv_is_true (btor_model_get_bv (btor, exp)));
   }
   /* -exp: old assignment = 1, new assignment = 0 (bv = 1)
@@ -511,7 +511,7 @@ update_roots_table (Btor *btor,
   else
   {
     assert (btor_bv_is_true (bv));
-    btor_add_int_hash_map (roots, -exp->id);
+    btor_hashint_map_add (roots, -exp->id);
     assert (btor_bv_is_true (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
   }
 }
@@ -581,9 +581,9 @@ btor_propsls_update_cone (Btor *btor,
     assert (
         !btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)));
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
     else
-      assert (!btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (roots, btor_exp_get_id (root)));
   }
 #endif
 
@@ -591,22 +591,22 @@ btor_propsls_update_cone (Btor *btor,
 
   BTOR_INIT_STACK (mm, cone);
   BTOR_INIT_STACK (mm, stack);
-  btor_init_int_hash_table_iterator (&iit, exps);
-  while (btor_has_next_int_hash_table_iterator (&iit))
+  btor_iter_hashint_table_init (&iit, exps);
+  while (btor_iter_hashint_table_has_next (&iit))
   {
-    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&iit));
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (btor_is_bv_var_node (exp));
     BTOR_PUSH_STACK (stack, exp);
   }
-  cache = btor_new_int_hash_table (mm);
+  cache = btor_hashint_table_new (mm);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (btor_contains_int_hash_table (cache, cur->id)) continue;
-    btor_add_int_hash_table (cache, cur->id);
-    if (!btor_contains_int_hash_table (exps, cur->id))
+    if (btor_hashint_table_contains (cache, cur->id)) continue;
+    btor_hashint_table_add (cache, cur->id);
+    if (!btor_hashint_table_contains (exps, cur->id))
       BTOR_PUSH_STACK (cone, cur);
     *stats_updates += 1;
 
@@ -616,20 +616,20 @@ btor_propsls_update_cone (Btor *btor,
       BTOR_PUSH_STACK (stack, btor_next_parent_iterator (&nit));
   }
   BTOR_RELEASE_STACK (stack);
-  btor_delete_int_hash_table (cache);
+  btor_hashint_table_delete (cache);
 
   *time_update_cone_reset += btor_time_stamp () - delta;
 
   /* update assignment and score of exps ----------------------------------- */
 
-  btor_init_int_hash_table_iterator (&iit, exps);
-  while (btor_has_next_int_hash_table_iterator (&iit))
+  btor_iter_hashint_table_init (&iit, exps);
+  while (btor_iter_hashint_table_has_next (&iit))
   {
     ass = (BtorBitVector *) exps->data[iit.cur_pos].as_ptr;
-    exp = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&iit));
+    exp = btor_get_node_by_id (btor, btor_iter_hashint_table_next (&iit));
 
     /* update model */
-    d = btor_get_int_hash_map (bv_model, exp->id);
+    d = btor_hashint_map_get (bv_model, exp->id);
     assert (d);
     if (update_roots
         && (exp->constraint || btor_get_ptr_hash_table (btor->assumptions, exp)
@@ -642,7 +642,7 @@ btor_propsls_update_cone (Btor *btor,
     }
     btor_bv_free (mm, d->as_ptr);
     d->as_ptr = btor_bv_copy (mm, ass);
-    if ((d = btor_get_int_hash_map (bv_model, -exp->id)))
+    if ((d = btor_hashint_map_get (bv_model, -exp->id)))
     {
       btor_bv_free (mm, d->as_ptr);
       d->as_ptr = btor_bv_not (mm, ass);
@@ -651,12 +651,12 @@ btor_propsls_update_cone (Btor *btor,
     /* update score */
     if (score && btor_get_exp_width (btor, exp) == 1)
     {
-      assert (btor_contains_int_hash_map (score, btor_exp_get_id (exp)));
-      btor_get_int_hash_map (score, btor_exp_get_id (exp))->as_dbl =
+      assert (btor_hashint_map_contains (score, btor_exp_get_id (exp)));
+      btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl =
           compute_sls_score_node (btor, bv_model, btor->fun_model, score, exp);
 
-      assert (btor_contains_int_hash_map (score, -btor_exp_get_id (exp)));
-      btor_get_int_hash_map (score, -btor_exp_get_id (exp))->as_dbl =
+      assert (btor_hashint_map_contains (score, -btor_exp_get_id (exp)));
+      btor_hashint_map_get (score, -btor_exp_get_id (exp))->as_dbl =
           compute_sls_score_node (
               btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (exp));
     }
@@ -685,8 +685,8 @@ btor_propsls_update_cone (Btor *btor,
       }
       else
       {
-        d = btor_get_int_hash_map (bv_model,
-                                   BTOR_REAL_ADDR_NODE (cur->e[j])->id);
+        d = btor_hashint_map_get (bv_model,
+                                  BTOR_REAL_ADDR_NODE (cur->e[j])->id);
         /* Note: generate model enabled branch for ite (and does not
          * generate model for nodes in the branch, hence !b may happen */
         if (!d)
@@ -722,7 +722,7 @@ btor_propsls_update_cone (Btor *btor,
 
     /* update assignment */
 
-    d = btor_get_int_hash_map (bv_model, cur->id);
+    d = btor_hashint_map_get (bv_model, cur->id);
 
     /* update roots table */
     if (update_roots
@@ -742,7 +742,7 @@ btor_propsls_update_cone (Btor *btor,
     if (!d)
     {
       btor_copy_exp (btor, cur);
-      btor_add_int_hash_map (bv_model, cur->id)->as_ptr = bv;
+      btor_hashint_map_add (bv_model, cur->id)->as_ptr = bv;
     }
     else
     {
@@ -750,7 +750,7 @@ btor_propsls_update_cone (Btor *btor,
       d->as_ptr = bv;
     }
 
-    if ((d = btor_get_int_hash_map (bv_model, -cur->id)))
+    if ((d = btor_hashint_map_get (bv_model, -cur->id)))
     {
       btor_bv_free (mm, d->as_ptr);
       d->as_ptr = btor_bv_not (mm, bv);
@@ -773,16 +773,16 @@ btor_propsls_update_cone (Btor *btor,
       if (btor_get_exp_width (btor, cur) != 1) continue;
 
       id = btor_exp_get_id (cur);
-      if (!btor_contains_int_hash_map (score, id))
+      if (!btor_hashint_map_contains (score, id))
       {
         /* not reachable from the roots */
-        assert (!btor_contains_int_hash_map (score, -id));
+        assert (!btor_hashint_map_contains (score, -id));
         continue;
       }
-      btor_get_int_hash_map (score, id)->as_dbl =
+      btor_hashint_map_get (score, id)->as_dbl =
           compute_sls_score_node (btor, bv_model, btor->fun_model, score, cur);
-      assert (btor_contains_int_hash_map (score, -id));
-      btor_get_int_hash_map (score, -id)->as_dbl = compute_sls_score_node (
+      assert (btor_hashint_map_contains (score, -id));
+      btor_hashint_map_get (score, -id)->as_dbl = compute_sls_score_node (
           btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (cur));
     }
     *time_update_cone_compute_score += btor_time_stamp () - delta;
@@ -797,9 +797,9 @@ btor_propsls_update_cone (Btor *btor,
   {
     root = btor_next_ptr_hash_table_iterator (&pit);
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
     else
-      assert (!btor_contains_int_hash_map (roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (roots, btor_exp_get_id (root)));
   }
 #endif
   *time_update_cone += btor_time_stamp () - start;
