@@ -579,7 +579,7 @@ btor_util_vis_exp (Btor *btor, BtorNode *exp)
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
   file = fopen (path, "w");
-  btor_dump_btor_node (btor, file, exp);
+  btor_dumpbtor_dump_node (btor, file, exp);
   fclose (file);
   strcat (cmd, "&");
   res = system (cmd);

@@ -1264,7 +1264,7 @@ boolector_mc_dump (BtorMC *mc, FILE *file)
 
   (void) boolector_simplify (mc->btor);
 
-  bdc = btor_new_dump_context (mc->btor);
+  bdc = btor_dumpbtor_new_dump_context (mc->btor);
 
   btor_iter_hashptr_init (&it, mc->inputs);
   while (btor_iter_hashptr_has_next (&it))
@@ -1272,8 +1272,8 @@ boolector_mc_dump (BtorMC *mc, FILE *file)
     BtorMcInput *input = btor_iter_hashptr_next_data (&it)->as_ptr;
     assert (input);
     assert (input->node);
-    btor_add_input_to_dump_context (bdc,
-                                    BTOR_IMPORT_BOOLECTOR_NODE (input->node));
+    btor_dumpbtor_add_input_to_dump_context (
+        bdc, BTOR_IMPORT_BOOLECTOR_NODE (input->node));
   }
 
   btor_iter_hashptr_init (&it, mc->latches);
@@ -1283,33 +1283,36 @@ boolector_mc_dump (BtorMC *mc, FILE *file)
     assert (latch);
     assert (latch->node);
     assert (BTOR_IS_REGULAR_NODE (latch->node));
-    btor_add_latch_to_dump_context (bdc,
-                                    BTOR_IMPORT_BOOLECTOR_NODE (latch->node));
+    btor_dumpbtor_add_latch_to_dump_context (
+        bdc, BTOR_IMPORT_BOOLECTOR_NODE (latch->node));
     if (latch->init)
-      btor_add_init_to_dump_context (bdc,
-                                     BTOR_IMPORT_BOOLECTOR_NODE (latch->node),
-                                     BTOR_IMPORT_BOOLECTOR_NODE (latch->init));
+      btor_dumpbtor_add_init_to_dump_context (
+          bdc,
+          BTOR_IMPORT_BOOLECTOR_NODE (latch->node),
+          BTOR_IMPORT_BOOLECTOR_NODE (latch->init));
     if (latch->next)
-      btor_add_next_to_dump_context (bdc,
-                                     BTOR_IMPORT_BOOLECTOR_NODE (latch->node),
-                                     BTOR_IMPORT_BOOLECTOR_NODE (latch->next));
+      btor_dumpbtor_add_next_to_dump_context (
+          bdc,
+          BTOR_IMPORT_BOOLECTOR_NODE (latch->node),
+          BTOR_IMPORT_BOOLECTOR_NODE (latch->next));
   }
 
   for (i = 0; i < BTOR_COUNT_STACK (mc->bad); i++)
   {
     BoolectorNode *bad = BTOR_PEEK_STACK (mc->bad, i);
-    btor_add_bad_to_dump_context (bdc, BTOR_IMPORT_BOOLECTOR_NODE (bad));
+    btor_dumpbtor_add_bad_to_dump_context (bdc,
+                                           BTOR_IMPORT_BOOLECTOR_NODE (bad));
   }
 
   for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
   {
     BoolectorNode *constraint = BTOR_PEEK_STACK (mc->constraints, i);
-    btor_add_constraint_to_dump_context (
+    btor_dumpbtor_add_constraint_to_dump_context (
         bdc, BTOR_IMPORT_BOOLECTOR_NODE (constraint));
   }
 
-  btor_dump_btor_bdc (bdc, file);
-  btor_delete_dump_context (bdc);
+  btor_dumpbtor_dump_bdc (bdc, file);
+  btor_dumpbtor_delete_dump_context (bdc);
 }
 
 int

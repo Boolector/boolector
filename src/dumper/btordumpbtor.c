@@ -50,7 +50,7 @@ struct BtorDumpContext
 };
 
 BtorDumpContext *
-btor_new_dump_context (Btor *btor)
+btor_dumpbtor_new_dump_context (Btor *btor)
 {
   BtorDumpContext *res;
   BTOR_CNEW (btor->mm, res);
@@ -82,7 +82,7 @@ btor_new_dump_context (Btor *btor)
 }
 
 void
-btor_delete_dump_context (BtorDumpContext *bdc)
+btor_dumpbtor_delete_dump_context (BtorDumpContext *bdc)
 {
   BtorPtrHashTableIterator it;
 
@@ -132,7 +132,7 @@ btor_delete_dump_context (BtorDumpContext *bdc)
 }
 
 void
-btor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
+btor_dumpbtor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
 {
   assert (BTOR_IS_REGULAR_NODE (input));
   assert (btor_is_bv_var_node (input));
@@ -143,7 +143,7 @@ btor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
 }
 
 void
-btor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
+btor_dumpbtor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
 {
   BtorPtrHashBucket *b;
   BtorDumpContextLatch *bdcl;
@@ -158,9 +158,9 @@ btor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
 }
 
 void
-btor_add_next_to_dump_context (BtorDumpContext *bdc,
-                               BtorNode *latch,
-                               BtorNode *next)
+btor_dumpbtor_add_next_to_dump_context (BtorDumpContext *bdc,
+                                        BtorNode *latch,
+                                        BtorNode *next)
 {
   BtorDumpContextLatch *l;
   BtorPtrHashBucket *b;
@@ -174,9 +174,9 @@ btor_add_next_to_dump_context (BtorDumpContext *bdc,
 }
 
 void
-btor_add_init_to_dump_context (BtorDumpContext *bdc,
-                               BtorNode *latch,
-                               BtorNode *init)
+btor_dumpbtor_add_init_to_dump_context (BtorDumpContext *bdc,
+                                        BtorNode *latch,
+                                        BtorNode *init)
 {
   BtorDumpContextLatch *l;
   BtorPtrHashBucket *b;
@@ -190,28 +190,30 @@ btor_add_init_to_dump_context (BtorDumpContext *bdc,
 }
 
 void
-btor_add_bad_to_dump_context (BtorDumpContext *bdc, BtorNode *bad)
+btor_dumpbtor_add_bad_to_dump_context (BtorDumpContext *bdc, BtorNode *bad)
 {
   (void) btor_copy_exp (bdc->btor, bad);
   BTOR_PUSH_STACK (bdc->bads, bad);
 }
 
 void
-btor_add_output_to_dump_context (BtorDumpContext *bdc, BtorNode *output)
+btor_dumpbtor_add_output_to_dump_context (BtorDumpContext *bdc,
+                                          BtorNode *output)
 {
   (void) btor_copy_exp (bdc->btor, output);
   BTOR_PUSH_STACK (bdc->outputs, output);
 }
 
 void
-btor_add_root_to_dump_context (BtorDumpContext *bdc, BtorNode *root)
+btor_dumpbtor_add_root_to_dump_context (BtorDumpContext *bdc, BtorNode *root)
 {
   (void) btor_copy_exp (bdc->btor, root);
   BTOR_PUSH_STACK (bdc->roots, root);
 }
 
 void
-btor_add_constraint_to_dump_context (BtorDumpContext *bdc, BtorNode *constraint)
+btor_dumpbtor_add_constraint_to_dump_context (BtorDumpContext *bdc,
+                                              BtorNode *constraint)
 {
   (void) btor_copy_exp (bdc->btor, constraint);
   BTOR_PUSH_STACK (bdc->constraints, constraint);
@@ -661,7 +663,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 }
 
 void
-btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
+btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
 {
   BtorPtrHashTableIterator it;
   int i;
@@ -789,7 +791,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
 }
 
 void
-btor_dump_btor_node (Btor *btor, FILE *file, BtorNode *exp)
+btor_dumpbtor_dump_node (Btor *btor, FILE *file, BtorNode *exp)
 {
   assert (btor);
   assert (file);
@@ -797,14 +799,14 @@ btor_dump_btor_node (Btor *btor, FILE *file, BtorNode *exp)
 
   BtorDumpContext *bdc;
 
-  bdc = btor_new_dump_context (btor);
-  btor_add_root_to_dump_context (bdc, exp);
-  btor_dump_btor_bdc (bdc, file);
-  btor_delete_dump_context (bdc);
+  bdc = btor_dumpbtor_new_dump_context (btor);
+  btor_dumpbtor_add_root_to_dump_context (bdc, exp);
+  btor_dumpbtor_dump_bdc (bdc, file);
+  btor_dumpbtor_delete_dump_context (bdc);
 }
 
 void
-btor_dump_btor_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dumpbtor_dump_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
@@ -814,16 +816,17 @@ btor_dump_btor_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   int i;
   BtorDumpContext *bdc;
 
-  bdc = btor_new_dump_context (btor);
+  bdc = btor_dumpbtor_new_dump_context (btor);
 
-  for (i = 0; i < nroots; i++) btor_add_root_to_dump_context (bdc, roots[i]);
+  for (i = 0; i < nroots; i++)
+    btor_dumpbtor_add_root_to_dump_context (bdc, roots[i]);
 
-  btor_dump_btor_bdc (bdc, file);
-  btor_delete_dump_context (bdc);
+  btor_dumpbtor_dump_bdc (bdc, file);
+  btor_dumpbtor_delete_dump_context (bdc);
 }
 
 void
-btor_dump_btor (Btor *btor, FILE *file, int version)
+btor_dumpbtor_dump (Btor *btor, FILE *file, int version)
 {
   assert (btor);
   assert (file);
@@ -837,20 +840,20 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   BtorDumpContext *bdc;
   BtorPtrHashTableIterator it;
 
-  bdc          = btor_new_dump_context (btor);
+  bdc          = btor_dumpbtor_new_dump_context (btor);
   bdc->version = 1;  // NOTE: version 2 not yet supported
 
   if (btor->inconsistent)
   {
     tmp = btor_false_exp (btor);
-    btor_add_root_to_dump_context (bdc, tmp);
+    btor_dumpbtor_add_root_to_dump_context (bdc, tmp);
     btor_release_exp (btor, tmp);
   }
   else if (btor->unsynthesized_constraints->count == 0
            && btor->synthesized_constraints->count == 0)
   {
     tmp = btor_true_exp (btor);
-    btor_add_root_to_dump_context (bdc, tmp);
+    btor_dumpbtor_add_root_to_dump_context (bdc, tmp);
     btor_release_exp (btor, tmp);
   }
   else
@@ -858,15 +861,16 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
     btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
     while (btor_iter_hashptr_has_next (&it))
-      btor_add_root_to_dump_context (bdc, btor_iter_hashptr_next (&it));
+      btor_dumpbtor_add_root_to_dump_context (bdc,
+                                              btor_iter_hashptr_next (&it));
   }
 
-  btor_dump_btor_bdc (bdc, file);
-  btor_delete_dump_context (bdc);
+  btor_dumpbtor_dump_bdc (bdc, file);
+  btor_dumpbtor_delete_dump_context (bdc);
 }
 
 bool
-btor_can_be_dumped (Btor *btor)
+btor_dumpbtor_can_be_dumped (Btor *btor)
 {
   BtorNode *cur;
   BtorPtrHashTableIterator it;

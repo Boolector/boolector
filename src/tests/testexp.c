@@ -68,7 +68,7 @@ test_const_exp (void)
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
   assert (btor_get_exp_width (g_btor, exp3) == 16);
-  btor_dump_btor_node (g_btor, g_logfile, exp2);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp2);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -95,7 +95,7 @@ test_zero_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp1);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_bv_free (g_btor->mm, bv2);
@@ -119,7 +119,7 @@ test_ones_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp1);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_bv_free (g_btor->mm, bv2);
@@ -143,7 +143,7 @@ test_one_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp1);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_bv_free (g_btor->mm, bv2);
@@ -186,7 +186,7 @@ test_unsigned_to_exp (void)
   assert (btor_get_exp_width (g_btor, exp6) == 8);
   assert (btor_get_exp_width (g_btor, exp7) == 8);
   assert (btor_get_exp_width (g_btor, exp8) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -218,7 +218,7 @@ test_var_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp2);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp2);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -251,7 +251,7 @@ test_array_exp (void)
   assert (btor_get_index_exp_width (g_btor, exp1) == 8);
   assert (btor_get_index_exp_width (g_btor, exp2) == 8);
   assert (btor_get_index_exp_width (g_btor, exp3) == 8);
-  btor_dump_btor_node (g_btor, g_logfile, exp2);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp2);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -284,7 +284,7 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
     assert (btor_get_exp_width (g_btor, exp2) == 1);
     assert (btor_get_exp_width (g_btor, exp3) == 1);
   }
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -337,7 +337,7 @@ test_slice_exp (void)
   exp3 = btor_slice_exp (g_btor, exp1, 31, 30);
 
   assert (exp2 == exp3);
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -360,7 +360,7 @@ ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
   exp3 = func (g_btor, exp1, 32);
 
   assert (exp2 == exp3);
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -415,7 +415,7 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
     assert (btor_get_exp_width (g_btor, exp4) == 8);
     assert (btor_get_exp_width (g_btor, exp5) == 8);
   }
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -524,7 +524,7 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
     assert (btor_get_exp_width (g_btor, exp4) == 1);
     assert (btor_get_exp_width (g_btor, exp5) == 1);
   }
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -666,7 +666,7 @@ mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   assert (btor_get_exp_width (g_btor, exp3) == 1);
   assert (btor_get_exp_width (g_btor, exp4) == 1);
   assert (btor_get_exp_width (g_btor, exp5) == 1);
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -711,7 +711,7 @@ shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   assert (btor_get_exp_width (g_btor, exp2) == 5);
   assert (btor_get_exp_width (g_btor, exp3) == 32);
   assert (btor_get_exp_width (g_btor, exp4) == 32);
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -774,7 +774,7 @@ test_read_exp (void)
   assert (btor_get_exp_width (g_btor, exp2) == 8);
   assert (btor_get_exp_width (g_btor, exp3) == 32);
   assert (btor_get_exp_width (g_btor, exp4) == 32);
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_sort_release (g_btor, index_sort);
   btor_sort_release (g_btor, elem_sort);
   btor_sort_release (g_btor, array_sort);
@@ -814,7 +814,7 @@ test_cond_exp (void)
   assert (btor_get_exp_width (g_btor, exp4) == 32);
   assert (btor_get_exp_width (g_btor, exp5) == 32);
   assert (btor_get_exp_width (g_btor, exp6) == 32);
-  btor_dump_btor_node (g_btor, g_logfile, exp4);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp4);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
   btor_release_exp (g_btor, exp3);
@@ -852,7 +852,7 @@ test_write_exp (void)
   assert (btor_get_fun_exp_width (g_btor, exp5) == 1);
   assert (btor_get_fun_exp_width (g_btor, exp6) == 1);
   assert (btor_get_exp_width (g_btor, exp7) == 1);
-  btor_dump_btor_node (g_btor, g_logfile, exp7);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp7);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -879,7 +879,7 @@ test_inc_exp (void)
   exp3 = btor_inc_exp (g_btor, exp1);
 
   assert (exp2 == exp3);
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);
@@ -902,7 +902,7 @@ test_dec_exp (void)
   exp3 = btor_dec_exp (g_btor, exp1);
 
   assert (exp2 == exp3);
-  btor_dump_btor_node (g_btor, g_logfile, exp3);
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
   btor_sort_release (g_btor, sort);
   btor_release_exp (g_btor, exp1);
   btor_release_exp (g_btor, exp2);

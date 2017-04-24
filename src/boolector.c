@@ -3908,7 +3908,7 @@ boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_dump_btor_node (btor, file, btor_simplify_exp (btor, exp));
+  btor_dumpbtor_dump_node (btor, file, btor_simplify_exp (btor, exp));
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
@@ -3920,13 +3920,13 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (file);
-  BTOR_ABORT (!btor_can_be_dumped (btor),
+  BTOR_ABORT (!btor_dumpbtor_can_be_dumped (btor),
               "formula cannot be dumped in BTOR format as it does "
               "not support uninterpreted functions yet.");
   BTOR_WARN (btor->assumptions->count > 0,
              "dumping in incremental mode only captures the current state "
              "of the input formula without assumptions");
-  btor_dump_btor (btor, file, 1);
+  btor_dumpbtor_dump (btor, file, 1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, stdout);
 #endif
@@ -3939,7 +3939,7 @@ boolector_dump_btor2 (Btor * btor, FILE * file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (file);
-  btor_dump_btor (btor, file, 2);
+  btor_dumpbtor_dump (btor, file, 2);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, file);
 #endif
