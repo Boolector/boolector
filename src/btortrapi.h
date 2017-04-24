@@ -75,5 +75,5 @@
 
 void btor_trapi (Btor* btor, const char* fname, const char* msg, ...);
 
-void btor_open_apitrace (Btor* btor, const char* name);
+void btor_trapi_open_trace (Btor* btor, const char* name);
 #endif

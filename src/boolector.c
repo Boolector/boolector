@@ -210,7 +210,7 @@ boolector_new (void)
   Btor *btor;
 
   btor = btor_new_btor ();
-  if ((trname = getenv ("BTORAPITRACE"))) btor_open_apitrace (btor, trname);
+  if ((trname = getenv ("BTORAPITRACE"))) btor_trapi_open_trace (btor, trname);
   BTOR_TRAPI ("");
   BTOR_TRAPI_RETURN_PTR (btor);
   return btor;
