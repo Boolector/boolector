@@ -31,10 +31,10 @@ static BtorRNG *g_rng;
   do                                             \
   {                                              \
     bw   = TEST_PROP_INV_COMPLETE_BW;            \
-    sort = btor_bitvec_sort (g_btor, bw);        \
+    sort = btor_sort_bitvec (g_btor, bw);        \
     e[0] = btor_var_exp (g_btor, sort, 0);       \
     e[1] = btor_var_exp (g_btor, sort, 0);       \
-    btor_release_sort (g_btor, sort);            \
+    btor_sort_release (g_btor, sort);            \
     exp = btor_##fun##_exp (g_btor, e[0], e[1]); \
   } while (0)
 
@@ -43,12 +43,12 @@ static BtorRNG *g_rng;
   {                                              \
     bw   = TEST_PROP_INV_COMPLETE_BW;            \
     sbw  = btor_log_2_util (bw);                 \
-    sort = btor_bitvec_sort (g_btor, bw);        \
+    sort = btor_sort_bitvec (g_btor, bw);        \
     e[0] = btor_var_exp (g_btor, sort, 0);       \
-    btor_release_sort (g_btor, sort);            \
-    sort = btor_bitvec_sort (g_btor, sbw);       \
+    btor_sort_release (g_btor, sort);            \
+    sort = btor_sort_bitvec (g_btor, sbw);       \
     e[1] = btor_var_exp (g_btor, sort, 0);       \
-    btor_release_sort (g_btor, sort);            \
+    btor_sort_release (g_btor, sort);            \
     exp = btor_##fun##_exp (g_btor, e[0], e[1]); \
   } while (0)
 
@@ -222,9 +222,9 @@ test_propinv_complete_slice_bv (void)
   BtorSortId sort;
 
   bw   = TEST_PROP_INV_COMPLETE_BW;
-  sort = btor_bitvec_sort (g_btor, bw);
+  sort = btor_sort_bitvec (g_btor, bw);
   e    = btor_var_exp (g_btor, sort, 0);
-  btor_release_sort (g_btor, sort);
+  btor_sort_release (g_btor, sort);
 
   for (lo = 0; lo < bw; lo++)
   {
@@ -263,22 +263,22 @@ test_propinv_complete_slice_bv (void)
 #define TEST_PROP_INV_CONF_BINARY_INIT(fun)      \
   do                                             \
   {                                              \
-    sort = btor_bitvec_sort (g_btor, bw);        \
+    sort = btor_sort_bitvec (g_btor, bw);        \
     e[0] = btor_var_exp (g_btor, sort, 0);       \
     e[1] = btor_var_exp (g_btor, sort, 0);       \
-    btor_release_sort (g_btor, sort);            \
+    btor_sort_release (g_btor, sort);            \
     fun = btor_##fun##_exp (g_btor, e[0], e[1]); \
   } while (0)
 
 #define TEST_PROP_INV_CONF_SHIFT_INIT(fun)                  \
   do                                                        \
   {                                                         \
-    sort = btor_bitvec_sort (g_btor, bw);                   \
+    sort = btor_sort_bitvec (g_btor, bw);                   \
     e[0] = btor_var_exp (g_btor, sort, 0);                  \
-    btor_release_sort (g_btor, sort);                       \
-    sort = btor_bitvec_sort (g_btor, btor_log_2_util (bw)); \
+    btor_sort_release (g_btor, sort);                       \
+    sort = btor_sort_bitvec (g_btor, btor_log_2_util (bw)); \
     e[1] = btor_var_exp (g_btor, sort, 0);                  \
-    btor_release_sort (g_btor, sort);                       \
+    btor_sort_release (g_btor, sort);                       \
     fun = btor_##fun##_exp (g_btor, e[0], e[1]);            \
   } while (0)
 
@@ -1324,8 +1324,8 @@ PROP_INV_CONF_CONCAT_TESTS:
   {
     bws[0]   = btor_pick_rand_rng (&g_btor->rng, 1, bw - 1);
     bws[1]   = bw - bws[0];
-    sorts[0] = btor_bitvec_sort (g_btor, bw);
-    sorts[1] = btor_bitvec_sort (g_btor, bw);
+    sorts[0] = btor_sort_bitvec (g_btor, bw);
+    sorts[1] = btor_sort_bitvec (g_btor, bw);
     e[0]     = btor_var_exp (g_btor, sorts[0], 0);
     e[1]     = btor_var_exp (g_btor, sorts[1], 0);
     concat   = btor_concat_exp (g_btor, e[0], e[1]);
@@ -1372,7 +1372,7 @@ PROP_INV_CONF_CONCAT_TESTS:
     }
     for (j = 0; j < 2; j++)
     {
-      btor_release_sort (g_btor, sorts[j]);
+      btor_sort_release (g_btor, sorts[j]);
       btor_release_exp (g_btor, cconcat[j]);
       btor_release_exp (g_btor, ce[j]);
       btor_release_exp (g_btor, e[j]);

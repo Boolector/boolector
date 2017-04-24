@@ -809,7 +809,7 @@ release_all_ext_sort_refs (Btor *btor)
     btor->external_refs -= sort->ext_refs;
     assert (sort->refs > 0);
     sort->ext_refs = 0;
-    btor_release_sort (btor, sort->id);
+    btor_sort_release (btor, sort->id);
   }
 }
 
@@ -1244,7 +1244,7 @@ normalize_substitution (Btor *btor,
   if (btor_is_bv_var_node (exp))
   {
     assert (btor_get_exp_width (btor, exp) == 1);
-    sort = btor_bitvec_sort (btor, 1);
+    sort = btor_sort_bitvec (btor, 1);
     if (BTOR_IS_INVERTED_NODE (exp))
     {
       *left_result  = btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (exp));
@@ -1255,7 +1255,7 @@ normalize_substitution (Btor *btor,
       *left_result  = btor_copy_exp (btor, exp);
       *right_result = btor_one_exp (btor, sort);
     }
-    btor_release_sort (btor, sort);
+    btor_sort_release (btor, sort);
     return 1;
   }
 
@@ -1310,13 +1310,13 @@ normalize_substitution (Btor *btor,
       leadings = btor_bv_get_num_leading_zeros (bits);
       if (leadings > 0)
       {
-        sort      = btor_bitvec_sort (btor, leadings);
+        sort      = btor_sort_bitvec (btor, leadings);
         const_exp = btor_zero_exp (btor, sort);
-        btor_release_sort (btor, sort);
+        btor_sort_release (btor, sort);
         sort =
-            btor_bitvec_sort (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_sort_bitvec (btor, btor_get_exp_width (btor, var) - leadings);
         lambda = btor_var_exp (btor, sort, 0);
-        btor_release_sort (btor, sort);
+        btor_sort_release (btor, sort);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -1331,13 +1331,13 @@ normalize_substitution (Btor *btor,
       leadings = btor_bv_get_num_leading_ones (bits);
       if (leadings > 0)
       {
-        sort      = btor_bitvec_sort (btor, leadings);
+        sort      = btor_sort_bitvec (btor, leadings);
         const_exp = btor_ones_exp (btor, sort);
-        btor_release_sort (btor, sort);
+        btor_sort_release (btor, sort);
         sort =
-            btor_bitvec_sort (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_sort_bitvec (btor, btor_get_exp_width (btor, var) - leadings);
         lambda = btor_var_exp (btor, sort, 0);
-        btor_release_sort (btor, sort);
+        btor_sort_release (btor, sort);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -3829,14 +3829,14 @@ btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
   BtorSortId sort;
   BtorTupleSortIterator it;
 
-  assert (btor_is_tuple_sort (
-      btor, btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (fun))));
-  btor_init_tuple_sort_iterator (
-      &it, btor, btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (fun)));
+  assert (btor_sort_is_tuple (
+      btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (fun))));
+  btor_iter_tuple_sort_init (
+      &it, btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (fun)));
   for (i = 0; i < argc; i++)
   {
-    assert (btor_has_next_tuple_sort_iterator (&it));
-    sort = btor_next_tuple_sort_iterator (&it);
+    assert (btor_iter_tuple_sort_has_next (&it));
+    sort = btor_iter_tuple_sort_next (&it);
     /* NOTE: we do not allow functions or arrays as arguments yet */
     if (!is_valid_argument (btor, args[i])
         || sort != btor_exp_get_sort_id (args[i]))

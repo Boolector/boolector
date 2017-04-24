@@ -78,12 +78,12 @@ test_map0 ()
   stor = btor_new_btor ();
   dtor = btor_new_btor ();
   mtor = btor_new_btor ();
-  sort = btor_bitvec_sort (stor, 32);
+  sort = btor_sort_bitvec (stor, 32);
   s    = btor_var_exp (stor, sort, "s");
-  btor_release_sort (stor, sort);
-  sort = btor_bitvec_sort (dtor, 32);
+  btor_sort_release (stor, sort);
+  sort = btor_sort_bitvec (dtor, 32);
   d    = btor_var_exp (dtor, sort, "d");
-  btor_release_sort (dtor, sort);
+  btor_sort_release (dtor, sort);
   map = btor_new_node_map (mtor);
   btor_map_node (map, s, d);
   m = btor_mapped_node (map, s);
@@ -106,14 +106,14 @@ test_map1 ()
 
   stor = btor_new_btor ();
   mtor = btor_new_btor ();
-  sort = btor_bitvec_sort (stor, 32);
+  sort = btor_sort_bitvec (stor, 32);
   s    = btor_var_exp (stor, sort, "0");
   t    = btor_var_exp (stor, sort, "1");
   a    = btor_and_exp (stor, s, t);
   map  = btor_new_node_map (mtor);
   // BtorNode * m;
   // m = btor_mapped_node (map, s);
-  btor_release_sort (stor, sort);
+  btor_sort_release (stor, sort);
   btor_release_exp (stor, t);
   btor_release_exp (stor, s);
   btor_release_exp (stor, a);

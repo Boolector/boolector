@@ -100,8 +100,8 @@ void btor_chkclone_sort (Btor *btor,
     const BtorSortId cloneres =                                             \
         BTOR_IMPORT_BOOLECTOR_SORT (boolector_##fun (btor->clone, ##args)); \
     const BtorSort *s0, *s1;                                                \
-    s0 = btor_get_sort_by_id (btor, res);                                   \
-    s1 = btor_get_sort_by_id (btor->clone, cloneres);                       \
+    s0 = btor_sort_get_by_id (btor, res);                                   \
+    s1 = btor_sort_get_by_id (btor->clone, cloneres);                       \
     btor_chkclone_sort (btor, btor->clone, s0, s1);                         \
   } while (0)
 

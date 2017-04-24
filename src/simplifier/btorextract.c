@@ -210,7 +210,7 @@ create_pattern_itoi (Btor *btor,
           == BTOR_REAL_ADDR_NODE (upper)->kind);
   assert (btor_is_bv_const_node (lower) || btor_is_add_node (lower));
   assert (btor_exp_get_sort_id (lower) == btor_exp_get_sort_id (upper));
-  assert (btor_get_codomain_fun_sort (btor, btor_exp_get_sort_id (array))
+  assert (btor_sort_fun_get_codomain (btor, btor_exp_get_sort_id (array))
           == btor_exp_get_sort_id (lower));
   assert (offset);
 
@@ -245,7 +245,7 @@ create_pattern_itoip1 (Btor *btor,
           == BTOR_REAL_ADDR_NODE (upper)->kind);
   assert (btor_is_bv_const_node (lower) || btor_is_add_node (lower));
   assert (btor_exp_get_sort_id (lower) == btor_exp_get_sort_id (upper));
-  assert (btor_get_codomain_fun_sort (btor, btor_exp_get_sort_id (array))
+  assert (btor_sort_fun_get_codomain (btor, btor_exp_get_sort_id (array))
           == btor_exp_get_sort_id (lower));
   assert (offset);
 

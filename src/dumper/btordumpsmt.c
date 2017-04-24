@@ -329,7 +329,7 @@ btor_dump_sort_smt_node (BtorNode *exp, FILE *file)
   BtorSort *sort;
 
   exp  = BTOR_REAL_ADDR_NODE (exp);
-  sort = btor_get_sort_by_id (exp->btor, btor_exp_get_sort_id (exp));
+  sort = btor_sort_get_by_id (exp->btor, btor_exp_get_sort_id (exp));
   btor_dump_sort_smt (sort, file);
 }
 
@@ -1084,9 +1084,9 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
            && is_boolean (sdc, btor_lambda_get_body (cur->e[0])))
           || (btor_is_fun_cond_node (cur->e[0]) && is_boolean (sdc, cur->e[1]))
           || (btor_is_uf_node (cur->e[0])
-              && btor_is_bool_sort (
+              && btor_sort_is_bool (
                      sdc->btor,
-                     btor_get_codomain_fun_sort (
+                     btor_sort_fun_get_codomain (
                          sdc->btor, btor_exp_get_sort_id (cur->e[0])))))
         btor_add_ptr_hash_table (sdc->boolean, cur);
       continue;

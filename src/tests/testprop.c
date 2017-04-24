@@ -83,8 +83,8 @@ prop_complete_binary_eidx (
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
   BtorSortId sort0, sort1;
 
-  sort0 = btor_bitvec_sort (g_btor, bw0);
-  sort1 = btor_bitvec_sort (g_btor, bw1);
+  sort0 = btor_sort_bitvec (g_btor, bw0);
+  sort1 = btor_sort_bitvec (g_btor, bw1);
   e[0]  = btor_var_exp (g_btor, sort0, 0);
   e[1]  = btor_var_exp (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
@@ -153,8 +153,8 @@ prop_complete_binary_eidx (
   btor_release_exp (g_btor, exp);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
-  btor_release_sort (g_btor, sort0);
-  btor_release_sort (g_btor, sort1);
+  btor_sort_release (g_btor, sort0);
+  btor_sort_release (g_btor, sort1);
   sat_res = sat_prop_solver_aux (g_btor);
   assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
@@ -402,7 +402,7 @@ test_prop_complete_slice_bv (void)
 
   TEST_PROP_INIT;
   bw   = TEST_PROP_COMPLETE_BW;
-  sort = btor_bitvec_sort (g_btor, bw);
+  sort = btor_sort_bitvec (g_btor, bw);
 
   for (lo = 0; lo < bw; lo++)
   {
@@ -472,7 +472,7 @@ test_prop_complete_slice_bv (void)
       }
     }
   }
-  btor_release_sort (g_btor, sort);
+  btor_sort_release (g_btor, sort);
   btor_delete_btor (g_btor);
 #endif
 }

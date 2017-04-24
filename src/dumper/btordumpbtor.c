@@ -258,7 +258,7 @@ static BtorSort *
 get_sort (BtorDumpContext *bdc, BtorNode *node)
 {
   BtorSort *sort;
-  sort = btor_get_sort_by_id (bdc->btor, btor_exp_get_sort_id (node));
+  sort = btor_sort_get_by_id (bdc->btor, btor_exp_get_sort_id (node));
   assert (btor_get_ptr_hash_table (bdc->sorts, sort));
   assert (sort->refs > 1);
   return sort;
@@ -594,7 +594,7 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 
     (void) btor_add_ptr_hash_table (mark_nodes, cur);
 
-    sort = btor_get_sort_by_id (bdc->btor, btor_exp_get_sort_id (cur));
+    sort = btor_sort_get_by_id (bdc->btor, btor_exp_get_sort_id (cur));
 
     if (!(btor_get_ptr_hash_table (bdc->sorts, sort)
           || btor_get_ptr_hash_table (mark_sorts, sort)))
@@ -777,7 +777,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     id = ++bdc->maxid;
     if (bdc->version == 1)
     {
-      if (btor_is_fun_sort (bdc->btor, btor_exp_get_sort_id (node)))
+      if (btor_sort_is_fun (bdc->btor, btor_exp_get_sort_id (node)))
         len = btor_get_fun_exp_width (bdc->btor, node);
       else
         len = btor_get_exp_width (bdc->btor, node);

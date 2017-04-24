@@ -415,13 +415,13 @@ create_function_inequality (Btor *btor, BtorNode *feq)
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, args);
-  funsort = btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (feq->e[0]));
+  funsort = btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (feq->e[0]));
 
-  btor_init_tuple_sort_iterator (&it, btor, funsort);
-  while (btor_has_next_tuple_sort_iterator (&it))
+  btor_iter_tuple_sort_init (&it, btor, funsort);
+  while (btor_iter_tuple_sort_has_next (&it))
   {
-    sort = btor_next_tuple_sort_iterator (&it);
-    assert (btor_is_bitvec_sort (btor, sort));
+    sort = btor_iter_tuple_sort_next (&it);
+    assert (btor_sort_is_bitvec (btor, sort));
     var = btor_var_exp (btor, sort, 0);
     BTOR_PUSH_STACK (args, var);
   }
