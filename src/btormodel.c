@@ -1017,7 +1017,7 @@ btor_model_generate (Btor *btor,
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (stack, i));
     assert (!cur->parameterized);
-    BTORLOG (3, "generate model for %s", node2string (cur));
+    BTORLOG (3, "generate model for %s", btor_util_node2string (cur));
     if (btor_is_fun_node (cur))
       recursively_compute_function_model (btor, bv_model, fun_model, cur);
     else

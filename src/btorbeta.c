@@ -56,9 +56,9 @@ cache_beta_result (Btor *btor,
   BTORLOG (3,
            "%s: (%s, %s) -> %s",
            __FUNCTION__,
-           node2string (lambda),
-           node2string (exp),
-           node2string (result));
+           btor_util_node2string (lambda),
+           btor_util_node2string (exp),
+           btor_util_node2string (result));
 }
 
 static BtorNode *
@@ -85,9 +85,9 @@ cached_beta_result (Btor *btor,
     BTORLOG (3,
              "%s: (%s, %s) -> %s",
              __FUNCTION__,
-             node2string (lambda),
-             node2string (exp),
-             node2string (bucket->data.as_ptr));
+             btor_util_node2string (lambda),
+             btor_util_node2string (exp),
+             btor_util_node2string (bucket->data.as_ptr));
     return (BtorNode *) bucket->data.as_ptr;
   }
 
@@ -105,7 +105,8 @@ btor_beta_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (btor_is_lambda_node (fun));
   assert (btor_is_args_node (args));
 
-  //  BTORLOG ("%s: %s (%d params, %d args)", __FUNCTION__, node2string (fun),
+  //  BTORLOG ("%s: %s (%d params, %d args)", __FUNCTION__,
+  //  btor_util_node2string (fun),
   //	   ((BtorLambdaNode *) fun)->num_params,
   //	   ((BtorArgsNode *) args)->num_args);
 
@@ -552,7 +553,7 @@ beta_reduce (Btor *btor,
   BTORLOG (2,
            "%s: result %s (%d)",
            __FUNCTION__,
-           node2string (result),
+           btor_util_node2string (result),
            BTOR_IS_INVERTED_NODE (result));
   btor->time.beta += btor_util_time_stamp () - start;
   return result;
@@ -867,7 +868,7 @@ beta_reduce_partial_aux (Btor *btor,
   BTORLOG (2,
            "%s: result %s (%d)",
            __FUNCTION__,
-           node2string (result),
+           btor_util_node2string (result),
            BTOR_IS_INVERTED_NODE (result));
   btor->time.betap += btor_util_time_stamp () - start;
 
@@ -877,7 +878,7 @@ beta_reduce_partial_aux (Btor *btor,
 BtorNode *
 btor_beta_reduce_full (Btor *btor, BtorNode *exp, BtorPtrHashTable *cache)
 {
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce (btor, exp, BETA_RED_FULL, 0, 0, cache);
 }
 
@@ -886,21 +887,21 @@ btor_beta_reduce_merge (Btor *btor,
                         BtorNode *exp,
                         BtorPtrHashTable *merge_lambdas)
 {
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce (btor, exp, BETA_RED_LAMBDA_MERGE, 0, merge_lambdas, 0);
 }
 
 BtorNode *
 btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
 {
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce (btor, exp, BETA_RED_BOUNDED, bound, 0, 0);
 }
 
 BtorNode *
 btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorPtrHashTable *conds)
 {
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce_partial_aux (btor, exp, 0, 0, conds);
 }
 
@@ -910,6 +911,6 @@ btor_beta_reduce_partial_collect (Btor *btor,
                                   BtorPtrHashTable *cond_sel_if,
                                   BtorPtrHashTable *cond_sel_else)
 {
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce_partial_aux (btor, exp, cond_sel_if, cond_sel_else, 0);
 }

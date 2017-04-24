@@ -114,7 +114,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   assert (btor_bv_is_zero (btor_model_get_bv (btor, res)));
 
   BTORLOG (1, "");
-  BTORLOG (1, "select constraint: %s", node2string (res));
+  BTORLOG (1, "select constraint: %s", btor_util_node2string (res));
 
   return res;
 }
@@ -153,7 +153,7 @@ move (Btor *btor, uint32_t nmoves)
   BTORLOG (1,
            "  input: %s%s",
            BTOR_IS_REGULAR_NODE (input) ? "" : "-",
-           node2string (input));
+           btor_util_node2string (input));
   BTORLOG (1, "  prev. assignment: %s", a);
   btor_mem_freestr (btor->mm, a);
   a = btor_bv_to_char (btor->mm, assignment);

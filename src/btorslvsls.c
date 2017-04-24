@@ -158,7 +158,8 @@ select_candidate_constraint (Btor *btor, int nmoves)
   assert (res);
 
   BTORLOG (1, "");
-  BTORLOG (1, "*** select candidate constraint: %s", node2string (res));
+  BTORLOG (
+      1, "*** select candidate constraint: %s", btor_util_node2string (res));
 
   return res;
 }
@@ -198,7 +199,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     if (btor_is_bv_var_node (real_cur))
     {
       BTOR_PUSH_STACK (*candidates, real_cur);
-      BTORLOG (1, "  %s", node2string (real_cur));
+      BTORLOG (1, "  %s", btor_util_node2string (real_cur));
       continue;
     }
 
@@ -335,7 +336,7 @@ try_move (Btor *btor,
     BTORLOG (2,
              "      candidate: %s%s",
              BTOR_IS_REGULAR_NODE (can) ? "" : "-",
-             node2string (can));
+             btor_util_node2string (can));
     a = btor_bv_to_char (btor->mm, prev_ass);
     BTORLOG (2, "        prev. assignment: %s", a);
     btor_mem_freestr (btor->mm, a);
@@ -1245,7 +1246,7 @@ move (Btor *btor, uint32_t nmoves)
     BTORLOG (1,
              "  candidate: %s%s",
              BTOR_IS_REGULAR_NODE (can) ? "" : "-",
-             node2string (can));
+             btor_util_node2string (can));
     BTORLOG (1, "  prev. assignment: %s", a);
     btor_mem_freestr (btor->mm, a);
     a = btor_bv_to_char (btor->mm, neigh);

@@ -52,7 +52,7 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
             2,
             "found uc (%c) term %s",
             exp->parameterized ? 'p' : 'n',
-            node2string (exp));
+            btor_util_node2string (exp));
 
   if (exp->parameterized)
   {
@@ -125,7 +125,7 @@ btor_optimize_unconstrained (Btor *btor)
     {
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
       btor_hashint_table_add (ucs, cur->id);
-      BTOR_MSG (btor->msg, 2, "found uc input %s", node2string (cur));
+      BTOR_MSG (btor->msg, 2, "found uc input %s", btor_util_node2string (cur));
       // TODO (ma): why not just collect ufs and vars?
       if (btor_is_uf_node (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE

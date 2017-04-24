@@ -259,7 +259,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
              || btor_is_fun_eq_node (real_exp))
     {
       if (!BTOR_IS_SYNTH_NODE (real_exp))
-        BTORLOG (1, "zero-initialize: %s", node2string (real_exp));
+        BTORLOG (1, "zero-initialize: %s", btor_util_node2string (real_exp));
       bv = btor_bv_get_assignment (btor->mm, real_exp, true);
     }
     else
@@ -390,8 +390,8 @@ assume_inputs (Btor *btor,
     bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
     BTORLOG (1,
              "assume input: %s (%s)",
-             node2string (cur_btor),
-             node2string (bv_const));
+             btor_util_node2string (cur_btor),
+             btor_util_node2string (bv_const));
     btor_assume_exp (clone, bv_eq);
     btor_nodemap_map (assumptions, bv_eq, cur_clone);
     btor_release_exp (clone, bv_const);
@@ -512,7 +512,8 @@ add_function_inequality_constraints (Btor *btor)
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
-    BTORLOG (2, "add inequality constraint for %s", node2string (cur));
+    BTORLOG (
+        2, "add inequality constraint for %s", btor_util_node2string (cur));
   }
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (feqs);
@@ -621,7 +622,7 @@ collect_applies (Btor *btor,
 
     if (btor_failed_exp (clone, bv_eq))
     {
-      BTORLOG (1, "failed: %s", node2string (cur_btor));
+      BTORLOG (1, "failed: %s", btor_util_node2string (cur_btor));
       if (btor_is_bv_var_node (cur_btor))
         slv->stats.dp_failed_vars += 1;
       else if (btor_is_fun_eq_node (cur_btor))
@@ -657,7 +658,7 @@ collect_applies (Btor *btor,
     /* we only need the "top applies" below a failed function equality */
     if (!cur_btor->parameterized && btor_is_apply_node (cur_btor))
     {
-      BTORLOG (1, "apply below eq: %s", node2string (cur_btor));
+      BTORLOG (1, "apply below eq: %s", btor_util_node2string (cur_btor));
       if (!btor_hashint_table_contains (top_applies, cur_btor->id))
       {
         BTOR_PUSH_STACK (*top_applies_feq, cur_btor);
@@ -924,7 +925,7 @@ search_initial_applies_bv_skeleton (Btor *btor,
       if (btor_is_apply_node (cur) && !cur->parameterized)
       {
         //	      assert (BTOR_IS_SYNTH_NODE (cur));
-        BTORLOG (1, "initial apply: %s", node2string (cur));
+        BTORLOG (1, "initial apply: %s", btor_util_node2string (cur));
         BTOR_PUSH_STACK (*applies, cur);
         continue;
       }
@@ -989,7 +990,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (btor_is_apply_node (cur) && !cur->parameterized)
       {
-        BTORLOG (1, "initial apply: %s", node2string (cur));
+        BTORLOG (1, "initial apply: %s", btor_util_node2string (cur));
         BTOR_PUSH_STACK (*top_applies, cur);
         continue;
       }
@@ -1211,9 +1212,9 @@ collect_premisses (Btor *btor,
   BTORLOG (1,
            "%s: %s, %s, %s",
            __FUNCTION__,
-           node2string (from),
-           node2string (to),
-           node2string (args));
+           btor_util_node2string (from),
+           btor_util_node2string (to),
+           btor_util_node2string (args));
 
   BtorMemMgr *mm;
   BtorNode *fun, *result;
@@ -1341,7 +1342,10 @@ add_symbolic_lemma (Btor *btor,
       assert (btor_iter_args_has_next (&it1));
       arg0 = btor_iter_args_next (&it0);
       arg1 = btor_iter_args_next (&it1);
-      BTORLOG (2, "  p %s = %s", node2string (arg0), node2string (arg1));
+      BTORLOG (2,
+               "  p %s = %s",
+               btor_util_node2string (arg0),
+               btor_util_node2string (arg1));
       eq = btor_eq_exp (btor, arg0, arg1);
       if (premise)
       {
@@ -1372,7 +1376,7 @@ add_symbolic_lemma (Btor *btor,
   while (btor_iter_hashptr_has_next (&it))
   {
     cond = btor_iter_hashptr_next (&it);
-    BTORLOG (1, "  p %s", node2string (cond));
+    BTORLOG (1, "  p %s", btor_util_node2string (cond));
     assert (btor_get_exp_width (btor, cond) == 1);
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
@@ -1393,7 +1397,7 @@ add_symbolic_lemma (Btor *btor,
   while (btor_iter_hashptr_has_next (&it))
   {
     cond = btor_iter_hashptr_next (&it);
-    BTORLOG (2, "  p %s", node2string (BTOR_INVERT_NODE (cond)));
+    BTORLOG (2, "  p %s", btor_util_node2string (BTOR_INVERT_NODE (cond)));
     assert (btor_get_exp_width (btor, cond) == 1);
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
@@ -1406,7 +1410,8 @@ add_symbolic_lemma (Btor *btor,
       premise = btor_copy_exp (btor, BTOR_INVERT_NODE (cond));
     btor_release_exp (btor, cond);
   }
-  BTORLOG (2, "  c %s = %s", node2string (a), node2string (b));
+  BTORLOG (
+      2, "  c %s = %s", btor_util_node2string (a), btor_util_node2string (b));
 
   assert (conclusion);
   if (premise)
@@ -1421,7 +1426,7 @@ add_symbolic_lemma (Btor *btor,
    * conflicts */
   if (!btor_hashptr_table_get (slv->lemmas, lemma))
   {
-    BTORLOG (2, "  lemma: %s", node2string (lemma));
+    BTORLOG (2, "  lemma: %s", btor_util_node2string (lemma));
     btor_hashptr_table_add (slv->lemmas, btor_copy_exp (btor, lemma));
     BTOR_PUSH_STACK (slv->cur_lemmas, lemma);
     slv->stats.lod_refinements++;
@@ -1657,8 +1662,8 @@ propagate (Btor *btor,
     slv->stats.propagations++;
 
     BTORLOG (1, "propagate");
-    BTORLOG (1, "  app: %s", node2string (app));
-    BTORLOG (1, "  fun: %s", node2string (fun));
+    BTORLOG (1, "  app: %s", btor_util_node2string (app));
+    BTORLOG (1, "  fun: %s", btor_util_node2string (fun));
 
     args = app->e[1];
     assert (BTOR_IS_REGULAR_NODE (args));
@@ -1687,11 +1692,11 @@ propagate (Btor *btor,
         if (!equal_bv_assignments (hashed_app, app))
         {
           BTORLOG (1, "\e[1;31m");
-          BTORLOG (1, "FC conflict at: %s", node2string (fun));
+          BTORLOG (1, "FC conflict at: %s", btor_util_node2string (fun));
           BTORLOG (1, "add_lemma:");
-          BTORLOG (1, "  fun: %s", node2string (fun));
-          BTORLOG (1, "  app1: %s", node2string (hashed_app));
-          BTORLOG (1, "  app2: %s", node2string (app));
+          BTORLOG (1, "  fun: %s", btor_util_node2string (fun));
+          BTORLOG (1, "  app1: %s", btor_util_node2string (hashed_app));
+          BTORLOG (1, "  app2: %s", btor_util_node2string (app));
           BTORLOG (1, "\e[0;39m");
           if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
           {
@@ -1712,7 +1717,10 @@ propagate (Btor *btor,
     assert (fun->rho);
     assert (!btor_hashptr_table_get (fun->rho, args));
     btor_hashptr_table_add (fun->rho, args)->data.as_ptr = app;
-    BTORLOG (1, "  save app: %s (%s)", node2string (args), node2string (app));
+    BTORLOG (1,
+             "  save app: %s (%s)",
+             btor_util_node2string (args),
+             btor_util_node2string (app));
 
     /* skip array vars/uf */
     if (btor_is_uf_node (fun)) continue;
@@ -1724,7 +1732,7 @@ propagate (Btor *btor,
       bv = get_bv_assignment (btor, fun->e[0]);
 
       /* propagate over function ite */
-      BTORLOG (1, "  propagate down: %s", node2string (app));
+      BTORLOG (1, "  propagate down: %s", btor_util_node2string (app));
       app->propagated = 0;
       BTOR_PUSH_STACK (*prop_stack, app);
       if (btor_bv_is_true (bv))
@@ -1755,15 +1763,15 @@ propagate (Btor *btor,
       BTOR_PUSH_STACK (*prop_stack, BTOR_REAL_ADDR_NODE (fun_value)->e[0]);
       slv->stats.propagations_down++;
       app->propagated = 0;
-      BTORLOG (1, "  propagate down: %s", node2string (app));
+      BTORLOG (1, "  propagate down: %s", btor_util_node2string (app));
     }
     else if (!equal_bv_assignments (app, fun_value))
     {
       BTORLOG (1, "\e[1;31m");
-      BTORLOG (1, "BR conflict at: %s", node2string (fun));
+      BTORLOG (1, "BR conflict at: %s", btor_util_node2string (fun));
       BTORLOG (1, "add_lemma:");
-      BTORLOG (1, "  fun: %s", node2string (fun));
-      BTORLOG (1, "  app: %s", node2string (app));
+      BTORLOG (1, "  fun: %s", btor_util_node2string (fun));
+      BTORLOG (1, "  app: %s", btor_util_node2string (app));
       BTORLOG (1, "\e[0;39m");
       if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
       {
@@ -1992,7 +2000,7 @@ add_extensionality_lemmas (Btor *btor)
         btor_hashptr_table_add (conflicts, cur_args);
     }
 
-    BTORLOG (1, "  %s", node2string (cur));
+    BTORLOG (1, "  %s", btor_util_node2string (cur));
     btor_iter_hashptr_init (&hit, conflicts);
     while (btor_iter_hashptr_has_next (&hit))
     {
@@ -2010,7 +2018,10 @@ add_extensionality_lemmas (Btor *btor)
         slv->stats.extensionality_lemmas++;
         slv->stats.lod_refinements++;
         num_lemmas++;
-        BTORLOG (1, "    %s, %s", node2string (app0), node2string (app1));
+        BTORLOG (1,
+                 "    %s, %s",
+                 btor_util_node2string (app0),
+                 btor_util_node2string (app1));
       }
       btor_release_exp (btor, app0);
       btor_release_exp (btor, app1);
@@ -2745,7 +2756,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
           btor_bv_free (mm, e[2]);
           break;
         default:
-          BTORLOG (1, "  *** %s", node2string (real_cur));
+          BTORLOG (1, "  *** %s", btor_util_node2string (real_cur));
           /* should be unreachable */
           assert (0);
       }
@@ -2795,7 +2806,8 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   btor_hashptr_table_delete (cache);
   btor_hashint_map_delete (mark);
 
-  //  BTORLOG ("%s: %s '%s'", __FUNCTION__, node2string (exp), result);
+  //  BTORLOG ("%s: %s '%s'", __FUNCTION__, btor_util_node2string (exp),
+  //  result);
   slv->time.eval += btor_util_time_stamp () - start;
 
   return result;

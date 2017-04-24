@@ -255,7 +255,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   BtorPtrHashTableIterator it;
 
   mm = btor->mm;
-  //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  //  BTORLOG ("%s: %s", __FUNCTION__, btor_util_node2string (exp));
 
   switch (exp->kind)
   {

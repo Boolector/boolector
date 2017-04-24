@@ -929,7 +929,10 @@ btor_delete_btor (Btor *btor)
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
     if (cur)
     {
-      BTORLOG (1, "  unreleased node: %s (%d)", node2string (cur), cur->refs);
+      BTORLOG (1,
+               "  unreleased node: %s (%d)",
+               btor_util_node2string (cur),
+               cur->refs);
       node_leak = true;
     }
   }
@@ -1131,8 +1134,10 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 
   if (!bucket)
   {
-    BTORLOG (
-        1, "add varsubst: %s -> %s", node2string (left), node2string (right));
+    BTORLOG (1,
+             "add varsubst: %s -> %s",
+             btor_util_node2string (left),
+             btor_util_node2string (right));
     btor_hashptr_table_add (vsc, btor_copy_exp (btor, left))->data.as_ptr =
         btor_copy_exp (btor, right);
     /* do not set constraint flag, as they are gone after substitution
@@ -3247,7 +3252,7 @@ btor_synthesize_exp (Btor *btor,
 
   BTOR_INIT_STACK (mm, exp_stack);
   BTOR_PUSH_STACK (exp_stack, exp);
-  BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
 
   while (!BTOR_EMPTY_STACK (exp_stack))
   {
@@ -3261,7 +3266,7 @@ btor_synthesize_exp (Btor *btor,
       if (btor_is_bv_const_node (cur))
       {
         cur->av = btor_aigvec_const (avmgr, btor_const_get_bits (cur));
-        BTORLOG (2, "  synthesized: %s", node2string (cur));
+        BTORLOG (2, "  synthesized: %s", btor_util_node2string (cur));
         /* no need to call btor_aigvec_to_sat_tseitin here */
       }
       /* encode bv skeleton inputs: var, apply, feq */
@@ -3296,7 +3301,7 @@ btor_synthesize_exp (Btor *btor,
             b->data.as_str = btor_mem_strdup (mm, name);
           }
         }
-        BTORLOG (2, "  synthesized: %s", node2string (cur));
+        BTORLOG (2, "  synthesized: %s", btor_util_node2string (cur));
         btor_aigvec_to_sat_tseitin (avmgr, cur->av);
 
         /* continue synthesizing children for apply and feq nodes if
@@ -3488,7 +3493,7 @@ btor_synthesize_exp (Btor *btor,
         }
       }
       assert (cur->av);
-      BTORLOG (2, "  synthesized: %s", node2string (cur));
+      BTORLOG (2, "  synthesized: %s", btor_util_node2string (cur));
       btor_aigvec_to_sat_tseitin (avmgr, cur->av);
     }
   }
@@ -4031,7 +4036,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       fmodel = btor_model_get_fun (btor, simp);
       if (!fmodel) continue;
 
-      BTORLOG (2, "assert model for %s", node2string (real_simp_clone));
+      BTORLOG (
+          2, "assert model for %s", btor_util_node2string (real_simp_clone));
       btor_iter_hashptr_init (&it, (BtorPtrHashTable *) fmodel);
       while (btor_iter_hashptr_has_next (&it))
       {
@@ -4064,7 +4070,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       BTORLOG (2,
                "assert model for %s (%s)",
-               node2string (real_simp_clone),
+               btor_util_node2string (real_simp_clone),
                btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
       model =

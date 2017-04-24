@@ -78,7 +78,7 @@ int btor_util_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
 
-char *node2string (BtorNode *);
-int btor_vis_exp (Btor *btor, BtorNode *exp);
+char *btor_util_node2string (BtorNode *);
+int btor_util_vis_exp (Btor *btor, BtorNode *exp);
 
 #endif

@@ -157,7 +157,7 @@ compute_sls_score_node (Btor *btor,
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
   BTORLOG (3, "");
-  BTORLOG (3, "*** compute sls score for: %s", node2string (exp));
+  BTORLOG (3, "*** compute sls score for: %s", btor_util_node2string (exp));
 
   if (btor_is_and_node (real_exp))
   {
@@ -859,12 +859,12 @@ select_path_add (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (add));
+  BTORLOG (2, "select path: %s", btor_util_node2string (add));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (add->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (add->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (add->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (add->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -926,12 +926,12 @@ select_path_and (Btor *btor,
 #ifndef NBTORLOG
   char *a;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (and));
+  BTORLOG (2, "select path: %s", btor_util_node2string (and));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (and->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (and->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (and->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (and->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -961,12 +961,12 @@ select_path_eq (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (eq));
+  BTORLOG (2, "select path: %s", btor_util_node2string (eq));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (eq->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (eq->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (eq->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (eq->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1014,12 +1014,12 @@ select_path_ult (Btor *btor,
 #ifndef NBTORLOG
   char *a;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (ult));
+  BTORLOG (2, "select path: %s", btor_util_node2string (ult));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (ult->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (ult->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (ult->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (ult->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1072,12 +1072,12 @@ DONE:
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (sll));
+  BTORLOG (2, "select path: %s", btor_util_node2string (sll));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (sll->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (sll->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (sll->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (sll->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1131,12 +1131,12 @@ DONE:
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (srl));
+  BTORLOG (2, "select path: %s", btor_util_node2string (srl));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (srl->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (srl->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (srl->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (srl->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1200,12 +1200,12 @@ select_path_mul (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (mul));
+  BTORLOG (2, "select path: %s", btor_util_node2string (mul));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (mul->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (mul->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (mul->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (mul->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1281,12 +1281,12 @@ select_path_udiv (Btor *btor,
 #ifndef NBTORLOG
   char *a;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (udiv));
+  BTORLOG (2, "select path: %s", btor_util_node2string (udiv));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (udiv->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (udiv->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (udiv->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (udiv->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1361,12 +1361,12 @@ select_path_urem (Btor *btor,
 #ifndef NBTORLOG
   char *a;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (urem));
+  BTORLOG (2, "select path: %s", btor_util_node2string (urem));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (urem->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (urem->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (urem->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (urem->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1415,12 +1415,12 @@ select_path_concat (Btor *btor,
 #ifndef NBTORLOG
   char *a;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (concat));
+  BTORLOG (2, "select path: %s", btor_util_node2string (concat));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (concat->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (concat->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, bve[1]);
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (concat->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (concat->e[1]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -1449,9 +1449,9 @@ select_path_slice (Btor *btor,
   char *a;
   BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (slice));
+  BTORLOG (2, "select path: %s", btor_util_node2string (slice));
   a = btor_bv_to_char (mm, bve[0]);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (slice->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (slice->e[0]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: 0");
 #endif
@@ -1556,15 +1556,15 @@ select_path_cond (Btor *btor,
   BtorMemMgr *mm = btor->mm;
 
   BTORLOG (2, "");
-  BTORLOG (2, "select path: %s", node2string (cond));
+  BTORLOG (2, "select path: %s", btor_util_node2string (cond));
   a = btor_bv_to_char (mm, bve0);
-  BTORLOG (2, "       e[0]: %s (%s)", node2string (cond->e[0]), a);
+  BTORLOG (2, "       e[0]: %s (%s)", btor_util_node2string (cond->e[0]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[1]));
-  BTORLOG (2, "       e[1]: %s (%s)", node2string (cond->e[1]), a);
+  BTORLOG (2, "       e[1]: %s (%s)", btor_util_node2string (cond->e[1]), a);
   btor_mem_freestr (mm, a);
   a = btor_bv_to_char (mm, btor_model_get_bv (btor, cond->e[2]));
-  BTORLOG (2, "       e[2]: %s (%s)", node2string (cond->e[2]), a);
+  BTORLOG (2, "       e[2]: %s (%s)", btor_util_node2string (cond->e[2]), a);
   btor_mem_freestr (mm, a);
   BTORLOG (2, "    * chose: %d", eidx);
 #endif
@@ -2213,7 +2213,7 @@ check_result_binary_dbg (Btor *btor,
   BTORLOG (3,
            "prop (e[%d]): %s: %s := %s %s %s",
            eidx,
-           node2string (exp),
+           btor_util_node2string (exp),
            sbvexp,
            eidx ? sbve : sres,
            op,
@@ -3783,7 +3783,7 @@ inv_slice_bv (Btor *btor,
   char *sres     = btor_bv_to_char (mm, res);
   BTORLOG (3,
            "prop (xxxxx): %s: %s := %s[%d:%d]",
-           node2string (slice),
+           btor_util_node2string (slice),
            sbvslice,
            sres,
            lower,

@@ -499,7 +499,7 @@ char g_strbuf[BUFFER_SIZE];
 int g_strbufpos = 0;
 
 char *
-node2string (BtorNode *exp)
+btor_util_node2string (BtorNode *exp)
 {
   Btor *btor;
   BtorNode *real_exp;
@@ -570,7 +570,7 @@ node2string (BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 int
-btor_vis_exp (Btor *btor, BtorNode *exp)
+btor_util_vis_exp (Btor *btor, BtorNode *exp)
 {
   char cmd[100], *path;
   FILE *file;
