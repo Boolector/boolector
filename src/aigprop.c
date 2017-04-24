@@ -507,7 +507,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   BtorAIG *cur, *left, *right;
   BtorMemMgr *mm;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   mm = aprop->amgr->btor->mm;
 
@@ -565,7 +565,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   BTOR_RELEASE_STACK (stack);
   btor_hashint_table_delete (cache);
 
-  aprop->time.update_cone_reset += btor_time_stamp () - start;
+  aprop->time.update_cone_reset += btor_util_time_stamp () - start;
 
   /* update assignment and score of 'aig' --------------------------------- */
   /* update model */
@@ -594,7 +594,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
 
   /* update model of cone ------------------------------------------------- */
 
-  delta = btor_time_stamp ();
+  delta = btor_util_time_stamp ();
 
   for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
   {
@@ -620,14 +620,14 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
     d->as_int = ass;
   }
 
-  aprop->time.update_cone_model_gen += btor_time_stamp () - delta;
-  delta = btor_time_stamp ();
+  aprop->time.update_cone_model_gen += btor_util_time_stamp () - delta;
+  delta = btor_util_time_stamp ();
 
   /* update score of cone ------------------------------------------------- */
 
   if (aprop->score)
   {
-    delta = btor_time_stamp ();
+    delta = btor_util_time_stamp ();
     for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
     {
       cur = BTOR_PEEK_STACK (cone, i);
@@ -665,7 +665,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
       assert (s >= 0.0 && s <= 1.0);
       btor_hashint_map_get (aprop->score, -cur->id)->as_dbl = s;
     }
-    aprop->time.update_cone_compute_score += btor_time_stamp () - delta;
+    aprop->time.update_cone_compute_score += btor_util_time_stamp () - delta;
   }
 
   BTOR_RELEASE_STACK (cone);
@@ -698,7 +698,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
   }
 #endif
 
-  aprop->time.update_cone += btor_time_stamp () - start;
+  aprop->time.update_cone += btor_util_time_stamp () - start;
 }
 
 /*------------------------------------------------------------------------*/
@@ -920,7 +920,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
   BtorIntStack *childparents;
   BtorAIG *root, *cur, *child;
 
-  start      = btor_time_stamp ();
+  start      = btor_util_time_stamp ();
   sat_result = AIGPROP_UNKNOWN;
   nmoves     = 0;
 
@@ -1051,7 +1051,7 @@ DONE:
   if (aprop->score) btor_hashint_map_delete (aprop->score);
   aprop->score = 0;
 
-  aprop->time.sat += btor_time_stamp () - start;
+  aprop->time.sat += btor_util_time_stamp () - start;
   return sat_result;
 }
 

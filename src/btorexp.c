@@ -38,7 +38,7 @@
 
 #define BTOR_FULL_UNIQUE_TABLE(table)   \
   ((table).num_elements >= (table).size \
-   && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
+   && btor_util_log_2 ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
 
 /*------------------------------------------------------------------------*/
 
@@ -169,7 +169,7 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
 {
   assert (exp);
   assert (table_size > 0);
-  assert (btor_is_power_of_2_util (table_size));
+  assert (btor_util_is_power_of_2 (table_size));
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_is_bv_var_node (exp));
   assert (!btor_is_uf_node (exp));
@@ -1198,8 +1198,8 @@ btor_precond_shift_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (!btor_is_fun_node (e0));
   assert (!btor_is_fun_node (e1));
   assert (btor_get_exp_width (btor, e0) > 1);
-  assert (btor_is_power_of_2_util (btor_get_exp_width (btor, e0)));
-  assert (btor_log_2_util (btor_get_exp_width (btor, e0))
+  assert (btor_util_is_power_of_2 (btor_get_exp_width (btor, e0)));
+  assert (btor_util_log_2 (btor_get_exp_width (btor, e0))
           == btor_get_exp_width (btor, e1));
   assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);

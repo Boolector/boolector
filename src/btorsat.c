@@ -241,7 +241,7 @@ btor_sat_add (BtorSATMgr *smgr, int lit)
 BtorSolverResult
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
-  double start = btor_time_stamp ();
+  double start = btor_util_time_stamp ();
   int sat_res;
   BtorSolverResult res;
   assert (smgr != NULL);
@@ -252,7 +252,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   smgr->satcalls++;
   if (smgr->api.setterm) smgr->api.setterm (smgr);
   sat_res = smgr->api.sat (smgr, limit);
-  smgr->sat_time += btor_time_stamp () - start;
+  smgr->sat_time += btor_util_time_stamp () - start;
   switch (sat_res)
   {
     case 10: res = BTOR_RESULT_SAT; break;

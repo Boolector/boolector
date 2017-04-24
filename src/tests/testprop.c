@@ -179,7 +179,7 @@ prop_complete_binary (uint32_t n,
 
   TEST_PROP_ONE_COMPLETE_BINARY_INIT (create_exp);
   if (create_exp == btor_sll_exp || create_exp == btor_srl_exp)
-    bw1 = btor_log_2_util (bw0);
+    bw1 = btor_util_log_2 (bw0);
 
   for (i = 0; i < (uint32_t) (1 << bw0); i++)
   {

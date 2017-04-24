@@ -758,7 +758,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
   {
     bv1 = random_bv (bit_width);
     if (int_func == sll || int_func == srl)
-      bv2 = random_bv (btor_log_2_util (bit_width));
+      bv2 = random_bv (btor_util_log_2 (bit_width));
     else
       bv2 = random_bv (bit_width);
     res  = bitvec_func (g_mm, bv1, bv2);

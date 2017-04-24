@@ -1783,7 +1783,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   BtorSATMgr *smgr;
   BtorIntHashTable *mark;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
@@ -1903,7 +1903,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   }
 
   btor_hashint_table_delete (mark);
-  btor->time.failed += btor_time_stamp () - start;
+  btor->time.failed += btor_util_time_stamp () - start;
 
   return res;
 }
@@ -2454,7 +2454,7 @@ substitute_var_exps (Btor *btor)
 
   if (varsubst_constraints->count == 0u) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   BTOR_INIT_STACK (mm, stack);
 
@@ -2671,7 +2671,7 @@ substitute_var_exps (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (stack);
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.subst += delta;
   BTOR_MSG (
       btor->msg, 1, "%d variables substituted in %.1f seconds", count, delta);
@@ -2820,7 +2820,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   if (subst->count == 0u) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
 
   mark = btor_hashint_map_new (mm);
@@ -2939,7 +2939,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   update_node_hash_tables (btor);
   assert (btor_dbg_check_lambdas_static_rho_proxy_free (btor));
-  btor->time.subst_rebuild += btor_time_stamp () - start;
+  btor->time.subst_rebuild += btor_util_time_stamp () - start;
 }
 
 void
@@ -2982,7 +2982,7 @@ process_embedded_constraints (Btor *btor)
 
   if (btor->embedded_constraints->count > 0u)
   {
-    start = btor_time_stamp ();
+    start = btor_util_time_stamp ();
     count = 0;
     BTOR_INIT_STACK (btor->mm, ec);
     btor_iter_hashptr_init (&it, btor->embedded_constraints);
@@ -3011,7 +3011,7 @@ process_embedded_constraints (Btor *btor)
     }
     BTOR_RELEASE_STACK (ec);
 
-    delta = btor_time_stamp () - start;
+    delta = btor_util_time_stamp () - start;
     btor->time.embedded += delta;
     BTOR_MSG (btor->msg,
               1,
@@ -3074,7 +3074,7 @@ btor_simplify (Btor *btor)
 #endif
 
   rounds = 0;
-  start  = btor_time_stamp ();
+  start  = btor_util_time_stamp ();
 
   if (btor->inconsistent) goto DONE;
 
@@ -3192,7 +3192,7 @@ btor_simplify (Btor *btor)
            || btor->embedded_constraints->count);
 
 DONE:
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.simplify += delta;
   BTOR_MSG (btor->msg, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
@@ -3239,7 +3239,7 @@ btor_synthesize_exp (Btor *btor,
   assert (btor);
   assert (exp);
 
-  start          = btor_time_stamp ();
+  start          = btor_util_time_stamp ();
   mm             = btor->mm;
   avmgr          = btor->avmgr;
   count          = 0;
@@ -3500,7 +3500,7 @@ btor_synthesize_exp (Btor *btor,
     BTOR_MSG (
         btor->msg, 3, "synthesized %u expressions into AIG vectors", count);
 
-  btor->time.synth_exp += btor_time_stamp () - start;
+  btor->time.synth_exp += btor_util_time_stamp () - start;
 }
 
 /* forward assumptions to the SAT solver */
@@ -3620,7 +3620,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   BtorSolverResult res;
   uint32_t engine;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
@@ -3786,7 +3786,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     check_failed_assumptions (btor);
 #endif
 
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
 
   BTOR_MSG (btor->msg,
             1,

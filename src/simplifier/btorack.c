@@ -30,7 +30,7 @@ btor_add_ackermann_constraints (Btor *btor)
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
   cache = btor_hashint_table_new (mm);
   BTOR_INIT_STACK (mm, visit);
@@ -107,7 +107,7 @@ btor_add_ackermann_constraints (Btor *btor)
     BTOR_RELEASE_STACK (applies);
   }
   btor_hashint_table_delete (cache);
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
             "added %d ackermann constraints in %.3f seconds",

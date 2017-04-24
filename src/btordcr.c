@@ -172,7 +172,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         if (b && (t = b->data.as_ptr))
         {
           /* merge tables */
-          delta = btor_time_stamp ();
+          delta = btor_util_time_stamp ();
           btor_iter_hashptr_init (&it, t);
           while (btor_iter_hashptr_has_next (&it))
           {
@@ -181,7 +181,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
               btor_hashptr_table_add (in, btor_copy_exp (btor, e));
           }
           slv->time.search_init_apps_compute_scores_merge_applies +=
-              btor_time_stamp () - delta;
+              btor_util_time_stamp () - delta;
         }
         else
         {
@@ -248,7 +248,7 @@ btor_compute_scores (Btor *btor)
    * selected heuristic and are treated as such in compare_scores).
    * -> see btor_compute_scores_dual_prop */
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, nodes);
@@ -294,7 +294,7 @@ btor_compute_scores (Btor *btor)
 
   BTOR_RELEASE_STACK (nodes);
 
-  slv->time.search_init_apps_compute_scores += btor_time_stamp () - start;
+  slv->time.search_init_apps_compute_scores += btor_util_time_stamp () - start;
 }
 
 void
@@ -316,7 +316,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   if (btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
     return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
   mark = btor_hashint_table_new (mm);
@@ -373,7 +373,7 @@ btor_compute_scores_dual_prop (Btor *btor)
 
   BTOR_RELEASE_STACK (nodes);
 
-  slv->time.search_init_apps_compute_scores += btor_time_stamp () - start;
+  slv->time.search_init_apps_compute_scores += btor_util_time_stamp () - start;
 }
 
 int

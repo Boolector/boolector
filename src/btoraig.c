@@ -140,7 +140,7 @@ hash_aig (int32_t id0, int32_t id1, unsigned table_size)
 {
   unsigned hash;
   assert (table_size > 0);
-  assert (btor_is_power_of_2_util (table_size));
+  assert (btor_util_is_power_of_2 (table_size));
   hash = 547789289u * (unsigned int) abs (id0);
   hash += 786695309u * (unsigned int) abs (id1);
   hash *= BTOR_AIG_UNIQUE_TABLE_PRIME;
@@ -718,7 +718,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (!res)
   {
     if (amgr->table.num_elements == amgr->table.size
-        && btor_log_2_util (amgr->table.size) < BTOR_AIG_UNIQUE_TABLE_LIMIT)
+        && btor_util_log_2 (amgr->table.size) < BTOR_AIG_UNIQUE_TABLE_LIMIT)
     {
       enlarge_aig_nodes_unique_table (amgr);
       lookup = find_and_aig (amgr, left, right);

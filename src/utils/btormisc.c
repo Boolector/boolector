@@ -51,7 +51,7 @@ node2string (BtorNode *exp)
 
   strbuf[0] = '\0';
   cur_len   = 0;
-  new_len   = btor_num_digits_util (real_exp->id);
+  new_len   = btor_util_num_digits (real_exp->id);
 
   if (BTOR_IS_INVERTED_NODE (exp)) new_len += 1;
   new_len += 1 + strlen (name); /* space + name */
@@ -60,7 +60,7 @@ node2string (BtorNode *exp)
   for (i = 0; i < real_exp->arity; i++)
   {
     new_len += 1; /* space */
-    new_len += btor_num_digits_util (BTOR_REAL_ADDR_NODE (real_exp->e[i])->id);
+    new_len += btor_util_num_digits (BTOR_REAL_ADDR_NODE (real_exp->e[i])->id);
     if (BTOR_IS_INVERTED_NODE (real_exp->e[i])) new_len += 1;
     BUFCONCAT (
         strbuf, cur_len, new_len, " %d", btor_exp_get_id (real_exp->e[i]));
@@ -68,8 +68,8 @@ node2string (BtorNode *exp)
 
   if (btor_is_slice_node (real_exp))
   {
-    new_len += btor_num_digits_util (btor_slice_get_upper (exp)) + 1;
-    new_len += btor_num_digits_util (btor_slice_get_lower (exp)) + 1;
+    new_len += btor_util_num_digits (btor_slice_get_upper (exp)) + 1;
+    new_len += btor_util_num_digits (btor_slice_get_lower (exp)) + 1;
     BUFCONCAT (strbuf,
                cur_len,
                new_len,

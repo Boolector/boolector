@@ -81,7 +81,7 @@ not_logic_test (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (unsigned int) max; i++)
     {
       result = ~i & (max - 1);
@@ -118,7 +118,7 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (unsigned int) max; i++)
     {
       for (j = 0; j < (unsigned int) max; j++)
@@ -155,7 +155,7 @@ xnor_logic_test (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (unsigned int) max; i++)
     {
       for (j = 0; j < (unsigned int) max; j++)
@@ -196,7 +196,7 @@ red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (unsigned int) max; i++)
     {
       result = func (i, (unsigned int) num_bits);

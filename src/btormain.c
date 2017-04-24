@@ -573,7 +573,7 @@ print_opt (BtorMainApp *app,
   /* append default value to description */
   if (print_dflt)
   {
-    len = strlen (desc) + 3 + btor_num_digits_util (dflt);
+    len = strlen (desc) + 3 + btor_util_num_digits (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);
     sprintf (descstr, "%s [%d]", desc, dflt);
   }
@@ -757,7 +757,7 @@ static void
 print_static_stats (int sat_res)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
-  double delta_time = delta_time = btor_time_stamp () - g_start_time;
+  double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
   btormain_msg ("%.1f seconds", delta_time);
   btormain_msg ("%s",
                 sat_res == BOOLECTOR_SAT
@@ -915,7 +915,7 @@ boolector_main (int argc, char **argv)
   BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
-  g_start_time = btor_time_stamp ();
+  g_start_time = btor_util_time_stamp ();
 #endif
 
   g_app = btormain_new_btormain (boolector_new ());
@@ -957,7 +957,7 @@ boolector_main (int argc, char **argv)
 
       g_app->infile_name = arg;
 
-      if (!btor_file_exists (g_app->infile_name))
+      if (!btor_util_file_exists (g_app->infile_name))
       {
         g_app->infile = 0;
       }
@@ -1452,7 +1452,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
     if (g_verbosity)
     {
-      double delta_time = delta_time = btor_time_stamp () - g_start_time;
+      double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
       btormain_msg ("%.1f seconds", delta_time);
     }
 #endif

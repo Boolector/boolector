@@ -564,7 +564,7 @@ btor_propsls_update_cone (Btor *btor,
   BtorBitVector *bv, *e[3], *ass;
   BtorMemMgr *mm;
 
-  start = delta = btor_time_stamp ();
+  start = delta = btor_util_time_stamp ();
 
   mm = btor->mm;
 
@@ -618,7 +618,7 @@ btor_propsls_update_cone (Btor *btor,
   BTOR_RELEASE_STACK (stack);
   btor_hashint_table_delete (cache);
 
-  *time_update_cone_reset += btor_time_stamp () - delta;
+  *time_update_cone_reset += btor_util_time_stamp () - delta;
 
   /* update assignment and score of exps ----------------------------------- */
 
@@ -669,7 +669,7 @@ btor_propsls_update_cone (Btor *btor,
 
   /* update model of cone ------------------------------------------------- */
 
-  delta = btor_time_stamp ();
+  delta = btor_util_time_stamp ();
 
   for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
   {
@@ -758,13 +758,13 @@ btor_propsls_update_cone (Btor *btor,
     /* cleanup */
     for (j = 0; j < cur->arity; j++) btor_bv_free (mm, e[j]);
   }
-  *time_update_cone_model_gen += btor_time_stamp () - delta;
+  *time_update_cone_model_gen += btor_util_time_stamp () - delta;
 
   /* update score of cone ------------------------------------------------- */
 
   if (score)
   {
-    delta = btor_time_stamp ();
+    delta = btor_util_time_stamp ();
     for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
     {
       cur = BTOR_PEEK_STACK (cone, i);
@@ -785,7 +785,7 @@ btor_propsls_update_cone (Btor *btor,
       btor_hashint_map_get (score, -id)->as_dbl = compute_sls_score_node (
           btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (cur));
     }
-    *time_update_cone_compute_score += btor_time_stamp () - delta;
+    *time_update_cone_compute_score += btor_util_time_stamp () - delta;
   }
 
   BTOR_RELEASE_STACK (cone);
@@ -802,7 +802,7 @@ btor_propsls_update_cone (Btor *btor,
       assert (!btor_hashint_map_contains (roots, btor_exp_get_id (root)));
   }
 #endif
-  *time_update_cone += btor_time_stamp () - start;
+  *time_update_cone += btor_util_time_stamp () - start;
 }
 
 /*========================================================================*/
@@ -1772,7 +1772,7 @@ cons_sll_bv (Btor *btor,
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
-  assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
+  assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
   assert (!btor_is_bv_const_node (sll->e[eidx]));
 
   uint32_t i, s, bw, sbw, ctz_bvsll;
@@ -1788,7 +1788,7 @@ cons_sll_bv (Btor *btor,
 #endif
   mm  = btor->mm;
   bw  = bvsll->width;
-  sbw = btor_log_2_util (bw);
+  sbw = btor_util_log_2 (bw);
 
   ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
   from      = btor_bv_new (mm, sbw);
@@ -1828,7 +1828,7 @@ cons_srl_bv (Btor *btor,
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
-  assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
+  assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
   assert (!btor_is_bv_const_node (srl->e[eidx]));
 
   uint32_t i, s, bw, sbw;
@@ -1844,7 +1844,7 @@ cons_srl_bv (Btor *btor,
 #endif
   mm  = btor->mm;
   bw  = bvsrl->width;
-  sbw = btor_log_2_util (bw);
+  sbw = btor_util_log_2 (bw);
 
   for (i = 0; i < bw; i++)
     if (btor_bv_get_bit (bvsrl, bw - 1 - i)) break;
@@ -2558,7 +2558,7 @@ inv_sll_bv (Btor *btor,
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
-  assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
+  assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
   assert (!btor_is_bv_const_node (sll->e[eidx]));
 
   uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw;
@@ -2584,7 +2584,7 @@ inv_sll_bv (Btor *btor,
    *    (considering zero LSB in bve) */
   if (eidx)
   {
-    sbw = btor_log_2_util (bvsll->width);
+    sbw = btor_util_log_2 (bvsll->width);
 
     /* 0...0 << e[1] = 0...0 -> choose res randomly */
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsll))
@@ -2700,7 +2700,7 @@ inv_srl_bv (Btor *btor,
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
-  assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
+  assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
   assert (!btor_is_bv_const_node (srl->e[eidx]));
 
   uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw;
@@ -2726,7 +2726,7 @@ inv_srl_bv (Btor *btor,
    *    (considering zero MSBs in bve) */
   if (eidx)
   {
-    sbw = btor_log_2_util (bvsrl->width);
+    sbw = btor_util_log_2 (bvsrl->width);
 
     /* 0...0 >> e[1] = 0...0 -> choose random res */
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsrl))

@@ -186,7 +186,7 @@ ext_test_misc (char *(*func) (int, int, int),
   assert (func == uext || func == sext);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < num_bits; j++)
@@ -243,7 +243,7 @@ concat_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -281,7 +281,7 @@ cond_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -320,7 +320,7 @@ read_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)

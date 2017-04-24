@@ -42,7 +42,7 @@ static BtorRNG *g_rng;
   do                                             \
   {                                              \
     bw   = TEST_PROP_INV_COMPLETE_BW;            \
-    sbw  = btor_log_2_util (bw);                 \
+    sbw  = btor_util_log_2 (bw);                 \
     sort = btor_sort_bitvec (g_btor, bw);        \
     e[0] = btor_var_exp (g_btor, sort, 0);       \
     btor_sort_release (g_btor, sort);            \
@@ -276,7 +276,7 @@ test_propinv_complete_slice_bv (void)
     sort = btor_sort_bitvec (g_btor, bw);                   \
     e[0] = btor_var_exp (g_btor, sort, 0);                  \
     btor_sort_release (g_btor, sort);                       \
-    sort = btor_sort_bitvec (g_btor, btor_log_2_util (bw)); \
+    sort = btor_sort_bitvec (g_btor, btor_util_log_2 (bw)); \
     e[1] = btor_var_exp (g_btor, sort, 0);                  \
     btor_sort_release (g_btor, sort);                       \
     fun = btor_##fun##_exp (g_btor, e[0], e[1]);            \

@@ -120,7 +120,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
   assert (btor != NULL);
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   count = 0;
 
   mm = btor->mm;
@@ -300,7 +300,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
   BTOR_RELEASE_STACK (vars);
 
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.slicing += delta;
   BTOR_MSG (btor->msg, 1, "sliced %d variables in %1.f seconds", count, delta);
 }

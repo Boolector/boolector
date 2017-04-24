@@ -25,7 +25,7 @@
 
 #define BTOR_FULL_SORT_UNIQUE_TABLE(table) \
   ((table)->num_elements >= (table)->size  \
-   && btor_log_2_util ((table)->size) < BTOR_SORT_UNIQUE_TABLE_LIMIT)
+   && btor_util_log_2 ((table)->size) < BTOR_SORT_UNIQUE_TABLE_LIMIT)
 
 static void
 inc_sort_ref_counter (BtorSort *sort)
@@ -40,7 +40,7 @@ compute_hash_sort (const BtorSort *sort, int table_size)
 {
   assert (sort);
   assert (table_size);
-  assert (btor_is_power_of_2_util (table_size));
+  assert (btor_util_is_power_of_2 (table_size));
 
   unsigned i, res, tmp;
 

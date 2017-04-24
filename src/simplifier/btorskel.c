@@ -238,7 +238,7 @@ btor_process_skeleton (Btor *btor)
   LGL *lgl;
   BtorIntHashTable *mark;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   ids = btor_hashptr_table_new (mm,
                                 (BtorHashPtr) btor_hash_exp_by_id,
@@ -329,7 +329,7 @@ btor_process_skeleton (Btor *btor)
   btor_hashptr_table_delete (ids);
   lglrelease (lgl);
 
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.skel += delta;
   BTOR_MSG (
       btor->msg,

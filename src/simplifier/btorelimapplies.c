@@ -30,7 +30,7 @@ btor_eliminate_applies (Btor *btor)
 
   if (btor->lambdas->count == 0) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   round = 1;
   cache = btor_hashptr_table_new (btor->mm,
                                   (BtorHashPtr) btor_hash_exp_pair,
@@ -101,7 +101,7 @@ btor_eliminate_applies (Btor *btor)
   }
   btor_hashptr_table_delete (cache);
 
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.elimapplies += delta;
   BTOR_MSG (btor->msg,
             1,

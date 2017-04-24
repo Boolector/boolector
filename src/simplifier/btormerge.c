@@ -97,7 +97,7 @@ btor_merge_lambdas (Btor *btor)
 
   if (btor->lambdas->count == 0) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
 
   mark        = btor_hashint_table_new (mm);
@@ -268,7 +268,7 @@ btor_merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (params);
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
             "merged %d lambdas in %.2f seconds",

@@ -39,41 +39,41 @@
 
 /*------------------------------------------------------------------------*/
 
-bool btor_is_power_of_2_util (uint32_t x);
+bool btor_util_is_power_of_2 (uint32_t x);
 
-uint32_t btor_log_2_util (uint32_t x);
+uint32_t btor_util_log_2 (uint32_t x);
 
-int btor_pow_2_util (int x);
+int btor_util_pow_2 (int x);
 
-int btor_next_power_of_2_util (int x);
-
-/*------------------------------------------------------------------------*/
-
-int btor_num_digits_util (int x);
+int btor_util_next_power_of_2 (int x);
 
 /*------------------------------------------------------------------------*/
 
-char *btor_dec_to_bin_str_util (BtorMemMgr *mm, const char *str);
+int btor_util_num_digits (int x);
 
-char *btor_dec_to_bin_str_n_util (BtorMemMgr *mm,
+/*------------------------------------------------------------------------*/
+
+char *btor_util_dec_to_bin_str (BtorMemMgr *mm, const char *str);
+
+char *btor_util_dec_to_bin_str_n (BtorMemMgr *mm,
                                   const char *str,
                                   uint32_t len);
 
-char *btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str);
+char *btor_util_hex_to_bin_str (BtorMemMgr *mm, const char *str);
 
-char *btor_hex_to_bin_str_n_util (BtorMemMgr *mm,
+char *btor_util_hex_to_bin_str_n (BtorMemMgr *mm,
                                   const char *str,
                                   uint32_t len);
 
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_HAVE_GETRUSAGE
-double btor_time_stamp (void);
+double btor_util_time_stamp (void);
 #endif
 
 /*------------------------------------------------------------------------*/
 
-int btor_file_exists (const char *);
+int btor_util_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
 

@@ -461,7 +461,7 @@ binary_param_exp_test (int param_pos,
   else if (func == btor_sll_exp || func == btor_srl_exp || func == btor_sra_exp
            || func == btor_rol_exp || func == btor_ror_exp)
   {
-    v2_bw = btor_log_2_util (v1_bw);
+    v2_bw = btor_util_log_2 (v1_bw);
   }
 
   x_bw = (param_pos == 0) ? v1_bw : v2_bw;

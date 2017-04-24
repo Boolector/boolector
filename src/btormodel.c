@@ -967,7 +967,7 @@ btor_model_generate (Btor *btor,
   BtorNodePtrStack stack;
   BtorBitVector *bv;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   BTOR_INIT_STACK (btor->mm, stack);
 
@@ -1030,7 +1030,7 @@ btor_model_generate (Btor *btor,
   }
   BTOR_RELEASE_STACK (stack);
 
-  btor->time.model_gen += btor_time_stamp () - start;
+  btor->time.model_gen += btor_util_time_stamp () - start;
 }
 
 /*------------------------------------------------------------------------*/

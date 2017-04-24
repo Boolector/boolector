@@ -1989,9 +1989,9 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_is_power_of_2_util (len),
+  BTOR_ABORT (!btor_util_is_power_of_2 (len),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_log_2_util (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sll_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2021,9 +2021,9 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_is_power_of_2_util (len),
+  BTOR_ABORT (!btor_util_is_power_of_2 (len),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_log_2_util (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_srl_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2053,9 +2053,9 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_is_power_of_2_util (len),
+  BTOR_ABORT (!btor_util_is_power_of_2 (len),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_log_2_util (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sra_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2085,9 +2085,9 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_is_power_of_2_util (len),
+  BTOR_ABORT (!btor_util_is_power_of_2 (len),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_log_2_util (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_rol_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2117,9 +2117,9 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_is_power_of_2_util (len),
+  BTOR_ABORT (!btor_util_is_power_of_2 (len),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_log_2_util (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_ror_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);

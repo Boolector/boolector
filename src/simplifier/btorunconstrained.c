@@ -103,7 +103,7 @@ btor_optimize_unconstrained (Btor *btor)
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, roots);
@@ -262,7 +262,7 @@ btor_optimize_unconstrained (Btor *btor)
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (roots);
 
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   btor->time.ucopt += delta;
   BTOR_MSG (btor->msg,
             1,

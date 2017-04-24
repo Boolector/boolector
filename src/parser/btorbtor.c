@@ -574,7 +574,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
   BTOR_RESET_STACK (parser->constant);
 
   tmp =
-      btor_hex_to_bin_str_n_util (parser->mem, parser->constant.start, cwidth);
+      btor_util_hex_to_bin_str_n (parser->mem, parser->constant.start, cwidth);
   cwidth = (int) strlen (tmp);
 
   if (cwidth > width)
@@ -654,7 +654,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
 
     cwidth = BTOR_COUNT_STACK (parser->constant);
 
-    tmp = btor_dec_to_bin_str_n_util (
+    tmp = btor_util_dec_to_bin_str_n (
         parser->mem, parser->constant.start, cwidth);
   }
 

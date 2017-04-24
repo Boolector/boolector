@@ -328,15 +328,15 @@ btor_aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av1);
   assert (av2);
   assert (av1->len > 1);
-  assert (btor_is_power_of_2_util (av1->len));
-  assert (btor_log_2_util (av1->len) == av2->len);
+  assert (btor_util_is_power_of_2 (av1->len));
+  assert (btor_util_log_2 (av1->len) == av2->len);
   len    = av2->len;
   result = sll_n_bits_aigvec (avmgr, av1, 1, av2->aigs[av2->len - 1]);
   for (i = len - 2; i >= 0; i--)
   {
     temp   = result;
     result = sll_n_bits_aigvec (
-        avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
+        avmgr, temp, btor_util_pow_2 (len - i - 1), av2->aigs[i]);
     btor_aigvec_release_delete (avmgr, temp);
   }
   return result;
@@ -384,15 +384,15 @@ btor_aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av1);
   assert (av2);
   assert (av1->len > 1);
-  assert (btor_is_power_of_2_util (av1->len));
-  assert (btor_log_2_util (av1->len) == av2->len);
+  assert (btor_util_is_power_of_2 (av1->len));
+  assert (btor_util_log_2 (av1->len) == av2->len);
   len    = av2->len;
   result = srl_n_bits_aigvec (avmgr, av1, 1, av2->aigs[av2->len - 1]);
   for (i = len - 2; i >= 0; i--)
   {
     temp   = result;
     result = srl_n_bits_aigvec (
-        avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
+        avmgr, temp, btor_util_pow_2 (len - i - 1), av2->aigs[i]);
     btor_aigvec_release_delete (avmgr, temp);
   }
   return result;

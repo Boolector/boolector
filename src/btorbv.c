@@ -993,8 +993,8 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (mm);
   assert (a);
   assert (b);
-  assert (btor_is_power_of_2_util (a->width));
-  assert (btor_log_2_util (a->width) == b->width);
+  assert (btor_util_is_power_of_2 (a->width));
+  assert (btor_util_log_2 (a->width) == b->width);
 
   uint64_t shift;
   shift = btor_bv_to_uint64 (b);

@@ -419,7 +419,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
+  fprintf (stdout, " after %.2f seconds\n", btor_util_time_stamp ());
   fflush (stdout);
 }
 
@@ -1461,7 +1461,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             if (len)
             {
               tmp =
-                  btor_dec_to_bin_str_n_util (parser->mem, start, end - start);
+                  btor_util_dec_to_bin_str_n (parser->mem, start, end - start);
 
               tlen = (int) strlen (tmp);
 
@@ -1515,7 +1515,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
         if (start < p && !*p)
         {
           len  = 4 * (p - start);
-          tmp  = btor_hex_to_bin_str_util (parser->mem, start);
+          tmp  = btor_util_hex_to_bin_str (parser->mem, start);
           tlen = (int) strlen (tmp);
           assert (tlen <= len);
           if (tlen < len)
@@ -2648,7 +2648,7 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
 
   parser->formulas.checked += checked;
 
-  ndigits = btor_num_digits_util (parser->formulas.checked);
+  ndigits = btor_util_num_digits (parser->formulas.checked);
   BTOR_NEWN (parser->mem, prefix, ndigits + 1);
   sprintf (prefix, "%d:", parser->formulas.checked);
   boolector_set_msg_prefix (parser->btor, prefix);

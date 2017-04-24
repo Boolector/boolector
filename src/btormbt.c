@@ -3412,7 +3412,7 @@ btormbt_state_dump (BtorMBT *mbt)
            // TODO: we cannot dump ite over functions to smt2/btor right now
            && mbt->round.num_ite_fun == 0)
   {
-    len = 40 + strlen ("/tmp/btormbt-bug-.") + btor_num_digits_util (tmppid);
+    len = 40 + strlen ("/tmp/btormbt-bug-.") + btor_util_num_digits (tmppid);
     BTOR_NEWN (mbt->mm, outfilename, len);
 
     if (outformat == BTOR_OUTPUT_FORMAT_BTOR
@@ -4073,7 +4073,7 @@ main (int argc, char **argv)
       if (!(name = getenv ("BTORAPITRACE")))
       {
         tmppid  = getpid ();
-        namelen = 40 + btor_num_digits_util (tmppid);
+        namelen = 40 + btor_util_num_digits (tmppid);
         BTOR_NEWN (g_btormbt->mm, name, namelen);
         sprintf (name, "/tmp/bug-%d-mbt.trace", tmppid);
         /* replay run */
@@ -4087,7 +4087,7 @@ main (int argc, char **argv)
       if (g_btormbt->out)
       {
         cmdlen = 40 + strlen (name) + strlen (g_btormbt->out)
-                 + btor_num_digits_util (g_btormbt->seed);
+                 + btor_util_num_digits (g_btormbt->seed);
         BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
         sprintf (cmd,
                  "cp %s %s/btormbt-bug-%d.trace",
@@ -4097,7 +4097,7 @@ main (int argc, char **argv)
       }
       else
       {
-        cmdlen = 40 + strlen (name) + btor_num_digits_util (g_btormbt->seed);
+        cmdlen = 40 + strlen (name) + btor_util_num_digits (g_btormbt->seed);
         BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
         sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, g_btormbt->seed);
       }

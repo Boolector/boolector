@@ -22,18 +22,18 @@
 /*------------------------------------------------------------------------*/
 
 bool
-btor_is_power_of_2_util (uint32_t x)
+btor_util_is_power_of_2 (uint32_t x)
 {
   assert (x > 0);
   return (x & (x - 1)) == 0;
 }
 
 uint32_t
-btor_log_2_util (uint32_t x)
+btor_util_log_2 (uint32_t x)
 {
   uint32_t result = 0;
   assert (x > 0);
-  assert (btor_is_power_of_2_util (x));
+  assert (btor_util_is_power_of_2 (x));
   while (x > 1)
   {
     x >>= 1;
@@ -43,7 +43,7 @@ btor_log_2_util (uint32_t x)
 }
 
 int
-btor_pow_2_util (int x)
+btor_util_pow_2 (int x)
 {
   int result = 1;
   assert (x >= 0);
@@ -58,7 +58,7 @@ btor_pow_2_util (int x)
 }
 
 int
-btor_next_power_of_2_util (int x)
+btor_util_next_power_of_2 (int x)
 {
   int i;
   assert (x > 0);
@@ -68,7 +68,7 @@ btor_next_power_of_2_util (int x)
 }
 
 int
-btor_num_digits_util (int x)
+btor_util_num_digits (int x)
 {
   int result;
   assert (x >= 0);
@@ -253,7 +253,7 @@ mult_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 char *
-btor_dec_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
+btor_util_dec_to_bin_str_n (BtorMemMgr *mm, const char *str, uint32_t len)
 {
   assert (mm);
   assert (str);
@@ -281,16 +281,16 @@ btor_dec_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
 }
 
 char *
-btor_dec_to_bin_str_util (BtorMemMgr *mm, const char *str)
+btor_util_dec_to_bin_str (BtorMemMgr *mm, const char *str)
 {
   assert (mm);
   assert (str);
 
-  return btor_dec_to_bin_str_n_util (mm, str, strlen (str));
+  return btor_util_dec_to_bin_str_n (mm, str, strlen (str));
 }
 
 char *
-btor_hex_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
+btor_util_hex_to_bin_str_n (BtorMemMgr *mm, const char *str, uint32_t len)
 {
   assert (mm);
   assert (str);
@@ -422,12 +422,12 @@ btor_hex_to_bin_str_n_util (BtorMemMgr *mm, const char *str, uint32_t len)
 }
 
 char *
-btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str)
+btor_util_hex_to_bin_str (BtorMemMgr *mm, const char *str)
 {
   assert (mm);
   assert (str);
 
-  return btor_hex_to_bin_str_n_util (mm, str, strlen (str));
+  return btor_util_hex_to_bin_str_n (mm, str, strlen (str));
 }
 
 /*------------------------------------------------------------------------*/
@@ -439,7 +439,7 @@ btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str)
 #include <unistd.h>
 
 double
-btor_time_stamp (void)
+btor_util_time_stamp (void)
 {
   double res = -1;
   struct rusage u;
@@ -462,14 +462,14 @@ btor_time_stamp (void)
 #include <sys/types.h>
 #include <unistd.h>
 int
-btor_file_exists (const char *path)
+btor_util_file_exists (const char *path)
 {
   struct stat buf;
   return !stat (path, &buf);
 }
 #else
 int
-btor_file_exists (const char *path)
+btor_util_file_exists (const char *path)
 {
   (void) path;
   return -1;

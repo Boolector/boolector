@@ -28,10 +28,10 @@
     btor_msg (btor->msg, true, __FILE__, FMT, ##ARGS);         \
   } while (0)
 
-#define BTORLOG_TIMESTAMP(start) \
-  do                             \
-  {                              \
-    start = btor_time_stamp ();  \
+#define BTORLOG_TIMESTAMP(start)     \
+  do                                 \
+  {                                  \
+    start = btor_util_time_stamp (); \
   } while (0)
 
 /*------------------------------------------------------------------------*/

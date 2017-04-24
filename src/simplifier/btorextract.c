@@ -1390,7 +1390,7 @@ btor_extract_lambdas (Btor *btor)
 
   if (btor->lambdas->count == 0 && btor->ufs->count == 0) return;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   mm = btor->mm;
   /* maps for each array values to stacks of indices */
@@ -1415,7 +1415,7 @@ btor_extract_lambdas (Btor *btor)
 
   btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
-  delta = btor_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   BTOR_MSG (
       btor->msg, 1, "extracted %u lambdas in %.3f seconds", num_lambdas, delta);
   btor->time.extract += delta;
