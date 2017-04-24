@@ -2730,7 +2730,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    subst    = btor_mapped_node (substs, real_cur);
+    subst    = btor_nodemap_mapped (substs, real_cur);
     // TODO (ma): for now we only support bit vector terms
     assert (!btor_is_lambda_node (real_cur));
 

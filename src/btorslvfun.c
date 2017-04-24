@@ -378,11 +378,11 @@ assume_inputs (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (*inputs); i++)
   {
     cur_btor  = BTOR_PEEK_STACK (*inputs, i);
-    cur_clone = btor_mapped_node (exp_map, cur_btor);
+    cur_clone = btor_nodemap_mapped (exp_map, cur_btor);
     assert (cur_clone);
     assert (BTOR_IS_REGULAR_NODE (cur_clone));
-    assert (!btor_mapped_node (key_map, cur_clone));
-    btor_map_node (key_map, cur_clone, cur_btor);
+    assert (!btor_nodemap_mapped (key_map, cur_clone));
+    btor_nodemap_map (key_map, cur_clone, cur_btor);
 
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     bv       = get_bv_assignment (btor, cur_btor);
@@ -394,7 +394,7 @@ assume_inputs (Btor *btor,
              node2string (cur_btor),
              node2string (bv_const));
     btor_assume_exp (clone, bv_eq);
-    btor_map_node (assumptions, bv_eq, cur_clone);
+    btor_nodemap_map (assumptions, bv_eq, cur_clone);
     btor_release_exp (clone, bv_const);
     btor_release_exp (clone, bv_eq);
   }
@@ -592,11 +592,11 @@ collect_applies (Btor *btor,
 
   BTOR_INIT_STACK (mm, failed_eqs);
 
-  btor_init_node_map_iterator (&it, assumptions);
-  while (btor_has_next_node_map_iterator (&it))
+  btor_iter_nodemap_init (&it, assumptions);
+  while (btor_iter_nodemap_has_next (&it))
   {
-    bv_eq     = btor_next_node_map_iterator (&it);
-    cur_clone = btor_mapped_node (assumptions, bv_eq);
+    bv_eq     = btor_iter_nodemap_next (&it);
+    cur_clone = btor_nodemap_mapped (assumptions, bv_eq);
     assert (cur_clone);
     /* Note: node mapping is normalized, revert */
     if (BTOR_IS_INVERTED_NODE (cur_clone))
@@ -604,7 +604,7 @@ collect_applies (Btor *btor,
       bv_eq     = BTOR_INVERT_NODE (bv_eq);
       cur_clone = BTOR_INVERT_NODE (cur_clone);
     }
-    cur_btor = btor_mapped_node (key_map, cur_clone);
+    cur_btor = btor_nodemap_mapped (key_map, cur_clone);
     assert (cur_btor);
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     assert (btor_is_bv_var_node (cur_btor) || btor_is_apply_node (cur_btor)
@@ -768,8 +768,8 @@ set_up_dual_and_collect (Btor *btor,
   BTOR_RELEASE_STACK (sorted);
   BTOR_RELEASE_STACK (topapps_feq);
   btor_hashint_table_delete (topapps);
-  btor_delete_node_map (assumptions);
-  btor_delete_node_map (key_map);
+  btor_nodemap_delete (assumptions);
+  btor_nodemap_delete (key_map);
 }
 
 static void
@@ -2348,7 +2348,7 @@ DONE:
   if (clone)
   {
     assert (exp_map);
-    btor_delete_node_map (exp_map);
+    btor_nodemap_delete (exp_map);
     btor_release_exp (clone, clone_root);
     btor_delete_btor (clone);
   }

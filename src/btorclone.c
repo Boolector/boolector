@@ -51,7 +51,7 @@ btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key)
   (void) mm;
   exp        = (BtorNode *) key;
   exp_map    = (BtorNodeMap *) map;
-  cloned_exp = btor_mapped_node (exp_map, exp);
+  cloned_exp = btor_nodemap_mapped (exp_map, exp);
   assert (cloned_exp);
   return cloned_exp;
 }
@@ -100,7 +100,7 @@ btor_clone_data_as_node_ptr (BtorMemMgr *mm,
   (void) mm;
   exp        = (BtorNode *) data->as_ptr;
   exp_map    = (BtorNodeMap *) map;
-  cloned_exp = btor_mapped_node (exp_map, exp);
+  cloned_exp = btor_nodemap_mapped (exp_map, exp);
   assert (cloned_exp);
   cloned_data->as_ptr = cloned_exp;
 }
@@ -544,7 +544,7 @@ clone_exp (Btor *clone,
       {
         for (i = 0; i < exp->arity; i++)
         {
-          res->e[i] = btor_mapped_node (exp_map, exp->e[i]);
+          res->e[i] = btor_nodemap_mapped (exp_map, exp->e[i]);
           assert (exp->e[i] != res->e[i]);
           assert (res->e[i]);
         }
@@ -594,7 +594,7 @@ clone_exp (Btor *clone,
         btor_lambda_get_body (exp), *nodes, &((BtorLambdaNode *) res)->body);
   }
 
-  btor_map_node (exp_map, exp, res);
+  btor_nodemap_map (exp_map, exp, res);
 
   return res;
 }
@@ -623,7 +623,7 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
     for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
     {
       assert ((*stack).start[i]);
-      cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
+      cloned_exp = btor_nodemap_mapped (exp_map, (*stack).start[i]);
       assert (cloned_exp);
       BTOR_PUSH_STACK (*res, cloned_exp);
     }
@@ -694,7 +694,7 @@ clone_nodes_id_table (Btor *btor,
   {
     tmp = BTOR_POP_STACK (nodes);
     assert (*tmp);
-    *tmp = btor_mapped_node (exp_map, *tmp);
+    *tmp = btor_nodemap_mapped (exp_map, *tmp);
     assert (*tmp);
   }
 
@@ -703,7 +703,7 @@ clone_nodes_id_table (Btor *btor,
     tmp = BTOR_POP_STACK (parents);
     assert (*tmp);
     tag  = btor_exp_get_tag (*tmp);
-    *tmp = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (*tmp));
+    *tmp = btor_nodemap_mapped (exp_map, BTOR_REAL_ADDR_NODE (*tmp));
     assert (*tmp);
     *tmp = BTOR_TAG_NODE (*tmp, tag);
   }
@@ -754,7 +754,7 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   for (i = 0; i < table->size; i++)
   {
     if (!table->chains[i]) continue;
-    res->chains[i] = btor_mapped_node (exp_map, table->chains[i]);
+    res->chains[i] = btor_nodemap_mapped (exp_map, table->chains[i]);
     assert (res->chains[i]);
   }
 }
@@ -1050,7 +1050,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert (allocated == clone->mm->allocated);
 #endif
 
-  clone->true_exp = btor_mapped_node (emap, btor->true_exp);
+  clone->true_exp = btor_nodemap_mapped (emap, btor->true_exp);
   assert (clone->true_exp);
 
   BTORLOG_TIMESTAMP (delta);
@@ -1212,8 +1212,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
       btor_release_exp (
           clone,
-          btor_mapped_node (emap,
-                            BTOR_PEEK_STACK (btor->functions_with_model, i)));
+          btor_nodemap_mapped (
+              emap, BTOR_PEEK_STACK (btor->functions_with_model, i)));
   }
   else
   {
@@ -1419,7 +1419,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   if (exp_map)
     *exp_map = emap;
   else
-    btor_delete_node_map (emap);
+    btor_nodemap_delete (emap);
 
 #ifndef NDEBUG
   /* flag sanity checks */
@@ -1491,7 +1491,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
 
-    if (btor_mapped_node (exp_map, cur)) continue;
+    if (btor_nodemap_mapped (exp_map, cur)) continue;
 
     if (!btor_hashint_table_contains (mark, cur->id))
     {
@@ -1501,11 +1501,11 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
     }
     else
     {
-      assert (!btor_mapped_node (exp_map, cur));
+      assert (!btor_nodemap_mapped (exp_map, cur));
       assert (!btor_is_proxy_node (cur));
       for (i = 0; i < cur->arity; i++)
       {
-        e[i] = btor_mapped_node (exp_map, cur->e[i]);
+        e[i] = btor_nodemap_mapped (exp_map, cur->e[i]);
         assert (e[i]);
       }
       switch (cur->kind)
@@ -1569,11 +1569,11 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
           assert (btor_is_bv_cond_node (cur));
           cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
       }
-      btor_map_node (exp_map, cur, cur_clone);
+      btor_nodemap_map (exp_map, cur, cur_clone);
 #ifndef NDEBUG
-      assert (!btor_mapped_node (key_map, cur_clone));
+      assert (!btor_nodemap_mapped (key_map, cur_clone));
       assert (cur->kind == cur_clone->kind);
-      btor_map_node (key_map, cur_clone, cur);
+      btor_nodemap_map (key_map, cur_clone, cur);
 #endif
       btor_release_exp (clone, cur_clone);
     }
@@ -1585,7 +1585,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
   /* reset rewrite_level to original value */
   btor_opt_set (clone, BTOR_OPT_REWRITE_LEVEL, rwl);
 #ifndef NDEBUG
-  btor_delete_node_map (key_map);
+  btor_nodemap_delete (key_map);
 #endif
-  return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
+  return btor_copy_exp (clone, btor_nodemap_mapped (exp_map, exp));
 }

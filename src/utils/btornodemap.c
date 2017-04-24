@@ -32,7 +32,7 @@ btor_nodemap_new (Btor *btor)
 }
 
 void
-btor_delete_node_map (BtorNodeMap *map)
+btor_nodemap_delete (BtorNodeMap *map)
 {
   assert (map);
 
@@ -53,7 +53,7 @@ btor_delete_node_map (BtorNodeMap *map)
 }
 
 BtorNode *
-btor_mapped_node (BtorNodeMap *map, const BtorNode *node)
+btor_nodemap_mapped (BtorNodeMap *map, const BtorNode *node)
 {
   BtorPtrHashBucket *bucket;
   BtorNode *real_node;
@@ -69,7 +69,7 @@ btor_mapped_node (BtorNodeMap *map, const BtorNode *node)
 }
 
 void
-btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
+btor_nodemap_map (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
   BtorPtrHashBucket *bucket;
 
@@ -96,41 +96,41 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
+btor_iter_nodemap_init (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
   btor_iter_hashptr_init (&it->it, map->table);
 }
 
 void
-btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
-                                      const BtorNodeMap *map)
+btor_iter_nodemap_init_reversed (BtorNodeMapIterator *it,
+                                 const BtorNodeMap *map)
 {
   assert (map);
   btor_iter_hashptr_init_reversed (&it->it, map->table);
 }
 
 bool
-btor_has_next_node_map_iterator (const BtorNodeMapIterator *it)
+btor_iter_nodemap_has_next (const BtorNodeMapIterator *it)
 {
   return btor_iter_hashptr_has_next (&it->it);
 }
 
 void
-btor_queue_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
+btor_iter_nodemap_queue (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
   btor_iter_hashptr_queue (&it->it, map->table);
 }
 
 BtorNode *
-btor_next_node_map_iterator (BtorNodeMapIterator *it)
+btor_iter_nodemap_next (BtorNodeMapIterator *it)
 {
   return btor_iter_hashptr_next (&it->it);
 }
 
 BtorHashTableData *
-btor_next_data_node_map_iterator (BtorNodeMapIterator *it)
+btor_iter_nodemap_next_data (BtorNodeMapIterator *it)
 {
   return btor_iter_hashptr_next_data (&it->it);
 }
