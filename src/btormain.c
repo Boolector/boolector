@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -720,7 +720,7 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
   fprintf (out, "Copyright (c) 2007-2016 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
+  fprintf (out, "Copyright (c) 2012-2017 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
