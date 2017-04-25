@@ -305,7 +305,7 @@ boolector_mc_delete (BtorMC *mc)
 }
 
 BoolectorNode *
-boolector_mc_input (BtorMC *mc, uint32_t width, const char *name)
+boolector_input (BtorMC *mc, uint32_t width, const char *name)
 {
   BtorPtrHashBucket *bucket;
   BtorMcInput *input;
@@ -347,7 +347,7 @@ boolector_mc_input (BtorMC *mc, uint32_t width, const char *name)
 }
 
 BoolectorNode *
-boolector_mc_latch (BtorMC *mc, uint32_t width, const char *name)
+boolector_latch (BtorMC *mc, uint32_t width, const char *name)
 {
   BtorPtrHashBucket *bucket;
   BtorMcLatch *latch;
@@ -404,7 +404,7 @@ find_mc_latch (BtorMC *mc, BoolectorNode *node)
 }
 
 void
-boolector_mc_next (BtorMC *mc, BoolectorNode *node, BoolectorNode *next)
+boolector_next (BtorMC *mc, BoolectorNode *node, BoolectorNode *next)
 {
   BtorMcLatch *latch;
   Btor *btor;
@@ -451,7 +451,7 @@ boolector_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
 }
 
 int
-boolector_mc_bad (BtorMC *mc, BoolectorNode *bad)
+boolector_bad (BtorMC *mc, BoolectorNode *bad)
 {
   int res;
   BTOR_ABORT_ARG_NULL (mc);
@@ -470,7 +470,7 @@ boolector_mc_bad (BtorMC *mc, BoolectorNode *bad)
 }
 
 int
-boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint)
+boolector_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
   int res;
   BTOR_ABORT_ARG_NULL (mc);
