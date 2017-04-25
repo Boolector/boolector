@@ -4196,13 +4196,13 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   return 0;
 }
 
-static BtorParserAPI static_btor_smt2_parser_api = {
+static BtorParserAPI static_btor_parsesmt2_parser_api = {
     (BtorInitParser) new_smt2_parser,
     (BtorResetParser) delete_smt2_parser,
     (BtorParse) parse_smt2_parser};
 
 const BtorParserAPI *
-btor_smt2_parser_api ()
+btor_parsesmt2_parser_api ()
 {
-  return &static_btor_smt2_parser_api;
+  return &static_btor_parsesmt2_parser_api;
 }

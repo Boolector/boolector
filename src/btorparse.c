@@ -164,18 +164,18 @@ btor_parse (Btor *btor,
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
-    parser_api = btor_btor_parser_api ();
+    parser_api = btor_parsebtor_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else if (has_compressed_suffix (infile_name, ".smt2"))
   {
-    parser_api = btor_smt2_parser_api ();
+    parser_api = btor_parsesmt2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else
   {
     first = second = 0;
-    parser_api     = btor_btor_parser_api ();
+    parser_api     = btor_parsebtor_parser_api ();
     sprintf (msg, "assuming BTOR input, parsing '%s'", infile_name);
     for (;;)
     {
@@ -213,13 +213,13 @@ btor_parse (Btor *btor,
       {
         if (second == 'b')
         {
-          parser_api = btor_smt_parser_api ();
+          parser_api = btor_parsesmt_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v1 input,  parsing '%s'", infile_name);
         }
         else
         {
-          parser_api = btor_smt2_parser_api ();
+          parser_api = btor_parsesmt2_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
@@ -261,7 +261,7 @@ btor_parse_btor (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_btor_parser_api ();
+  parser_api = btor_parsebtor_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
@@ -282,7 +282,7 @@ btor_parse_smt1 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt_parser_api ();
+  parser_api = btor_parsesmt_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
@@ -303,7 +303,7 @@ btor_parse_smt2 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt2_parser_api ();
+  parser_api = btor_parsesmt2_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
