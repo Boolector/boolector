@@ -3226,6 +3226,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   const char *res;
   BtorNode *exp;
   BtorBVAss *bvass;
+  uint32_t opt;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
@@ -3238,7 +3239,19 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  ass   = btor_bv_to_char (btor->mm, btor_model_get_bv (btor, exp));
+  opt = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  switch (opt)
+  {
+    case BTOR_OUTPUT_BASE_HEX:
+      ass = btor_bv_to_hex_char (btor->mm, btor_model_get_bv (btor, exp));
+      break;
+    case BTOR_OUTPUT_BASE_DEC:
+      ass = btor_bv_to_dec_char (btor->mm, btor_model_get_bv (btor, exp));
+      break;
+    default:
+      assert (opt == BTOR_OUTPUT_BASE_BIN);
+      ass = btor_bv_to_char (btor->mm, btor_model_get_bv (btor, exp));
+  }
   bvass = btor_ass_new_bv (btor->bv_assignments, ass);
   btor_mem_freestr (btor->mm, ass);
   res = btor_ass_get_bv_str (bvass);
