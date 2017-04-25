@@ -19,6 +19,7 @@
 #include "btordcr.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btoropt.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "utils/btorhashint.h"
@@ -2227,7 +2228,7 @@ sat_fun_solver (BtorFunSolver *slv)
       && btor->ufs->count == 0 && btor->feqs->count == 0)
   {
     BtorSolver *preslv;
-    BtorOption eopt;
+    BtorOptEngine eopt;
 
     if (btor->lambdas->count) btor_opt_set (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 

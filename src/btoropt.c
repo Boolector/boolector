@@ -146,8 +146,8 @@ btor_opt_init_opts (Btor *btor)
             "input-format",
             0,
             BTOR_INPUT_FORMAT_DFLT,
-            BTOR_INPUT_FORMAT_MIN,
-            BTOR_INPUT_FORMAT_MAX,
+            BTOR_INPUT_FORMAT_MIN + 1,
+            BTOR_INPUT_FORMAT_MAX - 1,
             "input file format");
   init_opt (btor,
             BTOR_OPT_OUTPUT_NUMBER_FORMAT,
@@ -156,8 +156,8 @@ btor_opt_init_opts (Btor *btor)
             "output-number-format",
             0,
             BTOR_OUTPUT_BASE_DFLT,
-            BTOR_OUTPUT_BASE_MIN,
-            BTOR_OUTPUT_BASE_MAX,
+            BTOR_OUTPUT_BASE_MIN + 1,
+            BTOR_OUTPUT_BASE_MAX - 1,
             "output number format");
   init_opt (btor,
             BTOR_OPT_OUTPUT_FORMAT,
@@ -166,8 +166,8 @@ btor_opt_init_opts (Btor *btor)
             "output-format",
             0,
             BTOR_OUTPUT_FORMAT_DFLT,
-            BTOR_OUTPUT_FORMAT_MIN,
-            BTOR_OUTPUT_FORMAT_MAX,
+            BTOR_OUTPUT_FORMAT_MIN + 1,
+            BTOR_OUTPUT_FORMAT_MAX - 1,
             "output file format");
   init_opt (btor,
             BTOR_OPT_ENGINE,
@@ -176,8 +176,8 @@ btor_opt_init_opts (Btor *btor)
             "engine",
             "E",
             BTOR_ENGINE_DFLT,
-            BTOR_ENGINE_MIN,
-            BTOR_ENGINE_MAX,
+            BTOR_ENGINE_MIN + 1,
+            BTOR_ENGINE_MAX - 1,
             "enable specific engine");
   init_opt (btor,
             BTOR_OPT_SAT_ENGINE,
@@ -396,8 +396,8 @@ btor_opt_init_opts (Btor *btor)
             "fun:dual-prop-qsort",
             0,
             BTOR_DP_QSORT_DFLT,
-            BTOR_DP_QSORT_MIN,
-            BTOR_DP_QSORT_MAX,
+            BTOR_DP_QSORT_MIN + 1,
+            BTOR_DP_QSORT_MAX - 1,
             "order in which to assume inputs in dual solver");
   init_opt (btor,
             BTOR_OPT_FUN_JUST,
@@ -416,8 +416,8 @@ btor_opt_init_opts (Btor *btor)
             "fun:just-heuristic",
             0,
             BTOR_JUST_HEUR_DFLT,
-            BTOR_JUST_HEUR_MIN,
-            BTOR_JUST_HEUR_MAX,
+            BTOR_JUST_HEUR_MIN + 1,
+            BTOR_JUST_HEUR_MAX - 1,
             "justification heuristic");
   init_opt (btor,
             BTOR_OPT_FUN_LAZY_SYNTHESIZE,
@@ -436,8 +436,8 @@ btor_opt_init_opts (Btor *btor)
             "fun:eager-lemmas",
             "fun:el",
             BTOR_FUN_EAGER_LEMMAS_DFLT,
-            BTOR_FUN_EAGER_LEMMAS_MIN,
-            BTOR_FUN_EAGER_LEMMAS_MAX,
+            BTOR_FUN_EAGER_LEMMAS_MIN + 1,
+            BTOR_FUN_EAGER_LEMMAS_MAX - 1,
             "eager lemma generation");
 
   /* SLS engine ---------------------------------------------------------- */
@@ -458,8 +458,8 @@ btor_opt_init_opts (Btor *btor)
             "sls:strategy",
             0,
             BTOR_SLS_STRAT_DFLT,
-            BTOR_SLS_STRAT_MIN,
-            BTOR_SLS_STRAT_MAX,
+            BTOR_SLS_STRAT_MIN + 1,
+            BTOR_SLS_STRAT_MAX - 1,
             "move strategy for sls");
   init_opt (btor,
             BTOR_OPT_SLS_JUST,
@@ -659,8 +659,8 @@ btor_opt_init_opts (Btor *btor)
             "prop:path-sel",
             0,
             BTOR_PROP_PATH_SEL_DFLT,
-            BTOR_PROP_PATH_SEL_MIN,
-            BTOR_PROP_PATH_SEL_MAX,
+            BTOR_PROP_PATH_SEL_MIN + 1,
+            BTOR_PROP_PATH_SEL_MAX - 1,
             "path selection mode");
   init_opt (btor,
             BTOR_OPT_PROP_PROB_USE_INV_VALUE,
