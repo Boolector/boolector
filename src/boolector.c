@@ -3990,7 +3990,7 @@ boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
   BTOR_WARN (btor->assumptions->count > 0,
              "dumping in incremental mode only captures the current state "
              "of the input formula without assumptions");
-  btor_dump_aiger (btor, file, false, merge_roots);
+  btor_dumpaig_dump (btor, file, false, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_ascii, stdout, merge_roots);
 #endif
@@ -4007,7 +4007,7 @@ boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
   BTOR_WARN (btor->assumptions->count > 0,
              "dumping in incremental mode only captures the current state "
              "of the input formula without assumptions");
-  btor_dump_aiger (btor, file, true, merge_roots);
+  btor_dumpaig_dump (btor, file, true, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_binary, stdout, merge_roots);
 #endif

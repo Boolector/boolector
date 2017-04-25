@@ -41,13 +41,13 @@ aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 }
 
 void
-btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
+btor_dumpaig_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 {
-  btor_dump_seq_aiger (amgr, binary, output, 1, &aig, 0, 0, 0, 0);
+  btor_dumpaig_dump_seq (amgr, binary, output, 1, &aig, 0, 0, 0, 0);
 }
 
 void
-btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
+btor_dumpaig_dump (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 {
   assert (btor->lambdas->count == 0);
   assert (btor->ufs->count == 0);
@@ -99,15 +99,15 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
     BTOR_PUSH_STACK (roots,
                      btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
 
-  btor_dump_seq_aiger (amgr,
-                       is_binary,
-                       output,
-                       BTOR_COUNT_STACK (roots),
-                       roots.start,
-                       0,
-                       0,
-                       0,
-                       backannotation);
+  btor_dumpaig_dump_seq (amgr,
+                         is_binary,
+                         output,
+                         BTOR_COUNT_STACK (roots),
+                         roots.start,
+                         0,
+                         0,
+                         0,
+                         backannotation);
 
   while (!BTOR_EMPTY_STACK (roots))
     btor_aig_release (amgr, BTOR_POP_STACK (roots));
@@ -123,15 +123,15 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 }
 
 void
-btor_dump_seq_aiger (BtorAIGMgr *amgr,
-                     int binary,
-                     FILE *file,
-                     int naigs,
-                     BtorAIG **aigs,
-                     int nregs,
-                     BtorAIG **regs,
-                     BtorAIG **nexts,
-                     BtorPtrHashTable *backannotation)
+btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
+                       int binary,
+                       FILE *file,
+                       int naigs,
+                       BtorAIG **aigs,
+                       int nregs,
+                       BtorAIG **regs,
+                       BtorAIG **nexts,
+                       BtorPtrHashTable *backannotation)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorPtrHashTable *table, *latches;
