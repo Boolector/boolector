@@ -101,9 +101,9 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
                id ? id : btor_exp_get_id (node));
     }
 
-    btor_dump_sort_smt_node (node, file);
+    btor_dumpsmt_dump_sort_node (node, file);
     fprintf (file, " ");
-    btor_dump_const_value_smt (btor, ass, base, file);
+    btor_dumpsmt_dump_const_value (btor, ass, base, file);
     fprintf (file, ")\n");
   }
 }
@@ -118,7 +118,7 @@ print_param_smt2 (char *symbol, int param_index, BtorSort *sort, FILE *file)
   assert (file);
 
   fprintf (file, "(%s_x%d ", symbol, param_index);
-  btor_dump_sort_smt (sort, file);
+  btor_dumpsmt_dump_sort (sort, file);
   fprintf (file, ")");
 }
 
@@ -174,7 +174,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   }
   fprintf (file, ") ");
   sort = btor_sort_fun_get_codomain (btor, btor_exp_get_sort_id (node));
-  btor_dump_sort_smt (btor_sort_get_by_id (btor, sort), file);
+  btor_dumpsmt_dump_sort (btor_sort_get_by_id (btor, sort), file);
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */
@@ -193,7 +193,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       for (i = 0; i < args->arity; i++, x++)
       {
         fprintf (file, "\n%8c(= %s_x%d ", ' ', s, x);
-        btor_dump_const_value_smt (btor, args->bv[i], base, file);
+        btor_dumpsmt_dump_const_value (btor, args->bv[i], base, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
       }
       fprintf (file, ") ");
@@ -202,10 +202,10 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     else
     {
       fprintf (file, "(= %s_x%d ", s, x);
-      btor_dump_const_value_smt (btor, args->bv[0], base, file);
+      btor_dumpsmt_dump_const_value (btor, args->bv[0], base, file);
       fprintf (file, ") ");
     }
-    btor_dump_const_value_smt (btor, assignment, base, file);
+    btor_dumpsmt_dump_const_value (btor, assignment, base, file);
     fprintf (file, "\n");
     n += 1;
   }
@@ -216,7 +216,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   {
     fprintf (file, "%6c", ' ');
     tmp = btor_bv_new (btor->mm, assignment->width);
-    btor_dump_const_value_smt (btor, tmp, base, file);
+    btor_dumpsmt_dump_const_value (btor, tmp, base, file);
     btor_bv_free (btor->mm, tmp);
   }
 
@@ -338,7 +338,7 @@ print_bv_value_smt2 (
         file, "(v%d ", id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
   }
 
-  btor_dump_const_value_smt (btor, ass, base, file);
+  btor_dumpsmt_dump_const_value (btor, ass, base, file);
   fprintf (file, ")");
 }
 
@@ -388,17 +388,17 @@ print_fun_value_smt2 (
     {
       for (i = 0; i < args->arity; i++)
       {
-        btor_dump_const_value_smt (btor, args->bv[i], base, file);
+        btor_dumpsmt_dump_const_value (btor, args->bv[i], base, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
       }
       fprintf (file, ") ");
     }
     else
     {
-      btor_dump_const_value_smt (btor, args->bv[0], base, file);
+      btor_dumpsmt_dump_const_value (btor, args->bv[0], base, file);
       fprintf (file, ") ");
     }
-    btor_dump_const_value_smt (btor, assignment, base, file);
+    btor_dumpsmt_dump_const_value (btor, assignment, base, file);
     fprintf (file, ")");
   }
 

@@ -3958,7 +3958,7 @@ boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_dump_smt2_node (btor, file, btor_simplify_exp (btor, exp), 0);
+  btor_dumpsmt_dump_node (btor, file, btor_simplify_exp (btor, exp), 0);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2_node, stdout, BTOR_CLONED_EXP (exp));
 #endif
@@ -3973,7 +3973,7 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
   BTOR_WARN (btor->assumptions->count > 0,
              "dumping in incremental mode only captures the current state "
              "of the input formula without assumptions");
-  btor_dump_smt2 (btor, file);
+  btor_dumpsmt_dump (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2, stdout);
 #endif
