@@ -21,6 +21,7 @@
 #include "utils/btorutil.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 

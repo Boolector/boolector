@@ -18,9 +18,6 @@
 #ifdef BTOR_USE_LINGELING
 /*------------------------------------------------------------------------*/
 
-#include <ctype.h>
-#include <limits.h>
-#include "btorabort.h"
 #include "btorsat.h"
 #include "lglib.h"
 

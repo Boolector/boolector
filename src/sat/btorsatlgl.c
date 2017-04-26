@@ -17,6 +17,10 @@
 #ifdef BTOR_USE_LINGELING
 /*------------------------------------------------------------------------*/
 
+#include <ctype.h>
+#include <limits.h>
+#include "btorabort.h"
+
 #define BTOR_LGL_SIMP_DELAY 10000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
