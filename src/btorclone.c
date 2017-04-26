@@ -855,7 +855,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorIntHashTableIterator iit, ciit;
   BtorSort *sort;
   char **ind, **val;
-  amgr = exp_layer_only ? 0 : btor_aigvec_get_aig_mgr (btor->avmgr);
+  amgr = exp_layer_only ? 0 : btor_get_aig_mgr (btor);
   BtorHashTableData *data, *cdata;
   BtorOption o;
 #endif

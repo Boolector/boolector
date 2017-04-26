@@ -397,8 +397,8 @@ chkclone_aig_unique_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorAIGUniqueTable *btable, *ctable;
 
-  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->table;
-  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->table;
+  btable = &btor_get_aig_mgr (btor)->table;
+  ctable = &btor_get_aig_mgr (clone)->table;
   assert (btable != ctable);
 
   assert (btable->size == ctable->size);
@@ -414,8 +414,8 @@ chkclone_aig_id_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorAIGPtrStack *btable, *ctable;
 
-  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->id2aig;
-  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->id2aig;
+  btable = &btor_get_aig_mgr (btor)->id2aig;
+  ctable = &btor_get_aig_mgr (clone)->id2aig;
   assert (btable != ctable);
 
   for (i = 0; i < BTOR_COUNT_STACK (*btable); i++)
@@ -428,8 +428,8 @@ chkclone_aig_cnf_id_table (Btor *btor, Btor *clone)
   uint32_t i;
   BtorIntStack *btable, *ctable;
 
-  btable = &btor_aigvec_get_aig_mgr (btor->avmgr)->cnfid2aig;
-  ctable = &btor_aigvec_get_aig_mgr (clone->avmgr)->cnfid2aig;
+  btable = &btor_get_aig_mgr (btor)->cnfid2aig;
+  ctable = &btor_get_aig_mgr (clone)->cnfid2aig;
   assert (btable != ctable);
 
   for (i = 0; i < BTOR_SIZE_STACK (*btable); i++)
