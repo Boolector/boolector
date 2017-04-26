@@ -25,7 +25,7 @@ static BtorMemMgr *g_mm;
 void
 init_queue_tests (void)
 {
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 }
 
 static void
@@ -136,5 +136,5 @@ run_queue_tests (int argc, char **argv)
 void
 finish_queue_tests (void)
 {
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
 }

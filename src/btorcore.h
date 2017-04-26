@@ -94,8 +94,8 @@ struct Btor
   BtorSolver *slv;
   BtorCallbacks cbs;
 
-  BtorBVAssignmentList *bv_assignments;
-  BtorArrayAssignmentList *fun_assignments;
+  BtorBVAssList *bv_assignments;
+  BtorFunAssList *fun_assignments;
 
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;

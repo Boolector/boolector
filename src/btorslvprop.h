@@ -11,7 +11,7 @@
 #ifndef BTORSLVPROP_H_INCLUDED
 #define BTORSLVPROP_H_INCLUDED
 
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorslv.h"
 #include "btortypes.h"
 #include "utils/btorhashint.h"

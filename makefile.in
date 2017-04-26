@@ -15,17 +15,19 @@ LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
 LIBOBJS=$(filter-out $(BUILDIR)/btormain.o $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o, $(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))))
-LIBOBJS+=$(BUILDIR)/boolector.o $(BUILDIR)/utils/boolectormap.o $(OBJS)
+LIBOBJS+=$(BUILDIR)/boolector.o $(BUILDIR)/utils/boolectornodemap.o $(OBJS)
 LIBOBJS+=$(BUILDIR)/aigprop.o
 SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
 ROOT=@ROOT@
 
-all: updateconfig $(BUILDIR)/libboolector.a $(TARGETS)
+all: $(BUILDIR)/libboolector.a $(TARGETS)
+
+$(BUILDIR)/btorconfig.h: updateconfig
 
 updateconfig: makefile VERSION mkconfig.sh
-	@mkdir -p $(BUILDIR)
-	@./mkconfig.sh $(BUILDIR)/btorconfig.h
+	mkdir -p $(BUILDIR)
+	./mkconfig.sh $(BUILDIR)/btorconfig.h
 
 -include $(BUILDIR)/dependencies
 -include test.mk
@@ -74,4 +76,5 @@ clean:
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)
 
-.PHONY: all analyze clean updateconfig
+
+.PHONY: all analyze clean

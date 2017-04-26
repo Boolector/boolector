@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -14,8 +14,8 @@
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
-#include "testbitvec.h"
-#include "testboolectormap.h"
+#include "testboolectornodemap.h"
+#include "testbv.h"
 #include "testcomp.h"
 #include "testexp.h"
 #include "testhash.h"
@@ -134,7 +134,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (aigvec);
   BTOR_RUN_TESTS (exp);
   BTOR_RUN_TESTS (map);
-  BTOR_RUN_TESTS (boolectormap);
+  BTOR_RUN_TESTS (boolectornodemap);
   BTOR_RUN_TESTS (lambda);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);

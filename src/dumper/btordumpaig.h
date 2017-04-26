@@ -17,22 +17,25 @@
 #include "btortypes.h"
 
 /* Dumps AIG in AIGER format to file. */
-void btor_dump_aig (BtorAIGMgr* amgr, int binary, FILE* output, BtorAIG* aig);
+void btor_dumpaig_dump_aig (BtorAIGMgr* amgr,
+                            int binary,
+                            FILE* output,
+                            BtorAIG* aig);
 
 /* Dumps sequential AIGER model to file. */
-void btor_dump_seq_aiger (BtorAIGMgr* amgr,
-                          int binary,
-                          FILE* output,
-                          int naigs,
-                          BtorAIG** aigs,
-                          int nregs,
-                          BtorAIG** regs,
-                          BtorAIG** nexts,
-                          BtorPtrHashTable* back_annotation);
+void btor_dumpaig_dump_seq (BtorAIGMgr* amgr,
+                            int binary,
+                            FILE* output,
+                            int naigs,
+                            BtorAIG** aigs,
+                            int nregs,
+                            BtorAIG** regs,
+                            BtorAIG** nexts,
+                            BtorPtrHashTable* back_annotation);
 
 /* Dumps AIGs in AIGER format to file. */
-void btor_dump_aiger (Btor* btor,
-                      FILE* output,
-                      bool is_binary,
-                      bool merge_roots);
+void btor_dumpaig_dump (Btor* btor,
+                        FILE* output,
+                        bool is_binary,
+                        bool merge_roots);
 #endif

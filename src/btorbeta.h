@@ -40,15 +40,10 @@ BtorNode* btor_beta_reduce_partial_collect_new (Btor* btor,
 
 BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int bound);
 
-BtorNode* btor_apply_and_reduce (Btor* btor,
-                                 BtorNode* args[],
-                                 int argc,
-                                 BtorNode* fun);
+void btor_beta_assign_param (Btor* btor, BtorNode* lambda, BtorNode* arg);
 
-void btor_assign_param (Btor* btor, BtorNode* lambda, BtorNode* arg);
+void btor_beta_assign_args (Btor* btor, BtorNode* fun, BtorNode* args);
 
-void btor_assign_args (Btor* btor, BtorNode* fun, BtorNode* args);
-
-void btor_unassign_params (Btor* btor, BtorNode* lambda);
+void btor_beta_unassign_params (Btor* btor, BtorNode* lambda);
 
 #endif

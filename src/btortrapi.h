@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
@@ -75,5 +75,5 @@
 
 void btor_trapi (Btor* btor, const char* fname, const char* msg, ...);
 
-void btor_open_apitrace (Btor* btor, const char* name);
+void btor_trapi_open_trace (Btor* btor, const char* name);
 #endif

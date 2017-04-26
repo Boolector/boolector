@@ -66,7 +66,7 @@ run_testcases_tests (int argc, char **argv)
   assert ((file = fopen (s, "r")));
   free (s);
 
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
 
   BTOR_INIT_STACK (mem, g_args);
   BTOR_INIT_STACK (mem, buffer);
@@ -117,7 +117,7 @@ run_testcases_tests (int argc, char **argv)
   BTOR_RELEASE_STACK (buffer);
   BTOR_RELEASE_STACK (g_args);
 
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }
 
 void

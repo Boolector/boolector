@@ -12,7 +12,7 @@
 #include "btorslvpropsls.h"
 
 #include "btorabort.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
@@ -23,7 +23,6 @@
 
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
-#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 #include <math.h>
@@ -55,35 +54,35 @@ select_constraint (Btor *btor, uint32_t nmoves)
 #ifndef NDEBUG
   BtorPtrHashTableIterator pit;
   BtorNode *root;
-  btor_init_ptr_hash_table_iterator (&pit, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&pit, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&pit))
+  btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&pit, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_next_ptr_hash_table_iterator (&pit);
-    if (btor_is_false_bv (btor_get_bv_model (btor, root)))
-      assert (btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
+    root = btor_iter_hashptr_next (&pit);
+    if (btor_bv_is_false (btor_model_get_bv (btor, root)))
+      assert (btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
     else
-      assert (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
   }
 #endif
 
   res = 0;
 
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
   {
     assert (slv->score);
 
     int *selected;
     double value, max_value, score;
     max_value = 0.0;
-    btor_init_int_hash_table_iterator (&it, slv->roots);
-    while (btor_has_next_int_hash_table_iterator (&it))
+    btor_iter_hashint_init (&it, slv->roots);
+    while (btor_iter_hashint_has_next (&it))
     {
       selected = &slv->roots->data[it.cur_pos].as_int;
-      cur = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
+      cur      = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
 
-      assert (btor_contains_int_hash_map (slv->score, btor_exp_get_id (cur)));
-      score = btor_get_int_hash_map (slv->score, btor_exp_get_id (cur))->as_dbl;
+      assert (btor_hashint_map_contains (slv->score, btor_exp_get_id (cur)));
+      score = btor_hashint_map_get (slv->score, btor_exp_get_id (cur))->as_dbl;
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
@@ -100,11 +99,11 @@ select_constraint (Btor *btor, uint32_t nmoves)
     size_t j, r;
 
     j = 0;
-    r = btor_pick_rand_rng (&btor->rng, 0, slv->roots->count - 1);
-    btor_init_int_hash_table_iterator (&it, slv->roots);
-    while (btor_has_next_int_hash_table_iterator (&it) && j <= r)
+    r = btor_rng_pick_rand (&btor->rng, 0, slv->roots->count - 1);
+    btor_iter_hashint_init (&it, slv->roots);
+    while (btor_iter_hashint_has_next (&it) && j <= r)
     {
-      res = btor_get_node_by_id (btor, btor_next_int_hash_table_iterator (&it));
+      res = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
       j += 1;
     }
     assert (res);
@@ -112,10 +111,10 @@ select_constraint (Btor *btor, uint32_t nmoves)
   }
 
   assert (res);
-  assert (btor_is_zero_bv (btor_get_bv_model (btor, res)));
+  assert (btor_bv_is_zero (btor_model_get_bv (btor, res)));
 
   BTORLOG (1, "");
-  BTORLOG (1, "select constraint: %s", node2string (res));
+  BTORLOG (1, "select constraint: %s", btor_util_node2string (res));
 
   return res;
 }
@@ -147,29 +146,29 @@ move (Btor *btor, uint32_t nmoves)
 #ifndef NBTORLOG
   char *a;
   BtorBitVector *ass;
-  ass = (BtorBitVector *) btor_get_bv_model (btor, input);
-  a   = btor_bv_to_char_bv (btor->mm, ass);
+  ass = (BtorBitVector *) btor_model_get_bv (btor, input);
+  a   = btor_bv_to_char (btor->mm, ass);
   BTORLOG (1, "");
   BTORLOG (1, "move");
   BTORLOG (1,
            "  input: %s%s",
            BTOR_IS_REGULAR_NODE (input) ? "" : "-",
-           node2string (input));
+           btor_util_node2string (input));
   BTORLOG (1, "  prev. assignment: %s", a);
-  btor_freestr (btor->mm, a);
-  a = btor_bv_to_char_bv (btor->mm, assignment);
+  btor_mem_freestr (btor->mm, a);
+  a = btor_bv_to_char (btor->mm, assignment);
   BTORLOG (1, "  new   assignment: %s", a);
-  btor_freestr (btor->mm, a);
+  btor_mem_freestr (btor->mm, a);
 #endif
 
-  exps = btor_new_int_hash_map (btor->mm);
+  exps = btor_hashint_map_new (btor->mm);
   assert (BTOR_IS_REGULAR_NODE (input));
-  btor_add_int_hash_map (exps, input->id)->as_ptr = assignment;
+  btor_hashint_map_add (exps, input->id)->as_ptr = assignment;
   btor_propsls_update_cone (
       btor,
       btor->bv_model,
       slv->roots,
-      btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
+      btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT) ? slv->score : 0,
       exps,
       true,
       &slv->stats.updates,
@@ -177,10 +176,10 @@ move (Btor *btor, uint32_t nmoves)
       &slv->time.update_cone_reset,
       &slv->time.update_cone_model_gen,
       &slv->time.update_cone_compute_score);
-  btor_delete_int_hash_map (exps);
+  btor_hashint_map_delete (exps);
 
   slv->stats.moves += 1;
-  btor_free_bv (btor->mm, assignment);
+  btor_bv_free (btor->mm, assignment);
 
   return 1;
 }
@@ -202,9 +201,9 @@ clone_prop_solver (Btor *clone, BtorPropSolver *slv, BtorNodeMap *exp_map)
   memcpy (res, slv, sizeof (BtorPropSolver));
 
   res->btor  = clone;
-  res->roots = btor_clone_int_hash_map (clone->mm, slv->roots, 0, 0);
-  res->score = btor_clone_int_hash_map (
-      clone->mm, slv->score, btor_clone_data_as_dbl, 0);
+  res->roots = btor_hashint_map_clone (clone->mm, slv->roots, 0, 0);
+  res->score =
+      btor_hashint_map_clone (clone->mm, slv->score, btor_clone_data_as_dbl, 0);
 
   return res;
 }
@@ -217,8 +216,8 @@ delete_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  if (slv->score) btor_delete_int_hash_map (slv->score);
-  if (slv->roots) btor_delete_int_hash_map (slv->roots);
+  if (slv->score) btor_hashint_map_delete (slv->score);
+  if (slv->roots) btor_hashint_map_delete (slv->roots);
 
   BTOR_DELETE (slv->btor->mm, slv);
 }
@@ -243,19 +242,19 @@ sat_prop_solver_aux (Btor *btor)
 
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
-  nprops = btor_get_opt (btor, BTOR_OPT_PROP_NPROPS);
+  nprops = btor_opt_get (btor, BTOR_OPT_PROP_NPROPS);
 
   nmoves = 0;
 
   /* check for constraints occurring in both phases */
-  btor_init_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    root = btor_next_ptr_hash_table_iterator (&it);
-    if (btor_get_ptr_hash_table (btor->unsynthesized_constraints,
-                                 BTOR_INVERT_NODE (root)))
+    root = btor_iter_hashptr_next (&it);
+    if (btor_hashptr_table_get (btor->unsynthesized_constraints,
+                                BTOR_INVERT_NODE (root)))
       goto UNSAT;
-    if (btor_get_ptr_hash_table (btor->assumptions, BTOR_INVERT_NODE (root)))
+    if (btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)))
       goto UNSAT;
   }
 
@@ -263,25 +262,25 @@ sat_prop_solver_aux (Btor *btor)
   {
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);
-    slv->roots = btor_new_int_hash_map (btor->mm);
+    slv->roots = btor_hashint_map_new (btor->mm);
     assert (btor->synthesized_constraints->count == 0);
-    btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-    btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-    while (btor_has_next_ptr_hash_table_iterator (&it))
+    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->assumptions);
+    while (btor_iter_hashptr_has_next (&it))
     {
-      root = btor_next_ptr_hash_table_iterator (&it);
+      root = btor_iter_hashptr_next (&it);
 
-      if (!btor_contains_int_hash_map (slv->roots, btor_exp_get_id (root))
-          && btor_is_zero_bv (btor_get_bv_model (btor, root)))
+      if (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root))
+          && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {
         if (btor_is_bv_const_node (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_add_int_hash_map (slv->roots, btor_exp_get_id (root));
+        btor_hashint_map_add (slv->roots, btor_exp_get_id (root));
       }
     }
 
-    if (!slv->score && btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
-      slv->score = btor_new_int_hash_map (btor->mm);
+    if (!slv->score && btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
+      slv->score = btor_hashint_map_new (btor->mm);
 
     if (btor_terminate_btor (btor))
     {
@@ -293,13 +292,13 @@ sat_prop_solver_aux (Btor *btor)
     if (!slv->roots->count) goto SAT;
 
     /* compute initial sls score */
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
       btor_propsls_compute_sls_scores (
           btor, btor->bv_model, btor->fun_model, slv->score);
 
     /* init */
     slv->flip_cond_const_prob =
-        btor_get_opt (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
+        btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->flip_cond_const_prob_delta =
         slv->flip_cond_const_prob > (BTOR_PROB_MAX / 2)
             ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
@@ -307,7 +306,7 @@ sat_prop_solver_aux (Btor *btor)
 
     /* move */
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
-         !btor_get_opt (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
+         !btor_opt_get (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
     {
       if (btor_terminate_btor (btor) || (nprops && slv->stats.props >= nprops))
@@ -325,12 +324,12 @@ sat_prop_solver_aux (Btor *btor)
 
     /* restart */
     slv->api.generate_model ((BtorSolver *) slv, false, true);
-    btor_delete_int_hash_map (slv->roots);
+    btor_hashint_map_delete (slv->roots);
     slv->roots = 0;
-    if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+    if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
-      btor_delete_int_hash_map (slv->score);
-      slv->score = btor_new_int_hash_map (btor->mm);
+      btor_hashint_map_delete (slv->score);
+      slv->score = btor_hashint_map_new (btor->mm);
     }
     slv->stats.restarts += 1;
   }
@@ -345,12 +344,12 @@ UNSAT:
 DONE:
   if (slv->roots)
   {
-    btor_delete_int_hash_map (slv->roots);
+    btor_hashint_map_delete (slv->roots);
     slv->roots = 0;
   }
   if (slv->score)
   {
-    btor_delete_int_hash_map (slv->score);
+    btor_hashint_map_delete (slv->score);
     slv->score = 0;
   }
   return sat_result;
@@ -378,7 +377,7 @@ sat_prop_solver (BtorPropSolver *slv)
   }
 
   BTOR_ABORT (btor->ufs->count != 0
-                  || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL)
                       && btor->lambdas->count != 0),
               "prop engine supports QF_BV only");
 
@@ -404,9 +403,9 @@ generate_model_prop_solver (BtorPropSolver *slv,
   Btor *btor = slv->btor;
 
   if (!reset && btor->bv_model) return;
-  btor_init_bv_model (btor, &btor->bv_model);
-  btor_init_fun_model (btor, &btor->fun_model);
-  btor_generate_model (
+  btor_model_init_bv (btor, &btor->bv_model);
+  btor_model_init_fun (btor, &btor->fun_model);
+  btor_model_generate (
       btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
@@ -508,7 +507,7 @@ print_time_stats_prop_solver (BtorPropSolver *slv)
             1,
             "%.2f seconds for updating cone (model gen)",
             slv->time.update_cone_model_gen);
-  if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
+  if (btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds for updating cone (compute score)",

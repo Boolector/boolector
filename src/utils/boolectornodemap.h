@@ -9,8 +9,8 @@
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
-#ifndef BOOLECTORMAP_H_INCLUDED
-#define BOOLECTORMAP_H_INCLUDED
+#ifndef BOOLECTORNODEMAP_H_INCLUDED
+#define BOOLECTORNODEMAP_H_INCLUDED
 
 /*------------------------------------------------------------------------*/
 
@@ -19,8 +19,8 @@
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression nodes.  The 'map' owns references to the non
- * zero 'src' and 'dst' nodes added in 'boolector_map_node'.  Succesful
- * look-up through 'boolector_mapped_node' does not add a reference.  The
+ * zero 'src' and 'dst' nodes added in 'boolector_nodemap_map'.  Succesful
+ * look-up through 'boolector_nodemap_mapped' does not add a reference.  The
  * destructor releases all the owned references.  Mapping is signed, e.g.,
  * if you map * 'a' to 'b', then '~a' is implicitely mapped to '~b', too.
  */
@@ -36,23 +36,22 @@ typedef struct BoolectorNodeMap BoolectorNodeMap;
 
 /*------------------------------------------------------------------------*/
 
-BoolectorNodeMap *boolector_new_node_map (Btor *btor);
-void boolector_delete_node_map (BoolectorNodeMap *);
+BoolectorNodeMap *boolector_nodemap_new (Btor *btor);
+void boolector_nodemap_delete (BoolectorNodeMap *);
 
-void boolector_map_node (BoolectorNodeMap *map,
-                         BoolectorNode *src,
-                         BoolectorNode *dst);
+void boolector_nodemap_map (BoolectorNodeMap *map,
+                            BoolectorNode *src,
+                            BoolectorNode *dst);
 
-BoolectorNode *boolector_mapped_node (BoolectorNodeMap *map,
-                                      const BoolectorNode *n);
+BoolectorNode *boolector_nodemap_mapped (BoolectorNodeMap *map,
+                                         const BoolectorNode *n);
 
-int boolector_count_map (const BoolectorNodeMap *map);
+int boolector_nodemap_count (const BoolectorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
 
-BoolectorNode *boolector_non_recursive_substitute_node (Btor *btor,
-                                                        BoolectorNodeMap *map,
-                                                        BoolectorNode *n);
+BoolectorNode *boolector_nodemap_non_recursive_substitute_node (
+    Btor *btor, BoolectorNodeMap *map, BoolectorNode *n);
 
 /*------------------------------------------------------------------------*/
 /* Extended mapping.  A 'BoolectorNodeMapper' function should return a NEW
@@ -72,7 +71,7 @@ typedef BoolectorNode *(*BoolectorNodeMapper) (Btor *btor,
  */
 typedef void (*BoolectorNodeReleaser) (Btor *btor, BoolectorNode *n);
 
-BoolectorNode *boolector_non_recursive_extended_substitute_node (
+BoolectorNode *boolector_nodemap_non_recursive_extended_substitute_node (
     Btor *btor,
     BoolectorNodeMap *map,  // share/cache substitution results
     void *state,            // for the mapper

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -62,11 +62,11 @@ parse_aux (Btor *btor,
 
   res                        = BOOLECTOR_UNKNOWN;
   *error_msg                 = 0;
-  parse_opt.verbosity        = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental      = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
-  parse_opt.incremental_smt1 = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
-  parse_opt.interactive      = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
-  parse_opt.need_model       = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  parse_opt.verbosity        = btor_opt_get (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental      = btor_opt_get (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.incremental_smt1 = btor_opt_get (btor, BTOR_OPT_INCREMENTAL_SMT1);
+  parse_opt.interactive      = btor_opt_get (btor, BTOR_OPT_PARSE_INTERACTIVE);
+  parse_opt.need_model       = btor_opt_get (btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
@@ -75,7 +75,7 @@ parse_aux (Btor *btor,
            parser, prefix, infile, infile_name, outfile, &parse_res)))
   {
     res                   = BOOLECTOR_PARSE_ERROR;
-    btor->parse_error_msg = btor_strdup (btor->mm, emsg);
+    btor->parse_error_msg = btor_mem_strdup (btor->mm, emsg);
     *error_msg            = btor->parse_error_msg;
   }
   else
@@ -159,23 +159,23 @@ btor_parse (Btor *btor,
 
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
   BTOR_INIT_STACK (mem, prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
-    parser_api = btor_btor_parser_api ();
+    parser_api = btor_parsebtor_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else if (has_compressed_suffix (infile_name, ".smt2"))
   {
-    parser_api = btor_smt2_parser_api ();
+    parser_api = btor_parsesmt2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else
   {
     first = second = 0;
-    parser_api     = btor_btor_parser_api ();
+    parser_api     = btor_parsebtor_parser_api ();
     sprintf (msg, "assuming BTOR input, parsing '%s'", infile_name);
     for (;;)
     {
@@ -213,13 +213,13 @@ btor_parse (Btor *btor,
       {
         if (second == 'b')
         {
-          parser_api = btor_smt_parser_api ();
+          parser_api = btor_parsesmt_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v1 input,  parsing '%s'", infile_name);
         }
         else
         {
-          parser_api = btor_smt2_parser_api ();
+          parser_api = btor_parsesmt2_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
@@ -239,7 +239,7 @@ btor_parse (Btor *btor,
 
   /* cleanup */
   BTOR_RELEASE_STACK (prefix);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
   BTOR_DELETEN (btor->mm, msg, len);
 
   return res;
@@ -261,7 +261,7 @@ btor_parse_btor (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_btor_parser_api ();
+  parser_api = btor_parsebtor_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
@@ -282,7 +282,7 @@ btor_parse_smt1 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt_parser_api ();
+  parser_api = btor_parsesmt_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
@@ -303,7 +303,7 @@ btor_parse_smt2 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt2_parser_api ();
+  parser_api = btor_parsesmt2_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }

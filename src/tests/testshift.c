@@ -44,7 +44,7 @@ init_shift_tests (void)
 
   assert (f != NULL);
   fclose (f);
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 
   pos_rwr = 0;
 
@@ -73,7 +73,7 @@ int_to_str (int x, int num_bits)
   int i        = 0;
   assert (x >= 0);
   assert (num_bits > 0);
-  result = (char *) btor_malloc (g_mm, sizeof (char) * (num_bits + 1));
+  result = (char *) btor_mem_malloc (g_mm, sizeof (char) * (num_bits + 1));
   for (i = num_bits - 1; i >= 0; i--)
   {
     result[i] = x % 2 ? '1' : '0';
@@ -99,12 +99,12 @@ shift_test (char *(*func) (int, int, int),
   assert (func_name != NULL);
   assert (low > 0);
   assert (low <= high);
-  btor_is_power_of_2_util (low);
-  btor_is_power_of_2_util (high);
+  btor_util_is_power_of_2 (low);
+  btor_util_is_power_of_2 (high);
   BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits <<= 1)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < num_bits; j++)
@@ -113,7 +113,7 @@ shift_test (char *(*func) (int, int, int),
         f      = fopen (BTOR_TEST_SHIFT_TEMP_FILE_NAME, "w");
         assert (f != NULL);
         fprintf (f, "1 constd %d %d\n", num_bits, i);
-        fprintf (f, "2 constd %d %d\n", btor_log_2_util (num_bits), j);
+        fprintf (f, "2 constd %d %d\n", btor_util_log_2 (num_bits), j);
         fprintf (f, "3 %s %d 1 2\n", func_name, num_bits);
         fprintf (f, "4 const %d %s\n", num_bits, result);
         fprintf (f, "5 eq 1 3 4\n");
@@ -121,7 +121,7 @@ shift_test (char *(*func) (int, int, int),
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
@@ -270,7 +270,7 @@ finish_shift_tests (void)
 {
   int result = remove (BTOR_TEST_SHIFT_TEMP_FILE_NAME);
   assert (result == 0);
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
   free (g_btor_str);
   free (g_argv);
 }

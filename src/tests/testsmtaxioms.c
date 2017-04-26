@@ -91,7 +91,7 @@ run_smtaxioms_tests (int argc, char **argv)
   int i, first;
   char **p;
 
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
 
   BTOR_INIT_STACK (mem, g_args);
 
@@ -114,7 +114,7 @@ run_smtaxioms_tests (int argc, char **argv)
   }
 
   BTOR_RELEASE_STACK (g_args);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }
 
 void

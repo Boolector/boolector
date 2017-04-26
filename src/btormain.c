@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -450,7 +450,7 @@ btormain_new_btormain (Btor *btor)
   BtorMainApp *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEWN (mm, res, 1);
   res->mm          = mm;
   res->btor        = btor;
@@ -472,7 +472,7 @@ btormain_delete_btormain (BtorMainApp *app)
   BTOR_DELETEN (mm, app->options, BTORMAIN_OPT_NUM_OPTS);
   boolector_delete (app->btor);
   BTOR_DELETE (mm, app);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 /*------------------------------------------------------------------------*/
@@ -573,7 +573,7 @@ print_opt (BtorMainApp *app,
   /* append default value to description */
   if (print_dflt)
   {
-    len = strlen (desc) + 3 + btor_num_digits_util (dflt);
+    len = strlen (desc) + 3 + btor_util_num_digits (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);
     sprintf (descstr, "%s [%d]", desc, dflt);
   }
@@ -587,7 +587,7 @@ print_opt (BtorMainApp *app,
   word = strtok (descstr, " ");
   while (word)
   {
-    BTOR_PUSH_STACK (words, btor_strdup (app->mm, word));
+    BTOR_PUSH_STACK (words, btor_mem_strdup (app->mm, word));
     word = strtok (0, " ");
   }
   BTOR_DELETEN (app->mm, descstr, len + 1);
@@ -618,7 +618,7 @@ print_opt (BtorMainApp *app,
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (words))
-    btor_freestr (app->mm, BTOR_POP_STACK (words));
+    btor_mem_freestr (app->mm, BTOR_POP_STACK (words));
   BTOR_RELEASE_STACK (words);
 }
 
@@ -720,7 +720,7 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
   fprintf (out, "Copyright (c) 2007-2016 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
+  fprintf (out, "Copyright (c) 2012-2017 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
@@ -757,7 +757,7 @@ static void
 print_static_stats (int sat_res)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
-  double delta_time = delta_time = btor_time_stamp () - g_start_time;
+  double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
   btormain_msg ("%.1f seconds", delta_time);
   btormain_msg ("%s",
                 sat_res == BOOLECTOR_SAT
@@ -915,7 +915,7 @@ boolector_main (int argc, char **argv)
   BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
-  g_start_time = btor_time_stamp ();
+  g_start_time = btor_util_time_stamp ();
 #endif
 
   g_app = btormain_new_btormain (boolector_new ());
@@ -957,7 +957,7 @@ boolector_main (int argc, char **argv)
 
       g_app->infile_name = arg;
 
-      if (!btor_file_exists (g_app->infile_name))
+      if (!btor_util_file_exists (g_app->infile_name))
       {
         g_app->infile = 0;
       }
@@ -1160,7 +1160,7 @@ boolector_main (int argc, char **argv)
           break;
 
         case BTORMAIN_OPT_LGL_OPTS:
-          btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
+          btor_opt_set_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
           break;
 #endif
 
@@ -1231,7 +1231,7 @@ boolector_main (int argc, char **argv)
 
       for (k = boolector_first_opt (g_app->btor), o = 0;
            boolector_has_opt (g_app->btor, k);
-           k = btor_next_opt (g_app->btor, k))
+           k = btor_opt_next (g_app->btor, k))
       {
         o = &g_app->btor->options[k];
         if ((isshrt && o->shrt && !strcmp (o->shrt, opt.start))
@@ -1368,49 +1368,48 @@ boolector_main (int argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
-  if ((val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT)))
+  val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT);
+  switch (val)
   {
-    switch (val)
-    {
-      case BTOR_INPUT_FORMAT_BTOR:
-        if (g_verbosity)
-          btormain_msg ("BTOR input forced through cmd line options");
-        parse_res = boolector_parse_btor (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-      case BTOR_INPUT_FORMAT_SMT1:
-        if (g_verbosity)
-          btormain_msg ("SMT-LIB v1 input forced through cmd line options");
-        parse_res = boolector_parse_smt1 (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-      case BTOR_INPUT_FORMAT_SMT2:
-        if (g_verbosity)
-          btormain_msg ("SMT-LIB v2 input forced through cmd line options");
-        parse_res = boolector_parse_smt2 (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-    }
+    case BTOR_INPUT_FORMAT_BTOR:
+      if (g_verbosity)
+        btormain_msg ("BTOR input forced through cmd line options");
+      parse_res = boolector_parse_btor (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+    case BTOR_INPUT_FORMAT_SMT1:
+      if (g_verbosity)
+        btormain_msg ("SMT-LIB v1 input forced through cmd line options");
+      parse_res = boolector_parse_smt1 (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+    case BTOR_INPUT_FORMAT_SMT2:
+      if (g_verbosity)
+        btormain_msg ("SMT-LIB v2 input forced through cmd line options");
+      parse_res = boolector_parse_smt2 (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+
+    default:
+      parse_res = boolector_parse (g_app->btor,
+                                   g_app->infile,
+                                   g_app->infile_name,
+                                   g_app->outfile,
+                                   &parse_err_msg,
+                                   &parse_status);
   }
-  else
-    parse_res = boolector_parse (g_app->btor,
-                                 g_app->infile,
-                                 g_app->infile_name,
-                                 g_app->outfile,
-                                 &parse_err_msg,
-                                 &parse_status);
 
   /* verbosity may have been increased via input (set-option) */
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
@@ -1452,7 +1451,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
     if (g_verbosity)
     {
-      double delta_time = delta_time = btor_time_stamp () - g_start_time;
+      double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
       btormain_msg ("%.1f seconds", delta_time);
     }
 #endif

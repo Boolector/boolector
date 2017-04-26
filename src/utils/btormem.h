@@ -19,16 +19,16 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_NEWN(mm, ptr, nelems)                                      \
-  do                                                                    \
-  {                                                                     \
-    (ptr) = (typeof(ptr)) btor_malloc ((mm), (nelems) * sizeof *(ptr)); \
+#define BTOR_NEWN(mm, ptr, nelems)                                          \
+  do                                                                        \
+  {                                                                         \
+    (ptr) = (typeof(ptr)) btor_mem_malloc ((mm), (nelems) * sizeof *(ptr)); \
   } while (0)
 
-#define BTOR_CNEWN(mm, ptr, nelems)                                    \
-  do                                                                   \
-  {                                                                    \
-    (ptr) = (typeof(ptr)) btor_calloc ((mm), (nelems), sizeof *(ptr)); \
+#define BTOR_CNEWN(mm, ptr, nelems)                                        \
+  do                                                                       \
+  {                                                                        \
+    (ptr) = (typeof(ptr)) btor_mem_calloc ((mm), (nelems), sizeof *(ptr)); \
   } while (0)
 
 #define BTOR_CLRN(ptr, nelems)                   \
@@ -37,16 +37,16 @@
     memset ((ptr), 0, (nelems) * sizeof *(ptr)); \
   } while (0)
 
-#define BTOR_DELETEN(mm, ptr, nelems)                  \
-  do                                                   \
-  {                                                    \
-    btor_free ((mm), (ptr), (nelems) * sizeof *(ptr)); \
+#define BTOR_DELETEN(mm, ptr, nelems)                      \
+  do                                                       \
+  {                                                        \
+    btor_mem_free ((mm), (ptr), (nelems) * sizeof *(ptr)); \
   } while (0)
 
 #define BTOR_REALLOC(mm, p, o, n)                             \
   do                                                          \
   {                                                           \
-    (p) = (typeof(p)) btor_realloc (                          \
+    (p) = (typeof(p)) btor_mem_realloc (                      \
         (mm), (p), ((o) * sizeof *(p)), ((n) * sizeof *(p))); \
   } while (0)
 
@@ -80,33 +80,33 @@ typedef struct BtorMemMgr BtorMemMgr;
 
 /*------------------------------------------------------------------------*/
 
-BtorMemMgr *btor_new_mem_mgr (void);
+BtorMemMgr *btor_mem_mgr_new (void);
 
-void *btor_sat_malloc (BtorMemMgr *mm, size_t size);
+void btor_mem_mgr_delete (BtorMemMgr *mm);
 
-void *btor_sat_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
+void *btor_mem_sat_malloc (BtorMemMgr *mm, size_t size);
 
-void btor_sat_free (BtorMemMgr *mm, void *p, size_t freed);
+void *btor_mem_sat_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
 
-void *btor_malloc (BtorMemMgr *mm, size_t size);
+void btor_mem_sat_free (BtorMemMgr *mm, void *p, size_t freed);
 
-void *btor_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
+void *btor_mem_malloc (BtorMemMgr *mm, size_t size);
 
-void *btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size);
+void *btor_mem_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
 
-void btor_free (BtorMemMgr *mm, void *p, size_t freed);
+void *btor_mem_calloc (BtorMemMgr *mm, size_t nobj, size_t size);
 
-char *btor_strdup (BtorMemMgr *mm, const char *str);
+void btor_mem_free (BtorMemMgr *mm, void *p, size_t freed);
 
-void btor_freestr (BtorMemMgr *mm, char *str);
+char *btor_mem_strdup (BtorMemMgr *mm, const char *str);
 
-void btor_delete_mem_mgr (BtorMemMgr *mm);
+void btor_mem_freestr (BtorMemMgr *mm, char *str);
 
-size_t btor_parse_error_message_length (const char *name,
+size_t btor_mem_parse_error_msg_length (const char *name,
                                         const char *fmt,
                                         va_list ap);
 
-char *btor_parse_error_message (BtorMemMgr *,
+char *btor_mem_parse_error_msg (BtorMemMgr *,
                                 const char *name,
                                 int lineno,
                                 int columnno,

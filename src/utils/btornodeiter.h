@@ -36,27 +36,26 @@ typedef struct BtorNodeIterator
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_NODE (exp)->prev_parent[btor_exp_get_tag (exp)])
 
-void btor_init_apply_parent_iterator (BtorNodeIterator *it,
-                                      const BtorNode *exp);
-bool btor_has_next_apply_parent_iterator (const BtorNodeIterator *it);
-BtorNode *btor_next_apply_parent_iterator (BtorNodeIterator *it);
+void btor_iter_apply_parent_init (BtorNodeIterator *it, const BtorNode *exp);
+bool btor_iter_apply_parent_has_next (const BtorNodeIterator *it);
+BtorNode *btor_iter_apply_parent_next (BtorNodeIterator *it);
 
-void btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp);
-bool btor_has_next_parent_iterator (const BtorNodeIterator *it);
-BtorNode *btor_next_parent_iterator (BtorNodeIterator *it);
+void btor_iter_parent_init (BtorNodeIterator *it, const BtorNode *exp);
+bool btor_iter_parent_has_next (const BtorNodeIterator *it);
+BtorNode *btor_iter_parent_next (BtorNodeIterator *it);
 
-void btor_init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp);
-bool btor_has_next_lambda_iterator (const BtorNodeIterator *it);
-BtorNode *btor_next_lambda_iterator (BtorNodeIterator *it);
+void btor_iter_lambda_init (BtorNodeIterator *it, BtorNode *exp);
+bool btor_iter_lambda_has_next (const BtorNodeIterator *it);
+BtorNode *btor_iter_lambda_next (BtorNodeIterator *it);
 
 #if 0
-void btor_init_param_iterator (BtorNodeIterator * it, BtorNode * exp);
-bool btor_has_next_param_iterator (const BtorNodeIterator * it);
-BtorNode * btor_next_param_iterator (BtorNodeIterator * it);
+void btor_iter_param_init (BtorNodeIterator * it, BtorNode * exp);
+bool btor_iter_param_has_next (const BtorNodeIterator * it);
+BtorNode * btor_iter_param_next (BtorNodeIterator * it);
 
-void btor_init_unique_table_iterator (BtorNodeIterator * it, const Btor * exp);
-bool btor_has_next_unique_table_iterator (const BtorNodeIterator * it);
-BtorNode * btor_next_unique_table_iterator (BtorNodeIterator * it);
+void btor_iter_unique_table_init (BtorNodeIterator * it, const Btor * exp);
+bool btor_iter_unique_table_has_next (const BtorNodeIterator * it);
+BtorNode * btor_iter_unique_table_next (BtorNodeIterator * it);
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -68,9 +67,9 @@ typedef struct BtorArgsIterator
   const BtorNode *exp;
 } BtorArgsIterator;
 
-void btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp);
-bool btor_has_next_args_iterator (const BtorArgsIterator *it);
-BtorNode *btor_next_args_iterator (BtorArgsIterator *it);
+void btor_iter_args_init (BtorArgsIterator *it, const BtorNode *exp);
+bool btor_iter_args_has_next (const BtorArgsIterator *it);
+BtorNode *btor_iter_args_next (BtorArgsIterator *it);
 
 /*------------------------------------------------------------------------*/
 

@@ -80,7 +80,7 @@ new_btorunt (void)
   BtorUNT *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
   BTOR_INIT_STACK (mm, res->btor_opts);
@@ -100,12 +100,12 @@ delete_btorunt (BtorUNT *unt)
   {
     o = BTOR_PEEK_STACK (unt->btor_opts, i);
     assert (o);
-    btor_freestr (mm, o->name);
+    btor_mem_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
   BTOR_RELEASE_STACK (unt->btor_opts);
   BTOR_DELETE (mm, unt);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static bool
@@ -255,7 +255,7 @@ hmap_get (BtorPtrHashTable *hmap, char *key)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket) btorunt_error ("'%s' is not hashed", key);
   assert (bucket);
   return bucket->data.as_ptr;
@@ -275,13 +275,13 @@ hmap_add (BtorPtrHashTable *hmap, char *key, void *value)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket)
   {
     char *key_cp;
     BTOR_NEWN (hmap->mm, key_cp, (strlen (key) + 1));
     strcpy (key_cp, key);
-    bucket = btor_add_ptr_hash_table (hmap, key_cp);
+    bucket = btor_hashptr_table_add (hmap, key_cp);
   }
   assert (bucket);
   bucket->data.as_ptr = value;
@@ -297,7 +297,7 @@ hmap_clear (BtorPtrHashTable *hmap)
   for (bucket = hmap->first; bucket; bucket = hmap->first)
   {
     char *key = (char *) bucket->key;
-    btor_remove_ptr_hash_table (hmap, key, NULL, NULL);
+    btor_hashptr_table_remove (hmap, key, NULL, NULL);
     BTOR_DELETEN (hmap->mm, key, (strlen (key) + 1));
   }
 }
@@ -361,7 +361,7 @@ parse (FILE *file)
   arg2_int   = 0;
   btor       = 0;
 
-  hmap = btor_new_ptr_hash_table (
+  hmap = btor_hashptr_table_new (
       g_btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   BTOR_CNEWN (g_btorunt->mm, buffer, buffer_len);
@@ -1639,7 +1639,7 @@ DONE:
   BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
   BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
   hmap_clear (hmap);
-  btor_delete_ptr_hash_table (hmap);
+  btor_hashptr_table_delete (hmap);
   if (delete) boolector_delete (btor);
 }
 
@@ -1697,7 +1697,7 @@ main (int argc, char **argv)
       if (tmp[0] != 0) btorunt_error ("invalid argument to '-b' (try -h)");
       BTOR_NEW (g_btorunt->mm, btoropt);
       btoropt->kind = o;
-      btoropt->name = btor_strdup (g_btorunt->mm, lng);
+      btoropt->name = btor_mem_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }

@@ -46,7 +46,7 @@ init_misc_tests (void)
 
   assert (f != NULL);
   fclose (f);
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 
   pos_rwr = 0;
 
@@ -75,7 +75,7 @@ int_to_str (int x, int num_bits)
   int i        = 0;
   assert (x >= 0);
   assert (num_bits > 0);
-  result = (char *) btor_malloc (g_mm, sizeof (char) * (num_bits + 1));
+  result = (char *) btor_mem_malloc (g_mm, sizeof (char) * (num_bits + 1));
   for (i = num_bits - 1; i >= 0; i--)
   {
     result[i] = x % 2 ? '1' : '0';
@@ -100,7 +100,7 @@ slice (int x, int high, int low, int num_bits)
   result  = int_to_str (0, high - low + 1);
   counter = high - low;
   for (i = low; i <= high; i++) result[counter--] = temp[num_bits - 1 - i];
-  btor_freestr (g_mm, temp);
+  btor_mem_freestr (g_mm, temp);
   return result;
 }
 
@@ -133,7 +133,7 @@ slice_test_misc (int low, int high)
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
@@ -186,7 +186,7 @@ ext_test_misc (char *(*func) (int, int, int),
   assert (func == uext || func == sext);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < num_bits; j++)
@@ -202,7 +202,7 @@ ext_test_misc (char *(*func) (int, int, int),
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
@@ -220,11 +220,12 @@ concat (int x, int y, int num_bits)
   assert (num_bits <= INT_MAX / 2);
   x_string = int_to_str (x, num_bits);
   y_string = int_to_str (y, num_bits);
-  result   = (char *) btor_malloc (g_mm, sizeof (char) * ((num_bits << 1) + 1));
+  result =
+      (char *) btor_mem_malloc (g_mm, sizeof (char) * ((num_bits << 1) + 1));
   strcpy (result, x_string);
   strcat (result, y_string);
-  btor_freestr (g_mm, x_string);
-  btor_freestr (g_mm, y_string);
+  btor_mem_freestr (g_mm, x_string);
+  btor_mem_freestr (g_mm, y_string);
   return result;
 }
 
@@ -242,7 +243,7 @@ concat_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -259,7 +260,7 @@ concat_test_misc (int low, int high)
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
@@ -280,7 +281,7 @@ cond_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -319,7 +320,7 @@ read_test_misc (int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -406,7 +407,7 @@ finish_misc_tests (void)
 {
   int result = remove (BTOR_TEST_MISC_TEMP_FILE_NAME);
   assert (result == 0);
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
   free (g_btor_str);
   free (g_argv);
 }

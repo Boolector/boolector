@@ -15,21 +15,21 @@
 #define BTORDUMPSMT_H_INCLUDED
 
 #include <stdio.h>
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 
-void btor_dump_smt2_node (Btor* btor,
-                          FILE* file,
-                          BtorNode* node,
-                          unsigned depth);
+void btor_dumpsmt_dump_node (Btor* btor,
+                             FILE* file,
+                             BtorNode* node,
+                             unsigned depth);
 
-void btor_dump_smt2 (Btor* btor, FILE* file);
+void btor_dumpsmt_dump (Btor* btor, FILE* file);
 
-void btor_dump_const_value_smt (Btor* btor,
-                                const BtorBitVector* bits,
-                                int base,
-                                FILE* file);
+void btor_dumpsmt_dump_const_value (Btor* btor,
+                                    const BtorBitVector* bits,
+                                    int base,
+                                    FILE* file);
 
-void btor_dump_sort_smt_node (BtorNode* exp, FILE* file);
-void btor_dump_sort_smt (BtorSort* sort, FILE* file);
+void btor_dumpsmt_dump_sort_node (BtorNode* exp, FILE* file);
+void btor_dumpsmt_dump_sort (BtorSort* sort, FILE* file);
 #endif
