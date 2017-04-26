@@ -1368,49 +1368,48 @@ boolector_main (int argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
-  if ((val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT)))
+  val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT);
+  switch (val)
   {
-    switch (val)
-    {
-      case BTOR_INPUT_FORMAT_BTOR:
-        if (g_verbosity)
-          btormain_msg ("BTOR input forced through cmd line options");
-        parse_res = boolector_parse_btor (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-      case BTOR_INPUT_FORMAT_SMT1:
-        if (g_verbosity)
-          btormain_msg ("SMT-LIB v1 input forced through cmd line options");
-        parse_res = boolector_parse_smt1 (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-      case BTOR_INPUT_FORMAT_SMT2:
-        if (g_verbosity)
-          btormain_msg ("SMT-LIB v2 input forced through cmd line options");
-        parse_res = boolector_parse_smt2 (g_app->btor,
-                                          g_app->infile,
-                                          g_app->infile_name,
-                                          g_app->outfile,
-                                          &parse_err_msg,
-                                          &parse_status);
-        break;
-    }
+    case BTOR_INPUT_FORMAT_BTOR:
+      if (g_verbosity)
+        btormain_msg ("BTOR input forced through cmd line options");
+      parse_res = boolector_parse_btor (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+    case BTOR_INPUT_FORMAT_SMT1:
+      if (g_verbosity)
+        btormain_msg ("SMT-LIB v1 input forced through cmd line options");
+      parse_res = boolector_parse_smt1 (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+    case BTOR_INPUT_FORMAT_SMT2:
+      if (g_verbosity)
+        btormain_msg ("SMT-LIB v2 input forced through cmd line options");
+      parse_res = boolector_parse_smt2 (g_app->btor,
+                                        g_app->infile,
+                                        g_app->infile_name,
+                                        g_app->outfile,
+                                        &parse_err_msg,
+                                        &parse_status);
+      break;
+
+    default:
+      parse_res = boolector_parse (g_app->btor,
+                                   g_app->infile,
+                                   g_app->infile_name,
+                                   g_app->outfile,
+                                   &parse_err_msg,
+                                   &parse_status);
   }
-  else
-    parse_res = boolector_parse (g_app->btor,
-                                 g_app->infile,
-                                 g_app->infile_name,
-                                 g_app->outfile,
-                                 &parse_err_msg,
-                                 &parse_status);
 
   /* verbosity may have been increased via input (set-option) */
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
