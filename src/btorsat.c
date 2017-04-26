@@ -14,6 +14,8 @@
 #include "btorsat.h"
 
 #include "sat/btorsatlgl.h"
+#include "sat/btorsatminisat.h"
+#include "sat/btorsatpicosat.h"
 
 #include "btorabort.h"
 #include "utils/btorutil.h"
