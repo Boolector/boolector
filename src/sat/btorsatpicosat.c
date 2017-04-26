@@ -18,6 +18,7 @@
 #ifdef BTOR_USE_PICOSAT
 /*------------------------------------------------------------------------*/
 
+#include "btorcore.h"
 #include "picosat.h"
 
 static void *
@@ -25,9 +26,9 @@ satpicosat_init (BtorSATMgr *smgr)
 {
   PicoSAT *res;
 
-  BTOR_MSG (smgr->msg, 1, "PicoSAT Version %s", picosat_version ());
+  BTOR_MSG (smgr->btor->msg, 1, "PicoSAT Version %s", picosat_version ());
 
-  res = picosat_minit (smgr->mm,
+  res = picosat_minit (smgr->btor->mm,
                        (picosat_malloc) btor_mem_sat_malloc,
                        (picosat_realloc) btor_mem_sat_realloc,
                        (picosat_free) btor_mem_sat_free);
@@ -184,8 +185,9 @@ btor_sat_enable_picosat (BtorSATMgr *smgr)
   smgr->api.variables = satpicosat_variables;
 #endif
 
-  BTOR_MSG (
-      smgr->msg, 1, "PicoSAT allows both incremental and non-incremental mode");
+  BTOR_MSG (smgr->btor->msg,
+            1,
+            "PicoSAT allows both incremental and non-incremental mode");
 
   return true;
 }

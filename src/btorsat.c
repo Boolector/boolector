@@ -18,6 +18,7 @@
 #include "sat/btorsatpicosat.h"
 
 #include "btorabort.h"
+#include "btorcore.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>
@@ -46,18 +47,17 @@
 /*------------------------------------------------------------------------*/
 
 BtorSATMgr *
-btor_sat_mgr_new (BtorMemMgr *mm, BtorMsg *msg)
+btor_sat_mgr_new (Btor *btor)
 {
+  assert (btor);
+
   BtorSATMgr *smgr;
 
-  assert (mm != NULL);
-
-  BTOR_CNEW (mm, smgr);
-  smgr->mm     = mm;
-  smgr->msg    = msg;
+  BTOR_CNEW (btor->mm, smgr);
+  smgr->btor   = btor;
   smgr->output = stdout;
   btor_enable_default_sat (smgr);
-  BTOR_MSG (msg, 1, "enabled %s as default SAT solver", smgr->name);
+  BTOR_MSG (btor->msg, 1, "enabled %s as default SAT solver", smgr->name);
   return smgr;
 }
 
@@ -87,22 +87,22 @@ btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state)
 // (see lingeling_sat) should be unique, which is not the case for
 // clones
 BtorSATMgr *
-btor_sat_mgr_clone (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
+btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr)
 {
+  assert (btor);
   assert (smgr);
-  assert (btor_sat_mgr_has_clone_support (smgr));
-  assert (msg);
-  assert (mm);
 
   BtorSATMgr *res;
+  BtorMemMgr *mm;
 
   BTOR_ABORT (!btor_sat_mgr_has_clone_support (smgr),
               "SAT solver does not support cloning");
+
+  mm = btor->mm;
   BTOR_NEW (mm, res);
   res->solver = smgr->api.clone (smgr, mm);
-  res->mm     = mm;
-  res->msg    = msg;
-  assert (res->mm->sat_allocated == smgr->mm->sat_allocated);
+  res->btor   = btor;
+  assert (mm->sat_allocated == smgr->btor->mm->sat_allocated);
   res->name   = smgr->name;
   res->optstr = btor_mem_strdup (mm, smgr->optstr);
   memcpy (&res->inc_required,
@@ -127,9 +127,8 @@ btor_sat_mgr_next_cnf_id (BtorSATMgr *smgr)
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT (result <= 0, "CNF id overflow");
-  if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
-      && !(result % 100000))
-    BTOR_MSG (smgr->msg, 2, "reached CNF id %d", result);
+  if (btor_opt_get (smgr->btor, BTOR_OPT_VERBOSITY) > 2 && !(result % 100000))
+    BTOR_MSG (smgr->btor->msg, 2, "reached CNF id %d", result);
   return result;
 }
 
@@ -162,8 +161,8 @@ btor_sat_mgr_delete (BtorSATMgr *smgr)
    * reset_sat has not been called
    */
   if (smgr->initialized) btor_sat_reset (smgr);
-  if (smgr->optstr) btor_mem_freestr (smgr->mm, smgr->optstr);
-  BTOR_DELETE (smgr->mm, smgr);
+  if (smgr->optstr) btor_mem_freestr (smgr->btor->mm, smgr->optstr);
+  BTOR_DELETE (smgr->btor->mm, smgr);
 }
 
 /*------------------------------------------------------------------------*/
@@ -181,12 +180,12 @@ btor_sat_set_output (BtorSATMgr *smgr, FILE *output)
   smgr->api.set_output (smgr, output);
   smgr->output = output;
 
-  prefix = btor_mem_malloc (smgr->mm, strlen (smgr->name) + 4);
+  prefix = btor_mem_malloc (smgr->btor->mm, strlen (smgr->name) + 4);
   sprintf (prefix, "[%s] ", smgr->name);
   q = prefix + 1;
   for (p = smgr->name; *p; p++) *q++ = tolower ((int) *p);
   smgr->api.set_prefix (smgr, prefix);
-  btor_mem_free (smgr->mm, prefix, strlen (smgr->name) + 4);
+  btor_mem_free (smgr->btor->mm, prefix, strlen (smgr->name) + 4);
 }
 
 void
@@ -194,11 +193,11 @@ btor_sat_init (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   assert (!smgr->initialized);
-  BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
+  BTOR_MSG (smgr->btor->msg, 1, "initialized %s", smgr->name);
 
   smgr->solver = smgr->api.init (smgr);
-  smgr->api.enable_verbosity (
-      smgr, btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY));
+  smgr->api.enable_verbosity (smgr,
+                              btor_opt_get (smgr->btor, BTOR_OPT_VERBOSITY));
   smgr->initialized  = true;
   smgr->inc_required = true;
   smgr->sat_time     = 0;
@@ -214,7 +213,7 @@ btor_sat_print_stats (BtorSATMgr *smgr)
 {
   if (!smgr || !smgr->initialized) return;
   smgr->api.stats (smgr);
-  BTOR_MSG (smgr->msg,
+  BTOR_MSG (smgr->btor->msg,
             1,
             "%d SAT calls in %.1f seconds",
             smgr->satcalls,
@@ -240,8 +239,11 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   BtorSolverResult res;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  BTOR_MSG (
-      smgr->msg, 2, "calling SAT solver %s with limit %d", smgr->name, limit);
+  BTOR_MSG (smgr->btor->msg,
+            2,
+            "calling SAT solver %s with limit %d",
+            smgr->name,
+            limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
   if (smgr->api.setterm) smgr->api.setterm (smgr);
@@ -281,12 +283,12 @@ btor_sat_reset (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
-  BTOR_MSG (smgr->msg, 2, "resetting %s", smgr->name);
+  BTOR_MSG (smgr->btor->msg, 2, "resetting %s", smgr->name);
   smgr->api.reset (smgr);
   smgr->solver = 0;
   if (smgr->optstr)
   {
-    btor_mem_freestr (smgr->mm, smgr->optstr);
+    btor_mem_freestr (smgr->btor->mm, smgr->optstr);
     smgr->optstr = 0;
   }
   smgr->initialized = false;

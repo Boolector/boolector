@@ -18,6 +18,7 @@
 #ifdef BTOR_USE_MINISAT
 /*------------------------------------------------------------------------*/
 
+#include "btorcore.h"
 #include "btorminisat.h"
 
 bool
@@ -56,8 +57,9 @@ btor_sat_enable_minisat (BtorSATMgr* smgr)
   smgr->api.variables = btor_minisat_variables;
 #endif
 
-  BTOR_MSG (
-      smgr->msg, 1, "MiniSAT allows both incremental and non-incremental mode");
+  BTOR_MSG (smgr->btor->msg,
+            1,
+            "MiniSAT allows both incremental and non-incremental mode");
 
   return true;
 }

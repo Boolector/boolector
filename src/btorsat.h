@@ -29,9 +29,8 @@ struct BtorSATMgr
   /* Note: direct solver reference for PicoSAT, wrapper object for for
    *	   Lingeling (BtorLGL) and MiniSAT (BtorMiniSAT). */
   void *solver;
+  Btor *btor;
 
-  BtorMemMgr *mm;
-  BtorMsg *msg;
   const char *name; /* solver name */
   char *optstr;     /* solver option string */
 
@@ -98,7 +97,7 @@ struct BtorSATMgr
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
-BtorSATMgr *btor_sat_mgr_new (BtorMemMgr *mm, BtorMsg *msg);
+BtorSATMgr *btor_sat_mgr_new (Btor *btor);
 
 bool btor_sat_mgr_has_clone_support (const BtorSATMgr *smgr);
 
@@ -107,7 +106,7 @@ bool btor_sat_mgr_has_term_support (const BtorSATMgr *smgr);
 void btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 
 /* Clones existing SAT manager (and underlying SAT solver). */
-BtorSATMgr *btor_sat_mgr_clone (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr);
+BtorSATMgr *btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr);
 
 /* Deletes SAT manager from memory. */
 void btor_sat_mgr_delete (BtorSATMgr *smgr);

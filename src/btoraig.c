@@ -792,7 +792,7 @@ btor_aig_mgr_new (Btor *btor)
   BTOR_CNEW (btor->mm, amgr);
   amgr->btor = btor;
   BTOR_INIT_AIG_UNIQUE_TABLE (btor->mm, amgr->table);
-  amgr->smgr = btor_sat_mgr_new (btor->mm, amgr->btor->msg);
+  amgr->smgr = btor_sat_mgr_new (btor);
   BTOR_INIT_STACK (btor->mm, amgr->id2aig);
   BTOR_PUSH_STACK (amgr->id2aig, BTOR_AIG_FALSE);
   BTOR_PUSH_STACK (amgr->id2aig, BTOR_AIG_TRUE);
@@ -886,7 +886,7 @@ btor_aig_mgr_clone (Btor *btor, BtorAIGMgr *amgr)
   BTOR_CNEW (btor->mm, res);
   res->btor = btor;
 
-  res->smgr = btor_sat_mgr_clone (btor->mm, btor->msg, amgr->smgr);
+  res->smgr = btor_sat_mgr_clone (btor, amgr->smgr);
   /* Note: we do not yet clone aigs here (we need the clone of the aig
    *       manager for that). */
   res->max_num_aigs     = amgr->max_num_aigs;

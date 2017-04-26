@@ -23,6 +23,8 @@
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "sat/btorsatlgl.h"
+#include "sat/btorsatminisat.h"
+#include "sat/btorsatpicosat.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"

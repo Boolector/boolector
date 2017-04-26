@@ -37,14 +37,14 @@ init_sat_tests (void)
 static void
 test_new_delete_sat_mgr (void)
 {
-  BtorSATMgr *smgr = btor_sat_mgr_new (g_mm, g_msg);
+  BtorSATMgr *smgr = btor_sat_mgr_new (g_btor);
   btor_sat_mgr_delete (smgr);
 }
 
 static void
 test_next_cnf_id_sat_mgr (void)
 {
-  BtorSATMgr *smgr = btor_sat_mgr_new (g_mm, g_msg);
+  BtorSATMgr *smgr = btor_sat_mgr_new (g_btor);
   btor_sat_init (smgr);
   assert (btor_sat_mgr_next_cnf_id (smgr) == 2);
   assert (btor_sat_mgr_next_cnf_id (smgr) == 3);

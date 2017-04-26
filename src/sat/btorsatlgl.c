@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include "btorabort.h"
+#include "btorcore.h"
 
 #define BTOR_LGL_SIMP_DELAY 10000
 #define BTOR_LGL_MIN_BLIMIT 50000
@@ -40,7 +41,7 @@ passdown_lingeling_options (BtorSATMgr *smgr,
   assert (optstr);
   len = strlen (optstr);
 
-  BTOR_NEWN (smgr->mm, str, len + 1);
+  BTOR_NEWN (smgr->btor->mm, str, len + 1);
   strcpy (str, optstr);
 
   res = true;
@@ -103,8 +104,11 @@ passdown_lingeling_options (BtorSATMgr *smgr,
           if (external_lgl && val)
           {
             assert (lgl == external_lgl);
-            BTOR_MSG (
-                smgr->msg, 2, "setting Lingeling option --%s=%s", opt, val);
+            BTOR_MSG (smgr->btor->msg,
+                      2,
+                      "setting Lingeling option --%s=%s",
+                      opt,
+                      val);
             lglsetopt (lgl, opt, atoi (val));
           }
         }
@@ -116,14 +120,14 @@ passdown_lingeling_options (BtorSATMgr *smgr,
       if (valid || external_lgl) continue;
 
       if (eq) *eq = '=';
-      BTOR_MSG (smgr->msg,
+      BTOR_MSG (smgr->btor->msg,
                 1,
                 "*** can not pass down to Lingeling invalid option '%s'",
                 optstr);
     }
   }
 
-  BTOR_DELETEN (smgr->mm, str, len + 1);
+  BTOR_DELETEN (smgr->btor->mm, str, len + 1);
   if (lgl && !external_lgl) lglrelease (lgl);
 
   return res;
@@ -136,14 +140,14 @@ lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
 
-  if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
+  if (btor_opt_get (smgr->btor, BTOR_OPT_VERBOSITY) >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
   }
 
-  BTOR_CNEW (smgr->mm, res);
-  res->lgl = lglminit (smgr->mm,
+  BTOR_CNEW (smgr->btor->mm, res);
+  res->lgl = lglminit (smgr->btor->mm,
                        (lglalloc) btor_mem_sat_malloc,
                        (lglrealloc) btor_mem_sat_realloc,
                        (lgldealloc) btor_mem_sat_free);
@@ -184,7 +188,7 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
     file = fopen (name, "w");
     lglprint (lgl, file);
     fclose (file);
-    BTOR_MSG (smgr->msg, 0, "wrote %s", name);
+    BTOR_MSG (smgr->btor->msg, 0, "wrote %s", name);
   }
 #endif
 
@@ -213,7 +217,7 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
   }
   else
   {
-    BTOR_MSG (smgr->msg, 2, "blimit = %d", blgl->blimit);
+    BTOR_MSG (smgr->btor->msg, 2, "blimit = %d", blgl->blimit);
     lglsetopt (lgl, "clim", blgl->blimit);
     if (!(res = lglsat (lgl)))
     {
@@ -229,7 +233,8 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
       lglsetopt (clone, "clim", limit);
       /* callbacks are not cloned in Lingeling */
       if (smgr->term.fun) lglseterm (clone, smgr->term.fun, smgr->term.state);
-      sprintf (name, "[%s lgl%s%d] ", smgr->msg->prefix, str, blgl->nforked);
+      sprintf (
+          name, "[%s lgl%s%d] ", smgr->btor->msg->prefix, str, blgl->nforked);
       lglsetprefix (clone, name);
       lglsetout (clone, smgr->output);
 
@@ -239,8 +244,7 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
       (void)
 #endif
           lglsat (clone);
-      if (btor_opt_get (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 0)
-        lglstats (clone);
+      if (btor_opt_get (smgr->btor, BTOR_OPT_VERBOSITY) > 0) lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);
       assert (!res || bfres == res);
@@ -284,7 +288,7 @@ lingeling_reset (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglrelease (blgl->lgl);
-  BTOR_DELETE (smgr->mm, blgl);
+  BTOR_DELETE (smgr->btor->mm, blgl);
 }
 
 static void
@@ -334,7 +338,7 @@ lingeling_stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglstats (blgl->lgl);
-  BTOR_MSG (smgr->msg, 1, "%d forked", blgl->nforked);
+  BTOR_MSG (smgr->btor->msg, 1, "%d forked", blgl->nforked);
 }
 
 /*------------------------------------------------------------------------*/
@@ -419,7 +423,7 @@ btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_lingeling'");
 
-  smgr->optstr = btor_mem_strdup (smgr->mm, optstr);
+  smgr->optstr = btor_mem_strdup (smgr->btor->mm, optstr);
   if (smgr->optstr && !passdown_lingeling_options (smgr, optstr, 0))
     return false;
 
@@ -454,12 +458,14 @@ btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
   smgr->api.clone   = lingeling_clone;
   smgr->api.setterm = lingeling_setterm;
 
-  BTOR_MSG (smgr->msg,
+  BTOR_MSG (smgr->btor->msg,
             1,
             "Lingeling allows both incremental and non-incremental mode");
   if (smgr->optstr)
-    BTOR_MSG (
-        smgr->msg, 1, "Configured options for Lingeling: %s", smgr->optstr);
+    BTOR_MSG (smgr->btor->msg,
+              1,
+              "Configured options for Lingeling: %s",
+              smgr->optstr);
 
   return true;
 }
