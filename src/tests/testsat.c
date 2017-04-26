@@ -29,7 +29,7 @@ static BtorMsg *g_msg;
 void
 init_sat_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
   g_mm   = g_btor->mm;
   g_msg  = g_btor->msg;
 }
@@ -63,5 +63,5 @@ run_sat_tests (int argc, char **argv)
 void
 finish_sat_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

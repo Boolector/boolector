@@ -250,7 +250,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   if (!real_exp->av)
     return btor_bv_new (mm, btor_get_exp_width (real_exp->btor, real_exp));
 
-  amgr = btor_get_aig_mgr_btor (real_exp->btor);
+  amgr = btor_get_aig_mgr (real_exp->btor);
   av   = real_exp->av;
   len  = av->len;
   res  = btor_bv_new (mm, len);

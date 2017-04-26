@@ -282,7 +282,7 @@ sat_prop_solver_aux (Btor *btor)
     if (!slv->score && btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
       slv->score = btor_hashint_map_new (btor->mm);
 
-    if (btor_terminate_btor (btor))
+    if (btor_terminate (btor))
     {
       sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
@@ -309,7 +309,7 @@ sat_prop_solver_aux (Btor *btor)
          !btor_opt_get (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
     {
-      if (btor_terminate_btor (btor) || (nprops && slv->stats.props >= nprops))
+      if (btor_terminate (btor) || (nprops && slv->stats.props >= nprops))
       {
         sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;
@@ -370,7 +370,7 @@ sat_prop_solver (BtorPropSolver *slv)
   btor = slv->btor;
   assert (!btor->inconsistent);
 
-  if (btor_terminate_btor (btor))
+  if (btor_terminate (btor))
   {
     sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;

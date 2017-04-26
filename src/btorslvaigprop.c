@@ -42,9 +42,8 @@ clone_aigprop_solver (Btor *clone, BtorAIGPropSolver *slv, BtorNodeMap *exp_map)
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorAIGPropSolver));
-  res->btor = clone;
-  res->aprop =
-      aigprop_clone_aigprop (btor_get_aig_mgr_btor (clone), slv->aprop);
+  res->btor  = clone;
+  res->aprop = aigprop_clone_aigprop (btor_get_aig_mgr (clone), slv->aprop);
   return res;
 }
 
@@ -202,7 +201,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (!btor->inconsistent);
   roots = 0;
 
-  if (btor_terminate_btor (btor))
+  if (btor_terminate (btor))
   {
     sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
@@ -361,7 +360,7 @@ btor_new_aigprop_solver (Btor *btor)
       (BtorSolverPrintTimeStats) print_time_stats_aigprop_solver;
 
   slv->aprop =
-      aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+      aigprop_new_aigprop (btor_get_aig_mgr (btor),
 #ifndef NBTORLOG
                            btor_opt_get (btor, BTOR_OPT_LOGLEVEL),
 #else

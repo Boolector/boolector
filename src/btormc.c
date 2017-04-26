@@ -301,7 +301,7 @@ boolector_mc_delete (BtorMC *mc)
   BTOR_RELEASE_STACK (mc->reached);
   if (mc->forward) boolector_delete (mc->forward);
   BTOR_DELETE (mm, mc);
-  btor_delete_btor (btor);
+  btor_delete (btor);
 }
 
 BoolectorNode *
@@ -821,7 +821,7 @@ initialize_new_forward_frame (BtorMC *mc)
   if (!mc->forward)
   {
     BTOR_MSG (boolector_get_btor_msg (mc->btor), 1, "new forward manager");
-    mc->forward = btor_new_btor ();
+    mc->forward = btor_new ();
     boolector_set_opt (mc->forward, BTOR_OPT_INCREMENTAL, 1);
     if (mc->trace_enabled)
       boolector_set_opt (mc->forward, BTOR_OPT_MODEL_GEN, 1);

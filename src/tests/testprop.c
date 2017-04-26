@@ -31,7 +31,7 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INIT                                             \
   do                                                               \
   {                                                                \
-    g_btor            = btor_new_btor ();                          \
+    g_btor            = btor_new ();                               \
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
     btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
@@ -58,7 +58,7 @@ static BtorRNG *g_rng;
 #define TEST_PROP_ONE_COMPLETE_BINARY_FINISH(fun) \
   do                                              \
   {                                               \
-    btor_delete_btor (g_btor);                    \
+    btor_delete (g_btor);                         \
   } while (0)
 
 #ifndef NDEBUG
@@ -473,7 +473,7 @@ test_prop_complete_slice_bv (void)
     }
   }
   btor_sort_release (g_btor, sort);
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 #endif
 }
 

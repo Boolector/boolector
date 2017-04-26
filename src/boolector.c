@@ -86,13 +86,13 @@ boolector_chkclone (Btor *btor)
   {
     /* force auto cleanup (might have been disabled via btormbt) */
     btor_opt_set (btor->clone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_delete_btor (btor->clone);
+    btor_delete (btor->clone);
     btor->clone = 0;
   }
   /* do not generate shadow clone if sat solver does not support cloning
    * (else only expression layer will be cloned and shadowed API function
    *  calls may fail) */
-  if (!btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor))) return;
+  if (!btor_sat_mgr_has_clone_support (btor_get_sat_mgr (btor))) return;
   btor->clone           = btor_clone_btor (btor);
   btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
@@ -209,7 +209,7 @@ boolector_new (void)
   char *trname;
   Btor *btor;
 
-  btor = btor_new_btor ();
+  btor = btor_new ();
   if ((trname = getenv ("BTORAPITRACE"))) btor_trapi_open_trace (btor, trname);
   BTOR_TRAPI ("");
   BTOR_TRAPI_RETURN_PTR (btor);
@@ -230,7 +230,7 @@ boolector_clone (Btor *btor)
   {
     Btor *cshadow = boolector_clone (btor->clone);
     btor_chkclone (btor->clone, cshadow);
-    btor_delete_btor (cshadow);
+    btor_delete (cshadow);
   }
 #endif
   return clone;
@@ -248,14 +248,14 @@ boolector_delete (Btor *btor)
 #ifndef NDEBUG
   if (btor->clone) boolector_delete (btor->clone);
 #endif
-  btor_delete_btor (btor);
+  btor_delete (btor);
 }
 
 void
 boolector_set_term (Btor *btor, int (*fun) (void *), void *state)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  btor_set_term_btor (btor, fun, state);
+  btor_set_term (btor, fun, state);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_term, fun, state);
 #endif
@@ -267,7 +267,7 @@ boolector_terminate (Btor *btor)
   int res;
 
   BTOR_ABORT_ARG_NULL (btor);
-  res = btor_terminate_btor (btor);
+  res = btor_terminate (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, terminate);
 #endif
@@ -279,7 +279,7 @@ boolector_set_msg_prefix (Btor *btor, const char *prefix)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s", prefix);
-  btor_set_msg_prefix_btor (btor, prefix);
+  btor_set_msg_prefix (btor, prefix);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_msg_prefix, prefix);
 #endif
@@ -305,7 +305,7 @@ boolector_reset_time (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  btor_reset_time_btor (btor);
+  btor_reset_time (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (reset_time);
 #endif
@@ -316,7 +316,7 @@ boolector_reset_stats (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  btor_reset_stats_btor (btor);
+  btor_reset_stats (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (reset_stats);
 #endif
@@ -327,8 +327,8 @@ boolector_print_stats (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  btor_sat_print_stats (btor_get_sat_mgr_btor (btor));
-  btor_print_stats_btor (btor);
+  btor_sat_print_stats (btor_get_sat_mgr (btor));
+  btor_print_stats (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_stats);
 #endif
@@ -465,7 +465,7 @@ boolector_sat (Btor *btor)
                   && btor->btor_sat_btor_called > 0,
               "incremental usage has not been enabled."
               "'boolector_sat' may only be called once");
-  res = btor_sat_btor (btor, -1, -1);
+  res = btor_check_sat (btor, -1, -1);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, sat);
@@ -483,7 +483,7 @@ boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
                   && btor->btor_sat_btor_called > 0,
               "incremental usage has not been enabled."
               "'boolector_limited_sat' may only be called once");
-  res = btor_sat_btor (btor, lod_limit, sat_limit);
+  res = btor_check_sat (btor, lod_limit, sat_limit);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, limited_sat, lod_limit, sat_limit);

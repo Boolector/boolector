@@ -129,8 +129,8 @@ struct Btor
   bool inconsistent;
   bool found_constraint_false;
 
-  uint32_t external_refs;           /* external references (library mode) */
-  uint32_t btor_sat_btor_called;    /* how often is btor_sat_btor been called */
+  uint32_t external_refs;        /* external references (library mode) */
+  uint32_t btor_sat_btor_called; /* how often is btor_check_sat been called */
   BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
@@ -220,31 +220,31 @@ struct Btor
 };
 
 /* Creates new boolector instance. */
-Btor *btor_new_btor (void);
+Btor *btor_new (void);
 
 /* Deletes boolector. */
-void btor_delete_btor (Btor *btor);
+void btor_delete (Btor *btor);
 
 /* Gets version. */
 const char *btor_version (const Btor *btor);
 
 /* Set termination callback. */
-void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
+void btor_set_term (Btor *btor, int (*fun) (void *), void *state);
 
 /* Determine if boolector has been terminated via termination callback. */
-int btor_terminate_btor (Btor *btor);
+int btor_terminate (Btor *btor);
 
 /* Set verbosity message prefix. */
-void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
+void btor_set_msg_prefix (Btor *btor, const char *prefix);
 
 /* Prints statistics. */
-void btor_print_stats_btor (Btor *btor);
+void btor_print_stats (Btor *btor);
 
 /* Reset time statistics. */
-void btor_reset_time_btor (Btor *btor);
+void btor_reset_time (Btor *btor);
 
 /* Reset other statistics. */
-void btor_reset_stats_btor (Btor *btor);
+void btor_reset_stats (Btor *btor);
 
 /* Adds top level constraint. */
 void btor_assert_exp (Btor *btor, BtorNode *exp);
@@ -266,10 +266,10 @@ void btor_reset_assumptions (Btor *btor);
 
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
-int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
+int btor_check_sat (Btor *btor, int lod_limit, int sat_limit);
 
-BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
-BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
+BtorSATMgr *btor_get_sat_mgr (const Btor *btor);
+BtorAIGMgr *btor_get_aig_mgr (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);

@@ -32,7 +32,7 @@ static BtorSortId g_array_sort;
 void
 init_lambda_test (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
   if (g_rwreads) btor_opt_set (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
   g_elem_sort  = btor_sort_bitvec (g_btor, g_elem_bw);
   g_index_sort = btor_sort_bitvec (g_btor, g_index_bw);
@@ -45,7 +45,7 @@ finish_lambda_test (void)
   btor_sort_release (g_btor, g_elem_sort);
   btor_sort_release (g_btor, g_index_sort);
   btor_sort_release (g_btor, g_array_sort);
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }
 
 void

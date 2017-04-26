@@ -834,7 +834,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 {
   assert (btor);
   assert (exp_layer_only
-          || btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor)));
+          || btor_sat_mgr_has_clone_support (btor_get_sat_mgr (btor)));
   Btor *clone;
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
@@ -894,13 +894,13 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     /* reset */
     clone->btor_sat_btor_called = 0;
     clone->last_sat_result      = 0;
-    btor_reset_time_btor (clone);
+    btor_reset_time (clone);
 #ifndef NDEBUG
     /* we need to explicitely reset the pointer to the table, since
      * it is the memcpy-ied pointer of btor->stats.rw_rules_applied */
     clone->stats.rw_rules_applied = 0;
 #endif
-    btor_reset_stats_btor (clone);
+    btor_reset_stats (clone);
 #ifndef NDEBUG
     allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied);
     assert (allocated == clone->mm->allocated);
@@ -919,7 +919,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
-  btor_set_msg_prefix_btor (clone, prefix);
+  btor_set_msg_prefix (clone, prefix);
   BTOR_DELETEN (clone->mm, prefix, len + 1);
 
   if (exp_layer_only)
@@ -1452,7 +1452,7 @@ btor_clone_btor (Btor *btor)
 {
   assert (btor);
   return clone_aux_btor (
-      btor, 0, !btor_sat_mgr_has_clone_support (btor_get_sat_mgr_btor (btor)));
+      btor, 0, !btor_sat_mgr_has_clone_support (btor_get_sat_mgr (btor)));
 }
 
 Btor *

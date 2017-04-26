@@ -254,28 +254,28 @@ btor_version (const Btor *btor)
 }
 
 BtorAIGMgr *
-btor_get_aig_mgr_btor (const Btor *btor)
+btor_get_aig_mgr (const Btor *btor)
 {
   assert (btor);
   return btor_aigvec_get_aig_mgr (btor->avmgr);
 }
 
 BtorSATMgr *
-btor_get_sat_mgr_btor (const Btor *btor)
+btor_get_sat_mgr (const Btor *btor)
 {
   assert (btor);
-  return btor_aig_get_sat_mgr (btor_get_aig_mgr_btor (btor));
+  return btor_aig_get_sat_mgr (btor_get_aig_mgr (btor));
 }
 
 void
-btor_reset_time_btor (Btor *btor)
+btor_reset_time (Btor *btor)
 {
   assert (btor);
   BTOR_CLR (&btor->time);
 }
 
 void
-btor_reset_stats_btor (Btor *btor)
+btor_reset_stats (Btor *btor)
 {
   assert (btor);
 #ifndef NDEBUG
@@ -393,7 +393,7 @@ percent (double a, double b)
 }
 
 void
-btor_print_stats_btor (Btor *btor)
+btor_print_stats (Btor *btor)
 {
   int num_final_ops, verbosity, i;
 
@@ -633,7 +633,7 @@ btor_print_stats_btor (Btor *btor)
 }
 
 Btor *
-btor_new_btor (void)
+btor_new (void)
 {
   BtorMemMgr *mm;
   Btor *btor;
@@ -643,7 +643,7 @@ btor_new_btor (void)
 
   btor->mm  = mm;
   btor->msg = btor_msg_new (btor);
-  btor_set_msg_prefix_btor (btor, "btor");
+  btor_set_msg_prefix (btor, "btor");
 
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
@@ -742,7 +742,7 @@ terminate_aux_btor (void *btor)
 }
 
 int
-btor_terminate_btor (Btor *btor)
+btor_terminate (Btor *btor)
 {
   assert (btor);
 
@@ -751,7 +751,7 @@ btor_terminate_btor (Btor *btor)
 }
 
 void
-btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
+btor_set_term (Btor *btor, int (*fun) (void *), void *state)
 {
   assert (btor);
 
@@ -761,7 +761,7 @@ btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
   btor->cbs.term.fun     = fun;
   btor->cbs.term.state   = state;
 
-  smgr = btor_get_sat_mgr_btor (btor);
+  smgr = btor_get_sat_mgr (btor);
   if (btor_sat_mgr_has_term_support (smgr))
     btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
 }
@@ -819,7 +819,7 @@ btor_release_all_ext_refs (Btor *btor)
 }
 
 void
-btor_delete_btor (Btor *btor)
+btor_delete (Btor *btor)
 {
   assert (btor);
 
@@ -970,7 +970,7 @@ btor_delete_btor (Btor *btor)
 }
 
 void
-btor_set_msg_prefix_btor (Btor *btor, const char *prefix)
+btor_set_msg_prefix (Btor *btor, const char *prefix)
 {
   assert (btor);
 
@@ -994,7 +994,7 @@ btor_process_unsynthesized_constraints (Btor *btor)
 
   uc   = btor->unsynthesized_constraints;
   sc   = btor->synthesized_constraints;
-  amgr = btor_get_aig_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
 
   while (uc->count > 0)
   {
@@ -1705,8 +1705,8 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 
   aig = exp_to_aig (btor, exp);
 
-  amgr = btor_get_aig_mgr_btor (btor);
-  smgr = btor_get_sat_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
+  smgr = btor_get_sat_mgr (btor);
 
   if (btor_aig_is_const (aig))
   {
@@ -1798,7 +1798,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
   mark = btor_hashint_table_new (btor->mm);
-  smgr = btor_get_sat_mgr_btor (btor);
+  smgr = btor_get_sat_mgr (btor);
   assert (smgr);
 
   if (btor->inconsistent)
@@ -3524,8 +3524,8 @@ btor_add_again_assumptions (Btor *btor)
   BtorAIGMgr *amgr;
   BtorIntHashTable *mark;
 
-  amgr = btor_get_aig_mgr_btor (btor);
-  smgr = btor_get_sat_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
+  smgr = btor_get_sat_mgr (btor);
 
   BTOR_INIT_STACK (btor->mm, stack);
   mark = btor_hashint_table_new (btor->mm);
@@ -3600,7 +3600,7 @@ update_sat_assignments (Btor * btor)
 
   BtorSATMgr *smgr;
 
-  smgr = btor_get_sat_mgr_btor (btor);
+  smgr = btor_get_sat_mgr (btor);
   add_again_assumptions (btor);
 #ifndef NDEBUG
   int result;
@@ -3614,7 +3614,7 @@ update_sat_assignments (Btor * btor)
 #endif
 
 int
-btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
+btor_check_sat (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
   assert (btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
@@ -3745,7 +3745,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
     assert (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL));
     assert (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
-    BtorSolverResult ucres = btor_sat_btor (uclone, -1, -1);
+    BtorSolverResult ucres = btor_check_sat (uclone, -1, -1);
     assert (res == ucres);
   }
 
@@ -3780,7 +3780,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       btor_release_exp (mclone, btor_iter_hashptr_next (&it));
     }
     btor_hashptr_table_delete (inputs);
-    btor_delete_btor (mclone);
+    btor_delete (mclone);
   }
 #endif
 
@@ -3862,7 +3862,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
   assert (btor_get_exp_width (btor, exp) == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
-  amgr = btor_get_aig_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
 
   btor_synthesize_exp (btor, exp, 0);
   av = BTOR_REAL_ADDR_NODE (exp)->av;
@@ -4093,7 +4093,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   // btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
-          || btor_sat_btor (clone, -1, -1) == BTOR_RESULT_SAT);
+          || btor_check_sat (clone, -1, -1) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
   BTOR_ABORT (ret == BTOR_RESULT_UNSAT, "invalid model");
@@ -4148,7 +4148,7 @@ check_failed_assumptions (Btor *btor)
                               (BtorHashPtr) btor_hash_exp_by_id,
                               (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (btor_sat_btor (clone, -1, -1) == BTOR_RESULT_UNSAT);
-  btor_delete_btor (clone);
+  assert (btor_check_sat (clone, -1, -1) == BTOR_RESULT_UNSAT);
+  btor_delete (clone);
 }
 #endif

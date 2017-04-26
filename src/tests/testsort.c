@@ -26,13 +26,13 @@ static Btor *g_btor = NULL;
 void
 init_sort_test (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
 }
 
 void
 finish_sort_test (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }
 
 void

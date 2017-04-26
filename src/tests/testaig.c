@@ -31,7 +31,7 @@ static Btor *g_btor;
 void
 init_aig_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
 }
 
 static void
@@ -182,5 +182,5 @@ run_aig_tests (int argc, char **argv)
 void
 finish_aig_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

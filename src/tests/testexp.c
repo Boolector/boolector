@@ -32,14 +32,14 @@ init_exp_tests (void)
 void
 init_exp_test (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
   if (g_rwreads) btor_opt_set (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 }
 
 void
 finish_exp_test (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }
 
 static void

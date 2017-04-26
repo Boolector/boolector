@@ -157,7 +157,7 @@ configure_sat_mgr (Btor *btor)
 {
   BtorSATMgr *smgr;
 
-  smgr = btor_get_sat_mgr_btor (btor);
+  smgr = btor_get_sat_mgr (btor);
   if (btor_sat_is_initialized (smgr)) return;
   btor_sat_enable_solver (smgr);
   btor_sat_init (smgr);
@@ -186,7 +186,7 @@ timed_sat_sat (Btor *btor, int limit)
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
 
-  amgr = btor_get_aig_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
   BTOR_MSG (btor->msg,
             1,
             "%u AIG vars, %u AIG ands, %u CNF vars, %u CNF clauses",
@@ -194,7 +194,7 @@ timed_sat_sat (Btor *btor, int limit)
             amgr->cur_num_aigs,
             amgr->num_cnf_vars,
             amgr->num_cnf_clauses);
-  smgr  = btor_get_sat_mgr_btor (btor);
+  smgr  = btor_get_sat_mgr (btor);
   start = btor_util_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
   delta = btor_util_time_stamp () - start;
@@ -293,7 +293,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
-  assert (!btor_sat_is_initialized (btor_get_sat_mgr_btor (clone)));
+  assert (!btor_sat_is_initialized (btor_get_sat_mgr (clone)));
   btor_opt_set_str (clone, BTOR_OPT_SAT_ENGINE, "plain=1");
   configure_sat_mgr (clone);
 
@@ -529,7 +529,7 @@ sat_aux_btor_dual_prop (Btor *btor)
   result = timed_sat_sat (btor, -1);
 
   assert (result == BTOR_RESULT_UNSAT
-          || (btor_terminate_btor (btor) && result == BTOR_RESULT_UNKNOWN));
+          || (btor_terminate (btor) && result == BTOR_RESULT_UNKNOWN));
 
 DONE:
   result                  = BTOR_RESULT_UNSAT;
@@ -791,7 +791,7 @@ search_initial_applies_dual_prop (Btor *btor,
   slv->stats.dp_failed_applies  = 0;
   slv->stats.dp_assumed_applies = 0;
 
-  smgr = btor_get_sat_mgr_btor (btor);
+  smgr = btor_get_sat_mgr (btor);
   if (!smgr->inc_required) return;
 
   mark = btor_hashint_table_new (mm);
@@ -946,7 +946,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTORLOG (1, "*** search initial applies");
 
   mm   = btor->mm;
-  amgr = btor_get_aig_mgr_btor (btor);
+  amgr = btor_get_aig_mgr (btor);
   h    = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
   mark = btor_hashint_table_new (mm);
 
@@ -2249,7 +2249,7 @@ sat_fun_solver (BtorFunSolver *slv)
     btor_model_delete (btor);
   }
 
-  if (btor_terminate_btor (btor))
+  if (btor_terminate (btor))
   {
   UNKNOWN:
     result = BTOR_RESULT_UNKNOWN;
@@ -2266,7 +2266,7 @@ sat_fun_solver (BtorFunSolver *slv)
 
   while (true)
   {
-    if (btor_terminate_btor (btor)
+    if (btor_terminate (btor)
         || (slv->lod_limit > -1
             && slv->stats.lod_refinements >= slv->lod_limit))
     {
@@ -2344,7 +2344,7 @@ DONE:
     assert (exp_map);
     btor_nodemap_delete (exp_map);
     btor_release_exp (clone, clone_root);
-    btor_delete_btor (clone);
+    btor_delete (clone);
   }
   return result;
 }

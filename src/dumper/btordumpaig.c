@@ -62,7 +62,7 @@ btor_dumpaig_dump (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   BtorAIGPtrStack roots;
 
   BTOR_INIT_STACK (btor->mm, roots);
-  amgr           = btor_get_aig_mgr_btor (btor);
+  amgr           = btor_get_aig_mgr (btor);
   avmgr          = btor->avmgr;
   backannotation = btor_hashptr_table_new (btor->mm, 0, 0);
 

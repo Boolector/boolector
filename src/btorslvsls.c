@@ -1486,7 +1486,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   nprops      = btor_opt_get (btor, BTOR_OPT_PROP_NPROPS);
   slv->nflips = btor_opt_get (btor, BTOR_OPT_SLS_NFLIPS);
 
-  if (btor_terminate_btor (btor))
+  if (btor_terminate (btor))
   {
     sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
@@ -1542,7 +1542,7 @@ sat_sls_solver (BtorSLSSolver *slv)
 
   for (;;)
   {
-    if (btor_terminate_btor (btor))
+    if (btor_terminate (btor))
     {
       sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
@@ -1584,7 +1584,7 @@ sat_sls_solver (BtorSLSSolver *slv)
          !btor_opt_get (btor, BTOR_OPT_SLS_USE_RESTARTS) || j < max_steps;
          j++)
     {
-      if (btor_terminate_btor (btor)
+      if (btor_terminate (btor)
           || (slv->nflips && slv->stats.flips >= slv->nflips)
           || (nprops && slv->stats.props >= nprops))
       {

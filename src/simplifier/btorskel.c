@@ -43,7 +43,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
   {
     id = btor_aig_get_cnf_id (aig);
     if (!id) return 0;
-    smgr = btor_get_sat_mgr_btor (btor);
+    smgr = btor_get_sat_mgr (btor);
     res  = btor_sat_fixed (smgr, id);
   }
   if (BTOR_IS_INVERTED_NODE (exp)) res = -res;

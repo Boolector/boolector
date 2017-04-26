@@ -45,7 +45,7 @@ static BtorRNG *g_rng;
 void
 init_bitvec_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
   g_mm   = g_btor->mm;
   btor_rng_init (&g_btor->rng, btor_opt_get (g_btor, BTOR_OPT_SEED));
   g_rng = &g_btor->rng;
@@ -2015,5 +2015,5 @@ run_bitvec_tests (int argc, char **argv)
 void
 finish_bitvec_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

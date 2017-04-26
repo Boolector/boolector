@@ -1469,7 +1469,7 @@ test_propinv_conf_concat_bv (void)
 void
 init_propinv_tests (void)
 {
-  g_btor            = btor_new_btor ();
+  g_btor            = btor_new ();
   g_btor->slv       = btor_new_prop_solver (g_btor);
   g_btor->slv->btor = g_btor;
   btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
@@ -1516,5 +1516,5 @@ run_propinv_tests (int argc, char **argv)
 void
 finish_propinv_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }
