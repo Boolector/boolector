@@ -196,7 +196,7 @@ timed_sat_sat (Btor *btor, int limit)
             amgr->num_cnf_clauses);
   smgr  = btor_get_sat_mgr (btor);
   start = btor_util_time_stamp ();
-  res   = btor_sat_sat (smgr, limit);
+  res   = btor_sat_check_sat (smgr, limit);
   delta = btor_util_time_stamp () - start;
   BTOR_FUN_SOLVER (btor)->time.sat += delta;
 

@@ -249,7 +249,7 @@ btor_sat_add (BtorSATMgr *smgr, int lit)
 }
 
 BtorSolverResult
-btor_sat_sat (BtorSATMgr *smgr, int limit)
+btor_sat_check_sat (BtorSATMgr *smgr, int limit)
 {
   double start = btor_util_time_stamp ();
   int sat_res;

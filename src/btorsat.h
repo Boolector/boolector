@@ -147,30 +147,30 @@ void btor_sat_add (BtorSATMgr *smgr, int lit);
 void btor_sat_assume (BtorSATMgr *smgr, int lit);
 
 /* Checks whether an assumption failed during
- * the last SAT solver call 'btor_sat_sat'.
+ * the last SAT solver call 'btor_sat_check_sat'.
  */
 int btor_sat_failed (BtorSATMgr *smgr, int lit);
 
 /* Solves the SAT instance.
  * limit < 0 -> no limit.
  */
-BtorSolverResult btor_sat_sat (BtorSATMgr *smgr, int limit);
+BtorSolverResult btor_sat_check_sat (BtorSATMgr *smgr, int limit);
 
 /* Gets assignment of a literal (in the SAT case).
- * Do not call before calling btor_sat_sat.
+ * Do not call before calling btor_sat_check_sat.
  */
 int btor_sat_deref (BtorSATMgr *smgr, int lit);
 
 /* Gets equivalence class represenative of a literal
  * or the literal itself if it is in a singleton
  * equivalence, fixed or eliminated.
- * Do not call before calling btor_sat_sat.
+ * Do not call before calling btor_sat_check_sat.
  */
 int btor_sat_repr (BtorSATMgr *smgr, int lit);
 
 /* Gets assignment of a literal (in the SAT case)
  * similar to 'deref', but only consider top level.
- * Do not call before calling btor_sat_sat.
+ * Do not call before calling btor_sat_check_sat.
  */
 int btor_sat_fixed (BtorSATMgr *smgr, int lit);
 
