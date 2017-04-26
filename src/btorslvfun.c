@@ -22,6 +22,7 @@
 #include "btoropt.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
+#include "sat/btorsatlgl.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"

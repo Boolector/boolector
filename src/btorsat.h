@@ -88,17 +88,6 @@ struct BtorSATMgr
   } api;
 };
 
-#if defined(BTOR_USE_LINGELING)
-#include "lglib.h"
-typedef struct BtorLGL BtorLGL;
-
-struct BtorLGL
-{
-  LGL *lgl;
-  int nforked, blimit;
-};
-#endif
-
 /*------------------------------------------------------------------------*/
 
 #define BTOR_MEM_MGR_SAT(SMGR) ((SMGR)->mm)
@@ -197,20 +186,6 @@ int btor_sat_changed (BtorSATMgr * smgr);
 /* Determine wether SAT solver is already inconsistent.
  */
 int btor_sat_inconsistent (BtorSATMgr * smgr);
-#endif
-
-#ifdef BTOR_USE_PICOSAT
-bool btor_sat_enable_picosat (BtorSATMgr *smgr);
-#endif
-
-#ifdef BTOR_USE_LINGELING
-bool btor_sat_enable_lingeling (BtorSATMgr *smgr,
-                                const char *options,
-                                bool fork);
-#endif
-
-#ifdef BTOR_USE_MINISAT
-bool btor_sat_enable_minisat (BtorSATMgr *smgr);
 #endif
 
 #endif
