@@ -20,7 +20,7 @@
 #include "picosat.h"
 
 static void *
-picosat_init (BtorSATMgr *smgr)
+satpicosat_init (BtorSATMgr *smgr)
 {
   PicoSAT *res;
 
@@ -37,85 +37,85 @@ picosat_init (BtorSATMgr *smgr)
 }
 
 static void
-picosat_add (BtorSATMgr *smgr, int lit)
+satpicosat_add (BtorSATMgr *smgr, int lit)
 {
   (void) picosat_add (smgr->solver, lit);
 }
 
 static int
-picosat_sat (BtorSATMgr *smgr, int limit)
+satpicosat_sat (BtorSATMgr *smgr, int limit)
 {
   return picosat_sat (smgr->solver, limit);
 }
 
 #if 0
 static int
-picosat_changed (BtorSATMgr * smgr)
+satpicosat_changed (BtorSATMgr * smgr)
 {
   return picosat_changed (smgr->solver);
 }
 #endif
 
 static int
-picosat_deref (BtorSATMgr *smgr, int lit)
+satpicosat_deref (BtorSATMgr *smgr, int lit)
 {
   return picosat_deref (smgr->solver, lit);
 }
 
 static int
-picosat_repr (BtorSATMgr *smgr, int lit)
+satpicosat_repr (BtorSATMgr *smgr, int lit)
 {
   (void) smgr;
   return lit;
 }
 
 static void
-picosat_reset (BtorSATMgr *smgr)
+satpicosat_reset (BtorSATMgr *smgr)
 {
   picosat_reset (smgr->solver);
   smgr->solver = 0;
 }
 
 static void
-picosat_set_output (BtorSATMgr *smgr, FILE *output)
+satpicosat_set_output (BtorSATMgr *smgr, FILE *output)
 {
   picosat_set_output (smgr->solver, output);
 }
 
 static void
-picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
+satpicosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
   picosat_set_prefix (smgr->solver, prefix);
 }
 
 static void
-picosat_enable_verbosity (BtorSATMgr *smgr, int level)
+satpicosat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   if (level >= 2) picosat_set_verbosity (smgr->solver, level - 1);
 }
 
 static int
-picosat_inc_max_var (BtorSATMgr *smgr)
+satpicosat_inc_max_var (BtorSATMgr *smgr)
 {
   return picosat_inc_max_var (smgr->solver);
 }
 
 #if 0
 static int
-picosat_variables (BtorSATMgr * smgr)
+satpicosat_variables (BtorSATMgr * smgr)
 {
   return picosat_variables (smgr->solver);
 }
 #endif
 
 static void
-picosat_stats (BtorSATMgr *smgr)
+satpicosat_stats (BtorSATMgr *smgr)
 {
   picosat_stats (smgr->solver);
 }
 
 static int
-picosat_fixed (BtorSATMgr *smgr, int lit)
+satpicosat_fixed (BtorSATMgr *smgr, int lit)
 {
   int res;
   res = picosat_deref_toplevel (smgr->solver, lit);
@@ -125,20 +125,20 @@ picosat_fixed (BtorSATMgr *smgr, int lit)
 /*------------------------------------------------------------------------*/
 
 static void
-picosat_assume (BtorSATMgr *smgr, int lit)
+satpicosat_assume (BtorSATMgr *smgr, int lit)
 {
   (void) picosat_assume (smgr->solver, lit);
 }
 
 static int
-picosat_failed (BtorSATMgr *smgr, int lit)
+satpicosat_failed (BtorSATMgr *smgr, int lit)
 {
   return picosat_failed_assumption (smgr->solver, lit);
 }
 
 #if 0
 static int
-picosat_inconsistent (BtorSATMgr * smgr)
+satpicosat_inconsistent (BtorSATMgr * smgr)
 {
   return picosat_inconsistent (smgr->solver);
 }
@@ -158,29 +158,29 @@ btor_sat_enable_picosat (BtorSATMgr *smgr)
   smgr->optstr = 0;
 
   BTOR_CLR (&smgr->api);
-  smgr->api.add    = picosat_add;
-  smgr->api.assume = picosat_assume;
+  smgr->api.add    = satpicosat_add;
+  smgr->api.assume = satpicosat_assume;
 #if 0
-  smgr->api.changed = picosat_changed;
+  smgr->api.changed = satpicosat_changed;
 #endif
-  smgr->api.deref            = picosat_deref;
-  smgr->api.enable_verbosity = picosat_enable_verbosity;
-  smgr->api.failed           = picosat_failed;
-  smgr->api.fixed            = picosat_fixed;
-  smgr->api.inc_max_var      = picosat_inc_max_var;
+  smgr->api.deref            = satpicosat_deref;
+  smgr->api.enable_verbosity = satpicosat_enable_verbosity;
+  smgr->api.failed           = satpicosat_failed;
+  smgr->api.fixed            = satpicosat_fixed;
+  smgr->api.inc_max_var      = satpicosat_inc_max_var;
 #if 0
-  smgr->api.inconsistent = picosat_inconsistent;
+  smgr->api.inconsistent = satpicosat_inconsistent;
 #endif
-  smgr->api.init       = picosat_init;
+  smgr->api.init       = satpicosat_init;
   smgr->api.melt       = 0;
-  smgr->api.repr       = picosat_repr;
-  smgr->api.reset      = picosat_reset;
-  smgr->api.sat        = picosat_sat;
-  smgr->api.set_output = picosat_set_output;
-  smgr->api.set_prefix = picosat_set_prefix;
-  smgr->api.stats      = picosat_stats;
+  smgr->api.repr       = satpicosat_repr;
+  smgr->api.reset      = satpicosat_reset;
+  smgr->api.sat        = satpicosat_sat;
+  smgr->api.set_output = satpicosat_set_output;
+  smgr->api.set_prefix = satpicosat_set_prefix;
+  smgr->api.stats      = satpicosat_stats;
 #if 0
-  smgr->api.variables = picosat_variables;
+  smgr->api.variables = satpicosat_variables;
 #endif
 
   BTOR_MSG (
