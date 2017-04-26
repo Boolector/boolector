@@ -12,6 +12,7 @@
  */
 
 #include "sat/btorsatpicosat.h"
+#include "btorabort.h"
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_PICOSAT

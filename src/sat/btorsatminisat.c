@@ -12,6 +12,7 @@
  */
 
 #include "sat/btorsatminisat.h"
+#include "btorabort.h"
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_MINISAT
