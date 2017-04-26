@@ -29,9 +29,7 @@ struct BtorLGL
   int nforked, blimit;
 };
 
-bool btor_sat_enable_lingeling (BtorSATMgr* smgr,
-                                const char* options,
-                                bool fork);
+bool btor_sat_enable_lingeling (BtorSATMgr* smgr);
 
 /*------------------------------------------------------------------------*/
 #endif

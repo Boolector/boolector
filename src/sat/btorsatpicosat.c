@@ -156,8 +156,7 @@ btor_sat_enable_picosat (BtorSATMgr *smgr)
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_picosat'");
 
-  smgr->name   = "PicoSAT";
-  smgr->optstr = 0;
+  smgr->name = "PicoSAT";
 
   BTOR_CLR (&smgr->api);
   smgr->api.add    = satpicosat_add;

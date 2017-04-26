@@ -990,7 +990,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #ifdef BTOR_USE_LINGELING
            + (amgr->smgr->solver ? sizeof (BtorLGL) : 0)
 #endif
-           + (amgr->smgr->optstr ? strlen (amgr->smgr->optstr) + 1 : 0)
            /* memory of AIG nodes */
            + (amgr->cur_num_aigs + amgr->cur_num_aig_vars) * sizeof (BtorAIG)
            /* children for AND AIGs */

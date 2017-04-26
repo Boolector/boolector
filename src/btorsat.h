@@ -32,7 +32,6 @@ struct BtorSATMgr
   Btor *btor;
 
   const char *name; /* solver name */
-  char *optstr;     /* solver option string */
 
   /* Note: do not change order! (btor_sat_mgr_clone relies on inc_required
    * to come first of all fields following below.) */
@@ -122,6 +121,8 @@ void btor_sat_mgr_release_cnf_id (BtorSATMgr *smgr, int);
 /* Returns the last CNF index that has been generated. */
 int btor_get_last_cnf_id_sat_mgr (BtorSATMgr * smgr);
 #endif
+
+void btor_sat_enable_solver (BtorSATMgr *smgr);
 
 /* Inits the SAT solver. */
 void btor_sat_init (BtorSATMgr *smgr);

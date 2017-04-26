@@ -22,9 +22,6 @@
 #include "btoropt.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
-#include "sat/btorsatlgl.h"
-#include "sat/btorsatminisat.h"
-#include "sat/btorsatpicosat.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
@@ -162,27 +159,7 @@ configure_sat_mgr (Btor *btor)
 
   smgr = btor_get_sat_mgr_btor (btor);
   if (btor_sat_is_initialized (smgr)) return;
-
-  switch (btor_opt_get (btor, BTOR_OPT_SAT_ENGINE))
-  {
-#ifdef BTOR_USE_LINGELING
-    case BTOR_SAT_ENGINE_LINGELING:
-      if (!btor_sat_enable_lingeling (
-              smgr,
-              btor_opt_get_valstr (btor, BTOR_OPT_SAT_ENGINE),
-              btor_opt_get (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1))
-        BTOR_ABORT (1, "failed to enable sat solver Lingeling");
-      break;
-#endif
-#ifdef BTOR_USE_PICOSAT
-    case BTOR_SAT_ENGINE_PICOSAT: btor_sat_enable_picosat (smgr); break;
-#endif
-#ifdef BTOR_USE_MINISAT
-    case BTOR_SAT_ENGINE_MINISAT: btor_sat_enable_minisat (smgr); break;
-#endif
-    default: BTOR_ABORT (1, "no SAT solver configured");
-  }
-
+  btor_sat_enable_solver (smgr);
   btor_sat_init (smgr);
 
   /* reset SAT solver to non-incremental if all functions have been

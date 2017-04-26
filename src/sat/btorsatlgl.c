@@ -21,117 +21,11 @@
 #include <limits.h>
 #include "btorabort.h"
 #include "btorcore.h"
+#include "btoropt.h"
 
 #define BTOR_LGL_SIMP_DELAY 10000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
-
-/*------------------------------------------------------------------------*/
-
-static bool
-passdown_lingeling_options (BtorSATMgr *smgr,
-                            const char *optstr,
-                            LGL *external_lgl)
-{
-  char *str, *p, *next, *eq, *opt, *val;
-  LGL *lgl = external_lgl ? external_lgl : 0;
-  int len, valid;
-  bool res;
-
-  assert (optstr);
-  len = strlen (optstr);
-
-  BTOR_NEWN (smgr->btor->mm, str, len + 1);
-  strcpy (str, optstr);
-
-  res = true;
-
-  for (p = str; *p; p = next)
-  {
-    if (*p == ',')
-      next = p + 1;
-    else
-    {
-      opt = p;
-      while (*p != ',' && *p) p++;
-
-      if (*p)
-      {
-        assert (*p == ',');
-        *p   = 0;
-        next = p + 1;
-      }
-      else
-        next = p;
-
-      val = eq = 0;
-
-      if (!isalpha ((int) *opt))
-        valid = 0;
-      else
-      {
-        for (p = opt + 1; isalnum ((int) *p); p++)
-          ;
-
-        if (*p == '=')
-        {
-          *(eq = p++) = 0;
-          val         = p;
-          if (*p == '-') p++;
-          if (isdigit ((int) *p))
-          {
-            while (isdigit ((int) *p)) p++;
-
-            valid = !*p;
-          }
-          else
-            valid = 0;
-        }
-        else
-          valid = 0;
-      }
-
-      if (valid)
-      {
-        if (!lgl)
-        {
-          assert (!external_lgl);
-          lgl = lglinit ();
-        }
-
-        if (lglhasopt (lgl, opt))
-        {
-          if (external_lgl && val)
-          {
-            assert (lgl == external_lgl);
-            BTOR_MSG (smgr->btor->msg,
-                      2,
-                      "setting Lingeling option --%s=%s",
-                      opt,
-                      val);
-            lglsetopt (lgl, opt, atoi (val));
-          }
-        }
-        else
-          valid = 0;
-      }
-
-      if (!valid) res = false;
-      if (valid || external_lgl) continue;
-
-      if (eq) *eq = '=';
-      BTOR_MSG (smgr->btor->msg,
-                1,
-                "*** can not pass down to Lingeling invalid option '%s'",
-                optstr);
-    }
-  }
-
-  BTOR_DELETEN (smgr->btor->mm, str, len + 1);
-  if (lgl && !external_lgl) lglrelease (lgl);
-
-  return res;
-}
 
 /*------------------------------------------------------------------------*/
 
@@ -151,8 +45,6 @@ lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_mem_sat_malloc,
                        (lglrealloc) btor_mem_sat_realloc,
                        (lgldealloc) btor_mem_sat_free);
-
-  if (smgr->optstr) passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
 
   res->blimit = BTOR_LGL_MIN_BLIMIT;
 
@@ -416,19 +308,15 @@ lingeling_setterm (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 bool
-btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
+btor_sat_enable_lingeling (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
 
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_lingeling'");
 
-  smgr->optstr = btor_mem_strdup (smgr->btor->mm, optstr);
-  if (smgr->optstr && !passdown_lingeling_options (smgr, optstr, 0))
-    return false;
-
   smgr->name = "Lingeling";
-  smgr->fork = fork;
+  smgr->fork = btor_opt_get (smgr->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK);
 
   BTOR_CLR (&smgr->api);
   smgr->api.add    = lingeling_add;
@@ -461,12 +349,6 @@ btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
   BTOR_MSG (smgr->btor->msg,
             1,
             "Lingeling allows both incremental and non-incremental mode");
-  if (smgr->optstr)
-    BTOR_MSG (smgr->btor->msg,
-              1,
-              "Configured options for Lingeling: %s",
-              smgr->optstr);
-
   return true;
 }
 

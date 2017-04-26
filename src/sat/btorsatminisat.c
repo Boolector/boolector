@@ -29,8 +29,7 @@ btor_sat_enable_minisat (BtorSATMgr* smgr)
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_minisat'");
 
-  smgr->name   = "MiniSAT";
-  smgr->optstr = 0;
+  smgr->name = "MiniSAT";
 
   BTOR_CLR (&smgr->api);
   smgr->api.add    = btor_minisat_add;

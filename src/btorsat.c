@@ -34,13 +34,8 @@
 #endif
 /*------------------------------------------------------------------------*/
 
-#if defined(BTOR_USE_LINGELING)
-#define btor_enable_default_sat(SMGR) btor_sat_enable_lingeling ((SMGR), 0, 0)
-#elif defined(BTOR_USE_PICOSAT)
-#define btor_enable_default_sat btor_sat_enable_picosat
-#elif defined(BTOR_USE_MINISAT)
-#define btor_enable_default_sat btor_sat_enable_minisat
-#else
+#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT) \
+    && !defined(BTOR_USE_MINISAT)
 #error "no SAT solver configured"
 #endif
 
@@ -56,7 +51,8 @@ btor_sat_mgr_new (Btor *btor)
   BTOR_CNEW (btor->mm, smgr);
   smgr->btor   = btor;
   smgr->output = stdout;
-  btor_enable_default_sat (smgr);
+  // btor_enable_default_sat (smgr);
+  btor_sat_enable_solver (smgr);
   BTOR_MSG (btor->msg, 1, "enabled %s as default SAT solver", smgr->name);
   return smgr;
 }
@@ -103,8 +99,7 @@ btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr)
   res->solver = smgr->api.clone (smgr, mm);
   res->btor   = btor;
   assert (mm->sat_allocated == smgr->btor->mm->sat_allocated);
-  res->name   = smgr->name;
-  res->optstr = btor_mem_strdup (mm, smgr->optstr);
+  res->name = smgr->name;
   memcpy (&res->inc_required,
           &smgr->inc_required,
           (char *) smgr + sizeof (*smgr) - (char *) &smgr->inc_required);
@@ -161,7 +156,6 @@ btor_sat_mgr_delete (BtorSATMgr *smgr)
    * reset_sat has not been called
    */
   if (smgr->initialized) btor_sat_reset (smgr);
-  if (smgr->optstr) btor_mem_freestr (smgr->btor->mm, smgr->optstr);
   BTOR_DELETE (smgr->btor->mm, smgr);
 }
 
@@ -186,6 +180,29 @@ btor_sat_set_output (BtorSATMgr *smgr, FILE *output)
   for (p = smgr->name; *p; p++) *q++ = tolower ((int) *p);
   smgr->api.set_prefix (smgr, prefix);
   btor_mem_free (smgr->btor->mm, prefix, strlen (smgr->name) + 4);
+}
+
+void
+btor_sat_enable_solver (BtorSATMgr *smgr)
+{
+  assert (smgr);
+
+  uint32_t opt;
+
+  opt = btor_opt_get (smgr->btor, BTOR_OPT_SAT_ENGINE);
+  switch (opt)
+  {
+#ifdef BTOR_USE_LINGELING
+    case BTOR_SAT_ENGINE_LINGELING: btor_sat_enable_lingeling (smgr); break;
+#endif
+#ifdef BTOR_USE_PICOSAT
+    case BTOR_SAT_ENGINE_PICOSAT: btor_sat_enable_picosat (smgr); break;
+#endif
+#ifdef BTOR_USE_MINISAT
+    case BTOR_SAT_ENGINE_MINISAT: btor_sat_enable_minisat (smgr); break;
+#endif
+    default: BTOR_ABORT (1, "no sat solver configured");
+  }
 }
 
 void
@@ -285,12 +302,7 @@ btor_sat_reset (BtorSATMgr *smgr)
   assert (smgr->initialized);
   BTOR_MSG (smgr->btor->msg, 2, "resetting %s", smgr->name);
   smgr->api.reset (smgr);
-  smgr->solver = 0;
-  if (smgr->optstr)
-  {
-    btor_mem_freestr (smgr->btor->mm, smgr->optstr);
-    smgr->optstr = 0;
-  }
+  smgr->solver      = 0;
   smgr->initialized = false;
 }
 
