@@ -678,7 +678,7 @@ collect_indices_updates (Btor *btor,
          * so we can skip it */
         if (btor_hashint_table_contains (index_cache, btor_exp_get_id (index)))
         {
-          cur = cur_upd->e[0];
+          cur_upd = cur_upd->e[0];
           continue;
         }
 
