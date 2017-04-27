@@ -738,7 +738,7 @@ chkclone_node_id_table (Btor *btor, Btor *clone)
 static inline void
 chkclone_node_unique_table (Btor *btor, Btor *clone)
 {
-  int32_t i;
+  uint32_t i;
   BtorNodeUniqueTable *btable, *ctable;
 
   btable = &btor->nodes_unique_table;
@@ -766,7 +766,7 @@ chkclone_assignment_lists (Btor *btor, Btor *clone)
   BtorBVAss *bvass, *cbvass;
   BtorFunAss *funass, *cfunass;
   char **ind, **val, **cind, **cval;
-  int32_t i;
+  uint32_t i;
 
   assert (btor->bv_assignments->count == clone->bv_assignments->count);
 

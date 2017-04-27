@@ -55,8 +55,8 @@
 
 struct BtorNodeUniqueTable
 {
-  int size;
-  int num_elements;
+  uint32_t size;
+  uint32_t num_elements;
   BtorNode **chains;
 };
 

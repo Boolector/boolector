@@ -804,7 +804,7 @@ initialize_new_forward_frame (BtorMC *mc)
   BoolectorNodeMap *map;
   int time;
 #ifndef NDEBUG
-  int old_mc_btor_num_nodes;
+  uint32_t old_mc_btor_num_nodes;
 #endif
 
   assert (mc);

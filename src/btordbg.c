@@ -45,7 +45,7 @@ btor_dbg_check_lambdas_static_rho_proxy_free (const Btor *btor)
 bool
 btor_dbg_check_unique_table_children_proxy_free (const Btor *btor)
 {
-  int i, j;
+  uint32_t i, j;
   BtorNode *cur;
 
   for (i = 0; i < btor->nodes_unique_table.size; i++)

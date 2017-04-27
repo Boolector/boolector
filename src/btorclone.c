@@ -740,7 +740,7 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   assert (clone);
   assert (exp_map);
 
-  int i;
+  uint32_t i;
   BtorNodeUniqueTable *table, *res;
   BtorMemMgr *mm;
 
@@ -839,13 +839,13 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int i, len;
+  uint32_t i, len;
   char *prefix, *clone_prefix;
   BtorNode *exp, *cloned_exp;
   BtorPtrHashTableIterator pit;
   BtorNodePtrStack rhos;
 #ifndef NDEBUG
-  int h;
+  uint32_t h;
   size_t allocated;
   BtorNode *cur;
   BtorAIGMgr *amgr;
