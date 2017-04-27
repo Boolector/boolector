@@ -725,23 +725,23 @@ btor_new (void)
   return btor;
 }
 
-static int
+static int32_t
 terminate_aux_btor (void *btor)
 {
   assert (btor);
 
-  int res;
+  int32_t res;
   Btor *bt;
 
   bt = (Btor *) btor;
   if (!bt->cbs.term.fun) return 0;
   if (bt->cbs.term.done) return 1;
-  res = ((int (*) (void *)) bt->cbs.term.fun) (bt->cbs.term.state);
+  res = ((int32_t (*) (void *)) bt->cbs.term.fun) (bt->cbs.term.state);
   if (res) bt->cbs.term.done = res;
   return res;
 }
 
-int
+int32_t
 btor_terminate (Btor *btor)
 {
   assert (btor);
@@ -751,7 +751,7 @@ btor_terminate (Btor *btor)
 }
 
 void
-btor_set_term (Btor *btor, int (*fun) (void *), void *state)
+btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
 {
   assert (btor);
 
@@ -3613,7 +3613,7 @@ update_sat_assignments (Btor * btor)
 }
 #endif
 
-int
+int32_t
 btor_check_sat (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
@@ -3827,7 +3827,8 @@ btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
   assert (btor_is_fun_node (btor_simplify_exp (btor, fun)));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  uint32_t i, pos = -1;
+  uint32_t i;
+  int32_t pos;
   BtorSortId sort;
   BtorTupleSortIterator it;
 
@@ -3835,7 +3836,7 @@ btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
       btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (fun))));
   btor_iter_tuple_sort_init (
       &it, btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (fun)));
-  for (i = 0; i < argc; i++)
+  for (i = 0, pos = -1; i < argc; i++)
   {
     assert (btor_iter_tuple_sort_has_next (&it));
     sort = btor_iter_tuple_sort_next (&it);

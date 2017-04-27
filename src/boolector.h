@@ -109,7 +109,7 @@ void boolector_delete (Btor *btor);
   .. seealso::
     boolector_terminate
  */
-void boolector_set_term (Btor *btor, int (*fun) (void *), void *state);
+void boolector_set_term (Btor *btor, int32_t (*fun) (void *), void *state);
 
 /*!
   Determine if a given Boolector instance has been terminated (and or
@@ -122,7 +122,7 @@ void boolector_set_term (Btor *btor, int (*fun) (void *), void *state);
   .. seealso::
     boolector_set_term
  */
-int boolector_terminate (Btor *btor);
+int32_t boolector_terminate (Btor *btor);
 
 /*!
   Set a verbosity message prefix.
@@ -142,7 +142,7 @@ void boolector_set_msg_prefix (Btor *btor, const char *prefix);
   :param btor: Boolector instance.
   :return: Number of external references owned by the user.
 */
-int boolector_get_refs (Btor *btor);
+uint32_t boolector_get_refs (Btor *btor);
 
 /*!
   Reset time statistics.
@@ -268,7 +268,7 @@ void boolector_reset_assumptions (Btor *btor);
   .. seealso::
     boolector_bv_assignment, boolector_array_assignment
 */
-int boolector_sat (Btor *btor);
+int32_t boolector_sat (Btor *btor);
 
 /*!
   Solve an input formula and limit the search by the number of lemmas
@@ -291,7 +291,9 @@ int boolector_sat (Btor *btor);
   .. seealso::
     boolector_bv_assignment, boolector_array_assignment
 */
-int boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit);
+int32_t boolector_limited_sat (Btor *btor,
+                               int32_t lod_limit,
+                               int32_t sat_limit);
 
 /*!
   Simplify current input formula.
@@ -303,7 +305,7 @@ int boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit);
     Each call to boolector_sat simplifies the input formula as a preprocessing
     step.
 */
-int boolector_simplify (Btor *btor);
+int32_t boolector_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
@@ -319,7 +321,7 @@ int boolector_simplify (Btor *btor);
   :param solver: Solver identifier string.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int boolector_set_sat_solver (Btor *btor, const char *solver);
+int32_t boolector_set_sat_solver (Btor *btor, const char *solver);
 
 #ifdef BTOR_USE_LINGELING
 /*!
@@ -332,7 +334,7 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
   :param nofork: Do not use fork/clone for Lingeling.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int boolector_set_sat_solver_lingeling (Btor *btor, int nofork);
+int32_t boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork);
 #endif
 
 #ifdef BTOR_USE_PICOSAT
@@ -345,7 +347,7 @@ int boolector_set_sat_solver_lingeling (Btor *btor, int nofork);
   :param btor: Boolector instance.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int boolector_set_sat_solver_picosat (Btor *btor);
+int32_t boolector_set_sat_solver_picosat (Btor *btor);
 #endif
 
 #ifdef BTOR_USE_MINISAT
@@ -358,7 +360,7 @@ int boolector_set_sat_solver_picosat (Btor *btor);
   :param btor: Boolector instance.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int boolector_set_sat_solver_minisat (Btor *btor);
+int32_t boolector_set_sat_solver_minisat (Btor *btor);
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -597,7 +599,7 @@ BoolectorNode *boolector_one (Btor *btor, BoolectorSort sort);
   :return: Bit vector constant of sort ``sort``.
 */
 BoolectorNode *boolector_unsigned_int (Btor *btor,
-                                       unsigned u,
+                                       uint32_t u,
                                        BoolectorSort sort);
 
 /*!
@@ -612,7 +614,7 @@ BoolectorNode *boolector_unsigned_int (Btor *btor,
   :param sort: Sort of constant.
   :return: Bit vector constant of sort ``sort``.
 */
-BoolectorNode *boolector_int (Btor *btor, int i, BoolectorSort sort);
+BoolectorNode *boolector_int (Btor *btor, int32_t i, BoolectorSort sort);
 
 /*!
   Create a bit vector variable of sort ``sort`` and with symbol ``symbol``.
@@ -760,7 +762,7 @@ BoolectorNode *boolector_slice (Btor *btor,
   :param width: Number of zeroes to pad.
   :return: A bit vector extended by ``width`` zeroes.
 */
-BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, int width);
+BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width);
 
 /*!
   Create signed extension.
@@ -773,7 +775,7 @@ BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, int width);
   :param width: Number of bits to pad.
   :return: A bit vector extended by ``width`` bits.
 */
-BoolectorNode *boolector_sext (Btor *btor, BoolectorNode *node, int width);
+BoolectorNode *boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width);
 
 /*!
   Create boolean implication.
@@ -1416,7 +1418,7 @@ BoolectorNode *boolector_param (Btor *btor,
 */
 BoolectorNode *boolector_fun (Btor *btor,
                               BoolectorNode **param_nodes,
-                              int paramc,
+                              uint32_t paramc,
                               BoolectorNode *node);
 
 /*!
@@ -1434,7 +1436,7 @@ BoolectorNode *boolector_fun (Btor *btor,
 */
 BoolectorNode *boolector_apply (Btor *btor,
                                 BoolectorNode **arg_nodes,
-                                int argc,
+                                uint32_t argc,
                                 BoolectorNode *n_fun);
 
 /*!
@@ -1473,7 +1475,7 @@ Btor *boolector_get_btor (BoolectorNode *node);
   :param node: Boolector node.
   :return: Id of ``node``.
 */
-int boolector_get_id (Btor *btor, BoolectorNode *node);
+int32_t boolector_get_id (Btor *btor, BoolectorNode *node);
 
 /*!
   Get the sort of given ``node``. The result does not have to be released.
@@ -1520,7 +1522,7 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
 */
-BoolectorNode *boolector_match_node_by_id (Btor *btor, int id);
+BoolectorNode *boolector_match_node_by_id (Btor *btor, int32_t id);
 
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
@@ -1711,10 +1713,10 @@ bool boolector_is_fun (Btor *btor, BoolectorNode *node);
   :param n_fun: Function expression.
   :return: -1 if all sorts are correct, otherwise it returns the position of the incorrect argument.
 */
-int boolector_fun_sort_check (Btor *btor,
-                              BoolectorNode **arg_nodes,
-                              int argc,
-                              BoolectorNode *n_fun);
+int32_t boolector_fun_sort_check (Btor *btor,
+                                  BoolectorNode **arg_nodes,
+                                  uint32_t argc,
+                                  BoolectorNode *n_fun);
 
 /*!
   Generate an assignment string for bit vector expression if
@@ -1774,7 +1776,7 @@ void boolector_array_assignment (Btor *btor,
                                  BoolectorNode *n_array,
                                  char ***indices,
                                  char ***values,
-                                 int *size);
+                                 uint32_t *size);
 
 /*!
   Free an assignment string for arrays of bit vectors.
@@ -1790,7 +1792,7 @@ void boolector_array_assignment (Btor *btor,
 void boolector_free_array_assignment (Btor *btor,
                                       char **indices,
                                       char **values,
-                                      int size);
+                                      uint32_t size);
 
 /*!
   Generate a model for an uninterpreted function.
@@ -1815,8 +1817,11 @@ void boolector_free_array_assignment (Btor *btor,
   .. seealso::
     boolector_set_opt for enabling model generation
 */
-void boolector_uf_assignment (
-    Btor *btor, BoolectorNode *n_uf, char ***args, char ***values, int *size);
+void boolector_uf_assignment (Btor *btor,
+                              BoolectorNode *n_uf,
+                              char ***args,
+                              char ***values,
+                              uint32_t *size);
 
 /*!
   Free assignment strings for uninterpreted functions.
@@ -1832,7 +1837,7 @@ void boolector_uf_assignment (
 void boolector_free_uf_assignment (Btor *btor,
                                    char **args,
                                    char **values,
-                                   int size);
+                                   uint32_t size);
 
 /*!
   Print model to output file. This function prints the model for all inputs
@@ -1907,7 +1912,7 @@ BoolectorSort boolector_bool_sort (Btor *btor);
   .. seealso::
     boolector_var, boolector_param
 */
-BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
+BoolectorSort boolector_bitvec_sort (Btor *btor, uint32_t width);
 
 /*!
   Create function sort.
@@ -1923,7 +1928,7 @@ BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
 */
 BoolectorSort boolector_fun_sort (Btor *btor,
                                   BoolectorSort *domain,
-                                  int arity,
+                                  uint32_t arity,
                                   BoolectorSort codomain);
 
 /*!
@@ -2006,12 +2011,12 @@ bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
   :param status: Status of the input formula.
   :return: In the incremental case or in case of SMT-LIB v2 (which requires a 'check-sat' command), the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
 */
-int boolector_parse (Btor *btor,
-                     FILE *infile,
-                     const char *infile_name,
-                     FILE *outfile,
-                     char **error_msg,
-                     int *status);
+int32_t boolector_parse (Btor *btor,
+                         FILE *infile,
+                         const char *infile_name,
+                         FILE *outfile,
+                         char **error_msg,
+                         int32_t *status);
 
 /*!
   Parse input file in BTOR format.
@@ -2026,12 +2031,12 @@ int boolector_parse (Btor *btor,
   :param status: Status of the input formula.
   :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error occurred.
 */
-int boolector_parse_btor (Btor *btor,
-                          FILE *infile,
-                          const char *infile_name,
-                          FILE *outfile,
-                          char **error_msg,
-                          int *status);
+int32_t boolector_parse_btor (Btor *btor,
+                              FILE *infile,
+                              const char *infile_name,
+                              FILE *outfile,
+                              char **error_msg,
+                              int32_t *status);
 
 /*!
   Parse input file in `SMT-LIB v1`_ format.
@@ -2046,12 +2051,12 @@ int boolector_parse_btor (Btor *btor,
   :param status: Status of the input formula.
   :return: In the incremental case (right now `SMT-LIB v1`_ only) the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN, otherwise it always returns BOOLECTOR_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
 */
-int boolector_parse_smt1 (Btor *btor,
-                          FILE *infile,
-                          const char *infile_name,
-                          FILE *outfile,
-                          char **error_msg,
-                          int *status);
+int32_t boolector_parse_smt1 (Btor *btor,
+                              FILE *infile,
+                              const char *infile_name,
+                              FILE *outfile,
+                              char **error_msg,
+                              int32_t *status);
 
 /*!
   Parse input file in `SMT-LIB v2`_ format. See boolector_parse.
@@ -2064,12 +2069,12 @@ int boolector_parse_smt1 (Btor *btor,
   :param status: Status of the input formula.
   :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error occurred.
 */
-int boolector_parse_smt2 (Btor *btor,
-                          FILE *infile,
-                          const char *infile_name,
-                          FILE *outfile,
-                          char **error_msg,
-                          int *status);
+int32_t boolector_parse_smt2 (Btor *btor,
+                              FILE *infile,
+                              const char *infile_name,
+                              FILE *outfile,
+                              char **error_msg,
+                              int32_t *status);
 
 /*------------------------------------------------------------------------*/
 

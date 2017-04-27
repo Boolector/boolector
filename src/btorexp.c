@@ -665,7 +665,7 @@ btor_exp_get_btor_id (BtorNode *exp)
 }
 
 BtorNode *
-btor_match_node_by_id (Btor *btor, int id)
+btor_match_node_by_id (Btor *btor, int32_t id)
 {
   assert (btor);
   assert (id > 0);

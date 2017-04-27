@@ -80,7 +80,7 @@ boolector_chkclone (Btor *btor)
   BtorFunAss *funass, *cfunass;
   BtorFunAssList *funasslist, *cfunasslist;
   char **indices, **values, **cindices, **cvalues;
-  int32_t i;
+  uint32_t i;
 
   if (btor->clone)
   {
@@ -151,7 +151,7 @@ boolector_chkclone (Btor *btor)
 /* for internal use (parser), only */
 
 void
-boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
+boolector_set_btor_id (Btor *btor, BoolectorNode *node, int32_t id)
 {
   BtorNode *exp;
 
@@ -252,7 +252,7 @@ boolector_delete (Btor *btor)
 }
 
 void
-boolector_set_term (Btor *btor, int (*fun) (void *), void *state)
+boolector_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
 {
   BTOR_ABORT_ARG_NULL (btor);
   btor_set_term (btor, fun, state);
@@ -261,10 +261,10 @@ boolector_set_term (Btor *btor, int (*fun) (void *), void *state)
 #endif
 }
 
-int
+int32_t
 boolector_terminate (Btor *btor)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   res = btor_terminate (btor);
@@ -285,17 +285,17 @@ boolector_set_msg_prefix (Btor *btor, const char *prefix)
 #endif
 }
 
-int
+uint32_t
 boolector_get_refs (Btor *btor)
 {
-  int res;
+  uint32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
   res = btor->external_refs;
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_refs);
+  BTOR_CHKCLONE_RES_UINT (res, get_refs);
 #endif
   return res;
 }
@@ -454,10 +454,10 @@ boolector_reset_assumptions (Btor *btor)
 #endif
 }
 
-int
+int32_t
 boolector_sat (Btor *btor)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
@@ -473,10 +473,10 @@ boolector_sat (Btor *btor)
   return res;
 }
 
-int
-boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
+int32_t
+boolector_limited_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
 {
-  int res;
+  int32_t res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d %d", lod_limit, sat_limit);
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
@@ -491,10 +491,10 @@ boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
   return res;
 }
 
-int
+int32_t
 boolector_simplify (Btor *btor)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
@@ -509,7 +509,7 @@ boolector_simplify (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
-int
+int32_t
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {
   uint32_t sat_engine;
@@ -549,8 +549,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 }
 
 #ifdef BTOR_USE_LINGELING
-int
-boolector_set_sat_solver_lingeling (Btor *btor, int nofork)
+int32_t
+boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", nofork);
@@ -568,7 +568,7 @@ boolector_set_sat_solver_lingeling (Btor *btor, int nofork)
 #endif
 
 #ifdef BTOR_USE_PICOSAT
-int
+int32_t
 boolector_set_sat_solver_picosat (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -586,7 +586,7 @@ boolector_set_sat_solver_picosat (Btor *btor)
 #endif
 
 #ifdef BTOR_USE_MINISAT
-int
+int32_t
 boolector_set_sat_solver_minisat (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -994,7 +994,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
 }
 
 BoolectorNode *
-boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
+boolector_unsigned_int (Btor *btor, uint32_t u, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
@@ -1015,7 +1015,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
 }
 
 BoolectorNode *
-boolector_int (Btor *btor, int i, BoolectorSort sort)
+boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
 {
   BtorNode *res;
   BtorSortId s;
@@ -1262,7 +1262,7 @@ boolector_slice (Btor *btor,
 }
 
 BoolectorNode *
-boolector_uext (Btor *btor, BoolectorNode *node, int width)
+boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width)
 {
   BtorNode *exp, *res;
 
@@ -1273,7 +1273,6 @@ boolector_uext (Btor *btor, BoolectorNode *node, int width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (width < 0, "'width' must not be negative");
   res = btor_uext_exp (btor, exp, width);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1284,7 +1283,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, int width)
 }
 
 BoolectorNode *
-boolector_sext (Btor *btor, BoolectorNode *node, int width)
+boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width)
 {
   BtorNode *exp, *res;
 
@@ -1295,7 +1294,6 @@ boolector_sext (Btor *btor, BoolectorNode *node, int width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (width < 0, "'width' must not be negative");
   res = btor_sext_exp (btor, exp, width);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1972,7 +1970,7 @@ boolector_sgte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  int len;
+  uint32_t width;
   BtorNode *e0, *e1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
@@ -1987,10 +1985,10 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (len),
+  width = btor_get_exp_width (btor, e0);
+  BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sll_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2004,7 +2002,7 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  int len;
+  uint32_t width;
   BtorNode *e0, *e1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
@@ -2019,10 +2017,10 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (len),
+  width = btor_get_exp_width (btor, e0);
+  BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_srl_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2036,7 +2034,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  int len;
+  uint32_t width;
   BtorNode *e0, *e1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
@@ -2051,10 +2049,10 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (len),
+  width = btor_get_exp_width (btor, e0);
+  BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sra_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2068,7 +2066,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  int len;
+  uint32_t width;
   BtorNode *e0, *e1, *res;
 
   BTOR_ABORT_ARG_NULL (btor);
@@ -2083,10 +2081,10 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (len),
+  width = btor_get_exp_width (btor, e0);
+  BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_rol_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2100,7 +2098,7 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  int len;
+  uint32_t width;
   BtorNode *e0, *e1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
@@ -2115,10 +2113,10 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  len = btor_get_exp_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (len),
+  width = btor_get_exp_width (btor, e0);
+  BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (len) != btor_get_exp_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_ror_exp (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
@@ -2551,10 +2549,10 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
 BoolectorNode *
 boolector_fun (Btor *btor,
                BoolectorNode **param_nodes,
-               int paramc,
+               uint32_t paramc,
                BoolectorNode *node)
 {
-  int i, len;
+  uint32_t i, len;
   char *strtrapi;
   BtorNode **params, *exp, *res;
 
@@ -2601,10 +2599,11 @@ boolector_fun (Btor *btor,
 BoolectorNode *
 boolector_apply (Btor *btor,
                  BoolectorNode **arg_nodes,
-                 int argc,
+                 uint32_t argc,
                  BoolectorNode *n_fun)
 {
-  int i, len;
+  uint32_t i, len;
+  int32_t fcheck;
   char *strtrapi;
   BtorNode **args, *e_fun, *res;
 
@@ -2637,8 +2636,8 @@ boolector_apply (Btor *btor,
       "'e_fun'");
   BTOR_ABORT (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
-  i = btor_fun_sort_check (btor, args, argc, e_fun);
-  BTOR_ABORT (i >= 0, "invalid argument given at position %d", i);
+  fcheck = btor_fun_sort_check (btor, args, argc, e_fun);
+  BTOR_ABORT (fcheck >= 0, "invalid argument given at position %d", fcheck);
   res = btor_apply_exps (btor, args, argc, e_fun);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2723,7 +2722,7 @@ boolector_get_btor (BoolectorNode *node)
 int32_t
 boolector_get_id (Btor *btor, BoolectorNode *node)
 {
-  int res;
+  int32_t res;
   BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -2803,7 +2802,7 @@ boolector_fun_get_codomain_sort (Btor *btor, const BoolectorNode *node)
 }
 
 BoolectorNode *
-boolector_match_node_by_id (Btor *btor, int id)
+boolector_match_node_by_id (Btor *btor, int32_t id)
 {
   BtorNode *res;
   BTOR_ABORT_ARG_NULL (btor);
@@ -3176,12 +3175,12 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
 int32_t
 boolector_fun_sort_check (Btor *btor,
                           BoolectorNode **arg_nodes,
-                          int argc,
+                          uint32_t argc,
                           BoolectorNode *n_fun)
 {
   BtorNode **args, *e_fun;
   char *strtrapi;
-  int i, len;
+  uint32_t i, len;
   int32_t res;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
@@ -3287,7 +3286,7 @@ boolector_free_bv_assignment (Btor *btor, const char *assignment)
 
 static void
 generate_fun_model_str (
-    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+    Btor *btor, BtorNode *exp, char ***args, char ***values, uint32_t *size)
 {
   assert (btor);
   assert (exp);
@@ -3317,7 +3316,7 @@ generate_fun_model_str (
 
   assert (model->count > 0);
 
-  *size = (int) model->count;
+  *size = model->count;
   BTOR_NEWN (btor->mm, *args, *size);
   BTOR_NEWN (btor->mm, *values, *size);
 
@@ -3358,7 +3357,7 @@ fun_assignment (Btor *btor,
                 BtorNode *n,
                 char ***args,
                 char ***values,
-                int *size,
+                uint32_t *size,
                 BtorFunAss **ass)
 {
   assert (btor);
@@ -3368,7 +3367,7 @@ fun_assignment (Btor *btor,
   assert (size);
   assert (BTOR_IS_REGULAR_NODE (n));
 
-  int i;
+  uint32_t i;
   char **a = 0, **v = 0;
 
   *ass = 0;
@@ -3393,7 +3392,7 @@ boolector_array_assignment (Btor *btor,
                             BoolectorNode *n_array,
                             char ***indices,
                             char ***values,
-                            int *size)
+                            uint32_t *size)
 {
   BtorNode *e_array;
   BtorFunAss *ass;
@@ -3422,7 +3421,7 @@ boolector_array_assignment (Btor *btor,
   if (btor->clone)
   {
     char **cindices, **cvalues;
-    int i, csize;
+    uint32_t i, csize;
     boolector_array_assignment (
         btor->clone, BTOR_CLONED_EXP (e_array), &cindices, &cvalues, &csize);
     assert (csize == *size);
@@ -3446,13 +3445,12 @@ void
 boolector_free_array_assignment (Btor *btor,
                                  char **indices,
                                  char **values,
-                                 int size)
+                                 uint32_t size)
 {
   BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", indices, values, size);
-  BTOR_ABORT (size < 0, "negative size");
   BTOR_ABORT (size && !indices, "size > 0 but 'indices' are zero");
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
@@ -3472,8 +3470,11 @@ boolector_free_array_assignment (Btor *btor,
 }
 
 void
-boolector_uf_assignment (
-    Btor *btor, BoolectorNode *n_uf, char ***args, char ***values, int *size)
+boolector_uf_assignment (Btor *btor,
+                         BoolectorNode *n_uf,
+                         char ***args,
+                         char ***values,
+                         uint32_t *size)
 {
   BtorNode *e_uf;
   BtorFunAss *ass;
@@ -3502,7 +3503,7 @@ boolector_uf_assignment (
   if (btor->clone)
   {
     char **cargs, **cvalues;
-    int i, csize;
+    uint32_t i, csize;
     boolector_uf_assignment (
         btor->clone, BTOR_CLONED_EXP (e_uf), &cargs, &cvalues, &csize);
     assert (csize == *size);
@@ -3523,13 +3524,15 @@ boolector_uf_assignment (
 }
 
 void
-boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
+boolector_free_uf_assignment (Btor *btor,
+                              char **args,
+                              char **values,
+                              uint32_t size)
 {
   BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%p %p %d", args, values, size);
-  BTOR_ABORT (size < 0, "negative size");
   BTOR_ABORT (size && !args, "size > 0 but 'args' are zero");
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && args, "non zero 'args' but 'size == 0'");
@@ -3587,11 +3590,11 @@ boolector_bool_sort (Btor *btor)
 }
 
 BoolectorSort
-boolector_bitvec_sort (Btor *btor, int width)
+boolector_bitvec_sort (Btor *btor, uint32_t width)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%d", width);
-  BTOR_ABORT (width <= 0, "'width' must be > 0");
+  BTOR_ABORT (width == 0, "'width' must be > 0");
 
   BtorSortId res;
   res = btor_sort_bitvec (btor, width);
@@ -3616,14 +3619,14 @@ boolector_tuple_sort (Btor *btor, BoolectorSort *sorts, size_t num_elements)
 BoolectorSort
 boolector_fun_sort (Btor *btor,
                     BoolectorSort domain[],
-                    int arity,
+                    uint32_t arity,
                     BoolectorSort codomain)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (domain);
   BTOR_ABORT (arity <= 0, "'arity' must be > 0");
 
-  int i, len;
+  uint32_t i, len;
   BtorSortId res, tup, cos, s;
   char *strtrapi;
 
@@ -3806,15 +3809,15 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
 
 /* Note: no need to trace parse function calls!! */
 
-int
+int32_t
 boolector_parse (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (infile);
@@ -3831,15 +3834,15 @@ boolector_parse (Btor *btor,
   return res;
 }
 
-int
+int32_t
 boolector_parse_btor (Btor *btor,
                       FILE *infile,
                       const char *infile_name,
                       FILE *outfile,
                       char **error_msg,
-                      int *status)
+                      int32_t *status)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (infile);
@@ -3856,15 +3859,15 @@ boolector_parse_btor (Btor *btor,
   return res;
 }
 
-int
+int32_t
 boolector_parse_smt1 (Btor *btor,
                       FILE *infile,
                       const char *infile_name,
                       FILE *outfile,
                       char **error_msg,
-                      int *status)
+                      int32_t *status)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (infile);
@@ -3881,15 +3884,15 @@ boolector_parse_smt1 (Btor *btor,
   return res;
 }
 
-int
+int32_t
 boolector_parse_smt2 (Btor *btor,
                       FILE *infile,
                       const char *infile_name,
                       FILE *outfile,
                       char **error_msg,
-                      int *status)
+                      int32_t *status)
 {
-  int res;
+  int32_t res;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (infile);

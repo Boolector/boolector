@@ -1926,7 +1926,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 static void
 translate_extend (BtorSMTParser *parser,
                   BtorSMTNode *node,
-                  BoolectorNode *(*f) (Btor *, BoolectorNode *, int) )
+                  BoolectorNode *(*f) (Btor *, BoolectorNode *, uint32_t))
 {
   BtorSMTSymbol *symbol;
   const char *p;

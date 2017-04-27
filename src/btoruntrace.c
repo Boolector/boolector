@@ -205,13 +205,25 @@ boolarg (char *op)
   return !strcmp (tok, "true") ? true : false;
 }
 
-static int
+static int32_t
 intarg (char *op)
 {
   const char *tok;
   if (!(tok = strtok (0, " ")) || !isnumstr (tok))
   {
     btorunt_parse_error ("expected integer argument for '%s'", op);
+  }
+  assert (tok);
+  return atoi (tok);
+}
+
+static int32_t
+uintarg (char *op)
+{
+  const char *tok;
+  if (!(tok = strtok (0, " ")) || !isnumstr (tok) || tok[0] == '-')
+  {
+    btorunt_parse_error ("expected unsigned integer argument for '%s'", op);
   }
   assert (tok);
   return atoi (tok);
@@ -307,9 +319,10 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_NONE 0
 #define RET_VOIDPTR 1
 #define RET_INT 2
-#define RET_CHARPTR 3
-#define RET_ARRASS 4
-#define RET_BOOL 5
+#define RET_UINT 3
+#define RET_CHARPTR 4
+#define RET_ARRASS 5
+#define RET_BOOL 6
 #define RET_SKIP -1
 
 BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
@@ -329,14 +342,16 @@ parse (FILE *file)
 
   int exp_ret;                   /* expected return value */
   bool ret_bool;                 /* actual return value bool */
-  int ret_int;                   /* actual return value int */
+  int32_t ret_int;               /* actual return value int */
+  uint32_t ret_uint;             /* actual return value unsigned int */
   char *ret_str;                 /* actual return value string */
   void *ret_ptr;                 /* actual return value string */
   char **res1_pptr, **res2_pptr; /* result pointer */
 
   char *btor_str; /* btor pointer string */
   char *exp_str;  /* expression string (pointer) */
-  int arg1_int, arg2_int, arg3_int;
+  int32_t arg1_int, arg2_int, arg3_int;
+  uint32_t arg3_uint;
   char *arg1_str, *arg2_str, *arg3_str;
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
@@ -353,6 +368,7 @@ parse (FILE *file)
 
   exp_ret    = RET_NONE;
   ret_int    = 0;
+  ret_uint   = 0;
   ret_ptr    = 0;
   ret_str    = 0;
   ret_bool   = false;
@@ -417,11 +433,19 @@ NEXT:
       }
       else if (exp_ret == RET_INT)
       {
-        int exp_int = intarg ("return");
+        int32_t exp_int = intarg ("return");
         checklastarg ("return");
         if (exp_int != ret_int)
           btorunt_error (
               "expected return value %d but got %d", exp_int, ret_int);
+      }
+      else if (exp_ret == RET_UINT)
+      {
+        uint32_t exp_uint = uintarg ("return");
+        checklastarg ("return");
+        if (exp_uint != ret_uint)
+          btorunt_error (
+              "expected return value %d but got %d", exp_uint, ret_uint);
       }
       else if (exp_ret == RET_CHARPTR)
       {
@@ -1438,27 +1462,31 @@ NEXT:
     {
       PARSE_ARGS1 (tok, str);
       boolector_array_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_array_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_array_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_array_assignment (btor,
+                                       hmap_get (hmap, arg1_str),
+                                       hmap_get (hmap, arg2_str),
+                                       arg3_uint);
     }
     else if (!strcmp (tok, "uf_assignment"))
     {
       PARSE_ARGS1 (tok, str);
       boolector_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_uf_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_uf_assignment (btor,
+                                    hmap_get (hmap, arg1_str),
+                                    hmap_get (hmap, arg2_str),
+                                    arg3_uint);
     }
     else if (!strcmp (tok, "print_model"))
     {

@@ -68,7 +68,7 @@ struct BtorCallbacks
   {
     /* the function to use for (checking) termination
      * (we need to distinguish between callbacks from C and Python) */
-    int (*termfun) (void *);
+    int32_t (*termfun) (void *);
 
     void *fun;   /* termination callback function */
     void *state; /* termination callback function arguments */
@@ -229,10 +229,10 @@ void btor_delete (Btor *btor);
 const char *btor_version (const Btor *btor);
 
 /* Set termination callback. */
-void btor_set_term (Btor *btor, int (*fun) (void *), void *state);
+void btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state);
 
 /* Determine if boolector has been terminated via termination callback. */
-int btor_terminate (Btor *btor);
+int32_t btor_terminate (Btor *btor);
 
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix (Btor *btor, const char *prefix);
@@ -266,23 +266,23 @@ void btor_reset_assumptions (Btor *btor);
 
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
-int btor_check_sat (Btor *btor, int lod_limit, int sat_limit);
+int32_t btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr (const Btor *btor);
 
 /* Run rewriting engine */
-int btor_simplify (Btor *btor);
+int32_t btor_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
-int btor_fun_sort_check (Btor *btor,
-                         BtorNode *args[],
-                         uint32_t argc,
-                         BtorNode *fun);
+int32_t btor_fun_sort_check (Btor *btor,
+                             BtorNode *args[],
+                             uint32_t argc,
+                             BtorNode *fun);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

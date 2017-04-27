@@ -3582,7 +3582,8 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int32_t i, j, k, size = 0;
+  int32_t i, j, k;
+  uint32_t size   = 0;
   const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;

@@ -39,7 +39,7 @@ typedef BoolectorNode *(*BtorOpParser) (BtorBTORParser *, uint32_t width);
 typedef BoolectorNode *(*Unary) (Btor *, BoolectorNode *);
 typedef BoolectorNode *(*Binary) (Btor *, BoolectorNode *, BoolectorNode *);
 typedef BoolectorNode *(*Shift) (Btor *, BoolectorNode *, BoolectorNode *);
-typedef BoolectorNode *(*Extend) (Btor *, BoolectorNode *, int);
+typedef BoolectorNode *(*Extend) (Btor *, BoolectorNode *, uint32_t);
 
 #define SIZE_PARSERS 128
 

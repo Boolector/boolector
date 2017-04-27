@@ -13,6 +13,7 @@
 #define BTORASS_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
@@ -67,7 +68,7 @@ struct BtorFunAss
 {
   char **cloned_indices;
   char **cloned_values;
-  int size;
+  uint32_t size;
   BtorFunAss *prev;
   BtorFunAss *next;
 };
@@ -92,24 +93,24 @@ void btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup);
 /* Get BtorFunAss bucket reference from indices reference. */
 BtorFunAss *btor_ass_get_fun (const char **indices,
                               const char **values,
-                              int size);
+                              uint32_t size);
 
 /* Get indices and values references from BtorFunAss bucket. */
 void btor_ass_get_fun_indices_values (BtorFunAss *ass,
                                       char ***indices,
                                       char ***values,
-                                      int size);
+                                      uint32_t size);
 
 /* Create new array assignment and add it to the list. */
 BtorFunAss *btor_ass_new_fun (BtorFunAssList *list,
                               char **indices,
                               char **values,
-                              int size);
+                              uint32_t size);
 
 /* Release array assignment and remove it from the list. */
 void btor_ass_release_fun (BtorFunAssList *list,
                            char **indices,
                            char **values,
-                           int size);
+                           uint32_t size);
 
 #endif
