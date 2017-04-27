@@ -600,10 +600,9 @@ NEXT:
 #ifdef BTOR_USE_LINGELING
     else if (!strcmp (tok, "set_sat_solver_lingeling"))
     {
-      PARSE_ARGS2 (tok, str, int);
-      arg1_str = !strcmp (arg1_str, "(null)") ? 0 : arg1_str;
-      ret_int  = boolector_set_sat_solver_lingeling (btor, arg1_str, arg2_int);
-      exp_ret  = RET_INT;
+      PARSE_ARGS1 (tok, int);
+      ret_int = boolector_set_sat_solver_lingeling (btor, arg2_int);
+      exp_ret = RET_INT;
     }
 #endif
 #ifdef BTOR_USE_PICOSAT

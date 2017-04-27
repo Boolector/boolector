@@ -550,19 +550,18 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 
 #ifdef BTOR_USE_LINGELING
 int
-boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
+boolector_set_sat_solver_lingeling (Btor *btor, int nofork)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s %d", optstr, nofork);
+  BTOR_TRAPI ("%d", nofork);
   BTOR_ABORT (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
   btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
-  btor_opt_set_str (btor, BTOR_OPT_SAT_ENGINE, optstr);
   btor_opt_set (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, nofork ? 0 : 1);
   BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_sat_solver_lingeling, optstr, nofork);
+  BTOR_CHKCLONE_NORES (set_sat_solver_lingeling, nofork);
 #endif
   return 1;
 }

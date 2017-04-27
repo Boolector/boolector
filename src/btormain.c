@@ -274,18 +274,6 @@ btormain_init_opts (BtorMainApp *app)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "do not use 'fork/clone' for Lingeling");
-  init_main_opt (app,
-                 BTORMAIN_OPT_LGL_OPTS,
-                 true,
-                 false,
-                 "lingeling-opts",
-                 0,
-                 0,
-                 0,
-                 1,
-                 false,
-                 BTORMAIN_OPT_ARG_STR,
-                 "set lingeling option(s) '--<opt>=<val>'");
 #endif
   init_main_opt (app,
                  BTORMAIN_OPT_HEX,
@@ -540,16 +528,8 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<engine>");
   else if (!isflag)
     sprintf (paramstr, "<n>");
-  else if (!strcmp (lng, "lingeling-opts"))
-    sprintf (paramstr, "[,<opt>=<val>]+");
   else
     paramstr[0] = '\0';
-
-  assert (!strcmp (lng, "lingeling-opts")
-          || (shrt
-              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 5
-                  <= LEN_OPTSTR))
-          || (!shrt && (strlen (paramstr) + strlen (lng) + 5 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -1157,10 +1137,6 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_LINGELING
         case BTORMAIN_OPT_LGL_NOFORK:
           boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
-          break;
-
-        case BTORMAIN_OPT_LGL_OPTS:
-          btor_opt_set_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
           break;
 #endif
 

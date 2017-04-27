@@ -2737,7 +2737,7 @@ btormbt_state_opt (BtorMBT *mbt)
 #ifdef BTOR_USE_LINGELING
       if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
         boolector_set_sat_solver_lingeling (
-            mbt->btor, 0, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
+            mbt->btor, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
 #endif
 #ifdef BTOR_USE_PICOSAT
       else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)

@@ -329,13 +329,10 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
   Call this function after boolector_new.
 
   :param btor: Boolector instance.
-  :param optstr: Lingeling option string.
   :param nofork: Do not use fork/clone for Lingeling.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int boolector_set_sat_solver_lingeling (Btor *btor,
-                                        const char *optstr,
-                                        int nofork);
+int boolector_set_sat_solver_lingeling (Btor *btor, int nofork);
 #endif
 
 #ifdef BTOR_USE_PICOSAT
