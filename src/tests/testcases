@@ -725,3 +725,4 @@ normalize_mul_incomplete -db -o src/tests/log/normalize_mul_incomplete.log src/t
 normalize_and_incomplete -db -o src/tests/log/normalize_and_incomplete.log src/tests/log/normalize_and_incomplete.btor
 getvalue1 -o src/tests/log/getvalue1.log src/tests/log/getvalue1.smt2
 getvalue2 -o src/tests/log/getvalue2.log src/tests/log/getvalue2.smt2
+invalidmodel1 -o src/tests/log/invalidmodel1.log src/tests/log/invalidmodel1.smt2
