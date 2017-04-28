@@ -23,7 +23,7 @@
 
 struct BtorOpt
 {
-  int internal;     /* internal option? */
+  bool internal;    /* internal option? */
   bool isflag;      /* flag? */
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
