@@ -61,7 +61,6 @@ enum BtorMainOption
   BTORMAIN_OPT_ENGINE,
   BTORMAIN_OPT_SAT_ENGINE,
   BTORMAIN_OPT_LGL_NOFORK,
-  BTORMAIN_OPT_LGL_OPTS,
   BTORMAIN_OPT_HEX,
   BTORMAIN_OPT_DEC,
   BTORMAIN_OPT_BIN,
@@ -646,8 +645,8 @@ print_help (BtorMainApp *app)
   {
     if (!app->options[mo].general) continue;
     if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
-        || mo == BTORMAIN_OPT_LGL_OPTS || mo == BTORMAIN_OPT_HEX
-        || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_DUMP_BTOR)
+        || mo == BTORMAIN_OPT_HEX || mo == BTORMAIN_OPT_BTOR
+        || mo == BTORMAIN_OPT_DUMP_BTOR)
       fprintf (out, "\n");
     PRINT_MAIN_OPT (app, &app->options[mo]);
   }
