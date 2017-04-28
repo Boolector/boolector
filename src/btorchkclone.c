@@ -36,7 +36,7 @@
 
 /*------------------------------------------------------------------------*/
 
-static int
+static int32_t
 cmp_data_as_int (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
@@ -45,7 +45,7 @@ cmp_data_as_int (const BtorHashTableData *d1, const BtorHashTableData *d2)
   return d1->as_int - d2->as_int;
 }
 
-static int
+static int32_t
 cmp_data_as_dbl (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
@@ -54,7 +54,7 @@ cmp_data_as_dbl (const BtorHashTableData *d1, const BtorHashTableData *d2)
   return d1->as_dbl == d2->as_dbl ? 0 : (d1->as_dbl > d2->as_dbl ? 1 : -1);
 }
 
-static int
+static int32_t
 cmp_data_as_bv_ptr (const BtorHashTableData *d1, const BtorHashTableData *d2)
 {
   assert (d1);
@@ -63,7 +63,7 @@ cmp_data_as_bv_ptr (const BtorHashTableData *d1, const BtorHashTableData *d2)
   return btor_bv_compare (d1->as_ptr, d2->as_ptr);
 }
 
-static int
+static int32_t
 cmp_data_as_sls_constr_data_ptr (const BtorHashTableData *d1,
                                  const BtorHashTableData *d2)
 {
@@ -108,8 +108,8 @@ chkclone_int_hash_table (BtorIntHashTable *table, BtorIntHashTable *ctable)
 static inline void
 chkclone_int_hash_map (BtorIntHashTable *map,
                        BtorIntHashTable *cmap,
-                       int (*cmp_data) (const BtorHashTableData *,
-                                        const BtorHashTableData *))
+                       int32_t (*cmp_data) (const BtorHashTableData *,
+                                            const BtorHashTableData *))
 {
   size_t i;
 
@@ -138,8 +138,8 @@ chkclone_int_hash_map (BtorIntHashTable *map,
 static inline void
 chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
                               BtorPtrHashTable *ctable,
-                              int (*cmp_data) (const BtorHashTableData *,
-                                               const BtorHashTableData *))
+                              int32_t (*cmp_data) (const BtorHashTableData *,
+                                                   const BtorHashTableData *))
 {
   BtorPtrHashTableIterator it, cit;
 
@@ -369,7 +369,7 @@ chkclone_opts (Btor *btor, Btor *clone)
 static void
 chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 {
-  int i;
+  int32_t i;
   BtorAIG *real_aig, *real_clone;
 
   real_aig   = BTOR_REAL_ADDR_AIG (aig);
@@ -1023,7 +1023,7 @@ btor_chkclone_sort (Btor *btor,
 static void
 chkclone_slv (Btor *btor, Btor *clone)
 {
-  int i, h;
+  uint32_t i, h;
 
   h = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
 
