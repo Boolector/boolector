@@ -72,7 +72,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     assert (slv->score);
 
-    int *selected;
+    int32_t *selected;
     double value, max_value, score;
     max_value = 0.0;
     btor_iter_hashint_init (&it, slv->roots);
@@ -119,7 +119,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   return res;
 }
 
-static int
+static bool
 move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
@@ -181,7 +181,7 @@ move (Btor *btor, uint32_t nmoves)
   slv->stats.moves += 1;
   btor_bv_free (btor->mm, assignment);
 
-  return 1;
+  return true;
 }
 
 /*------------------------------------------------------------------------*/
@@ -225,16 +225,16 @@ delete_prop_solver (BtorPropSolver *slv)
 /* This is an extra function in order to be able to test completeness
  * via test suite. */
 #ifdef NDEBUG
-static inline int
+static inline int32_t
 #else
-int
+int32_t
 #endif
 sat_prop_solver_aux (Btor *btor)
 {
   assert (btor);
 
-  int j, max_steps;
-  int sat_result;
+  uint32_t j, max_steps;
+  int32_t sat_result;
   uint32_t nmoves, nprops;
   BtorNode *root;
   BtorPtrHashTableIterator it;
@@ -356,7 +356,7 @@ DONE:
 }
 
 /* Note: failed assumptions handling not necessary, prop only works for SAT */
-static int
+static int32_t
 sat_prop_solver (BtorPropSolver *slv)
 {
   assert (slv);
@@ -364,7 +364,7 @@ sat_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  int sat_result;
+  int32_t sat_result;
   Btor *btor;
 
   btor = slv->btor;

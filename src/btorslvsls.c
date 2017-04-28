@@ -1121,13 +1121,13 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
 /*------------------------------------------------------------------------*/
 
-static int32_t
+static bool
 move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
 
   uint32_t nprops, nsls;
-  int32_t res;
+  bool res;
   BtorNode *constr, *can;
   BtorNodePtrStack candidates;
   BtorIntHashTableIterator iit;
@@ -1147,7 +1147,7 @@ move (Btor *btor, uint32_t nmoves)
 
   slv->max_cans = btor_hashint_map_new (btor->mm);
 
-  res = 1;
+  res = true;
 
   nprops = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP_N_PROP);
   nsls   = btor_opt_get (btor, BTOR_OPT_SLS_MOVE_PROP_N_SLS);
@@ -1182,7 +1182,7 @@ move (Btor *btor, uint32_t nmoves)
         /* root is const false -> unsat */
         if (!BTOR_COUNT_STACK (candidates))
         {
-          res = 0;
+          res = false;
           goto DONE;
         }
 
@@ -1200,7 +1200,7 @@ move (Btor *btor, uint32_t nmoves)
     /* root is const false -> unsat */
     if (!BTOR_COUNT_STACK (candidates))
     {
-      res = 0;
+      res = false;
       goto DONE;
     }
 
