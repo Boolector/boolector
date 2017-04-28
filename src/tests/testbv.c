@@ -464,7 +464,7 @@ static void
 test_bv_to_char_bitvec (void)
 {
   uint32_t i, j, k;
-  int b;
+  uint32_t b;
   char *s;
   BtorBitVector *bv;
 

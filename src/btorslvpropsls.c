@@ -3723,7 +3723,7 @@ inv_slice_bv (Btor *btor,
     btor_bv_set_bit (res,
                      i,
                      bkeep ? btor_bv_get_bit (bve, i)
-                           : (int) btor_rng_pick_rand (&btor->rng, 0, 1));
+                           : btor_rng_pick_rand (&btor->rng, 0, 1));
 
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
@@ -3735,7 +3735,7 @@ inv_slice_bv (Btor *btor,
     btor_bv_set_bit (res,
                      i,
                      bkeep ? btor_bv_get_bit (bve, i)
-                           : (int) btor_rng_pick_rand (&btor->rng, 0, 1));
+                           : btor_rng_pick_rand (&btor->rng, 0, 1));
 
   if (bflip)
   {
