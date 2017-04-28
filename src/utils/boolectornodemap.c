@@ -85,7 +85,7 @@ boolector_nodemap_mapped (BoolectorNodeMap *map, const BoolectorNode *n)
   return nres;
 }
 
-int
+uint32_t
 boolector_nodemap_count (const BoolectorNodeMap *map)
 {
   assert (map);
@@ -145,7 +145,7 @@ boolector_map_node_internal (Btor *btor,
 
   BtorNode *src, *dst, *e, *tmp;
   BoolectorNode *m[3];
-  int i;
+  uint32_t i;
 
   e = BTOR_IMPORT_BOOLECTOR_NODE (n);
   assert (BTOR_IS_REGULAR_NODE (e));
@@ -219,7 +219,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
-  int i;
+  uint32_t i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
@@ -253,8 +253,8 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     {
       btor_hashint_map_add (mark, node->id);
       BTOR_PUSH_STACK (working_stack, node);
-      for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (working_stack, node->e[i]);
+      for (i = 1; i <= node->arity; i++)
+        BTOR_PUSH_STACK (working_stack, node->e[node->arity - i]);
     }
     else
     {
