@@ -38,7 +38,7 @@ clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
   assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp_map);
 
-  int h;
+  uint32_t h;
   Btor *btor;
   BtorFunSolver *res;
 
@@ -91,7 +91,7 @@ clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
                                  + BTOR_COUNT_STACK (slv->stats.lemmas_size);
     memcpy (res->stats.lemmas_size.start,
             slv->stats.lemmas_size.start,
-            BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int));
+            BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (uint32_t));
   }
 
   return res;
@@ -175,7 +175,7 @@ configure_sat_mgr (Btor *btor)
 }
 
 static BtorSolverResult
-timed_sat_sat (Btor *btor, int limit)
+timed_sat_sat (Btor *btor, int32_t limit)
 {
   assert (btor);
   assert (btor->slv);
@@ -351,7 +351,7 @@ assume_inputs (Btor *btor,
   assert (key_map->table->count == 0);
   assert (assumptions);
 
-  int i;
+  uint32_t i;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq;
   BtorBitVector *bv;
 
@@ -501,7 +501,7 @@ add_function_inequality_constraints (Btor *btor)
   btor_hashint_table_delete (cache);
 }
 
-static int
+static int32_t
 sat_aux_btor_dual_prop (Btor *btor)
 {
   assert (btor);
@@ -557,7 +557,7 @@ collect_applies (Btor *btor,
   assert (top_applies_feq);
 
   double start;
-  int i;
+  uint32_t i;
   BtorMemMgr *mm;
   BtorFunSolver *slv;
   BtorNode *cur_btor, *cur_clone, *bv_eq;
@@ -770,7 +770,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (top_applies);
 
   double start;
-  int i;
+  uint32_t i;
   BtorNode *cur;
   BtorNodePtrStack stack, inputs;
   BtorPtrHashTableIterator it;
@@ -874,7 +874,7 @@ search_initial_applies_bv_skeleton (Btor *btor,
   assert (applies);
 
   double start;
-  int i;
+  uint32_t i;
   BtorNode *cur;
   BtorNodePtrStack stack;
   BtorPtrHashTableIterator it;
@@ -930,8 +930,8 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
 
-  int i, h;
-  int a, a0, a1;
+  uint32_t i, h;
+  int32_t a, a0, a1;
   double start;
   BtorNode *cur, *e0, *e1;
   BtorPtrHashTableIterator it;
@@ -1107,7 +1107,7 @@ equal_bv_assignments (BtorNode *exp0, BtorNode *exp1)
   return equal;
 }
 
-static int
+static int32_t
 compare_args_assignments (BtorNode *e0, BtorNode *e1)
 {
   assert (BTOR_IS_REGULAR_NODE (e0));
@@ -1146,14 +1146,14 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
   return 0;
 }
 
-static unsigned int
+static uint32_t
 hash_args_assignment (BtorNode *exp)
 {
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (btor_is_args_node (exp));
 
-  unsigned int hash;
+  uint32_t hash;
   Btor *btor;
   BtorNode *arg;
   BtorArgsIterator it;
@@ -1298,7 +1298,7 @@ add_symbolic_lemma (Btor *btor,
   assert (!a->parameterized);
   assert (!BTOR_REAL_ADDR_NODE (b)->parameterized);
 
-  int lemma_size = 0;
+  uint32_t lemma_size = 0;
   BtorFunSolver *slv;
   BtorNode *cond, *eq, *and, *arg0, *arg1;
   BtorNode *premise = 0, *conclusion = 0, *lemma;
@@ -1508,7 +1508,7 @@ push_applies_for_propagation (Btor *btor,
   assert (exp);
   assert (prop_stack);
 
-  int i;
+  uint32_t i;
   double start;
   BtorFunSolver *slv;
   BtorNode *cur;
@@ -1811,7 +1811,7 @@ propagate (Btor *btor,
 static BtorPtrHashTable *
 generate_table (Btor *btor, BtorNode *fun)
 {
-  int i;
+  uint32_t i;
   BtorMemMgr *mm;
   BtorNode *cur, *value, *args;
   BtorPtrHashTable *table, *rho, *static_rho;
@@ -2182,7 +2182,7 @@ sat_fun_solver (BtorFunSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  int i;
+  uint32_t i;
   bool done;
   BtorSolverResult result;
   Btor *btor, *clone;
@@ -2268,7 +2268,7 @@ sat_fun_solver (BtorFunSolver *slv)
   {
     if (btor_terminate (btor)
         || (slv->lod_limit > -1
-            && slv->stats.lod_refinements >= slv->lod_limit))
+            && slv->stats.lod_refinements >= (uint32_t) slv->lod_limit))
     {
       goto UNKNOWN;
     }
@@ -2382,7 +2382,7 @@ print_stats_fun_solver (BtorFunSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  int i;
+  uint32_t i;
   Btor *btor;
 
   btor = slv->btor;
@@ -2590,7 +2590,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (btor->bv_model);
 
-  int i;
+  uint32_t i;
   double start;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack;
