@@ -19,7 +19,7 @@ btor_hash_ptr (const void *p)
   return 1183477 * (unsigned) (unsigned long) p;
 }
 
-static int
+static int32_t
 btor_compare_ptr (const void *p, const void *q)
 {
   return ((long) p) != ((long) q);
