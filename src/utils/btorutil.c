@@ -45,10 +45,10 @@ btor_util_log_2 (uint32_t x)
   return result;
 }
 
-int
-btor_util_pow_2 (int x)
+int32_t
+btor_util_pow_2 (int32_t x)
 {
-  int result = 1;
+  int32_t result = 1;
   assert (x >= 0);
   while (x > 0)
   {
@@ -60,20 +60,20 @@ btor_util_pow_2 (int x)
   return result;
 }
 
-int
-btor_util_next_power_of_2 (int x)
+int32_t
+btor_util_next_power_of_2 (int32_t x)
 {
-  int i;
+  int32_t i;
   assert (x > 0);
   x--;
-  for (i = 1; i < (int) sizeof (int) * 8; i *= 2) x = x | (x >> i);
+  for (i = 1; i < (int32_t) sizeof (int32_t) * 8; i *= 2) x = x | (x >> i);
   return x + 1;
 }
 
-int
-btor_util_num_digits (int x)
+int32_t
+btor_util_num_digits (int32_t x)
 {
-  int result;
+  int32_t result;
   assert (x >= 0);
 
   result = 0;
@@ -121,7 +121,7 @@ strip_zeroes (const char *a)
 
 #ifndef NDEBUG
 
-static int
+static bool
 is_bin_str (const char *c)
 {
   const char *p;
@@ -130,8 +130,8 @@ is_bin_str (const char *c)
   assert (c != NULL);
 
   for (p = c; (ch = *p); p++)
-    if (ch != '0' && ch != '1') return 0;
-  return 1;
+    if (ch != '0' && ch != '1') return false;
+  return true;
 }
 
 #endif
@@ -146,7 +146,7 @@ add_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_bin_str (b));
 
   char *res, *r, c, x, y, s, *tmp;
-  int alen, blen, rlen;
+  uint32_t alen, blen, rlen;
   const char *p, *q;
 
   a = strip_zeroes (a);
@@ -200,7 +200,7 @@ mult_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_bin_str (b));
 
   char *res, *r, c, x, y, s, m;
-  int alen, blen, rlen, i;
+  uint32_t alen, blen, rlen, i;
   const char *p;
 
   a = strip_zeroes (a);
@@ -464,14 +464,14 @@ btor_util_time_stamp (void)
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-int
+int32_t
 btor_util_file_exists (const char *path)
 {
   struct stat buf;
   return !stat (path, &buf);
 }
 #else
-int
+int32_t
 btor_util_file_exists (const char *path)
 {
   (void) path;
@@ -496,7 +496,7 @@ btor_util_file_exists (const char *path)
   }
 
 char g_strbuf[BUFFER_SIZE];
-int g_strbufpos = 0;
+int32_t g_strbufpos = 0;
 
 char *
 btor_util_node2string (BtorNode *exp)
@@ -506,7 +506,7 @@ btor_util_node2string (BtorNode *exp)
   const char *name, *tmp;
   char strbuf[BUFFER_SIZE], *bufstart, *bits;
   size_t cur_len, new_len;
-  int i;
+  uint32_t i;
 
   if (!exp) return "0";
 
@@ -569,12 +569,12 @@ btor_util_node2string (BtorNode *exp)
 
 /*------------------------------------------------------------------------*/
 
-int
+int32_t
 btor_util_vis_exp (Btor *btor, BtorNode *exp)
 {
   char cmd[100], *path;
   FILE *file;
-  int res;
+  int32_t res;
   sprintf (cmd, "btorvis ");
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);

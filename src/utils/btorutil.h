@@ -44,13 +44,13 @@ bool btor_util_is_power_of_2 (uint32_t x);
 
 uint32_t btor_util_log_2 (uint32_t x);
 
-int btor_util_pow_2 (int x);
+int32_t btor_util_pow_2 (int32_t x);
 
-int btor_util_next_power_of_2 (int x);
+int32_t btor_util_next_power_of_2 (int32_t x);
 
 /*------------------------------------------------------------------------*/
 
-int btor_util_num_digits (int x);
+int32_t btor_util_num_digits (int32_t x);
 
 /*------------------------------------------------------------------------*/
 
@@ -74,11 +74,11 @@ double btor_util_time_stamp (void);
 
 /*------------------------------------------------------------------------*/
 
-int btor_util_file_exists (const char *);
+int32_t btor_util_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
 
 char *btor_util_node2string (BtorNode *);
-int btor_util_vis_exp (Btor *btor, BtorNode *exp);
+int32_t btor_util_vis_exp (Btor *btor, BtorNode *exp);
 
 #endif
