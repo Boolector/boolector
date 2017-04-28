@@ -61,7 +61,7 @@ delete_aigprop_solver (BtorAIGPropSolver *slv)
   BTOR_DELETE (btor->mm, slv);
 }
 
-static int
+static int32_t
 get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
@@ -83,7 +83,8 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (aprop);
 
-  int i, j, len, bit;
+  int32_t bit;
+  uint32_t i, j, len;
   BtorBitVector *res;
   BtorAIGVec *av;
 
@@ -107,7 +108,7 @@ generate_model_from_aig_model (Btor *btor)
 {
   assert (btor);
 
-  int i;
+  uint32_t i;
   BtorNode *cur, *real_cur;
   BtorBitVector *bv;
   BtorAIGPropSolver *slv;
@@ -160,8 +161,8 @@ generate_model_from_aig_model (Btor *btor)
 
 static void
 generate_model_aigprop_solver (BtorAIGPropSolver *slv,
-                               int model_for_all_nodes,
-                               int reset)
+                               bool model_for_all_nodes,
+                               bool reset)
 {
   assert (slv);
 
@@ -182,7 +183,7 @@ generate_model_aigprop_solver (BtorAIGPropSolver *slv,
 }
 
 /* Note: limits are currently unused */
-static int
+static int32_t
 sat_aigprop_solver (BtorAIGPropSolver *slv)
 {
   assert (slv);
@@ -190,7 +191,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  int sat_result;
+  int32_t sat_result;
   BtorIntHashTable *roots;
   BtorPtrHashTableIterator it;
   BtorNode *root;
