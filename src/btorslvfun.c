@@ -1724,6 +1724,7 @@ propagate (Btor *btor,
         app->propagated = 0;
         BTOR_PUSH_STACK (*prop_stack, app);
         BTOR_PUSH_STACK (*prop_stack, fun->e[0]);
+        slv->stats.propagations_down++;
       }
       push_applies_for_propagation (
           btor, fun->e[1], prop_stack, apply_search_cache);
