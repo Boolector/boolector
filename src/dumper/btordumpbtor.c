@@ -410,6 +410,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "apply";
       break;
     case BTOR_ARGS_NODE: op = "args"; break;
+    case BTOR_UPDATE_NODE: op = "write"; break;
     default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
   }
 
@@ -419,7 +420,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, "%d %s", bdcid (bdc, node), op);
 
     /* print index bit width of arrays */
-    if (btor_is_uf_array_node (node) || btor_is_fun_cond_node (node))
+    if (btor_is_uf_array_node (node) || btor_is_fun_cond_node (node)
+        || btor_is_update_node (node))
     {
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_index_exp_width (bdc->btor, node));
@@ -500,6 +502,12 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
              bdcid (bdc, node->e[1]->e[2]->e[0]),
              bdcid (bdc, index->e[0]),
              bdcid (bdc, value));
+  }
+  else if (btor_is_update_node (node))
+  {
+    fprintf (file, " %d", bdcid (bdc, node->e[0]));
+    fprintf (file, " %d", bdcid (bdc, node->e[1]->e[0]));
+    fprintf (file, " %d", bdcid (bdc, node->e[2]));
   }
   else
     for (i = 0; i < node->arity; i++)
