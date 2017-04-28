@@ -170,8 +170,8 @@ btor_beta_unassign_params (Btor *btor, BtorNode *lambda)
 static BtorNode *
 beta_reduce (Btor *btor,
              BtorNode *exp,
-             int mode,
-             int bound,
+             int32_t mode,
+             int32_t bound,
              BtorPtrHashTable *merge_lambdas,
              BtorPtrHashTable *cache)
 {
@@ -892,7 +892,7 @@ btor_beta_reduce_merge (Btor *btor,
 }
 
 BtorNode *
-btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
+btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int32_t bound)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, btor_util_node2string (exp));
   return beta_reduce (btor, exp, BETA_RED_BOUNDED, bound, 0, 0);
