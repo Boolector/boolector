@@ -40,8 +40,8 @@ struct BtorFunSolver
     uint32_t beta_reduction_conflicts;
     uint32_t extensionality_lemmas;
 
-    BtorIntStack lemmas_size; /* distribution of n-size lemmas */
-    uint64_t lemmas_size_sum; /* sum of the size of all added lemmas */
+    BtorUIntStack lemmas_size; /* distribution of n-size lemmas */
+    uint64_t lemmas_size_sum;  /* sum of the size of all added lemmas */
 
     uint32_t dp_failed_vars; /* number of vars in FA (dual prop) of last
                                 sat call (final bv skeleton) */

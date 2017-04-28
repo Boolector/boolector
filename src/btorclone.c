@@ -358,7 +358,7 @@ clone_sorts_unique_table (BtorMemMgr * mm,
   assert (table);
   assert (res);
 
-  int i, j;
+  uint32_t i, j;
   BtorSort *sort, *csort, *tmp;
   BtorSortPtrStack elements;
   
@@ -487,7 +487,7 @@ clone_exp (Btor *clone,
   assert (nodes);
   assert (exp_map);
 
-  int i;
+  uint32_t i;
   BtorBitVector *bits;
   BtorNode *res;
   BtorParamNode *param;
@@ -610,7 +610,7 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
   assert (res);
   assert (exp_map);
 
-  int i;
+  uint32_t i;
   BtorNode *cloned_exp;
 
   BTOR_INIT_STACK (mm, *res);
@@ -1074,7 +1074,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                                              0,
                                              emap);
 #ifndef NDEBUG
-  int str_bytes = 0;
+  uint32_t str_bytes = 0;
   btor_iter_hashptr_init (&pit, btor->symbols);
   while (btor_iter_hashptr_has_next (&pit))
     str_bytes +=
@@ -1336,7 +1336,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
               == BTOR_SIZE_STACK (cslv->stats.lemmas_size));
       assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
               == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
-      allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int);
+      allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (uint32_t);
     }
     else if (clone->slv->kind == BTOR_SLS_SOLVER_KIND)
     {
@@ -1467,14 +1467,14 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
                                     Btor *clone,
                                     BtorNode *exp,
                                     BtorNodeMap *exp_map,
-                                    int rewrite_level)
+                                    uint32_t rewrite_level)
 {
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   assert (exp_map);
 
-  int i, rwl;
+  uint32_t i, rwl;
   char *symbol;
   BtorNode *real_exp, *cur, *cur_clone, *e[3];
   BtorNodePtrStack work_stack;
