@@ -49,24 +49,24 @@ typedef enum BtorParseMode BtorParseMode;
 
 struct BtorParseOpt
 {
-  int incremental;
+  uint32_t incremental;
   BtorParseMode incremental_smt1; /* smt v1 only */
-  int verbosity;
-  int need_model;
-  int interactive;
+  uint32_t verbosity;
+  uint32_t need_model;
+  uint32_t interactive;
 };
 
 struct BtorParseResult
 {
   BtorLogic logic;
-  int status;
-  int result;
-  int nsatcalls;
+  int32_t status;
+  int32_t result;
+  uint32_t nsatcalls;
 
-  int ninputs;
+  uint32_t ninputs;
   BoolectorNode **inputs;
 
-  int noutputs;
+  uint32_t noutputs;
   BoolectorNode **outputs;
 };
 
@@ -77,33 +77,33 @@ struct BtorParserAPI
   BtorParse parse;
 };
 
-int btor_parse (Btor *btor,
-                FILE *infile,
-                const char *infile_name,
-                FILE *outfile,
-                char **error_msg,
-                int *status);
+int32_t btor_parse (Btor *btor,
+                    FILE *infile,
+                    const char *infile_name,
+                    FILE *outfile,
+                    char **error_msg,
+                    int32_t *status);
 
-int btor_parse_btor (Btor *btor,
-                     FILE *infile,
-                     const char *infile_name,
-                     FILE *outfile,
-                     char **error_msg,
-                     int *status);
+int32_t btor_parse_btor (Btor *btor,
+                         FILE *infile,
+                         const char *infile_name,
+                         FILE *outfile,
+                         char **error_msg,
+                         int32_t *status);
 
-int btor_parse_smt1 (Btor *btor,
-                     FILE *infile,
-                     const char *infile_name,
-                     FILE *outfile,
-                     char **error_msg,
-                     int *status);
+int32_t btor_parse_smt1 (Btor *btor,
+                         FILE *infile,
+                         const char *infile_name,
+                         FILE *outfile,
+                         char **error_msg,
+                         int32_t *status);
 
-int btor_parse_smt2 (Btor *btor,
-                     FILE *infile,
-                     const char *infile_name,
-                     FILE *outfile,
-                     char **error_msg,
-                     int *status);
+int32_t btor_parse_smt2 (Btor *btor,
+                         FILE *infile,
+                         const char *infile_name,
+                         FILE *outfile,
+                         char **error_msg,
+                         int32_t *status);
 
 BtorMsg *boolector_get_btor_msg (Btor *btor);
 #endif

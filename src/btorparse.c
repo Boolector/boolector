@@ -21,10 +21,10 @@
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
-static int
+static bool
 has_compressed_suffix (const char *str, const char *suffix)
 {
-  int l = strlen (str), k = strlen (suffix), d = l - k;
+  int32_t l = strlen (str), k = strlen (suffix), d = l - k;
   if (d < 0) return 0;
   if (!strcmp (str + d, suffix)) return 1;
   if (d - 3 >= 0 && !strcmp (str + l - 3, ".gz") && !strcmp (str + l - 3, ".7z")
@@ -34,7 +34,7 @@ has_compressed_suffix (const char *str, const char *suffix)
 }
 
 /* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
-static int
+static int32_t
 parse_aux (Btor *btor,
            FILE *infile,
            BtorCharStack *prefix,
@@ -42,7 +42,7 @@ parse_aux (Btor *btor,
            FILE *outfile,
            const BtorParserAPI *parser_api,
            char **error_msg,
-           int *status,
+           int32_t *status,
            char *msg)
 {
   assert (btor);
@@ -57,7 +57,8 @@ parse_aux (Btor *btor,
   BtorParseOpt parse_opt;
   BtorParseResult parse_res;
   BoolectorNode *root;
-  int i, root_len, res;
+  uint32_t i, root_len;
+  int32_t res;
   char *emsg;
 
   res                        = BOOLECTOR_UNKNOWN;
@@ -136,13 +137,13 @@ parse_aux (Btor *btor,
   return res;
 }
 
-int
+int32_t
 btor_parse (Btor *btor,
             FILE *infile,
             const char *infile_name,
             FILE *outfile,
             char **error_msg,
-            int *status)
+            int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -152,7 +153,8 @@ btor_parse (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  int first, second, res, len;
+  int32_t first, second, res;
+  uint32_t len;
   char ch, *msg;
   BtorCharStack prefix;
   BtorMemMgr *mem;
@@ -245,13 +247,13 @@ btor_parse (Btor *btor,
   return res;
 }
 
-int
+int32_t
 btor_parse_btor (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -266,13 +268,13 @@ btor_parse_btor (Btor *btor,
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
-int
+int32_t
 btor_parse_smt1 (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -287,13 +289,13 @@ btor_parse_smt1 (Btor *btor,
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
-int
+int32_t
 btor_parse_smt2 (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);

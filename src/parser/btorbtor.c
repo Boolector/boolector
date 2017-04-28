@@ -1700,8 +1700,6 @@ new_btor_parser (Btor *btor, BtorParseOpt *opts)
   (void) opts->incremental;  // TODO what about incremental?
   (void) opts->need_model;   // TODO use at least this
 
-  assert (opts->verbosity >= -1);
-
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
