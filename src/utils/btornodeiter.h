@@ -23,9 +23,9 @@
 typedef struct BtorNodeIterator
 {
   const Btor *btor; /* required for unique table iterator */
-  int pos;          /* required for unique table iterator */
+  uint32_t pos;     /* required for unique table iterator */
 #ifndef NDEBUG
-  int num_elements;
+  uint32_t num_elements;
 #endif
   BtorNode *cur;
 } BtorNodeIterator;
@@ -62,7 +62,7 @@ BtorNode * btor_iter_unique_table_next (BtorNodeIterator * it);
 
 typedef struct BtorArgsIterator
 {
-  int pos;
+  uint32_t pos;
   BtorNode *cur;
   const BtorNode *exp;
 } BtorArgsIterator;
