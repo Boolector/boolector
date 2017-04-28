@@ -1718,18 +1718,17 @@ propagate (Btor *btor,
           conflict = true;
           // TODO: checl opt_eager_lemmas
         }
-        else
-          push_applies_for_propagation (
-              btor, fun->e[2], prop_stack, apply_search_cache);
       }
       else
       {
         app->propagated = 0;
         BTOR_PUSH_STACK (*prop_stack, app);
         BTOR_PUSH_STACK (*prop_stack, fun->e[0]);
-        push_applies_for_propagation (
-            btor, fun->e[1], prop_stack, apply_search_cache);
       }
+      push_applies_for_propagation (
+          btor, fun->e[1], prop_stack, apply_search_cache);
+      push_applies_for_propagation (
+          btor, fun->e[2], prop_stack, apply_search_cache);
       continue;
     }
 
