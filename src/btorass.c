@@ -185,7 +185,7 @@ btor_ass_clone_fun_list (BtorMemMgr *mm, BtorFunAssList *list)
 }
 
 void
-btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup)
+btor_ass_delete_fun_list (BtorFunAssList *list, bool auto_cleanup)
 {
   assert (list);
 

@@ -88,7 +88,7 @@ BtorFunAssList *btor_ass_new_fun_list (BtorMemMgr *mm);
 BtorFunAssList *btor_ass_clone_fun_list (BtorMemMgr *mm, BtorFunAssList *list);
 
 /* Delete array assignment list. */
-void btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup);
+void btor_ass_delete_fun_list (BtorFunAssList *list, bool auto_cleanup);
 
 /* Get BtorFunAss bucket reference from indices reference. */
 BtorFunAss *btor_ass_get_fun (const char **indices,
