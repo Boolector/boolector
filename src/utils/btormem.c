@@ -209,12 +209,12 @@ btor_mem_parse_error_msg_length (const char *name, const char *fmt, va_list ap)
       assert (*p);
       if (*p == 'c')
       {
-        (void) va_arg (ap, int);
+        (void) va_arg (ap, int32_t);
         bytes += 1;
       }
       else if (*p == 'd' || *p == 'u')
       {
-        (void) va_arg (ap, unsigned);
+        (void) va_arg (ap, uint32_t);
         bytes += 12;
       }
       else
@@ -233,8 +233,8 @@ btor_mem_parse_error_msg_length (const char *name, const char *fmt, va_list ap)
 char *
 btor_mem_parse_error_msg (BtorMemMgr *mem,
                           const char *name,
-                          int lineno,
-                          int columno,
+                          int32_t lineno,
+                          int32_t columno,
                           const char *fmt,
                           va_list ap,
                           size_t bytes)

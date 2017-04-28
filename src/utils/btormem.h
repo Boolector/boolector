@@ -14,6 +14,7 @@
 #define BTORMEM_H_INCLUDED
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -61,7 +62,7 @@
 #define BTOR_ENLARGE(mm, p, o, n)             \
   do                                          \
   {                                           \
-    int internaln = (o) ? 2 * (o) : 1;        \
+    size_t internaln = (o) ? 2 * (o) : 1;     \
     BTOR_REALLOC ((mm), (p), (o), internaln); \
     (n) = internaln;                          \
   } while (0)
@@ -108,8 +109,8 @@ size_t btor_mem_parse_error_msg_length (const char *name,
 
 char *btor_mem_parse_error_msg (BtorMemMgr *,
                                 const char *name,
-                                int lineno,
-                                int columnno,
+                                int32_t lineno,
+                                int32_t columnno,
                                 const char *fmt,
                                 va_list,
                                 size_t bytes);
