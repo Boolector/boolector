@@ -81,13 +81,13 @@ struct BtorSort
 {
   BtorSortKind kind;
   BtorSortId id;
-  int refs;       /* reference counter */
-  int ext_refs;   /* reference counter for API references */
-  BtorSort *next; /* collision chain for unique table */
+  uint32_t refs;     /* reference counter */
+  uint32_t ext_refs; /* reference counter for API references */
+  BtorSort *next;    /* collision chain for unique table */
   BtorSortUniqueTable *table;
 #ifndef NDEBUG
   Btor *btor;
-  int parents;
+  uint32_t parents;
 #endif
   union
   {
