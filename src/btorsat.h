@@ -44,7 +44,7 @@ struct BtorSATMgr
   bool initialized;
   int satcalls;
   int clauses;
-  int true_lit;
+  int32_t true_lit;
   int maxvar;
 
   double sat_time;

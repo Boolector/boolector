@@ -72,7 +72,7 @@ struct BtorCallbacks
 
     void *fun;   /* termination callback function */
     void *state; /* termination callback function arguments */
-    int done;
+    int32_t done;
   } term;
 };
 
@@ -160,7 +160,7 @@ struct Btor
 
   struct
   {
-    int cur, max;
+    uint32_t cur, max;
   } ops[BTOR_NUM_OPS_NODE];
 
   struct
@@ -308,7 +308,7 @@ void btor_release_all_ext_refs (Btor *btor);
 
 void btor_init_substitutions (Btor *);
 void btor_delete_substitutions (Btor *);
-void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
+void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, bool);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);

@@ -771,7 +771,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
      * NOTE: if 'read' is already in 'substitutions', we let the rewriting
      * engine handle inconsistencies (i,e., if 'value' is not the same
      * as in 'substitutions'. */
-    btor_insert_substitution (btor, read, value, 0);
+    btor_insert_substitution (btor, read, value, false);
   }
 }
 
@@ -1323,7 +1323,7 @@ extract_lambdas (Btor *btor,
     }
 
     assert ((is_top_eq || num_total > 0) || base == subst);
-    if (base != subst) btor_insert_substitution (btor, array, subst, 0);
+    if (base != subst) btor_insert_substitution (btor, array, subst, false);
 
     btor_iter_hashptr_init (&iit, t);
     while (btor_iter_hashptr_has_next (&iit))

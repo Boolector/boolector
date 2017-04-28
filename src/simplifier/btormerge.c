@@ -253,7 +253,7 @@ btor_merge_lambdas (Btor *btor)
     else
       btor_hashptr_table_delete (static_rho);
 
-    btor_insert_substitution (btor, lambda, subst, 0);
+    btor_insert_substitution (btor, lambda, subst, false);
     btor_release_exp (btor, subst);
     while (!BTOR_EMPTY_STACK (params))
       btor_release_exp (btor, BTOR_POP_STACK (params));

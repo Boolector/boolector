@@ -74,7 +74,7 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
   else
     subst = btor_var_exp (btor, btor_exp_get_sort_id (exp), 0);
 
-  btor_insert_substitution (btor, exp, subst, 0);
+  btor_insert_substitution (btor, exp, subst, false);
   btor_release_exp (btor, subst);
 }
 

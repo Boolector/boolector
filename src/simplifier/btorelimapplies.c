@@ -61,7 +61,7 @@ btor_eliminate_applies (Btor *btor)
         num_applies++;
         subst = btor_beta_reduce_full (btor, app, cache);
         assert (!btor_hashptr_table_get (btor->substitutions, app));
-        btor_insert_substitution (btor, app, subst, 0);
+        btor_insert_substitution (btor, app, subst, false);
         btor_release_exp (btor, subst);
       }
     }
