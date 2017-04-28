@@ -31,9 +31,9 @@ BtorNode *btor_rewrite_binary_exp (Btor *btor,
 BtorNode *btor_rewrite_ternary_exp (
     Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, BtorNode *e2);
 
-int btor_rewrite_linear_term (Btor *btor,
-                              BtorNode *term,
-                              BtorBitVector **fp,
-                              BtorNode **lp,
-                              BtorNode **rp);
+bool btor_rewrite_linear_term (Btor *btor,
+                               BtorNode *term,
+                               BtorBitVector **fp,
+                               BtorNode **lp,
+                               BtorNode **rp);
 #endif

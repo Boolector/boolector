@@ -164,18 +164,18 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
 }
 
 #if 0
-static int
+static bool
 is_const_ones_exp (Btor * btor, BtorNode * exp)
 {
   assert (btor);
   assert (exp);
 
-  int result;
+  bool result;
 
   exp = btor_simplify_exp (btor, exp);
 
   if (!btor_is_bv_const_node (exp))
-    return 0;
+    return false;
 
   if (BTOR_IS_INVERTED_NODE (exp))
     result = btor_is_zero_const (btor_const_get_bits (exp));
@@ -192,7 +192,7 @@ is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  int result;
+  bool result;
   BtorBitVector *bits;
 
   exp = btor_simplify_exp (btor, exp);
@@ -212,7 +212,7 @@ is_odd_const_exp (BtorNode *exp)
 
   if (BTOR_IS_INVERTED_NODE (exp)) return false;
 
-  if (exp->kind != BTOR_BV_CONST_NODE) return 0;
+  if (exp->kind != BTOR_BV_CONST_NODE) return false;
 
   bits = btor_const_get_bits (exp);
   return btor_bv_get_bit (bits, 0) == 1;
@@ -349,7 +349,7 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
   return false;
 }
 
-static int
+static int32_t
 cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
@@ -357,35 +357,34 @@ cmp_node_id (const void *p, const void *q)
   return BTOR_REAL_ADDR_NODE (a)->id - BTOR_REAL_ADDR_NODE (b)->id;
 }
 
-static int
+static bool
 find_and_contradiction_exp (
-    Btor *btor, BtorNode *exp, BtorNode *e0, BtorNode *e1, int *calls)
+    Btor *btor, BtorNode *exp, BtorNode *e0, BtorNode *e1, uint32_t *calls)
 {
   assert (btor);
   assert (exp);
   assert (e0);
   assert (e1);
   assert (calls);
-  assert (*calls >= 0);
   (void) btor;
 
-  if (*calls >= BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT) return 0;
+  if (*calls >= BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT) return false;
 
   if (!BTOR_IS_INVERTED_NODE (exp) && exp->kind == BTOR_AND_NODE)
   {
     if (exp->e[0] == BTOR_INVERT_NODE (e0) || exp->e[0] == BTOR_INVERT_NODE (e1)
         || exp->e[1] == BTOR_INVERT_NODE (e0)
         || exp->e[1] == BTOR_INVERT_NODE (e1))
-      return 1;
+      return true;
     *calls += 1;
     return find_and_contradiction_exp (btor, exp->e[0], e0, e1, calls)
            || find_and_contradiction_exp (btor, exp->e[1], e0, e1, calls);
   }
-  return 0;
+  return false;
 }
 
-static int
-concat_simplifiable (BtorNode *exp)
+static bool
+is_concat_simplifiable (BtorNode *exp)
 {
   return btor_is_bv_var_node (exp) || btor_is_bv_const_node (exp);
 }
@@ -450,10 +449,10 @@ is_true_cond (BtorNode *cond)
 
 #if 0
 static bool
-is_bit_mask (BtorNode * exp, int * upper, int * lower)
+is_bit_mask (BtorNode * exp, uint32_t * upper, uint32_t * lower)
 {
-  int i, len, inv, first, last;
-  int bit;
+  uint32_t i, len, inv, bit;
+  int32_t first, last;
   BtorBitVector *bits;
   BtorNode *real_exp;
 
@@ -594,7 +593,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
   assert (applies_special_const_lhs_binary_exp (btor, kind, e0, e1));
 
   char tmpstr[2] = {'\0', '\0'}, *bvstr;
-  int pos, len, width_e0;
+  uint32_t pos, len, width_e0;
   bool invert_b0;
   BtorBitVector *b0, *bv;
   BtorMemMgr *mm;
@@ -746,7 +745,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
           {
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
-            len       = (int) strspn (bvstr + pos, tmpstr);
+            len       = (uint32_t) strspn (bvstr + pos, tmpstr);
             btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (btor,
                                       BTOR_INVERT_NODE (real_e1->e[0]),
@@ -787,7 +786,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
           {
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
-            len       = (int) strspn (bvstr + pos, tmpstr);
+            len       = (uint32_t) strspn (bvstr + pos, tmpstr);
             btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (
                 btor, e1->e[0], width_e0 - 1 - pos, width_e0 - pos - len);
@@ -860,7 +859,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
   assert (applies_special_const_rhs_binary_exp (btor, kind, e0, e1));
 
   char tmpstr[2] = {'\0', '\0'}, *bvstr;
-  int pos, len, width_e0, width_e1;
+  uint32_t pos, len, width_e0, width_e1;
   bool invert_b1;
   BtorBitVector *b1, *bv;
   BtorMemMgr *mm;
@@ -1013,7 +1012,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
           {
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
-            len       = (int) strspn (bvstr + pos, tmpstr);
+            len       = (uint32_t) strspn (bvstr + pos, tmpstr);
             btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (btor,
                                       BTOR_INVERT_NODE (real_e0->e[0]),
@@ -1054,7 +1053,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
           {
             bvstr     = btor_bv_to_char (btor->mm, bv);
             tmpstr[0] = bvstr[pos];
-            len       = (int) strspn (bvstr + pos, tmpstr);
+            len       = (uint32_t) strspn (bvstr + pos, tmpstr);
             btor_mem_freestr (btor->mm, bvstr);
             tmp1 = rewrite_slice_exp (
                 btor, e0->e[0], width_e1 - 1 - pos, width_e1 - pos - len);
@@ -1117,7 +1116,7 @@ rewrite_linear_term_bounded (Btor *btor,
                              BtorBitVector **factor_ptr,
                              BtorNode **lhs_ptr,
                              BtorNode **rhs_ptr,
-                             int *bound_ptr)
+                             uint32_t *bound_ptr)
 {
   BtorNode *tmp, *other;
   BtorBitVector *factor;
@@ -1221,15 +1220,16 @@ rewrite_linear_term_bounded (Btor *btor,
   return true;
 }
 
-int
+bool
 btor_rewrite_linear_term (Btor *btor,
                           BtorNode *term,
                           BtorBitVector **fp,
                           BtorNode **lp,
                           BtorNode **rp)
 {
-  int bound = 100, res;
-  res       = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
+  uint32_t bound = 100;
+  bool res;
+  res = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
   if (res) btor->stats.linear_equations++;
   return res;
 }
@@ -1425,7 +1425,7 @@ apply_concat_rec_upper_slice (Btor *btor,
 {
   assert (applies_concat_rec_upper_slice (btor, exp, upper, lower));
 
-  int len;
+  uint32_t len;
   BtorNode *result, *real_exp;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
@@ -1504,7 +1504,7 @@ apply_concat_rec_slice (Btor *btor,
   assert (applies_concat_rec_slice (btor, exp, upper, lower));
   (void) lower;
 
-  int len;
+  uint32_t len;
   BtorNode *result, *real_exp, *tmp;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
@@ -2192,7 +2192,7 @@ apply_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline bool
 applies_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int result;
+  bool result;
   BtorNode *tmp = 0;
 
   result = btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2235,7 +2235,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_concat_eq (btor, e0, e1));
 
-  int upper, lower;
+  uint32_t upper, lower;
   BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result, *eq1, *eq2;
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
@@ -2290,7 +2290,7 @@ static inline BtorNode *
 apply_zero_eq_and_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   (void) e0;
-  int len, upper, lower;
+  uint32_t len, upper, lower;
   BtorNode *result, *real_e1, *masked, *zero, *slice; 
   BtorSortId sort;
 
@@ -3002,7 +3002,7 @@ apply_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline bool
 applies_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int calls = 0;
+  uint32_t calls = 0;
   return find_and_contradiction_exp (btor, e0, e0, e1, &calls)
          || find_and_contradiction_exp (btor, e1, e0, e1, &calls);
 }
@@ -3027,7 +3027,7 @@ apply_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline bool
 applies_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int result;
+  bool result;
   BtorNode *real_e0, *real_e1, *e00, *e01, *e10, *e11;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -3928,8 +3928,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       !BTOR_IS_INVERTED_NODE (e0) &&
       e0->kind == BTOR_BCOND_NODE &&
-      (btor_concat_simplifiable (e0->e[1]) ||
-       btor_concat_simplifiable (e0->e[2])))
+      (btor_is_concat_simplifiable (e0->e[1]) ||
+       btor_is_concat_simplifiable (e0->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
       t = btor_concat_exp (btor, e0->e[1], e1);
@@ -3947,8 +3947,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e0) &&
       (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_BCOND_NODE &&
-      (btor_concat_simplifiable (real_e0->e[1]) ||
-       btor_concat_simplifiable (real_e0->e[2])))
+      (btor_is_concat_simplifiable (real_e0->e[1]) ||
+       btor_is_concat_simplifiable (real_e0->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
       t = btor_concat_exp (btor, BTOR_INVERT_NODE (real_e0->e[1]), e1);
@@ -3966,8 +3966,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       !BTOR_IS_INVERTED_NODE (e1) &&
       e1->kind == BTOR_BCOND_NODE &&
-      (btor_concat_simplifiable (e1->e[1]) ||
-       btor_concat_simplifiable (e1->e[2])))
+      (btor_is_concat_simplifiable (e1->e[1]) ||
+       btor_is_concat_simplifiable (e1->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
       t = btor_concat_exp (btor, e0, e1->e[1]);
@@ -3985,8 +3985,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e1) &&
       (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_BCOND_NODE &&
-      (btor_concat_simplifiable (real_e1->e[1]) ||
-       btor_concat_simplifiable (real_e1->e[2])))
+      (btor_is_concat_simplifiable (real_e1->e[1]) ||
+       btor_is_concat_simplifiable (real_e1->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
       t = btor_concat_exp (btor, e0, BTOR_INVERT_NODE (real_e1->e[1]));
@@ -4010,8 +4010,8 @@ applies_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_is_and_node (real_e0)
-         && (concat_simplifiable (real_e0->e[0])
-             || concat_simplifiable (real_e0->e[1]));
+         && (is_concat_simplifiable (real_e0->e[0])
+             || is_concat_simplifiable (real_e0->e[1]));
 }
 
 static inline BtorNode *
@@ -4046,8 +4046,8 @@ applies_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_is_and_node (real_e1)
-         && (concat_simplifiable (real_e1->e[0])
-             || concat_simplifiable (real_e1->e[1]));
+         && (is_concat_simplifiable (real_e1->e[0])
+             || is_concat_simplifiable (real_e1->e[1]));
 }
 
 static inline BtorNode *
@@ -4277,15 +4277,15 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *beta_cond, *cur_cond, *real_cur_cond;
   BtorNode *cur_branch, *real_cur_branch;
   BtorNode *index, *write_index, *value;
-  int propagations, apply_propagations, done, inv_result;
-  int inv_result_tmp;
+  bool done, inv_result_tmp;
+  uint32_t propagations, apply_propagations, inv_result;
 
   done               = 0;
   result             = 0;
   propagations       = 0;
   apply_propagations = 0;
   inv_result         = 0;
-  inv_result_tmp     = 0;
+  inv_result_tmp     = false;
 
   cur_fun  = e0;
   cur_args = btor_copy_exp (btor, e1);
@@ -4452,7 +4452,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
           if (inv_result_tmp)
           {
             inv_result     = !inv_result;
-            inv_result_tmp = 0;
+            inv_result_tmp = false;
           }
           apply_propagations++;
         }
@@ -4873,7 +4873,7 @@ static inline bool
 applies_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
-  int result;
+  bool result;
   BtorNode *real_e1, *real_e2, *e10, *e11, *e20, *e21;
 
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -5081,7 +5081,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
           || btor_is_mul_node (e0));
   assert (e0->kind == e1->kind);
 
-  int i;
+  int32_t i;
   BtorNodeKind kind;
   BtorNode *cur, *result, *temp, *common;
   BtorNodePtrStack stack;
@@ -5625,7 +5625,7 @@ normalize_urem (Btor *btor, BtorNode **left, BtorNode **right)
 static void
 normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
 {
-  int i;
+  uint32_t i;
   BtorMemMgr *mm;
   BtorNode *e0, *e1, *cur, *real_cur, *tmp, *concat;
   BtorNodePtrStack stack, po_stack;
@@ -5742,7 +5742,7 @@ DONE:
 static BtorNode *
 rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops     = 0;
+  bool swap_ops    = false;
   BtorNode *result = 0;
   BtorNodeKind kind;
 
@@ -5791,7 +5791,7 @@ SWAP_OPERANDS:
   if (!swap_ops)
   {
     BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = 1;
+    swap_ops = true;
     goto SWAP_OPERANDS;
   }
 
@@ -5837,7 +5837,7 @@ DONE:
 static BtorNode *
 rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops     = 0;
+  bool swap_ops    = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -5881,7 +5881,7 @@ SWAP_OPERANDS:
   if (!swap_ops)
   {
     BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = 1;
+    swap_ops = true;
     goto SWAP_OPERANDS;
   }
 
@@ -5896,7 +5896,7 @@ DONE:
 static BtorNode *
 rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops     = 0;
+  bool swap_ops    = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -5928,7 +5928,7 @@ SWAP_OPERANDS:
   if (!swap_ops)
   {
     BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = 1;
+    swap_ops = true;
     goto SWAP_OPERANDS;
   }
 
@@ -5943,7 +5943,7 @@ DONE:
 static BtorNode *
 rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops     = 0;
+  bool swap_ops    = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -5973,7 +5973,7 @@ SWAP_OPERANDS:
   if (!swap_ops)
   {
     BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = 1;
+    swap_ops = true;
     goto SWAP_OPERANDS;
   }
 
