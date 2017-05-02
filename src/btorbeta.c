@@ -348,60 +348,60 @@ beta_reduce (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_exp (btor,
+          result = btor_exp_slice (btor,
                                    e[0],
                                    btor_slice_get_upper (real_cur),
                                    btor_slice_get_lower (real_cur));
           btor_release_exp (btor, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_exp (btor, e[1], e[0]);
+          result = btor_exp_and (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_BV_EQ_NODE:
         case BTOR_FUN_EQ_NODE:
-          result = btor_eq_exp (btor, e[1], e[0]);
+          result = btor_exp_eq (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_exp (btor, e[1], e[0]);
+          result = btor_exp_add (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_exp (btor, e[1], e[0]);
+          result = btor_exp_mul (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_exp (btor, e[1], e[0]);
+          result = btor_exp_ult (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_exp (btor, e[1], e[0]);
+          result = btor_exp_sll (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_exp (btor, e[1], e[0]);
+          result = btor_exp_srl (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_exp (btor, e[1], e[0]);
+          result = btor_exp_udiv (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_exp (btor, e[1], e[0]);
+          result = btor_exp_urem (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_exp (btor, e[1], e[0]);
+          result = btor_exp_concat (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
@@ -420,7 +420,7 @@ beta_reduce (Btor *btor,
             e[0] = e[2];
             e[2] = next;
           }
-          result = btor_args_exp (btor, e, real_cur->arity);
+          result = btor_exp_args (btor, e, real_cur->arity);
           btor_release_exp (btor, e[0]);
           if (real_cur->arity >= 2) btor_release_exp (btor, e[1]);
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);
@@ -429,7 +429,7 @@ beta_reduce (Btor *btor,
           if (btor_is_fun_node (e[1]))
           {
             assert (btor_is_args_node (e[0]));
-            /* NOTE: do not use btor_apply_exp here since
+            /* NOTE: do not use btor_exp_apply here since
              * beta reduction is used in btor_rewrite_apply_exp. */
             result = btor_apply_exp_node (btor, e[1], e[0]);
           }
@@ -454,7 +454,7 @@ beta_reduce (Btor *btor,
                       && !btor_param_get_assigned_exp (real_cur->e[0]))))
           {
             assert (btor_is_param_node (e[1]));
-            result = btor_lambda_exp (btor, e[1], e[0]);
+            result = btor_exp_lambda (btor, e[1], e[0]);
             if (real_cur->is_array) result->is_array = 1;
             if (btor_lambda_get_static_rho (real_cur)
                 && !btor_lambda_get_static_rho (result))
@@ -478,7 +478,7 @@ beta_reduce (Btor *btor,
           break;
         default:
           assert (btor_is_cond_node (real_cur));
-          result = btor_cond_exp (btor, e[2], e[1], e[0]);
+          result = btor_exp_cond (btor, e[2], e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           btor_release_exp (btor, e[2]);
@@ -682,60 +682,60 @@ beta_reduce_partial_aux (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_exp (btor,
+          result = btor_exp_slice (btor,
                                    e[0],
                                    btor_slice_get_upper (real_cur),
                                    btor_slice_get_lower (real_cur));
           btor_release_exp (btor, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_exp (btor, e[1], e[0]);
+          result = btor_exp_and (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_BV_EQ_NODE:
         case BTOR_FUN_EQ_NODE:
-          result = btor_eq_exp (btor, e[1], e[0]);
+          result = btor_exp_eq (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_exp (btor, e[1], e[0]);
+          result = btor_exp_add (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_exp (btor, e[1], e[0]);
+          result = btor_exp_mul (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_exp (btor, e[1], e[0]);
+          result = btor_exp_ult (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_exp (btor, e[1], e[0]);
+          result = btor_exp_sll (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_exp (btor, e[1], e[0]);
+          result = btor_exp_srl (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_exp (btor, e[1], e[0]);
+          result = btor_exp_udiv (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_exp (btor, e[1], e[0]);
+          result = btor_exp_urem (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_exp (btor, e[1], e[0]);
+          result = btor_exp_concat (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
@@ -754,7 +754,7 @@ beta_reduce_partial_aux (Btor *btor,
             e[0] = e[2];
             e[2] = next;
           }
-          result = btor_args_exp (btor, e, real_cur->arity);
+          result = btor_exp_args (btor, e, real_cur->arity);
           btor_release_exp (btor, e[0]);
           if (real_cur->arity >= 2) btor_release_exp (btor, e[1]);
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);

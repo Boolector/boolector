@@ -273,16 +273,16 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
     s1     = sorted_slices[(int) slices->count - 1];
     sort   = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
-    result = btor_var_exp (btor, sort, 0);
+    result = btor_exp_var (btor, sort, 0);
     btor_sort_release (btor, sort);
     delete_slice (btor, s1);
     for (i = (int) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
       sort       = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
-      lambda_var = btor_var_exp (btor, sort, 0);
+      lambda_var = btor_exp_var (btor, sort, 0);
       btor_sort_release (btor, sort);
-      temp = btor_concat_exp (btor, result, lambda_var);
+      temp = btor_exp_concat (btor, result, lambda_var);
       btor_release_exp (btor, result);
       result = temp;
       btor_release_exp (btor, lambda_var);
@@ -293,7 +293,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
     count++;
     btor->stats.eliminated_slices++;
-    temp = btor_eq_exp (btor, var, result);
+    temp = btor_exp_eq (btor, var, result);
     btor_assert_exp (btor, temp);
     btor_release_exp (btor, temp);
     btor_release_exp (btor, result);

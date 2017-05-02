@@ -83,20 +83,20 @@ btor_add_ackermann_constraints (Btor *btor)
         {
           a_i = btor_iter_args_next (&ait_i);
           a_j = btor_iter_args_next (&ait_j);
-          eq  = btor_eq_exp (btor, a_i, a_j);
+          eq  = btor_exp_eq (btor, a_i, a_j);
 
           if (!p)
             p = eq;
           else
           {
             tmp = p;
-            p   = btor_and_exp (btor, tmp, eq);
+            p   = btor_exp_and (btor, tmp, eq);
             btor_release_exp (btor, tmp);
             btor_release_exp (btor, eq);
           }
         }
-        c   = btor_eq_exp (btor, app_i, app_j);
-        imp = btor_implies_exp (btor, p, c);
+        c   = btor_exp_eq (btor, app_i, app_j);
+        imp = btor_exp_implies (btor, p, c);
         btor->stats.ackermann_constraints++;
         num_constraints++;
         btor_assert_exp (btor, imp);

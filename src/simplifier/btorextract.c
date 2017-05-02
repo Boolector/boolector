@@ -118,9 +118,9 @@ create_range (Btor *btor,
   int pos;
   BtorNode *res, *le0, *le1, *and, *off, *sub, *rem, *eq, *zero, *slice;
 
-  le0 = btor_ulte_exp (btor, lower, param);
-  le1 = btor_ulte_exp (btor, param, upper);
-  and = btor_and_exp (btor, le0, le1);
+  le0 = btor_exp_ulte (btor, lower, param);
+  le1 = btor_exp_ulte (btor, param, upper);
+  and = btor_exp_and (btor, le0, le1);
 
   /* increment by one */
   if (btor_bv_is_one (offset)) res = btor_copy_exp (btor, and);
@@ -128,11 +128,11 @@ create_range (Btor *btor,
   else if ((pos = btor_bv_power_of_two (offset)) > -1)
   {
     assert (pos > 0);
-    sub   = btor_sub_exp (btor, upper, param);
-    slice = btor_slice_exp (btor, sub, pos - 1, 0);
-    zero  = btor_zero_exp (btor, btor_exp_get_sort_id (slice));
-    eq    = btor_eq_exp (btor, slice, zero);
-    res   = btor_and_exp (btor, and, eq);
+    sub   = btor_exp_sub (btor, upper, param);
+    slice = btor_exp_slice (btor, sub, pos - 1, 0);
+    zero  = btor_exp_zero (btor, btor_exp_get_sort_id (slice));
+    eq    = btor_exp_eq (btor, slice, zero);
+    res   = btor_exp_and (btor, and, eq);
 
     btor_release_exp (btor, zero);
     btor_release_exp (btor, slice);
@@ -142,13 +142,13 @@ create_range (Btor *btor,
   /* increment by some arbitrary value */
   else
   {
-    zero = btor_zero_exp (btor, btor_exp_get_sort_id (lower));
-    off  = btor_const_exp (btor, offset);
+    zero = btor_exp_zero (btor, btor_exp_get_sort_id (lower));
+    off  = btor_exp_const (btor, offset);
     assert (btor_exp_get_sort_id (off) == btor_exp_get_sort_id (lower));
-    sub = btor_sub_exp (btor, upper, param);
-    rem = btor_urem_exp (btor, sub, off);
-    eq  = btor_eq_exp (btor, rem, zero);
-    res = btor_and_exp (btor, and, eq);
+    sub = btor_exp_sub (btor, upper, param);
+    rem = btor_exp_urem (btor, sub, off);
+    eq  = btor_exp_eq (btor, rem, zero);
+    res = btor_exp_and (btor, and, eq);
 
     btor_release_exp (btor, zero);
     btor_release_exp (btor, off);
@@ -181,12 +181,12 @@ create_pattern_memset (Btor *btor,
 
   BtorNode *res, *param, *ite, *read, *cond;
 
-  param = btor_param_exp (btor, btor_exp_get_sort_id (lower), 0);
-  read  = btor_read_exp (btor, array, param);
+  param = btor_exp_param (btor, btor_exp_get_sort_id (lower), 0);
+  read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
   ;
-  ite = btor_cond_exp (btor, cond, value, read);
-  res = btor_lambda_exp (btor, param, ite);
+  ite = btor_exp_cond (btor, cond, value, read);
+  res = btor_exp_lambda (btor, param, ite);
 
   btor_release_exp (btor, param);
   btor_release_exp (btor, read);
@@ -216,12 +216,12 @@ create_pattern_itoi (Btor *btor,
 
   BtorNode *res, *param, *ite, *read, *cond;
 
-  param = btor_param_exp (btor, btor_exp_get_sort_id (lower), 0);
-  read  = btor_read_exp (btor, array, param);
+  param = btor_exp_param (btor, btor_exp_get_sort_id (lower), 0);
+  read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
   ;
-  ite = btor_cond_exp (btor, cond, param, read);
-  res = btor_lambda_exp (btor, param, ite);
+  ite = btor_exp_cond (btor, cond, param, read);
+  res = btor_exp_lambda (btor, param, ite);
 
   btor_release_exp (btor, param);
   btor_release_exp (btor, read);
@@ -251,13 +251,13 @@ create_pattern_itoip1 (Btor *btor,
 
   BtorNode *res, *param, *ite, *read, *cond, *inc;
 
-  param = btor_param_exp (btor, btor_exp_get_sort_id (lower), 0);
-  read  = btor_read_exp (btor, array, param);
+  param = btor_exp_param (btor, btor_exp_get_sort_id (lower), 0);
+  read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
   ;
-  inc = btor_inc_exp (btor, param);
-  ite = btor_cond_exp (btor, cond, inc, read);
-  res = btor_lambda_exp (btor, param, ite);
+  inc = btor_exp_inc (btor, param);
+  ite = btor_exp_cond (btor, cond, inc, read);
+  res = btor_exp_lambda (btor, param, ite);
 
   btor_release_exp (btor, param);
   btor_release_exp (btor, read);
@@ -285,15 +285,15 @@ create_pattern_cpy (Btor *btor,
 
   BtorNode *res, *param, *ite, *read, *cond, *read_src, *add, *sub;
 
-  param = btor_param_exp (btor, btor_exp_get_sort_id (lower), 0);
-  read  = btor_read_exp (btor, dst_array, param);
+  param = btor_exp_param (btor, btor_exp_get_sort_id (lower), 0);
+  read  = btor_exp_read (btor, dst_array, param);
   cond  = create_range (btor, lower, upper, param, offset);
 
-  sub      = btor_sub_exp (btor, param, dst_addr);
-  add      = btor_add_exp (btor, src_addr, sub);
-  read_src = btor_read_exp (btor, src_array, add);
-  ite      = btor_cond_exp (btor, cond, read_src, read);
-  res      = btor_lambda_exp (btor, param, ite);
+  sub      = btor_exp_sub (btor, param, dst_addr);
+  add      = btor_exp_add (btor, src_addr, sub);
+  read_src = btor_exp_read (btor, src_array, add);
+  ite      = btor_exp_cond (btor, cond, read_src, read);
+  res      = btor_exp_lambda (btor, param, ite);
 
   btor_release_exp (btor, param);
   btor_release_exp (btor, read);
@@ -399,7 +399,7 @@ is_itoip1_pattern (BtorNode *index, BtorNode *value)
   bool res;
   BtorNode *inc;
 
-  inc = btor_inc_exp (BTOR_REAL_ADDR_NODE (index)->btor, index);
+  inc = btor_exp_inc (BTOR_REAL_ADDR_NODE (index)->btor, index);
   res = inc == value;
   btor_release_exp (BTOR_REAL_ADDR_NODE (index)->btor, inc);
   return res;
@@ -989,7 +989,7 @@ create_static_rho (Btor *btor,
     for (i = 0; indices[i]; i++)
     {
       idx            = indices[i];
-      args           = btor_args_exp (btor, &idx, 1);
+      args           = btor_exp_args (btor, &idx, 1);
       b              = btor_hashptr_table_add (static_rho, args);
       b->data.as_ptr = btor_copy_exp (btor, value);
     }
@@ -1003,7 +1003,7 @@ create_static_rho (Btor *btor,
       b   = btor_hashptr_table_get (index_value_map, idx);
       assert (b);
       value          = b->data.as_ptr;
-      args           = btor_args_exp (btor, &idx, 1);
+      args           = btor_exp_args (btor, &idx, 1);
       b              = btor_hashptr_table_add (static_rho, args);
       b->data.as_ptr = btor_copy_exp (btor, value);
     }
@@ -1099,7 +1099,7 @@ extract_lambdas (Btor *btor,
     else
     {
       assert (btor_is_uf_array_node (array));
-      subst     = btor_array_exp (btor, btor_exp_get_sort_id (array), 0);
+      subst     = btor_exp_array (btor, btor_exp_get_sort_id (array), 0);
       is_top_eq = true;
     }
 
@@ -1316,7 +1316,7 @@ extract_lambdas (Btor *btor,
         b     = btor_hashptr_table_get (index_value_map, lower);
         assert (b);
         value = b->data.as_ptr;
-        tmp   = btor_write_exp (btor, subst, lower, value);
+        tmp   = btor_exp_write (btor, subst, lower, value);
         btor_release_exp (btor, subst);
         subst = tmp;
         num_writes++;

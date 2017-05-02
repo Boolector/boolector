@@ -1319,14 +1319,14 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     if (btor->inconsistent)
     {
-      tmp = btor_false_exp (btor);
+      tmp = btor_exp_false (btor);
       add_root_to_smt_dump_context (sdc, tmp);
       btor_release_exp (btor, tmp);
     }
     else if (btor->unsynthesized_constraints->count == 0
              && btor->synthesized_constraints->count == 0)
     {
-      tmp = btor_true_exp (btor);
+      tmp = btor_exp_true (btor);
       add_root_to_smt_dump_context (sdc, tmp);
       btor_release_exp (btor, tmp);
     }

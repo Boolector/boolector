@@ -1521,63 +1521,63 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
       switch (cur->kind)
       {
         case BTOR_BV_CONST_NODE:
-          cur_clone = btor_const_exp (clone, btor_const_get_bits (cur));
+          cur_clone = btor_exp_const (clone, btor_const_get_bits (cur));
           break;
         case BTOR_BV_VAR_NODE:
           symbol = btor_hashptr_table_get (btor->node2symbol, cur)->data.as_str;
-          cur_clone = btor_var_exp (clone, btor_exp_get_sort_id (cur), symbol);
+          cur_clone = btor_exp_var (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_PARAM_NODE:
           symbol = btor_hashptr_table_get (btor->node2symbol, cur)->data.as_str;
           cur_clone =
-              btor_param_exp (clone, btor_exp_get_sort_id (cur), symbol);
+              btor_exp_param (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_UF_NODE:
           symbol = btor_hashptr_table_get (btor->node2symbol, cur)->data.as_str;
-          cur_clone = btor_uf_exp (clone, btor_exp_get_sort_id (cur), symbol);
+          cur_clone = btor_exp_uf (clone, btor_exp_get_sort_id (cur), symbol);
           break;
         case BTOR_SLICE_NODE:
-          cur_clone = btor_slice_exp (clone,
+          cur_clone = btor_exp_slice (clone,
                                       e[0],
                                       btor_slice_get_upper (cur),
                                       btor_slice_get_lower (cur));
           break;
-        case BTOR_AND_NODE: cur_clone = btor_and_exp (clone, e[0], e[1]); break;
+        case BTOR_AND_NODE: cur_clone = btor_exp_and (clone, e[0], e[1]); break;
         case BTOR_BV_EQ_NODE:
         case BTOR_FUN_EQ_NODE:
-          cur_clone = btor_eq_exp (clone, e[0], e[1]);
+          cur_clone = btor_exp_eq (clone, e[0], e[1]);
           break;
-        case BTOR_ADD_NODE: cur_clone = btor_add_exp (clone, e[0], e[1]); break;
-        case BTOR_MUL_NODE: cur_clone = btor_mul_exp (clone, e[0], e[1]); break;
-        case BTOR_ULT_NODE: cur_clone = btor_ult_exp (clone, e[0], e[1]); break;
-        case BTOR_SLL_NODE: cur_clone = btor_sll_exp (clone, e[0], e[1]); break;
-        case BTOR_SRL_NODE: cur_clone = btor_srl_exp (clone, e[0], e[1]); break;
+        case BTOR_ADD_NODE: cur_clone = btor_exp_add (clone, e[0], e[1]); break;
+        case BTOR_MUL_NODE: cur_clone = btor_exp_mul (clone, e[0], e[1]); break;
+        case BTOR_ULT_NODE: cur_clone = btor_exp_ult (clone, e[0], e[1]); break;
+        case BTOR_SLL_NODE: cur_clone = btor_exp_sll (clone, e[0], e[1]); break;
+        case BTOR_SRL_NODE: cur_clone = btor_exp_srl (clone, e[0], e[1]); break;
         case BTOR_UDIV_NODE:
-          cur_clone = btor_udiv_exp (clone, e[0], e[1]);
+          cur_clone = btor_exp_udiv (clone, e[0], e[1]);
           break;
         case BTOR_UREM_NODE:
-          cur_clone = btor_urem_exp (clone, e[0], e[1]);
+          cur_clone = btor_exp_urem (clone, e[0], e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          cur_clone = btor_concat_exp (clone, e[0], e[1]);
+          cur_clone = btor_exp_concat (clone, e[0], e[1]);
           break;
         case BTOR_LAMBDA_NODE:
           assert (!btor_param_get_assigned_exp (e[0]));
           btor_param_set_binding_lambda (e[0], 0);
-          cur_clone = btor_lambda_exp (clone, e[0], e[1]);
+          cur_clone = btor_exp_lambda (clone, e[0], e[1]);
           break;
         case BTOR_APPLY_NODE:
-          // FIXME use btor_apply_exp as soon as applies are
+          // FIXME use btor_exp_apply as soon as applies are
           // generated with rewriting (currently without)
-          // cur_clone = btor_apply_exp (clone, e[0], e[1]);
+          // cur_clone = btor_exp_apply (clone, e[0], e[1]);
           cur_clone = btor_apply_exp_node (clone, e[0], e[1]);
           break;
         case BTOR_ARGS_NODE:
-          cur_clone = btor_args_exp (clone, e, cur->arity);
+          cur_clone = btor_exp_args (clone, e, cur->arity);
           break;
         default:
           assert (btor_is_bv_cond_node (cur));
-          cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
+          cur_clone = btor_exp_cond (clone, e[0], e[1], e[2]);
       }
       btor_nodemap_map (exp_map, cur, cur_clone);
 #ifndef NDEBUG

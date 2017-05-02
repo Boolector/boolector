@@ -721,7 +721,7 @@ btor_new (void)
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 #endif
 
-  btor->true_exp = btor_true_exp (btor);
+  btor->true_exp = btor_exp_true (btor);
 
   return btor;
 }
@@ -1151,7 +1151,7 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
    * have to synthesize v = t_2 */
   else if (right != (BtorNode *) bucket->data.as_ptr)
   {
-    eq = btor_eq_exp (btor, left, right);
+    eq = btor_exp_eq (btor, left, right);
     /* only add if it is not in a constraint table: can be already in
      * embedded or unsythesized constraints */
     if (!BTOR_REAL_ADDR_NODE (eq)->constraint)
@@ -1257,12 +1257,12 @@ normalize_substitution (Btor *btor,
     if (BTOR_IS_INVERTED_NODE (exp))
     {
       *left_result  = btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (exp));
-      *right_result = btor_zero_exp (btor, sort);
+      *right_result = btor_exp_zero (btor, sort);
     }
     else
     {
       *left_result  = btor_copy_exp (btor, exp);
-      *right_result = btor_one_exp (btor, sort);
+      *right_result = btor_exp_one (btor, sort);
     }
     btor_sort_release (btor, sort);
     return true;
@@ -1320,13 +1320,13 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         sort      = btor_sort_bitvec (btor, leadings);
-        const_exp = btor_zero_exp (btor, sort);
+        const_exp = btor_exp_zero (btor, sort);
         btor_sort_release (btor, sort);
         sort =
             btor_sort_bitvec (btor, btor_get_exp_width (btor, var) - leadings);
-        lambda = btor_var_exp (btor, sort, 0);
+        lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
-        tmp = btor_concat_exp (btor, const_exp, lambda);
+        tmp = btor_exp_concat (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
@@ -1341,13 +1341,13 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         sort      = btor_sort_bitvec (btor, leadings);
-        const_exp = btor_ones_exp (btor, sort);
+        const_exp = btor_exp_ones (btor, sort);
         btor_sort_release (btor, sort);
         sort =
             btor_sort_bitvec (btor, btor_get_exp_width (btor, var) - leadings);
-        lambda = btor_var_exp (btor, sort, 0);
+        lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
-        tmp = btor_concat_exp (btor, const_exp, lambda);
+        tmp = btor_exp_concat (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
@@ -1393,9 +1393,9 @@ normalize_substitution (Btor *btor,
       && !btor_is_uf_node (real_left) && !btor_is_uf_node (real_right))
   {
     if (btor_rewrite_linear_term (btor, left, &fc, left_result, &tmp))
-      *right_result = btor_sub_exp (btor, right, tmp);
+      *right_result = btor_exp_sub (btor, right, tmp);
     else if (btor_rewrite_linear_term (btor, right, &fc, left_result, &tmp))
-      *right_result = btor_sub_exp (btor, left, tmp);
+      *right_result = btor_exp_sub (btor, left, tmp);
     else
       return false;
 
@@ -1404,9 +1404,9 @@ normalize_substitution (Btor *btor,
     btor_release_exp (btor, tmp);
     ic = btor_bv_mod_inverse (btor->mm, fc);
     btor_bv_free (btor->mm, fc);
-    inv = btor_const_exp (btor, ic);
+    inv = btor_exp_const (btor, ic);
     btor_bv_free (btor->mm, ic);
-    tmp = btor_mul_exp (btor, *right_result, inv);
+    tmp = btor_exp_mul (btor, *right_result, inv);
     btor_release_exp (btor, inv);
     btor_release_exp (btor, *right_result);
     *right_result = tmp;
@@ -2271,7 +2271,7 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   /* we need to reset the binding lambda here as otherwise it is not possible
    * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
-  result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  result = btor_exp_lambda (btor, exp->e[0], exp->e[1]);
 
   /* lambda not rebuilt, set binding lambda again */
   if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
@@ -2300,7 +2300,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_UF_NODE:
       return btor_copy_exp (btor, btor_simplify_exp (btor, exp));
     case BTOR_SLICE_NODE:
-      return btor_slice_exp (btor,
+      return btor_exp_slice (btor,
                              exp->e[0],
                              btor_slice_get_upper (exp),
                              btor_slice_get_lower (exp));
@@ -2648,7 +2648,7 @@ substitute_var_exps (Btor *btor)
       right = (BtorNode *) btor_hashptr_table_get (substs, left)->data.as_ptr;
       assert (right);
 
-      constraint = btor_eq_exp (btor, left, right);
+      constraint = btor_exp_eq (btor, left, right);
       /* only add if it is not in a constraint table: can be already in
        * embedded or unsythesized constraints */
       if (!BTOR_REAL_ADDR_NODE (constraint)->constraint)
@@ -2773,7 +2773,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       else if (real_cur->arity == 1)
       {
         assert (btor_is_slice_node (real_cur));
-        result = btor_slice_exp (btor,
+        result = btor_exp_slice (btor,
                                  e[0],
                                  btor_slice_get_upper (real_cur),
                                  btor_slice_get_lower (real_cur));
@@ -4056,14 +4056,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)
         {
-          model = btor_const_exp (clone, args_tuple->bv[i]);
+          model = btor_exp_const (clone, args_tuple->bv[i]);
           BTOR_PUSH_STACK (consts, model);
         }
 
-        args  = btor_args_exp (clone, consts.start, BTOR_COUNT_STACK (consts));
-        apply = btor_apply_exp (clone, real_simp_clone, args);
-        model = btor_const_exp (clone, value);
-        eq    = btor_eq_exp (clone, apply, model);
+        args  = btor_exp_args (clone, consts.start, BTOR_COUNT_STACK (consts));
+        apply = btor_exp_apply (clone, real_simp_clone, args);
+        model = btor_exp_const (clone, value);
+        eq    = btor_exp_eq (clone, apply, model);
         btor_assert_exp (clone, eq);
         btor_release_exp (clone, eq);
         btor_release_exp (clone, model);
@@ -4082,10 +4082,10 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
                btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
       model =
-          btor_const_exp (clone,
+          btor_exp_const (clone,
                           (BtorBitVector *) btor_model_get_bv (
                               btor, BTOR_COND_INVERT_NODE (simp_clone, simp)));
-      eq = btor_eq_exp (clone, real_simp_clone, model);
+      eq = btor_exp_eq (clone, real_simp_clone, model);
       btor_assert_exp (clone, eq);
       btor_release_exp (clone, eq);
       btor_release_exp (clone, model);

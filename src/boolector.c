@@ -889,7 +889,7 @@ boolector_const (Btor *btor, const char *bits)
   BTOR_ABORT_ARG_NULL (bits);
   BTOR_ABORT (*bits == '\0', "'bits' must not be empty");
   bv  = btor_bv_char_to_bv (btor->mm, (char *) bits);
-  res = btor_const_exp (btor, bv);
+  res = btor_exp_const (btor, bv);
   btor_inc_exp_ext_ref_counter (btor, res);
   btor_bv_free (btor->mm, bv);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -911,7 +911,7 @@ boolector_zero (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  res = btor_zero_exp (btor, s);
+  res = btor_exp_zero (btor, s);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -927,7 +927,7 @@ boolector_false (Btor *btor)
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  res = btor_false_exp (btor);
+  res = btor_exp_false (btor);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -948,7 +948,7 @@ boolector_ones (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  res = btor_ones_exp (btor, s);
+  res = btor_exp_ones (btor, s);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -964,7 +964,7 @@ boolector_true (Btor *btor)
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("");
-  res = btor_true_exp (btor);
+  res = btor_exp_true (btor);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -985,7 +985,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  res = btor_one_exp (btor, s);
+  res = btor_exp_one (btor, s);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1006,7 +1006,7 @@ boolector_unsigned_int (Btor *btor, uint32_t u, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  res = btor_unsigned_exp (btor, u, s);
+  res = btor_exp_unsigned (btor, u, s);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1027,7 +1027,7 @@ boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-  res = btor_int_exp (btor, i, s);
+  res = btor_exp_int (btor, i, s);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1054,7 +1054,7 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, (char *) symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_var_exp (btor, s, symb);
+  res = btor_exp_var (btor, s, symb);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
@@ -1085,7 +1085,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_array_exp (btor, s, symb);
+  res = btor_exp_array (btor, s, symb);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
@@ -1119,7 +1119,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               "symbol '%s' is already in use",
               symb);
 
-  res = btor_uf_exp (btor, s, symb);
+  res = btor_exp_uf (btor, s, symb);
   assert (BTOR_IS_REGULAR_NODE (res));
   btor_inc_exp_ext_ref_counter (btor, res);
   (void) btor_hashptr_table_add (btor->inputs, btor_copy_exp (btor, res));
@@ -1142,7 +1142,7 @@ boolector_not (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_not_exp (btor, exp);
+  res = btor_exp_not (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1163,7 +1163,7 @@ boolector_neg (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_neg_exp (btor, exp);
+  res = btor_exp_neg (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1184,7 +1184,7 @@ boolector_redor (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_redor_exp (btor, exp);
+  res = btor_exp_redor (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1205,7 +1205,7 @@ boolector_redxor (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_redxor_exp (btor, exp);
+  res = btor_exp_redxor (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1226,7 +1226,7 @@ boolector_redand (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_redand_exp (btor, exp);
+  res = btor_exp_redand (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1253,7 +1253,7 @@ boolector_slice (Btor *btor,
   BTOR_ABORT (upper < lower, "'upper' must not be < 'lower'");
   BTOR_ABORT ((uint32_t) upper >= btor_get_exp_width (btor, exp),
               "'upper' must not be >= width of 'exp'");
-  res = btor_slice_exp (btor, exp, upper, lower);
+  res = btor_exp_slice (btor, exp, upper, lower);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1274,7 +1274,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_uext_exp (btor, exp, width);
+  res = btor_exp_uext (btor, exp, width);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1295,7 +1295,7 @@ boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_sext_exp (btor, exp, width);
+  res = btor_exp_sext (btor, exp, width);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1324,7 +1324,7 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT (
       btor_get_exp_width (btor, e0) != 1 || btor_get_exp_width (btor, e1) != 1,
       "bit-width of 'e0' and 'e1' have be 1");
-  res = btor_implies_exp (btor, e0, e1);
+  res = btor_exp_implies (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1354,7 +1354,7 @@ boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT (
       btor_get_exp_width (btor, e0) != 1 || btor_get_exp_width (btor, e1) != 1,
       "bit-width of 'e0' and 'e1' must not be unequal to 1");
-  res = btor_iff_exp (btor, e0, e1);
+  res = btor_exp_iff (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1381,7 +1381,7 @@ boolector_xor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_xor_exp (btor, e0, e1);
+  res = btor_exp_xor (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1408,7 +1408,7 @@ boolector_xnor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_xnor_exp (btor, e0, e1);
+  res = btor_exp_xnor (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1435,7 +1435,7 @@ boolector_and (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_and_exp (btor, e0, e1);
+  res = btor_exp_and (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1462,7 +1462,7 @@ boolector_nand (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_nand_exp (btor, e0, e1);
+  res = btor_exp_nand (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1489,7 +1489,7 @@ boolector_or (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_or_exp (btor, e0, e1);
+  res = btor_exp_or (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1516,7 +1516,7 @@ boolector_nor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_nor_exp (btor, e0, e1);
+  res = btor_exp_nor (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1546,7 +1546,7 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
                   && (BTOR_REAL_ADDR_NODE (e0)->parameterized
                       || BTOR_REAL_ADDR_NODE (e1)->parameterized),
               "parameterized function equalities not supported");
-  res = btor_eq_exp (btor, e0, e1);
+  res = btor_exp_eq (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1576,7 +1576,7 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
                   && (BTOR_REAL_ADDR_NODE (e0)->parameterized
                       || BTOR_REAL_ADDR_NODE (e1)->parameterized),
               "parameterized function equalities not supported");
-  res = btor_ne_exp (btor, e0, e1);
+  res = btor_exp_ne (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1603,7 +1603,7 @@ boolector_add (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_add_exp (btor, e0, e1);
+  res = btor_exp_add (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1630,7 +1630,7 @@ boolector_uaddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_uaddo_exp (btor, e0, e1);
+  res = btor_exp_uaddo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1658,7 +1658,7 @@ boolector_saddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_saddo_exp (btor, e0, e1);
+  res = btor_exp_saddo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1686,7 +1686,7 @@ boolector_mul (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_mul_exp (btor, e0, e1);
+  res = btor_exp_mul (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1713,7 +1713,7 @@ boolector_umulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_umulo_exp (btor, e0, e1);
+  res = btor_exp_umulo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1742,7 +1742,7 @@ boolector_smulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_smulo_exp (btor, e0, e1);
+  res = btor_exp_smulo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1770,7 +1770,7 @@ boolector_ult (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_ult_exp (btor, e0, e1);
+  res = btor_exp_ult (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1797,7 +1797,7 @@ boolector_slt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_slt_exp (btor, e0, e1);
+  res = btor_exp_slt (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1824,7 +1824,7 @@ boolector_ulte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_ulte_exp (btor, e0, e1);
+  res = btor_exp_ulte (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1851,7 +1851,7 @@ boolector_slte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_slte_exp (btor, e0, e1);
+  res = btor_exp_slte (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1878,7 +1878,7 @@ boolector_ugt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_ugt_exp (btor, e0, e1);
+  res = btor_exp_ugt (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1905,7 +1905,7 @@ boolector_sgt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_sgt_exp (btor, e0, e1);
+  res = btor_exp_sgt (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1932,7 +1932,7 @@ boolector_ugte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_ugte_exp (btor, e0, e1);
+  res = btor_exp_ugte (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1959,7 +1959,7 @@ boolector_sgte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_sgte_exp (btor, e0, e1);
+  res = btor_exp_sgte (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -1991,7 +1991,7 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
               "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_sll_exp (btor, e0, e1);
+  res = btor_exp_sll (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2023,7 +2023,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
               "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_srl_exp (btor, e0, e1);
+  res = btor_exp_srl (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2055,7 +2055,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
               "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_sra_exp (btor, e0, e1);
+  res = btor_exp_sra (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2087,7 +2087,7 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
               "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_rol_exp (btor, e0, e1);
+  res = btor_exp_rol (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2119,7 +2119,7 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
               "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT (btor_util_log_2 (width) != btor_get_exp_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_ror_exp (btor, e0, e1);
+  res = btor_exp_ror (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2146,7 +2146,7 @@ boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_sub_exp (btor, e0, e1);
+  res = btor_exp_sub (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2171,7 +2171,7 @@ boolector_usubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_usubo_exp (btor, e0, e1);
+  res = btor_exp_usubo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2199,7 +2199,7 @@ boolector_ssubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_ssubo_exp (btor, e0, e1);
+  res = btor_exp_ssubo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2225,7 +2225,7 @@ boolector_udiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_udiv_exp (btor, e0, e1);
+  res = btor_exp_udiv (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2252,7 +2252,7 @@ boolector_sdiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_sdiv_exp (btor, e0, e1);
+  res = btor_exp_sdiv (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2279,7 +2279,7 @@ boolector_sdivo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_sdivo_exp (btor, e0, e1);
+  res = btor_exp_sdivo (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2307,7 +2307,7 @@ boolector_urem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_urem_exp (btor, e0, e1);
+  res = btor_exp_urem (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2334,7 +2334,7 @@ boolector_srem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_srem_exp (btor, e0, e1);
+  res = btor_exp_srem (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2361,7 +2361,7 @@ boolector_smod (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_smod_exp (btor, e0, e1);
+  res = btor_exp_smod (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2390,7 +2390,7 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT (
       btor_get_exp_width (btor, e0) > INT_MAX - btor_get_exp_width (btor, e1),
       "bit-width of result is too large");
-  res = btor_concat_exp (btor, e0, e1);
+  res = btor_exp_concat (btor, e0, e1);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2421,7 +2421,7 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
       btor_sort_array_get_index (btor, btor_exp_get_sort_id (e_array))
           != btor_exp_get_sort_id (e_index),
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
-  res = btor_read_exp (btor, e_array, e_index);
+  res = btor_exp_read (btor, e_array, e_index);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2465,7 +2465,7 @@ boolector_write (Btor *btor,
                   != btor_exp_get_sort_id (e_value),
               "element bit-width of 'e_array' and bit-width of 'e_value' must "
               "be equal");
-  res = btor_write_exp (btor, e_array, e_index, e_value);
+  res = btor_exp_write (btor, e_array, e_index, e_value);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2506,7 +2506,7 @@ boolector_cond (Btor *btor,
               "bit-width of 'e_cond' must be equal to 1");
   BTOR_ABORT (btor_exp_get_sort_id (e_if) != btor_exp_get_sort_id (e_else),
               "sorts of 'e_if' and 'e_else' branch must be equal");
-  res = btor_cond_exp (btor, e_cond, e_if, e_else);
+  res = btor_exp_cond (btor, e_cond, e_if, e_else);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2537,7 +2537,7 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use",
               symb);
-  res = btor_param_exp (btor, s, symb);
+  res = btor_exp_param (btor, s, symb);
   btor_inc_exp_ext_ref_counter (btor, res);
 
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2585,7 +2585,7 @@ boolector_fun (Btor *btor,
   BTOR_DELETEN (btor->mm, strtrapi, len);
   BTOR_ABORT (btor_is_uf_node (btor_simplify_exp (btor, exp)),
               "expected bit vector term as function body");
-  res = btor_fun_exp (btor, params, paramc, exp);
+  res = btor_exp_fun (btor, params, paramc, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2639,7 +2639,7 @@ boolector_apply (Btor *btor,
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
   fcheck = btor_fun_sort_check (btor, args, argc, e_fun);
   BTOR_ABORT (fcheck >= 0, "invalid argument given at position %d", fcheck);
-  res = btor_apply_exps (btor, e_fun, args, argc);
+  res = btor_exp_apply_n (btor, e_fun, args, argc);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2664,7 +2664,7 @@ boolector_inc (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
 
-  res = btor_inc_exp (btor, exp);
+  res = btor_exp_inc (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2686,7 +2686,7 @@ boolector_dec (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
 
-  res = btor_dec_exp (btor, exp);
+  res = btor_exp_dec (btor, exp);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

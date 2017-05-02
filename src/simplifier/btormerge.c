@@ -199,7 +199,7 @@ btor_merge_lambdas (Btor *btor)
     while (btor_iter_lambda_has_next (&nit))
     {
       cur   = btor_iter_lambda_next (&nit);
-      param = btor_param_exp (btor, btor_exp_get_sort_id (cur->e[0]), 0);
+      param = btor_exp_param (btor, btor_exp_get_sort_id (cur->e[0]), 0);
       BTOR_PUSH_STACK (params, param);
       btor_beta_assign_param (btor, cur, param);
     }
@@ -207,7 +207,7 @@ btor_merge_lambdas (Btor *btor)
     body = btor_beta_reduce_merge (
         btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_beta_unassign_params (btor, lambda);
-    subst = btor_fun_exp (btor, params.start, BTOR_COUNT_STACK (params), body);
+    subst = btor_exp_fun (btor, params.start, BTOR_COUNT_STACK (params), body);
     if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);
 

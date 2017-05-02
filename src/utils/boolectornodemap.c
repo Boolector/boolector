@@ -172,7 +172,7 @@ boolector_map_node_internal (Btor *btor,
       assert (BTOR_REAL_ADDR_NODE (e) == e);
       if (e->btor != btor)
       {
-        tmp = btor_const_exp (btor, btor_const_get_bits (e));
+        tmp = btor_exp_const (btor, btor_const_get_bits (e));
         btor_inc_exp_ext_ref_counter (btor, tmp);
         return BTOR_EXPORT_BOOLECTOR_NODE (tmp);
       }

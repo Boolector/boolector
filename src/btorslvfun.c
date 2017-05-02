@@ -310,7 +310,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
     }
     else
     {
-      and = btor_and_exp (clone, *root, cur);
+      and = btor_exp_and (clone, *root, cur);
       btor_release_exp (clone, *root);
       *root = and;
     }
@@ -367,9 +367,9 @@ assume_inputs (Btor *btor,
 
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     bv       = get_bv_assignment (btor, cur_btor);
-    bv_const = btor_const_exp (clone, bv);
+    bv_const = btor_exp_const (clone, bv);
     btor_bv_free (btor->mm, bv);
-    bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
+    bv_eq = btor_exp_eq (clone, cur_clone, bv_const);
     BTORLOG (1,
              "assume input: %s (%s)",
              btor_util_node2string (cur_btor),
@@ -402,14 +402,14 @@ create_function_inequality (Btor *btor, BtorNode *feq)
   {
     sort = btor_iter_tuple_sort_next (&it);
     assert (btor_sort_is_bitvec (btor, sort));
-    var = btor_var_exp (btor, sort, 0);
+    var = btor_exp_var (btor, sort, 0);
     BTOR_PUSH_STACK (args, var);
   }
 
-  arg  = btor_args_exp (btor, args.start, BTOR_COUNT_STACK (args));
+  arg  = btor_exp_args (btor, args.start, BTOR_COUNT_STACK (args));
   app0 = btor_apply_exp_node (btor, feq->e[0], arg);
   app1 = btor_apply_exp_node (btor, feq->e[1], arg);
-  eq   = btor_eq_exp (btor, app0, app1);
+  eq   = btor_exp_eq (btor, app0, app1);
 
   btor_release_exp (btor, arg);
   btor_release_exp (btor, app0);
@@ -490,7 +490,7 @@ add_function_inequality_constraints (Btor *btor)
     assert (b->data.as_int == 0);
     b->data.as_int = 1;
     neq            = create_function_inequality (btor, cur);
-    con            = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
+    con            = btor_exp_implies (btor, BTOR_INVERT_NODE (cur), neq);
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
@@ -856,7 +856,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
    * expression) */
   clemma = btor_clone_recursively_rebuild_exp (btor, clone, lemma, exp_map, 0);
   assert (clemma);
-  and = btor_and_exp (clone, *root, clemma);
+  and = btor_exp_and (clone, *root, clemma);
   btor_release_exp (clone, clemma);
   btor_release_exp (clone, *root);
   *root = and;
@@ -1328,10 +1328,10 @@ add_symbolic_lemma (Btor *btor,
                "  p %s = %s",
                btor_util_node2string (arg0),
                btor_util_node2string (arg1));
-      eq = btor_eq_exp (btor, arg0, arg1);
+      eq = btor_exp_eq (btor, arg0, arg1);
       if (premise)
       {
-        and = btor_and_exp (btor, premise, eq);
+        and = btor_exp_and (btor, premise, eq);
         btor_release_exp (btor, premise);
         btor_release_exp (btor, eq);
         premise = and;
@@ -1345,7 +1345,7 @@ add_symbolic_lemma (Btor *btor,
   /* else beta reduction conflict */
 
   /* encode conclusion a = b */
-  conclusion = btor_eq_exp (btor, a, b);
+  conclusion = btor_exp_eq (btor, a, b);
 
   lemma_size += 1; /* a == b */
   lemma_size += bconds_sel1->count;
@@ -1363,7 +1363,7 @@ add_symbolic_lemma (Btor *btor,
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
     {
-      and = btor_and_exp (btor, premise, cond);
+      and = btor_exp_and (btor, premise, cond);
       btor_release_exp (btor, premise);
       premise = and;
     }
@@ -1384,7 +1384,7 @@ add_symbolic_lemma (Btor *btor,
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
     {
-      and = btor_and_exp (btor, premise, BTOR_INVERT_NODE (cond));
+      and = btor_exp_and (btor, premise, BTOR_INVERT_NODE (cond));
       btor_release_exp (btor, premise);
       premise = and;
     }
@@ -1398,7 +1398,7 @@ add_symbolic_lemma (Btor *btor,
   assert (conclusion);
   if (premise)
   {
-    lemma = btor_implies_exp (btor, premise, conclusion);
+    lemma = btor_exp_implies (btor, premise, conclusion);
     btor_release_exp (btor, premise);
   }
   else
@@ -1987,10 +1987,10 @@ add_extensionality_lemmas (Btor *btor)
     while (btor_iter_hashptr_has_next (&hit))
     {
       cur_args = btor_iter_hashptr_next (&hit);
-      app0     = btor_apply_exp (btor, cur->e[0], cur_args);
-      app1     = btor_apply_exp (btor, cur->e[1], cur_args);
-      eq       = btor_eq_exp (btor, app0, app1);
-      con      = btor_implies_exp (btor, cur, eq);
+      app0     = btor_exp_apply (btor, cur->e[0], cur_args);
+      app1     = btor_exp_apply (btor, cur->e[1], cur_args);
+      eq       = btor_exp_eq (btor, app0, app1);
+      con      = btor_exp_implies (btor, cur, eq);
 
       /* add instantiation of extensionality lemma */
       if (!btor_hashptr_table_get (slv->lemmas, con))

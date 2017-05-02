@@ -846,14 +846,14 @@ btor_dumpbtor_dump (Btor *btor, FILE *file, int version)
 
   if (btor->inconsistent)
   {
-    tmp = btor_false_exp (btor);
+    tmp = btor_exp_false (btor);
     btor_dumpbtor_add_root_to_dump_context (bdc, tmp);
     btor_release_exp (btor, tmp);
   }
   else if (btor->unsynthesized_constraints->count == 0
            && btor->synthesized_constraints->count == 0)
   {
-    tmp = btor_true_exp (btor);
+    tmp = btor_exp_true (btor);
     btor_dumpbtor_add_root_to_dump_context (bdc, tmp);
     btor_release_exp (btor, tmp);
   }

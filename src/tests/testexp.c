@@ -61,9 +61,9 @@ test_const_exp (void)
   bv1  = btor_bv_char_to_bv (g_btor->mm, "00010011");
   bv2  = btor_bv_char_to_bv (g_btor->mm, "00010011");
   bv3  = btor_bv_char_to_bv (g_btor->mm, "0000000000010011");
-  exp1 = btor_const_exp (g_btor, bv1);
-  exp2 = btor_const_exp (g_btor, bv2);
-  exp3 = btor_const_exp (g_btor, bv3);
+  exp1 = btor_exp_const (g_btor, bv1);
+  exp2 = btor_exp_const (g_btor, bv2);
+  exp3 = btor_exp_const (g_btor, bv3);
   assert (exp1 == exp2);
   assert (exp2 != exp3);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
@@ -89,10 +89,10 @@ test_zero_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 8);
-  exp1 = btor_zero_exp (g_btor, sort);
+  exp1 = btor_exp_zero (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_new (g_btor->mm, 8);
-  exp2 = btor_const_exp (g_btor, bv2);
+  exp2 = btor_exp_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
@@ -113,10 +113,10 @@ test_ones_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 8);
-  exp1 = btor_ones_exp (g_btor, sort);
+  exp1 = btor_exp_ones (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_ones (g_btor->mm, 8);
-  exp2 = btor_const_exp (g_btor, bv2);
+  exp2 = btor_exp_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
@@ -137,10 +137,10 @@ test_one_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 8);
-  exp1 = btor_one_exp (g_btor, sort);
+  exp1 = btor_exp_one (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_one (g_btor->mm, 8);
-  exp2 = btor_const_exp (g_btor, bv2);
+  exp2 = btor_exp_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
@@ -161,19 +161,19 @@ test_unsigned_to_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 8);
-  exp1 = btor_unsigned_exp (g_btor, 32u, sort);
-  exp2 = btor_unsigned_exp (g_btor, 49u, sort);
-  exp3 = btor_unsigned_exp (g_btor, 3u, sort);
-  exp4 = btor_unsigned_exp (g_btor, 57u, sort);
+  exp1 = btor_exp_unsigned (g_btor, 32u, sort);
+  exp2 = btor_exp_unsigned (g_btor, 49u, sort);
+  exp3 = btor_exp_unsigned (g_btor, 3u, sort);
+  exp4 = btor_exp_unsigned (g_btor, 57u, sort);
   btor_sort_release (g_btor, sort);
   bv5  = btor_bv_char_to_bv (g_btor->mm, "00100000");
   bv6  = btor_bv_char_to_bv (g_btor->mm, "00110001");
   bv7  = btor_bv_char_to_bv (g_btor->mm, "00000011");
   bv8  = btor_bv_char_to_bv (g_btor->mm, "00111001");
-  exp5 = btor_const_exp (g_btor, bv5);
-  exp6 = btor_const_exp (g_btor, bv6);
-  exp7 = btor_const_exp (g_btor, bv7);
-  exp8 = btor_const_exp (g_btor, bv8);
+  exp5 = btor_exp_const (g_btor, bv5);
+  exp6 = btor_exp_const (g_btor, bv6);
+  exp7 = btor_exp_const (g_btor, bv7);
+  exp8 = btor_exp_const (g_btor, bv8);
 
   assert (exp1 == exp5);
   assert (exp2 == exp6);
@@ -213,7 +213,7 @@ test_var_exp (void)
 
   sort = btor_sort_bitvec (g_btor, 8);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
   exp2 = btor_copy_exp (g_btor, exp1);
 
   assert (exp1 == exp2);
@@ -237,9 +237,9 @@ test_array_exp (void)
   elem_sort  = btor_sort_bitvec (g_btor, 32);
   index_sort = btor_sort_bitvec (g_btor, 8);
   array_sort = btor_sort_array (g_btor, index_sort, elem_sort);
-  exp1       = btor_array_exp (g_btor, array_sort, "array1");
+  exp1       = btor_exp_array (g_btor, array_sort, "array1");
   exp2       = btor_copy_exp (g_btor, exp1);
-  exp3       = btor_array_exp (g_btor, array_sort, "array2");
+  exp3       = btor_exp_array (g_btor, array_sort, "array2");
   btor_sort_release (g_btor, elem_sort);
   btor_sort_release (g_btor, index_sort);
   btor_sort_release (g_btor, array_sort);
@@ -269,13 +269,13 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 8);
-  exp1 = btor_var_exp (g_btor, sort, "v1");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
   exp2 = func (g_btor, exp1);
   exp3 = func (g_btor, exp1);
 
   assert (exp2 == exp3);
   assert (btor_get_exp_width (g_btor, exp1) == len);
-  if (func == btor_not_exp || func == btor_neg_exp)
+  if (func == btor_exp_not || func == btor_exp_neg)
   {
     assert (btor_get_exp_width (g_btor, exp2) == len);
     assert (btor_get_exp_width (g_btor, exp3) == len);
@@ -296,31 +296,31 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 static void
 test_not_exp (void)
 {
-  unary_exp_test (btor_not_exp);
+  unary_exp_test (btor_exp_not);
 }
 
 static void
 test_neg_exp (void)
 {
-  unary_exp_test (btor_neg_exp);
+  unary_exp_test (btor_exp_neg);
 }
 
 static void
 test_redor_exp (void)
 {
-  unary_exp_test (btor_redor_exp);
+  unary_exp_test (btor_exp_redor);
 }
 
 static void
 test_redxor_exp (void)
 {
-  unary_exp_test (btor_redxor_exp);
+  unary_exp_test (btor_exp_redxor);
 }
 
 static void
 test_redand_exp (void)
 {
-  unary_exp_test (btor_redand_exp);
+  unary_exp_test (btor_exp_redand);
 }
 
 static void
@@ -333,9 +333,9 @@ test_slice_exp (void)
 
   sort = btor_sort_bitvec (g_btor, 32);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_slice_exp (g_btor, exp1, 31, 30);
-  exp3 = btor_slice_exp (g_btor, exp1, 31, 30);
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_slice (g_btor, exp1, 31, 30);
+  exp3 = btor_exp_slice (g_btor, exp1, 31, 30);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
@@ -356,7 +356,7 @@ ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 
   sort = btor_sort_bitvec (g_btor, 32);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
   exp2 = func (g_btor, exp1, 32);
   exp3 = func (g_btor, exp1, 32);
 
@@ -372,13 +372,13 @@ ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 static void
 test_uext_exp (void)
 {
-  ext_exp_test (btor_uext_exp);
+  ext_exp_test (btor_exp_uext);
 }
 
 static void
 test_sext_exp (void)
 {
-  ext_exp_test (btor_sext_exp);
+  ext_exp_test (btor_exp_sext);
 }
 
 static void
@@ -393,8 +393,8 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
 
   sort = btor_sort_bitvec (g_btor, 8);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_var_exp (g_btor, sort, "v2");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_var (g_btor, sort, "v2");
   exp3 = func (g_btor, exp1, exp2);
   exp4 = func (g_btor, exp1, exp2);
   exp5 = func (g_btor, exp2, exp1);
@@ -403,8 +403,8 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
   assert (exp4 == exp5);
   assert (btor_get_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
-  if (func == btor_eq_exp || func == btor_ne_exp || func == btor_uaddo_exp
-      || func == btor_saddo_exp || func == btor_umulo_exp)
+  if (func == btor_exp_eq || func == btor_exp_ne || func == btor_exp_uaddo
+      || func == btor_exp_saddo || func == btor_exp_umulo)
   {
     assert (btor_get_exp_width (g_btor, exp3) == 1);
     assert (btor_get_exp_width (g_btor, exp4) == 1);
@@ -429,61 +429,61 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
 static void
 test_or_exp (void)
 {
-  binary_commutative_exp_test (btor_or_exp);
+  binary_commutative_exp_test (btor_exp_or);
 }
 
 static void
 test_xor_exp (void)
 {
-  binary_commutative_exp_test (btor_xor_exp);
+  binary_commutative_exp_test (btor_exp_xor);
 }
 
 static void
 test_xnor_exp (void)
 {
-  binary_commutative_exp_test (btor_xnor_exp);
+  binary_commutative_exp_test (btor_exp_xnor);
 }
 
 static void
 test_and_exp (void)
 {
-  binary_commutative_exp_test (btor_and_exp);
+  binary_commutative_exp_test (btor_exp_and);
 }
 
 static void
 test_eq_exp (void)
 {
-  binary_commutative_exp_test (btor_eq_exp);
+  binary_commutative_exp_test (btor_exp_eq);
 }
 
 static void
 test_ne_exp (void)
 {
-  binary_commutative_exp_test (btor_ne_exp);
+  binary_commutative_exp_test (btor_exp_ne);
 }
 
 static void
 test_add_exp (void)
 {
-  binary_commutative_exp_test (btor_add_exp);
+  binary_commutative_exp_test (btor_exp_add);
 }
 
 static void
 test_uaddo_exp (void)
 {
-  binary_commutative_exp_test (btor_uaddo_exp);
+  binary_commutative_exp_test (btor_exp_uaddo);
 }
 
 static void
 test_saddo_exp (void)
 {
-  binary_commutative_exp_test (btor_saddo_exp);
+  binary_commutative_exp_test (btor_exp_saddo);
 }
 
 static void
 test_mul_exp (void)
 {
-  binary_commutative_exp_test (btor_mul_exp);
+  binary_commutative_exp_test (btor_exp_mul);
 }
 
 static void
@@ -497,23 +497,23 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 32);
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_var_exp (g_btor, sort, "v2");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_var (g_btor, sort, "v2");
   exp3 = func (g_btor, exp1, exp2);
   exp4 = func (g_btor, exp1, exp2);
   exp5 = func (g_btor, exp2, exp1);
 
   assert (exp3 == exp4);
   assert (exp4 != exp5);
-  if (func == btor_sub_exp || func == btor_udiv_exp || func == btor_sdiv_exp
-      || func == btor_urem_exp || func == btor_srem_exp
-      || func == btor_smod_exp)
+  if (func == btor_exp_sub || func == btor_exp_udiv || func == btor_exp_sdiv
+      || func == btor_exp_urem || func == btor_exp_srem
+      || func == btor_exp_smod)
   {
     assert (btor_get_exp_width (g_btor, exp3) == 32);
     assert (btor_get_exp_width (g_btor, exp4) == 32);
     assert (btor_get_exp_width (g_btor, exp5) == 32);
   }
-  else if (func == btor_concat_exp)
+  else if (func == btor_exp_concat)
   {
     assert (btor_get_exp_width (g_btor, exp3) == 64);
     assert (btor_get_exp_width (g_btor, exp4) == 64);
@@ -538,109 +538,109 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
 static void
 test_ult_exp (void)
 {
-  binary_non_commutative_exp_test (btor_ult_exp);
+  binary_non_commutative_exp_test (btor_exp_ult);
 }
 
 static void
 test_slt_exp (void)
 {
-  binary_non_commutative_exp_test (btor_slt_exp);
+  binary_non_commutative_exp_test (btor_exp_slt);
 }
 
 static void
 test_ulte_exp (void)
 {
-  binary_non_commutative_exp_test (btor_ulte_exp);
+  binary_non_commutative_exp_test (btor_exp_ulte);
 }
 
 static void
 test_slte_exp (void)
 {
-  binary_non_commutative_exp_test (btor_slte_exp);
+  binary_non_commutative_exp_test (btor_exp_slte);
 }
 
 static void
 test_ugt_exp (void)
 {
-  binary_non_commutative_exp_test (btor_ugt_exp);
+  binary_non_commutative_exp_test (btor_exp_ugt);
 }
 
 static void
 test_sgt_exp (void)
 {
-  binary_non_commutative_exp_test (btor_sgt_exp);
+  binary_non_commutative_exp_test (btor_exp_sgt);
 }
 
 static void
 test_ugte_exp (void)
 {
-  binary_non_commutative_exp_test (btor_ugte_exp);
+  binary_non_commutative_exp_test (btor_exp_ugte);
 }
 
 static void
 test_sgte_exp (void)
 {
-  binary_non_commutative_exp_test (btor_sgte_exp);
+  binary_non_commutative_exp_test (btor_exp_sgte);
 }
 
 static void
 test_sub_exp (void)
 {
-  binary_non_commutative_exp_test (btor_sub_exp);
+  binary_non_commutative_exp_test (btor_exp_sub);
 }
 
 static void
 test_usubo_exp (void)
 {
-  binary_non_commutative_exp_test (btor_usubo_exp);
+  binary_non_commutative_exp_test (btor_exp_usubo);
 }
 
 static void
 test_ssubo_exp (void)
 {
-  binary_non_commutative_exp_test (btor_ssubo_exp);
+  binary_non_commutative_exp_test (btor_exp_ssubo);
 }
 
 static void
 test_udiv_exp (void)
 {
-  binary_non_commutative_exp_test (btor_udiv_exp);
+  binary_non_commutative_exp_test (btor_exp_udiv);
 }
 
 static void
 test_sdiv_exp (void)
 {
-  binary_non_commutative_exp_test (btor_sdiv_exp);
+  binary_non_commutative_exp_test (btor_exp_sdiv);
 }
 
 static void
 test_sdivo_exp (void)
 {
-  binary_non_commutative_exp_test (btor_sdivo_exp);
+  binary_non_commutative_exp_test (btor_exp_sdivo);
 }
 
 static void
 test_urem_exp (void)
 {
-  binary_non_commutative_exp_test (btor_urem_exp);
+  binary_non_commutative_exp_test (btor_exp_urem);
 }
 
 static void
 test_srem_exp (void)
 {
-  binary_non_commutative_exp_test (btor_srem_exp);
+  binary_non_commutative_exp_test (btor_exp_srem);
 }
 
 static void
 test_smod_exp (void)
 {
-  binary_non_commutative_exp_test (btor_smod_exp);
+  binary_non_commutative_exp_test (btor_exp_smod);
 }
 
 static void
 test_concat_exp (void)
 {
-  binary_non_commutative_exp_test (btor_concat_exp);
+  binary_non_commutative_exp_test (btor_exp_concat);
 }
 
 static void
@@ -653,14 +653,14 @@ mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 
   sort = btor_sort_bitvec (g_btor, 3);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_var_exp (g_btor, sort, "v2");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_var (g_btor, sort, "v2");
   exp3 = func (g_btor, exp1, exp2);
   exp4 = func (g_btor, exp1, exp2);
   exp5 = func (g_btor, exp2, exp1);
 
   assert (exp3 == exp4);
-  if (func == btor_umulo_exp)
+  if (func == btor_exp_umulo)
     assert (exp4 != exp5);
   else
     assert (exp4 == exp5);
@@ -681,13 +681,13 @@ static void
 test_umulo_exp (void)
 {
   /* Implementation is not symmetric */
-  mulo_exp_test (btor_umulo_exp);
+  mulo_exp_test (btor_exp_umulo);
 }
 
 static void
 test_smulo_exp (void)
 {
-  mulo_exp_test (btor_smulo_exp);
+  mulo_exp_test (btor_exp_smulo);
 }
 
 static void
@@ -699,10 +699,10 @@ shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 32);
-  exp1 = btor_var_exp (g_btor, sort, "v1");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
   btor_sort_release (g_btor, sort);
   sort = btor_sort_bitvec (g_btor, 5);
-  exp2 = btor_var_exp (g_btor, sort, "v2");
+  exp2 = btor_exp_var (g_btor, sort, "v2");
   btor_sort_release (g_btor, sort);
   exp3 = func (g_btor, exp1, exp2);
   exp4 = func (g_btor, exp1, exp2);
@@ -723,31 +723,31 @@ shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 static void
 test_sll_exp (void)
 {
-  shift_exp_test (btor_sll_exp);
+  shift_exp_test (btor_exp_sll);
 }
 
 static void
 test_srl_exp (void)
 {
-  shift_exp_test (btor_srl_exp);
+  shift_exp_test (btor_exp_srl);
 }
 
 static void
 test_sra_exp (void)
 {
-  shift_exp_test (btor_sra_exp);
+  shift_exp_test (btor_exp_sra);
 }
 
 static void
 test_rol_exp (void)
 {
-  shift_exp_test (btor_rol_exp);
+  shift_exp_test (btor_exp_rol);
 }
 
 static void
 test_ror_exp (void)
 {
-  shift_exp_test (btor_ror_exp);
+  shift_exp_test (btor_exp_ror);
 }
 
 static void
@@ -764,10 +764,10 @@ test_read_exp (void)
 
   init_exp_test ();
 
-  exp1 = btor_array_exp (g_btor, array_sort, "array1");
-  exp2 = btor_var_exp (g_btor, index_sort, "v1");
-  exp3 = btor_read_exp (g_btor, exp1, exp2);
-  exp4 = btor_read_exp (g_btor, exp1, exp2);
+  exp1 = btor_exp_array (g_btor, array_sort, "array1");
+  exp2 = btor_exp_var (g_btor, index_sort, "v1");
+  exp3 = btor_exp_read (g_btor, exp1, exp2);
+  exp4 = btor_exp_read (g_btor, exp1, exp2);
 
   assert (exp4 == exp3);
   assert (btor_get_fun_exp_width (g_btor, exp1) == 32);
@@ -796,16 +796,16 @@ test_cond_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bitvec (g_btor, 1);
-  exp1 = btor_var_exp (g_btor, sort, "v1");
+  exp1 = btor_exp_var (g_btor, sort, "v1");
   btor_sort_release (g_btor, sort);
   sort = btor_sort_bitvec (g_btor, 32);
-  exp2 = btor_var_exp (g_btor, sort, "v2");
+  exp2 = btor_exp_var (g_btor, sort, "v2");
   btor_sort_release (g_btor, sort);
   bv3  = btor_bv_char_to_bv (g_btor->mm, "00110111001101010001010100110100");
-  exp3 = btor_const_exp (g_btor, bv3);
-  exp4 = btor_cond_exp (g_btor, exp1, exp2, exp3);
-  exp5 = btor_cond_exp (g_btor, exp1, exp2, exp3);
-  exp6 = btor_cond_exp (g_btor, exp1, exp3, exp2);
+  exp3 = btor_exp_const (g_btor, bv3);
+  exp4 = btor_exp_cond (g_btor, exp1, exp2, exp3);
+  exp5 = btor_exp_cond (g_btor, exp1, exp2, exp3);
+  exp6 = btor_exp_cond (g_btor, exp1, exp3, exp2);
 
   assert (exp4 == exp5);
   assert (exp4 != exp6);
@@ -836,13 +836,13 @@ test_write_exp (void)
 
   sort       = btor_sort_bitvec (g_btor, 1);
   array_sort = btor_sort_array (g_btor, sort, sort);
-  exp1       = btor_array_exp (g_btor, array_sort, "array1");
-  exp2       = btor_var_exp (g_btor, sort, "v1");
-  exp3       = btor_var_exp (g_btor, sort, "v2");
-  exp4       = btor_write_exp (g_btor, exp1, exp2, exp3);
-  exp5       = btor_write_exp (g_btor, exp1, exp2, exp3);
-  exp6       = btor_write_exp (g_btor, exp1, exp3, exp2);
-  exp7       = btor_read_exp (g_btor, exp5, exp2);
+  exp1       = btor_exp_array (g_btor, array_sort, "array1");
+  exp2       = btor_exp_var (g_btor, sort, "v1");
+  exp3       = btor_exp_var (g_btor, sort, "v2");
+  exp4       = btor_exp_write (g_btor, exp1, exp2, exp3);
+  exp5       = btor_exp_write (g_btor, exp1, exp2, exp3);
+  exp6       = btor_exp_write (g_btor, exp1, exp3, exp2);
+  exp7       = btor_exp_read (g_btor, exp5, exp2);
 
   assert (exp4 == exp5);
   assert (exp4 != exp6);
@@ -875,9 +875,9 @@ test_inc_exp (void)
 
   sort = btor_sort_bitvec (g_btor, 8);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_inc_exp (g_btor, exp1);
-  exp3 = btor_inc_exp (g_btor, exp1);
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_inc (g_btor, exp1);
+  exp3 = btor_exp_inc (g_btor, exp1);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
@@ -898,9 +898,9 @@ test_dec_exp (void)
 
   sort = btor_sort_bitvec (g_btor, 8);
 
-  exp1 = btor_var_exp (g_btor, sort, "v1");
-  exp2 = btor_dec_exp (g_btor, exp1);
-  exp3 = btor_dec_exp (g_btor, exp1);
+  exp1 = btor_exp_var (g_btor, sort, "v1");
+  exp2 = btor_exp_dec (g_btor, exp1);
+  exp3 = btor_exp_dec (g_btor, exp1);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
