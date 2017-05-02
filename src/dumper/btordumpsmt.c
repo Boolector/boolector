@@ -326,11 +326,29 @@ btor_dumpsmt_dump_sort_node (BtorNode *exp, FILE *file)
   assert (exp);
   assert (file);
 
+  Btor *btor;
+  BtorSortId s_fid, s_tid, s_cid, s_did;
   BtorSort *sort;
 
   exp  = BTOR_REAL_ADDR_NODE (exp);
-  sort = btor_sort_get_by_id (exp->btor, btor_exp_get_sort_id (exp));
-  btor_dumpsmt_dump_sort (sort, file);
+  btor = exp->btor;
+  if (btor_is_array_node (exp) && !btor_is_lambda_node (exp))
+  {
+    s_fid = btor_exp_get_sort_id (exp);
+    s_tid = btor_sort_fun_get_domain (btor, s_fid);
+    assert (btor_sort_is_tuple (btor, s_tid));
+    s_did = btor_sort_get_by_id (btor, s_tid)->tuple.elements[0]->id;
+    s_cid = btor_sort_fun_get_codomain (btor, s_fid);
+    fprintf (file,
+             "(Array (_ BitVec %d) (_ BitVec %d))",
+             btor_sort_bitvec_get_width (btor, s_did),
+             btor_sort_bitvec_get_width (btor, s_cid));
+  }
+  else
+  {
+    sort = btor_sort_get_by_id (btor, btor_exp_get_sort_id (exp));
+    btor_dumpsmt_dump_sort (sort, file);
+  }
 }
 
 #if 0
@@ -617,6 +635,11 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           break;
 
         case BTOR_APPLY_NODE:
+
+          if (btor_is_update_node (real_exp->e[0])
+              || btor_is_uf_array_node (real_exp->e[0]))
+            op = "select ";
+
           /* we need the arguments in reversed order */
           btor_iter_args_init (&it, real_exp->e[1]);
           while (btor_iter_args_has_next (&it))
@@ -648,6 +671,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 		fputc (')', sdc->file);
 		break;
 #endif
+
+        case BTOR_UPDATE_NODE:
+          op = "store";
+          PUSH_DUMP_NODE (real_exp->e[2], 1, 0, 1, 0, depth + 1);
+          PUSH_DUMP_NODE (real_exp->e[1]->e[0], 1, 0, 1, 0, depth + 1);
+          PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 1, 0, depth + 1);
+          break;
 
         default:
           expect_bv = 1;
@@ -983,7 +1013,8 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   fputs ("(declare-fun ", sdc->file);
   dump_smt_id (sdc, exp);
   fputc (' ', sdc->file);
-  if (btor_is_bv_var_node (exp)) fputs ("() ", sdc->file);
+  if (btor_is_bv_var_node (exp) || btor_is_uf_array_node (exp))
+    fputs ("() ", sdc->file);
   btor_dumpsmt_dump_sort_node (exp, sdc->file);
   fputs (")\n", sdc->file);
   btor_hashptr_table_add (sdc->dumped, exp);
