@@ -2639,7 +2639,7 @@ boolector_apply (Btor *btor,
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
   fcheck = btor_fun_sort_check (btor, args, argc, e_fun);
   BTOR_ABORT (fcheck >= 0, "invalid argument given at position %d", fcheck);
-  res = btor_apply_exps (btor, args, argc, e_fun);
+  res = btor_apply_exps (btor, e_fun, args, argc);
   btor_inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

@@ -2210,8 +2210,8 @@ btor_cond_exp_node (Btor *btor,
       BTOR_PUSH_STACK (
           params,
           btor_param_exp (btor, sort->fun.domain->tuple.elements[i]->id, 0));
-    e[1]   = btor_apply_exps (btor, params.start, arity, e[1]);
-    e[2]   = btor_apply_exps (btor, params.start, arity, e[2]);
+    e[1]   = btor_apply_exps (btor, e[1], params.start, arity);
+    e[2]   = btor_apply_exps (btor, e[2], params.start, arity);
     cond   = create_exp (btor, BTOR_COND_NODE, 3, e);
     lambda = btor_fun_exp (btor, params.start, arity, cond);
     while (!BTOR_EMPTY_STACK (params))
@@ -2261,8 +2261,8 @@ btor_array_cond_exp_node (Btor * btor, BtorNode * e_cond, BtorNode * e_if,
   assert (btor_is_fun_node (e_else));
 
   param = btor_param_exp (btor, btor_exp_get_sort_id (e_if), 0);
-  app_if = btor_apply_exps (btor, &param, 1, e_if); 
-  app_else = btor_apply_exps (btor, &param, 1, e_else);
+  app_if = btor_apply_exps (btor, e_if, &param, 1); 
+  app_else = btor_apply_exps (btor, e_else, &param, 1);
   cond = btor_bv_cond_exp_node (btor, e_cond, app_if, app_else); 
   lambda = btor_lambda_exp (btor, param, cond); 
   lambda->is_array = 1;

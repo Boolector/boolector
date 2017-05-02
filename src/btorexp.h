@@ -396,9 +396,9 @@ BtorNode *btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
 /* Apply expression that applies 'argc' number of arguments to 'fun'.
  */
 BtorNode *btor_apply_exps (Btor *btor,
+                           BtorNode *fun,
                            BtorNode *args[],
-                           uint32_t argc,
-                           BtorNode *fun);
+                           uint32_t argc);
 
 /* Argument expression with 'argc' arguments.
  */

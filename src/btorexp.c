@@ -270,7 +270,7 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 }
 
 BtorNode *
-btor_apply_exps (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
+btor_apply_exps (Btor *btor, BtorNode *fun, BtorNode *args[], uint32_t argc)
 {
   assert (btor);
   assert (argc > 0);
@@ -1509,7 +1509,7 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
-  return btor_apply_exps (btor, &e_index, 1, e_array);
+  return btor_apply_exps (btor, e_array, &e_index, 1);
 }
 
 BtorNode *
