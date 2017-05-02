@@ -46,14 +46,16 @@ void boolector_mc_enable_trace_gen (BtorMC *);
 Btor *boolector_mc_btor (BtorMC *);
 
 /*------------------------------------------------------------------------*/
+
+void boolector_mc_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
+
+/*------------------------------------------------------------------------*/
 /* model checking API */
 
 BoolectorNode *boolector_input (BtorMC *, uint32_t width, const char *);
 BoolectorNode *boolector_latch (BtorMC *, uint32_t width, const char *);
 
 void boolector_next (BtorMC *, BoolectorNode *latch, BoolectorNode *next);
-
-void boolector_mc_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
 
 int boolector_bad (BtorMC *, BoolectorNode *bad);
 
