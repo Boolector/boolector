@@ -354,7 +354,7 @@ btor_exp_not (Btor *btor, BtorNode *exp)
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   (void) btor;
   btor_copy_exp (btor, exp);
@@ -371,7 +371,7 @@ btor_exp_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_ADD_NODE, e0, e1);
@@ -390,7 +390,7 @@ btor_exp_neg (Btor *btor, BtorNode *exp)
   BtorNode *result, *one;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
   one    = btor_exp_one (btor, btor_exp_get_sort_id (exp));
   result = btor_exp_add (btor, BTOR_INVERT_NODE (exp), one);
   btor_release_exp (btor, one);
@@ -405,7 +405,7 @@ btor_exp_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   BtorNode *result;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
+  assert (btor_dbg_precond_slice_exp (btor, exp, upper, lower));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_slice_exp (btor, exp, upper, lower);
@@ -424,7 +424,7 @@ btor_exp_or (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return BTOR_INVERT_NODE (
       btor_exp_and (btor, BTOR_INVERT_NODE (e0), BTOR_INVERT_NODE (e1)));
 }
@@ -439,7 +439,7 @@ btor_exp_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_eq_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_eq_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
   {
@@ -465,7 +465,7 @@ btor_exp_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_AND_NODE, e0, e1);
@@ -520,7 +520,7 @@ btor_exp_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   or     = btor_exp_or (btor, e0, e1);
   and    = btor_exp_and (btor, e0, e1);
@@ -538,7 +538,7 @@ btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return BTOR_INVERT_NODE (btor_exp_xor (btor, e0, e1));
 }
 
@@ -552,7 +552,7 @@ btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_concat_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_concat_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_CONCAT_NODE, e0, e1);
@@ -585,7 +585,7 @@ btor_exp_redor (Btor *btor, BtorNode *exp)
   BtorNode *result, *zero;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   zero   = btor_exp_zero (btor, btor_exp_get_sort_id (exp));
   result = BTOR_INVERT_NODE (btor_exp_eq (btor, exp, zero));
@@ -602,7 +602,7 @@ btor_exp_redxor (Btor *btor, BtorNode *exp)
   uint32_t i, width;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   width = btor_get_exp_width (btor, exp);
 
@@ -626,7 +626,7 @@ btor_exp_redand (Btor *btor, BtorNode *exp)
   BtorNode *result, *ones;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   ones   = btor_exp_ones (btor, btor_exp_get_sort_id (exp));
   result = btor_exp_eq (btor, exp, ones);
@@ -643,7 +643,7 @@ btor_exp_uext (Btor *btor, BtorNode *exp, uint32_t width)
   BtorSortId sort;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_ext_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_ext_exp (btor, exp));
 
   if (width == 0)
     result = btor_copy_exp (btor, exp);
@@ -669,7 +669,7 @@ btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width)
   BtorSortId sort;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_ext_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_ext_exp (btor, exp));
 
   if (width == 0)
     result = btor_copy_exp (btor, exp);
@@ -700,7 +700,7 @@ btor_exp_nand (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return BTOR_INVERT_NODE (btor_exp_and (btor, e0, e1));
 }
 
@@ -712,7 +712,7 @@ btor_exp_nor (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return BTOR_INVERT_NODE (btor_exp_or (btor, e0, e1));
 }
 
@@ -724,7 +724,7 @@ btor_exp_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   assert (btor_get_exp_width (btor, e0) == 1);
   return BTOR_INVERT_NODE (btor_exp_and (btor, e0, BTOR_INVERT_NODE (e1)));
 }
@@ -737,7 +737,7 @@ btor_exp_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   assert (btor_get_exp_width (btor, e0) == 1);
   return btor_exp_eq (btor, e0, e1);
 }
@@ -750,7 +750,7 @@ btor_exp_ne (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_eq_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_eq_exp (btor, e0, e1));
   return BTOR_INVERT_NODE (btor_exp_eq (btor, e0, e1));
 }
 
@@ -765,7 +765,7 @@ btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width   = btor_get_exp_width (btor, e0);
   uext_e1 = btor_exp_uext (btor, e0, 1);
@@ -790,7 +790,7 @@ btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width       = btor_get_exp_width (btor, e0);
   sign_e1     = btor_exp_slice (btor, e0, width - 1, width - 1);
@@ -824,7 +824,7 @@ btor_exp_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_MUL_NODE, e0, e1);
@@ -847,7 +847,7 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_get_exp_width (btor, e0);
   if (width == 1)
@@ -907,7 +907,7 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_get_exp_width (btor, e0);
   if (width == 1) return btor_exp_and (btor, e0, e1);
@@ -991,7 +991,7 @@ btor_exp_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_ULT_NODE, e0, e1);
@@ -1015,7 +1015,7 @@ btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_get_exp_width (btor, e0);
   if (width == 1) return btor_exp_and (btor, e0, BTOR_INVERT_NODE (e1));
@@ -1053,7 +1053,7 @@ btor_exp_ulte (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   ult    = btor_exp_ult (btor, e1, e0);
   result = btor_exp_not (btor, ult);
@@ -1071,7 +1071,7 @@ btor_exp_slte (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   slt    = btor_exp_slt (btor, e1, e0);
   result = btor_exp_not (btor, slt);
@@ -1087,7 +1087,7 @@ btor_exp_ugt (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return btor_exp_ult (btor, e1, e0);
 }
 
@@ -1099,7 +1099,7 @@ btor_exp_sgt (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   return btor_exp_slt (btor, e1, e0);
 }
 
@@ -1113,7 +1113,7 @@ btor_exp_ugte (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   ult    = btor_exp_ult (btor, e0, e1);
   result = btor_exp_not (btor, ult);
@@ -1131,7 +1131,7 @@ btor_exp_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   slt    = btor_exp_slt (btor, e0, e1);
   result = btor_exp_not (btor, slt);
@@ -1149,7 +1149,7 @@ btor_exp_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_SLL_NODE, e0, e1);
@@ -1170,7 +1170,7 @@ btor_exp_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_SRL_NODE, e0, e1);
@@ -1192,7 +1192,7 @@ btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   width   = btor_get_exp_width (btor, e0);
   sign_e1 = btor_exp_slice (btor, e0, width - 1, width - 1);
@@ -1215,7 +1215,7 @@ btor_exp_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   sll    = btor_exp_sll (btor, e0, e1);
   neg_e2 = btor_exp_neg (btor, e1);
@@ -1237,7 +1237,7 @@ btor_exp_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   srl    = btor_exp_srl (btor, e0, e1);
   neg_e2 = btor_exp_neg (btor, e1);
@@ -1259,7 +1259,7 @@ btor_exp_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   neg_e2 = btor_exp_neg (btor, e1);
   result = btor_exp_add (btor, e0, neg_e2);
@@ -1279,7 +1279,7 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width   = btor_get_exp_width (btor, e0);
   uext_e1 = btor_exp_uext (btor, e0, 1);
@@ -1311,7 +1311,7 @@ btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width       = btor_get_exp_width (btor, e0);
   sign_e1     = btor_exp_slice (btor, e0, width - 1, width - 1);
@@ -1344,7 +1344,7 @@ btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_UDIV_NODE, e0, e1);
@@ -1367,7 +1367,7 @@ btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_get_exp_width (btor, e0);
 
@@ -1409,7 +1409,7 @@ btor_exp_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   int_min = int_min_exp (btor, btor_get_exp_width (btor, e0));
   ones    = btor_exp_ones (btor, btor_exp_get_sort_id (e1));
@@ -1433,7 +1433,7 @@ btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_UREM_NODE, e0, e1);
@@ -1456,7 +1456,7 @@ btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_get_exp_width (btor, e0);
 
@@ -1500,7 +1500,7 @@ btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width     = btor_get_exp_width (btor, e0);
   zero      = btor_exp_zero (btor, btor_exp_get_sort_id (e0));
@@ -1567,7 +1567,7 @@ btor_exp_read (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
-  assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
+  assert (btor_dbg_precond_read_exp (btor, e_array, e_index));
   return btor_exp_apply_n (btor, e_array, &e_index, 1);
 }
 
@@ -1590,7 +1590,7 @@ btor_exp_write (Btor *btor,
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   e_value = btor_simplify_exp (btor, e_value);
-  assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
+  assert (btor_dbg_precond_write_exp (btor, e_array, e_index, e_value));
 
   param  = btor_exp_param (btor, btor_exp_get_sort_id (e_index), 0);
   e_cond = btor_exp_eq (btor, param, e_index);
@@ -1647,7 +1647,7 @@ btor_exp_inc (Btor *btor, BtorNode *exp)
   BtorNode *one, *result;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   one    = btor_exp_one (btor, btor_exp_get_sort_id (exp));
   result = btor_exp_add (btor, exp, one);
@@ -1663,7 +1663,7 @@ btor_exp_dec (Btor *btor, BtorNode *exp)
   BtorNode *one, *result;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   one    = btor_exp_one (btor, btor_exp_get_sort_id (exp));
   result = btor_exp_sub (btor, exp, one);

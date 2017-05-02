@@ -159,7 +159,7 @@ btor_dbg_check_assumptions_simp_free (const Btor *btor)
 /*------------------------------------------------------------------------*/
 
 bool
-btor_precond_slice_exp_dbg (Btor *btor,
+btor_dbg_precond_slice_exp (Btor *btor,
                             const BtorNode *exp,
                             uint32_t upper,
                             uint32_t lower)
@@ -175,14 +175,14 @@ btor_precond_slice_exp_dbg (Btor *btor,
 }
 
 bool
-btor_precond_ext_exp_dbg (Btor *btor, const BtorNode *exp)
+btor_dbg_precond_ext_exp (Btor *btor, const BtorNode *exp)
 {
-  assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
+  assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
   return true;
 }
 
 bool
-btor_precond_regular_unary_bv_exp_dbg (Btor *btor, const BtorNode *exp)
+btor_dbg_precond_regular_unary_bv_exp (Btor *btor, const BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -193,7 +193,7 @@ btor_precond_regular_unary_bv_exp_dbg (Btor *btor, const BtorNode *exp)
 }
 
 bool
-btor_precond_eq_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
+btor_dbg_precond_eq_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
 
@@ -218,7 +218,7 @@ btor_precond_eq_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 }
 
 bool
-btor_precond_concat_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
+btor_dbg_precond_concat_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 {
   assert (btor);
   assert (e0);
@@ -235,7 +235,7 @@ btor_precond_concat_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 }
 
 bool
-btor_precond_shift_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
+btor_dbg_precond_shift_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 {
   assert (btor);
   assert (e0);
@@ -254,7 +254,7 @@ btor_precond_shift_exp_dbg (Btor *btor, const BtorNode *e0, const BtorNode *e1)
 }
 
 bool
-btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
+btor_dbg_precond_regular_binary_bv_exp (Btor *btor,
                                         const BtorNode *e0,
                                         const BtorNode *e1)
 {
@@ -272,7 +272,7 @@ btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
 }
 
 bool
-btor_precond_read_exp_dbg (Btor *btor,
+btor_dbg_precond_read_exp (Btor *btor,
                            const BtorNode *e_array,
                            const BtorNode *e_index)
 {
@@ -293,7 +293,7 @@ btor_precond_read_exp_dbg (Btor *btor,
 }
 
 bool
-btor_precond_write_exp_dbg (Btor *btor,
+btor_dbg_precond_write_exp (Btor *btor,
                             const BtorNode *e_array,
                             const BtorNode *e_index,
                             const BtorNode *e_value)
@@ -321,7 +321,7 @@ btor_precond_write_exp_dbg (Btor *btor,
 }
 
 bool
-btor_precond_cond_exp_dbg (Btor *btor,
+btor_dbg_precond_cond_exp (Btor *btor,
                            const BtorNode *e_cond,
                            const BtorNode *e_if,
                            const BtorNode *e_else)
@@ -350,7 +350,7 @@ btor_precond_cond_exp_dbg (Btor *btor,
 }
 
 bool
-btor_precond_apply_exp_dbg (Btor *btor,
+btor_dbg_precond_apply_exp (Btor *btor,
                             const BtorNode *fun,
                             const BtorNode *args)
 {

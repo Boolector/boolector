@@ -2070,7 +2070,7 @@ BtorNode *
 btor_slice_exp_node (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
+  assert (btor_dbg_precond_slice_exp (btor, exp, upper, lower));
   return unary_exp_slice_exp (btor, exp, upper, lower);
 }
 
@@ -2080,7 +2080,7 @@ btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_AND_NODE, 2, e);
 }
 
@@ -2092,7 +2092,7 @@ btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_eq_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_eq_exp (btor, e[0], e[1]));
   if (btor_is_fun_node (e[0]))
     kind = BTOR_FUN_EQ_NODE;
   else
@@ -2106,7 +2106,7 @@ btor_add_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_ADD_NODE, 2, e);
 }
 
@@ -2116,7 +2116,7 @@ btor_mul_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_MUL_NODE, 2, e);
 }
 
@@ -2126,7 +2126,7 @@ btor_ult_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_ULT_NODE, 2, e);
 }
 
@@ -2136,7 +2136,7 @@ btor_sll_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_shift_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_SLL_NODE, 2, e);
 }
 
@@ -2146,7 +2146,7 @@ btor_srl_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_shift_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_SRL_NODE, 2, e);
 }
 
@@ -2156,7 +2156,7 @@ btor_udiv_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_UDIV_NODE, 2, e);
 }
 
@@ -2166,7 +2166,7 @@ btor_urem_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_UREM_NODE, 2, e);
 }
 
@@ -2176,7 +2176,7 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
-  assert (btor_precond_concat_exp_dbg (btor, e[0], e[1]));
+  assert (btor_dbg_precond_concat_exp (btor, e[0], e[1]));
   return create_exp (btor, BTOR_CONCAT_NODE, 2, e);
 }
 
@@ -2193,7 +2193,7 @@ btor_cond_exp_node (Btor *btor,
   e[0] = btor_simplify_exp (btor, e_cond);
   e[1] = btor_simplify_exp (btor, e_if);
   e[2] = btor_simplify_exp (btor, e_else);
-  assert (btor_precond_cond_exp_dbg (btor, e[0], e[1], e[2]));
+  assert (btor_dbg_precond_cond_exp (btor, e[0], e[1], e[2]));
 
   /* represent parameterized function conditionals (with parameterized
    * functions) as parameterized function
@@ -2353,7 +2353,7 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (args);
   assert (btor == BTOR_REAL_ADDR_NODE (fun)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (args)->btor);
-  assert (btor_precond_apply_exp_dbg (btor, fun, args));
+  assert (btor_dbg_precond_apply_exp (btor, fun, args));
 
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, fun);

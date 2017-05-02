@@ -5720,7 +5720,7 @@ rewrite_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   BtorNode *result = 0;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
+  assert (btor_dbg_precond_slice_exp (btor, exp, upper, lower));
 
   ADD_RW_RULE (full_slice, exp, upper, lower);
   ADD_RW_RULE (const_slice, exp, upper, lower);
@@ -5750,7 +5750,7 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_eq_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_eq_exp (btor, e0, e1));
 
   kind = btor_is_fun_node (e0) ? BTOR_FUN_EQ_NODE : BTOR_BV_EQ_NODE;
 
@@ -5812,7 +5812,7 @@ rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -5844,7 +5844,7 @@ rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -5903,7 +5903,7 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -5950,7 +5950,7 @@ rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -5994,7 +5994,7 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -6027,7 +6027,7 @@ rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -6060,7 +6060,7 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_concat_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_concat_exp (btor, e0, e1));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
@@ -6090,7 +6090,7 @@ rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   ADD_RW_RULE (const_binary_exp, BTOR_SLL_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SLL_NODE, e0, e1);
@@ -6111,7 +6111,7 @@ rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   ADD_RW_RULE (const_binary_exp, BTOR_SRL_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SRL_NODE, e0, e1);
@@ -6132,7 +6132,7 @@ rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_apply_exp_dbg (btor, e0, e1));
+  assert (btor_dbg_precond_apply_exp (btor, e0, e1));
 
   ADD_RW_RULE (const_lambda_apply, e0, e1);
   ADD_RW_RULE (param_lambda_apply, e0, e1);
@@ -6174,7 +6174,7 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   e2 = btor_simplify_exp (btor, e2);
-  assert (btor_precond_cond_exp_dbg (btor, e0, e1, e2));
+  assert (btor_dbg_precond_cond_exp (btor, e0, e1, e2));
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
