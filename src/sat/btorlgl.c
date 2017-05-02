@@ -11,7 +11,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "sat/btorsatlgl.h"
+#include "sat/btorlgl.h"
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_LINGELING

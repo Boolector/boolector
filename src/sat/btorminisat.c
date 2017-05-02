@@ -11,15 +11,15 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "sat/btorsatminisat.h"
+#include "sat/btorminisat.h"
 #include "btorabort.h"
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_MINISAT
 /*------------------------------------------------------------------------*/
 
+#include "btorcminisat.h"
 #include "btorcore.h"
-#include "btorminisat.h"
 
 bool
 btor_sat_enable_minisat (BtorSATMgr* smgr)

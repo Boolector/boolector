@@ -28,7 +28,7 @@
 
 extern "C" {
 
-#include "btorminisat.h"
+#include "btorcminisat.h"
 #include "btoropt.h"
 #include "btorsat.h"
 

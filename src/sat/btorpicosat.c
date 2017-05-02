@@ -11,7 +11,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "sat/btorsatpicosat.h"
+#include "sat/btorpicosat.h"
 #include "btorabort.h"
 
 /*------------------------------------------------------------------------*/
