@@ -1288,8 +1288,6 @@ RESTART:
         parser->last_node = node;
         return BTOR_SYMBOL_TAG_SMT2;
       }
-      if (!(cc_smt2 (parser, ch) & BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2))
-        return !cerr_smt2 (parser, "invalid", ch, "in quoted symbol");
       pushch_smt2 (parser, ch);
     }
   }
