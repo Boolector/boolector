@@ -14,6 +14,7 @@
 #include "btorcore.h"
 
 #include "btorclone.h"
+#include "btorexp.h"
 #include "btormodel.h"
 #include "btorrewrite.h"
 #include "btorslvaigprop.h"

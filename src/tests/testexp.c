@@ -12,6 +12,7 @@
 
 #include "testexp.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "dumper/btordumpbtor.h"
 #include "testrunner.h"
 

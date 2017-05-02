@@ -11,6 +11,7 @@
 #include "testprop.h"
 #include "btorbv.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "btormodel.h"
 #include "btornode.h"
 #include "btorslvpropsls.h"

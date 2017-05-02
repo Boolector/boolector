@@ -11,6 +11,7 @@
 #include "testpropinv.h"
 #include "btorbv.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "btornode.h"
 #include "btorslvpropsls.h"
 #include "testrunner.h"

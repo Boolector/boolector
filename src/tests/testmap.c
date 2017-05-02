@@ -12,6 +12,7 @@
 
 #include "testmap.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "btornode.h"
 #include "testrunner.h"
 #include "utils/btornodemap.h"

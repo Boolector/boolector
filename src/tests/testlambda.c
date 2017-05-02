@@ -11,6 +11,7 @@
 
 #include "btorbeta.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "testexp.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
