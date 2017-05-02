@@ -14,7 +14,7 @@
 #ifndef BTORREWRITE_H_INCLUDED
 #define BTORREWRITE_H_INCLUDED
 
-#include "btorexp.h"
+#include "btornode.h"
 
 /*------------------------------------------------------------------------*/
 

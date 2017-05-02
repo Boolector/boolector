@@ -11,7 +11,7 @@
 
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btorexp.h"
+#include "btornode.h"
 #include "btorslvfun.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"

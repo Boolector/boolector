@@ -14,7 +14,7 @@
 
 #include "btorabort.h"
 #include "btorcore.h"
-#include "btorexp.h"
+#include "btornode.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>

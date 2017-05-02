@@ -11,7 +11,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorexp.h"
+#include "btornode.h"
 
 #include "btorabort.h"
 #include "btoraig.h"

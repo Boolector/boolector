@@ -16,9 +16,9 @@
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btorexp.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btornode.h"
 #include "btoropt.h"
 
 #include "utils/btorhashint.h"

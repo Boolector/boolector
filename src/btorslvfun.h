@@ -12,7 +12,7 @@
 #ifndef BTORSLVFUN_H_INCLUDED
 #define BTORSLVFUN_H_INCLUDED
 
-#include "btorexp.h"
+#include "btornode.h"
 #include "btorslv.h"
 #include "utils/btorhashptr.h"
 

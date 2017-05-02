@@ -15,8 +15,8 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
-#include "btorexp.h"
 #include "btormsg.h"
+#include "btornode.h"
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorslv.h"

@@ -10,8 +10,8 @@
  */
 
 #include "testmc.h"
-#include "btorexp.h"
 #include "btormc.h"
+#include "btornode.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG
