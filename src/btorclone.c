@@ -25,7 +25,7 @@
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "btorsort.h"
-#include "sat/btorsatlgl.h"
+#include "sat/btorlgl.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodemap.h"
