@@ -17,6 +17,8 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
+#include "btordbg.h"
+#include "btorexp.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "utils/btorhashint.h"

@@ -14,6 +14,7 @@
 #include "simplifier/btorunconstrained.h"
 #include "btorcore.h"
 #include "btordbg.h"
+#include "btorexp.h"
 #include "btormsg.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"

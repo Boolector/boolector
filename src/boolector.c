@@ -19,6 +19,7 @@
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btorexit.h"
+#include "btorexp.h"
 #include "btormodel.h"
 #include "btorparse.h"
 #include "btorprintmodel.h"

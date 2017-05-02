@@ -14,6 +14,8 @@
 #include "btorbeta.h"
 #include "btorbv.h"
 #include "btorcore.h"
+#include "btordbg.h"
+#include "btorexp.h"
 #include "btorlog.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"

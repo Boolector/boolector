@@ -17,6 +17,7 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btordcr.h"
+#include "btorexp.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btoropt.h"

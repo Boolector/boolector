@@ -13,6 +13,7 @@
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
+#include "btorexp.h"
 #include "btorlog.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"

@@ -12,6 +12,7 @@
  */
 
 #include "btorexit.h"
+#include "btorexp.h"
 #include "btorsort.h"
 #ifndef NDEBUG
 #include "btorclone.h"

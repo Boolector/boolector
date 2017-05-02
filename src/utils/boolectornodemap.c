@@ -12,6 +12,7 @@
 
 #include "utils/boolectornodemap.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 

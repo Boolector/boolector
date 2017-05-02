@@ -19,6 +19,7 @@
 
 #include <limits.h>
 #include "utils/btorhashptr.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* core                                                                   */

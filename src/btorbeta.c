@@ -11,6 +11,7 @@
  */
 
 #include "btorbeta.h"
+#include "btorexp.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "btorslvfun.h"
