@@ -87,10 +87,10 @@ btor_ass_new_bv (BtorBVAssList *list, char *ass)
   assert (ass);
 
   BtorBVAss *res;
-  int len;
+  uint32_t len;
 
   len = strlen (ass) + 1;
-  res = btor_calloc (list->mm, sizeof (BtorBVAss) + len, sizeof (char));
+  res = btor_mem_calloc (list->mm, sizeof (BtorBVAss) + len, sizeof (char));
   strcpy ((char *) res + sizeof (BtorBVAss), ass);
   res->prev = list->last;
   if (list->first)
@@ -140,7 +140,7 @@ btor_ass_release_bv (BtorBVAssList *list, const char *ass)
     bvass->next->prev = bvass->prev;
   else
     list->last = bvass->prev;
-  btor_free (list->mm, bvass, sizeof (BtorBVAss) + strlen (ass) + 1);
+  btor_mem_free (list->mm, bvass, sizeof (BtorBVAss) + strlen (ass) + 1);
 }
 
 /*------------------------------------------------------------------------*/
@@ -185,7 +185,7 @@ btor_ass_clone_fun_list (BtorMemMgr *mm, BtorFunAssList *list)
 }
 
 void
-btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup)
+btor_ass_delete_fun_list (BtorFunAssList *list, bool auto_cleanup)
 {
   assert (list);
 
@@ -203,7 +203,7 @@ btor_ass_delete_fun_list (BtorFunAssList *list, int auto_cleanup)
 }
 
 BtorFunAss *
-btor_ass_get_fun (const char **indices, const char **values, int size)
+btor_ass_get_fun (const char **indices, const char **values, uint32_t size)
 {
   assert (indices);
   assert (values);
@@ -222,7 +222,7 @@ void
 btor_ass_get_fun_indices_values (BtorFunAss *ass,
                                  char ***indices,
                                  char ***values,
-                                 int size)
+                                 uint32_t size)
 {
   assert (ass);
   assert (indices);
@@ -237,7 +237,10 @@ btor_ass_get_fun_indices_values (BtorFunAss *ass,
 }
 
 BtorFunAss *
-btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
+btor_ass_new_fun (BtorFunAssList *list,
+                  char **indices,
+                  char **values,
+                  uint32_t size)
 {
   assert (list);
   assert (indices);
@@ -245,11 +248,11 @@ btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
 
   BtorFunAss *res;
   char **ind, **val;
-  int i;
+  uint32_t i;
 
-  res       = btor_calloc (list->mm,
-                     sizeof (BtorFunAss) + 2 * size * sizeof (char *),
-                     sizeof (char));
+  res       = btor_mem_calloc (list->mm,
+                         sizeof (BtorFunAss) + 2 * size * sizeof (char *),
+                         sizeof (char));
   res->size = size;
   if (list->first)
     list->last->next = res;
@@ -260,8 +263,8 @@ btor_ass_new_fun (BtorFunAssList *list, char **indices, char **values, int size)
   btor_ass_get_fun_indices_values (res, &ind, &val, size);
   for (i = 0; i < size; i++)
   {
-    ind[i] = btor_strdup (list->mm, indices[i]);
-    val[i] = btor_strdup (list->mm, values[i]);
+    ind[i] = btor_mem_strdup (list->mm, indices[i]);
+    val[i] = btor_mem_strdup (list->mm, values[i]);
   }
 
   list->count += 1;
@@ -287,7 +290,7 @@ void
 btor_ass_release_fun (BtorFunAssList *list,
                       char **indices,
                       char **values,
-                      int size)
+                      uint32_t size)
 
 {
   assert (list);
@@ -295,7 +298,7 @@ btor_ass_release_fun (BtorFunAssList *list,
   assert (values);
   assert (size);
 
-  int i;
+  uint32_t i;
   BtorFunAss *funass;
 
   assert (list->count);
@@ -318,9 +321,9 @@ btor_ass_release_fun (BtorFunAssList *list,
 
   for (i = 0; i < size; i++)
   {
-    btor_freestr (list->mm, indices[i]);
-    btor_freestr (list->mm, values[i]);
+    btor_mem_freestr (list->mm, indices[i]);
+    btor_mem_freestr (list->mm, values[i]);
   }
-  btor_free (
+  btor_mem_free (
       list->mm, funass, sizeof (BtorFunAss) + 2 * size * sizeof (char *));
 }

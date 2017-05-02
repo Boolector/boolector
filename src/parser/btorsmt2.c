@@ -359,10 +359,10 @@ perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
+    bytes = btor_mem_parse_error_msg_length (parser->infile_name, fmt, ap);
     va_end (ap);
     va_start (ap, fmt);
-    parser->error = btor_parse_error_message (parser->mem,
+    parser->error = btor_mem_parse_error_msg (parser->mem,
                                               parser->infile_name,
                                               xcoo_smt2 (parser),
                                               ycoo_smt2 (parser),
@@ -558,7 +558,7 @@ release_symbol_smt2 (BtorSMT2Parser *parser, BtorSMT2Node *symbol)
 {
   assert (symbol->tag != BTOR_PARENT_TAG_SMT2);
   if (symbol->exp) boolector_release (parser->btor, symbol->exp);
-  btor_freestr (parser->mem, symbol->name);
+  btor_mem_freestr (parser->mem, symbol->name);
   BTOR_DELETE (parser->mem, symbol);
 }
 
@@ -593,7 +593,7 @@ release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
     boolector_release (parser->btor, item->exp);
   }
   else if (item->tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
-    btor_freestr (parser->mem, item->str);
+    btor_mem_freestr (parser->mem, item->str);
 }
 
 static unsigned
@@ -607,7 +607,7 @@ static void
 open_new_scope (BtorSMT2Parser *parser)
 {
   double start;
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
 
   parser->num_scopes++;
   BTOR_PUSH_STACK (parser->assumptions_trail,
@@ -619,7 +619,7 @@ open_new_scope (BtorSMT2Parser *parser)
             2,
             "opened new scope at level %d in %.3f seconds",
             BTOR_COUNT_STACK (parser->assumptions_trail) - 1,
-            btor_time_stamp () - start);
+            btor_util_time_stamp () - start);
 }
 
 static void
@@ -631,7 +631,7 @@ close_current_scope (BtorSMT2Parser *parser)
   unsigned i, offset, scope_level;
   BtorSMT2Node *node, *next;
 
-  start       = btor_time_stamp ();
+  start       = btor_util_time_stamp ();
   scope_level = BTOR_COUNT_STACK (parser->assumptions_trail);
   offset      = BTOR_POP_STACK (parser->assumptions_trail);
   while (BTOR_COUNT_STACK (parser->assumptions) > offset)
@@ -659,7 +659,7 @@ close_current_scope (BtorSMT2Parser *parser)
             2,
             "closed scope at level %d in %.3f seconds",
             BTOR_COUNT_STACK (parser->assumptions_trail),
-            btor_time_stamp () - start);
+            btor_util_time_stamp () - start);
 }
 
 static char *
@@ -671,12 +671,12 @@ create_symbol_current_scope (BtorSMT2Parser *parser, char *symbol)
   {
     len = strlen (symbol) + 1;
     len += strlen ("BTOR@");
-    len += btor_num_digits_util (parser->num_scopes);
+    len += btor_util_num_digits (parser->num_scopes);
     BTOR_CNEWN (parser->mem, symb, len);
     sprintf (symb, "BTOR@%u%s", parser->num_scopes, symbol);
   }
   else
-    symb = btor_strdup (parser->mem, symbol);
+    symb = btor_mem_strdup (parser->mem, symbol);
   return symb;
 }
 
@@ -696,7 +696,7 @@ open_new_btor_scope (BtorSMT2Parser *parser)
   Btor *scope;
   BtorSMT2Node *node;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   /* create new boolector instance (new scope) */
   scope = boolector_clone (get_current_btor_scope (parser));
   //  boolector_set_opt (scope, BTOR_OPT_AUTO_CLEANUP, 1);
@@ -721,7 +721,7 @@ open_new_btor_scope (BtorSMT2Parser *parser)
             2,
             "opened new scope at level %d in %.3f seconds",
             BTOR_COUNT_STACK (parser->btor_scopes) - 1,
-            btor_time_stamp () - start);
+            btor_util_time_stamp () - start);
   parser->btor = scope;
 }
 
@@ -736,7 +736,7 @@ close_current_btor_scope (BtorSMT2Parser *parser)
   BtorSMT2Node *node, *next;
   BtorSMT2Item item;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   /* restore previous boolector instance (scope) */
   scope_level = BTOR_COUNT_STACK (parser->btor_scopes);
   /* pop current scope */
@@ -784,7 +784,7 @@ close_current_btor_scope (BtorSMT2Parser *parser)
             2,
             "closed scope at level %d in %.3f seconds",
             BTOR_COUNT_STACK (parser->btor_scopes),
-            btor_time_stamp () - start);
+            btor_util_time_stamp () - start);
 }
 #endif
 
@@ -824,12 +824,12 @@ init_char_classes_smt2 (BtorSMT2Parser *parser)
     cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
 }
 
-#define INSERT(STR, TAG)                                   \
-  do                                                       \
-  {                                                        \
-    BtorSMT2Node *NODE = new_node_smt2 (parser, (TAG));    \
-    NODE->name         = btor_strdup (parser->mem, (STR)); \
-    insert_symbol_smt2 (parser, NODE);                     \
+#define INSERT(STR, TAG)                                       \
+  do                                                           \
+  {                                                            \
+    BtorSMT2Node *NODE = new_node_smt2 (parser, (TAG));        \
+    NODE->name         = btor_mem_strdup (parser->mem, (STR)); \
+    insert_symbol_smt2 (parser, NODE);                         \
   } while (0)
 
 static void
@@ -1012,7 +1012,7 @@ static BtorSMT2Parser *
 new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMT2Parser *res;
-  BtorMemMgr *mem = btor_new_mem_mgr ();
+  BtorMemMgr *mem = btor_mem_mgr_new ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
   res->verbosity     = opts->verbosity;
@@ -1081,8 +1081,8 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   release_symbols_smt2 (parser);
   release_work_smt2 (parser);
 
-  if (parser->infile_name) btor_freestr (mem, parser->infile_name);
-  if (parser->error) btor_freestr (mem, parser->error);
+  if (parser->infile_name) btor_mem_freestr (mem, parser->infile_name);
+  if (parser->error) btor_mem_freestr (mem, parser->error);
 
   while (!BTOR_EMPTY_STACK (parser->inputs))
     boolector_release (parser->btor, BTOR_POP_STACK (parser->inputs));
@@ -1106,7 +1106,7 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   BTOR_RELEASE_STACK (parser->token);
 
   BTOR_DELETE (mem, parser);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }
 
 static bool
@@ -1255,7 +1255,7 @@ RESTART:
         if (!(node = find_symbol_smt2 (parser, parser->token.start)))
         {
           node       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-          node->name = btor_strdup (parser->mem, parser->token.start);
+          node->name = btor_mem_strdup (parser->mem, parser->token.start);
           insert_symbol_smt2 (parser, node);
         }
         parser->last_node = node;
@@ -1285,7 +1285,7 @@ RESTART:
     if (!(node = find_symbol_smt2 (parser, parser->token.start)))
     {
       node       = new_node_smt2 (parser, BTOR_ATTRIBUTE_TAG_SMT2);
-      node->name = btor_strdup (parser->mem, parser->token.start);
+      node->name = btor_mem_strdup (parser->mem, parser->token.start);
       insert_symbol_smt2 (parser, node);
     }
     parser->last_node = node;
@@ -1365,7 +1365,7 @@ RESTART:
     if (!(node = find_symbol_smt2 (parser, parser->token.start)))
     {
       node       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-      node->name = btor_strdup (parser->mem, parser->token.start);
+      node->name = btor_mem_strdup (parser->mem, parser->token.start);
       insert_symbol_smt2 (parser, node);
     }
     parser->last_node = node;
@@ -2049,7 +2049,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   int32_t k, tag, open = 0, work_cnt;
   uint32_t i, j, nargs, width, width2, domain;
   BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
-  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, int);
+  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
   BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
@@ -2963,8 +2963,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               char *constr, *decstr;
               BtorSMT2Coo coo;
               exp    = 0;
-              decstr = btor_strdup (parser->mem, parser->token.start + 2);
-              constr = btor_dec_to_bin_str_util (parser->mem,
+              decstr = btor_mem_strdup (parser->mem, parser->token.start + 2);
+              constr = btor_util_dec_to_bin_str (parser->mem,
                                                  parser->token.start + 2);
               coo    = parser->coo;
               coo.y += 2;
@@ -3003,13 +3003,13 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                 }
                 uconstr = btor_bv_to_char (parser->mem, uconstrbv);
                 exp     = boolector_const (parser->btor, uconstr);
-                btor_freestr (parser->mem, uconstr);
+                btor_mem_freestr (parser->mem, uconstr);
                 btor_bv_free (parser->mem, uconstrbv);
                 if (constrbv) btor_bv_free (parser->mem, constrbv);
               }
             UNDERSCORE_DONE:
-              btor_freestr (parser->mem, decstr);
-              btor_freestr (parser->mem, constr);
+              btor_mem_freestr (parser->mem, decstr);
+              btor_mem_freestr (parser->mem, constr);
               if (!exp) return 0;
               assert (boolector_get_width (parser->btor, exp) == width);
               assert (p > parser->work.start);
@@ -3086,12 +3086,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         char *constr, *uconstr;
         BtorBitVector *constrbv = 0, *uconstrbv;
         constr =
-            btor_hex_to_bin_str_util (parser->mem, parser->token.start + 2);
+            btor_util_hex_to_bin_str (parser->mem, parser->token.start + 2);
         width2 = strlen (constr);
         width  = strlen (parser->token.start + 2) * 4;
         assert (width2 <= width);
         if (width2 == width)
-          uconstr = btor_strdup (parser->mem, constr);
+          uconstr = btor_mem_strdup (parser->mem, constr);
         else
         {
           if (!strcmp (constr, ""))
@@ -3107,8 +3107,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         }
         p->tag = BTOR_EXP_TAG_SMT2;
         p->exp = boolector_const (parser->btor, uconstr);
-        btor_freestr (parser->mem, uconstr);
-        btor_freestr (parser->mem, constr);
+        btor_mem_freestr (parser->mem, uconstr);
+        btor_mem_freestr (parser->mem, constr);
       }
       else
         return !perr_smt2 (
@@ -3350,7 +3350,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     {
       symbol   = create_symbol_current_scope (parser, fun->name);
       fun->exp = boolector_var (parser->btor, sort, symbol);
-      btor_freestr (parser->mem, symbol);
+      btor_mem_freestr (parser->mem, symbol);
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "declared '%s' as bit-vector at line %d column %d",
@@ -3387,7 +3387,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     symbol   = create_symbol_current_scope (parser, fun->name);
     fun->exp = boolector_uf (parser->btor, s, symbol);
     boolector_release_sort (parser->btor, s);
-    btor_freestr (parser->mem, symbol);
+    btor_mem_freestr (parser->mem, symbol);
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               2,
               "declared '%s' as uninterpreted function at line %d column %d",
@@ -3590,7 +3590,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       fun->exp = tmp;
       symbol   = create_symbol_current_scope (parser, fun->name);
       boolector_set_symbol (parser->btor, fun->exp, symbol);
-      btor_freestr (parser->mem, symbol);
+      btor_mem_freestr (parser->mem, symbol);
       parser->need_functions = 1;
     }
     while (!BTOR_EMPTY_STACK (args))
@@ -3746,9 +3746,9 @@ set_option_smt2 (BtorSMT2Parser *parser)
     else
     {
       opt = parser->token.start + 1;
-      if (!btor_get_ptr_hash_table (parser->btor->str2opt, opt))
+      if (!btor_hashptr_table_get (parser->btor->str2opt, opt))
         return !perr_smt2 (parser, "unsupported option: '%s'", opt);
-      o = btor_get_ptr_hash_table (parser->btor->str2opt, opt)->data.as_int;
+      o = btor_hashptr_table_get (parser->btor->str2opt, opt)->data.as_int;
     }
 
     tag = read_token_smt2 (parser);
@@ -3916,7 +3916,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
                   1,
                   "parsed %d commands in %.2f seconds",
                   parser->commands.all,
-                  btor_time_stamp () - parser->parse_start);
+                  btor_util_time_stamp () - parser->parse_start);
         parser->res->result = boolector_sat (parser->btor);
         parser->res->nsatcalls += 1;
         if (parser->res->result == BOOLECTOR_SAT)
@@ -4110,14 +4110,14 @@ parse_smt2_parser (BtorSMT2Parser *parser,
                    FILE *outfile,
                    BtorParseResult *res)
 {
-  double start = btor_time_stamp (), delta;
+  double start = btor_util_time_stamp (), delta;
 
   parser->nprefix     = 0;
   parser->prefix      = prefix;
   parser->nextcoo.x   = 1;
   parser->nextcoo.y   = 1;
   parser->infile      = infile;
-  parser->infile_name = btor_strdup (parser->mem, infile_name);
+  parser->infile_name = btor_mem_strdup (parser->mem, infile_name);
   parser->outfile     = outfile;
   parser->saved       = 0;
   parser->parse_start = start;
@@ -4166,7 +4166,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   parser->res->outputs  = parser->outputs.start;
   parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
-  delta                 = btor_time_stamp () - start;
+  delta                 = btor_util_time_stamp () - start;
   if (delta < 0) delta = 0;
   BTOR_MSG (boolector_get_btor_msg (parser->btor),
             1,
@@ -4196,13 +4196,13 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   return 0;
 }
 
-static BtorParserAPI static_btor_smt2_parser_api = {
+static BtorParserAPI static_btor_parsesmt2_parser_api = {
     (BtorInitParser) new_smt2_parser,
     (BtorResetParser) delete_smt2_parser,
     (BtorParse) parse_smt2_parser};
 
 const BtorParserAPI *
-btor_smt2_parser_api ()
+btor_parsesmt2_parser_api ()
 {
-  return &static_btor_smt2_parser_api;
+  return &static_btor_parsesmt2_parser_api;
 }

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -21,10 +21,10 @@
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
-static int
+static bool
 has_compressed_suffix (const char *str, const char *suffix)
 {
-  int l = strlen (str), k = strlen (suffix), d = l - k;
+  int32_t l = strlen (str), k = strlen (suffix), d = l - k;
   if (d < 0) return 0;
   if (!strcmp (str + d, suffix)) return 1;
   if (d - 3 >= 0 && !strcmp (str + l - 3, ".gz") && !strcmp (str + l - 3, ".7z")
@@ -34,7 +34,7 @@ has_compressed_suffix (const char *str, const char *suffix)
 }
 
 /* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
-static int
+static int32_t
 parse_aux (Btor *btor,
            FILE *infile,
            BtorCharStack *prefix,
@@ -42,7 +42,7 @@ parse_aux (Btor *btor,
            FILE *outfile,
            const BtorParserAPI *parser_api,
            char **error_msg,
-           int *status,
+           int32_t *status,
            char *msg)
 {
   assert (btor);
@@ -57,16 +57,17 @@ parse_aux (Btor *btor,
   BtorParseOpt parse_opt;
   BtorParseResult parse_res;
   BoolectorNode *root;
-  int i, root_len, res;
+  uint32_t i, root_len;
+  int32_t res;
   char *emsg;
 
   res                        = BOOLECTOR_UNKNOWN;
   *error_msg                 = 0;
-  parse_opt.verbosity        = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental      = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
-  parse_opt.incremental_smt1 = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
-  parse_opt.interactive      = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
-  parse_opt.need_model       = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  parse_opt.verbosity        = btor_opt_get (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental      = btor_opt_get (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.incremental_smt1 = btor_opt_get (btor, BTOR_OPT_INCREMENTAL_SMT1);
+  parse_opt.interactive      = btor_opt_get (btor, BTOR_OPT_PARSE_INTERACTIVE);
+  parse_opt.need_model       = btor_opt_get (btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
@@ -75,7 +76,7 @@ parse_aux (Btor *btor,
            parser, prefix, infile, infile_name, outfile, &parse_res)))
   {
     res                   = BOOLECTOR_PARSE_ERROR;
-    btor->parse_error_msg = btor_strdup (btor->mm, emsg);
+    btor->parse_error_msg = btor_mem_strdup (btor->mm, emsg);
     *error_msg            = btor->parse_error_msg;
   }
   else
@@ -136,13 +137,13 @@ parse_aux (Btor *btor,
   return res;
 }
 
-int
+int32_t
 btor_parse (Btor *btor,
             FILE *infile,
             const char *infile_name,
             FILE *outfile,
             char **error_msg,
-            int *status)
+            int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -152,30 +153,31 @@ btor_parse (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  int first, second, res, len;
+  int32_t first, second, res;
+  uint32_t len;
   char ch, *msg;
   BtorCharStack prefix;
   BtorMemMgr *mem;
 
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
   BTOR_INIT_STACK (mem, prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
-    parser_api = btor_btor_parser_api ();
+    parser_api = btor_parsebtor_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else if (has_compressed_suffix (infile_name, ".smt2"))
   {
-    parser_api = btor_smt2_parser_api ();
+    parser_api = btor_parsesmt2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else
   {
     first = second = 0;
-    parser_api     = btor_btor_parser_api ();
+    parser_api     = btor_parsebtor_parser_api ();
     sprintf (msg, "assuming BTOR input, parsing '%s'", infile_name);
     for (;;)
     {
@@ -213,13 +215,13 @@ btor_parse (Btor *btor,
       {
         if (second == 'b')
         {
-          parser_api = btor_smt_parser_api ();
+          parser_api = btor_parsesmt_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v1 input,  parsing '%s'", infile_name);
         }
         else
         {
-          parser_api = btor_smt2_parser_api ();
+          parser_api = btor_parsesmt2_parser_api ();
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
@@ -239,19 +241,19 @@ btor_parse (Btor *btor,
 
   /* cleanup */
   BTOR_RELEASE_STACK (prefix);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
   BTOR_DELETEN (btor->mm, msg, len);
 
   return res;
 }
 
-int
+int32_t
 btor_parse_btor (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -261,18 +263,18 @@ btor_parse_btor (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_btor_parser_api ();
+  parser_api = btor_parsebtor_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
-int
+int32_t
 btor_parse_smt1 (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -282,18 +284,18 @@ btor_parse_smt1 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt_parser_api ();
+  parser_api = btor_parsesmt_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
-int
+int32_t
 btor_parse_smt2 (Btor *btor,
                  FILE *infile,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int *status)
+                 int32_t *status)
 {
   assert (btor);
   assert (infile);
@@ -303,7 +305,7 @@ btor_parse_smt2 (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  parser_api = btor_smt2_parser_api ();
+  parser_api = btor_parsesmt2_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }

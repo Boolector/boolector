@@ -80,7 +80,7 @@ new_btorunt (void)
   BtorUNT *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
   BTOR_INIT_STACK (mm, res->btor_opts);
@@ -100,12 +100,12 @@ delete_btorunt (BtorUNT *unt)
   {
     o = BTOR_PEEK_STACK (unt->btor_opts, i);
     assert (o);
-    btor_freestr (mm, o->name);
+    btor_mem_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
   BTOR_RELEASE_STACK (unt->btor_opts);
   BTOR_DELETE (mm, unt);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static bool
@@ -205,13 +205,25 @@ boolarg (char *op)
   return !strcmp (tok, "true") ? true : false;
 }
 
-static int
+static int32_t
 intarg (char *op)
 {
   const char *tok;
   if (!(tok = strtok (0, " ")) || !isnumstr (tok))
   {
     btorunt_parse_error ("expected integer argument for '%s'", op);
+  }
+  assert (tok);
+  return atoi (tok);
+}
+
+static int32_t
+uintarg (char *op)
+{
+  const char *tok;
+  if (!(tok = strtok (0, " ")) || !isnumstr (tok) || tok[0] == '-')
+  {
+    btorunt_parse_error ("expected unsigned integer argument for '%s'", op);
   }
   assert (tok);
   return atoi (tok);
@@ -255,7 +267,7 @@ hmap_get (BtorPtrHashTable *hmap, char *key)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket) btorunt_error ("'%s' is not hashed", key);
   assert (bucket);
   return bucket->data.as_ptr;
@@ -275,13 +287,13 @@ hmap_add (BtorPtrHashTable *hmap, char *key, void *value)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket)
   {
     char *key_cp;
     BTOR_NEWN (hmap->mm, key_cp, (strlen (key) + 1));
     strcpy (key_cp, key);
-    bucket = btor_add_ptr_hash_table (hmap, key_cp);
+    bucket = btor_hashptr_table_add (hmap, key_cp);
   }
   assert (bucket);
   bucket->data.as_ptr = value;
@@ -297,7 +309,7 @@ hmap_clear (BtorPtrHashTable *hmap)
   for (bucket = hmap->first; bucket; bucket = hmap->first)
   {
     char *key = (char *) bucket->key;
-    btor_remove_ptr_hash_table (hmap, key, NULL, NULL);
+    btor_hashptr_table_remove (hmap, key, NULL, NULL);
     BTOR_DELETEN (hmap->mm, key, (strlen (key) + 1));
   }
 }
@@ -307,9 +319,10 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_NONE 0
 #define RET_VOIDPTR 1
 #define RET_INT 2
-#define RET_CHARPTR 3
-#define RET_ARRASS 4
-#define RET_BOOL 5
+#define RET_UINT 3
+#define RET_CHARPTR 4
+#define RET_ARRASS 5
+#define RET_BOOL 6
 #define RET_SKIP -1
 
 BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
@@ -329,14 +342,16 @@ parse (FILE *file)
 
   int exp_ret;                   /* expected return value */
   bool ret_bool;                 /* actual return value bool */
-  int ret_int;                   /* actual return value int */
+  int32_t ret_int;               /* actual return value int */
+  uint32_t ret_uint;             /* actual return value unsigned int */
   char *ret_str;                 /* actual return value string */
   void *ret_ptr;                 /* actual return value string */
   char **res1_pptr, **res2_pptr; /* result pointer */
 
   char *btor_str; /* btor pointer string */
   char *exp_str;  /* expression string (pointer) */
-  int arg1_int, arg2_int, arg3_int;
+  int32_t arg1_int, arg2_int, arg3_int;
+  uint32_t arg3_uint;
   char *arg1_str, *arg2_str, *arg3_str;
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
@@ -353,6 +368,7 @@ parse (FILE *file)
 
   exp_ret    = RET_NONE;
   ret_int    = 0;
+  ret_uint   = 0;
   ret_ptr    = 0;
   ret_str    = 0;
   ret_bool   = false;
@@ -361,7 +377,7 @@ parse (FILE *file)
   arg2_int   = 0;
   btor       = 0;
 
-  hmap = btor_new_ptr_hash_table (
+  hmap = btor_hashptr_table_new (
       g_btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   BTOR_CNEWN (g_btorunt->mm, buffer, buffer_len);
@@ -417,11 +433,19 @@ NEXT:
       }
       else if (exp_ret == RET_INT)
       {
-        int exp_int = intarg ("return");
+        int32_t exp_int = intarg ("return");
         checklastarg ("return");
         if (exp_int != ret_int)
           btorunt_error (
               "expected return value %d but got %d", exp_int, ret_int);
+      }
+      else if (exp_ret == RET_UINT)
+      {
+        uint32_t exp_uint = uintarg ("return");
+        checklastarg ("return");
+        if (exp_uint != ret_uint)
+          btorunt_error (
+              "expected return value %d but got %d", exp_uint, ret_uint);
       }
       else if (exp_ret == RET_CHARPTR)
       {
@@ -600,10 +624,9 @@ NEXT:
 #ifdef BTOR_USE_LINGELING
     else if (!strcmp (tok, "set_sat_solver_lingeling"))
     {
-      PARSE_ARGS2 (tok, str, int);
-      arg1_str = !strcmp (arg1_str, "(null)") ? 0 : arg1_str;
-      ret_int  = boolector_set_sat_solver_lingeling (btor, arg1_str, arg2_int);
-      exp_ret  = RET_INT;
+      PARSE_ARGS1 (tok, int);
+      ret_int = boolector_set_sat_solver_lingeling (btor, arg2_int);
+      exp_ret = RET_INT;
     }
 #endif
 #ifdef BTOR_USE_PICOSAT
@@ -1439,27 +1462,31 @@ NEXT:
     {
       PARSE_ARGS1 (tok, str);
       boolector_array_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_array_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_array_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_array_assignment (btor,
+                                       hmap_get (hmap, arg1_str),
+                                       hmap_get (hmap, arg2_str),
+                                       arg3_uint);
     }
     else if (!strcmp (tok, "uf_assignment"))
     {
       PARSE_ARGS1 (tok, str);
       boolector_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_uf_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_uf_assignment (btor,
+                                    hmap_get (hmap, arg1_str),
+                                    hmap_get (hmap, arg2_str),
+                                    arg3_uint);
     }
     else if (!strcmp (tok, "print_model"))
     {
@@ -1639,7 +1666,7 @@ DONE:
   BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
   BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
   hmap_clear (hmap);
-  btor_delete_ptr_hash_table (hmap);
+  btor_hashptr_table_delete (hmap);
   if (delete) boolector_delete (btor);
 }
 
@@ -1697,7 +1724,7 @@ main (int argc, char **argv)
       if (tmp[0] != 0) btorunt_error ("invalid argument to '-b' (try -h)");
       BTOR_NEW (g_btorunt->mm, btoropt);
       btoropt->kind = o;
-      btoropt->name = btor_strdup (g_btorunt->mm, lng);
+      btoropt->name = btor_mem_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }

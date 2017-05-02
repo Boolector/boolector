@@ -141,7 +141,7 @@ BUILDIR="build"
 TESTDIR="tests"
 SRCDIR="src"
 
-SRCDIRS="src src/dumper src/parser src/simplifier src/utils"
+SRCDIRS="src src/dumper src/parser src/sat src/simplifier src/utils"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS $SRCDIR/api/python"

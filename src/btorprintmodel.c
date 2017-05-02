@@ -12,7 +12,7 @@
 #include "btorprintmodel.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* print model                                                            */
@@ -37,7 +37,7 @@ print_fmt_bv_model_btor (Btor *btor,
   else
     ass = btor_bv_to_char (btor->mm, assignment);
   fprintf (file, "%s", ass);
-  btor_freestr (btor->mm, ass);
+  btor_mem_freestr (btor->mm, ass);
 }
 
 static void
@@ -78,7 +78,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   char *symbol;
   const BtorBitVector *ass;
 
-  ass    = btor_get_bv_model (btor, node);
+  ass    = btor_model_get_bv (btor, node);
   symbol = btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
@@ -101,9 +101,9 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
                id ? id : btor_exp_get_id (node));
     }
 
-    btor_dump_sort_smt_node (node, file);
+    btor_dumpsmt_dump_sort_node (node, file);
     fprintf (file, " ");
-    btor_dump_const_value_smt (btor, ass, base, file);
+    btor_dumpsmt_dump_const_value (btor, ass, base, file);
     fprintf (file, ")\n");
   }
 }
@@ -118,7 +118,7 @@ print_param_smt2 (char *symbol, int param_index, BtorSort *sort, FILE *file)
   assert (file);
 
   fprintf (file, "(%s_x%d ", symbol, param_index);
-  btor_dump_sort_smt (sort, file);
+  btor_dumpsmt_dump_sort (sort, file);
   fprintf (file, ")");
 }
 
@@ -140,7 +140,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorSortId sort;
   BtorTupleSortIterator iit;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
@@ -162,30 +162,30 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   node = btor_simplify_exp (btor, node);
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (btor_is_fun_node (node));
-  btor_init_tuple_sort_iterator (
-      &iit, btor, btor_get_domain_fun_sort (btor, btor_exp_get_sort_id (node)));
+  btor_iter_tuple_sort_init (
+      &iit, btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (node)));
   x = 0;
-  while (btor_has_next_tuple_sort_iterator (&iit))
+  while (btor_iter_tuple_sort_has_next (&iit))
   {
-    sort = btor_next_tuple_sort_iterator (&iit);
+    sort = btor_iter_tuple_sort_next (&iit);
     fprintf (file, "\n%3c", ' ');
-    print_param_smt2 (s, x, btor_get_sort_by_id (btor, sort), file);
+    print_param_smt2 (s, x, btor_sort_get_by_id (btor, sort), file);
     x++;
   }
   fprintf (file, ") ");
-  sort = btor_get_codomain_fun_sort (btor, btor_exp_get_sort_id (node));
-  btor_dump_sort_smt (btor_get_sort_by_id (btor, sort), file);
+  sort = btor_sort_fun_get_codomain (btor, btor_exp_get_sort_id (node));
+  btor_dumpsmt_dump_sort (btor_sort_get_by_id (btor, sort), file);
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */
   n          = 0;
   assignment = 0;
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     fprintf (file, "%4c(ite ", ' ');
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     x          = 0;
     if (args->arity > 1)
     {
@@ -193,7 +193,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       for (i = 0; i < args->arity; i++, x++)
       {
         fprintf (file, "\n%8c(= %s_x%d ", ' ', s, x);
-        btor_dump_const_value_smt (btor, args->bv[i], base, file);
+        btor_dumpsmt_dump_const_value (btor, args->bv[i], base, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
       }
       fprintf (file, ") ");
@@ -202,10 +202,10 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     else
     {
       fprintf (file, "(= %s_x%d ", s, x);
-      btor_dump_const_value_smt (btor, args->bv[0], base, file);
+      btor_dumpsmt_dump_const_value (btor, args->bv[0], base, file);
       fprintf (file, ") ");
     }
-    btor_dump_const_value_smt (btor, assignment, base, file);
+    btor_dumpsmt_dump_const_value (btor, assignment, base, file);
     fprintf (file, "\n");
     n += 1;
   }
@@ -216,7 +216,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   {
     fprintf (file, "%6c", ' ');
     tmp = btor_bv_new (btor->mm, assignment->width);
-    btor_dump_const_value_smt (btor, tmp, base, file);
+    btor_dumpsmt_dump_const_value (btor, tmp, base, file);
     btor_bv_free (btor->mm, tmp);
   }
 
@@ -241,18 +241,18 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorPtrHashTable *fun_model;
   BtorPtrHashTableIterator it;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
   symbol = btor_get_symbol_exp (btor, node);
   id     = btor_exp_get_btor_id (node);
 
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     // TODO: distinguish between functions and arrays (ma)
     //       needs proper sort handling
     fprintf (file, "%d[", id ? id : node->id);
@@ -293,15 +293,15 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   BtorPtrHashTableIterator it;
   int base;
 
-  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
-  btor_init_ptr_hash_table_iterator (&it, btor->inputs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->inputs);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else
@@ -326,7 +326,7 @@ print_bv_value_smt2 (
   const BtorBitVector *ass;
   int32_t id;
 
-  ass    = btor_get_bv_model (btor, node);
+  ass    = btor_model_get_bv (btor, node);
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
 
   if (symbol)
@@ -338,7 +338,7 @@ print_bv_value_smt2 (
         file, "(v%d ", id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
   }
 
-  btor_dump_const_value_smt (btor, ass, base, file);
+  btor_dumpsmt_dump_const_value (btor, ass, base, file);
   fprintf (file, ")");
 }
 
@@ -361,7 +361,7 @@ print_fun_value_smt2 (
   BtorBitVectorTuple *args;
   BtorBitVector *assignment;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  fun_model = (BtorPtrHashTable *) btor_model_get_fun (btor, node);
   if (!fun_model) return;
 
   symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
@@ -369,8 +369,8 @@ print_fun_value_smt2 (
   fprintf (file, "(");
 
   n = 0;
-  btor_init_ptr_hash_table_iterator (&it, fun_model);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, fun_model);
+  while (btor_iter_hashptr_has_next (&it))
   {
     if (symbol)
       fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
@@ -383,22 +383,22 @@ print_fun_value_smt2 (
                id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
     }
     assignment = it.bucket->data.as_ptr;
-    args       = btor_next_ptr_hash_table_iterator (&it);
+    args       = btor_iter_hashptr_next (&it);
     if (args->arity > 1)
     {
       for (i = 0; i < args->arity; i++)
       {
-        btor_dump_const_value_smt (btor, args->bv[i], base, file);
+        btor_dumpsmt_dump_const_value (btor, args->bv[i], base, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
       }
       fprintf (file, ") ");
     }
     else
     {
-      btor_dump_const_value_smt (btor, args->bv[0], base, file);
+      btor_dumpsmt_dump_const_value (btor, args->bv[0], base, file);
       fprintf (file, ") ");
     }
-    btor_dump_const_value_smt (btor, assignment, base, file);
+    btor_dumpsmt_dump_const_value (btor, assignment, base, file);
     fprintf (file, ")");
   }
 
@@ -417,7 +417,7 @@ btor_print_value_smt2 (Btor *btor, BtorNode *exp, char *symbol_str, FILE *file)
 
   int base;
 
-  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
     print_fun_value_smt2 (btor, exp, symbol_str, base, file);
   else

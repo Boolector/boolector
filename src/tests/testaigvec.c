@@ -29,36 +29,36 @@ static Btor *g_btor;
 void
 init_aigvec_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
 }
 
 static void
 test_new_delete_aigvec_mgr (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
-  btor_aigvec_delete_mgr (avmgr);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_const_aigvec (void)
 {
   BtorBitVector *bits  = btor_bv_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av       = btor_aigvec_const (avmgr, bits);
   assert (av->len == 4);
   btor_aigvec_release_delete (avmgr, av);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
   btor_bv_free (g_btor->mm, bits);
 }
 
 static void
 test_var_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av       = btor_aigvec_var (avmgr, 32);
   assert (av->len == 32);
   btor_aigvec_release_delete (avmgr, av);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
@@ -67,7 +67,7 @@ test_invert_aigvec (void)
   int i                = 0;
   int len              = 0;
   BtorBitVector *bits  = btor_bv_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_const (avmgr, bits);
   len                  = av1->len;
@@ -101,38 +101,38 @@ test_invert_aigvec (void)
   assert (av2->aigs[3] == BTOR_AIG_TRUE);
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
   btor_bv_free (g_btor->mm, bits);
 }
 
 static void
 test_not_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_not (avmgr, av1);
   assert (av2->len == 32);
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_slice_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_slice (avmgr, av1, 17, 2);
   assert (av2->len == 16);
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_and_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_and (avmgr, av1, av2);
@@ -140,13 +140,13 @@ test_and_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_ult_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_ult (avmgr, av1, av2);
@@ -154,13 +154,13 @@ test_ult_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_eq_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_eq (avmgr, av1, av2);
@@ -168,13 +168,13 @@ test_eq_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_add_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_add (avmgr, av1, av2);
@@ -182,13 +182,13 @@ test_add_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_sll_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
   BtorAIGVec *av3      = btor_aigvec_sll (avmgr, av1, av2);
@@ -196,13 +196,13 @@ test_sll_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_srl_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
   BtorAIGVec *av3      = btor_aigvec_srl (avmgr, av1, av2);
@@ -210,13 +210,13 @@ test_srl_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_mul_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_mul (avmgr, av1, av2);
@@ -224,13 +224,13 @@ test_mul_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_udiv_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_udiv (avmgr, av1, av2);
@@ -238,13 +238,13 @@ test_udiv_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_urem_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_urem (avmgr, av1, av2);
@@ -252,13 +252,13 @@ test_urem_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_concat_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 16);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_concat (avmgr, av1, av2);
@@ -266,13 +266,13 @@ test_concat_aigvec (void)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 static void
 test_cond_aigvec (void)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_new_mgr (g_btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 1);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_var (avmgr, 32);
@@ -282,7 +282,7 @@ test_cond_aigvec (void)
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_release_delete (avmgr, av3);
   btor_aigvec_release_delete (avmgr, av4);
-  btor_aigvec_delete_mgr (avmgr);
+  btor_aigvec_mgr_delete (avmgr);
 }
 
 void
@@ -310,5 +310,5 @@ run_aigvec_tests (int argc, char **argv)
 void
 finish_aigvec_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

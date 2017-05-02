@@ -31,19 +31,19 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INIT                                             \
   do                                                               \
   {                                                                \
-    g_btor            = btor_new_btor ();                          \
+    g_btor            = btor_new ();                               \
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
-    btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
-    btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
-    btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
-    btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
-    /*btor_set_opt (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
+    btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
+    btor_opt_set (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
+    btor_opt_set (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
+    btor_opt_set (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
+    /*btor_opt_set (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
     g_mm  = g_btor->mm;                                            \
     g_rng = &g_btor->rng;                                          \
   } while (0)
@@ -58,7 +58,7 @@ static BtorRNG *g_rng;
 #define TEST_PROP_ONE_COMPLETE_BINARY_FINISH(fun) \
   do                                              \
   {                                               \
-    btor_delete_btor (g_btor);                    \
+    btor_delete (g_btor);                         \
   } while (0)
 
 #ifndef NDEBUG
@@ -83,8 +83,8 @@ prop_complete_binary_eidx (
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
   BtorSortId sort0, sort1;
 
-  sort0 = btor_bitvec_sort (g_btor, bw0);
-  sort1 = btor_bitvec_sort (g_btor, bw1);
+  sort0 = btor_sort_bitvec (g_btor, bw0);
+  sort1 = btor_sort_bitvec (g_btor, bw1);
   e[0]  = btor_var_exp (g_btor, sort0, 0);
   e[1]  = btor_var_exp (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
@@ -99,11 +99,11 @@ prop_complete_binary_eidx (
   bvexptmp = create_bv (g_mm, bvetmp[0], bvetmp[1]);
 
   /* init bv model */
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
   // printf ("eidx %d bvetmp[0] %s bvetmp[1] %s\n", eidx, btor_bv_to_char (g_mm,
   // bvetmp[0]), btor_bv_to_char (g_mm, bvetmp[1]));
@@ -140,11 +140,11 @@ prop_complete_binary_eidx (
    *    (we must find a solution within n move(s)) */
   ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
   btor_assume_exp (g_btor, eq);
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
   btor_bv_free (g_mm, bvetmp[0]);
   btor_bv_free (g_mm, bvetmp[1]);
   btor_bv_free (g_mm, bvexptmp);
@@ -153,8 +153,8 @@ prop_complete_binary_eidx (
   btor_release_exp (g_btor, exp);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
-  btor_release_sort (g_btor, sort0);
-  btor_release_sort (g_btor, sort1);
+  btor_sort_release (g_btor, sort0);
+  btor_sort_release (g_btor, sort1);
   sat_res = sat_prop_solver_aux (g_btor);
   assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
@@ -179,7 +179,7 @@ prop_complete_binary (uint32_t n,
 
   TEST_PROP_ONE_COMPLETE_BINARY_INIT (create_exp);
   if (create_exp == btor_sll_exp || create_exp == btor_srl_exp)
-    bw1 = btor_log_2_util (bw0);
+    bw1 = btor_util_log_2 (bw0);
 
   for (i = 0; i < (uint32_t) (1 << bw0); i++)
   {
@@ -402,7 +402,7 @@ test_prop_complete_slice_bv (void)
 
   TEST_PROP_INIT;
   bw   = TEST_PROP_COMPLETE_BW;
-  sort = btor_bitvec_sort (g_btor, bw);
+  sort = btor_sort_bitvec (g_btor, bw);
 
   for (lo = 0; lo < bw; lo++)
   {
@@ -421,10 +421,10 @@ test_prop_complete_slice_bv (void)
           bvetmp   = btor_bv_new_random (g_mm, g_rng, bw);
           bvexptmp = btor_bv_slice (g_mm, bvetmp, up, lo);
           /* init bv model */
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
           /* -> first test local completeness
            *    we must find a solution within one move */
@@ -452,10 +452,10 @@ test_prop_complete_slice_bv (void)
            *    (we must find a solution within one move) */
           ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
           btor_assume_exp (g_btor, eq);
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
           btor_bv_free (g_mm, bve);
           btor_bv_free (g_mm, bvexp);
           btor_bv_free (g_mm, bvetmp);
@@ -472,8 +472,8 @@ test_prop_complete_slice_bv (void)
       }
     }
   }
-  btor_release_sort (g_btor, sort);
-  btor_delete_btor (g_btor);
+  btor_sort_release (g_btor, sort);
+  btor_delete (g_btor);
 #endif
 }
 

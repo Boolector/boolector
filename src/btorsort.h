@@ -81,13 +81,13 @@ struct BtorSort
 {
   BtorSortKind kind;
   BtorSortId id;
-  int refs;       /* reference counter */
-  int ext_refs;   /* reference counter for API references */
-  BtorSort *next; /* collision chain for unique table */
+  uint32_t refs;     /* reference counter */
+  uint32_t ext_refs; /* reference counter for API references */
+  BtorSort *next;    /* collision chain for unique table */
   BtorSortUniqueTable *table;
 #ifndef NDEBUG
   Btor *btor;
-  int parents;
+  uint32_t parents;
 #endif
   union
   {
@@ -111,56 +111,56 @@ struct BtorSortUniqueTable
   BtorSortPtrStack id2sort;
 };
 
-BtorSortId btor_bool_sort (Btor *btor);
+BtorSortId btor_sort_bool (Btor *btor);
 
-BtorSortId btor_bitvec_sort (Btor *btor, uint32_t width);
+BtorSortId btor_sort_bitvec (Btor *btor, uint32_t width);
 
-BtorSortId btor_array_sort (Btor *btor,
+BtorSortId btor_sort_array (Btor *btor,
                             BtorSortId index_id,
                             BtorSortId element_id);
 
 #if 0
-BtorSortId btor_lst_sort (Btor * btor,
+BtorSortId btor_sort_lst (Btor * btor,
                           BtorSortId head_id,
                           BtorSortId tail_id);
 #endif
 
-BtorSortId btor_fun_sort (Btor *btor,
+BtorSortId btor_sort_fun (Btor *btor,
                           BtorSortId domain_id,
                           BtorSortId codomain_id);
 
-BtorSortId btor_tuple_sort (Btor *btor,
+BtorSortId btor_sort_tuple (Btor *btor,
                             BtorSortId *element_ids,
                             size_t num_elements);
 
-BtorSortId btor_copy_sort (Btor *btor, BtorSortId id);
+BtorSortId btor_sort_copy (Btor *btor, BtorSortId id);
 
-void btor_release_sort (Btor *btor, BtorSortId id);
+void btor_sort_release (Btor *btor, BtorSortId id);
 
-BtorSort *btor_get_sort_by_id (Btor *btor, BtorSortId id);
+BtorSort *btor_sort_get_by_id (Btor *btor, BtorSortId id);
 
-uint32_t btor_get_width_bitvec_sort (Btor *btor, BtorSortId id);
+uint32_t btor_sort_bitvec_get_width (Btor *btor, BtorSortId id);
 
-uint32_t btor_get_arity_fun_sort (Btor *btor, BtorSortId id);
-uint32_t btor_get_arity_tuple_sort (Btor *btor, BtorSortId id);
+uint32_t btor_sort_fun_get_arity (Btor *btor, BtorSortId id);
+uint32_t btor_sort_tuple_get_arity (Btor *btor, BtorSortId id);
 
-BtorSortId btor_get_codomain_fun_sort (Btor *btor, BtorSortId id);
-BtorSortId btor_get_domain_fun_sort (Btor *btor, BtorSortId id);
+BtorSortId btor_sort_fun_get_codomain (Btor *btor, BtorSortId id);
+BtorSortId btor_sort_fun_get_domain (Btor *btor, BtorSortId id);
 
-BtorSortId btor_get_index_array_sort (Btor *btor, BtorSortId id);
-BtorSortId btor_get_element_array_sort (Btor *btor, BtorSortId id);
+BtorSortId btor_sort_array_get_index (Btor *btor, BtorSortId id);
+BtorSortId btor_sort_array_get_element (Btor *btor, BtorSortId id);
 
-bool btor_is_valid_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_valid (Btor *btor, BtorSortId id);
 
-bool btor_is_bool_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_bool (Btor *btor, BtorSortId id);
 
-bool btor_is_bitvec_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_bitvec (Btor *btor, BtorSortId id);
 
-bool btor_is_array_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_array (Btor *btor, BtorSortId id);
 
-bool btor_is_tuple_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_tuple (Btor *btor, BtorSortId id);
 
-bool btor_is_fun_sort (Btor *btor, BtorSortId id);
+bool btor_sort_is_fun (Btor *btor, BtorSortId id);
 
 struct BtorTupleSortIterator
 {
@@ -170,11 +170,11 @@ struct BtorTupleSortIterator
 
 typedef struct BtorTupleSortIterator BtorTupleSortIterator;
 
-void btor_init_tuple_sort_iterator (BtorTupleSortIterator *it,
-                                    Btor *btor,
-                                    BtorSortId id);
+void btor_iter_tuple_sort_init (BtorTupleSortIterator *it,
+                                Btor *btor,
+                                BtorSortId id);
 
-bool btor_has_next_tuple_sort_iterator (const BtorTupleSortIterator *it);
-BtorSortId btor_next_tuple_sort_iterator (BtorTupleSortIterator *it);
+bool btor_iter_tuple_sort_has_next (const BtorTupleSortIterator *it);
+BtorSortId btor_iter_tuple_sort_next (BtorTupleSortIterator *it);
 
 #endif

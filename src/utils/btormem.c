@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -57,10 +57,10 @@
 /*------------------------------------------------------------------------*/
 
 BtorMemMgr *
-btor_new_mem_mgr (void)
+btor_mem_mgr_new (void)
 {
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
-  BTOR_ABORT (!mm, "out of memory in 'btor_new_mem_mgr'");
+  BTOR_ABORT (!mm, "out of memory in 'btor_mem_mgr_new'");
   mm->allocated        = 0;
   mm->maxallocated     = 0;
   mm->sat_allocated    = 0;
@@ -69,13 +69,13 @@ btor_new_mem_mgr (void)
 }
 
 void *
-btor_malloc (BtorMemMgr *mm, size_t size)
+btor_mem_malloc (BtorMemMgr *mm, size_t size)
 {
   void *result;
   if (!size) return 0;
   assert (mm);
   result = malloc (size);
-  BTOR_ABORT (!result, "out of memory in 'btor_malloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_mem_malloc'");
   mm->allocated += size;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld\n", result, size);
@@ -83,20 +83,20 @@ btor_malloc (BtorMemMgr *mm, size_t size)
 }
 
 void *
-btor_sat_malloc (BtorMemMgr *mm, size_t size)
+btor_mem_sat_malloc (BtorMemMgr *mm, size_t size)
 {
   void *result;
   if (!size) return 0;
   assert (mm);
   result = malloc (size);
-  BTOR_ABORT (!result, "out of memory in 'btor_sat_malloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_mem_sat_malloc'");
   mm->sat_allocated += size;
   SAT_ADJUST ();
   return result;
 }
 
 void *
-btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
+btor_mem_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
   void *result;
   assert (mm);
@@ -104,7 +104,7 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm->allocated >= old_size);
   BTOR_LOG_MEM ("%p free   %10ld (realloc)\n", p, old_size);
   result = realloc (p, new_size);
-  BTOR_ABORT (!result, "out of memory in 'btor_realloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_mem_realloc'");
   mm->allocated -= old_size;
   mm->allocated += new_size;
   ADJUST ();
@@ -113,14 +113,14 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 }
 
 void *
-btor_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
+btor_mem_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
   void *result;
   assert (mm);
   assert (!p == !old_size);
   assert (mm->sat_allocated >= old_size);
   result = realloc (p, new_size);
-  BTOR_ABORT (!result, "out of memory in 'btor_sat_realloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_mem_sat_realloc'");
   mm->sat_allocated -= old_size;
   mm->sat_allocated += new_size;
   SAT_ADJUST ();
@@ -128,13 +128,13 @@ btor_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 }
 
 void *
-btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
+btor_mem_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 {
   size_t bytes = nobj * size;
   void *result;
   assert (mm);
   result = calloc (nobj, size);
-  BTOR_ABORT (!result, "out of memory in 'btor_calloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_mem_calloc'");
   mm->allocated += bytes;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld (calloc)\n", result, bytes);
@@ -142,7 +142,7 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 }
 
 void
-btor_free (BtorMemMgr *mm, void *p, size_t freed)
+btor_mem_free (BtorMemMgr *mm, void *p, size_t freed)
 {
   assert (mm);
   assert (!p == !freed);
@@ -153,7 +153,7 @@ btor_free (BtorMemMgr *mm, void *p, size_t freed)
 }
 
 void
-btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
+btor_mem_sat_free (BtorMemMgr *mm, void *p, size_t freed)
 {
   assert (mm);
   if (p) mm->sat_allocated -= freed;
@@ -161,13 +161,13 @@ btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
 }
 
 char *
-btor_strdup (BtorMemMgr *mm, const char *str)
+btor_mem_strdup (BtorMemMgr *mm, const char *str)
 {
   char *res;
 
   if (str)
   {
-    res = btor_malloc (mm, strlen (str) + 1);
+    res = btor_mem_malloc (mm, strlen (str) + 1);
     strcpy (res, str);
   }
   else
@@ -177,13 +177,13 @@ btor_strdup (BtorMemMgr *mm, const char *str)
 }
 
 void
-btor_freestr (BtorMemMgr *mm, char *str)
+btor_mem_freestr (BtorMemMgr *mm, char *str)
 {
-  if (str) btor_free (mm, str, strlen (str) + 1);
+  if (str) btor_mem_free (mm, str, strlen (str) + 1);
 }
 
 void
-btor_delete_mem_mgr (BtorMemMgr *mm)
+btor_mem_mgr_delete (BtorMemMgr *mm)
 {
   assert (mm);
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKMEM") || !mm->allocated);
@@ -191,7 +191,7 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
 }
 
 size_t
-btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
+btor_mem_parse_error_msg_length (const char *name, const char *fmt, va_list ap)
 {
   /* Additional characters for:
 
@@ -209,12 +209,12 @@ btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
       assert (*p);
       if (*p == 'c')
       {
-        (void) va_arg (ap, int);
+        (void) va_arg (ap, int32_t);
         bytes += 1;
       }
       else if (*p == 'd' || *p == 'u')
       {
-        (void) va_arg (ap, unsigned);
+        (void) va_arg (ap, uint32_t);
         bytes += 12;
       }
       else
@@ -231,10 +231,10 @@ btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
 }
 
 char *
-btor_parse_error_message (BtorMemMgr *mem,
+btor_mem_parse_error_msg (BtorMemMgr *mem,
                           const char *name,
-                          int lineno,
-                          int columno,
+                          int32_t lineno,
+                          int32_t columno,
                           const char *fmt,
                           va_list ap,
                           size_t bytes)
@@ -242,15 +242,15 @@ btor_parse_error_message (BtorMemMgr *mem,
   char *res;
   char *tmp;
 
-  tmp = btor_malloc (mem, bytes);
+  tmp = btor_mem_malloc (mem, bytes);
   if (columno > 0)
     sprintf (tmp, "%s:%d:%d: ", name, lineno, columno);
   else
     sprintf (tmp, "%s:%d: ", name, lineno);
   assert (strlen (tmp) + 1 < bytes);
   vsprintf (tmp + strlen (tmp), fmt, ap);
-  res = btor_strdup (mem, tmp);
-  btor_free (mem, tmp, bytes);
+  res = btor_mem_strdup (mem, tmp);
+  btor_mem_free (mem, tmp, bytes);
 
   return res;
 }

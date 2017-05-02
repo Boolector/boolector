@@ -167,9 +167,9 @@ btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
 }
 
 /*------------------------------------------------------------------------*/
-BtorAIGMgr *btor_aig_new_mgr (Btor *btor);
-BtorAIGMgr *btor_aig_clone_mgr (Btor *btor, BtorAIGMgr *amgr);
-void btor_aig_delete_mgr (BtorAIGMgr *amgr);
+BtorAIGMgr *btor_aig_mgr_new (Btor *btor);
+BtorAIGMgr *btor_aig_mgr_clone (Btor *btor, BtorAIGMgr *amgr);
+void btor_aig_mgr_delete (BtorAIGMgr *amgr);
 
 BtorSATMgr *btor_aig_get_sat_mgr (const BtorAIGMgr *amgr);
 
@@ -220,17 +220,17 @@ void btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Gets current assignment of AIG aig (in the SAT case).
  */
-int btor_aig_get_assignment (BtorAIGMgr *amgr, BtorAIG *aig);
+int32_t btor_aig_get_assignment (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_aig_compare (const BtorAIG *aig0, const BtorAIG *aig1);
+int32_t btor_aig_compare (const BtorAIG *aig0, const BtorAIG *aig1);
 
 /* hash AIG by id */
 uint32_t btor_aig_hash_by_id (const BtorAIG *aig);
 
 /* compare AIG by id */
-int btor_aig_compare_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
-int btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
+int32_t btor_aig_compare_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
+int32_t btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
 #endif

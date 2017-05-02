@@ -31,10 +31,10 @@ static inline void
 btor_propsls_rec_conf (Btor* btor)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
 
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += 1;
   else
     BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
@@ -45,8 +45,8 @@ btor_propsls_non_rec_conf (
     Btor* btor, BtorBitVector* bve, BtorBitVector* bvexp, int eidx, char* op)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
+  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
+          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (bve);
   assert (bvexp);
   assert (op);
@@ -63,10 +63,10 @@ btor_propsls_non_rec_conf (
     BTORLOG (2, "prop CONFLICT: %s := %s %s x", sbvexp, sbve, op);
   else
     BTORLOG (2, "prop CONFLICT: %s := x %s %s", sbvexp, op, sbve);
-  btor_freestr (btor->mm, sbve);
-  btor_freestr (btor->mm, sbvexp);
+  btor_mem_freestr (btor->mm, sbve);
+  btor_mem_freestr (btor->mm, sbvexp);
 #endif
-  if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
     BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
   else
     BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;

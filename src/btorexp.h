@@ -455,10 +455,10 @@ btor_exp_get_id (const BtorNode *exp)
   return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
 }
 
-static inline int
+static inline int32_t
 btor_exp_get_tag (const BtorNode *exp)
 {
-  return (int) (3ul & (unsigned long int) (exp));
+  return (int32_t) (3ul & (unsigned long int) (exp));
 }
 
 /*========================================================================*/
@@ -546,13 +546,13 @@ BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 /*------------------------------------------------------------------------*/
 
 /* Compares two expression pairs by ID */
-int btor_compare_exp_by_id (const BtorNode *exp0, const BtorNode *exp1);
+int32_t btor_compare_exp_by_id (const BtorNode *exp0, const BtorNode *exp1);
 /* Compare function for expressions (by ID) to be used for qsort */
-int btor_compare_exp_by_id_qsort_desc (const void *p, const void *q);
-int btor_compare_exp_by_id_qsort_asc (const void *p, const void *q);
+int32_t btor_compare_exp_by_id_qsort_desc (const void *p, const void *q);
+int32_t btor_compare_exp_by_id_qsort_asc (const void *p, const void *q);
 
 /* Hashes expression by ID */
-unsigned int btor_hash_exp_by_id (const BtorNode *exp);
+uint32_t btor_hash_exp_by_id (const BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
@@ -576,7 +576,7 @@ void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
 uint32_t btor_get_fun_arity (Btor *btor, BtorNode *exp);
 
 /* Gets the number of arguments of an argument expression 'exp'. */
-int btor_get_args_arity (Btor *btor, BtorNode *exp);
+uint32_t btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
@@ -623,9 +623,9 @@ BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
 void btor_delete_exp_pair (Btor *, BtorNodePair *);
 
-unsigned int btor_hash_exp_pair (const BtorNodePair *);
+uint32_t btor_hash_exp_pair (const BtorNodePair *);
 
-int btor_compare_exp_pair (const BtorNodePair *, const BtorNodePair *);
+int32_t btor_compare_exp_pair (const BtorNodePair *, const BtorNodePair *);
 
 /*========================================================================*/
 

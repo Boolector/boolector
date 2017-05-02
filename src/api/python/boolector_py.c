@@ -86,9 +86,9 @@ boolector_py_set_term (Btor *btor, PyObject *fun, PyObject *state)
     btor->cbs.term.state = tmp;
   }
 
-  smgr = btor_get_sat_mgr_btor (btor);
-  if (btor_has_term_support_sat_mgr (smgr))
-    btor_set_term_sat_mgr (smgr, py_terminate_btor, btor);
+  smgr = btor_get_sat_mgr (btor);
+  if (btor_sat_mgr_has_term_support (smgr))
+    btor_sat_mgr_set_term (smgr, py_terminate_btor, btor);
 }
 
 void

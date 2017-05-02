@@ -1,0 +1,19 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2016-2017 Aina Niemetz.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+#ifndef TESTBOOLECTORNODEMAP_H_INCLUDED
+#define TESTBOOLECTORNODEMAP_H_INCLUDED
+
+void init_boolectornodemap_tests (void);
+
+void run_boolectornodemap_tests (int argc, char **argv);
+
+void finish_boolectornodemap_tests (void);
+
+#endif

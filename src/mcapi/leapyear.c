@@ -108,27 +108,27 @@ main (int argc, char** argv)
     }
   }
 
-  BtorMC* mc = boolector_new_mc ();
-  boolector_set_verbosity_mc (mc, verbosity);
-  if (witness) boolector_enable_trace_gen (mc);
-  Btor* btor = boolector_btor_mc (mc);
+  BtorMC* mc = boolector_mc_new ();
+  boolector_mc_set_verbosity (mc, verbosity);
+  if (witness) boolector_mc_enable_trace_gen (mc);
+  Btor* btor = boolector_mc_btor (mc);
 
   BoolectorNode* year  = boolector_latch (mc, 32, "year");
   BoolectorNode* c1977 = boolector_int (btor, 1977, 32);
-  boolector_init (mc, year, c1977);
+  boolector_mc_init (mc, year, c1977);
   boolector_release (btor, c1977);
 
   BoolectorNode* prev_days       = boolector_latch (mc, 32, "prev(days)");
   BoolectorNode* prev_days_valid = boolector_latch (mc, 1, "valid(prev(days))");
   BoolectorNode* ff              = boolector_int (btor, 0, 1);
   BoolectorNode* tt              = boolector_int (btor, 1, 1);
-  boolector_init (mc, prev_days_valid, ff);
+  boolector_mc_init (mc, prev_days_valid, ff);
   boolector_next (mc, prev_days_valid, tt);
   BoolectorNode* break_out_of_loop;
   if (fixed)
   {
     break_out_of_loop = boolector_copy (btor, boolector_latch (mc, 1, "break"));
-    boolector_init (mc, break_out_of_loop, ff);
+    boolector_mc_init (mc, break_out_of_loop, ff);
   }
   else
     break_out_of_loop = boolector_copy (btor, ff);
@@ -147,7 +147,7 @@ main (int argc, char** argv)
     int daysinitval = atoi (daystr);
     printf ("; constant initialization of days to %d\n", daysinitval);
     BoolectorNode* daysinit = boolector_int (btor, daysinitval, 32);
-    boolector_init (mc, days, daysinit);
+    boolector_mc_init (mc, days, daysinit);
     boolector_release (btor, daysinit);
   }
   else
@@ -279,7 +279,7 @@ main (int argc, char** argv)
   if (dump)
   {
     printf ("; printing BTOR model\n");
-    boolector_dump_btormc (mc, stdout);
+    boolector_mc_dump (mc, stdout);
     fflush (stdout);
   }
   else
@@ -287,7 +287,7 @@ main (int argc, char** argv)
     const int maxk = 100;
     printf ("; running bounded model checker up to bound %d\n", maxk);
     fflush (stdout);
-    int k = boolector_bmc (mc, 0, maxk);
+    int k = boolector_mc_bmc (mc, 0, maxk);
     if (0 <= k && k <= maxk)
     {
       printf ("; days does NOT decrease at bound %d\n", k);
@@ -303,9 +303,9 @@ main (int argc, char** argv)
                   bv2dec (val_year),
                   bv2dec (val_days),
                   bv2dec (val_prev_days));
-          boolector_free_mc_assignment (mc, val_days);
-          boolector_free_mc_assignment (mc, val_year);
-          boolector_free_mc_assignment (mc, val_prev_days);
+          boolector_mc_free_assignment (mc, val_days);
+          boolector_mc_free_assignment (mc, val_year);
+          boolector_mc_free_assignment (mc, val_prev_days);
         }
       }
     }
@@ -316,7 +316,7 @@ main (int argc, char** argv)
 
   // latches (and inputs) are owned by 'mc', e.g., do not release
 
-  boolector_delete_mc (mc);
+  boolector_mc_delete (mc);
 
   return res;
 }

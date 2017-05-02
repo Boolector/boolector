@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,7 +11,7 @@
 
 #include "simplifier/btorack.h"
 #include "btorcore.h"
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 void
@@ -30,40 +30,40 @@ btor_add_ackermann_constraints (Btor *btor)
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
-  start = btor_time_stamp ();
+  start = btor_util_time_stamp ();
   mm    = btor->mm;
-  cache = btor_new_int_hash_table (mm);
+  cache = btor_hashint_table_new (mm);
   BTOR_INIT_STACK (mm, visit);
 
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_ptr_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (visit, btor_next_ptr_hash_table_iterator (&it));
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    BTOR_PUSH_STACK (visit, btor_iter_hashptr_next (&it));
 
   /* mark reachable nodes */
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-    if (btor_contains_int_hash_table (cache, cur->id)) continue;
-    btor_add_int_hash_table (cache, cur->id);
+    if (btor_hashint_table_contains (cache, cur->id)) continue;
+    btor_hashint_table_add (cache, cur->id);
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
   BTOR_RELEASE_STACK (visit);
 
-  btor_init_ptr_hash_table_iterator (&it, btor->ufs);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->ufs);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    uf = btor_next_ptr_hash_table_iterator (&it);
+    uf = btor_iter_hashptr_next (&it);
     BTOR_INIT_STACK (btor->mm, applies);
-    btor_init_apply_parent_iterator (&nit, uf);
-    while (btor_has_next_apply_parent_iterator (&nit))
+    btor_iter_apply_parent_init (&nit, uf);
+    while (btor_iter_apply_parent_has_next (&nit))
     {
-      app_i = btor_next_apply_parent_iterator (&nit);
+      app_i = btor_iter_apply_parent_next (&nit);
       if (app_i->parameterized) continue;
-      if (!btor_contains_int_hash_table (cache, app_i->id)) continue;
+      if (!btor_hashint_table_contains (cache, app_i->id)) continue;
       BTOR_PUSH_STACK (applies, app_i);
     }
 
@@ -76,12 +76,12 @@ btor_add_ackermann_constraints (Btor *btor)
         p     = 0;
         assert (btor_exp_get_sort_id (app_i->e[1])
                 == btor_exp_get_sort_id (app_j->e[1]));
-        btor_init_args_iterator (&ait_i, app_i->e[1]);
-        btor_init_args_iterator (&ait_j, app_j->e[1]);
-        while (btor_has_next_args_iterator (&ait_i))
+        btor_iter_args_init (&ait_i, app_i->e[1]);
+        btor_iter_args_init (&ait_j, app_j->e[1]);
+        while (btor_iter_args_has_next (&ait_i))
         {
-          a_i = btor_next_args_iterator (&ait_i);
-          a_j = btor_next_args_iterator (&ait_j);
+          a_i = btor_iter_args_next (&ait_i);
+          a_j = btor_iter_args_next (&ait_j);
           eq  = btor_eq_exp (btor, a_i, a_j);
 
           if (!p)
@@ -106,8 +106,8 @@ btor_add_ackermann_constraints (Btor *btor)
     }
     BTOR_RELEASE_STACK (applies);
   }
-  btor_delete_int_hash_table (cache);
-  delta = btor_time_stamp () - start;
+  btor_hashint_table_delete (cache);
+  delta = btor_util_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
             "added %d ackermann constraints in %.3f seconds",

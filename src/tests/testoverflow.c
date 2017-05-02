@@ -104,7 +104,7 @@ u_overflow_test (int (*func) (int, int),
   BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -157,7 +157,7 @@ s_overflow_test (int (*func) (int, int),
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits - 1);
+    max = btor_util_pow_2 (num_bits - 1);
     for (i = -max; i < max; i++)
     {
       for (j = -max; j < max; j++)

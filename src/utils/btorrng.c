@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -18,7 +18,7 @@
 #endif
 
 void
-btor_init_rng (BtorRNG* rng, uint32_t seed)
+btor_rng_init (BtorRNG* rng, uint32_t seed)
 {
   assert (rng);
 
@@ -33,7 +33,7 @@ btor_init_rng (BtorRNG* rng, uint32_t seed)
 }
 
 uint32_t
-btor_rand_rng (BtorRNG* rng)
+btor_rng_rand (BtorRNG* rng)
 {
   assert (rng);
   rng->z = 36969 * (rng->z & 65535) + (rng->z >> 16);
@@ -42,7 +42,7 @@ btor_rand_rng (BtorRNG* rng)
 }
 
 uint32_t
-btor_pick_rand_rng (BtorRNG* rng, uint32_t from, uint32_t to)
+btor_rng_pick_rand (BtorRNG* rng, uint32_t from, uint32_t to)
 {
   assert (rng);
   assert (from <= to);
@@ -51,33 +51,33 @@ btor_pick_rand_rng (BtorRNG* rng, uint32_t from, uint32_t to)
 
   from = from == UINT_MAX ? UINT_MAX - 1 : from;
   to   = to == UINT_MAX ? UINT_MAX - 1 : to;
-  res  = btor_rand_rng (rng);
+  res  = btor_rng_rand (rng);
   res %= to - from + 1;
   res += from;
   return res;
 }
 
 double
-btor_pick_rand_dbl_rng (BtorRNG* rng, double from, double to)
+btor_rng_pick_rand_dbl (BtorRNG* rng, double from, double to)
 {
   assert (rng);
   assert (from <= to && to < DBL_MAX);
 
   double res;
 
-  res = (double) btor_rand_rng (rng) / UINT_MAX;
+  res = (double) btor_rng_rand (rng) / UINT_MAX;
   res = from + res * (to - from);
   return res;
 }
 
 bool
-btor_pick_with_prob_rng (BtorRNG* rng, uint32_t prob)
+btor_rng_pick_with_prob (BtorRNG* rng, uint32_t prob)
 {
   assert (rng);
   assert (prob <= BTOR_PROB_MAX);
 
   uint32_t r;
 
-  r = btor_pick_rand_rng (rng, 0, BTOR_PROB_MAX - 1);
+  r = btor_rng_pick_rand (rng, 0, BTOR_PROB_MAX - 1);
   return r < prob;
 }

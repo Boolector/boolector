@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz
+ *  Copyright (C) 2013-2017 Aina Niemetz
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -72,7 +72,7 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
 #define BTOR_ABORT_IS_BV(arg)                                           \
   do                                                                    \
   {                                                                     \
-    BTOR_ABORT (btor_is_bitvec_sort (btor, btor_exp_get_sort_id (arg)), \
+    BTOR_ABORT (btor_sort_is_bitvec (btor, btor_exp_get_sort_id (arg)), \
                 "'%s' must not be a bit-vector\n",                      \
                 #arg);                                                  \
   } while (0)
@@ -80,7 +80,7 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
 #define BTOR_ABORT_IS_NOT_BV(arg)                                        \
   do                                                                     \
   {                                                                      \
-    BTOR_ABORT (!btor_is_bitvec_sort (btor, btor_exp_get_sort_id (arg)), \
+    BTOR_ABORT (!btor_sort_is_bitvec (btor, btor_exp_get_sort_id (arg)), \
                 "'%s' must be a bit-vector\n",                           \
                 #arg);                                                   \
   } while (0)

@@ -45,9 +45,9 @@ static BtorRNG *g_rng;
 void
 init_bitvec_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
   g_mm   = g_btor->mm;
-  btor_init_rng (&g_btor->rng, btor_get_opt (g_btor, BTOR_OPT_SEED));
+  btor_rng_init (&g_btor->rng, btor_opt_get (g_btor, BTOR_OPT_SEED));
   g_rng = &g_btor->rng;
 }
 
@@ -218,7 +218,7 @@ test_int64_to_bv_bitvec (void)
     str_a = btor_bv_to_char (g_mm, a);
     assert (strcmp (str_a, s) == 0);
     btor_bv_free (g_mm, a);
-    btor_freestr (g_mm, str_a);
+    btor_mem_freestr (g_mm, str_a);
   }
 }
 
@@ -456,7 +456,7 @@ test_char_to_bitvec (void)
       b = s[i - k - 1] == '0' ? 0 : 1;       \
       assert (b == btor_bv_get_bit (bv, k)); \
     }                                        \
-    btor_freestr (g_mm, s);                  \
+    btor_mem_freestr (g_mm, s);              \
     btor_bv_free (g_mm, bv);                 \
   } while (0)
 
@@ -464,7 +464,7 @@ static void
 test_bv_to_char_bitvec (void)
 {
   uint32_t i, j, k;
-  int b;
+  uint32_t b;
   char *s;
   BtorBitVector *bv;
 
@@ -519,7 +519,7 @@ bv_to_hex_char_bitvec (FILE *g_logfile, char *c)
   BtorBitVector *bv = btor_bv_char_to_bv (g_mm, c);
   char *h           = btor_bv_to_hex_char (g_mm, bv);
   fprintf (g_logfile, "2'%s = 16'%s\n", c, h);
-  btor_freestr (g_mm, h);
+  btor_mem_freestr (g_mm, h);
   btor_bv_free (g_mm, bv);
 }
 
@@ -557,7 +557,7 @@ bv_to_dec_char_bitvec (FILE *g_logfile, char *c)
   BtorBitVector *bv = btor_bv_char_to_bv (g_mm, c);
   char *d           = btor_bv_to_dec_char (g_mm, bv);
   fprintf (g_logfile, "2'%s = 10'%s\n", c, d);
-  btor_freestr (g_mm, d);
+  btor_mem_freestr (g_mm, d);
   btor_bv_free (g_mm, bv);
 }
 
@@ -758,7 +758,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
   {
     bv1 = random_bv (bit_width);
     if (int_func == sll || int_func == srl)
-      bv2 = random_bv (btor_log_2_util (bit_width));
+      bv2 = random_bv (btor_util_log_2 (bit_width));
     else
       bv2 = random_bv (bit_width);
     res  = bitvec_func (g_mm, bv1, bv2);
@@ -790,7 +790,7 @@ test_one_bitvec (void)
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
-    btor_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sbv);
   }
 }
 
@@ -810,7 +810,7 @@ test_ones_bitvec (void)
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
-    btor_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sbv);
   }
 }
 
@@ -965,7 +965,7 @@ concat_bitvec (int32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    bw1 = btor_pick_rand_rng (g_rng, 1, bit_width - 1);
+    bw1 = btor_rng_pick_rand (g_rng, 1, bit_width - 1);
     bw2 = bit_width - bw1;
     bv1 = random_bv (bw1);
     bv2 = random_bv (bw2);
@@ -1017,8 +1017,8 @@ slice_bitvec (uint32_t num_tests, uint32_t bit_width)
 
     assert (!strncmp (sbv + bit_width - upper - 1, sres, upper - lower + 1));
 
-    btor_freestr (g_mm, sbv);
-    btor_freestr (g_mm, sres);
+    btor_mem_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sres);
     btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bv);
   }
@@ -1049,7 +1049,7 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    len = btor_pick_rand_rng (g_rng, 1, bit_width - 1);
+    len = btor_rng_pick_rand (g_rng, 1, bit_width - 1);
     bv  = random_bv (bit_width - len);
 
     res = ext_func (g_mm, bv, len);
@@ -1062,8 +1062,8 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
     for (j = 0; j < len; j++)
       assert (sres[j] == (ext_func == btor_bv_uext ? '0' : sbv[0]));
 
-    btor_freestr (g_mm, sbv);
-    btor_freestr (g_mm, sres);
+    btor_mem_freestr (g_mm, sbv);
+    btor_mem_freestr (g_mm, sres);
     btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bv);
   }
@@ -1099,7 +1099,7 @@ flipped_bit_bitvec (uint32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    pos = btor_pick_rand_rng (g_rng, 0, bit_width - 1);
+    pos = btor_rng_pick_rand (g_rng, 0, bit_width - 1);
     bv  = random_bv (bit_width);
     res = btor_bv_flipped_bit (g_mm, bv, pos);
     assert (btor_bv_get_bit (bv, pos) == !btor_bv_get_bit (res, pos));
@@ -1133,10 +1133,10 @@ flipped_bit_range_bitvec (uint32_t num_tests, uint32_t bit_width)
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    lo = btor_pick_rand_rng (g_rng, 0, bit_width - 1);
+    lo = btor_rng_pick_rand (g_rng, 0, bit_width - 1);
     up = lo == bit_width - 1
              ? bit_width - 1
-             : btor_pick_rand_rng (g_rng, lo + 1, bit_width - 1);
+             : btor_rng_pick_rand (g_rng, lo + 1, bit_width - 1);
     bv  = random_bv (bit_width);
     res = btor_bv_flipped_bit_range (g_mm, bv, up, lo);
     for (j = lo; j <= up; j++)
@@ -2015,5 +2015,5 @@ run_bitvec_tests (int argc, char **argv)
 void
 finish_bitvec_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

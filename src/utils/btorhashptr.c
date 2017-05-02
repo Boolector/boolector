@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -19,7 +19,7 @@ btor_hash_ptr (const void *p)
   return 1183477 * (unsigned) (unsigned long) p;
 }
 
-static int
+static int32_t
 btor_compare_ptr (const void *p, const void *q)
 {
   return ((long) p) != ((long) q);
@@ -57,7 +57,7 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 }
 
 BtorPtrHashTable *
-btor_new_ptr_hash_table (BtorMemMgr *mm, BtorHashPtr hash, BtorCmpPtr cmp)
+btor_hashptr_table_new (BtorMemMgr *mm, BtorHashPtr hash, BtorCmpPtr cmp)
 {
   BtorPtrHashTable *res;
 
@@ -74,12 +74,12 @@ btor_new_ptr_hash_table (BtorMemMgr *mm, BtorHashPtr hash, BtorCmpPtr cmp)
 }
 
 BtorPtrHashTable *
-btor_clone_ptr_hash_table (BtorMemMgr *mm,
-                           BtorPtrHashTable *table,
-                           BtorCloneKeyPtr ckey,
-                           BtorCloneDataPtr cdata,
-                           const void *key_map,
-                           const void *data_map)
+btor_hashptr_table_clone (BtorMemMgr *mm,
+                          BtorPtrHashTable *table,
+                          BtorCloneKeyPtr ckey,
+                          BtorCloneDataPtr cdata,
+                          const void *key_map,
+                          const void *data_map)
 {
   assert (mm);
   assert (ckey);
@@ -91,18 +91,18 @@ btor_clone_ptr_hash_table (BtorMemMgr *mm,
 
   if (!table) return NULL;
 
-  res = btor_new_ptr_hash_table (mm, table->hash, table->cmp);
+  res = btor_hashptr_table_new (mm, table->hash, table->cmp);
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  btor_init_ptr_hash_table_iterator (&it, table);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, table);
+  while (btor_iter_hashptr_has_next (&it))
   {
     b          = it.bucket;
-    key        = btor_next_ptr_hash_table_iterator (&it);
+    key        = btor_iter_hashptr_next (&it);
     cloned_key = ckey (mm, key_map, key);
     assert (cloned_key);
-    cloned_b = btor_add_ptr_hash_table (res, cloned_key);
+    cloned_b = btor_hashptr_table_add (res, cloned_key);
     if (!cdata)
       assert (b->data.as_ptr == 0);
     else
@@ -115,7 +115,7 @@ btor_clone_ptr_hash_table (BtorMemMgr *mm,
 }
 
 void
-btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
+btor_hashptr_table_delete (BtorPtrHashTable *p2iht)
 {
   BtorPtrHashBucket *p, *next;
 
@@ -130,7 +130,7 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
 }
 
 BtorPtrHashBucket *
-btor_get_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+btor_hashptr_table_get (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket *res, **p, *b;
   unsigned i, h;
@@ -175,7 +175,7 @@ btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 }
 
 BtorPtrHashBucket *
-btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+btor_hashptr_table_add (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket **p, *res;
   p = btor_findpos_in_ptr_hash_table_pos (p2iht, key);
@@ -221,10 +221,10 @@ btor_hash_str (const void *str)
 }
 
 void
-btor_remove_ptr_hash_table (BtorPtrHashTable *table,
-                            void *key,
-                            void **stored_key_ptr,
-                            BtorHashTableData *stored_data_ptr)
+btor_hashptr_table_remove (BtorPtrHashTable *table,
+                           void *key,
+                           void **stored_key_ptr,
+                           BtorHashTableData *stored_data_ptr)
 {
   BtorPtrHashBucket **p, *bucket;
 
@@ -259,8 +259,7 @@ btor_remove_ptr_hash_table (BtorPtrHashTable *table,
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                   const BtorPtrHashTable *t)
+btor_iter_hashptr_init (BtorPtrHashTableIterator *it, const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -274,8 +273,8 @@ btor_init_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
 }
 
 void
-btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                            const BtorPtrHashTable *t)
+btor_iter_hashptr_init_reversed (BtorPtrHashTableIterator *it,
+                                 const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -289,8 +288,8 @@ btor_init_reversed_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
 }
 
 void
-btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
-                                    const BtorPtrHashTable *t)
+btor_iter_hashptr_queue (BtorPtrHashTableIterator *it,
+                         const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -307,14 +306,14 @@ btor_queue_ptr_hash_table_iterator (BtorPtrHashTableIterator *it,
 }
 
 bool
-btor_has_next_ptr_hash_table_iterator (const BtorPtrHashTableIterator *it)
+btor_iter_hashptr_has_next (const BtorPtrHashTableIterator *it)
 {
   assert (it);
   return it->cur != 0;
 }
 
 void *
-btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
+btor_iter_hashptr_next (BtorPtrHashTableIterator *it)
 {
   assert (it);
   assert (it->bucket);
@@ -338,7 +337,7 @@ btor_next_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
 }
 
 BtorHashTableData *
-btor_next_data_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
+btor_iter_hashptr_next_data (BtorPtrHashTableIterator *it)
 {
   assert (it);
   assert (it->bucket);
@@ -347,7 +346,7 @@ btor_next_data_ptr_hash_table_iterator (BtorPtrHashTableIterator *it)
   void *res;
 
   res = &it->bucket->data;
-  btor_next_ptr_hash_table_iterator (it);
+  btor_iter_hashptr_next (it);
   return res;
 }
 

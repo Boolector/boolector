@@ -43,9 +43,9 @@ static void
 init_mc_test (void)
 {
   assert (!g_mc);
-  g_mc = boolector_new_mc ();
+  g_mc = boolector_mc_new ();
   assert (!g_btor);
-  g_btor = boolector_btor_mc (g_mc);
+  g_btor = boolector_mc_btor (g_mc);
   assert (g_btor);
 }
 
@@ -53,7 +53,7 @@ static void
 finish_mc_test (void)
 {
   g_btor = 0;
-  boolector_delete_mc (g_mc);
+  boolector_mc_delete (g_mc);
   g_mc = 0;
 }
 
@@ -75,7 +75,7 @@ test_mcnewdel ()
     assert (VAL);                                           \
     fprintf (file, #NAME " = %s\n", VAL);                   \
     fflush (file);                                          \
-    boolector_free_mc_assignment (g_mc, VAL);               \
+    boolector_mc_free_assignment (g_mc, VAL);               \
   } while (0)
 
 static void
@@ -91,9 +91,9 @@ test_mctoggle ()
   {
     init_mc_test ();
     s = boolector_bitvec_sort (g_btor, 1);
-    if (mode) boolector_enable_trace_gen (g_mc);
+    if (mode) boolector_mc_enable_trace_gen (g_mc);
 
-    // boolector_set_verbosity_mc (g_mc, 3);
+    // boolector_mc_set_verbosity (g_mc, 3);
 
     bit  = boolector_latch (g_mc, 1, "counter");
     one  = boolector_one (g_btor, s);
@@ -102,7 +102,7 @@ test_mctoggle ()
     bad  = boolector_eq (g_btor, bit, one);
 
     boolector_next (g_mc, bit, add);
-    boolector_init (g_mc, bit, zero);
+    boolector_mc_init (g_mc, bit, zero);
     boolector_bad (g_mc, bad);
 
     boolector_release (g_btor, one);
@@ -110,10 +110,10 @@ test_mctoggle ()
     boolector_release (g_btor, add);
     boolector_release (g_btor, bad);
 
-    k = boolector_bmc (g_mc, 0, 0);
+    k = boolector_mc_bmc (g_mc, 0, 0);
     assert (k < 0);  // can not reach bad within k=0 steps
 
-    k = boolector_bmc (g_mc, 0, 1);
+    k = boolector_mc_bmc (g_mc, 0, 1);
     assert (0 <= k && k <= 1);  // bad reached within k=1 steps
 
     if (mode)
@@ -155,9 +155,9 @@ test_mccount2enable ()
     init_mc_test ();
     s = boolector_bitvec_sort (g_btor, 2);
 
-    if (mode) boolector_enable_trace_gen (g_mc);
+    if (mode) boolector_mc_enable_trace_gen (g_mc);
 
-    // boolector_set_verbosity_mc (g_mc, 3);
+    // boolector_mc_set_verbosity (g_mc, 3);
 
     counter = boolector_latch (g_mc, 2, "counter");
     enable  = boolector_input (g_mc, 1, "enable");
@@ -170,7 +170,7 @@ test_mccount2enable ()
     bad      = boolector_eq (g_btor, counter, three);
 
     boolector_next (g_mc, counter, ifenable);
-    boolector_init (g_mc, counter, zero);
+    boolector_mc_init (g_mc, counter, zero);
     boolector_bad (g_mc, bad);
 
     boolector_release (g_btor, one);
@@ -180,10 +180,10 @@ test_mccount2enable ()
     boolector_release (g_btor, ifenable);
     boolector_release (g_btor, bad);
 
-    k = boolector_bmc (g_mc, 0, 1);
+    k = boolector_mc_bmc (g_mc, 0, 1);
     assert (k < 0);  // can not reach bad within k=1 steps
 
-    k = boolector_bmc (g_mc, 0, 5);
+    k = boolector_mc_bmc (g_mc, 0, 5);
     assert (0 <= k && k <= 5);  // bad reached within k=4 steps
 
     if (mode)
@@ -193,7 +193,7 @@ test_mccount2enable ()
       sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
       file = fopen (fname, "w");
       assert (file);
-      boolector_dump_btormc (g_mc, file);
+      boolector_mc_dump (g_mc, file);
       fflush (file);
       fprintf (file, "Bad state property satisfied at k = %d:\n", k);
       for (i = 0; i <= k; i++)
@@ -227,8 +227,8 @@ test_mccount2resetenable ()
 
   init_mc_test ();
 
-  boolector_enable_trace_gen (g_mc);
-  // boolector_set_verbosity_mc (g_mc, 3);
+  boolector_mc_enable_trace_gen (g_mc);
+  // boolector_mc_set_verbosity (g_mc, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
   enable  = boolector_input (g_mc, 1, "enable");
@@ -245,7 +245,7 @@ test_mccount2resetenable ()
   bad      = boolector_eq (g_btor, counter, three);
 
   boolector_next (g_mc, counter, ifreset);
-  boolector_init (g_mc, counter, zero);
+  boolector_mc_init (g_mc, counter, zero);
   boolector_bad (g_mc, bad);
   boolector_release (g_btor, one);
   boolector_release (g_btor, zero);
@@ -255,10 +255,10 @@ test_mccount2resetenable ()
   boolector_release (g_btor, ifreset);
   boolector_release (g_btor, bad);
 
-  k = boolector_bmc (g_mc, 0, 2);
+  k = boolector_mc_bmc (g_mc, 0, 2);
   assert (k < 0);  // can not reach bad within k=1 steps
 
-  k = boolector_bmc (g_mc, 0, 4);
+  k = boolector_mc_bmc (g_mc, 0, 4);
   assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
   fname = (char *) malloc (sizeof (char)
@@ -297,8 +297,8 @@ test_mctwostepsmodel ()
 
   init_mc_test ();
 
-  boolector_enable_trace_gen (g_mc);
-  boolector_set_verbosity_mc (g_mc, 3);
+  boolector_mc_enable_trace_gen (g_mc);
+  boolector_mc_set_verbosity (g_mc, 3);
 
   a = boolector_latch (g_mc, 1, "a");
   b = boolector_latch (g_mc, 1, "b");
@@ -309,8 +309,8 @@ test_mctwostepsmodel ()
   one = boolector_ones (g_btor, 1);
   zero = boolector_zero (g_btor, 1);
 
-  boolector_init (g_mc, a, zero);
-  boolector_init (g_mc, b, zero);
+  boolector_mc_init (g_mc, a, zero);
+  boolector_mc_init (g_mc, b, zero);
 
   t = boolector_input (g_mc, 1, "t");
   n = boolector_not (g_btor, t);
@@ -332,7 +332,7 @@ test_mctwostepsmodel ()
 
   boolector_bad (g_mc, bad);
 
-  k = boolector_bmc (g_mc, 0, 2);
+  k = boolector_mc_bmc (g_mc, 0, 2);
   assert (k == 2);			// can reach bad within k=2 steps
 
   fname = (char *) malloc (
@@ -419,8 +419,8 @@ test_mccount2multi ()
   BoolectorSort s;
 
   init_mc_test ();
-  // boolector_set_verbosity_mc (g_mc, 3);
-  boolector_set_stop_at_first_reached_property_mc (g_mc, 0);
+  // boolector_mc_set_verbosity (g_mc, 3);
+  boolector_mc_set_stop_at_first_reached_property (g_mc, 0);
 
   BoolectorNode *count, *one, *zero, *two, *three, *next;
   BoolectorNode *eqzero, *eqone, *eqtwo, *eqthree;
@@ -432,7 +432,7 @@ test_mccount2multi ()
   two   = boolector_const (g_btor, "10");
   three = boolector_const (g_btor, "11");
   next  = boolector_add (g_btor, count, one);
-  boolector_init (g_mc, count, zero);
+  boolector_mc_init (g_mc, count, zero);
   boolector_next (g_mc, count, next);
   eqzero  = boolector_eq (g_btor, count, zero);
   eqone   = boolector_eq (g_btor, count, one);
@@ -460,28 +460,28 @@ test_mccount2multi ()
   test_mccount2multi_reached[1] = -1;
   test_mccount2multi_reached[2] = -1;
   test_mccount2multi_reached[3] = -1;
-  boolector_set_reached_at_bound_call_back_mc (
+  boolector_mc_set_reached_at_bound_call_back (
       g_mc, test_mccount2multi_reached, test_mccount2multi_call_back);
-  k = boolector_bmc (g_mc, 2, 3);
+  k = boolector_mc_bmc (g_mc, 2, 3);
   assert (k == 3);
   assert (test_mccount2multi_reached[0] == -1);
   assert (test_mccount2multi_reached[1] == -1);
   assert (test_mccount2multi_reached[2] == 2);
   assert (test_mccount2multi_reached[3] == 3);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 0) < 0);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 1) < 0);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 2) == 2);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 3) == 3);
-  k = boolector_bmc (g_mc, 4, 10);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 0) < 0);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 1) < 0);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 2) == 2);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 3) == 3);
+  k = boolector_mc_bmc (g_mc, 4, 10);
   assert (k == 5);
   assert (test_mccount2multi_reached[0] == 4);
   assert (test_mccount2multi_reached[1] == 5);
   assert (test_mccount2multi_reached[2] == 2);
   assert (test_mccount2multi_reached[3] == 3);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 0) == 4);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 1) == 5);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 2) == 2);
-  assert (boolector_reached_bad_at_bound_mc (g_mc, 3) == 3);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 0) == 4);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 1) == 5);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 2) == 2);
+  assert (boolector_mc_reached_bad_at_bound (g_mc, 3) == 3);
   finish_mc_test ();
 }
 

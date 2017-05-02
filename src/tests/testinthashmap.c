@@ -27,21 +27,21 @@ static BtorIntHashTable *h;
 void
 init_int_hash_map_tests (void)
 {
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
 }
 
 static void
 init_int_hash_map_test (void)
 {
   assert (!h);
-  h = btor_new_int_hash_map (mem);
+  h = btor_hashint_map_new (mem);
 }
 
 static void
 finish_int_hash_map_test (void)
 {
   assert (h);
-  btor_delete_int_hash_map (h);
+  btor_hashint_map_delete (h);
   h = 0;
 }
 
@@ -49,8 +49,8 @@ static void
 test_new_delete_int_hash_map (void)
 {
   size_t allocated     = mem->allocated;
-  BtorIntHashTable *ht = btor_new_int_hash_map (mem);
-  btor_delete_int_hash_map (ht);
+  BtorIntHashTable *ht = btor_hashint_map_new (mem);
+  btor_hashint_map_delete (ht);
   assert (allocated == mem->allocated);
 }
 
@@ -79,16 +79,16 @@ test_add_int_hash_map (void)
       -19128348, 129481, 184022,  875092,  19824192, 4913823, 0};
 
   for (i = 0; items[i] != 0; i++)
-    btor_add_int_hash_map (h, items[i])->as_int = data[i];
+    btor_hashint_map_add (h, items[i])->as_int = data[i];
 
   for (i = 0; items[i] != 0; i++)
-    assert (btor_contains_int_hash_map (h, items[i]));
+    assert (btor_hashint_map_contains (h, items[i]));
 
   for (i = 0; items[i] != 0; i++)
   {
-    btor_remove_int_hash_map (h, items[i], &d);
+    btor_hashint_map_remove (h, items[i], &d);
     assert (d.as_int == data[i]);
-    assert (!btor_contains_int_hash_map (h, items[i]));
+    assert (!btor_hashint_map_contains (h, items[i]));
   }
 
   finish_int_hash_map_test ();
@@ -104,5 +104,5 @@ run_int_hash_map_tests (int argc, char **argv)
 void
 finish_int_hash_map_tests (void)
 {
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }

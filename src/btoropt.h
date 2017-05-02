@@ -23,7 +23,7 @@
 
 struct BtorOpt
 {
-  int internal;     /* internal option? */
+  bool internal;    /* internal option? */
   bool isflag;      /* flag? */
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
@@ -47,7 +47,7 @@ typedef struct BtorOpt BtorOpt;
 
 #define BTOR_PROB_MAX 1000
 
-enum BtorOptSatEngines
+enum BtorOptSatEngine
 {
   BTOR_SAT_ENGINE_MIN,
 #ifdef BTOR_USE_LINGELING
@@ -62,100 +62,137 @@ enum BtorOptSatEngines
   BTOR_SAT_ENGINE_MAX,
 };
 #define BTOR_SAT_ENGINE_DFLT (BTOR_SAT_ENGINE_MIN + 1)
+typedef enum BtorOptSatEngine BtorOptSatEngine;
 
-#define BTOR_ENGINE_FUN 0
-#define BTOR_ENGINE_SLS 1
-#define BTOR_ENGINE_PROP 2
-#define BTOR_ENGINE_AIGPROP 3
+enum BtorOptEngine
+{
+  BTOR_ENGINE_MIN,
+  BTOR_ENGINE_FUN,
+  BTOR_ENGINE_SLS,
+  BTOR_ENGINE_PROP,
+  BTOR_ENGINE_AIGPROP,
+  BTOR_ENGINE_MAX,
+};
 #define BTOR_ENGINE_DFLT BTOR_ENGINE_FUN
-#define BTOR_ENGINE_MIN BTOR_ENGINE_FUN
-#define BTOR_ENGINE_MAX BTOR_ENGINE_AIGPROP
+typedef enum BtorOptEngine BtorOptEngine;
 
-#define BTOR_INPUT_FORMAT_NONE 0
-#define BTOR_INPUT_FORMAT_BTOR 1
-#define BTOR_INPUT_FORMAT_SMT1 2
-#define BTOR_INPUT_FORMAT_SMT2 3
+enum BtorOptInputFormat
+{
+  BTOR_INPUT_FORMAT_MIN,
+  BTOR_INPUT_FORMAT_NONE,
+  BTOR_INPUT_FORMAT_BTOR,
+  BTOR_INPUT_FORMAT_SMT1,
+  BTOR_INPUT_FORMAT_SMT2,
+  BTOR_INPUT_FORMAT_MAX,
+};
 #define BTOR_INPUT_FORMAT_DFLT BTOR_INPUT_FORMAT_NONE
-#define BTOR_INPUT_FORMAT_MIN BTOR_INPUT_FORMAT_NONE
-#define BTOR_INPUT_FORMAT_MAX BTOR_INPUT_FORMAT_SMT2
+typedef enum BtorOptInputFormat BtorOptInputFormat;
 
-#define BTOR_OUTPUT_BASE_BIN 0
-#define BTOR_OUTPUT_BASE_HEX 1
-#define BTOR_OUTPUT_BASE_DEC 2
+enum BtorOptOutputBase
+{
+  BTOR_OUTPUT_BASE_MIN,
+  BTOR_OUTPUT_BASE_BIN,
+  BTOR_OUTPUT_BASE_HEX,
+  BTOR_OUTPUT_BASE_DEC,
+  BTOR_OUTPUT_BASE_MAX,
+};
 #define BTOR_OUTPUT_BASE_DFLT BTOR_OUTPUT_BASE_BIN
-#define BTOR_OUTPUT_BASE_MIN BTOR_OUTPUT_BASE_BIN
-#define BTOR_OUTPUT_BASE_MAX BTOR_OUTPUT_BASE_DEC
+typedef enum BtorOptOutputBase BtorOptOutputBase;
 
-#define BTOR_OUTPUT_FORMAT_BTOR 1
-#define BTOR_OUTPUT_FORMAT_BTOR2 2
-#define BTOR_OUTPUT_FORMAT_SMT2 3
-#define BTOR_OUTPUT_FORMAT_AIGER_ASCII 4
-#define BTOR_OUTPUT_FORMAT_AIGER_BINARY 5
+enum BtorOptOutputFormat
+{
+  BTOR_OUTPUT_FORMAT_MIN,
+  BTOR_OUTPUT_FORMAT_BTOR,
+  BTOR_OUTPUT_FORMAT_BTOR2,
+  BTOR_OUTPUT_FORMAT_SMT2,
+  BTOR_OUTPUT_FORMAT_AIGER_ASCII,
+  BTOR_OUTPUT_FORMAT_AIGER_BINARY,
+  BTOR_OUTPUT_FORMAT_MAX,
+};
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
+typedef enum BtorOptOutputFormat BtorOptOutputFormat;
 
-#define BTOR_DP_QSORT_JUST 0
-#define BTOR_DP_QSORT_ASC 1
-#define BTOR_DP_QSORT_DESC 2
+enum BtorOptDPQsort
+{
+  BTOR_DP_QSORT_MIN,
+  BTOR_DP_QSORT_JUST,
+  BTOR_DP_QSORT_ASC,
+  BTOR_DP_QSORT_DESC,
+  BTOR_DP_QSORT_MAX,
+};
 #define BTOR_DP_QSORT_DFLT BTOR_DP_QSORT_JUST
-#define BTOR_DP_QSORT_MIN BTOR_DP_QSORT_JUST
-#define BTOR_DP_QSORT_MAX BTOR_DP_QSORT_DESC
+typedef enum BtorOptDPQsort BtorOptDPQsort;
 
-#define BTOR_JUST_HEUR_LEFT 0
-#define BTOR_JUST_HEUR_BRANCH_MIN_APP 1
-#define BTOR_JUST_HEUR_BRANCH_MIN_DEP 2
+enum BtorOptJustHeur
+{
+  BTOR_JUST_HEUR_MIN,
+  BTOR_JUST_HEUR_LEFT,
+  BTOR_JUST_HEUR_BRANCH_MIN_APP,
+  BTOR_JUST_HEUR_BRANCH_MIN_DEP,
+  BTOR_JUST_HEUR_MAX,
+};
 #define BTOR_JUST_HEUR_DFLT BTOR_JUST_HEUR_BRANCH_MIN_APP
-#define BTOR_JUST_HEUR_MIN BTOR_JUST_HEUR_LEFT
-#define BTOR_JUST_HEUR_MAX BTOR_JUST_HEUR_BRANCH_MIN_DEP
+typedef enum BtorOptJustHeur BtorOptJustHeur;
 
-#define BTOR_SLS_STRAT_BEST_MOVE 0
-#define BTOR_SLS_STRAT_RAND_WALK 1
-#define BTOR_SLS_STRAT_FIRST_BEST_MOVE 2
-#define BTOR_SLS_STRAT_BEST_SAME_MOVE 3
-#define BTOR_SLS_STRAT_ALWAYS_PROP 4
+enum BtorOptSLSStrat
+{
+  BTOR_SLS_STRAT_MIN,
+  BTOR_SLS_STRAT_BEST_MOVE,
+  BTOR_SLS_STRAT_RAND_WALK,
+  BTOR_SLS_STRAT_FIRST_BEST_MOVE,
+  BTOR_SLS_STRAT_BEST_SAME_MOVE,
+  BTOR_SLS_STRAT_ALWAYS_PROP,
+  BTOR_SLS_STRAT_MAX,
+};
 #define BTOR_SLS_STRAT_DFLT BTOR_SLS_STRAT_BEST_MOVE
-#define BTOR_SLS_STRAT_MIN 0
-#define BTOR_SLS_STRAT_MAX 4
+typedef enum BtorOptSLSStrat BtorOptSLSStrat;
 
-#define BTOR_PROP_PATH_SEL_CONTROLLING 0
-#define BTOR_PROP_PATH_SEL_ESSENTIAL 1
-#define BTOR_PROP_PATH_SEL_RANDOM 2
+enum BtorOptPropPathSel
+{
+  BTOR_PROP_PATH_SEL_MIN,
+  BTOR_PROP_PATH_SEL_CONTROLLING,
+  BTOR_PROP_PATH_SEL_ESSENTIAL,
+  BTOR_PROP_PATH_SEL_RANDOM,
+  BTOR_PROP_PATH_SEL_MAX,
+};
 #define BTOR_PROP_PATH_SEL_DFLT BTOR_PROP_PATH_SEL_ESSENTIAL
-#define BTOR_PROP_PATH_SEL_MIN 0
-#define BTOR_PROP_PATH_SEL_MAX 2
+typedef enum BtorOptPropPathSel BtorOptPropPathSel;
 
-#define BTOR_FUN_EAGER_LEMMAS_NONE 0
-#define BTOR_FUN_EAGER_LEMMAS_CONF 1
-#define BTOR_FUN_EAGER_LEMMAS_ALL 2
+enum BtorOptFunEagerLemmas
+{
+  BTOR_FUN_EAGER_LEMMAS_MIN,
+  BTOR_FUN_EAGER_LEMMAS_NONE,
+  BTOR_FUN_EAGER_LEMMAS_CONF,
+  BTOR_FUN_EAGER_LEMMAS_ALL,
+  BTOR_FUN_EAGER_LEMMAS_MAX,
+};
 #define BTOR_FUN_EAGER_LEMMAS_DFLT BTOR_FUN_EAGER_LEMMAS_CONF
-#define BTOR_FUN_EAGER_LEMMAS_MIN BTOR_FUN_EAGER_LEMMAS_NONE
-#define BTOR_FUN_EAGER_LEMMAS_MAX BTOR_FUN_EAGER_LEMMAS_ALL
+typedef enum BtorOptFunEagerLemmas BtorOptFunEagerLemmas;
 
 /*------------------------------------------------------------------------*/
 
-void btor_init_opts (Btor *btor);
-void btor_clone_opts (Btor *btor, Btor *clone);
-void btor_delete_opts (Btor *btor);
+void btor_opt_init_opts (Btor *btor);
+void btor_opt_clone_opts (Btor *btor, Btor *clone);
+void btor_opt_delete_opts (Btor *btor);
 
-bool btor_has_opt (Btor *btor, const BtorOption opt);
+bool btor_opt_is_valid (Btor *btor, const BtorOption opt);
 
-uint32_t btor_get_opt (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_min (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_max (Btor *btor, const BtorOption opt);
-uint32_t btor_get_opt_dflt (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_lng (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_shrt (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_desc (Btor *btor, const BtorOption opt);
-const char *btor_get_opt_valstr (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_min (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_max (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_dflt (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_lng (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_shrt (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_desc (Btor *btor, const BtorOption opt);
+const char *btor_opt_get_valstr (Btor *btor, const BtorOption opt);
 
-void btor_set_opt (Btor *btor, const BtorOption opt, uint32_t val);
-void btor_set_opt_str (Btor *btor, const BtorOption opt, const char *str);
+void btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val);
+void btor_opt_set_str (Btor *btor, const BtorOption opt, const char *str);
 
-BtorOption btor_first_opt (Btor *btor);
-BtorOption btor_next_opt (Btor *btor, BtorOption cur);
+BtorOption btor_opt_first (Btor *btor);
+BtorOption btor_opt_next (Btor *btor, BtorOption cur);
 
 #ifndef NBTORLOG
-void btor_log_opts (Btor *btor);
+void btor_opt_log_opts (Btor *btor);
 #endif
 #endif
