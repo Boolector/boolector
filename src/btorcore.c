@@ -2305,7 +2305,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
                              btor_slice_get_upper (exp),
                              btor_slice_get_lower (exp));
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
-    default: return btor_create_exp (btor, exp->kind, exp->e, exp->arity);
+    default: return btor_exp_create (btor, exp->kind, exp->e, exp->arity);
   }
 }
 
@@ -2780,7 +2780,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       }
       else
       {
-        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
+        result = btor_exp_create (btor, real_cur->kind, e, real_cur->arity);
       }
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       assert (!btor_hashint_map_get (cache, real_cur->id));

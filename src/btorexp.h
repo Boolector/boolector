@@ -15,6 +15,16 @@
 #include "btornode.h"
 #include "btorsort.h"
 
+/*------------------------------------------------------------------------*/
+
+/* Convenience wrapper function. */
+BtorNode *btor_exp_create (Btor *btor,
+                           BtorNodeKind kind,
+                           BtorNode *e[],
+                           uint32_t arity);
+
+/*------------------------------------------------------------------------*/
+
 /* Binary constant.
  * strlen(bits) > 0
  * width(result) = strlen(bits)

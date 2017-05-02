@@ -19,6 +19,65 @@
 
 #include <limits.h>
 
+/*------------------------------------------------------------------------*/
+
+BtorNode *
+btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
+{
+  assert (arity > 0);
+  assert (arity <= 3);
+
+  switch (kind)
+  {
+    case BTOR_AND_NODE:
+      assert (arity == 2);
+      return btor_exp_and (btor, e[0], e[1]);
+    case BTOR_BV_EQ_NODE:
+    case BTOR_FUN_EQ_NODE:
+      assert (arity == 2);
+      return btor_exp_eq (btor, e[0], e[1]);
+    case BTOR_ADD_NODE:
+      assert (arity == 2);
+      return btor_exp_add (btor, e[0], e[1]);
+    case BTOR_MUL_NODE:
+      assert (arity == 2);
+      return btor_exp_mul (btor, e[0], e[1]);
+    case BTOR_ULT_NODE:
+      assert (arity == 2);
+      return btor_exp_ult (btor, e[0], e[1]);
+    case BTOR_SLL_NODE:
+      assert (arity == 2);
+      return btor_exp_sll (btor, e[0], e[1]);
+    case BTOR_SRL_NODE:
+      assert (arity == 2);
+      return btor_exp_srl (btor, e[0], e[1]);
+    case BTOR_UDIV_NODE:
+      assert (arity == 2);
+      return btor_exp_udiv (btor, e[0], e[1]);
+    case BTOR_UREM_NODE:
+      assert (arity == 2);
+      return btor_exp_urem (btor, e[0], e[1]);
+    case BTOR_CONCAT_NODE:
+      assert (arity == 2);
+      return btor_exp_concat (btor, e[0], e[1]);
+    case BTOR_APPLY_NODE:
+      assert (arity == 2);
+      return btor_exp_apply (btor, e[0], e[1]);
+    case BTOR_LAMBDA_NODE:
+      assert (arity == 2);
+      return btor_exp_lambda (btor, e[0], e[1]);
+    case BTOR_COND_NODE:
+      assert (arity == 3);
+      return btor_exp_cond (btor, e[0], e[1], e[2]);
+    default:
+      assert (kind == BTOR_ARGS_NODE);
+      return btor_exp_args (btor, e, arity);
+  }
+  return 0;
+}
+
+/*------------------------------------------------------------------------*/
+
 BtorNode *
 btor_exp_const (Btor *btor, const BtorBitVector *bits)
 {
@@ -1610,59 +1669,4 @@ btor_exp_dec (Btor *btor, BtorNode *exp)
   result = btor_exp_sub (btor, exp, one);
   btor_release_exp (btor, one);
   return result;
-}
-
-BtorNode *
-btor_create_exp (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
-{
-  assert (arity > 0);
-  assert (arity <= 3);
-
-  switch (kind)
-  {
-    case BTOR_AND_NODE:
-      assert (arity == 2);
-      return btor_exp_and (btor, e[0], e[1]);
-    case BTOR_BV_EQ_NODE:
-    case BTOR_FUN_EQ_NODE:
-      assert (arity == 2);
-      return btor_exp_eq (btor, e[0], e[1]);
-    case BTOR_ADD_NODE:
-      assert (arity == 2);
-      return btor_exp_add (btor, e[0], e[1]);
-    case BTOR_MUL_NODE:
-      assert (arity == 2);
-      return btor_exp_mul (btor, e[0], e[1]);
-    case BTOR_ULT_NODE:
-      assert (arity == 2);
-      return btor_exp_ult (btor, e[0], e[1]);
-    case BTOR_SLL_NODE:
-      assert (arity == 2);
-      return btor_exp_sll (btor, e[0], e[1]);
-    case BTOR_SRL_NODE:
-      assert (arity == 2);
-      return btor_exp_srl (btor, e[0], e[1]);
-    case BTOR_UDIV_NODE:
-      assert (arity == 2);
-      return btor_exp_udiv (btor, e[0], e[1]);
-    case BTOR_UREM_NODE:
-      assert (arity == 2);
-      return btor_exp_urem (btor, e[0], e[1]);
-    case BTOR_CONCAT_NODE:
-      assert (arity == 2);
-      return btor_exp_concat (btor, e[0], e[1]);
-    case BTOR_APPLY_NODE:
-      assert (arity == 2);
-      return btor_exp_apply (btor, e[0], e[1]);
-    case BTOR_LAMBDA_NODE:
-      assert (arity == 2);
-      return btor_exp_lambda (btor, e[0], e[1]);
-    case BTOR_COND_NODE:
-      assert (arity == 3);
-      return btor_exp_cond (btor, e[0], e[1], e[2]);
-    default:
-      assert (kind == BTOR_ARGS_NODE);
-      return btor_exp_args (btor, e, arity);
-  }
-  return 0;
 }

@@ -666,11 +666,6 @@ BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 
 BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 
-BtorNode *btor_create_exp (Btor *btor,
-                           BtorNodeKind kind,
-                           BtorNode *e[],
-                           uint32_t arity);
-
 /*========================================================================*/
 
 struct BtorNodePair
