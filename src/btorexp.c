@@ -504,7 +504,7 @@ create_bin_n_exp (Btor * btor,
 }
 
 BtorNode *
-btor_and_n_exp (Btor * btor, BtorNode * args[], uint32_t argc)
+btor_exp_and_n (Btor * btor, BtorNode * args[], uint32_t argc)
 {
   return create_bin_n_exp (btor, btor_exp_and, args, argc);
 }

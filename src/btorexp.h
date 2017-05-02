@@ -160,7 +160,7 @@ BtorNode *btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *btor_exp_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 #if 0
-BtorNode *btor_and_n_exp (Btor * btor, BtorNode *args[], uint32_t argc);
+BtorNode *btor_exp_and_n (Btor * btor, BtorNode *args[], uint32_t argc);
 #endif
 
 /* Logical and bit-vector NAND.
