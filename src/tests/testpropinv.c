@@ -56,9 +56,9 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INV_COMPLETE_BINARY_FINISH(fun) \
   do                                              \
   {                                               \
-    btor_release_exp (g_btor, e[0]);              \
-    btor_release_exp (g_btor, e[1]);              \
-    btor_release_exp (g_btor, exp);               \
+    btor_node_release (g_btor, e[0]);             \
+    btor_node_release (g_btor, e[1]);             \
+    btor_node_release (g_btor, exp);              \
   } while (0)
 
 #define TEST_PROP_INV_COMPLETE_EIDX(fun, bve, bvn, bvres, eidx)   \
@@ -250,10 +250,10 @@ test_propinv_complete_slice_bv (void)
         btor_bv_free (g_mm, bvexp);
         btor_bv_free (g_mm, bve);
       }
-      btor_release_exp (g_btor, exp);
+      btor_node_release (g_btor, exp);
     }
   }
-  btor_release_exp (g_btor, e);
+  btor_node_release (g_btor, e);
 #endif
 }
 
@@ -286,9 +286,9 @@ test_propinv_complete_slice_bv (void)
 #define TEST_PROP_INV_CONF_BINARY_FINISH(fun) \
   do                                          \
   {                                           \
-    btor_release_exp (g_btor, fun);           \
-    btor_release_exp (g_btor, e[0]);          \
-    btor_release_exp (g_btor, e[1]);          \
+    btor_node_release (g_btor, fun);          \
+    btor_node_release (g_btor, e[0]);         \
+    btor_node_release (g_btor, e[1]);         \
   } while (0)
 
 #define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rvalmax)     \
@@ -335,8 +335,8 @@ test_propinv_complete_slice_bv (void)
     }                                                                \
     btor_bv_free (g_mm, bv##fun);                                    \
     btor_bv_free (g_mm, bve);                                        \
-    btor_release_exp (g_btor, ce);                                   \
-    btor_release_exp (g_btor, c##fun);                               \
+    btor_node_release (g_btor, ce);                                  \
+    btor_node_release (g_btor, c##fun);                              \
   } while (0)
 
 #define TEST_PROP_INV_CONF_MUL(cinit)                                       \
@@ -377,10 +377,10 @@ test_propinv_complete_slice_bv (void)
     }                                                                       \
     if (cinit)                                                              \
     {                                                                       \
-      btor_release_exp (g_btor, ce[0]);                                     \
-      btor_release_exp (g_btor, ce[1]);                                     \
-      btor_release_exp (g_btor, cmul[0]);                                   \
-      btor_release_exp (g_btor, cmul[1]);                                   \
+      btor_node_release (g_btor, ce[0]);                                    \
+      btor_node_release (g_btor, ce[1]);                                    \
+      btor_node_release (g_btor, cmul[0]);                                  \
+      btor_node_release (g_btor, cmul[1]);                                  \
     }                                                                       \
   } while (0)
 
@@ -404,8 +404,8 @@ test_propinv_complete_slice_bv (void)
         assert (!btor_bv_is_umulo (g_mm, res, bvudiv));                       \
         btor_bv_free (g_mm, res);                                             \
       }                                                                       \
-      btor_release_exp (g_btor, cudiv);                                       \
-      btor_release_exp (g_btor, ce);                                          \
+      btor_node_release (g_btor, cudiv);                                      \
+      btor_node_release (g_btor, ce);                                         \
     }                                                                         \
     else                                                                      \
     {                                                                         \
@@ -420,8 +420,8 @@ test_propinv_complete_slice_bv (void)
           || (btor_opt_get (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS       \
               && res));                                                       \
       if (res) btor_bv_free (g_mm, res);                                      \
-      btor_release_exp (g_btor, cudiv);                                       \
-      btor_release_exp (g_btor, ce);                                          \
+      btor_node_release (g_btor, cudiv);                                      \
+      btor_node_release (g_btor, ce);                                         \
     }                                                                         \
   } while (0)
 
@@ -514,10 +514,10 @@ prop_inv_conf_and_bv (uint32_t bw)
       btor_bv_free (g_mm, bvand);
       btor_bv_free (g_mm, tmp);
     }
-    btor_release_exp (g_btor, cand[0]);
-    btor_release_exp (g_btor, cand[1]);
-    btor_release_exp (g_btor, ce[0]);
-    btor_release_exp (g_btor, ce[1]);
+    btor_node_release (g_btor, cand[0]);
+    btor_node_release (g_btor, cand[1]);
+    btor_node_release (g_btor, ce[0]);
+    btor_node_release (g_btor, ce[1]);
     btor_bv_free (g_mm, bve[0]);
     btor_bv_free (g_mm, bve[1]);
   }
@@ -562,8 +562,8 @@ PROP_INV_CONF_ULT_TESTS:
     assert (btor_bv_compare (res, zero) > 0);
     btor_bv_free (g_mm, res);
   }
-  btor_release_exp (g_btor, cult);
-  btor_release_exp (g_btor, ce);
+  btor_node_release (g_btor, cult);
+  btor_node_release (g_btor, ce);
   btor_bv_free (g_mm, bve);
   /* e[0] < 0 */
   bve = btor_bv_new (g_mm, bw);
@@ -582,8 +582,8 @@ PROP_INV_CONF_ULT_TESTS:
     assert (btor_bv_compare (res, bvmax) < 0);
     btor_bv_free (g_mm, res);
   }
-  btor_release_exp (g_btor, cult);
-  btor_release_exp (g_btor, ce);
+  btor_node_release (g_btor, cult);
+  btor_node_release (g_btor, ce);
   btor_bv_free (g_mm, bve);
 
   if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
@@ -643,8 +643,8 @@ PROP_INV_CONF_SLL_TESTS:
         || (btor_opt_get (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS && res));
     if (res) btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bve);
-    btor_release_exp (g_btor, ce);
-    btor_release_exp (g_btor, csll);
+    btor_node_release (g_btor, ce);
+    btor_node_release (g_btor, csll);
   }
   btor_bv_free (g_mm, bvsll);
 
@@ -800,8 +800,8 @@ PROP_INV_CONF_SRL_TESTS:
         || (btor_opt_get (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS && res));
     if (res) btor_bv_free (g_mm, res);
     btor_bv_free (g_mm, bve);
-    btor_release_exp (g_btor, ce);
-    btor_release_exp (g_btor, csrl);
+    btor_node_release (g_btor, ce);
+    btor_node_release (g_btor, csrl);
   }
   btor_bv_free (g_mm, bvsrl);
 
@@ -955,10 +955,10 @@ PROP_INV_CONF_MUL_TESTS:
     TEST_PROP_INV_CONF_MUL (false);
     btor_bv_free (g_mm, bvmul);
   }
-  btor_release_exp (g_btor, cmul[0]);
-  btor_release_exp (g_btor, cmul[1]);
-  btor_release_exp (g_btor, ce[0]);
-  btor_release_exp (g_btor, ce[1]);
+  btor_node_release (g_btor, cmul[0]);
+  btor_node_release (g_btor, cmul[1]);
+  btor_node_release (g_btor, ce[0]);
+  btor_node_release (g_btor, ce[1]);
   btor_bv_free (g_mm, bve);
 
   /* bvmul is odd but bve is even */
@@ -1164,8 +1164,8 @@ PROP_INV_CONF_UREM_TESTS:
       assert (btor_bv_is_zero (res));
       btor_bv_free (g_mm, res);
     }
-    btor_release_exp (g_btor, curem);
-    btor_release_exp (g_btor, ce);
+    btor_node_release (g_btor, curem);
+    btor_node_release (g_btor, ce);
     btor_bv_free (g_mm, tmp);
     btor_bv_free (g_mm, bve);
   }
@@ -1192,8 +1192,8 @@ PROP_INV_CONF_UREM_TESTS:
       assert (res);
       btor_bv_free (g_mm, res);
     }
-    btor_release_exp (g_btor, curem);
-    btor_release_exp (g_btor, ce);
+    btor_node_release (g_btor, curem);
+    btor_node_release (g_btor, ce);
     btor_bv_free (g_mm, bve);
     btor_bv_free (g_mm, bvurem);
   }
@@ -1224,8 +1224,8 @@ PROP_INV_CONF_UREM_TESTS:
       assert (res);
       btor_bv_free (g_mm, res);
     }
-    btor_release_exp (g_btor, curem);
-    btor_release_exp (g_btor, ce);
+    btor_node_release (g_btor, curem);
+    btor_node_release (g_btor, ce);
     btor_bv_free (g_mm, two);
     btor_bv_free (g_mm, bvurem);
     btor_bv_free (g_mm, bve);
@@ -1253,8 +1253,8 @@ PROP_INV_CONF_UREM_TESTS:
       assert (!btor_bv_compare (res, bvurem));
       btor_bv_free (g_mm, res);
     }
-    btor_release_exp (g_btor, curem);
-    btor_release_exp (g_btor, ce);
+    btor_node_release (g_btor, curem);
+    btor_node_release (g_btor, ce);
     btor_bv_free (g_mm, tmp);
     btor_bv_free (g_mm, bve);
   }
@@ -1278,8 +1278,8 @@ PROP_INV_CONF_UREM_TESTS:
       assert (res);
       btor_bv_free (g_mm, res);
     }
-    btor_release_exp (g_btor, curem);
-    btor_release_exp (g_btor, ce);
+    btor_node_release (g_btor, curem);
+    btor_node_release (g_btor, ce);
     btor_bv_free (g_mm, tmp);
     btor_bv_free (g_mm, bvurem);
     btor_bv_free (g_mm, bve);
@@ -1374,14 +1374,14 @@ PROP_INV_CONF_CONCAT_TESTS:
     for (j = 0; j < 2; j++)
     {
       btor_sort_release (g_btor, sorts[j]);
-      btor_release_exp (g_btor, cconcat[j]);
-      btor_release_exp (g_btor, ce[j]);
-      btor_release_exp (g_btor, e[j]);
+      btor_node_release (g_btor, cconcat[j]);
+      btor_node_release (g_btor, ce[j]);
+      btor_node_release (g_btor, e[j]);
       btor_bv_free (g_mm, bve[j]);
       btor_bv_free (g_mm, tmp[j]);
     }
 
-    btor_release_exp (g_btor, concat);
+    btor_node_release (g_btor, concat);
     btor_bv_free (g_mm, bvconcat);
   }
 

@@ -89,8 +89,8 @@ test_map0 ()
   btor_nodemap_map (map, s, d);
   m = btor_nodemap_mapped (map, s);
   assert (m == d);
-  btor_release_exp (stor, s);
-  btor_release_exp (dtor, d);
+  btor_node_release (stor, s);
+  btor_node_release (dtor, d);
   btor_nodemap_delete (map);
   btor_delete (stor);
   btor_delete (dtor);
@@ -115,9 +115,9 @@ test_map1 ()
   // BtorNode * m;
   // m = btor_nodemap_mapped (map, s);
   btor_sort_release (stor, sort);
-  btor_release_exp (stor, t);
-  btor_release_exp (stor, s);
-  btor_release_exp (stor, a);
+  btor_node_release (stor, t);
+  btor_node_release (stor, s);
+  btor_node_release (stor, a);
   btor_nodemap_delete (map);
   btor_delete (stor);
   btor_delete (mtor);

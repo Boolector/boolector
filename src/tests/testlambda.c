@@ -107,7 +107,7 @@ apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
   for (i = 0; i < argc; i++)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (btor_is_lambda_node (cur));
+    assert (btor_node_is_lambda (cur));
     btor_beta_assign_param (btor, cur, args[i]);
     BTOR_PUSH_STACK (unassign, cur);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
@@ -147,7 +147,7 @@ test_lambda_const_lambda_const (void)
   result = apply_and_reduce (g_btor, &i, 1, lambda);
   assert (result == c);
   assert_not_parameterized (1, result);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   /* (lambda x . 0) () */
   result = apply_and_reduce (g_btor, 0, 0, lambda);
@@ -155,11 +155,11 @@ test_lambda_const_lambda_const (void)
   assert_parameterized (1, x);
   assert_not_parameterized (4, result, c, i, lambda);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, c);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, c);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -180,7 +180,7 @@ test_lambda_const_lambda_var (void)
   result = apply_and_reduce (g_btor, &i, 1, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   /* (lambda x . a) () */
   result = apply_and_reduce (g_btor, 0, 0, lambda);
@@ -188,11 +188,11 @@ test_lambda_const_lambda_var (void)
   assert_parameterized (1, x);
   assert_not_parameterized (4, result, lambda, i, a);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, i);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, i);
   finish_lambda_test ();
 }
 
@@ -212,7 +212,7 @@ test_lambda_const_lambda_param (void)
   result = apply_and_reduce (g_btor, &a, 1, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   /* (lambda x . x) () */
   result = apply_and_reduce (g_btor, 0, 0, lambda);
@@ -220,10 +220,10 @@ test_lambda_const_lambda_param (void)
   assert_parameterized (1, x);
   assert_not_parameterized (3, result, lambda, a);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -245,7 +245,7 @@ test_lambda_const_lambda_negated (void)
   result = apply_and_reduce (g_btor, &not_a, 1, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   /* (lambda x . not (x)) () */
   result = apply_and_reduce (g_btor, 0, 0, lambda);
@@ -253,12 +253,12 @@ test_lambda_const_lambda_negated (void)
   assert_parameterized (2, x, not_x);
   assert_not_parameterized (4, result, lambda, not_a, a);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, not_x);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, not_a);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, not_x);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, not_a);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 
@@ -280,10 +280,10 @@ test_lambda_unassigned_param (void)
   assert_parameterized (1, x);
   assert_not_parameterized (3, result, lambda, a);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -312,12 +312,12 @@ unary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
   assert_parameterized (2, param, param_exp);
   assert_not_parameterized (4, var, expected, lambda, result);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -374,12 +374,12 @@ test_lambda_param_slice (void)
   assert_parameterized (2, param, slice);
   assert_not_parameterized (4, var, expected, lambda, result);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, slice);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, slice);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -411,12 +411,12 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 
   btor_sort_release (g_btor, lower_sort);
   btor_sort_release (g_btor, upper_sort);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -495,13 +495,13 @@ binary_param_exp_test (int param_pos,
   btor_sort_release (g_btor, v1_sort);
   btor_sort_release (g_btor, v2_sort);
   btor_sort_release (g_btor, x_sort);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, v2);
-  btor_release_exp (g_btor, v1);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, v2);
+  btor_node_release (g_btor, v1);
   finish_lambda_test ();
 }
 
@@ -799,13 +799,13 @@ test_lambda_param_read (void)
   assert_parameterized (2, x, read);
   assert_not_parameterized (5, result, lambda, expected, a, i);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, read);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, read);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -835,14 +835,14 @@ test_lambda_param_write1 (void)
   assert_parameterized (2, x, param_exp);
   assert_not_parameterized (6, result, lambda, expected, a, e, i);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, i);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, i);
   finish_lambda_test ();
 }
 
@@ -868,14 +868,14 @@ test_lambda_param_write2 (void)
   assert_parameterized (2, x, param_exp);
   assert_not_parameterized (6, result, lambda, expected, a, e, i);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, i);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, i);
   finish_lambda_test ();
 }
 
@@ -904,14 +904,14 @@ test_lambda_param_bcond1 (void)
   assert_not_parameterized (6, result, lambda, expected, v3, v2, v1);
 
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, v3);
-  btor_release_exp (g_btor, v2);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, v1);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, v3);
+  btor_node_release (g_btor, v2);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, v1);
   finish_lambda_test ();
 }
 
@@ -940,14 +940,14 @@ test_lambda_param_bcond2 (void)
   assert_not_parameterized (6, result, lambda, expected, v3, v2, v1);
 
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, v3);
-  btor_release_exp (g_btor, v2);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, v1);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, v3);
+  btor_node_release (g_btor, v2);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, v1);
   finish_lambda_test ();
 }
 
@@ -976,14 +976,14 @@ test_lambda_param_bcond3 (void)
   assert_not_parameterized (6, result, lambda, expected, v3, v2, v1);
 
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, v3);
-  btor_release_exp (g_btor, v2);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, v1);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, v3);
+  btor_node_release (g_btor, v2);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, v1);
   finish_lambda_test ();
 }
 
@@ -1019,19 +1019,19 @@ test_lambda_param_acond (void)
   assert_not_parameterized (4, result, lambda, expected, expected_acond);
   assert_not_parameterized (5, e_else, e_if, expected_cond, index, var);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, param_exp);
-  btor_release_exp (g_btor, param_acond);
-  btor_release_exp (g_btor, param_cond);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, expected_acond);
-  btor_release_exp (g_btor, e_else);
-  btor_release_exp (g_btor, e_if);
-  btor_release_exp (g_btor, expected_cond);
-  btor_release_exp (g_btor, index);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, param_exp);
+  btor_node_release (g_btor, param_acond);
+  btor_node_release (g_btor, param_cond);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, expected_acond);
+  btor_node_release (g_btor, e_else);
+  btor_node_release (g_btor, e_if);
+  btor_node_release (g_btor, expected_cond);
+  btor_node_release (g_btor, index);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -1063,8 +1063,8 @@ test_lambda_bounded_reduce1 (void)
   btor_beta_unassign_params (g_btor, l1);
 
   assert (result == expected);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, expected);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, expected);
 
   /* bound 3: stop at third lambda */
   btor_beta_assign_param (g_btor, l1, v);
@@ -1073,13 +1073,13 @@ test_lambda_bounded_reduce1 (void)
 
   assert (result == v);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, v);
-  btor_release_exp (g_btor, l1);
-  btor_release_exp (g_btor, r);
-  btor_release_exp (g_btor, l2);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, v);
+  btor_node_release (g_btor, l1);
+  btor_node_release (g_btor, r);
+  btor_node_release (g_btor, l2);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -1101,27 +1101,27 @@ test_lambda_bounded_reduce2 (void)
   btor_beta_assign_param (g_btor, l, j);
   result = btor_beta_reduce_bounded (g_btor, l, 0);
   assert (result == expected);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   result = btor_beta_reduce_bounded (g_btor, l, 1);
   assert (result == l);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   result = btor_beta_reduce_bounded (g_btor, eq, 1);
   assert (result == expected);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   result = btor_beta_reduce_bounded (g_btor, l, 2);
   assert (result == expected);
   btor_beta_unassign_params (g_btor, l);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, j);
-  btor_release_exp (g_btor, l);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, j);
+  btor_node_release (g_btor, l);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -1144,24 +1144,24 @@ test_lambda_bounded_reduce3 (void)
   btor_beta_assign_param (g_btor, l2, i);
   result = btor_beta_reduce_bounded (g_btor, l2, 1);
   assert (result == l2);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   result = btor_beta_reduce_bounded (g_btor, l2, 2);
   assert (result == expected);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   result = btor_beta_reduce_bounded (g_btor, l2, 3);
   assert (result == i);
   btor_beta_unassign_params (g_btor, l2);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, l2);
-  btor_release_exp (g_btor, l1);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, x);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, l2);
+  btor_node_release (g_btor, l1);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, x);
   finish_lambda_test ();
 }
 
@@ -1188,15 +1188,15 @@ test_lambda_reduce_write1 (void)
 
   assert (result == e);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, cond);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, read);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, cond);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, read);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 
@@ -1221,16 +1221,16 @@ test_lambda_reduce_write2 (void)
 
   assert (result == expected);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, cond);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, read);
-  btor_release_exp (g_btor, param);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda);
+  btor_node_release (g_btor, cond);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, read);
+  btor_node_release (g_btor, param);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 
@@ -1254,13 +1254,13 @@ test_lambda_reduce_nested_writes (void)
 
   assert (result == e2);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, w1);
-  btor_release_exp (g_btor, e1);
-  btor_release_exp (g_btor, w2);
-  btor_release_exp (g_btor, e2);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, i);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, w1);
+  btor_node_release (g_btor, e1);
+  btor_node_release (g_btor, w2);
+  btor_node_release (g_btor, e2);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, i);
   finish_lambda_test ();
 }
 
@@ -1285,21 +1285,21 @@ test_lambda_reduce_nested_lambdas_add1 (void)
 
   result = apply_and_reduce (g_btor, args, 2, fun);
   assert (result == expected);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   BtorNode *apply = btor_exp_apply_n (g_btor, fun, args, 2);
   result          = btor_beta_reduce_full (g_btor, apply, 0);
   assert (result == expected);
 
-  btor_release_exp (g_btor, apply);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, fun);
-  btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, b);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, apply);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, fun);
+  btor_node_release (g_btor, add);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, b);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 
@@ -1327,16 +1327,16 @@ test_lambda_reduce_nested_lambdas_add2 (void)
 
   assert (result == expected);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda1);
-  btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, app);
-  btor_release_exp (g_btor, lambda2);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, b);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, lambda1);
+  btor_node_release (g_btor, add);
+  btor_node_release (g_btor, app);
+  btor_node_release (g_btor, lambda2);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, b);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 
@@ -1366,18 +1366,18 @@ test_lambda_reduce_nested_lambdas_read (void)
 
   assert (result == expected);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, expected);
-  btor_release_exp (g_btor, expected_add);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, lambda1);
-  btor_release_exp (g_btor, napp);
-  btor_release_exp (g_btor, app);
-  btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, lambda2);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, expected);
+  btor_node_release (g_btor, expected_add);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, lambda1);
+  btor_node_release (g_btor, napp);
+  btor_node_release (g_btor, app);
+  btor_node_release (g_btor, add);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, lambda2);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -1408,7 +1408,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
 
   result = apply_and_reduce (g_btor, indices, nesting_lvl, fun);
   assert (result == var);
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
 
   BtorNode *apply = btor_exp_apply_n (g_btor, fun, indices, nesting_lvl);
   result          = btor_beta_reduce_full (g_btor, apply, 0);
@@ -1416,17 +1416,17 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
 
   for (i = 0; i < nesting_lvl; i++)
   {
-    btor_release_exp (g_btor, params[i]);
-    btor_release_exp (g_btor, indices[i]);
+    btor_node_release (g_btor, params[i]);
+    btor_node_release (g_btor, indices[i]);
   }
 
   btor_mem_free (g_btor->mm, params, size);
   btor_mem_free (g_btor->mm, indices, size);
 
-  btor_release_exp (g_btor, fun);
-  btor_release_exp (g_btor, apply);
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, var);
+  btor_node_release (g_btor, fun);
+  btor_node_release (g_btor, apply);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, var);
   finish_lambda_test ();
 }
 
@@ -1450,11 +1450,11 @@ test_lambda_hashing_1 (void)
 
   btor_sort_release (g_btor, array_sort);
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, a);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, w0);
-  btor_release_exp (g_btor, w1);
+  btor_node_release (g_btor, a);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, w0);
+  btor_node_release (g_btor, w1);
   finish_lambda_test ();
 }
 
@@ -1478,19 +1478,19 @@ test_lambda_hashing_2 (void)
   ite1 = btor_exp_cond (g_btor, eq, a0, a1);
   assert (ite0 == ite1);
 
-  btor_release_exp (g_btor, ite1);
+  btor_node_release (g_btor, ite1);
   ite1 = btor_exp_cond (g_btor, BTOR_INVERT_NODE (eq), a1, a0);
   assert (ite0 == ite1);
 
   btor_sort_release (g_btor, array_sort);
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, a0);
-  btor_release_exp (g_btor, a1);
-  btor_release_exp (g_btor, i);
-  btor_release_exp (g_btor, e);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, ite0);
-  btor_release_exp (g_btor, ite1);
+  btor_node_release (g_btor, a0);
+  btor_node_release (g_btor, a1);
+  btor_node_release (g_btor, i);
+  btor_node_release (g_btor, e);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, ite0);
+  btor_node_release (g_btor, ite1);
   finish_lambda_test ();
 }
 
@@ -1518,13 +1518,13 @@ test_lambda_hashing_3 (void)
   assert (l0 == l1);
 
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, p0);
-  btor_release_exp (g_btor, p1);
-  btor_release_exp (g_btor, v);
-  btor_release_exp (g_btor, eq0);
-  btor_release_exp (g_btor, eq1);
-  btor_release_exp (g_btor, l0);
-  btor_release_exp (g_btor, l1);
+  btor_node_release (g_btor, p0);
+  btor_node_release (g_btor, p1);
+  btor_node_release (g_btor, v);
+  btor_node_release (g_btor, eq0);
+  btor_node_release (g_btor, eq1);
+  btor_node_release (g_btor, l0);
+  btor_node_release (g_btor, l1);
   finish_lambda_test ();
 }
 
@@ -1551,14 +1551,14 @@ test_lambda_hashing_4 (void)
   assert (f0 == f1);
 
   btor_sort_release (g_btor, sort);
-  btor_release_exp (g_btor, p0[0]);
-  btor_release_exp (g_btor, p0[1]);
-  btor_release_exp (g_btor, p1[0]);
-  btor_release_exp (g_btor, p1[1]);
-  btor_release_exp (g_btor, eq0);
-  btor_release_exp (g_btor, eq1);
-  btor_release_exp (g_btor, f0);
-  btor_release_exp (g_btor, f1);
+  btor_node_release (g_btor, p0[0]);
+  btor_node_release (g_btor, p0[1]);
+  btor_node_release (g_btor, p1[0]);
+  btor_node_release (g_btor, p1[1]);
+  btor_node_release (g_btor, eq0);
+  btor_node_release (g_btor, eq1);
+  btor_node_release (g_btor, f0);
+  btor_node_release (g_btor, f1);
   finish_lambda_test ();
 }
 
@@ -1580,19 +1580,19 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   result = apply_and_reduce (g_btor, 1, &a, fun);
 
   /* expected: lambda y' . (a + y') */
-  assert (btor_is_lambda_node (result));
+  assert (btor_node_is_lambda (result));
   assert (result != fun->e[1]);
   assert (result->e[0] != fun->e[1]->e[0]);
   assert (BTOR_REAL_ADDR_NODE (result->e[1])->kind == BTOR_ADD_NODE);
   assert (BTOR_REAL_ADDR_NODE (result->e[1])->e[0] == a);
   assert (BTOR_REAL_ADDR_NODE (result->e[1])->e[1] == result->e[0]);
 
-  btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, fun);
-  btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, y);
-  btor_release_exp (g_btor, x);
-  btor_release_exp (g_btor, a);
+  btor_node_release (g_btor, result);
+  btor_node_release (g_btor, fun);
+  btor_node_release (g_btor, add);
+  btor_node_release (g_btor, y);
+  btor_node_release (g_btor, x);
+  btor_node_release (g_btor, a);
   finish_lambda_test ();
 }
 #endif
@@ -1648,16 +1648,16 @@ test_lambda_define_fun (void)
 
   for (i = 0; i < nesting_lvl; i++)
   {
-    btor_release_exp (g_btor, lambdas[i]);
-    btor_release_exp (g_btor, params[i]);
+    btor_node_release (g_btor, lambdas[i]);
+    btor_node_release (g_btor, params[i]);
 
-    if (i < nesting_lvl - 1) btor_release_exp (g_btor, ands[i]);
+    if (i < nesting_lvl - 1) btor_node_release (g_btor, ands[i]);
   }
 
   btor_mem_free (g_btor->mm, params, size);
   btor_mem_free (g_btor->mm, lambdas, size);
   btor_mem_free (g_btor->mm, ands, size - sizeof (BtorNode *));
-  btor_release_exp (g_btor, result);
+  btor_node_release (g_btor, result);
   finish_lambda_test ();
 }
 

@@ -79,12 +79,12 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   const BtorBitVector *ass;
 
   ass    = btor_model_get_bv (btor, node);
-  symbol = btor_get_symbol_exp (btor, node);
+  symbol = btor_node_get_symbol (btor, node);
 
   if (!strcmp (format, "btor"))
   {
-    id = btor_exp_get_btor_id (node);
-    fprintf (file, "%d ", id ? id : btor_exp_get_id (node));
+    id = btor_node_get_btor_id (node);
+    fprintf (file, "%d ", id ? id : btor_node_get_id (node));
     print_fmt_bv_model_btor (btor, base, ass, file);
     fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
   }
@@ -94,11 +94,11 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
       fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
     else
     {
-      id = btor_exp_get_btor_id (node);
+      id = btor_node_get_btor_id (node);
       fprintf (file,
                "%2c(define-fun v%d () ",
                ' ',
-               id ? id : btor_exp_get_id (node));
+               id ? id : btor_node_get_id (node));
     }
 
     btor_dumpsmt_dump_sort_node (node, file);
@@ -144,15 +144,15 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
-  if ((symbol = btor_get_symbol_exp (btor, node)))
+  if ((symbol = btor_node_get_symbol (btor, node)))
     s = symbol;
   else
   {
     BTOR_NEWN (btor->mm, s, 40);
-    id = btor_exp_get_btor_id (node);
+    id = btor_node_get_btor_id (node);
     sprintf (s,
              "%s%d",
-             btor_is_uf_array_node (node) ? "a" : "uf",
+             btor_node_is_uf_array (node) ? "a" : "uf",
              id ? id : node->id);
   }
 
@@ -161,9 +161,11 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   /* fun param sorts */
   node = btor_simplify_exp (btor, node);
   assert (BTOR_IS_REGULAR_NODE (node));
-  assert (btor_is_fun_node (node));
+  assert (btor_node_is_fun (node));
   btor_iter_tuple_sort_init (
-      &iit, btor, btor_sort_fun_get_domain (btor, btor_exp_get_sort_id (node)));
+      &iit,
+      btor,
+      btor_sort_fun_get_domain (btor, btor_node_get_sort_id (node)));
   x = 0;
   while (btor_iter_tuple_sort_has_next (&iit))
   {
@@ -173,7 +175,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     x++;
   }
   fprintf (file, ") ");
-  sort = btor_sort_fun_get_codomain (btor, btor_exp_get_sort_id (node));
+  sort = btor_sort_fun_get_codomain (btor, btor_node_get_sort_id (node));
   btor_dumpsmt_dump_sort (btor_sort_get_by_id (btor, sort), file);
   fprintf (file, "\n");
 
@@ -245,8 +247,8 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
       btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
-  symbol = btor_get_symbol_exp (btor, node);
-  id     = btor_exp_get_btor_id (node);
+  symbol = btor_node_get_symbol (btor, node);
+  id     = btor_node_get_btor_id (node);
 
   btor_iter_hashptr_init (&it, fun_model);
   while (btor_iter_hashptr_has_next (&it))
@@ -302,7 +304,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    if (btor_is_fun_node (btor_simplify_exp (btor, cur)))
+    if (btor_node_is_fun (btor_simplify_exp (btor, cur)))
       print_fun_model (btor, cur, format, base, file);
     else
       print_bv_model (btor, cur, format, base, file);
@@ -327,15 +329,15 @@ print_bv_value_smt2 (
   int32_t id;
 
   ass    = btor_model_get_bv (btor, node);
-  symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
+  symbol = symbol_str ? symbol_str : btor_node_get_symbol (btor, node);
 
   if (symbol)
     fprintf (file, "(%s ", symbol);
   else
   {
-    id = btor_exp_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+    id = btor_node_get_btor_id (BTOR_REAL_ADDR_NODE (node));
     fprintf (
-        file, "(v%d ", id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
+        file, "(v%d ", id ? id : btor_node_get_id (BTOR_REAL_ADDR_NODE (node)));
   }
 
   btor_dumpsmt_dump_const_value (btor, ass, base, file);
@@ -364,7 +366,7 @@ print_fun_value_smt2 (
   fun_model = (BtorPtrHashTable *) btor_model_get_fun (btor, node);
   if (!fun_model) return;
 
-  symbol = symbol_str ? symbol_str : btor_get_symbol_exp (btor, node);
+  symbol = symbol_str ? symbol_str : btor_node_get_symbol (btor, node);
 
   fprintf (file, "(");
 
@@ -376,11 +378,11 @@ print_fun_value_smt2 (
       fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
     else
     {
-      id = btor_exp_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+      id = btor_node_get_btor_id (BTOR_REAL_ADDR_NODE (node));
       fprintf (file,
                "(%s%d ",
-               btor_is_array_node (node) ? "a" : "uf",
-               id ? id : btor_exp_get_id (BTOR_REAL_ADDR_NODE (node)));
+               btor_node_is_array (node) ? "a" : "uf",
+               id ? id : btor_node_get_id (BTOR_REAL_ADDR_NODE (node)));
     }
     assignment = it.bucket->data.as_ptr;
     args       = btor_iter_hashptr_next (&it);
@@ -418,7 +420,7 @@ btor_print_value_smt2 (Btor *btor, BtorNode *exp, char *symbol_str, FILE *file)
   int base;
 
   base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
-  if (btor_is_fun_node (btor_simplify_exp (btor, exp)))
+  if (btor_node_is_fun (btor_simplify_exp (btor, exp)))
     print_fun_value_smt2 (btor, exp, symbol_str, base, file);
   else
     print_bv_value_smt2 (btor, exp, symbol_str, base, file);

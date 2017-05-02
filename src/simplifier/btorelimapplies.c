@@ -33,8 +33,8 @@ btor_eliminate_applies (Btor *btor)
   start = btor_util_time_stamp ();
   round = 1;
   cache = btor_hashptr_table_new (btor->mm,
-                                  (BtorHashPtr) btor_hash_exp_pair,
-                                  (BtorCmpPtr) btor_compare_exp_pair);
+                                  (BtorHashPtr) btor_node_pair_hash,
+                                  (BtorCmpPtr) btor_node_pair_compare);
 
   /* NOTE: in some cases substitute_and_rebuild creates applies that can be
    * beta-reduced. this can happen when parameterized applies become not
@@ -62,7 +62,7 @@ btor_eliminate_applies (Btor *btor)
         subst = btor_beta_reduce_full (btor, app, cache);
         assert (!btor_hashptr_table_get (btor->substitutions, app));
         btor_insert_substitution (btor, app, subst, false);
-        btor_release_exp (btor, subst);
+        btor_node_release (btor, subst);
       }
     }
 
@@ -96,8 +96,8 @@ btor_eliminate_applies (Btor *btor)
   btor_iter_hashptr_init (&h_it, cache);
   while (btor_iter_hashptr_has_next (&h_it))
   {
-    btor_release_exp (btor, h_it.bucket->data.as_ptr);
-    btor_delete_exp_pair (btor, btor_iter_hashptr_next (&h_it));
+    btor_node_release (btor, h_it.bucket->data.as_ptr);
+    btor_node_pair_delete (btor, btor_iter_hashptr_next (&h_it));
   }
   btor_hashptr_table_delete (cache);
 

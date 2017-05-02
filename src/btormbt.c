@@ -2283,7 +2283,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     // FIXME (ma): sort workaround
     BtorSort *sort;
     sort = btor_sort_get_by_id (mbt->btor,
-                                btor_exp_get_sort_id ((BtorNode *) fun));
+                                btor_node_get_sort_id ((BtorNode *) fun));
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
       BTOR_PUSH_STACK (param_widths,
@@ -2507,7 +2507,7 @@ btormbt_bv_uf (BtorMBT *mbt)
       &it,
       mbt->btor,
       btor_sort_fun_get_domain (mbt->btor,
-                                btor_exp_get_sort_id ((BtorNode *) uf)));
+                                btor_node_get_sort_id ((BtorNode *) uf)));
   while (btor_iter_tuple_sort_has_next (&it))
   {
     sortid = btor_iter_tuple_sort_next (&it);

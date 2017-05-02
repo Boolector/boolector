@@ -112,9 +112,9 @@ select_candidate_constraint (Btor *btor, uint32_t nmoves)
     while (btor_iter_hashint_has_next (&it))
     {
       id = btor_iter_hashint_next (&it);
-      assert (!btor_is_bv_const_node (btor_get_node_by_id (btor, id))
+      assert (!btor_node_is_bv_const (btor_node_get_by_id (btor, id))
               || !btor_bv_is_zero (
-                     btor_model_get_bv (btor, btor_get_node_by_id (btor, id))));
+                     btor_model_get_bv (btor, btor_node_get_by_id (btor, id))));
       assert (btor_hashint_map_contains (slv->weights, id));
       d = btor_hashint_map_get (slv->weights, id)->as_ptr;
       assert (d);
@@ -124,7 +124,7 @@ select_candidate_constraint (Btor *btor, uint32_t nmoves)
       value = score + BTOR_SLS_SELECT_CFACT * sqrt (log (d->selected) / nmoves);
       if (!res || value > max_value)
       {
-        res       = btor_get_node_by_id (btor, id);
+        res       = btor_node_get_by_id (btor, id);
         max_value = value;
         d->selected += 1;
       }
@@ -141,8 +141,8 @@ select_candidate_constraint (Btor *btor, uint32_t nmoves)
     while (btor_iter_hashint_has_next (&it))
     {
       id  = btor_iter_hashint_next (&it);
-      cur = btor_get_node_by_id (btor, id);
-      assert (!btor_is_bv_const_node (cur)
+      cur = btor_node_get_by_id (btor, id);
+      assert (!btor_node_is_bv_const (cur)
               || !btor_bv_is_zero (btor_model_get_bv (btor, cur)));
       assert (btor_hashint_map_contains (slv->score, id));
       score = btor_hashint_map_get (slv->score, id)->as_dbl;
@@ -196,7 +196,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     if (btor_hashint_table_contains (mark, real_cur->id)) continue;
     btor_hashint_table_add (mark, real_cur->id);
 
-    if (btor_is_bv_var_node (real_cur))
+    if (btor_node_is_bv_var (real_cur))
     {
       BTOR_PUSH_STACK (*candidates, real_cur);
       BTORLOG (1, "  %s", btor_util_node2string (real_cur));
@@ -204,8 +204,8 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_is_and_node (real_cur)
-        && btor_get_exp_width (btor, real_cur) == 1)
+    if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_node_is_and (real_cur)
+        && btor_node_get_width (btor, real_cur) == 1)
     {
       bv = btor_model_get_bv (btor, real_cur);
       if (!btor_bv_is_zero (bv)) /* push all */
@@ -331,7 +331,7 @@ try_move (Btor *btor,
   while (btor_iter_hashint_has_next (&iit))
   {
     new_ass  = (BtorBitVector *) cans->data[iit.cur_pos].as_ptr;
-    can      = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
+    can      = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
     prev_ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     BTORLOG (2,
              "      candidate: %s%s",
@@ -936,7 +936,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     while (btor_iter_hashint_has_next (&iit))
     {
       neigh = btor_bv_copy (btor->mm, m->cans->data[iit.cur_pos].as_ptr);
-      can   = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
+      can   = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
       assert (BTOR_IS_REGULAR_NODE (can));
       assert (neigh);
       btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
@@ -962,12 +962,12 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       {
         can = BTOR_PEEK_STACK (*candidates, r);
         assert (BTOR_IS_REGULAR_NODE (can));
-        if (btor_get_exp_width (btor, can) == 1)
+        if (btor_node_get_width (btor, can) == 1)
           neigh = btor_bv_flipped_bit (
               btor->mm, (BtorBitVector *) btor_model_get_bv (btor, can), 0);
         else
           neigh = btor_bv_new_random (
-              btor->mm, &btor->rng, btor_get_exp_width (btor, can));
+              btor->mm, &btor->rng, btor_node_get_width (btor, can));
 
         btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
       }
@@ -983,7 +983,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
               &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1));
       assert (BTOR_IS_REGULAR_NODE (can));
 
-      if (btor_get_exp_width (btor, can) == 1)
+      if (btor_node_get_width (btor, can) == 1)
       {
         neigh = btor_bv_flipped_bit (
             btor->mm, (BtorBitVector *) btor_model_get_bv (btor, can), 0);
@@ -1001,7 +1001,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       else
       {
         neigh = btor_bv_new_random (
-            btor->mm, &btor->rng, btor_get_exp_width (btor, can));
+            btor->mm, &btor->rng, btor_node_get_width (btor, can));
         btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
       }
 
@@ -1239,7 +1239,7 @@ move (Btor *btor, uint32_t nmoves)
   while (btor_iter_hashint_has_next (&iit))
   {
     neigh = (BtorBitVector *) slv->max_cans->data[iit.cur_pos].as_ptr;
-    can   = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
+    can   = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
     ass   = (BtorBitVector *) btor_model_get_bv (btor, can);
     a     = btor_bv_to_char (btor->mm, ass);
     BTORLOG (1,
@@ -1511,7 +1511,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     root = btor_iter_hashptr_next (&pit);
     assert (!btor_hashptr_table_get (btor->unsynthesized_constraints,
                                      BTOR_INVERT_NODE (root)));
-    id = btor_exp_get_id (root);
+    id = btor_node_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))
     {
       BTOR_CNEW (btor->mm, d);
@@ -1528,7 +1528,7 @@ sat_sls_solver (BtorSLSSolver *slv)
       goto UNSAT;
     if (btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)))
       goto UNSAT;
-    id = btor_exp_get_id (root);
+    id = btor_node_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))
     {
       BTOR_CNEW (btor->mm, d);
@@ -1564,12 +1564,12 @@ sat_sls_solver (BtorSLSSolver *slv)
     while (btor_iter_hashptr_has_next (&pit))
     {
       root = btor_iter_hashptr_next (&pit);
-      if (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root))
+      if (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {
-        if (btor_is_bv_const_node (root))
+        if (btor_node_is_bv_const (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_hashint_map_add (slv->roots, btor_exp_get_id (root));
+        btor_hashint_map_add (slv->roots, btor_node_get_id (root));
       }
     }
 

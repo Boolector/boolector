@@ -142,7 +142,7 @@ compute_sls_score_node (Btor *btor,
   assert (fun_model);
   assert (score);
   assert (exp);
-  assert (btor_get_exp_width (btor, exp) == 1);
+  assert (btor_node_get_width (btor, exp) == 1);
 
   double res, s0, s1;
   BtorNode *real_exp;
@@ -159,18 +159,18 @@ compute_sls_score_node (Btor *btor,
   BTORLOG (3, "");
   BTORLOG (3, "*** compute sls score for: %s", btor_util_node2string (exp));
 
-  if (btor_is_and_node (real_exp))
+  if (btor_node_is_and (real_exp))
   {
     /* OR --------------------------------------------------------- */
     if (BTOR_IS_INVERTED_NODE (exp))
     {
       assert (btor_hashint_map_contains (score,
-                                         -btor_exp_get_id ((real_exp->e[0]))));
+                                         -btor_node_get_id ((real_exp->e[0]))));
       assert (btor_hashint_map_contains (score,
-                                         -btor_exp_get_id ((real_exp->e[1]))));
-      s0 = btor_hashint_map_get (score, -btor_exp_get_id ((real_exp->e[0])))
+                                         -btor_node_get_id ((real_exp->e[1]))));
+      s0 = btor_hashint_map_get (score, -btor_node_get_id ((real_exp->e[0])))
                ->as_dbl;
-      s1 = btor_hashint_map_get (score, -btor_exp_get_id ((real_exp->e[1])))
+      s1 = btor_hashint_map_get (score, -btor_node_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
       if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
@@ -197,12 +197,12 @@ compute_sls_score_node (Btor *btor,
     else
     {
       assert (btor_hashint_map_contains (score,
-                                         btor_exp_get_id ((real_exp->e[0]))));
+                                         btor_node_get_id ((real_exp->e[0]))));
       assert (btor_hashint_map_contains (score,
-                                         btor_exp_get_id ((real_exp->e[1]))));
-      s0 = btor_hashint_map_get (score, btor_exp_get_id ((real_exp->e[0])))
+                                         btor_node_get_id ((real_exp->e[1]))));
+      s0 = btor_hashint_map_get (score, btor_node_get_id ((real_exp->e[0])))
                ->as_dbl;
-      s1 = btor_hashint_map_get (score, btor_exp_get_id ((real_exp->e[1])))
+      s1 = btor_hashint_map_get (score, btor_node_get_id ((real_exp->e[1])))
                ->as_dbl;
 #ifndef NBTORLOG
       if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
@@ -230,7 +230,7 @@ compute_sls_score_node (Btor *btor,
     }
   }
   /* EQ --------------------------------------------------------- */
-  else if (btor_is_bv_eq_node (real_exp))
+  else if (btor_node_is_bv_eq (real_exp))
   {
     bv0 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[0]);
@@ -264,7 +264,7 @@ compute_sls_score_node (Btor *btor,
                                / (double) bv0->width);
   }
   /* ULT -------------------------------------------------------- */
-  else if (btor_is_ult_node (real_exp))
+  else if (btor_node_is_ult (real_exp))
   {
     bv0 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[0]);
@@ -302,7 +302,7 @@ compute_sls_score_node (Btor *btor,
   /* other BOOLEAN ---------------------------------------------- */
   else
   {
-    assert (btor_get_exp_width (btor, real_exp) == 1);
+    assert (btor_node_get_width (btor, real_exp) == 1);
 #ifndef NBTORLOG
     if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
@@ -346,11 +346,11 @@ recursively_compute_sls_score_node (Btor *btor,
   BtorMemMgr *mm;
 
   res = 0.0;
-  assert (btor_is_bv_eq_node (exp) || btor_is_ult_node (exp)
-          || btor_get_exp_width (btor, exp) == 1);
+  assert (btor_node_is_bv_eq (exp) || btor_node_is_ult (exp)
+          || btor_node_get_width (btor, exp) == 1);
 
-  if (btor_hashint_map_contains (score, btor_exp_get_id (exp)))
-    return btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl;
+  if (btor_hashint_map_contains (score, btor_node_get_id (exp)))
+    return btor_hashint_map_get (score, btor_node_get_id (exp))->as_dbl;
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, stack);
@@ -364,7 +364,7 @@ recursively_compute_sls_score_node (Btor *btor,
     d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
-        || btor_hashint_map_get (score, btor_exp_get_id (cur)))
+        || btor_hashint_map_get (score, btor_node_get_id (cur)))
       continue;
 
     if (!d)
@@ -379,20 +379,20 @@ recursively_compute_sls_score_node (Btor *btor,
       assert (d->as_int == 0);
       d->as_int = 1;
 
-      if (btor_get_exp_width (btor, real_cur) != 1) continue;
+      if (btor_node_get_width (btor, real_cur) != 1) continue;
 
       res = compute_sls_score_node (btor, bv_model, fun_model, score, cur);
 
-      assert (!btor_hashint_map_contains (score, btor_exp_get_id (cur)));
-      btor_hashint_map_add (score, btor_exp_get_id (cur))->as_dbl = res;
+      assert (!btor_hashint_map_contains (score, btor_node_get_id (cur)));
+      btor_hashint_map_add (score, btor_node_get_id (cur))->as_dbl = res;
     }
   }
 
   BTOR_RELEASE_STACK (stack);
   btor_hashint_map_delete (mark);
 
-  assert (btor_hashint_map_contains (score, btor_exp_get_id (exp)));
-  assert (res == btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl);
+  assert (btor_hashint_map_contains (score, btor_node_get_id (exp)));
+  assert (res == btor_hashint_map_get (score, btor_node_get_id (exp))->as_dbl);
   return res;
 }
 
@@ -438,7 +438,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
     d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
-        || btor_hashint_map_contains (score, btor_exp_get_id (cur)))
+        || btor_hashint_map_contains (score, btor_node_get_id (cur)))
       continue;
 
     if (!d)
@@ -452,7 +452,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
     {
       assert (d->as_int == 0);
       d->as_int = 1;
-      if (btor_get_exp_width (btor, real_cur) != 1) continue;
+      if (btor_node_get_width (btor, real_cur) != 1) continue;
       (void) recursively_compute_sls_score_node (
           btor, bv_model, fun_model, score, cur);
       (void) recursively_compute_sls_score_node (
@@ -580,9 +580,9 @@ btor_propsls_update_cone (Btor *btor,
     assert (
         !btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)));
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (roots, btor_node_get_id (root)));
     else
-      assert (!btor_hashint_map_contains (roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (roots, btor_node_get_id (root)));
   }
 #endif
 
@@ -593,9 +593,9 @@ btor_propsls_update_cone (Btor *btor,
   btor_iter_hashint_init (&iit, exps);
   while (btor_iter_hashint_has_next (&iit))
   {
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
+    exp = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
     assert (BTOR_IS_REGULAR_NODE (exp));
-    assert (btor_is_bv_var_node (exp));
+    assert (btor_node_is_bv_var (exp));
     BTOR_PUSH_STACK (stack, exp);
   }
   cache = btor_hashint_table_new (mm);
@@ -625,7 +625,7 @@ btor_propsls_update_cone (Btor *btor,
   while (btor_iter_hashint_has_next (&iit))
   {
     ass = (BtorBitVector *) exps->data[iit.cur_pos].as_ptr;
-    exp = btor_get_node_by_id (btor, btor_iter_hashint_next (&iit));
+    exp = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
 
     /* update model */
     d = btor_hashint_map_get (bv_model, exp->id);
@@ -648,14 +648,14 @@ btor_propsls_update_cone (Btor *btor,
     }
 
     /* update score */
-    if (score && btor_get_exp_width (btor, exp) == 1)
+    if (score && btor_node_get_width (btor, exp) == 1)
     {
-      assert (btor_hashint_map_contains (score, btor_exp_get_id (exp)));
-      btor_hashint_map_get (score, btor_exp_get_id (exp))->as_dbl =
+      assert (btor_hashint_map_contains (score, btor_node_get_id (exp)));
+      btor_hashint_map_get (score, btor_node_get_id (exp))->as_dbl =
           compute_sls_score_node (btor, bv_model, btor->fun_model, score, exp);
 
-      assert (btor_hashint_map_contains (score, -btor_exp_get_id (exp)));
-      btor_hashint_map_get (score, -btor_exp_get_id (exp))->as_dbl =
+      assert (btor_hashint_map_contains (score, -btor_node_get_id (exp)));
+      btor_hashint_map_get (score, -btor_node_get_id (exp))->as_dbl =
           compute_sls_score_node (
               btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (exp));
     }
@@ -664,7 +664,7 @@ btor_propsls_update_cone (Btor *btor,
   qsort (cone.start,
          BTOR_COUNT_STACK (cone),
          sizeof (BtorNode *),
-         btor_compare_exp_by_id_qsort_asc);
+         btor_node_compare_by_id_qsort_asc);
 
   /* update model of cone ------------------------------------------------- */
 
@@ -676,11 +676,11 @@ btor_propsls_update_cone (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (cur));
     for (j = 0; j < cur->arity; j++)
     {
-      if (btor_is_bv_const_node (cur->e[j]))
+      if (btor_node_is_bv_const (cur->e[j]))
       {
         e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
-                   ? btor_bv_copy (mm, btor_const_get_invbits (cur->e[j]))
-                   : btor_bv_copy (mm, btor_const_get_bits (cur->e[j]));
+                   ? btor_bv_copy (mm, btor_node_const_get_invbits (cur->e[j]))
+                   : btor_bv_copy (mm, btor_node_const_get_bits (cur->e[j]));
       }
       else
       {
@@ -710,11 +710,13 @@ btor_propsls_update_cone (Btor *btor,
       case BTOR_UREM_NODE: bv = btor_bv_urem (mm, e[0], e[1]); break;
       case BTOR_CONCAT_NODE: bv = btor_bv_concat (mm, e[0], e[1]); break;
       case BTOR_SLICE_NODE:
-        bv = btor_bv_slice (
-            mm, e[0], btor_slice_get_upper (cur), btor_slice_get_lower (cur));
+        bv = btor_bv_slice (mm,
+                            e[0],
+                            btor_node_slice_get_upper (cur),
+                            btor_node_slice_get_lower (cur));
         break;
       default:
-        assert (btor_is_cond_node (cur));
+        assert (btor_node_is_cond (cur));
         bv = btor_bv_is_true (e[0]) ? btor_bv_copy (mm, e[1])
                                     : btor_bv_copy (mm, e[2]);
     }
@@ -740,7 +742,7 @@ btor_propsls_update_cone (Btor *btor,
      *       model for nodes in the branch, hence !b may happen */
     if (!d)
     {
-      btor_copy_exp (btor, cur);
+      btor_node_copy (btor, cur);
       btor_hashint_map_add (bv_model, cur->id)->as_ptr = bv;
     }
     else
@@ -769,9 +771,9 @@ btor_propsls_update_cone (Btor *btor,
       cur = BTOR_PEEK_STACK (cone, i);
       assert (BTOR_IS_REGULAR_NODE (cur));
 
-      if (btor_get_exp_width (btor, cur) != 1) continue;
+      if (btor_node_get_width (btor, cur) != 1) continue;
 
-      id = btor_exp_get_id (cur);
+      id = btor_node_get_id (cur);
       if (!btor_hashint_map_contains (score, id))
       {
         /* not reachable from the roots */
@@ -796,9 +798,9 @@ btor_propsls_update_cone (Btor *btor,
   {
     root = btor_iter_hashptr_next (&pit);
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_hashint_map_contains (roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (roots, btor_node_get_id (root)));
     else
-      assert (!btor_hashint_map_contains (roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (roots, btor_node_get_id (root)));
   }
 #endif
   *time_update_cone += btor_util_time_stamp () - start;
@@ -812,18 +814,18 @@ select_path_non_const (BtorNode *exp)
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (exp->arity <= 2);
-  assert (!btor_is_bv_const_node (exp->e[0])
-          || (exp->arity > 1 && !btor_is_bv_const_node (exp->e[1])));
+  assert (!btor_node_is_bv_const (exp->e[0])
+          || (exp->arity > 1 && !btor_node_is_bv_const (exp->e[1])));
 
   int i, eidx;
 
   for (i = 0, eidx = -1; i < exp->arity; i++)
-    if (btor_is_bv_const_node (exp->e[i]))
+    if (btor_node_is_bv_const (exp->e[i]))
     {
       eidx = i ? 0 : 1;
       break;
     }
-  assert (exp->arity == 1 || !btor_is_bv_const_node (exp->e[i ? 0 : 1]));
+  assert (exp->arity == 1 || !btor_node_is_bv_const (exp->e[i ? 0 : 1]));
   return eidx;
 }
 
@@ -899,7 +901,7 @@ select_path_and (Btor *btor,
     {
       eidx = select_path_random (btor, and);
     }
-    else if (btor_get_exp_width (btor, and) == 1)
+    else if (btor_node_get_width (btor, and) == 1)
     {
       /* choose 0-branch if exactly one branch is 0, else choose randomly */
       for (i = 0; i < and->arity; i++)
@@ -1439,7 +1441,7 @@ select_path_slice (Btor *btor,
   assert (bvslice);
   assert (bve);
 
-  assert (!btor_is_bv_const_node (slice->e[0]));
+  assert (!btor_node_is_bv_const (slice->e[0]));
 
   (void) btor;
   (void) slice;
@@ -1479,12 +1481,12 @@ select_path_cond (Btor *btor,
 
   (void) bvcond;
 
-  if (btor_is_bv_const_node (cond->e[0]))
+  if (btor_node_is_bv_const (cond->e[0]))
     eidx = cond->e[0] == btor->true_exp ? 1 : 2;
   else
   {
-    e1const = btor_is_bv_const_node (cond->e[1]);
-    e2const = btor_is_bv_const_node (cond->e[2]);
+    e1const = btor_node_is_bv_const (cond->e[1]);
+    e2const = btor_node_is_bv_const (cond->e[2]);
 
     /* flip condition
      *
@@ -1594,7 +1596,7 @@ cons_add_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvadd->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (add->e[eidx]));
+  assert (!btor_node_is_bv_const (add->e[eidx]));
 
   (void) add;
   (void) bve;
@@ -1621,7 +1623,7 @@ cons_and_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvand->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (and->e[eidx]));
+  assert (!btor_node_is_bv_const (and->e[eidx]));
 
   uint32_t i;
   BtorBitVector *res;
@@ -1675,7 +1677,7 @@ cons_eq_bv (
   assert (bveq->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (eq->e[eidx]));
+  assert (!btor_node_is_bv_const (eq->e[eidx]));
 
   (void) bveq;
 
@@ -1713,7 +1715,7 @@ cons_ult_bv (Btor *btor,
   assert (bvult->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (ult->e[eidx]));
+  assert (!btor_node_is_bv_const (ult->e[eidx]));
 
   bool isult;
   uint32_t bw;
@@ -1772,7 +1774,7 @@ cons_sll_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
   assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
-  assert (!btor_is_bv_const_node (sll->e[eidx]));
+  assert (!btor_node_is_bv_const (sll->e[eidx]));
 
   uint32_t i, s, bw, sbw, ctz_bvsll;
   BtorBitVector *res, *from, *to, *shift;
@@ -1828,7 +1830,7 @@ cons_srl_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
   assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
-  assert (!btor_is_bv_const_node (srl->e[eidx]));
+  assert (!btor_node_is_bv_const (srl->e[eidx]));
 
   uint32_t i, s, bw, sbw;
   BtorBitVector *res, *from, *to, *shift;
@@ -1884,7 +1886,7 @@ cons_mul_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvmul->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (mul->e[eidx]));
+  assert (!btor_node_is_bv_const (mul->e[eidx]));
 
   uint32_t r, bw, ctz_res, ctz_bvmul;
   BtorBitVector *res, *tmp;
@@ -1971,7 +1973,7 @@ cons_udiv_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvudiv->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (udiv->e[eidx]));
+  assert (!btor_node_is_bv_const (udiv->e[eidx]));
 
   uint32_t bw;
   BtorBitVector *res, *tmp, *tmpbve, *zero, *one, *bvmax;
@@ -2059,7 +2061,7 @@ cons_urem_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvurem->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (urem->e[eidx]));
+  assert (!btor_node_is_bv_const (urem->e[eidx]));
 
   uint32_t bw;
   BtorBitVector *res, *bvmax, *tmp;
@@ -2122,7 +2124,7 @@ cons_concat_bv (Btor *btor,
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (concat->e[eidx]));
+  assert (!btor_node_is_bv_const (concat->e[eidx]));
 
   int32_t idx;
   uint32_t r;
@@ -2141,7 +2143,7 @@ cons_concat_bv (Btor *btor,
    * randomly, or slice bits out of given assignment 'bve'.
    */
 
-  if (btor_is_bv_const_node (concat->e[idx])
+  if (btor_node_is_bv_const (concat->e[idx])
       && btor_rng_pick_with_prob (
              &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
@@ -2243,7 +2245,7 @@ inv_add_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvadd->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (add->e[eidx]));
+  assert (!btor_node_is_bv_const (add->e[eidx]));
 
   BtorBitVector *res;
 
@@ -2281,7 +2283,7 @@ inv_and_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvand->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (and->e[eidx]));
+  assert (!btor_node_is_bv_const (and->e[eidx]));
 
   uint32_t i;
   int bitand, bite;
@@ -2318,7 +2320,7 @@ inv_and_bv (Btor *btor,
       btor_bv_free (mm, res);
       /* check for non-recoverable conflict */
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && btor_is_bv_const_node (e))
+          && btor_node_is_bv_const (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvand, eidx, "AND");
       }
@@ -2377,7 +2379,7 @@ inv_eq_bv (
   assert (bveq->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (eq->e[eidx]));
+  assert (!btor_node_is_bv_const (eq->e[eidx]));
 
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2442,7 +2444,7 @@ inv_ult_bv (Btor *btor,
   assert (bvult->width == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (ult->e[eidx]));
+  assert (!btor_node_is_bv_const (ult->e[eidx]));
 
   bool isult;
   uint32_t bw;
@@ -2477,7 +2479,7 @@ inv_ult_bv (Btor *btor,
     BVULT_CONF:
       /* check for non-recoverable conflict */
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && btor_is_bv_const_node (e))
+          && btor_node_is_bv_const (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvult, eidx, "<");
       }
@@ -2558,7 +2560,7 @@ inv_sll_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsll->width);
   assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
-  assert (!btor_is_bv_const_node (sll->e[eidx]));
+  assert (!btor_node_is_bv_const (sll->e[eidx]));
 
   uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw;
   BtorNode *e;
@@ -2612,7 +2614,7 @@ inv_sll_bv (Btor *btor,
         BVSLL_CONF:
           /* check for non-recoverable conflict */
           if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-              && btor_is_bv_const_node (e))
+              && btor_node_is_bv_const (e))
           {
             res = btor_propsls_non_rec_conf (btor, bve, bvsll, eidx, "<<");
           }
@@ -2700,7 +2702,7 @@ inv_srl_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!eidx || bve->width == bvsrl->width);
   assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
-  assert (!btor_is_bv_const_node (srl->e[eidx]));
+  assert (!btor_node_is_bv_const (srl->e[eidx]));
 
   uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw;
   BtorNode *e;
@@ -2754,7 +2756,7 @@ inv_srl_bv (Btor *btor,
         BVSRL_CONF:
           /* check for non-recoverable conflict */
           if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-              && btor_is_bv_const_node (e))
+              && btor_node_is_bv_const (e))
           {
             res = btor_propsls_non_rec_conf (btor, bve, bvsrl, eidx, ">>");
           }
@@ -2841,7 +2843,7 @@ inv_mul_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvmul->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (mul->e[eidx]));
+  assert (!btor_node_is_bv_const (mul->e[eidx]));
 
   int lsbve, lsbvmul, ispow2_bve;
   uint32_t i, j, bw;
@@ -2900,7 +2902,7 @@ inv_mul_bv (Btor *btor,
     BVMUL_CONF:
       /* check for non-recoverable conflict */
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && btor_is_bv_const_node (e))
+          && btor_node_is_bv_const (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvmul, eidx, "*");
       }
@@ -3034,7 +3036,7 @@ inv_udiv_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvudiv->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (udiv->e[eidx]));
+  assert (!btor_node_is_bv_const (udiv->e[eidx]));
 
   uint32_t bw;
   BtorNode *e;
@@ -3103,7 +3105,7 @@ inv_udiv_bv (Btor *btor,
       BVUDIV_CONF:
         /* check for non-recoverable conflict */
         if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-            && btor_is_bv_const_node (e))
+            && btor_node_is_bv_const (e))
         {
           res = btor_propsls_non_rec_conf (btor, bve, bvudiv, eidx, "/");
         }
@@ -3279,7 +3281,7 @@ inv_urem_bv (Btor *btor,
   assert (bve);
   assert (bve->width == bvurem->width);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (urem->e[eidx]));
+  assert (!btor_node_is_bv_const (urem->e[eidx]));
 
   uint32_t bw, cnt;
   int cmp;
@@ -3322,7 +3324,7 @@ inv_urem_bv (Btor *btor,
       BVUREM_CONF:
         /* check for non-recoverable conflict */
         if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-            && btor_is_bv_const_node (e))
+            && btor_node_is_bv_const (e))
         {
           res = btor_propsls_non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
@@ -3601,7 +3603,7 @@ inv_concat_bv (Btor *btor,
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!btor_is_bv_const_node (concat->e[eidx]));
+  assert (!btor_node_is_bv_const (concat->e[eidx]));
 
   BtorNode *e;
   BtorBitVector *res, *tmp;
@@ -3631,7 +3633,7 @@ inv_concat_bv (Btor *btor,
     BVCONCAT_CONF:
       /* check for non-recoverable conflict */
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
-          && btor_is_bv_const_node (e))
+          && btor_node_is_bv_const (e))
       {
         res = btor_propsls_non_rec_conf (btor, bve, bvconcat, eidx, "o");
       }
@@ -3688,7 +3690,7 @@ inv_slice_bv (Btor *btor,
   assert (slice);
   assert (BTOR_IS_REGULAR_NODE (slice));
   assert (bvslice);
-  assert (!btor_is_bv_const_node (slice->e[0]));
+  assert (!btor_node_is_bv_const (slice->e[0]));
 
   uint32_t i, upper, lower, rlower, rupper, rboth;
   BtorNode *e;
@@ -3712,10 +3714,10 @@ inv_slice_bv (Btor *btor,
                       &btor->rng,
                       btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
-  upper = btor_slice_get_upper (slice);
-  lower = btor_slice_get_lower (slice);
+  upper = btor_node_slice_get_upper (slice);
+  lower = btor_node_slice_get_lower (slice);
 
-  res = btor_bv_new (mm, btor_get_exp_width (btor, e));
+  res = btor_bv_new (mm, btor_node_get_width (btor, e));
 
   /* keep previous value for don't care bits or set randomly with prob
    * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
@@ -3827,7 +3829,7 @@ btor_propsls_select_move_prop (Btor *btor,
   {
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (btor_is_bv_var_node (cur))
+    if (btor_node_is_bv_var (cur))
     {
       *input      = real_cur;
       *assignment = BTOR_IS_INVERTED_NODE (cur)
@@ -3835,14 +3837,14 @@ btor_propsls_select_move_prop (Btor *btor,
                         : btor_bv_copy (btor->mm, bvcur);
       break;
     }
-    else if (btor_is_bv_const_node (cur))
+    else if (btor_node_is_bv_const (cur))
     {
       break;
     }
     else
     {
       nprops += 1;
-      assert (!btor_is_bv_const_node (cur));
+      assert (!btor_node_is_bv_const (cur));
 
       if (BTOR_IS_INVERTED_NODE (cur))
       {
@@ -3855,7 +3857,7 @@ btor_propsls_select_move_prop (Btor *btor,
       for (i = 0, nconst = 0; i < real_cur->arity; i++)
       {
         bve[i] = (BtorBitVector *) btor_model_get_bv (btor, real_cur->e[i]);
-        if (btor_is_bv_const_node (real_cur->e[i])) nconst += 1;
+        if (btor_node_is_bv_const (real_cur->e[i])) nconst += 1;
       }
       if (nconst > real_cur->arity - 1) break;
 
@@ -3953,7 +3955,7 @@ btor_propsls_select_move_prop (Btor *btor,
                          : cons_slice_bv (btor, real_cur, bvcur, bve[0]);
           break;
         default:
-          assert (btor_is_bv_cond_node (real_cur));
+          assert (btor_node_is_bv_cond (real_cur));
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
           tmp  = (BtorBitVector *) btor_model_get_bv (btor, real_cur->e[0]);

@@ -138,7 +138,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
     var = BTOR_POP_STACK (vars);
     assert (BTOR_IS_REGULAR_NODE (var));
-    assert (btor_is_bv_var_node (var));
+    assert (btor_node_is_bv_var (var));
     btor_iter_parent_init (&it, var);
     /* find all slices on variable */
     while (btor_iter_parent_has_next (&it))
@@ -147,8 +147,9 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       assert (BTOR_IS_REGULAR_NODE (cur));
       if (cur->kind == BTOR_SLICE_NODE)
       {
-        s1 = new_slice (
-            btor, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
+        s1 = new_slice (btor,
+                        btor_node_slice_get_upper (cur),
+                        btor_node_slice_get_lower (cur));
         assert (!btor_hashptr_table_get (slices, s1));
         btor_hashptr_table_add (slices, s1);
       }
@@ -162,7 +163,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     }
 
     /* add full slice */
-    s1 = new_slice (btor, btor_get_exp_width (btor, var) - 1, 0);
+    s1 = new_slice (btor, btor_node_get_width (btor, var) - 1, 0);
     assert (!btor_hashptr_table_get (slices, s1));
     btor_hashptr_table_add (slices, s1);
 
@@ -283,9 +284,9 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       lambda_var = btor_exp_var (btor, sort, 0);
       btor_sort_release (btor, sort);
       temp = btor_exp_concat (btor, result, lambda_var);
-      btor_release_exp (btor, result);
+      btor_node_release (btor, result);
       result = temp;
-      btor_release_exp (btor, lambda_var);
+      btor_node_release (btor, lambda_var);
       delete_slice (btor, s1);
     }
     BTOR_DELETEN (mm, sorted_slices, slices->count);
@@ -295,8 +296,8 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     btor->stats.eliminated_slices++;
     temp = btor_exp_eq (btor, var, result);
     btor_assert_exp (btor, temp);
-    btor_release_exp (btor, temp);
-    btor_release_exp (btor, result);
+    btor_node_release (btor, temp);
+    btor_node_release (btor, result);
   }
 
   BTOR_RELEASE_STACK (vars);

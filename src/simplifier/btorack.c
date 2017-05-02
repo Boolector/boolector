@@ -75,8 +75,8 @@ btor_add_ackermann_constraints (Btor *btor)
       {
         app_j = BTOR_PEEK_STACK (applies, j);
         p     = 0;
-        assert (btor_exp_get_sort_id (app_i->e[1])
-                == btor_exp_get_sort_id (app_j->e[1]));
+        assert (btor_node_get_sort_id (app_i->e[1])
+                == btor_node_get_sort_id (app_j->e[1]));
         btor_iter_args_init (&ait_i, app_i->e[1]);
         btor_iter_args_init (&ait_j, app_j->e[1]);
         while (btor_iter_args_has_next (&ait_i))
@@ -91,8 +91,8 @@ btor_add_ackermann_constraints (Btor *btor)
           {
             tmp = p;
             p   = btor_exp_and (btor, tmp, eq);
-            btor_release_exp (btor, tmp);
-            btor_release_exp (btor, eq);
+            btor_node_release (btor, tmp);
+            btor_node_release (btor, eq);
           }
         }
         c   = btor_exp_eq (btor, app_i, app_j);
@@ -100,9 +100,9 @@ btor_add_ackermann_constraints (Btor *btor)
         btor->stats.ackermann_constraints++;
         num_constraints++;
         btor_assert_exp (btor, imp);
-        btor_release_exp (btor, p);
-        btor_release_exp (btor, c);
-        btor_release_exp (btor, imp);
+        btor_node_release (btor, p);
+        btor_node_release (btor, c);
+        btor_node_release (btor, imp);
       }
     }
     BTOR_RELEASE_STACK (applies);

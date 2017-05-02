@@ -60,9 +60,9 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     root = btor_iter_hashptr_next (&pit);
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (slv->roots, btor_node_get_id (root)));
     else
-      assert (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root)));
   }
 #endif
 
@@ -79,10 +79,10 @@ select_constraint (Btor *btor, uint32_t nmoves)
     while (btor_iter_hashint_has_next (&it))
     {
       selected = &slv->roots->data[it.cur_pos].as_int;
-      cur      = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
+      cur      = btor_node_get_by_id (btor, btor_iter_hashint_next (&it));
 
-      assert (btor_hashint_map_contains (slv->score, btor_exp_get_id (cur)));
-      score = btor_hashint_map_get (slv->score, btor_exp_get_id (cur))->as_dbl;
+      assert (btor_hashint_map_contains (slv->score, btor_node_get_id (cur)));
+      score = btor_hashint_map_get (slv->score, btor_node_get_id (cur))->as_dbl;
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
@@ -103,11 +103,11 @@ select_constraint (Btor *btor, uint32_t nmoves)
     btor_iter_hashint_init (&it, slv->roots);
     while (btor_iter_hashint_has_next (&it) && j <= r)
     {
-      res = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
+      res = btor_node_get_by_id (btor, btor_iter_hashint_next (&it));
       j += 1;
     }
     assert (res);
-    assert (!btor_is_bv_const_node (res));
+    assert (!btor_node_is_bv_const (res));
   }
 
   assert (res);
@@ -270,12 +270,12 @@ sat_prop_solver_aux (Btor *btor)
     {
       root = btor_iter_hashptr_next (&it);
 
-      if (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root))
+      if (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {
-        if (btor_is_bv_const_node (root))
+        if (btor_node_is_bv_const (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_hashint_map_add (slv->roots, btor_exp_get_id (root));
+        btor_hashint_map_add (slv->roots, btor_node_get_id (root));
       }
     }
 

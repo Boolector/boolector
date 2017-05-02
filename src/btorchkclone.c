@@ -465,11 +465,11 @@ chkclone_aig_cnf_id_table (Btor *btor, Btor *clone)
             == BTOR_IS_INVERTED_NODE (real_cexp->field)); \
   } while (0)
 
-#define BTOR_CHKCLONE_EXPPTRTAG(field)               \
-  do                                                 \
-  {                                                  \
-    assert (btor_exp_get_tag (real_exp->field)       \
-            == btor_exp_get_tag (real_cexp->field)); \
+#define BTOR_CHKCLONE_EXPPTRTAG(field)                \
+  do                                                  \
+  {                                                   \
+    assert (btor_node_get_tag (real_exp->field)       \
+            == btor_node_get_tag (real_cexp->field)); \
   } while (0)
 
 void
@@ -508,19 +508,19 @@ btor_chkclone_exp (Btor *btor,
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
 
-  if (btor_is_bv_const_node (real_exp))
+  if (btor_node_is_bv_const (real_exp))
   {
-    assert (btor_const_get_bits (real_exp)->width
-            == btor_const_get_bits (real_cexp)->width);
-    assert (btor_bv_compare (btor_const_get_bits (real_exp),
-                             btor_const_get_bits (real_cexp))
+    assert (btor_node_const_get_bits (real_exp)->width
+            == btor_node_const_get_bits (real_cexp)->width);
+    assert (btor_bv_compare (btor_node_const_get_bits (real_exp),
+                             btor_node_const_get_bits (real_cexp))
             == 0);
-    if (btor_const_get_invbits (real_exp))
+    if (btor_node_const_get_invbits (real_exp))
     {
-      assert (btor_const_get_invbits (real_exp)->width
-              == btor_const_get_invbits (real_cexp)->width);
-      assert (btor_bv_compare (btor_const_get_invbits (real_exp),
-                               btor_const_get_invbits (real_cexp))
+      assert (btor_node_const_get_invbits (real_exp)->width
+              == btor_node_const_get_invbits (real_cexp)->width);
+      assert (btor_bv_compare (btor_node_const_get_invbits (real_exp),
+                               btor_node_const_get_invbits (real_cexp))
               == 0);
     }
   }
@@ -536,7 +536,7 @@ btor_chkclone_exp (Btor *btor,
   BTOR_CHKCLONE_EXP (parents);
   BTOR_CHKCLONE_EXP (arity);
 
-  if (!btor_is_fun_node (real_exp))
+  if (!btor_node_is_fun (real_exp))
   {
     if (real_exp->av)
     {
@@ -559,12 +559,12 @@ btor_chkclone_exp (Btor *btor,
   BTOR_CHKCLONE_EXPPTRTAG (first_parent);
   BTOR_CHKCLONE_EXPPTRTAG (last_parent);
 
-  if (btor_is_proxy_node (real_exp)) return;
+  if (btor_node_is_proxy (real_exp)) return;
 
-  if (!btor_is_bv_const_node (real_exp))
+  if (!btor_node_is_bv_const (real_exp))
   {
-    if (!btor_is_bv_var_node (real_exp) && !btor_is_uf_node (real_exp)
-        && !btor_is_param_node (real_exp))
+    if (!btor_node_is_bv_var (real_exp) && !btor_node_is_uf (real_exp)
+        && !btor_node_is_param (real_exp))
     {
       if (real_exp->arity)
       {
@@ -572,12 +572,12 @@ btor_chkclone_exp (Btor *btor,
       }
     }
 
-    if (btor_is_slice_node (real_exp))
+    if (btor_node_is_slice (real_exp))
     {
-      assert (btor_slice_get_upper (real_exp)
-              == btor_slice_get_upper (real_cexp));
-      assert (btor_slice_get_lower (real_exp)
-              == btor_slice_get_lower (real_cexp));
+      assert (btor_node_slice_get_upper (real_exp)
+              == btor_node_slice_get_upper (real_cexp));
+      assert (btor_node_slice_get_lower (real_exp)
+              == btor_node_slice_get_lower (real_cexp));
     }
 
     for (i = 0; i < real_exp->arity; i++)
@@ -590,7 +590,7 @@ btor_chkclone_exp (Btor *btor,
   }
 
 #if 0
-  if (btor_is_fun_node (real_exp))
+  if (btor_node_is_fun (real_exp))
     {
       BTOR_CHKCLONE_EXP (index_len);
       BTOR_CHKCLONE_EXPPTRID (first_aeq_acond_parent);
@@ -611,7 +611,7 @@ btor_chkclone_exp (Btor *btor,
     }
 #endif
 
-  if (btor_is_param_node (real_exp))
+  if (btor_node_is_param (real_exp))
   {
     if (((BtorParamNode *) real_exp)->lambda_exp)
     {
@@ -634,12 +634,13 @@ btor_chkclone_exp (Btor *btor,
       assert (!((BtorParamNode *) real_cexp)->assigned_exp);
   }
 
-  if (btor_is_lambda_node (real_exp))
+  if (btor_node_is_lambda (real_exp))
   {
-    if (btor_lambda_get_static_rho (real_exp))
+    if (btor_node_lambda_get_static_rho (real_exp))
     {
-      btor_iter_hashptr_init (&it, btor_lambda_get_static_rho (real_exp));
-      btor_iter_hashptr_init (&cit, btor_lambda_get_static_rho (real_cexp));
+      btor_iter_hashptr_init (&it, btor_node_lambda_get_static_rho (real_exp));
+      btor_iter_hashptr_init (&cit,
+                              btor_node_lambda_get_static_rho (real_cexp));
       while (btor_iter_hashptr_has_next (&it))
       {
         assert (btor_iter_hashptr_has_next (&cit));

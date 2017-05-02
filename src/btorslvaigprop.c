@@ -88,7 +88,7 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
   BtorBitVector *res;
   BtorAIGVec *av;
 
-  if (!exp->av) return btor_bv_new (mm, btor_get_exp_width (exp->btor, exp));
+  if (!exp->av) return btor_bv_new (mm, btor_node_get_width (exp->btor, exp));
 
   av  = exp->av;
   len = av->len;
@@ -143,10 +143,10 @@ generate_model_from_aig_model (Btor *btor)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     if (btor_hashint_table_contains (cache, real_cur->id)) continue;
     btor_hashint_table_add (cache, real_cur->id);
-    if (btor_is_bv_const_node (real_cur))
+    if (btor_node_is_bv_const (real_cur))
       btor_model_add_to_bv (
-          btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
-    if (btor_is_bv_var_node (real_cur))
+          btor, btor->bv_model, real_cur, btor_node_const_get_bits (real_cur));
+    if (btor_node_is_bv_var (real_cur))
     {
       bv = get_assignment_bv (btor->mm, real_cur, aprop);
       btor_model_add_to_bv (btor, btor->bv_model, real_cur, bv);

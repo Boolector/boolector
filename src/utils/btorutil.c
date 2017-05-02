@@ -520,7 +520,7 @@ btor_util_node2string (BtorNode *exp)
 
   if (BTOR_IS_INVERTED_NODE (exp)) new_len += 1;
   new_len += 1 + strlen (name); /* space + name */
-  BUFCONCAT (strbuf, cur_len, new_len, "%d %s", btor_exp_get_id (exp), name);
+  BUFCONCAT (strbuf, cur_len, new_len, "%d %s", btor_node_get_id (exp), name);
 
   for (i = 0; i < real_exp->arity; i++)
   {
@@ -528,30 +528,30 @@ btor_util_node2string (BtorNode *exp)
     new_len += btor_util_num_digits (BTOR_REAL_ADDR_NODE (real_exp->e[i])->id);
     if (BTOR_IS_INVERTED_NODE (real_exp->e[i])) new_len += 1;
     BUFCONCAT (
-        strbuf, cur_len, new_len, " %d", btor_exp_get_id (real_exp->e[i]));
+        strbuf, cur_len, new_len, " %d", btor_node_get_id (real_exp->e[i]));
   }
 
-  if (btor_is_slice_node (real_exp))
+  if (btor_node_is_slice (real_exp))
   {
-    new_len += btor_util_num_digits (btor_slice_get_upper (exp)) + 1;
-    new_len += btor_util_num_digits (btor_slice_get_lower (exp)) + 1;
+    new_len += btor_util_num_digits (btor_node_slice_get_upper (exp)) + 1;
+    new_len += btor_util_num_digits (btor_node_slice_get_lower (exp)) + 1;
     BUFCONCAT (strbuf,
                cur_len,
                new_len,
                " %d %d",
-               btor_slice_get_upper (exp),
-               btor_slice_get_lower (exp));
+               btor_node_slice_get_upper (exp),
+               btor_node_slice_get_lower (exp));
   }
-  else if ((btor_is_bv_var_node (real_exp) || btor_is_uf_node (real_exp)
-            || btor_is_param_node (real_exp))
-           && (tmp = btor_get_symbol_exp (btor, real_exp)))
+  else if ((btor_node_is_bv_var (real_exp) || btor_node_is_uf (real_exp)
+            || btor_node_is_param (real_exp))
+           && (tmp = btor_node_get_symbol (btor, real_exp)))
   {
     new_len += strlen (tmp) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", tmp);
   }
-  else if (btor_is_bv_const_node (exp))
+  else if (btor_node_is_bv_const (exp))
   {
-    bits = btor_bv_to_char (btor->mm, btor_const_get_bits (real_exp));
+    bits = btor_bv_to_char (btor->mm, btor_node_const_get_bits (real_exp));
     new_len += strlen (bits) + 1;
     BUFCONCAT (strbuf, cur_len, new_len, " %s", bits);
     btor_mem_freestr (btor->mm, bits);

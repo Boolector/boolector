@@ -31,10 +31,10 @@ typedef struct BtorNodeIterator
 } BtorNodeIterator;
 
 #define BTOR_NEXT_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->next_parent[btor_exp_get_tag (exp)])
+  (BTOR_REAL_ADDR_NODE (exp)->next_parent[btor_node_get_tag (exp)])
 
 #define BTOR_PREV_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->prev_parent[btor_exp_get_tag (exp)])
+  (BTOR_REAL_ADDR_NODE (exp)->prev_parent[btor_node_get_tag (exp)])
 
 void btor_iter_apply_parent_init (BtorNodeIterator *it, const BtorNode *exp);
 bool btor_iter_apply_parent_has_next (const BtorNodeIterator *it);

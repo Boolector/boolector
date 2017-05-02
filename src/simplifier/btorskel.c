@@ -29,7 +29,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
   int res, id;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  assert (btor_get_exp_width (btor, real_exp) == 1);
+  assert (btor_node_get_width (btor, real_exp) == 1);
   if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
   assert (real_exp->av);
   assert (real_exp->av->len == 1);
@@ -58,7 +58,7 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
   int res;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  assert (btor_get_exp_width (real_exp->btor, real_exp) == 1);
+  assert (btor_node_get_width (real_exp->btor, real_exp) == 1);
   b = btor_hashptr_table_get (ids, real_exp);
   if (!b)
   {
@@ -108,8 +108,8 @@ process_skeleton_tseitin (Btor *btor,
     else if (d->as_int == 0)
     {
       d->as_int = 1;
-      if (btor_is_fun_node (exp) || btor_is_args_node (exp)
-          || exp->parameterized || btor_get_exp_width (btor, exp) != 1)
+      if (btor_node_is_fun (exp) || btor_node_is_args (exp)
+          || exp->parameterized || btor_node_get_width (btor, exp) != 1)
         continue;
 
 #ifndef NDEBUG
@@ -119,8 +119,8 @@ process_skeleton_tseitin (Btor *btor,
         child           = BTOR_REAL_ADDR_NODE (child);
         d               = btor_hashint_map_get (mark, child->id);
         assert (d->as_int == 1);
-        if (!btor_is_fun_node (child) && !btor_is_args_node (child)
-            && !child->parameterized && btor_get_exp_width (btor, child) == 1)
+        if (!btor_node_is_fun (child) && !btor_node_is_args (child)
+            && !child->parameterized && btor_node_get_width (btor, child) == 1)
           assert (btor_hashptr_table_get (ids, child));
       }
 #endif
@@ -153,8 +153,8 @@ process_skeleton_tseitin (Btor *btor,
           break;
 
         case BTOR_BV_EQ_NODE:
-          if (btor_get_exp_width (btor, exp->e[0]) != 1) break;
-          assert (btor_get_exp_width (btor, exp->e[1]) == 1);
+          if (btor_node_get_width (btor, exp->e[0]) != 1) break;
+          assert (btor_node_get_width (btor, exp->e[1]) == 1);
           rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
           rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
 
@@ -185,10 +185,10 @@ process_skeleton_tseitin (Btor *btor,
 	    // rewrite level > 2, Boolean condition are rewritten when
 	    // rewrite level > 0
 	    case BTOR_COND_NODE:
-	      assert (btor_get_exp_width (btor, exp->e[0]) == 1);
-	      if (btor_get_exp_width (btor, exp->e[1]) != 1)
+	      assert (btor_node_get_width (btor, exp->e[0]) == 1);
+	      if (btor_node_get_width (btor, exp->e[1]) != 1)
 		break;
-	      assert (btor_get_exp_width (btor, exp->e[2]) == 1);
+	      assert (btor_node_get_width (btor, exp->e[2]) == 1);
 	      rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
 	      rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
 	      rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
@@ -216,8 +216,8 @@ process_skeleton_tseitin (Btor *btor,
 #endif
 
         default:
-          assert (!btor_is_cond_node (exp));
-          assert (!btor_is_proxy_node (exp));
+          assert (!btor_node_is_cond (exp));
+          assert (!btor_node_is_proxy (exp));
           break;
       }
     }
@@ -241,8 +241,8 @@ btor_process_skeleton (Btor *btor)
   start = btor_util_time_stamp ();
 
   ids = btor_hashptr_table_new (mm,
-                                (BtorHashPtr) btor_hash_exp_by_id,
-                                (BtorCmpPtr) btor_compare_exp_by_id);
+                                (BtorHashPtr) btor_node_hash_by_id,
+                                (BtorCmpPtr) btor_node_compare_by_id);
 
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
@@ -267,7 +267,7 @@ btor_process_skeleton (Btor *btor)
   {
     count++;
     exp = btor_iter_hashptr_next (&it);
-    assert (btor_get_exp_width (btor, exp) == 1);
+    assert (btor_node_get_width (btor, exp) == 1);
     process_skeleton_tseitin (btor, lgl, &work_stack, mark, ids, exp);
     lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
     lgladd (lgl, 0);

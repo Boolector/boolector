@@ -121,11 +121,11 @@ boolector_mc_new (void)
   BTOR_CNEW (mm, res);
   res->btor    = btor;
   res->inputs  = btor_hashptr_table_new (mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
+                                        (BtorHashPtr) btor_node_hash_by_id,
+                                        (BtorCmpPtr) btor_node_compare_by_id);
   res->latches = btor_hashptr_table_new (mm,
-                                         (BtorHashPtr) btor_hash_exp_by_id,
-                                         (BtorCmpPtr) btor_compare_exp_by_id);
+                                         (BtorHashPtr) btor_node_hash_by_id,
+                                         (BtorCmpPtr) btor_node_compare_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
   assert (!res->forward2const);
   res->continue_checking_if_reached = 0;
