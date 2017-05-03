@@ -173,6 +173,11 @@ configure_sat_mgr (Btor *btor)
               1,
               "no functions found, resetting SAT solver to non-incremental");
   }
+
+  BTOR_ABORT (
+      smgr->inc_required && !btor_sat_mgr_has_incremental_support (smgr),
+      "selected SAT solver '%s' does not support incremental mode",
+      smgr->name);
 }
 
 static BtorSolverResult

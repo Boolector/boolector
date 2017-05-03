@@ -88,6 +88,8 @@ bool btor_sat_mgr_has_clone_support (const BtorSATMgr *smgr);
 
 bool btor_sat_mgr_has_term_support (const BtorSATMgr *smgr);
 
+bool btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr);
+
 void btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 
 /* Clones existing SAT manager (and underlying SAT solver). */

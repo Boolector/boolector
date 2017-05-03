@@ -196,6 +196,13 @@ btor_sat_mgr_has_term_support (const BtorSATMgr *smgr)
   return (!strcmp (smgr->name, "Lingeling"));
 }
 
+bool
+btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr)
+{
+  if (!smgr) return false;
+  return smgr->api.assume != 0 && smgr->api.failed != 0;
+}
+
 void
 btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state)
 {
@@ -373,11 +380,13 @@ btor_sat_add (BtorSATMgr *smgr, int lit)
 BtorSolverResult
 btor_sat_check_sat (BtorSATMgr *smgr, int limit)
 {
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (!smgr->inc_required || btor_sat_mgr_has_incremental_support (smgr));
+
   double start = btor_util_time_stamp ();
   int sat_res;
   BtorSolverResult res;
-  assert (smgr != NULL);
-  assert (smgr->initialized);
   BTOR_MSG (smgr->btor->msg,
             2,
             "calling SAT solver %s with limit %d",
