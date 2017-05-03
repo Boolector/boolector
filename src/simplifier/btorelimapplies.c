@@ -21,7 +21,7 @@ btor_eliminate_applies (Btor *btor)
 {
   assert (btor);
 
-  int num_applies, num_applies_total = 0, round;
+  uint32_t num_applies, num_applies_total = 0, round;
   double start, delta;
   BtorNode *app, *fun, *subst;
   BtorNodeIterator it;
@@ -69,7 +69,7 @@ btor_eliminate_applies (Btor *btor)
     num_applies_total += num_applies;
     BTOR_MSG (btor->msg,
               1,
-              "eliminate %d applications in round %d",
+              "eliminate %u applications in round %u",
               num_applies,
               round);
 
