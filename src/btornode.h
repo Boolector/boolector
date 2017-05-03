@@ -503,7 +503,7 @@ void btor_node_set_to_proxy (Btor *btor, BtorNode *exp);
 void btor_node_set_btor_id (Btor *btor, BtorNode *exp, int32_t id);
 
 /* Get parsed id (BTOR format only, needed for model output). */
-int32_t btor_node_get_btor_id (BtorNode *exp);
+int64_t btor_node_get_btor_id (BtorNode *exp);
 
 /* Get the exp (belonging to instance 'btor') that matches given id.
  * Note: The main difference to 'btor_node_match_by_id' is that this function
