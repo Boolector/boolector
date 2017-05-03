@@ -153,6 +153,58 @@ delete_fun_solver (BtorFunSolver *slv)
 
 /*------------------------------------------------------------------------*/
 
+static bool
+incremental_required (Btor *btor)
+{
+  bool res = false;
+  uint32_t i;
+  BtorNode *cur;
+  BtorPtrHashTableIterator it;
+  BtorNodePtrStack stack;
+  BtorIntHashTable *cache;
+
+  if (btor->lambdas->count == 0 && btor->ufs->count == 0) return false;
+
+  BTOR_INIT_STACK (btor->mm, stack);
+  cache = btor_hashint_table_new (btor->mm);
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = btor_iter_hashptr_next (&it);
+    BTOR_PUSH_STACK (stack, cur);
+  }
+
+  btor_iter_hashptr_init (&it, btor->var_rhs);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&it));
+    /* no parents -> is not reachable from the roots */
+    if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) continue;
+    BTOR_PUSH_STACK (stack, cur);
+  }
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
+    if (btor_hashint_table_contains (cache, cur->id)) continue;
+
+    if (btor_node_is_fun (cur))
+    {
+      res = true;
+      break;
+    }
+
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (stack, cur->e[i]);
+  }
+
+  btor_hashint_table_delete (cache);
+  BTOR_RELEASE_STACK (stack);
+  return res;
+}
+
 static void
 configure_sat_mgr (Btor *btor)
 {
@@ -166,12 +218,18 @@ configure_sat_mgr (Btor *btor)
   /* reset SAT solver to non-incremental if all functions have been
    * eliminated */
   if (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL) && smgr->inc_required
-      && btor->lambdas->count == 0 && btor->ufs->count == 0)
+      && !incremental_required (btor))
   {
     smgr->inc_required = false;
     BTOR_MSG (btor->msg,
               1,
               "no functions found, resetting SAT solver to non-incremental");
+
+    if (btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP))
+    {
+      btor_opt_set (btor, BTOR_OPT_FUN_DUAL_PROP, 0);
+      BTOR_MSG (btor->msg, 1, "no functions found, disabling --fun:dual-prop");
+    }
   }
 
   BTOR_ABORT (
