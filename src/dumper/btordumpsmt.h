@@ -27,7 +27,7 @@ void btor_dumpsmt_dump (Btor* btor, FILE* file);
 
 void btor_dumpsmt_dump_const_value (Btor* btor,
                                     const BtorBitVector* bits,
-                                    int base,
+                                    uint32_t base,
                                     FILE* file);
 
 void btor_dumpsmt_dump_sort_node (BtorNode* exp, FILE* file);

@@ -36,9 +36,9 @@ struct BtorSMTDumpContext
   BtorPtrHashTable *roots;
   BtorPtrHashTable *const_cache;
   FILE *file;
-  int maxid;
-  int pretty_print;
-  int open_lets;
+  uint32_t maxid;
+  uint32_t pretty_print;
+  uint32_t open_lets;
 };
 
 typedef struct BtorSMTDumpContext BtorSMTDumpContext;
@@ -110,7 +110,7 @@ add_root_to_smt_dump_context (BtorSMTDumpContext *sdc, BtorNode *root)
     btor_hashptr_table_add (sdc->roots, btor_node_copy (sdc->btor, root));
 }
 
-static int
+static int32_t
 cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
@@ -118,7 +118,7 @@ cmp_node_id (const void *p, const void *q)
   return a->id - b->id;
 }
 
-static int
+static uint32_t
 smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (sdc);
@@ -162,7 +162,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       type = "p";
     DUMP_SYMBOL:
       sym = btor_node_get_symbol (sdc->btor, exp);
-      if (sym && !isdigit ((int) sym[0]))
+      if (sym && !isdigit ((int32_t) sym[0]))
       {
         fputs (sym, sdc->file);
         return;
@@ -176,7 +176,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
     default: type = "$e";
   }
 
-  fprintf (sdc->file, "%s%d", type, smt_id (sdc, exp));
+  fprintf (sdc->file, "%s%u", type, smt_id (sdc, exp));
 }
 
 static bool
@@ -189,7 +189,7 @@ is_boolean (BtorSMTDumpContext *sdc, BtorNode *exp)
 void
 btor_dumpsmt_dump_const_value (Btor *btor,
                                const BtorBitVector *bits,
-                               int base,
+                               uint32_t base,
                                FILE *file)
 {
   assert (btor);
@@ -224,7 +224,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
   assert (sdc);
   assert (bits);
 
-  int base;
+  uint32_t base;
   FILE *file;
   char *val;
   BtorPtrHashBucket *b;
@@ -427,7 +427,8 @@ collect_and_children (BtorSMTDumpContext *sdc,
   assert (btor_node_is_and (exp));
 
   bool skip;
-  int i, id;
+  uint32_t i;
+  int64_t id;
   BtorNode *cur, *real_cur;
   BtorNodePtrQueue visit;
   BtorPtrHashBucket *b;
@@ -472,7 +473,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
 static void
 recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                           BtorNode *exp,
-                          int expect_bv,
+                          int32_t expect_bv,
                           unsigned depth_limit)
 {
   assert (sdc);
@@ -480,7 +481,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
   assert (btor_hashptr_table_get (sdc->dump, BTOR_REAL_ADDR_NODE (exp)));
 
   unsigned depth;
-  int pad, i, is_bool, add_space, zero_extend, expect_bool;
+  bool is_bool, zero_extend, expect_bool;
+  uint32_t pad, i;
+  int32_t add_space;
   BtorBitVector *bits;
   const char *op, *fmt;
   BtorNode *arg, *real_exp;
@@ -707,8 +710,15 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
             BTOR_RESET_STACK (args);
           }
           else
-            for (i = real_exp->arity - 1; i >= 0; i--)
-              PUSH_DUMP_NODE (real_exp->e[i], expect_bv, 0, 1, 0, depth + 1);
+          {
+            for (i = 1; i <= real_exp->arity; i++)
+              PUSH_DUMP_NODE (real_exp->e[real_exp->arity - i],
+                              expect_bv,
+                              0,
+                              1,
+                              0,
+                              depth + 1);
+          }
       }
 
       /* open s-expression */
@@ -796,7 +806,7 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_hashptr_table_get (sdc->dumped, exp));
 
-  int is_bool;
+  bool is_bool;
 
   is_bool = is_boolean (sdc, exp);
   fputs ("(define-fun ", sdc->file);
@@ -822,7 +832,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   assert (!fun->parameterized);
   assert (!btor_hashptr_table_get (sdc->dumped, fun));
 
-  int i, refs;
+  uint32_t i, refs;
   BtorNode *cur, *param, *fun_body, *p;
   BtorMemMgr *mm = sdc->btor->mm;
   BtorNodePtrStack visit, shared;
@@ -1016,12 +1026,12 @@ set_logic_smt (BtorSMTDumpContext *sdc, const char *logic)
   fprintf (sdc->file, fmt, logic);
 }
 
-static int
+static uint32_t
 get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (exp);
 
-  int refs = 0;
+  uint32_t refs = 0;
   BtorNode *cur;
   BtorNodeIterator it;
   BtorPtrHashBucket *b;
@@ -1062,7 +1072,8 @@ has_lambda_parents_only (BtorNode *exp)
 static void
 mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
 {
-  int i, j, not_bool;
+  uint32_t i, j;
+  bool is_bool;
   BtorNode *cur;
 
   /* collect boolean terms */
@@ -1095,17 +1106,11 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
     else if ((btor_node_is_and (cur) || btor_node_is_bv_cond (cur))
              && btor_node_get_width (sdc->btor, cur) == 1)
     {
-      not_bool = 0;
+      is_bool = true;
       for (j = 0; j < cur->arity; j++)
-      {
-        if (!is_boolean (sdc, cur->e[j]))
-        {
-          not_bool = 1;
-          break;
-        }
-      }
+        if (!(is_bool = is_boolean (sdc, cur->e[j]))) break;
 
-      if (not_bool) continue;
+      if (!is_bool) continue;
 
       btor_hashptr_table_add (sdc->boolean, cur);
     }
@@ -1117,7 +1122,7 @@ dump_smt (BtorSMTDumpContext *sdc)
 {
   assert (sdc);
 
-  int i, j;
+  uint32_t i, j;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
   BtorNodePtrStack visit, all, vars, shared, ufs;
@@ -1297,12 +1302,12 @@ dump_smt (BtorSMTDumpContext *sdc)
 }
 
 static void
-dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, uint32_t nroots)
 {
   assert (btor);
   assert (file);
 
-  int i;
+  uint32_t i;
   BtorNode *tmp, *tmp_roots[nroots];
   BtorPtrHashTableIterator it;
   BtorSMTDumpContext *sdc;
@@ -1357,7 +1362,7 @@ btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 {
   assert (btor);
 
-  int i;
+  uint32_t i;
   BtorNode *cur, *real_exp;
   BtorSMTDumpContext *sdc;
   BtorNodePtrStack visit, all;
