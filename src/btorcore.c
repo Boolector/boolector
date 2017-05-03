@@ -76,7 +76,7 @@
   } while (0)
 
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
-  ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
+  ((BtorAIG *) (((uint32_t long int) (exp) &1ul) ^ ((uint32_t long int) (aig))))
 
 /*------------------------------------------------------------------------*/
 
@@ -2457,7 +2457,7 @@ substitute_var_exps (Btor *btor)
   uint32_t i;
   BtorNodePtrStack stack;
   double start, delta;
-  unsigned count;
+  uint32_t count;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
