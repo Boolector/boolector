@@ -359,6 +359,9 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
   node->name        = btor_mem_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
+  BTOR_INIT_STACK (btor->mm, node->ranges);
+  BTOR_INIT_STACK (btor->mm, node->assignments);
+  BTOR_INIT_STACK (btor->mm, node->atoms);
   msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
 }
 
@@ -382,6 +385,7 @@ BtorIBV::addVariable (unsigned id,
   n->marked        = 0;
   BTOR_INIT_STACK (btor->mm, n->ranges);
   BTOR_INIT_STACK (btor->mm, n->assignments);
+  BTOR_INIT_STACK (btor->mm, n->atoms);
   const char *srcstr;
   switch (src)
   {
