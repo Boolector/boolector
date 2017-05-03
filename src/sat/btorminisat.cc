@@ -148,14 +148,14 @@ init (BtorSATMgr* smgr)
 static void
 add (BtorSATMgr* smgr, int lit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->add (lit);
 }
 
 static int
 sat (BtorSATMgr* smgr, int limit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   if (limit < 0)
     solver->budgetOff ();
   else
@@ -166,42 +166,42 @@ sat (BtorSATMgr* smgr, int limit)
 static int
 deref (BtorSATMgr* smgr, int lit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->deref (lit);
 }
 
 static void
 reset (BtorSATMgr* smgr)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   delete solver;
 }
 
 static int
 inc_max_var (BtorSATMgr* smgr)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->inc ();
 }
 
 static void
 assume (BtorSATMgr* smgr, int lit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->assume (lit);
 }
 
 static int
 fixed (BtorSATMgr* smgr, int lit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->fixed (lit);
 }
 
 static int
 failed (BtorSATMgr* smgr, int lit)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->failed (lit);
 }
 
@@ -215,7 +215,7 @@ enable_verbosity (BtorSATMgr* smgr, int level)
 static void
 stats (BtorSATMgr* smgr)
 {
-  BtorMiniSAT* solver = (BtorMiniSAT*) smgr;
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   printf (
       "[minisat] calls %llu\n"
       "[minisat] restarts %llu\n"
