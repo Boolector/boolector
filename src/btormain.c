@@ -721,6 +721,13 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "This software is linked against MiniSAT\n");
   fprintf (out, "Copyright (c) 2003-2013, Niklas Een, Niklas Sorensson\n");
 #endif
+#ifdef BTOR_USE_CADICAL
+  fprintf (out, "\n");
+  fprintf (out, "This software is linked against CaDiCaL\n");
+  fprintf (out, "Copyright (c) 2016-2017 Armin Biere\n");
+  fprintf (out, "Institute for Formal Models and Verification\n");
+  fprintf (out, "Johannes Kepler University, Linz, Austria\n");
+#endif
   app->done = 1;
 }
 
@@ -1122,6 +1129,12 @@ boolector_main (int argc, char **argv)
               if (!strcasecmp (valstr, "minisat"))
             boolector_set_opt (
                 g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+          else
+#endif
+#ifdef BTOR_USE_CADICAL
+              if (!strcasecmp (valstr, "cadical"))
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_CADICAL);
           else
 #endif
           {
