@@ -2608,6 +2608,7 @@ btormbt_state_new (BtorMBT *mbt)
 static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
+  bool inc = true;
   int i;
   BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
@@ -2732,8 +2733,14 @@ btormbt_state_opt (BtorMBT *mbt)
         boolector_set_sat_solver (mbt->btor, "minisat");
 #endif
 #ifdef BTOR_USE_CADICAL
-      else if (btoropt->val == BTOR_SAT_ENGINE_CADICAL)
+      else if (btoropt->val == BTOR_SAT_ENGINE_CADICAL
+               // for now CaDiCaL only support non-incremental calls
+               && mbt->round.logic == BTORMBT_LOGIC_QF_BV
+               && !boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL))
+      {
         boolector_set_sat_solver (mbt->btor, "cadical");
+        inc = false;
+      }
 #endif
     }
     else
@@ -2864,7 +2871,9 @@ btormbt_state_opt (BtorMBT *mbt)
                  btoropt->val);
 
     /* set some mbt specific options */
-    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
+    // NOTE: inc flag required since CaDiCaL does not yet support incremental
+    // mode
+    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1 && inc)
     {
       mbt->round.inc = true;
       mbt->round.max_ninc =
