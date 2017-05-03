@@ -44,14 +44,14 @@
 /* wrapper functions for SAT solver API                                   */
 /*------------------------------------------------------------------------*/
 
-static void
+static inline void
 add (BtorSATMgr *smgr, int lit)
 {
   assert (smgr->api.add);
   smgr->api.add (smgr, lit);
 }
 
-static void
+static inline void
 assume (BtorSATMgr *smgr, int lit)
 {
   BTOR_ABORT (!smgr->api.assume,
@@ -60,7 +60,7 @@ assume (BtorSATMgr *smgr, int lit)
   smgr->api.assume (smgr, lit);
 }
 
-static void *
+static inline void *
 clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 {
   BTOR_ABORT (!smgr->api.clone,
@@ -69,20 +69,20 @@ clone (BtorSATMgr *smgr, BtorMemMgr *mm)
   return smgr->api.clone (smgr, mm);
 }
 
-static int
+static inline int
 deref (BtorSATMgr *smgr, int lit)
 {
   assert (smgr->api.deref);
   return smgr->api.deref (smgr, lit);
 }
 
-static void
+static inline void
 enable_verbosity (BtorSATMgr *smgr, int level)
 {
   if (smgr->api.enable_verbosity) smgr->api.enable_verbosity (smgr, level);
 }
 
-static int
+static inline int
 failed (BtorSATMgr *smgr, int lit)
 {
   BTOR_ABORT (!smgr->api.failed,
@@ -91,74 +91,74 @@ failed (BtorSATMgr *smgr, int lit)
   return smgr->api.failed (smgr, lit);
 }
 
-static int
+static inline int
 fixed (BtorSATMgr *smgr, int lit)
 {
   if (smgr->api.fixed) return smgr->api.fixed (smgr, lit);
   return 0;
 }
 
-static int
+static inline int
 inc_max_var (BtorSATMgr *smgr)
 {
   if (smgr->api.inc_max_var) return smgr->api.inc_max_var (smgr);
   return smgr->maxvar + 1;
 }
 
-static void *
+static inline void *
 init (BtorSATMgr *smgr)
 {
   assert (smgr->api.init);
   return smgr->api.init (smgr);
 }
 
-static void
+static inline void
 melt (BtorSATMgr *smgr, int lit)
 {
   if (smgr->api.melt) smgr->api.melt (smgr, lit);
   // TODO: else case warning?
 }
 
-static int
+static inline int
 repr (BtorSATMgr *smgr, int lit)
 {
   if (smgr->api.repr) return smgr->api.repr (smgr, lit);
   return lit;
 }
 
-static void
+static inline void
 reset (BtorSATMgr *smgr)
 {
   assert (smgr->api.reset);
   smgr->api.reset (smgr);
 }
 
-static int
+static inline int
 sat (BtorSATMgr *smgr, int limit)
 {
   assert (smgr->api.sat);
   return smgr->api.sat (smgr, limit);
 }
 
-static void
+static inline void
 set_output (BtorSATMgr *smgr, FILE *output)
 {
   if (smgr->api.set_output) smgr->api.set_output (smgr, output);
 }
 
-static void
+static inline void
 set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
   if (smgr->api.set_prefix) smgr->api.set_prefix (smgr, prefix);
 }
 
-static void
-set_term (BtorSATMgr *smgr)
+static inline void
+setterm (BtorSATMgr *smgr)
 {
   if (smgr->api.setterm) smgr->api.setterm (smgr);
 }
 
-static void
+static inline void
 stats (BtorSATMgr *smgr)
 {
   if (smgr->api.stats) smgr->api.stats (smgr);
@@ -194,6 +194,13 @@ btor_sat_mgr_has_term_support (const BtorSATMgr *smgr)
 {
   if (!smgr) return false;
   return (!strcmp (smgr->name, "Lingeling"));
+}
+
+bool
+btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr)
+{
+  if (!smgr) return false;
+  return smgr->api.assume != 0 && smgr->api.failed != 0;
 }
 
 void
@@ -320,6 +327,12 @@ btor_sat_enable_solver (BtorSATMgr *smgr)
 #endif
     default: BTOR_ABORT (1, "no sat solver configured");
   }
+
+  BTOR_MSG (smgr->btor->msg,
+            1,
+            "%s allows %snon-incremental mode",
+            smgr->name,
+            smgr->api.assume ? "both incremental and " : "");
 }
 
 void
@@ -367,11 +380,13 @@ btor_sat_add (BtorSATMgr *smgr, int lit)
 BtorSolverResult
 btor_sat_check_sat (BtorSATMgr *smgr, int limit)
 {
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (!smgr->inc_required || btor_sat_mgr_has_incremental_support (smgr));
+
   double start = btor_util_time_stamp ();
   int sat_res;
   BtorSolverResult res;
-  assert (smgr != NULL);
-  assert (smgr->initialized);
   BTOR_MSG (smgr->btor->msg,
             2,
             "calling SAT solver %s with limit %d",
@@ -379,7 +394,7 @@ btor_sat_check_sat (BtorSATMgr *smgr, int limit)
             limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
-  set_term (smgr);
+  setterm (smgr);
   sat_res = sat (smgr, limit);
   smgr->sat_time += btor_util_time_stamp () - start;
   switch (sat_res)

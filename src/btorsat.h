@@ -14,10 +14,10 @@
 #ifndef BTORSAT_H_INCLUDED
 #define BTORSAT_H_INCLUDED
 
-#include "btormsg.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 /*------------------------------------------------------------------------*/
@@ -57,39 +57,25 @@ struct BtorSATMgr
 
   struct
   {
-    void (*add) (BtorSATMgr *, int);
+    void (*add) (BtorSATMgr *, int); /* required */
     void (*assume) (BtorSATMgr *, int);
-#if 0
-      int (*changed) (BtorSATMgr*);
-#endif
-    int (*deref) (BtorSATMgr *, int);
+    int (*deref) (BtorSATMgr *, int); /* required */
     void (*enable_verbosity) (BtorSATMgr *, int);
     int (*failed) (BtorSATMgr *, int);
     int (*fixed) (BtorSATMgr *, int);
     int (*inc_max_var) (BtorSATMgr *);
-#if 0
-      int (*inconsistent) (BtorSATMgr*);
-#endif
-    void *(*init) (BtorSATMgr *);
+    void *(*init) (BtorSATMgr *); /* required */
     void (*melt) (BtorSATMgr *, int);
     int (*repr) (BtorSATMgr *, int);
-    void (*reset) (BtorSATMgr *);
-    int (*sat) (BtorSATMgr *, int);
+    void (*reset) (BtorSATMgr *);   /* required */
+    int (*sat) (BtorSATMgr *, int); /* required */
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
-#if 0
-      int (*variables) (BtorSATMgr*);
-#endif
     void *(*clone) (BtorSATMgr *, BtorMemMgr *);
     void (*setterm) (BtorSATMgr *);
   } api;
 };
-
-/*------------------------------------------------------------------------*/
-
-#define BTOR_MEM_MGR_SAT(SMGR) ((SMGR)->mm)
-#define BTOR_GET_SOLVER_SAT(SMGR) ((SMGR)->solver)
 
 /*------------------------------------------------------------------------*/
 
@@ -101,6 +87,8 @@ BtorSATMgr *btor_sat_mgr_new (Btor *btor);
 bool btor_sat_mgr_has_clone_support (const BtorSATMgr *smgr);
 
 bool btor_sat_mgr_has_term_support (const BtorSATMgr *smgr);
+
+bool btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr);
 
 void btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 
@@ -176,16 +164,5 @@ int btor_sat_fixed (BtorSATMgr *smgr, int lit);
 
 /* Resets the status of the SAT solver. */
 void btor_sat_reset (BtorSATMgr *smgr);
-
-#if 0
-/* Determines if assignments have been changed
- * as constraints have been added.
- */
-int btor_sat_changed (BtorSATMgr * smgr);
-
-/* Determine wether SAT solver is already inconsistent.
- */
-int btor_sat_inconsistent (BtorSATMgr * smgr);
-#endif
 
 #endif

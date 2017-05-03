@@ -421,7 +421,7 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
-    OBJS="${OBJS}$BUILDIR/sat/btorcminisat.o"
+    OBJS="${OBJS}$BUILDIR/sat/btorminisat.o"
     RPATHS="${RPATHS}\,-rpath\,$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
