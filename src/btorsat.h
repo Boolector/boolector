@@ -42,33 +42,33 @@ struct BtorSATMgr
   FILE *output;
 
   bool initialized;
-  int satcalls;
-  int clauses;
+  int32_t satcalls;
+  int32_t clauses;
   int32_t true_lit;
-  int maxvar;
+  int32_t maxvar;
 
   double sat_time;
 
   struct
   {
-    int (*fun) (void *); /* termination callback */
+    int32_t (*fun) (void *); /* termination callback */
     void *state;
   } term;
 
   struct
   {
-    void (*add) (BtorSATMgr *, int); /* required */
-    void (*assume) (BtorSATMgr *, int);
-    int (*deref) (BtorSATMgr *, int); /* required */
-    void (*enable_verbosity) (BtorSATMgr *, int);
-    int (*failed) (BtorSATMgr *, int);
-    int (*fixed) (BtorSATMgr *, int);
-    int (*inc_max_var) (BtorSATMgr *);
+    void (*add) (BtorSATMgr *, int32_t); /* required */
+    void (*assume) (BtorSATMgr *, int32_t);
+    int32_t (*deref) (BtorSATMgr *, int32_t); /* required */
+    void (*enable_verbosity) (BtorSATMgr *, int32_t);
+    int32_t (*failed) (BtorSATMgr *, int32_t);
+    int32_t (*fixed) (BtorSATMgr *, int32_t);
+    int32_t (*inc_max_var) (BtorSATMgr *);
     void *(*init) (BtorSATMgr *); /* required */
-    void (*melt) (BtorSATMgr *, int);
-    int (*repr) (BtorSATMgr *, int);
-    void (*reset) (BtorSATMgr *);   /* required */
-    int (*sat) (BtorSATMgr *, int); /* required */
+    void (*melt) (BtorSATMgr *, int32_t);
+    int32_t (*repr) (BtorSATMgr *, int32_t);
+    void (*reset) (BtorSATMgr *);           /* required */
+    int32_t (*sat) (BtorSATMgr *, int32_t); /* required */
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
@@ -90,7 +90,9 @@ bool btor_sat_mgr_has_term_support (const BtorSATMgr *smgr);
 
 bool btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr);
 
-void btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state);
+void btor_sat_mgr_set_term (BtorSATMgr *smgr,
+                            int32_t (*fun) (void *),
+                            void *state);
 
 /* Clones existing SAT manager (and underlying SAT solver). */
 BtorSATMgr *btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr);
@@ -100,14 +102,14 @@ void btor_sat_mgr_delete (BtorSATMgr *smgr);
 
 /* Generates fresh CNF indices.
  * Indices are generated in consecutive order. */
-int btor_sat_mgr_next_cnf_id (BtorSATMgr *smgr);
+int32_t btor_sat_mgr_next_cnf_id (BtorSATMgr *smgr);
 
 /* Mark old CNF index as not used anymore. */
-void btor_sat_mgr_release_cnf_id (BtorSATMgr *smgr, int);
+void btor_sat_mgr_release_cnf_id (BtorSATMgr *smgr, int32_t);
 
 #if 0
 /* Returns the last CNF index that has been generated. */
-int btor_get_last_cnf_id_sat_mgr (BtorSATMgr * smgr);
+int32_t btor_get_last_cnf_id_sat_mgr (BtorSATMgr * smgr);
 #endif
 
 void btor_sat_enable_solver (BtorSATMgr *smgr);
@@ -127,40 +129,40 @@ void btor_sat_print_stats (BtorSATMgr *smgr);
 /* Adds literal to the current clause of the SAT solver.
  * 0 terminates the current clause.
  */
-void btor_sat_add (BtorSATMgr *smgr, int lit);
+void btor_sat_add (BtorSATMgr *smgr, int32_t lit);
 
 /* Adds assumption to SAT solver.
  * Requires that SAT solver supports this.
  */
-void btor_sat_assume (BtorSATMgr *smgr, int lit);
+void btor_sat_assume (BtorSATMgr *smgr, int32_t lit);
 
 /* Checks whether an assumption failed during
  * the last SAT solver call 'btor_sat_check_sat'.
  */
-int btor_sat_failed (BtorSATMgr *smgr, int lit);
+int32_t btor_sat_failed (BtorSATMgr *smgr, int32_t lit);
 
 /* Solves the SAT instance.
  * limit < 0 -> no limit.
  */
-BtorSolverResult btor_sat_check_sat (BtorSATMgr *smgr, int limit);
+BtorSolverResult btor_sat_check_sat (BtorSATMgr *smgr, int32_t limit);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_check_sat.
  */
-int btor_sat_deref (BtorSATMgr *smgr, int lit);
+int32_t btor_sat_deref (BtorSATMgr *smgr, int32_t lit);
 
 /* Gets equivalence class represenative of a literal
  * or the literal itself if it is in a singleton
  * equivalence, fixed or eliminated.
  * Do not call before calling btor_sat_check_sat.
  */
-int btor_sat_repr (BtorSATMgr *smgr, int lit);
+int32_t btor_sat_repr (BtorSATMgr *smgr, int32_t lit);
 
 /* Gets assignment of a literal (in the SAT case)
  * similar to 'deref', but only consider top level.
  * Do not call before calling btor_sat_check_sat.
  */
-int btor_sat_fixed (BtorSATMgr *smgr, int lit);
+int32_t btor_sat_fixed (BtorSATMgr *smgr, int32_t lit);
 
 /* Resets the status of the SAT solver. */
 void btor_sat_reset (BtorSATMgr *smgr);

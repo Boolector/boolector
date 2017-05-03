@@ -14,7 +14,7 @@
 
 void init_sat_tests (void);
 
-void run_sat_tests (int argc, char **argv);
+void run_sat_tests (int32_t argc, char **argv);
 
 void finish_sat_tests (void);
 
