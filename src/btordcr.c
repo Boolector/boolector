@@ -26,7 +26,8 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
   assert (BTOR_FUN_SOLVER (btor)->score);
   assert (nodes);
 
-  int i, j, min_depth;
+  uint32_t i, j;
+  int32_t min_depth;
   BtorFunSolver *slv;
   BtorNodePtrStack stack;
   BtorNode *cur, *e;
@@ -108,7 +109,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
   assert (nodes);
 
   double delta;
-  int i, j, k;
+  uint32_t i, j, k;
   BtorFunSolver *slv;
   BtorNode *cur, *e;
   BtorNodePtrStack stack;
@@ -212,7 +213,7 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (BTOR_FUN_SOLVER (btor)->score);
 
-  int h;
+  uint32_t h;
 
   h = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
@@ -228,7 +229,7 @@ btor_dcr_compute_scores (Btor *btor)
 {
   assert (btor);
 
-  int i;
+  uint32_t i;
   double start;
   BtorFunSolver *slv;
   BtorNode *cur, *e;
@@ -302,7 +303,7 @@ btor_dcr_compute_scores_dual_prop (Btor *btor)
 {
   assert (btor);
 
-  int i;
+  uint32_t i;
   double start;
   BtorFunSolver *slv;
   BtorNode *cur;
@@ -376,14 +377,14 @@ btor_dcr_compute_scores_dual_prop (Btor *btor)
   slv->time.search_init_apps_compute_scores += btor_util_time_stamp () - start;
 }
 
-int
+int32_t
 btor_dcr_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
 {
   assert (btor);
   assert (a);
   assert (b);
 
-  int h, sa, sb;
+  uint32_t h, sa, sb;
   BtorFunSolver *slv;
   BtorPtrHashBucket *bucket;
 
@@ -430,10 +431,10 @@ btor_dcr_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   return sa < sb;
 }
 
-int
+int32_t
 btor_dcr_compare_scores_qsort (const void *p1, const void *p2)
 {
-  int h, sa, sb;
+  uint32_t h, sa, sb;
   BtorFunSolver *slv;
   Btor *btor;
   BtorNode *a, *b;
