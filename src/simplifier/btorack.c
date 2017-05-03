@@ -20,7 +20,7 @@ btor_add_ackermann_constraints (Btor *btor)
 {
   assert (btor);
 
-  int i, j, num_constraints = 0;
+  uint32_t i, j, num_constraints = 0;
   double start, delta;
   BtorNode *uf, *app_i, *app_j, *p, *c, *imp, *a_i, *a_j, *eq, *tmp;
   BtorNode *cur;
