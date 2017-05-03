@@ -176,9 +176,6 @@ btor_sat_mgr_new (Btor *btor)
   BTOR_CNEW (btor->mm, smgr);
   smgr->btor   = btor;
   smgr->output = stdout;
-  // btor_enable_default_sat (smgr);
-  btor_sat_enable_solver (smgr);
-  BTOR_MSG (btor->msg, 1, "enabled %s as default SAT solver", smgr->name);
   return smgr;
 }
 

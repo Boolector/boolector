@@ -45,6 +45,7 @@ static void
 test_next_cnf_id_sat_mgr (void)
 {
   BtorSATMgr *smgr = btor_sat_mgr_new (g_btor);
+  btor_sat_enable_solver (smgr);
   btor_sat_init (smgr);
   assert (btor_sat_mgr_next_cnf_id (smgr) == 2);
   assert (btor_sat_mgr_next_cnf_id (smgr) == 3);
