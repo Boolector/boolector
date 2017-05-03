@@ -3722,6 +3722,20 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
     mclone->slv = 0;
 
     inputs = map_inputs_check_model (btor, mclone);
+
+    // NOTE: cadical does not support incremental mode, which is required for
+    // checking the model. we need to switch to lingeling.
+#ifdef BTOR_USE_CADICAL
+    if (btor_opt_get (mclone, BTOR_OPT_SAT_ENGINE) == BTOR_SAT_ENGINE_CADICAL)
+    {
+#ifdef BTOR_USE_LINGELING
+      btor_opt_set (mclone, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+#else
+      btor_delete_substitutions (mclone);
+      mclone = 0;
+#endif
+    }
+#endif
   }
 #endif
 
