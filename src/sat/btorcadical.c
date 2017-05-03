@@ -83,9 +83,6 @@ btor_sat_enable_cadical (BtorSATMgr *smgr)
   smgr->api.set_output       = 0;
   smgr->api.set_prefix       = 0;
   smgr->api.stats            = 0;
-
-  BTOR_MSG (smgr->btor->msg, 1, "CaDiCaL allows non-incremental mode only");
-
   return true;
 }
 /*------------------------------------------------------------------------*/
