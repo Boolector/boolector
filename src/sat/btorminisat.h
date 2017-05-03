@@ -1,9 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2011-2012 Armin Biere.
+ *  Copyright (C) 2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -11,8 +9,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORSATMINISAT_H_INCLUDED
-#define BTORSATMINISAT_H_INCLUDED
+#ifndef BTORMINISAT_H_INCLUDED
+#define BTORMINISAT_H_INCLUDED
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_MINISAT

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -30,7 +30,7 @@
 /*------------------------------------------------------------------------*/
 
 static void *
-lingeling_init (BtorSATMgr *smgr)
+init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
 
@@ -52,14 +52,14 @@ lingeling_init (BtorSATMgr *smgr)
 }
 
 static void
-lingeling_add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   lgladd (blgl->lgl, lit);
 }
 
 static int
-lingeling_sat (BtorSATMgr *smgr, int limit)
+sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
   LGL *lgl      = blgl->lgl, *clone;
@@ -76,7 +76,7 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
     static int count = 0;
     char name[80];
     FILE *file;
-    sprintf (name, "/tmp/btor_lingeling_sat_%05d_%08d.cnf", getpid (), count++);
+    sprintf (name, "/tmp/btor_sat_%05d_%08d.cnf", getpid (), count++);
     file = fopen (name, "w");
     lglprint (lgl, file);
     fclose (file);
@@ -152,31 +152,22 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
   return res;
 }
 
-#if 0
 static int
-lingeling_changed (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglchanged (blgl->lgl);
-}
-#endif
-
-static int
-lingeling_deref (BtorSATMgr *smgr, int lit)
+deref (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglderef (blgl->lgl, lit);
 }
 
 static int
-lingeling_repr (BtorSATMgr *smgr, int lit)
+repr (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglrepr (blgl->lgl, lit);
 }
 
 static void
-lingeling_reset (BtorSATMgr *smgr)
+reset (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglrelease (blgl->lgl);
@@ -184,21 +175,21 @@ lingeling_reset (BtorSATMgr *smgr)
 }
 
 static void
-lingeling_set_output (BtorSATMgr *smgr, FILE *output)
+set_output (BtorSATMgr *smgr, FILE *output)
 {
   BtorLGL *blgl = smgr->solver;
   lglsetout (blgl->lgl, output);
 }
 
 static void
-lingeling_set_prefix (BtorSATMgr *smgr, const char *prefix)
+set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
   BtorLGL *blgl = smgr->solver;
   lglsetprefix (blgl->lgl, prefix);
 }
 
 static void
-lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
+enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
   if (level <= 0)
@@ -208,7 +199,7 @@ lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 }
 
 static int
-lingeling_inc_max_var (BtorSATMgr *smgr)
+inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   int res       = lglincvar (blgl->lgl);
@@ -216,17 +207,8 @@ lingeling_inc_max_var (BtorSATMgr *smgr)
   return res;
 }
 
-#if 0
-static int
-lingeling_variables (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglmaxvar (blgl->lgl);
-}
-#endif
-
 static void
-lingeling_stats (BtorSATMgr *smgr)
+stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglstats (blgl->lgl);
@@ -236,44 +218,35 @@ lingeling_stats (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 static void
-lingeling_assume (BtorSATMgr *smgr, int lit)
+assume (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   lglassume (blgl->lgl, lit);
 }
 
 static void
-lingeling_melt (BtorSATMgr *smgr, int lit)
+melt (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   if (smgr->inc_required) lglmelt (blgl->lgl, lit);
 }
 
 static int
-lingeling_failed (BtorSATMgr *smgr, int lit)
+failed (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfailed (blgl->lgl, lit);
 }
 
 static int
-lingeling_fixed (BtorSATMgr *smgr, int lit)
+fixed (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfixed (blgl->lgl, lit);
 }
 
-#if 0
-static int
-lingeling_inconsistent (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglinconsistent (blgl->lgl);
-}
-#endif
-
 static void *
-lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 {
   assert (smgr);
 
@@ -296,7 +269,7 @@ lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 }
 
 static void
-lingeling_setterm (BtorSATMgr *smgr)
+setterm (BtorSATMgr *smgr)
 {
   assert (smgr);
 
@@ -319,36 +292,23 @@ btor_sat_enable_lingeling (BtorSATMgr *smgr)
   smgr->fork = btor_opt_get (smgr->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK);
 
   BTOR_CLR (&smgr->api);
-  smgr->api.add    = lingeling_add;
-  smgr->api.assume = lingeling_assume;
-#if 0
-  smgr->api.changed = lingeling_changed;
-#endif
-  smgr->api.deref            = lingeling_deref;
-  smgr->api.enable_verbosity = lingeling_enable_verbosity;
-  smgr->api.failed           = lingeling_failed;
-  smgr->api.fixed            = lingeling_fixed;
-  smgr->api.inc_max_var      = lingeling_inc_max_var;
-#if 0
-  smgr->api.inconsistent = lingeling_inconsistent;
-#endif
-  smgr->api.init       = lingeling_init;
-  smgr->api.melt       = lingeling_melt;
-  smgr->api.repr       = lingeling_repr;
-  smgr->api.reset      = lingeling_reset;
-  smgr->api.sat        = lingeling_sat;
-  smgr->api.set_output = lingeling_set_output;
-  smgr->api.set_prefix = lingeling_set_prefix;
-  smgr->api.stats      = lingeling_stats;
-#if 0
-  smgr->api.variables = lingeling_variables;
-#endif
-  smgr->api.clone   = lingeling_clone;
-  smgr->api.setterm = lingeling_setterm;
-
-  BTOR_MSG (smgr->btor->msg,
-            1,
-            "Lingeling allows both incremental and non-incremental mode");
+  smgr->api.add              = add;
+  smgr->api.assume           = assume;
+  smgr->api.deref            = deref;
+  smgr->api.enable_verbosity = enable_verbosity;
+  smgr->api.failed           = failed;
+  smgr->api.fixed            = fixed;
+  smgr->api.inc_max_var      = inc_max_var;
+  smgr->api.init             = init;
+  smgr->api.melt             = melt;
+  smgr->api.repr             = repr;
+  smgr->api.reset            = reset;
+  smgr->api.sat              = sat;
+  smgr->api.set_output       = set_output;
+  smgr->api.set_prefix       = set_prefix;
+  smgr->api.stats            = stats;
+  smgr->api.clone            = clone;
+  smgr->api.setterm          = setterm;
   return true;
 }
 
