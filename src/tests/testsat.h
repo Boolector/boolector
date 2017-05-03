@@ -12,6 +12,8 @@
 #ifndef TESTSAT_H_INCLUDED
 #define TESTSAT_H_INCLUDED
 
+#include <stdint.h>
+
 void init_sat_tests (void);
 
 void run_sat_tests (int32_t argc, char **argv);
