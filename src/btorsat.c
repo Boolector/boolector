@@ -45,14 +45,14 @@
 /*------------------------------------------------------------------------*/
 
 static inline void
-add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int32_t lit)
 {
   assert (smgr->api.add);
   smgr->api.add (smgr, lit);
 }
 
 static inline void
-assume (BtorSATMgr *smgr, int lit)
+assume (BtorSATMgr *smgr, int32_t lit)
 {
   BTOR_ABORT (!smgr->api.assume,
               "SAT solver %s does not support 'assume' API call",
@@ -69,21 +69,21 @@ clone (BtorSATMgr *smgr, BtorMemMgr *mm)
   return smgr->api.clone (smgr, mm);
 }
 
-static inline int
-deref (BtorSATMgr *smgr, int lit)
+static inline int32_t
+deref (BtorSATMgr *smgr, int32_t lit)
 {
   assert (smgr->api.deref);
   return smgr->api.deref (smgr, lit);
 }
 
 static inline void
-enable_verbosity (BtorSATMgr *smgr, int level)
+enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   if (smgr->api.enable_verbosity) smgr->api.enable_verbosity (smgr, level);
 }
 
-static inline int
-failed (BtorSATMgr *smgr, int lit)
+static inline int32_t
+failed (BtorSATMgr *smgr, int32_t lit)
 {
   BTOR_ABORT (!smgr->api.failed,
               "SAT solver %s does not support 'failed' API call",
@@ -91,14 +91,14 @@ failed (BtorSATMgr *smgr, int lit)
   return smgr->api.failed (smgr, lit);
 }
 
-static inline int
-fixed (BtorSATMgr *smgr, int lit)
+static inline int32_t
+fixed (BtorSATMgr *smgr, int32_t lit)
 {
   if (smgr->api.fixed) return smgr->api.fixed (smgr, lit);
   return 0;
 }
 
-static inline int
+static inline int32_t
 inc_max_var (BtorSATMgr *smgr)
 {
   if (smgr->api.inc_max_var) return smgr->api.inc_max_var (smgr);
@@ -113,14 +113,14 @@ init (BtorSATMgr *smgr)
 }
 
 static inline void
-melt (BtorSATMgr *smgr, int lit)
+melt (BtorSATMgr *smgr, int32_t lit)
 {
   if (smgr->api.melt) smgr->api.melt (smgr, lit);
   // TODO: else case warning?
 }
 
-static inline int
-repr (BtorSATMgr *smgr, int lit)
+static inline int32_t
+repr (BtorSATMgr *smgr, int32_t lit)
 {
   if (smgr->api.repr) return smgr->api.repr (smgr, lit);
   return lit;
@@ -133,8 +133,8 @@ reset (BtorSATMgr *smgr)
   smgr->api.reset (smgr);
 }
 
-static inline int
-sat (BtorSATMgr *smgr, int limit)
+static inline int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
 {
   assert (smgr->api.sat);
   return smgr->api.sat (smgr, limit);
@@ -201,7 +201,7 @@ btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr)
 }
 
 void
-btor_sat_mgr_set_term (BtorSATMgr *smgr, int (*fun) (void *), void *state)
+btor_sat_mgr_set_term (BtorSATMgr *smgr, int32_t (*fun) (void *), void *state)
 {
   assert (smgr);
   smgr->term.fun   = fun;
@@ -242,10 +242,10 @@ btor_sat_is_initialized (BtorSATMgr *smgr)
   return smgr->initialized;
 }
 
-int
+int32_t
 btor_sat_mgr_next_cnf_id (BtorSATMgr *smgr)
 {
-  int result;
+  int32_t result;
   assert (smgr);
   assert (smgr->initialized);
   result = inc_max_var (smgr);
@@ -257,7 +257,7 @@ btor_sat_mgr_next_cnf_id (BtorSATMgr *smgr)
 }
 
 void
-btor_sat_mgr_release_cnf_id (BtorSATMgr *smgr, int lit)
+btor_sat_mgr_release_cnf_id (BtorSATMgr *smgr, int32_t lit)
 {
   assert (smgr);
   if (!smgr->initialized) return;
@@ -295,7 +295,7 @@ btor_sat_set_output (BtorSATMgr *smgr, FILE *output)
   prefix = btor_mem_malloc (smgr->btor->mm, strlen (smgr->name) + 4);
   sprintf (prefix, "[%s] ", smgr->name);
   q = prefix + 1;
-  for (p = smgr->name; *p; p++) *q++ = tolower ((int) *p);
+  for (p = smgr->name; *p; p++) *q++ = tolower ((int32_t) *p);
   set_prefix (smgr, prefix);
   btor_mem_free (smgr->btor->mm, prefix, strlen (smgr->name) + 4);
 }
@@ -364,7 +364,7 @@ btor_sat_print_stats (BtorSATMgr *smgr)
 }
 
 void
-btor_sat_add (BtorSATMgr *smgr, int lit)
+btor_sat_add (BtorSATMgr *smgr, int32_t lit)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
@@ -375,14 +375,14 @@ btor_sat_add (BtorSATMgr *smgr, int lit)
 }
 
 BtorSolverResult
-btor_sat_check_sat (BtorSATMgr *smgr, int limit)
+btor_sat_check_sat (BtorSATMgr *smgr, int32_t limit)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (!smgr->inc_required || btor_sat_mgr_has_incremental_support (smgr));
 
   double start = btor_util_time_stamp ();
-  int sat_res;
+  int32_t sat_res;
   BtorSolverResult res;
   BTOR_MSG (smgr->btor->msg,
             2,
@@ -403,8 +403,8 @@ btor_sat_check_sat (BtorSATMgr *smgr, int limit)
   return res;
 }
 
-int
-btor_sat_deref (BtorSATMgr *smgr, int lit)
+int32_t
+btor_sat_deref (BtorSATMgr *smgr, int32_t lit)
 {
   (void) smgr;
   assert (smgr != NULL);
@@ -413,8 +413,8 @@ btor_sat_deref (BtorSATMgr *smgr, int lit)
   return deref (smgr, lit);
 }
 
-int
-btor_sat_repr (BtorSATMgr *smgr, int lit)
+int32_t
+btor_sat_repr (BtorSATMgr *smgr, int32_t lit)
 {
   (void) smgr;
   assert (smgr != NULL);
@@ -434,10 +434,10 @@ btor_sat_reset (BtorSATMgr *smgr)
   smgr->initialized = false;
 }
 
-int
-btor_sat_fixed (BtorSATMgr *smgr, int lit)
+int32_t
+btor_sat_fixed (BtorSATMgr *smgr, int32_t lit)
 {
-  int res;
+  int32_t res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
@@ -448,7 +448,7 @@ btor_sat_fixed (BtorSATMgr *smgr, int lit)
 /*------------------------------------------------------------------------*/
 
 void
-btor_sat_assume (BtorSATMgr *smgr, int lit)
+btor_sat_assume (BtorSATMgr *smgr, int32_t lit)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
@@ -457,8 +457,8 @@ btor_sat_assume (BtorSATMgr *smgr, int lit)
   assume (smgr, lit);
 }
 
-int
-btor_sat_failed (BtorSATMgr *smgr, int lit)
+int32_t
+btor_sat_failed (BtorSATMgr *smgr, int32_t lit)
 {
   (void) smgr;
   assert (smgr != NULL);

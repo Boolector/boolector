@@ -52,19 +52,19 @@ init (BtorSATMgr *smgr)
 }
 
 static void
-add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   lgladd (blgl->lgl, lit);
 }
 
-static int
-sat (BtorSATMgr *smgr, int limit)
+static int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
 {
   BtorLGL *blgl = smgr->solver;
   LGL *lgl      = blgl->lgl, *clone;
   const char *str;
-  int res, bfres;
+  int32_t res, bfres;
   char name[80];
 
   assert (smgr->satcalls >= 1);
@@ -73,7 +73,7 @@ sat (BtorSATMgr *smgr, int limit)
 
 #ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
   {
-    static int count = 0;
+    static int32_t count = 0;
     char name[80];
     FILE *file;
     sprintf (name, "/tmp/btor_sat_%05d_%08d.cnf", getpid (), count++);
@@ -152,15 +152,15 @@ sat (BtorSATMgr *smgr, int limit)
   return res;
 }
 
-static int
-deref (BtorSATMgr *smgr, int lit)
+static int32_t
+deref (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglderef (blgl->lgl, lit);
 }
 
-static int
-repr (BtorSATMgr *smgr, int lit)
+static int32_t
+repr (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglrepr (blgl->lgl, lit);
@@ -189,7 +189,7 @@ set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-enable_verbosity (BtorSATMgr *smgr, int level)
+enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   BtorLGL *blgl = smgr->solver;
   if (level <= 0)
@@ -198,11 +198,11 @@ enable_verbosity (BtorSATMgr *smgr, int level)
     lglsetopt (blgl->lgl, "verb", level - 1);
 }
 
-static int
+static int32_t
 inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
-  int res       = lglincvar (blgl->lgl);
+  int32_t res   = lglincvar (blgl->lgl);
   if (smgr->inc_required) lglfreeze (blgl->lgl, res);
   return res;
 }
@@ -218,28 +218,28 @@ stats (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 static void
-assume (BtorSATMgr *smgr, int lit)
+assume (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   lglassume (blgl->lgl, lit);
 }
 
 static void
-melt (BtorSATMgr *smgr, int lit)
+melt (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   if (smgr->inc_required) lglmelt (blgl->lgl, lit);
 }
 
-static int
-failed (BtorSATMgr *smgr, int lit)
+static int32_t
+failed (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfailed (blgl->lgl, lit);
 }
 
-static int
-fixed (BtorSATMgr *smgr, int lit)
+static int32_t
+fixed (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfixed (blgl->lgl, lit);

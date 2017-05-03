@@ -55,7 +55,7 @@ test_next_cnf_id_sat_mgr (void)
 }
 
 void
-run_sat_tests (int argc, char **argv)
+run_sat_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_sat_mgr);
   BTOR_RUN_TEST (next_cnf_id_sat_mgr);

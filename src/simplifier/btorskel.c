@@ -20,13 +20,13 @@
 
 #include "lglib.h"
 
-static int
+static int32_t
 fixed_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *real_exp;
   BtorSATMgr *smgr;
   BtorAIG *aig;
-  int res, id;
+  int32_t res, id;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (btor_node_get_width (btor, real_exp) == 1);
@@ -50,12 +50,12 @@ fixed_exp (Btor *btor, BtorNode *exp)
   return res;
 }
 
-static int
+static int32_t
 process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
 {
   BtorPtrHashBucket *b;
   BtorNode *real_exp;
-  int res;
+  int32_t res;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (btor_node_get_width (real_exp->btor, real_exp) == 1);
@@ -63,7 +63,7 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
   if (!b)
   {
     b              = btor_hashptr_table_add (ids, real_exp);
-    b->data.as_int = (int) ids->count;
+    b->data.as_int = (int32_t) ids->count;
   }
 
   res = b->data.as_int;
@@ -84,7 +84,7 @@ process_skeleton_tseitin (Btor *btor,
 {
   assert (btor);
 
-  int i, lhs, rhs[3], fixed;
+  int32_t i, lhs, rhs[3], fixed;
   BtorNode *exp;
   BtorHashTableData *d;
 
@@ -228,12 +228,12 @@ void
 btor_process_skeleton (Btor *btor)
 {
   BtorPtrHashTable *ids;
-  int count, fixed;
+  uint32_t count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashTableIterator it;
   double start, delta;
-  int res, lit, val;
+  int32_t res, lit, val;
   BtorNode *exp;
   LGL *lgl;
   BtorIntHashTable *mark;
@@ -278,7 +278,7 @@ btor_process_skeleton (Btor *btor)
 
   BTOR_MSG (btor->msg,
             1,
-            "found %u skeleton literals in %d constraints",
+            "found %u skeleton literals in %u constraints",
             ids->count,
             count);
 
@@ -334,7 +334,7 @@ btor_process_skeleton (Btor *btor)
   BTOR_MSG (
       btor->msg,
       1,
-      "skeleton preprocessing produced %d new constraints in %.1f seconds",
+      "skeleton preprocessing produced %u new constraints in %.1f seconds",
       fixed,
       delta);
 }

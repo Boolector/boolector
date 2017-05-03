@@ -89,7 +89,7 @@ btor_optimize_unconstrained (Btor *btor)
 
   double start, delta;
   unsigned num_ucs;
-  int i;
+  uint32_t i;
   bool uc[3], ucp[3];
   BtorNode *cur, *cur_parent;
   BtorNodePtrStack stack, roots;
@@ -172,8 +172,8 @@ btor_optimize_unconstrained (Btor *btor)
     {
       d->as_int = 1;
       BTOR_PUSH_STACK (stack, cur);
-      for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+      for (i = 1; i <= cur->arity; i++)
+        BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur->e[cur->arity - i]));
     }
     else
     {

@@ -103,7 +103,7 @@ bool btor_bv_is_one (const BtorBitVector *bv);
 
 /* return p for bv = 2^p, and -1 if bv is not a power of 2 */
 int64_t btor_bv_power_of_two (const BtorBitVector *bv);
-/* return bv as int if its value can be converted into a positive
+/* return bv as integer if its value can be converted into a positive
  * integer of bw 32, and -1 otherwise */
 int32_t btor_bv_small_positive_int (const BtorBitVector *bv);
 

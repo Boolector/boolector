@@ -367,8 +367,7 @@ recursively_compute_function_model (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (btor_node_is_fun (fun));
 
-  int i;
-  unsigned pos;
+  uint32_t i, pos;
   BtorNode *value, *args, *arg, *cur_fun, *cur;
   BtorArgsIterator ait;
   BtorPtrHashTableIterator it;
@@ -565,7 +564,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
   assert (fun_model);
   assert (exp);
 
-  int i, num_args, pos;
+  uint32_t i, num_args, pos;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, reset;
   BtorVoidPtrStack arg_stack;
@@ -959,7 +958,7 @@ btor_model_generate (Btor *btor,
   assert (bv_model);
   assert (fun_model);
 
-  int i;
+  uint32_t i;
   double start;
   BtorNode *cur;
   BtorPtrHashTableIterator it;

@@ -86,7 +86,7 @@ btor_merge_lambdas (Btor *btor)
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   unsigned num_merged_lambdas = 0;
-  int i;
+  uint32_t i;
   double start, delta;
   BtorNode *cur, *lambda, *subst, *parent, *param, *body;
   BtorMemMgr *mm;

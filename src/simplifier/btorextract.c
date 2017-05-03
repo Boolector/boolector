@@ -39,7 +39,7 @@ extract_base_addr_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
   }
 }
 
-static int
+static int32_t
 cmp_abs_rel_indices (const void *a, const void *b)
 {
   bool is_abs;
@@ -115,7 +115,7 @@ create_range (Btor *btor,
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (offset);
 
-  int pos;
+  int64_t pos;
   BtorNode *res, *le0, *le1, *and, *off, *sub, *rem, *eq, *zero, *slice;
 
   le0 = btor_exp_ulte (btor, lower, param);
@@ -588,7 +588,7 @@ collect_indices_writes (Btor *btor,
                         BtorPtrHashTable *map_value_index,
                         BtorPtrHashTable *map_lambda_base)
 {
-  int is_top;
+  bool is_top;
   BtorNode *lambda, *cur, *array, *index, *value, *tmp, *array_if, *array_else;
   BtorNode *prev_index, *prev_value;
   BtorPtrHashTableIterator it;
@@ -617,7 +617,7 @@ collect_indices_writes (Btor *btor,
     if (!lambda->is_array || !btor_node_lambda_get_static_rho (lambda))
       continue;
 
-    is_top = 0;
+    is_top = false;
     btor_iter_apply_parent_init (&pit, lambda);
     while (btor_iter_apply_parent_has_next (&pit))
     {
@@ -625,7 +625,7 @@ collect_indices_writes (Btor *btor,
 
       if (!tmp->parameterized)
       {
-        is_top = 1;
+        is_top = true;
         break;
       }
     }
@@ -786,10 +786,10 @@ find_ranges (Btor *btor,
              BtorBitVectorPtrStack *increments,
              BtorNodePtrStack *indices,
              BtorNodePtrStack *indices_ranges,
-             unsigned *num_pat,
-             unsigned *num_pat_inc,
-             unsigned *size_pat,
-             unsigned *size_pat_inc)
+             uint32_t *num_pat,
+             uint32_t *num_pat_inc,
+             uint32_t *size_pat,
+             uint32_t *size_pat_inc)
 {
   assert (stack);
   assert (ranges);
@@ -799,13 +799,13 @@ find_ranges (Btor *btor,
   assert (size_pat);
 
 #ifndef NDEBUG
-  unsigned num_indices = 0;
+  uint32_t num_indices = 0;
 #endif
   bool in_range;
   BtorBitVector *b0, *b1, *inc, *prev_inc;
-  unsigned i, cnt, lower, upper;
-  unsigned num_pattern = 0, num_pattern_inc = 0, size_pattern = 0;
-  unsigned size_pattern_inc = 0;
+  uint32_t i, cnt, lower, upper;
+  uint32_t num_pattern = 0, num_pattern_inc = 0, size_pattern = 0;
+  uint32_t size_pattern_inc = 0;
   BtorNode *n0, *n1, *n0_base_addr, *n1_base_addr, *n0_offset, *n1_offset;
   BtorMemMgr *mm;
   BtorNodePtrStack index_stack;
@@ -1014,7 +1014,7 @@ create_static_rho (Btor *btor,
   return static_rho;
 }
 
-static unsigned
+static uint32_t
 extract_lambdas (Btor *btor,
                  BtorPtrHashTable *map_value_index,
                  BtorPtrHashTable *map_lambda_base)
@@ -1025,7 +1025,7 @@ extract_lambdas (Btor *btor,
 
   bool is_top_eq;
   BtorBitVector *inc;
-  unsigned i_range, i_index, i_value, i_inc, i_index_r;
+  uint32_t i_range, i_index, i_value, i_inc, i_index_r;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorNode *src_array, *src_addr, *dst_addr;
   BtorPtrHashTableIterator it, iit;
@@ -1037,10 +1037,10 @@ extract_lambdas (Btor *btor,
   BtorMemMgr *mm;
 
   /* statistics */
-  unsigned num_total = 0, num_writes = 0;
-  unsigned num_set = 0, num_set_inc = 0, num_set_itoi = 0, num_set_itoip1 = 0;
-  unsigned num_cpy = 0, size_set = 0, size_set_inc = 0, size_set_itoi = 0;
-  unsigned size_set_itoip1 = 0, size_cpy = 0;
+  uint32_t num_total = 0, num_writes = 0;
+  uint32_t num_set = 0, num_set_inc = 0, num_set_itoi = 0, num_set_itoip1 = 0;
+  uint32_t num_cpy = 0, size_set = 0, size_set_inc = 0, size_set_itoi = 0;
+  uint32_t size_set_itoip1 = 0, size_cpy = 0;
 
   mm = btor->mm;
   BTOR_INIT_STACK (mm, ranges);
@@ -1386,7 +1386,7 @@ btor_extract_lambdas (Btor *btor)
 {
   assert (btor);
 
-  unsigned num_lambdas;
+  uint32_t num_lambdas;
   double start, delta;
   BtorPtrHashTable *map_value_index, *map_lambda_base;
   BtorMemMgr *mm;

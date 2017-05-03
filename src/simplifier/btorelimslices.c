@@ -19,20 +19,19 @@
 
 struct BtorSlice
 {
-  int upper;
-  int lower;
+  uint32_t upper;
+  uint32_t lower;
 };
 
 typedef struct BtorSlice BtorSlice;
 
 static BtorSlice *
-new_slice (Btor *btor, int upper, int lower)
+new_slice (Btor *btor, uint32_t upper, uint32_t lower)
 {
   BtorSlice *result;
 
   assert (btor != NULL);
   assert (upper >= lower);
-  assert (lower >= 0);
 
   BTOR_NEW (btor->mm, result);
   result->upper = upper;
@@ -48,30 +47,27 @@ delete_slice (Btor *btor, BtorSlice *slice)
   BTOR_DELETE (btor->mm, slice);
 }
 
-static unsigned int
+static uint32_t
 hash_slice (BtorSlice *slice)
 {
-  unsigned int result;
+  uint32_t result;
 
   assert (slice != NULL);
   assert (slice->upper >= slice->lower);
-  assert (slice->lower >= 0);
 
-  result = (unsigned int) slice->upper;
-  result += (unsigned int) slice->lower;
+  result = (uint32_t) slice->upper;
+  result += (uint32_t) slice->lower;
   result *= 7334147u;
   return result;
 }
 
-static int
+static int32_t
 compare_slices (BtorSlice *s1, BtorSlice *s2)
 {
   assert (s1 != NULL);
   assert (s2 != NULL);
   assert (s1->upper >= s1->lower);
-  assert (s1->lower >= 0);
   assert (s2->upper >= s2->lower);
-  assert (s2->lower >= 0);
 
   if (s1->upper < s2->upper) return -1;
 
@@ -86,17 +82,17 @@ compare_slices (BtorSlice *s1, BtorSlice *s2)
   return 0;
 }
 
-static int
+static int32_t
 compare_slices_qsort (const void *p1, const void *p2)
 {
   return compare_slices (*((BtorSlice **) p1), *((BtorSlice **) p2));
 }
 
-static int
+static int32_t
 compare_int_ptr (const void *p1, const void *p2)
 {
-  int v1 = *((int *) p1);
-  int v2 = *((int *) p2);
+  int32_t v1 = *((int32_t *) p1);
+  int32_t v2 = *((int32_t *) p2);
   if (v1 < v2) return -1;
 
   if (v1 > v2) return 1;
@@ -113,11 +109,12 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
   BtorPtrHashBucket *b_var, *b1, *b2;
   BtorNodeIterator it;
   BtorPtrHashTable *slices;
-  int i, min, max, count;
+  int32_t i;
+  uint32_t min, max, count;
   BtorNodePtrStack vars;
   double start, delta;
   BtorMemMgr *mm;
-  int vals[4];
+  uint32_t vals[4];
 
   assert (btor != NULL);
 
@@ -234,7 +231,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
         vals[1] = s1->lower;
         vals[2] = s2->upper;
         vals[3] = s2->lower;
-        qsort (vals, 4, sizeof (int), compare_int_ptr);
+        qsort (vals, 4, sizeof (uint32_t), compare_int_ptr);
         new_s1 = new_slice (btor, vals[3], vals[2] + 1);
         new_s2 = new_slice (btor, vals[2], vals[1]);
         new_s3 = new_slice (btor, vals[1] - 1, vals[0]);
@@ -272,12 +269,12 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
            sizeof (BtorSlice *),
            compare_slices_qsort);
 
-    s1     = sorted_slices[(int) slices->count - 1];
+    s1     = sorted_slices[slices->count - 1];
     sort   = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
     result = btor_exp_var (btor, sort, 0);
     btor_sort_release (btor, sort);
     delete_slice (btor, s1);
-    for (i = (int) slices->count - 2; i >= 0; i--)
+    for (i = (int32_t) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
       sort       = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
@@ -304,5 +301,5 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
   delta = btor_util_time_stamp () - start;
   btor->time.slicing += delta;
-  BTOR_MSG (btor->msg, 1, "sliced %d variables in %1.f seconds", count, delta);
+  BTOR_MSG (btor->msg, 1, "sliced %u variables in %1.f seconds", count, delta);
 }
