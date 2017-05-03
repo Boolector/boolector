@@ -34,9 +34,9 @@ struct BtorDumpContextLatch
 
 struct BtorDumpContext
 {
-  int maxid;
-  int maxsortid;
-  int version;
+  uint32_t maxid;
+  uint32_t maxsortid;
+  uint32_t version;
   Btor *btor;
   BtorPtrHashTable *idtab;
   BtorPtrHashTable *inputs;
@@ -220,12 +220,12 @@ btor_dumpbtor_add_constraint_to_dump_context (BtorDumpContext *bdc,
   BTOR_PUSH_STACK (bdc->constraints, constraint);
 }
 
-static int
+static int64_t
 bdcid (BtorDumpContext *bdc, BtorNode *node)
 {
   BtorPtrHashBucket *b;
   BtorNode *real;
-  int res;
+  int64_t res;
   real = BTOR_REAL_ADDR_NODE (node);
   b    = btor_hashptr_table_get (bdc->idtab, real);
   if (!b)
@@ -241,14 +241,14 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   return res;
 }
 
-static int
+static uint32_t
 bdcsortid (BtorDumpContext *bdc, BtorSort *sort)
 {
   assert (btor_hashptr_table_get (bdc->sorts, sort));
   return btor_hashptr_table_get (bdc->sorts, sort)->data.as_int;
 }
 
-static int
+static int32_t
 compare_sorts (const void *p1, const void *p2)
 {
   BtorSort *a, *b;
@@ -310,7 +310,7 @@ mark_no_dump (BtorDumpContext *bdc, BtorNode *node)
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
-  int i;
+  uint32_t i;
   char *symbol, *cbits;
   const char *op;
   uint32_t opt;
@@ -418,7 +418,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* print id, operator and sort */
   if (bdc->version == 1)
   {
-    fprintf (file, "%d %s", bdcid (bdc, node), op);
+    fprintf (file, "%ld %s", bdcid (bdc, node), op);
 
     /* print index bit width of arrays */
     if (btor_node_is_uf_array (node) || btor_node_is_fun_cond (node))
@@ -436,27 +436,27 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
     if (btor_node_is_apply (node))
     {
-      fprintf (file, " %d", bdcid (bdc, node->e[0]));
+      fprintf (file, " %ld", bdcid (bdc, node->e[0]));
       btor_iter_args_init (&ait, node->e[1]);
       while (btor_iter_args_has_next (&ait))
-        fprintf (file, " %d", bdcid (bdc, btor_iter_args_next (&ait)));
+        fprintf (file, " %ld", bdcid (bdc, btor_iter_args_next (&ait)));
       goto DONE;
     }
   }
   else
   {
     fprintf (file,
-             "%d %s %d",
+             "%ld %s %d",
              bdcid (bdc, node),
              op,
              bdcsortid (bdc, get_sort (bdc, node)));
 
     if (btor_node_is_apply (node))
     {
-      fprintf (file, " %d", bdcid (bdc, node->e[0]));
+      fprintf (file, " %ld", bdcid (bdc, node->e[0]));
       btor_iter_args_init (&ait, node->e[1]);
       while (btor_iter_args_has_next (&ait))
-        fprintf (file, " %d", bdcid (bdc, btor_iter_args_next (&ait)));
+        fprintf (file, " %ld", bdcid (bdc, btor_iter_args_next (&ait)));
       goto DONE;
     }
     else if (strcmp (op, "fun") == 0)
@@ -466,9 +466,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       while (btor_iter_lambda_has_next (&nit))
       {
         n = btor_iter_lambda_next (&nit);
-        fprintf (file, " %d", bdcid (bdc, n->e[0]));
+        fprintf (file, " %ld", bdcid (bdc, n->e[0]));
       }
-      fprintf (file, " %d", bdcid (bdc, btor_node_lambda_get_body (node)));
+      fprintf (file, " %ld", bdcid (bdc, btor_node_lambda_get_body (node)));
       goto DONE;
     }
   }
@@ -480,7 +480,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     btor_mem_freestr (bdc->btor->mm, cbits);
   }
   else if (btor_node_is_proxy (node))
-    fprintf (file, " %d", bdcid (bdc, node->simplified));
+    fprintf (file, " %ld", bdcid (bdc, node->simplified));
   /* print write instead of lambda */
   else if (btor_opt_get (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
            && btor_node_is_lambda (node)
@@ -499,14 +499,14 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     assert (BTOR_IS_REGULAR_NODE (node->e[1]->e[2]));
     assert (btor_node_is_apply (node->e[1]->e[2]));
     fprintf (file,
-             " %d %d %d",
+             " %ld %ld %ld",
              bdcid (bdc, node->e[1]->e[2]->e[0]),
              bdcid (bdc, index->e[0]),
              bdcid (bdc, value));
   }
   else
     for (i = 0; i < node->arity; i++)
-      fprintf (file, " %d", bdcid (bdc, node->e[i]));
+      fprintf (file, " %ld", bdcid (bdc, node->e[i]));
 
   /* print slice limits/var symbols */
   if (node->kind == BTOR_SLICE_NODE)
@@ -526,7 +526,7 @@ DONE:
 static void
 bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
 {
-  unsigned i, id;
+  uint32_t i, id;
   const char *kind;
 
   /* already dumped */
@@ -573,7 +573,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
 static void
 bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {
-  int i;
+  uint32_t i;
   BtorMemMgr *mm;
   BtorNodePtrStack work;
   BtorSortPtrStack sorts;
@@ -632,7 +632,7 @@ static void
 bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {
   BtorNode *node;
-  int i;
+  uint32_t i;
 
   if (bdc->version == 2) bdcsorts (bdc, start, file);
 
@@ -649,8 +649,8 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
       BTOR_PUSH_STACK (bdc->work, node);
       BTOR_PUSH_STACK (bdc->work, 0);
 
-      for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (bdc->work, node->e[i]);
+      for (i = 1; i <= node->arity; i++)
+        BTOR_PUSH_STACK (bdc->work, node->e[node->arity - i]);
 
       if (node->simplified) BTOR_PUSH_STACK (bdc->work, node->simplified);
     }
@@ -669,19 +669,20 @@ void
 btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
 {
   BtorPtrHashTableIterator it;
-  int i;
+  uint32_t i;
   char *symbol;
+  int64_t id;
+  uint32_t len;
 
   btor_iter_hashptr_init (&it, bdc->inputs);
   while (btor_iter_hashptr_has_next (&it))
   {
     BtorNode *node = btor_iter_hashptr_next (&it);
-    int id;
     assert (node);
     assert (BTOR_IS_REGULAR_NODE (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d input %d", id, btor_node_get_width (bdc->btor, node));
+    fprintf (file, "%ld input %u", id, btor_node_get_width (bdc->btor, node));
     if ((symbol = btor_node_get_symbol (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
@@ -691,12 +692,11 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   while (btor_iter_hashptr_has_next (&it))
   {
     BtorNode *node = btor_iter_hashptr_next (&it);
-    int id;
     assert (node);
     assert (BTOR_IS_REGULAR_NODE (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d latch %d", id, btor_node_get_width (bdc->btor, node));
+    fprintf (file, "%ld latch %u", id, btor_node_get_width (bdc->btor, node));
     if ((symbol = btor_node_get_symbol (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
@@ -706,7 +706,6 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   while (btor_iter_hashptr_has_next (&it))
   {
     BtorDumpContextLatch *bdcl = it.bucket->data.as_ptr;
-    int id;
     assert (bdcl->latch);
     assert (BTOR_IS_REGULAR_NODE (bdcl->latch));
     assert (btor_node_is_bv_var (bdcl->latch));
@@ -715,7 +714,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
       bdcrec (bdc, bdcl->next, file);
       id = ++bdc->maxid;
       fprintf (file,
-               "%d next %d %d %d\n",
+               "%ld next %u %ld %ld\n",
                id,
                btor_node_get_width (bdc->btor, bdcl->next),
                bdcid (bdc, bdcl->latch),
@@ -726,7 +725,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
       bdcrec (bdc, bdcl->init, file);
       id = ++bdc->maxid;
       fprintf (file,
-               "%d init %d %d %d\n",
+               "%ld init %u %ld %ld\n",
                id,
                btor_node_get_width (bdc->btor, bdcl->init),
                bdcid (bdc, bdcl->latch),
@@ -738,11 +737,10 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->outputs); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->outputs, i);
-    int id;
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     fprintf (file,
-             "%d output %d %d\n",
+             "%ld output %u %ld\n",
              id,
              btor_node_get_width (bdc->btor, node),
              bdcid (bdc, node));
@@ -751,11 +749,10 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->bads); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->bads, i);
-    int id;
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     fprintf (file,
-             "%d bad %d %d\n",
+             "%ld bad %u %ld\n",
              id,
              btor_node_get_width (bdc->btor, node),
              bdcid (bdc, node));
@@ -764,11 +761,10 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->constraints); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->constraints, i);
-    int id;
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     fprintf (file,
-             "%d constraint %d %d\n",
+             "%ld constraint %u %ld\n",
              id,
              btor_node_get_width (bdc->btor, node),
              bdcid (bdc, node));
@@ -777,7 +773,6 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->roots); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->roots, i);
-    int id, len;
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     if (bdc->version == 1)
@@ -786,10 +781,10 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
         len = btor_node_get_fun_width (bdc->btor, node);
       else
         len = btor_node_get_width (bdc->btor, node);
-      fprintf (file, "%d root %d %d\n", id, len, bdcid (bdc, node));
+      fprintf (file, "%ld root %u %ld\n", id, len, bdcid (bdc, node));
     }
     else
-      fprintf (file, "assert %d\n", bdcid (bdc, node));
+      fprintf (file, "assert %ld\n", bdcid (bdc, node));
   }
 }
 
@@ -809,14 +804,17 @@ btor_dumpbtor_dump_node (Btor *btor, FILE *file, BtorNode *exp)
 }
 
 void
-btor_dumpbtor_dump_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dumpbtor_dump_nodes (Btor *btor,
+                          FILE *file,
+                          BtorNode **roots,
+                          uint32_t nroots)
 {
   assert (btor);
   assert (file);
   assert (roots);
   assert (nroots > 0);
 
-  int i;
+  uint32_t i;
   BtorDumpContext *bdc;
 
   bdc = btor_dumpbtor_new_dump_context (btor);
@@ -829,7 +827,7 @@ btor_dumpbtor_dump_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 }
 
 void
-btor_dumpbtor_dump (Btor *btor, FILE *file, int version)
+btor_dumpbtor_dump (Btor *btor, FILE *file, uint32_t version)
 {
   assert (btor);
   assert (file);

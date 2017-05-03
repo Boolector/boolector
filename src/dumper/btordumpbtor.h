@@ -13,6 +13,7 @@
 #define BTORDUMPBTOR_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "btortypes.h"
 
@@ -37,8 +38,8 @@ void btor_dumpbtor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
 
 void btor_dumpbtor_dump_bdc (BtorDumpContext *, FILE *file);
 void btor_dumpbtor_dump_node (Btor *, FILE *, BtorNode *);
-void btor_dumpbtor_dump_nodes (Btor *, FILE *, BtorNode **, int);
-void btor_dumpbtor_dump (Btor *, FILE *, int);
+void btor_dumpbtor_dump_nodes (Btor *, FILE *, BtorNode **, uint32_t);
+void btor_dumpbtor_dump (Btor *, FILE *, uint32_t);
 
 /* FIXME: right now we cannot dump UF in BTOR as the format does not support UF
  *        yet */
