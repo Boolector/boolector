@@ -1236,8 +1236,12 @@ btor_chkclone (Btor *btor, Btor *clone)
   assert (clone);
   assert (btor != clone);
 
+#ifdef BTOR_USE_LINGELING
   if (btor_opt_get (btor, BTOR_OPT_SAT_ENGINE) != BTOR_SAT_ENGINE_LINGELING)
     return;
+#else
+  return;
+#endif
 
   chkclone_mem (btor, clone);
   chkclone_state (btor, clone);

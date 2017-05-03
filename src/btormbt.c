@@ -2731,6 +2731,10 @@ btormbt_state_opt (BtorMBT *mbt)
       else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
         boolector_set_sat_solver (mbt->btor, "minisat");
 #endif
+#ifdef BTOR_USE_CADICAL
+      else if (btoropt->val == BTOR_SAT_ENGINE_CADICAL)
+        boolector_set_sat_solver (mbt->btor, "cadical");
+#endif
     }
     else
     {
