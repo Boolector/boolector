@@ -597,11 +597,18 @@ get_apply_value (Btor *btor,
     arg      = btor_iter_args_next (&it);
     real_arg = BTOR_REAL_ADDR_NODE (arg);
 
-    if (real_arg->parameterized)
+    if (btor_is_param_node (real_arg))
+    {
+      real_arg = btor_param_get_assigned_exp (real_arg);
+      assert (real_arg);
+      d = btor_hashint_map_get (bv_model, real_arg->id);
+    }
+    else if (real_arg->parameterized)
       d = btor_hashint_map_get (bv_param_model, real_arg->id);
     else
       d = btor_hashint_map_get (bv_model, real_arg->id);
 
+    assert (d);
     bv = d->as_ptr;
     if (BTOR_IS_INVERTED_NODE (arg))
     {
