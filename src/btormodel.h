@@ -14,7 +14,7 @@
 
 #include "btorbv.h"
 #include "btorcore.h"
-#include "btorexp.h"
+#include "btornode.h"
 #include "utils/btorhashint.h"
 
 /*------------------------------------------------------------------------*/

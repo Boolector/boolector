@@ -46,7 +46,7 @@ void boolector_nodemap_map (BoolectorNodeMap *map,
 BoolectorNode *boolector_nodemap_mapped (BoolectorNodeMap *map,
                                          const BoolectorNode *n);
 
-int boolector_nodemap_count (const BoolectorNodeMap *map);
+uint32_t boolector_nodemap_count (const BoolectorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
 

@@ -69,30 +69,30 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
                 #argnode);                                                 \
   } while (0)
 
-#define BTOR_ABORT_IS_BV(arg)                                           \
-  do                                                                    \
-  {                                                                     \
-    BTOR_ABORT (btor_sort_is_bitvec (btor, btor_exp_get_sort_id (arg)), \
-                "'%s' must not be a bit-vector\n",                      \
-                #arg);                                                  \
-  } while (0)
-
-#define BTOR_ABORT_IS_NOT_BV(arg)                                        \
+#define BTOR_ABORT_IS_BV(arg)                                            \
   do                                                                     \
   {                                                                      \
-    BTOR_ABORT (!btor_sort_is_bitvec (btor, btor_exp_get_sort_id (arg)), \
-                "'%s' must be a bit-vector\n",                           \
+    BTOR_ABORT (btor_sort_is_bitvec (btor, btor_node_get_sort_id (arg)), \
+                "'%s' must not be a bit-vector\n",                       \
                 #arg);                                                   \
   } while (0)
 
-#define BTOR_ABORT_BW_MISMATCH(argbw1, argbw2)                          \
-  do                                                                    \
-  {                                                                     \
-    BTOR_ABORT (                                                        \
-        btor_exp_get_sort_id (argbw1) != btor_exp_get_sort_id (argbw2), \
-        "bit-width of '%s' and '%s' must match\n",                      \
-        #argbw1,                                                        \
-        #argbw2);                                                       \
+#define BTOR_ABORT_IS_NOT_BV(arg)                                         \
+  do                                                                      \
+  {                                                                       \
+    BTOR_ABORT (!btor_sort_is_bitvec (btor, btor_node_get_sort_id (arg)), \
+                "'%s' must be a bit-vector\n",                            \
+                #arg);                                                    \
+  } while (0)
+
+#define BTOR_ABORT_BW_MISMATCH(argbw1, argbw2)                            \
+  do                                                                      \
+  {                                                                       \
+    BTOR_ABORT (                                                          \
+        btor_node_get_sort_id (argbw1) != btor_node_get_sort_id (argbw2), \
+        "bit-width of '%s' and '%s' must match\n",                        \
+        #argbw1,                                                          \
+        #argbw2);                                                         \
   } while (0)
 
 /*------------------------------------------------------------------------*/

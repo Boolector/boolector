@@ -12,6 +12,7 @@
 
 #include "utils/boolectornodemap.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 
@@ -31,8 +32,8 @@ boolector_nodemap_new (Btor *btor)
   BTOR_NEW (btor->mm, res);
   res->btor  = btor;
   res->table = btor_hashptr_table_new (btor->mm,
-                                       (BtorHashPtr) btor_hash_exp_by_id,
-                                       (BtorCmpPtr) btor_compare_exp_by_id);
+                                       (BtorHashPtr) btor_node_hash_by_id,
+                                       (BtorCmpPtr) btor_node_compare_by_id);
 
   return res;
 }
@@ -51,13 +52,13 @@ boolector_nodemap_delete (BoolectorNodeMap *map)
   {
     e    = it.bucket->data.as_ptr;
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
-    btor_dec_exp_ext_ref_counter (btor, e);
-    btor_release_exp (btor, e);
+    btor_node_dec_ext_ref_counter (btor, e);
+    btor_node_release (btor, e);
 
     e    = btor_iter_hashptr_next (&it);
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
-    btor_dec_exp_ext_ref_counter (btor, e);
-    btor_release_exp (btor, e);
+    btor_node_dec_ext_ref_counter (btor, e);
+    btor_node_release (btor, e);
   }
   btor_hashptr_table_delete (map->table);
   BTOR_DELETE (map->btor->mm, map);
@@ -85,7 +86,7 @@ boolector_nodemap_mapped (BoolectorNodeMap *map, const BoolectorNode *n)
   return nres;
 }
 
-int
+uint32_t
 boolector_nodemap_count (const BoolectorNodeMap *map)
 {
   assert (map);
@@ -121,15 +122,15 @@ boolector_nodemap_map (BoolectorNodeMap *map,
   assert (bucket);
 
   sbtor = BTOR_REAL_ADDR_NODE (esrc)->btor;
-  esrc  = btor_copy_exp (sbtor, esrc);
+  esrc  = btor_node_copy (sbtor, esrc);
   assert (bucket->key == esrc);
-  btor_inc_exp_ext_ref_counter (sbtor, esrc);
+  btor_node_inc_ext_ref_counter (sbtor, esrc);
   bucket->key = esrc;
 
   dbtor = BTOR_REAL_ADDR_NODE (edst)->btor;
   assert (!bucket->data.as_ptr);
-  edst = btor_copy_exp (dbtor, edst);
-  btor_inc_exp_ext_ref_counter (dbtor, edst);
+  edst = btor_node_copy (dbtor, edst);
+  btor_node_inc_ext_ref_counter (dbtor, edst);
   bucket->data.as_ptr = edst;
 }
 
@@ -145,7 +146,7 @@ boolector_map_node_internal (Btor *btor,
 
   BtorNode *src, *dst, *e, *tmp;
   BoolectorNode *m[3];
-  int i;
+  uint32_t i;
 
   e = BTOR_IMPORT_BOOLECTOR_NODE (n);
   assert (BTOR_IS_REGULAR_NODE (e));
@@ -162,7 +163,7 @@ boolector_map_node_internal (Btor *btor,
     assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
   }
 
-  assert (!btor_is_proxy_node (e));
+  assert (!btor_node_is_proxy (e));
 
   switch (e->kind)
   {
@@ -171,8 +172,8 @@ boolector_map_node_internal (Btor *btor,
       assert (BTOR_REAL_ADDR_NODE (e) == e);
       if (e->btor != btor)
       {
-        tmp = btor_const_exp (btor, btor_const_get_bits (e));
-        btor_inc_exp_ext_ref_counter (btor, tmp);
+        tmp = btor_exp_const (btor, btor_node_const_get_bits (e));
+        btor_node_inc_ext_ref_counter (btor, tmp);
         return BTOR_EXPORT_BOOLECTOR_NODE (tmp);
       }
 
@@ -184,8 +185,10 @@ boolector_map_node_internal (Btor *btor,
       return boolector_copy (btor, n);
 
     case BTOR_SLICE_NODE:
-      return boolector_slice (
-          btor, m[0], btor_slice_get_upper (e), btor_slice_get_lower (e));
+      return boolector_slice (btor,
+                              m[0],
+                              btor_node_slice_get_upper (e),
+                              btor_node_slice_get_lower (e));
     case BTOR_AND_NODE: return boolector_and (btor, m[0], m[1]);
     case BTOR_BV_EQ_NODE:
     case BTOR_FUN_EQ_NODE: return boolector_eq (btor, m[0], m[1]);
@@ -198,7 +201,7 @@ boolector_map_node_internal (Btor *btor,
     case BTOR_UREM_NODE: return boolector_urem (btor, m[0], m[1]);
     case BTOR_CONCAT_NODE: return boolector_concat (btor, m[0], m[1]);
     default:
-      assert (btor_is_bv_cond_node (e));
+      assert (btor_node_is_bv_cond (e));
       return boolector_cond (btor, m[0], m[1], m[2]);
   }
 }
@@ -219,7 +222,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
   BtorHashTableData *d;
-  int i;
+  uint32_t i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
@@ -234,8 +237,8 @@ boolector_nodemap_non_recursive_extended_substitute_node (
   {
     node = BTOR_POP_STACK (working_stack);
     node = BTOR_REAL_ADDR_NODE (node);
-    btor_inc_exp_ext_ref_counter (node->btor, node);
-    assert (!btor_is_proxy_node (node));
+    btor_node_inc_ext_ref_counter (node->btor, node);
+    assert (!btor_node_is_proxy (node));
     if (boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
     d = btor_hashint_map_get (mark, node->id);
@@ -253,8 +256,8 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     {
       btor_hashint_map_add (mark, node->id);
       BTOR_PUSH_STACK (working_stack, node);
-      for (i = node->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (working_stack, node->e[i]);
+      for (i = 1; i <= node->arity; i++)
+        BTOR_PUSH_STACK (working_stack, node->e[node->arity - i]);
     }
     else
     {
@@ -269,7 +272,7 @@ boolector_nodemap_non_recursive_extended_substitute_node (
     }
   DEC_EXT_REFS_AND_CONTINUE:
     assert (!BTOR_IS_INVERTED_NODE (node));
-    btor_dec_exp_ext_ref_counter (node->btor, node);
+    btor_node_dec_ext_ref_counter (node->btor, node);
   }
   BTOR_RELEASE_STACK (working_stack);
   btor_hashint_map_delete (mark);

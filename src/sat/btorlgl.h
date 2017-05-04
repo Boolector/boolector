@@ -26,12 +26,10 @@ typedef struct BtorLGL BtorLGL;
 struct BtorLGL
 {
   LGL* lgl;
-  int nforked, blimit;
+  int32_t nforked, blimit;
 };
 
-bool btor_sat_enable_lingeling (BtorSATMgr* smgr,
-                                const char* options,
-                                bool fork);
+bool btor_sat_enable_lingeling (BtorSATMgr* smgr);
 
 /*------------------------------------------------------------------------*/
 #endif

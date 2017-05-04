@@ -31,7 +31,7 @@ static Btor *g_btor;
 void
 init_aig_tests (void)
 {
-  g_btor = btor_new_btor ();
+  g_btor = btor_new ();
 }
 
 static void
@@ -151,6 +151,7 @@ test_aig_to_sat (void)
   BtorAIG *and1    = btor_aig_and (amgr, var1, var2);
   BtorAIG *and2    = btor_aig_and (amgr, var3, var4);
   BtorAIG *and3    = btor_aig_or (amgr, and1, and2);
+  btor_sat_enable_solver (smgr);
   btor_sat_init (smgr);
   btor_aig_to_sat (amgr, and3);
   btor_sat_reset (smgr);
@@ -182,5 +183,5 @@ run_aig_tests (int argc, char **argv)
 void
 finish_aig_tests (void)
 {
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 }

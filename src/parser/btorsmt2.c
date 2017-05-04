@@ -2049,7 +2049,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   int32_t k, tag, open = 0, work_cnt;
   uint32_t i, j, nargs, width, width2, domain;
   BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
-  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, int);
+  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
   BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;

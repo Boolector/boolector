@@ -23,7 +23,7 @@
 
 struct BtorOpt
 {
-  int internal;     /* internal option? */
+  bool internal;    /* internal option? */
   bool isflag;      /* flag? */
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
@@ -58,6 +58,9 @@ enum BtorOptSatEngine
 #endif
 #ifdef BTOR_USE_MINISAT
   BTOR_SAT_ENGINE_MINISAT,
+#endif
+#ifdef BTOR_USE_CADICAL
+  BTOR_SAT_ENGINE_CADICAL,
 #endif
   BTOR_SAT_ENGINE_MAX,
 };

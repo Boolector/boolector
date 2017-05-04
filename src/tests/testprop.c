@@ -13,6 +13,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"
+#include "btornode.h"
 #include "btorslvpropsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
@@ -31,7 +32,7 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INIT                                             \
   do                                                               \
   {                                                                \
-    g_btor            = btor_new_btor ();                          \
+    g_btor            = btor_new ();                               \
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
     btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
@@ -58,7 +59,7 @@ static BtorRNG *g_rng;
 #define TEST_PROP_ONE_COMPLETE_BINARY_FINISH(fun) \
   do                                              \
   {                                               \
-    btor_delete_btor (g_btor);                    \
+    btor_delete (g_btor);                         \
   } while (0)
 
 #ifndef NDEBUG
@@ -85,11 +86,11 @@ prop_complete_binary_eidx (
 
   sort0 = btor_sort_bitvec (g_btor, bw0);
   sort1 = btor_sort_bitvec (g_btor, bw1);
-  e[0]  = btor_var_exp (g_btor, sort0, 0);
-  e[1]  = btor_var_exp (g_btor, sort1, 0);
+  e[0]  = btor_exp_var (g_btor, sort0, 0);
+  e[1]  = btor_exp_var (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
-  val   = btor_const_exp (g_btor, bvexp);
-  eq    = btor_eq_exp (g_btor, exp, val);
+  val   = btor_exp_const (g_btor, bvexp);
+  eq    = btor_exp_eq (g_btor, exp, val);
 
   idx = eidx ? 0 : 1;
 
@@ -148,11 +149,11 @@ prop_complete_binary_eidx (
   btor_bv_free (g_mm, bvetmp[0]);
   btor_bv_free (g_mm, bvetmp[1]);
   btor_bv_free (g_mm, bvexptmp);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, val);
-  btor_release_exp (g_btor, exp);
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, val);
+  btor_node_release (g_btor, exp);
+  btor_node_release (g_btor, e[0]);
+  btor_node_release (g_btor, e[1]);
   btor_sort_release (g_btor, sort0);
   btor_sort_release (g_btor, sort1);
   sat_res = sat_prop_solver_aux (g_btor);
@@ -178,7 +179,7 @@ prop_complete_binary (uint32_t n,
   BtorBitVector *bve[2], *bvexp;
 
   TEST_PROP_ONE_COMPLETE_BINARY_INIT (create_exp);
-  if (create_exp == btor_sll_exp || create_exp == btor_srl_exp)
+  if (create_exp == btor_exp_sll || create_exp == btor_exp_srl)
     bw1 = btor_util_log_2 (bw0);
 
   for (i = 0; i < (uint32_t) (1 << bw0); i++)
@@ -231,7 +232,7 @@ static void
 test_prop_one_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_add_exp, btor_bv_add, inv_add_bv);
+  prop_complete_binary (1, btor_exp_add, btor_bv_add, inv_add_bv);
 #endif
 }
 
@@ -239,7 +240,7 @@ static void
 test_prop_one_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_and_exp, btor_bv_and, inv_and_bv);
+  prop_complete_binary (1, btor_exp_and, btor_bv_and, inv_and_bv);
 #endif
 }
 
@@ -247,7 +248,7 @@ static void
 test_prop_one_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_eq_exp, btor_bv_eq, inv_eq_bv);
+  prop_complete_binary (1, btor_exp_eq, btor_bv_eq, inv_eq_bv);
 #endif
 }
 
@@ -255,7 +256,7 @@ static void
 test_prop_one_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_ult_exp, btor_bv_ult, inv_ult_bv);
+  prop_complete_binary (1, btor_exp_ult, btor_bv_ult, inv_ult_bv);
 #endif
 }
 
@@ -263,7 +264,7 @@ static void
 test_prop_one_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_sll_exp, btor_bv_sll, inv_sll_bv);
+  prop_complete_binary (1, btor_exp_sll, btor_bv_sll, inv_sll_bv);
 #endif
 }
 
@@ -271,7 +272,7 @@ static void
 test_prop_one_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_srl_exp, btor_bv_srl, inv_srl_bv);
+  prop_complete_binary (1, btor_exp_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 
@@ -279,7 +280,7 @@ static void
 test_prop_one_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_mul_exp, btor_bv_mul, inv_mul_bv);
+  prop_complete_binary (1, btor_exp_mul, btor_bv_mul, inv_mul_bv);
 #endif
 }
 
@@ -287,7 +288,7 @@ static void
 test_prop_one_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_udiv_exp, btor_bv_udiv, inv_udiv_bv);
+  prop_complete_binary (1, btor_exp_udiv, btor_bv_udiv, inv_udiv_bv);
 #endif
 }
 
@@ -295,7 +296,7 @@ static void
 test_prop_one_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_urem_exp, btor_bv_urem, inv_urem_bv);
+  prop_complete_binary (1, btor_exp_urem, btor_bv_urem, inv_urem_bv);
 #endif
 }
 
@@ -303,7 +304,7 @@ static void
 test_prop_one_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_concat_exp, btor_bv_concat, inv_concat_bv);
+  prop_complete_binary (1, btor_exp_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 
@@ -313,7 +314,7 @@ static void
 test_prop_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_add_exp, btor_bv_add, inv_add_bv);
+  prop_complete_binary (2, btor_exp_add, btor_bv_add, inv_add_bv);
 #endif
 }
 
@@ -321,7 +322,7 @@ static void
 test_prop_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_and_exp, btor_bv_and, inv_and_bv);
+  prop_complete_binary (2, btor_exp_and, btor_bv_and, inv_and_bv);
 #endif
 }
 
@@ -329,7 +330,7 @@ static void
 test_prop_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_eq_exp, btor_bv_eq, inv_eq_bv);
+  prop_complete_binary (2, btor_exp_eq, btor_bv_eq, inv_eq_bv);
 #endif
 }
 
@@ -337,7 +338,7 @@ static void
 test_prop_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_ult_exp, btor_bv_ult, inv_ult_bv);
+  prop_complete_binary (2, btor_exp_ult, btor_bv_ult, inv_ult_bv);
 #endif
 }
 
@@ -345,7 +346,7 @@ static void
 test_prop_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_sll_exp, btor_bv_sll, inv_sll_bv);
+  prop_complete_binary (2, btor_exp_sll, btor_bv_sll, inv_sll_bv);
 #endif
 }
 
@@ -353,7 +354,7 @@ static void
 test_prop_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_srl_exp, btor_bv_srl, inv_srl_bv);
+  prop_complete_binary (2, btor_exp_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 
@@ -361,7 +362,7 @@ static void
 test_prop_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_mul_exp, btor_bv_mul, inv_mul_bv);
+  prop_complete_binary (2, btor_exp_mul, btor_bv_mul, inv_mul_bv);
 #endif
 }
 
@@ -369,7 +370,7 @@ static void
 test_prop_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_udiv_exp, btor_bv_udiv, inv_udiv_bv);
+  prop_complete_binary (2, btor_exp_udiv, btor_bv_udiv, inv_udiv_bv);
 #endif
 }
 
@@ -377,7 +378,7 @@ static void
 test_prop_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_urem_exp, btor_bv_urem, inv_urem_bv);
+  prop_complete_binary (2, btor_exp_urem, btor_bv_urem, inv_urem_bv);
 #endif
 }
 
@@ -385,7 +386,7 @@ static void
 test_prop_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_concat_exp, btor_bv_concat, inv_concat_bv);
+  prop_complete_binary (2, btor_exp_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 
@@ -412,12 +413,12 @@ test_prop_complete_slice_bv (void)
       {
         for (j = 0; j < bw; j++)
         {
-          e        = btor_var_exp (g_btor, sort, 0);
-          exp      = btor_slice_exp (g_btor, e, up, lo);
+          e        = btor_exp_var (g_btor, sort, 0);
+          exp      = btor_exp_slice (g_btor, e, up, lo);
           bve      = btor_bv_uint64_to_bv (g_mm, i, bw);
           bvexp    = btor_bv_slice (g_mm, bve, up, lo);
-          val      = btor_const_exp (g_btor, bvexp);
-          eq       = btor_eq_exp (g_btor, exp, val);
+          val      = btor_exp_const (g_btor, bvexp);
+          eq       = btor_exp_eq (g_btor, exp, val);
           bvetmp   = btor_bv_new_random (g_mm, g_rng, bw);
           bvexptmp = btor_bv_slice (g_mm, bvetmp, up, lo);
           /* init bv model */
@@ -460,10 +461,10 @@ test_prop_complete_slice_bv (void)
           btor_bv_free (g_mm, bvexp);
           btor_bv_free (g_mm, bvetmp);
           btor_bv_free (g_mm, bvexptmp);
-          btor_release_exp (g_btor, eq);
-          btor_release_exp (g_btor, val);
-          btor_release_exp (g_btor, exp);
-          btor_release_exp (g_btor, e);
+          btor_node_release (g_btor, eq);
+          btor_node_release (g_btor, val);
+          btor_node_release (g_btor, exp);
+          btor_node_release (g_btor, e);
           sat_res = sat_prop_solver_aux (g_btor);
           assert (sat_res == BTOR_RESULT_SAT);
           assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
@@ -473,7 +474,7 @@ test_prop_complete_slice_bv (void)
     }
   }
   btor_sort_release (g_btor, sort);
-  btor_delete_btor (g_btor);
+  btor_delete (g_btor);
 #endif
 }
 

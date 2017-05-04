@@ -25,8 +25,8 @@ struct BtorAIGPropSolver
   /* statistics */
   struct
   {
-    int moves;
-    int restarts;
+    uint32_t moves;
+    uint32_t restarts;
   } stats;
   struct
   {

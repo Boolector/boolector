@@ -10,8 +10,8 @@
  */
 
 #include "testmc.h"
-#include "btorexp.h"
 #include "btormc.h"
+#include "btornode.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -81,7 +81,7 @@ test_mcnewdel ()
 static void
 test_mctoggle ()
 {
-  int i, k, mode;
+  int32_t i, k, mode;
   BoolectorNode *bit, *one, *zero, *add, *bad;
   char *fname, *suffix = "mctoggle.log";
   FILE *file;
@@ -142,7 +142,7 @@ test_mctoggle ()
 static void
 test_mccount2enable ()
 {
-  int i, k, mode;
+  int32_t i, k, mode;
   BoolectorNode *counter;  // 2-bit state
   BoolectorNode *enable;   // one boolean control input
   BoolectorNode *one, *zero, *three, *add, *ifenable, *bad;
@@ -217,7 +217,7 @@ test_mccount2enable ()
 static void
 test_mccount2resetenable ()
 {
-  int k, i;
+  int32_t k, i;
   BoolectorNode *one, *zero, *three, *add, *ifenable, *ifreset, *bad;
   BoolectorNode *counter;         // 2-bit state
   BoolectorNode *enable, *reset;  // two boolean control inputs
@@ -286,7 +286,7 @@ test_mccount2resetenable ()
 static void
 test_mctwostepsmodel () 
 {
-  int k, i;
+  int32_t k, i;
   FILE * file;
   BoolectorNode * zero, * one;
   BoolectorNode * a, * b, * t, * n, * or, * xor;
@@ -396,12 +396,12 @@ test_mctwostepsmodel ()
 }
 #endif
 
-static int test_mccount2multi_reached[4];
+static int32_t test_mccount2multi_reached[4];
 
 static void
-test_mccount2multi_call_back (void *state, int i, int k)
+test_mccount2multi_call_back (void *state, int32_t i, int32_t k)
 {
-  assert (test_mccount2multi_reached == (int *) state);
+  assert (test_mccount2multi_reached == (int32_t *) state);
   assert (0 <= i), assert (i < 4);
   assert (k >= 0);
   assert (test_mccount2multi_reached[i] == -1);
@@ -415,7 +415,7 @@ test_mccount2multi_call_back (void *state, int i, int k)
 static void
 test_mccount2multi ()
 {
-  int i, k;
+  int32_t i, k;
   BoolectorSort s;
 
   init_mc_test ();
@@ -486,7 +486,7 @@ test_mccount2multi ()
 }
 
 void
-run_mc_tests (int argc, char **argv)
+run_mc_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (mcnewdel);
   BTOR_RUN_TEST (mctoggle);

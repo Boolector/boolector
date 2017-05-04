@@ -73,7 +73,7 @@ BtorBitVector *btor_bv_copy (BtorMemMgr *mm, const BtorBitVector *bv);
 
 size_t btor_bv_size (const BtorBitVector *bv);
 void btor_bv_free (BtorMemMgr *mm, BtorBitVector *bv);
-int btor_bv_compare (const BtorBitVector *a, const BtorBitVector *b);
+int32_t btor_bv_compare (const BtorBitVector *a, const BtorBitVector *b);
 uint32_t btor_bv_hash (const BtorBitVector *bv);
 
 void btor_bv_print (const BtorBitVector *bv);
@@ -88,7 +88,7 @@ uint64_t btor_bv_to_uint64 (const BtorBitVector *bv);
 /*------------------------------------------------------------------------*/
 
 /* index 0 is LSB, width - 1 is MSB */
-int btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos);
+uint32_t btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos);
 /* index 0 is LSB, width - 1 is MSB */
 void btor_bv_set_bit (BtorBitVector *bv, uint32_t pos, uint32_t value);
 
@@ -102,10 +102,10 @@ bool btor_bv_is_ones (const BtorBitVector *bv);
 bool btor_bv_is_one (const BtorBitVector *bv);
 
 /* return p for bv = 2^p, and -1 if bv is not a power of 2 */
-int btor_bv_power_of_two (const BtorBitVector *bv);
-/* return bv as int if its value can be converted into a positive
+int64_t btor_bv_power_of_two (const BtorBitVector *bv);
+/* return bv as integer if its value can be converted into a positive
  * integer of bw 32, and -1 otherwise */
-int btor_bv_small_positive_int (const BtorBitVector *bv);
+int32_t btor_bv_small_positive_int (const BtorBitVector *bv);
 
 /* count trailing zeros (starting from LSB) */
 uint32_t btor_bv_get_num_trailing_zeros (const BtorBitVector *bv);
@@ -249,8 +249,8 @@ void btor_bv_add_to_tuple (BtorMemMgr *mm,
                            BtorBitVector *bv,
                            uint32_t pos);
 
-int btor_bv_compare_tuple (const BtorBitVectorTuple *t0,
-                           const BtorBitVectorTuple *t1);
+int32_t btor_bv_compare_tuple (const BtorBitVectorTuple *t0,
+                               const BtorBitVectorTuple *t1);
 
 uint32_t btor_bv_hash_tuple (const BtorBitVectorTuple *t);
 

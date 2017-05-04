@@ -2283,7 +2283,7 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     // FIXME (ma): sort workaround
     BtorSort *sort;
     sort = btor_sort_get_by_id (mbt->btor,
-                                btor_exp_get_sort_id ((BtorNode *) fun));
+                                btor_node_get_sort_id ((BtorNode *) fun));
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
       BTOR_PUSH_STACK (param_widths,
@@ -2507,7 +2507,7 @@ btormbt_bv_uf (BtorMBT *mbt)
       &it,
       mbt->btor,
       btor_sort_fun_get_domain (mbt->btor,
-                                btor_exp_get_sort_id ((BtorNode *) uf)));
+                                btor_node_get_sort_id ((BtorNode *) uf)));
   while (btor_iter_tuple_sort_has_next (&it))
   {
     sortid = btor_iter_tuple_sort_next (&it);
@@ -2608,6 +2608,7 @@ btormbt_state_new (BtorMBT *mbt)
 static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
+  bool inc = true;
   int i;
   BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
@@ -2731,13 +2732,23 @@ btormbt_state_opt (BtorMBT *mbt)
       else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
         boolector_set_sat_solver (mbt->btor, "minisat");
 #endif
+#ifdef BTOR_USE_CADICAL
+      else if (btoropt->val == BTOR_SAT_ENGINE_CADICAL
+               // for now CaDiCaL only support non-incremental calls
+               && mbt->round.logic == BTORMBT_LOGIC_QF_BV
+               && !boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL))
+      {
+        boolector_set_sat_solver (mbt->btor, "cadical");
+        inc = false;
+      }
+#endif
     }
     else
     {
 #ifdef BTOR_USE_LINGELING
       if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
         boolector_set_sat_solver_lingeling (
-            mbt->btor, 0, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
+            mbt->btor, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
 #endif
 #ifdef BTOR_USE_PICOSAT
       else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
@@ -2860,7 +2871,9 @@ btormbt_state_opt (BtorMBT *mbt)
                  btoropt->val);
 
     /* set some mbt specific options */
-    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
+    // NOTE: inc flag required since CaDiCaL does not yet support incremental
+    // mode
+    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1 && inc)
     {
       mbt->round.inc = true;
       mbt->round.max_ninc =
@@ -3582,7 +3595,8 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int32_t i, j, k, size = 0;
+  int32_t i, j, k;
+  uint32_t size   = 0;
   const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
   BoolectorNode *exp;

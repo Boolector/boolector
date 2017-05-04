@@ -12,7 +12,7 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
-#include "btorexp.h"
+#include "btornode.h"
 #include "utils/btornodemap.h"
 
 /* Clone an existing boolector instance. */
@@ -29,7 +29,7 @@ BtorNode *btor_clone_recursively_rebuild_exp (Btor *btor,
                                               Btor *clone,
                                               BtorNode *exp,
                                               BtorNodeMap *exp_map,
-                                              int rewrite_level);
+                                              uint32_t rewrite_level);
 
 /* helpers for hash table cloning */
 void *btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key);

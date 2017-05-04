@@ -16,9 +16,9 @@
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btorexp.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btornode.h"
 #include "btoropt.h"
 
 #include "utils/btorhashint.h"
@@ -60,9 +60,9 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     root = btor_iter_hashptr_next (&pit);
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
-      assert (btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
+      assert (btor_hashint_map_contains (slv->roots, btor_node_get_id (root)));
     else
-      assert (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root)));
+      assert (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root)));
   }
 #endif
 
@@ -72,17 +72,17 @@ select_constraint (Btor *btor, uint32_t nmoves)
   {
     assert (slv->score);
 
-    int *selected;
+    int32_t *selected;
     double value, max_value, score;
     max_value = 0.0;
     btor_iter_hashint_init (&it, slv->roots);
     while (btor_iter_hashint_has_next (&it))
     {
       selected = &slv->roots->data[it.cur_pos].as_int;
-      cur      = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
+      cur      = btor_node_get_by_id (btor, btor_iter_hashint_next (&it));
 
-      assert (btor_hashint_map_contains (slv->score, btor_exp_get_id (cur)));
-      score = btor_hashint_map_get (slv->score, btor_exp_get_id (cur))->as_dbl;
+      assert (btor_hashint_map_contains (slv->score, btor_node_get_id (cur)));
+      score = btor_hashint_map_get (slv->score, btor_node_get_id (cur))->as_dbl;
       assert (score < 1.0);
       value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
 
@@ -103,11 +103,11 @@ select_constraint (Btor *btor, uint32_t nmoves)
     btor_iter_hashint_init (&it, slv->roots);
     while (btor_iter_hashint_has_next (&it) && j <= r)
     {
-      res = btor_get_node_by_id (btor, btor_iter_hashint_next (&it));
+      res = btor_node_get_by_id (btor, btor_iter_hashint_next (&it));
       j += 1;
     }
     assert (res);
-    assert (!btor_is_bv_const_node (res));
+    assert (!btor_node_is_bv_const (res));
   }
 
   assert (res);
@@ -119,7 +119,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   return res;
 }
 
-static int
+static bool
 move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
@@ -181,7 +181,7 @@ move (Btor *btor, uint32_t nmoves)
   slv->stats.moves += 1;
   btor_bv_free (btor->mm, assignment);
 
-  return 1;
+  return true;
 }
 
 /*------------------------------------------------------------------------*/
@@ -225,16 +225,16 @@ delete_prop_solver (BtorPropSolver *slv)
 /* This is an extra function in order to be able to test completeness
  * via test suite. */
 #ifdef NDEBUG
-static inline int
+static inline int32_t
 #else
-int
+int32_t
 #endif
 sat_prop_solver_aux (Btor *btor)
 {
   assert (btor);
 
-  int j, max_steps;
-  int sat_result;
+  uint32_t j, max_steps;
+  int32_t sat_result;
   uint32_t nmoves, nprops;
   BtorNode *root;
   BtorPtrHashTableIterator it;
@@ -270,19 +270,19 @@ sat_prop_solver_aux (Btor *btor)
     {
       root = btor_iter_hashptr_next (&it);
 
-      if (!btor_hashint_map_contains (slv->roots, btor_exp_get_id (root))
+      if (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {
-        if (btor_is_bv_const_node (root))
+        if (btor_node_is_bv_const (root))
           goto UNSAT; /* contains false constraint -> unsat */
-        btor_hashint_map_add (slv->roots, btor_exp_get_id (root));
+        btor_hashint_map_add (slv->roots, btor_node_get_id (root));
       }
     }
 
     if (!slv->score && btor_opt_get (btor, BTOR_OPT_PROP_USE_BANDIT))
       slv->score = btor_hashint_map_new (btor->mm);
 
-    if (btor_terminate_btor (btor))
+    if (btor_terminate (btor))
     {
       sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
@@ -309,7 +309,7 @@ sat_prop_solver_aux (Btor *btor)
          !btor_opt_get (btor, BTOR_OPT_PROP_USE_RESTARTS) || j < max_steps;
          j++)
     {
-      if (btor_terminate_btor (btor) || (nprops && slv->stats.props >= nprops))
+      if (btor_terminate (btor) || (nprops && slv->stats.props >= nprops))
       {
         sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;
@@ -356,7 +356,7 @@ DONE:
 }
 
 /* Note: failed assumptions handling not necessary, prop only works for SAT */
-static int
+static int32_t
 sat_prop_solver (BtorPropSolver *slv)
 {
   assert (slv);
@@ -364,13 +364,13 @@ sat_prop_solver (BtorPropSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  int sat_result;
+  int32_t sat_result;
   Btor *btor;
 
   btor = slv->btor;
   assert (!btor->inconsistent);
 
-  if (btor_terminate_btor (btor))
+  if (btor_terminate (btor))
   {
     sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;

@@ -47,7 +47,7 @@ btor_trapi_open_trace (Btor *btor, const char *name)
 
   FILE *file;
   char *cmd;
-  int len = strlen (name);
+  uint32_t len = strlen (name);
 
   if (len >= 3 && !strcmp (name + len - 3, ".gz"))
   {

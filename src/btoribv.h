@@ -74,9 +74,9 @@ enum BtorIBVTag
 
 struct BtorIBVRange
 {
-  unsigned id, msb, lsb;
+  uint32_t id, msb, lsb;
   BtorSort sort;
-  BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
+  BtorIBVRange (uint32_t i, uint32_t m, uint32_t l) : id (i), msb (m), lsb (l)
   {
   }
   BtorIBVRange (const BitVector::BitRange &r);
@@ -91,12 +91,12 @@ struct BtorIBVAssignment
 {
   BtorIBVTag tag;
   BtorIBVRange range;
-  unsigned arg, nranges;
+  uint32_t arg, nranges;
   BtorIBVRange *ranges;
   BtorIBVAssignment (BtorIBVTag t,
                      BtorIBVRange r,
-                     unsigned a,
-                     unsigned n       = 0,
+                     uint32_t a,
+                     uint32_t n       = 0,
                      BtorIBVRange *rs = 0)
       : tag (t), range (r), arg (a), nranges (n), ranges (rs)
   {
@@ -129,7 +129,7 @@ struct BtorIBVRangeName
 {
   struct
   {
-    unsigned msb, lsb;
+    uint32_t msb, lsb;
   } from, to;
   char *name;
 };
@@ -174,7 +174,7 @@ struct BtorIBVFlags
   struct
   {
     bool current, next;
-    unsigned mark : 2;
+    uint32_t mark : 2;
   } depends;
   struct
   {
@@ -184,8 +184,8 @@ struct BtorIBVFlags
 
 struct BtorIBVNode
 {
-  unsigned width;
-  unsigned id;
+  uint32_t width;
+  uint32_t id;
   bool is_constant;
   bool is_next_state;
   BitVector::BvVariableSource source;
@@ -207,8 +207,8 @@ BTOR_DECLARE_STACK (BtorIBVNodePtr, BtorIBVNode *);
 
 struct BtorIBVBit
 {
-  unsigned id, bit;
-  BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
+  uint32_t id, bit;
+  BtorIBVBit (uint32_t i, uint32_t b) : id (i), bit (b) {}
   BtorIBVBit (const BitVector::Bit &b);
 };
 
@@ -242,8 +242,8 @@ class BtorIBV : public BitVector
   BtorMC *btormc;
 
   bool gentrace;
-  int force;
-  int verbosity;
+  int32_t force;
+  uint32_t verbosity;
 
   BtorIBVNodePtrStack idtab;
   BtorIBVBitStack assertions;
@@ -251,7 +251,7 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-  BtorIBVNode *id2node (unsigned id)
+  BtorIBVNode *id2node (uint32_t id)
   {
     BtorIBVNode *node;
     assert (0 < id);
@@ -271,10 +271,10 @@ class BtorIBV : public BitVector
 
   void check_bit_range (BitRange range) { (void) bitrange2node (range); }
 
-  BtorIBVNode *new_node (unsigned id, unsigned width);
+  BtorIBVNode *new_node (uint32_t id, uint32_t width);
 
-  bool mark_coi (BtorIBVNode *, unsigned);
-  bool mark_used (BtorIBVNode *, unsigned);
+  bool mark_coi (BtorIBVNode *, uint32_t);
+  bool mark_used (BtorIBVNode *, uint32_t);
   void mark_assigned (BtorIBVNode *, BitRange);
 
   void mark_current_state (BtorIBVNode *, BitRange);
@@ -296,7 +296,7 @@ class BtorIBV : public BitVector
     addUnary (tag, o, a);
   }
 
-  void addUnaryArg (BtorIBVTag, BitRange, BitRange, unsigned);
+  void addUnaryArg (BtorIBVTag, BitRange, BitRange, uint32_t);
 
   void addUnaryPred (BtorIBVTag tag, BitRange o, BitRange a)
   {
@@ -340,13 +340,13 @@ class BtorIBV : public BitVector
   void println (const BtorIBVAssignment &);  // to 'stdout' with NL
   void printf3 (const char *fmt, ...);
 
-  void msg (int level, const char *fmt, ...);
-  void msg (int level, const BtorIBVAssignment &, const char *, ...);
+  void msg (uint32_t level, const char *fmt, ...);
+  void msg (uint32_t level, const BtorIBVAssignment &, const char *, ...);
 
   void warn (const char *fmt, ...);
 
   bool is_relevant_atom_for_assigned_atom (BtorIBVAtom *lhs,
-                                           unsigned i,
+                                           uint32_t i,
                                            BtorIBVAtom *rhs,
                                            BtorIBVAssignment *);
 
@@ -363,12 +363,12 @@ class BtorIBV : public BitVector
 
   void translate_atom_base (BtorIBVAtom *);
 
-  bool is_phantom_current (BtorIBVNode *, unsigned);
-  bool is_phantom_next (BtorIBVNode *, unsigned);
+  bool is_phantom_current (BtorIBVNode *, uint32_t);
+  bool is_phantom_next (BtorIBVNode *, uint32_t);
 
   struct
   {
-    unsigned inputs, latches, nexts, inits, bads, constraints;
+    uint32_t inputs, latches, nexts, inits, bads, constraints;
   } stats;
 
  public:
@@ -377,7 +377,7 @@ class BtorIBV : public BitVector
    public:
     ReachedAtBoundListener () {}
     virtual ~ReachedAtBoundListener () {}
-    virtual void reachedAtBound (int assertion_number, int k) = 0;
+    virtual void reachedAtBound (int32_t assertion_number, int32_t k) = 0;
   };
 
   class StartingBoundListener
@@ -385,16 +385,16 @@ class BtorIBV : public BitVector
    public:
     StartingBoundListener () {}
     virtual ~StartingBoundListener () {}
-    virtual void startingBound (int k) = 0;
+    virtual void startingBound (int32_t k) = 0;
   };
 
   BtorIBV ();
   ~BtorIBV ();
 
-  void setRewriteLevel (int rwl);
-  void setForce (int f = 1) { force = f; }
+  void setRewriteLevel (uint32_t rwl);
+  void setForce (int32_t f = 1) { force = f; }
 
-  void setVerbosity (int verbosity);
+  void setVerbosity (uint32_t verbosity);
 
   void enableTraceGeneration ();
 
@@ -408,9 +408,10 @@ class BtorIBV : public BitVector
 
   // First alternative C-style function pointer API (as in 'btormc.h').
   //
-  void setReachedAtBoundCallBack (void *state,
-                                  void (*fun) (void *state, int i, int k));
-  void setStartingBoundCallBack (void *state, void (*fun) (void *state, int k));
+  void setReachedAtBoundCallBack (
+      void *state, void (*fun) (void *state, int32_t i, int32_t k));
+  void setStartingBoundCallBack (void *state,
+                                 void (*fun) (void *state, int32_t k));
 
   // Second C++ Listener API.
   //
@@ -422,7 +423,7 @@ class BtorIBV : public BitVector
   // violated.  It returns a negative number if the property was not violated
   // during the last BMC run.
   //
-  int hasAssertionBeenViolatedAtBound (int assertion_number);
+  int32_t hasAssertionBeenViolatedAtBound (int32_t assertion_number);
 
   // TODO do we need BitRange instead of 'assertion_number' both for
   // 'hasAssertionBeenViolatedAtBound' and the listener?
@@ -439,16 +440,16 @@ class BtorIBV : public BitVector
     assert (state == BTOR_IBV_START);                           \
   } while (0)
 
-  void addConstant (unsigned, const string &, unsigned);
+  void addConstant (uint32_t, const string &, uint32_t);
 
-  void addVariable (unsigned,
+  void addVariable (uint32_t,
                     const string &,
-                    unsigned,
+                    uint32_t,
                     bool,
                     BvVariableSource,
                     DirectionKind);
 
-  void addRangeName (BitRange, const string &, unsigned, unsigned);
+  void addRangeName (BitRange, const string &, uint32_t, uint32_t);
 
   //------------------------------------------------------------------------
 
@@ -578,17 +579,17 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-  void addReplicate (BitRange o, BitRange a, unsigned arg)
+  void addReplicate (BitRange o, BitRange a, uint32_t arg)
   {
     BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_REPLICATE, o, a, arg);
   }
-  void addLShift (BitRange o, BitRange a, unsigned arg)
+  void addLShift (BitRange o, BitRange a, uint32_t arg)
   {
     BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_LEFT_SHIFT, o, a, arg);
   }
-  void addRShift (BitRange o, BitRange a, unsigned arg)
+  void addRShift (BitRange o, BitRange a, uint32_t arg)
   {
     BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_RIGHT_SHIFT, o, a, arg);
@@ -620,18 +621,18 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-  void addMemory (unsigned, const string&,
-                  unsigned, unsigned,  unsigned, unsigned,
+  void addMemory (uint32_t, const string&,
+                  uint32_t, uint32_t,  uint32_t, uint32_t,
                   const vector<string>&);
-  void addMemoryRead (unsigned, BitRange, unsigned, unsigned, BitRange);
-  void addMemoryWrite (unsigned, unsigned, BitRange,
-                       unsigned, unsigned, BitRange, BitRange);
-  void addMemoryConstantWrite (unsigned, unsigned, unsigned, unsigned,
-                               unsigned, unsigned, BitRange, BitRange);
+  void addMemoryRead (uint32_t, BitRange, uint32_t, uint32_t, BitRange);
+  void addMemoryWrite (uint32_t, uint32_t, BitRange,
+                       uint32_t, uint32_t, BitRange, BitRange);
+  void addMemoryConstantWrite (uint32_t, uint32_t, uint32_t, uint32_t,
+                               uint32_t, uint32_t, BitRange, BitRange);
   void addMemoryEqual (BitRange output,
-		       unsigned, unsigned, unsigned, unsigned,
-		       unsigned, unsigned, unsigned, unsigned,
-		       unsigned, unsigned, bool);
+		       uint32_t, uint32_t, uint32_t, uint32_t,
+		       uint32_t, uint32_t, uint32_t, uint32_t,
+		       uint32_t, uint32_t, bool);
 #endif
 
   //------------------------------------------------------------------------
@@ -641,8 +642,8 @@ class BtorIBV : public BitVector
 
   void dump_btor (FILE *file);  // Dump BTOR model to this file.
 
-  int bmc (int mink, int maxk);
-  string assignment (BitRange, int k);
+  int32_t bmc (int32_t mink, int32_t maxk);
+  string assignment (BitRange, int32_t k);
 };
 
 inline BtorIBVRange::BtorIBVRange (const BitVector::BitRange &r)

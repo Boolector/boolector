@@ -15,8 +15,8 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
-#include "btorexp.h"
 #include "btormsg.h"
+#include "btornode.h"
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorslv.h"
@@ -55,8 +55,8 @@
 
 struct BtorNodeUniqueTable
 {
-  int size;
-  int num_elements;
+  uint32_t size;
+  uint32_t num_elements;
   BtorNode **chains;
 };
 
@@ -68,11 +68,11 @@ struct BtorCallbacks
   {
     /* the function to use for (checking) termination
      * (we need to distinguish between callbacks from C and Python) */
-    int (*termfun) (void *);
+    int32_t (*termfun) (void *);
 
     void *fun;   /* termination callback function */
     void *state; /* termination callback function arguments */
-    int done;
+    int32_t done;
   } term;
 };
 
@@ -129,8 +129,8 @@ struct Btor
   bool inconsistent;
   bool found_constraint_false;
 
-  uint32_t external_refs;           /* external references (library mode) */
-  uint32_t btor_sat_btor_called;    /* how often is btor_sat_btor been called */
+  uint32_t external_refs;        /* external references (library mode) */
+  uint32_t btor_sat_btor_called; /* how often is btor_check_sat been called */
   BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
@@ -160,7 +160,7 @@ struct Btor
 
   struct
   {
-    int cur, max;
+    uint32_t cur, max;
   } ops[BTOR_NUM_OPS_NODE];
 
   struct
@@ -220,31 +220,31 @@ struct Btor
 };
 
 /* Creates new boolector instance. */
-Btor *btor_new_btor (void);
+Btor *btor_new (void);
 
 /* Deletes boolector. */
-void btor_delete_btor (Btor *btor);
+void btor_delete (Btor *btor);
 
 /* Gets version. */
 const char *btor_version (const Btor *btor);
 
 /* Set termination callback. */
-void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
+void btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state);
 
 /* Determine if boolector has been terminated via termination callback. */
-int btor_terminate_btor (Btor *btor);
+int32_t btor_terminate (Btor *btor);
 
 /* Set verbosity message prefix. */
-void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
+void btor_set_msg_prefix (Btor *btor, const char *prefix);
 
 /* Prints statistics. */
-void btor_print_stats_btor (Btor *btor);
+void btor_print_stats (Btor *btor);
 
 /* Reset time statistics. */
-void btor_reset_time_btor (Btor *btor);
+void btor_reset_time (Btor *btor);
 
 /* Reset other statistics. */
-void btor_reset_stats_btor (Btor *btor);
+void btor_reset_stats (Btor *btor);
 
 /* Adds top level constraint. */
 void btor_assert_exp (Btor *btor, BtorNode *exp);
@@ -266,23 +266,23 @@ void btor_reset_assumptions (Btor *btor);
 
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
-int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
+int32_t btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit);
 
-BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
-BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
+BtorSATMgr *btor_get_sat_mgr (const Btor *btor);
+BtorAIGMgr *btor_get_aig_mgr (const Btor *btor);
 
 /* Run rewriting engine */
-int btor_simplify (Btor *btor);
+int32_t btor_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
-int btor_fun_sort_check (Btor *btor,
-                         BtorNode *args[],
-                         uint32_t argc,
-                         BtorNode *fun);
+int32_t btor_fun_sort_check (Btor *btor,
+                             BtorNode *args[],
+                             uint32_t argc,
+                             BtorNode *fun);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
@@ -308,7 +308,7 @@ void btor_release_all_ext_refs (Btor *btor);
 
 void btor_init_substitutions (Btor *);
 void btor_delete_substitutions (Btor *);
-void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
+void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, bool);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);

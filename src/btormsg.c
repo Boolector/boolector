@@ -42,7 +42,7 @@ btor_msg (BtorMsg *msg, bool log, const char *filename, const char *fmt, ...)
 {
   va_list ap;
   char *path, *fname, *c, *p;
-  int len;
+  uint32_t len;
 
   len = strlen (filename) + 1;
   BTOR_NEWN (msg->btor->mm, path, len);

@@ -15,9 +15,9 @@
 #include "btorslvsls.h"
 
 #include "btorbv.h"
-#include "btorexp.h"
 #include "btorlog.h"
 #include "btormodel.h"
+#include "btornode.h"
 #include "btortypes.h"
 #include "utils/btorhashint.h"
 

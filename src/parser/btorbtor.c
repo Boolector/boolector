@@ -39,7 +39,7 @@ typedef BoolectorNode *(*BtorOpParser) (BtorBTORParser *, uint32_t width);
 typedef BoolectorNode *(*Unary) (Btor *, BoolectorNode *);
 typedef BoolectorNode *(*Binary) (Btor *, BoolectorNode *, BoolectorNode *);
 typedef BoolectorNode *(*Shift) (Btor *, BoolectorNode *, BoolectorNode *);
-typedef BoolectorNode *(*Extend) (Btor *, BoolectorNode *, int);
+typedef BoolectorNode *(*Extend) (Btor *, BoolectorNode *, uint32_t);
 
 #define SIZE_PARSERS 128
 
@@ -1699,8 +1699,6 @@ new_btor_parser (Btor *btor, BtorParseOpt *opts)
 
   (void) opts->incremental;  // TODO what about incremental?
   (void) opts->need_model;   // TODO use at least this
-
-  assert (opts->verbosity >= -1);
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);

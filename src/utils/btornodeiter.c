@@ -31,7 +31,7 @@ btor_iter_apply_parent_has_next (const BtorNodeIterator *it)
   assert (it);
   assert (BTOR_IS_REGULAR_NODE (it->cur));
   /* function child of apply is at position 0, so cur is not tagged */
-  return it->cur && btor_is_apply_node (it->cur);
+  return it->cur && btor_node_is_apply (it->cur);
 }
 
 BtorNode *
@@ -43,7 +43,7 @@ btor_iter_apply_parent_next (BtorNodeIterator *it)
   assert (result);
   it->cur = BTOR_REAL_ADDR_NODE (BTOR_PREV_PARENT (result));
   assert (BTOR_IS_REGULAR_NODE (result));
-  assert (btor_is_apply_node (result));
+  assert (btor_node_is_apply (result));
   return result;
 }
 
@@ -85,7 +85,7 @@ btor_iter_args_init (BtorArgsIterator *it, const BtorNode *exp)
   assert (it);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (btor_is_args_node (exp));
+  assert (btor_node_is_args (exp));
 
   it->pos = 0;
   it->exp = exp;
@@ -110,7 +110,7 @@ btor_iter_args_next (BtorArgsIterator *it)
   result = it->cur;
 
   /* end of this args node, continue with next */
-  if (btor_is_args_node (result))
+  if (btor_node_is_args (result))
   {
     assert (it->pos == 2);
     assert (BTOR_IS_REGULAR_NODE (result));
@@ -127,7 +127,7 @@ btor_iter_args_next (BtorArgsIterator *it)
   else
     it->cur = 0;
 
-  assert (!btor_is_args_node (result));
+  assert (!btor_node_is_args (result));
   return result;
 }
 
@@ -139,7 +139,7 @@ btor_iter_lambda_init (BtorNodeIterator *it, BtorNode *exp)
   assert (it);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (btor_is_lambda_node (exp));
+  assert (btor_node_is_lambda (exp));
 
   it->cur = exp;
 }
@@ -149,7 +149,7 @@ btor_iter_lambda_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
-  return btor_is_lambda_node (it->cur);
+  return btor_node_is_lambda (it->cur);
 }
 
 BtorNode *
@@ -184,7 +184,7 @@ btor_iter_param_next (BtorNodeIterator * it)
 {
   BtorNode *result;
   result = btor_iter_lambda_next (it);
-  assert (btor_is_param_node (result->e[0]));
+  assert (btor_node_is_param (result->e[0]));
   return result->e[0];
 }
 #endif

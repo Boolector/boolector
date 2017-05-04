@@ -12,7 +12,7 @@
 #ifndef BTORSMT2_H_INLCUDED
 #define BTORSMT2_H_INLCUDED
 
-#include "btorexp.h"
+#include "btornode.h"
 #include "btorparse.h"
 
 #include <stdio.h>

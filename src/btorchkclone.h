@@ -39,14 +39,14 @@ void btor_chkclone_sort (Btor *btor,
     btor_chkclone (btor, btor->clone);     \
   } while (0)
 
-#define BTOR_CHKCLONE_RES(res, fun, args...)              \
-  do                                                      \
-  {                                                       \
-    if (!btor->clone) break;                              \
-    int cloneres = boolector_##fun (btor->clone, ##args); \
-    (void) cloneres;                                      \
-    assert (cloneres == res);                             \
-    btor_chkclone (btor, btor->clone);                    \
+#define BTOR_CHKCLONE_RES(res, fun, args...)                  \
+  do                                                          \
+  {                                                           \
+    if (!btor->clone) break;                                  \
+    int32_t cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                          \
+    assert (cloneres == res);                                 \
+    btor_chkclone (btor, btor->clone);                        \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_UINT(res, fun, args...)              \

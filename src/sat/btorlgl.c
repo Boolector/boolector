@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -11,7 +11,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "sat/btorsatlgl.h"
+#include "sat/btorlgl.h"
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_LINGELING
@@ -21,6 +21,7 @@
 #include <limits.h>
 #include "btorabort.h"
 #include "btorcore.h"
+#include "btoropt.h"
 
 #define BTOR_LGL_SIMP_DELAY 10000
 #define BTOR_LGL_MIN_BLIMIT 50000
@@ -28,115 +29,8 @@
 
 /*------------------------------------------------------------------------*/
 
-static bool
-passdown_lingeling_options (BtorSATMgr *smgr,
-                            const char *optstr,
-                            LGL *external_lgl)
-{
-  char *str, *p, *next, *eq, *opt, *val;
-  LGL *lgl = external_lgl ? external_lgl : 0;
-  int len, valid;
-  bool res;
-
-  assert (optstr);
-  len = strlen (optstr);
-
-  BTOR_NEWN (smgr->btor->mm, str, len + 1);
-  strcpy (str, optstr);
-
-  res = true;
-
-  for (p = str; *p; p = next)
-  {
-    if (*p == ',')
-      next = p + 1;
-    else
-    {
-      opt = p;
-      while (*p != ',' && *p) p++;
-
-      if (*p)
-      {
-        assert (*p == ',');
-        *p   = 0;
-        next = p + 1;
-      }
-      else
-        next = p;
-
-      val = eq = 0;
-
-      if (!isalpha ((int) *opt))
-        valid = 0;
-      else
-      {
-        for (p = opt + 1; isalnum ((int) *p); p++)
-          ;
-
-        if (*p == '=')
-        {
-          *(eq = p++) = 0;
-          val         = p;
-          if (*p == '-') p++;
-          if (isdigit ((int) *p))
-          {
-            while (isdigit ((int) *p)) p++;
-
-            valid = !*p;
-          }
-          else
-            valid = 0;
-        }
-        else
-          valid = 0;
-      }
-
-      if (valid)
-      {
-        if (!lgl)
-        {
-          assert (!external_lgl);
-          lgl = lglinit ();
-        }
-
-        if (lglhasopt (lgl, opt))
-        {
-          if (external_lgl && val)
-          {
-            assert (lgl == external_lgl);
-            BTOR_MSG (smgr->btor->msg,
-                      2,
-                      "setting Lingeling option --%s=%s",
-                      opt,
-                      val);
-            lglsetopt (lgl, opt, atoi (val));
-          }
-        }
-        else
-          valid = 0;
-      }
-
-      if (!valid) res = false;
-      if (valid || external_lgl) continue;
-
-      if (eq) *eq = '=';
-      BTOR_MSG (smgr->btor->msg,
-                1,
-                "*** can not pass down to Lingeling invalid option '%s'",
-                optstr);
-    }
-  }
-
-  BTOR_DELETEN (smgr->btor->mm, str, len + 1);
-  if (lgl && !external_lgl) lglrelease (lgl);
-
-  return res;
-}
-
-/*------------------------------------------------------------------------*/
-
 static void *
-lingeling_init (BtorSATMgr *smgr)
+init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
 
@@ -152,27 +46,25 @@ lingeling_init (BtorSATMgr *smgr)
                        (lglrealloc) btor_mem_sat_realloc,
                        (lgldealloc) btor_mem_sat_free);
 
-  if (smgr->optstr) passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
-
   res->blimit = BTOR_LGL_MIN_BLIMIT;
 
   return res;
 }
 
 static void
-lingeling_add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   lgladd (blgl->lgl, lit);
 }
 
-static int
-lingeling_sat (BtorSATMgr *smgr, int limit)
+static int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
 {
   BtorLGL *blgl = smgr->solver;
   LGL *lgl      = blgl->lgl, *clone;
   const char *str;
-  int res, bfres;
+  int32_t res, bfres;
   char name[80];
 
   assert (smgr->satcalls >= 1);
@@ -181,10 +73,10 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
 
 #ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
   {
-    static int count = 0;
+    static int32_t count = 0;
     char name[80];
     FILE *file;
-    sprintf (name, "/tmp/btor_lingeling_sat_%05d_%08d.cnf", getpid (), count++);
+    sprintf (name, "/tmp/btor_sat_%05d_%08d.cnf", getpid (), count++);
     file = fopen (name, "w");
     lglprint (lgl, file);
     fclose (file);
@@ -260,31 +152,22 @@ lingeling_sat (BtorSATMgr *smgr, int limit)
   return res;
 }
 
-#if 0
-static int
-lingeling_changed (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglchanged (blgl->lgl);
-}
-#endif
-
-static int
-lingeling_deref (BtorSATMgr *smgr, int lit)
+static int32_t
+deref (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglderef (blgl->lgl, lit);
 }
 
-static int
-lingeling_repr (BtorSATMgr *smgr, int lit)
+static int32_t
+repr (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglrepr (blgl->lgl, lit);
 }
 
 static void
-lingeling_reset (BtorSATMgr *smgr)
+reset (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglrelease (blgl->lgl);
@@ -292,21 +175,21 @@ lingeling_reset (BtorSATMgr *smgr)
 }
 
 static void
-lingeling_set_output (BtorSATMgr *smgr, FILE *output)
+set_output (BtorSATMgr *smgr, FILE *output)
 {
   BtorLGL *blgl = smgr->solver;
   lglsetout (blgl->lgl, output);
 }
 
 static void
-lingeling_set_prefix (BtorSATMgr *smgr, const char *prefix)
+set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
   BtorLGL *blgl = smgr->solver;
   lglsetprefix (blgl->lgl, prefix);
 }
 
 static void
-lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
+enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   BtorLGL *blgl = smgr->solver;
   if (level <= 0)
@@ -315,26 +198,17 @@ lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
     lglsetopt (blgl->lgl, "verb", level - 1);
 }
 
-static int
-lingeling_inc_max_var (BtorSATMgr *smgr)
+static int32_t
+inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
-  int res       = lglincvar (blgl->lgl);
+  int32_t res   = lglincvar (blgl->lgl);
   if (smgr->inc_required) lglfreeze (blgl->lgl, res);
   return res;
 }
 
-#if 0
-static int
-lingeling_variables (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglmaxvar (blgl->lgl);
-}
-#endif
-
 static void
-lingeling_stats (BtorSATMgr *smgr)
+stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglstats (blgl->lgl);
@@ -344,44 +218,35 @@ lingeling_stats (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 static void
-lingeling_assume (BtorSATMgr *smgr, int lit)
+assume (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   lglassume (blgl->lgl, lit);
 }
 
 static void
-lingeling_melt (BtorSATMgr *smgr, int lit)
+melt (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   if (smgr->inc_required) lglmelt (blgl->lgl, lit);
 }
 
-static int
-lingeling_failed (BtorSATMgr *smgr, int lit)
+static int32_t
+failed (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfailed (blgl->lgl, lit);
 }
 
-static int
-lingeling_fixed (BtorSATMgr *smgr, int lit)
+static int32_t
+fixed (BtorSATMgr *smgr, int32_t lit)
 {
   BtorLGL *blgl = smgr->solver;
   return lglfixed (blgl->lgl, lit);
 }
 
-#if 0
-static int
-lingeling_inconsistent (BtorSATMgr * smgr)
-{
-  BtorLGL * blgl = smgr->solver;
-  return lglinconsistent (blgl->lgl);
-}
-#endif
-
 static void *
-lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 {
   assert (smgr);
 
@@ -404,7 +269,7 @@ lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 }
 
 static void
-lingeling_setterm (BtorSATMgr *smgr)
+setterm (BtorSATMgr *smgr)
 {
   assert (smgr);
 
@@ -416,57 +281,34 @@ lingeling_setterm (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 bool
-btor_sat_enable_lingeling (BtorSATMgr *smgr, const char *optstr, bool fork)
+btor_sat_enable_lingeling (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
 
   BTOR_ABORT (smgr->initialized,
               "'btor_sat_init' called before 'btor_sat_enable_lingeling'");
 
-  smgr->optstr = btor_mem_strdup (smgr->btor->mm, optstr);
-  if (smgr->optstr && !passdown_lingeling_options (smgr, optstr, 0))
-    return false;
-
   smgr->name = "Lingeling";
-  smgr->fork = fork;
+  smgr->fork = btor_opt_get (smgr->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK);
 
   BTOR_CLR (&smgr->api);
-  smgr->api.add    = lingeling_add;
-  smgr->api.assume = lingeling_assume;
-#if 0
-  smgr->api.changed = lingeling_changed;
-#endif
-  smgr->api.deref            = lingeling_deref;
-  smgr->api.enable_verbosity = lingeling_enable_verbosity;
-  smgr->api.failed           = lingeling_failed;
-  smgr->api.fixed            = lingeling_fixed;
-  smgr->api.inc_max_var      = lingeling_inc_max_var;
-#if 0
-  smgr->api.inconsistent = lingeling_inconsistent;
-#endif
-  smgr->api.init       = lingeling_init;
-  smgr->api.melt       = lingeling_melt;
-  smgr->api.repr       = lingeling_repr;
-  smgr->api.reset      = lingeling_reset;
-  smgr->api.sat        = lingeling_sat;
-  smgr->api.set_output = lingeling_set_output;
-  smgr->api.set_prefix = lingeling_set_prefix;
-  smgr->api.stats      = lingeling_stats;
-#if 0
-  smgr->api.variables = lingeling_variables;
-#endif
-  smgr->api.clone   = lingeling_clone;
-  smgr->api.setterm = lingeling_setterm;
-
-  BTOR_MSG (smgr->btor->msg,
-            1,
-            "Lingeling allows both incremental and non-incremental mode");
-  if (smgr->optstr)
-    BTOR_MSG (smgr->btor->msg,
-              1,
-              "Configured options for Lingeling: %s",
-              smgr->optstr);
-
+  smgr->api.add              = add;
+  smgr->api.assume           = assume;
+  smgr->api.deref            = deref;
+  smgr->api.enable_verbosity = enable_verbosity;
+  smgr->api.failed           = failed;
+  smgr->api.fixed            = fixed;
+  smgr->api.inc_max_var      = inc_max_var;
+  smgr->api.init             = init;
+  smgr->api.melt             = melt;
+  smgr->api.repr             = repr;
+  smgr->api.reset            = reset;
+  smgr->api.sat              = sat;
+  smgr->api.set_output       = set_output;
+  smgr->api.set_prefix       = set_prefix;
+  smgr->api.stats            = stats;
+  smgr->api.clone            = clone;
+  smgr->api.setterm          = setterm;
   return true;
 }
 

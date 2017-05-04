@@ -14,7 +14,7 @@
 
 #include "btorabort.h"
 #include "btorcore.h"
-#include "btorexp.h"
+#include "btornode.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>
@@ -36,7 +36,7 @@ inc_sort_ref_counter (BtorSort *sort)
 }
 
 static unsigned
-compute_hash_sort (const BtorSort *sort, int table_size)
+compute_hash_sort (const BtorSort *sort, uint32_t table_size)
 {
   assert (sort);
   assert (table_size);
@@ -55,21 +55,21 @@ compute_hash_sort (const BtorSort *sort, int table_size)
         res = 0;
 	break;
 #endif
-    case BTOR_BITVEC_SORT: res = (unsigned int) sort->bitvec.width; break;
+    case BTOR_BITVEC_SORT: res = sort->bitvec.width; break;
 #if 0
       case BTOR_ARRAY_SORT:
-        res = (unsigned int) sort->array.index->id;
-        tmp = (unsigned int) sort->array.element->id;
+        res = sort->array.index->id;
+        tmp = sort->array.element->id;
 	break;
 
       case BTOR_LST_SORT:
-        res = (unsigned int) sort->lst.head->id;
-        tmp = (unsigned int) sort->lst.tail->id;
+        res = sort->lst.head->id;
+        tmp = sort->lst.tail->id;
         break;
 #endif
     case BTOR_FUN_SORT:
-      res = (unsigned int) sort->fun.domain->id;
-      tmp = (unsigned int) sort->fun.codomain->id;
+      res = sort->fun.domain->id;
+      tmp = sort->fun.codomain->id;
       break;
 
     case BTOR_TUPLE_SORT:
@@ -77,9 +77,9 @@ compute_hash_sort (const BtorSort *sort, int table_size)
       for (i = 0; i < sort->tuple.num_elements; i++)
       {
         if ((i & 1) == 0)
-          res += (unsigned int) sort->tuple.elements[i]->id;
+          res += sort->tuple.elements[i]->id;
         else
-          tmp += (unsigned int) sort->tuple.elements[i]->id;
+          tmp += sort->tuple.elements[i]->id;
       }
       break;
   }
@@ -105,7 +105,7 @@ remove_from_sorts_unique_table_sort (BtorSortUniqueTable *table, BtorSort *sort)
   assert (!sort->refs);
   assert (table->num_elements > 0);
 
-  unsigned int hash;
+  uint32_t hash;
   BtorSort *prev, *cur;
 
   hash = compute_hash_sort (sort, table->size);
@@ -128,13 +128,13 @@ remove_from_sorts_unique_table_sort (BtorSortUniqueTable *table, BtorSort *sort)
   table->num_elements--;
 }
 
-static int
+static int32_t
 equal_sort (const BtorSort *a, const BtorSort *b)
 {
   assert (a);
   assert (b);
 
-  unsigned i;
+  uint32_t i;
 
   if (a->kind != b->kind) return 0;
 
@@ -183,7 +183,7 @@ find_sort (BtorSortUniqueTable *table, const BtorSort *pattern)
   assert (pattern);
 
   BtorSort **res, *sort;
-  unsigned int hash;
+  uint32_t hash;
   hash = compute_hash_sort (pattern, table->size);
   assert (hash < (unsigned) table->size);
   for (res = table->chains + hash; (sort = *res) && !equal_sort (sort, pattern);
@@ -198,8 +198,7 @@ enlarge_sorts_unique_table (BtorSortUniqueTable *table)
   assert (table);
 
   BtorSort *cur, *temp, **new_chains;
-  int size, new_size, i;
-  unsigned int hash;
+  uint32_t size, new_size, i, hash;
   BtorMemMgr *mm;
 
   mm       = table->mm;

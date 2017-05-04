@@ -15,8 +15,8 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorcore.h"
-#include "btorexp.h"
 #include "btormsg.h"
+#include "btornode.h"
 #include "btoropt.h"
 #include "dumper/btordumpbtor.h"
 #include "utils/boolectornodemap.h"
@@ -52,13 +52,13 @@ BtorMsg *boolector_get_btor_msg (Btor *btor);
 
 typedef struct BtorMcInput
 {
-  int id;
+  int32_t id;
   BoolectorNode *node;
 } BtorMcInput;
 
 typedef struct BtorMcLatch
 {
-  int id;
+  int32_t id;
   BoolectorNode *node, *next, *init;
 } BtorMcLatch;
 
@@ -71,7 +71,7 @@ typedef enum BtorMcState
 
 typedef struct BtorMcFrame
 {
-  int time;
+  int32_t time;
   BoolectorNodeMap *model2const;
   BoolectorNodePtrStack inputs, init, latches, next, bad;
 } BtorMcFrame;
@@ -81,8 +81,9 @@ BTOR_DECLARE_STACK (BtorMcFrame, BtorMcFrame);
 struct BtorMC
 {
   BtorMcState state;
-  int verbosity, trace_enabled, stop, continue_checking_if_reached;
-  int initialized, nextstates;
+  uint32_t verbosity;
+  bool trace_enabled, stop, continue_checking_if_reached;
+  int32_t initialized, nextstates;
   Btor *btor, *forward;
   BtorMcFrameStack frames;
   BtorPtrHashTable *inputs;
@@ -91,7 +92,7 @@ struct BtorMC
   BoolectorNodePtrStack constraints;
   BoolectorNodeMap *forward2const;
   BtorIntStack reached;
-  int num_reached;
+  int32_t num_reached;
   struct
   {
     struct
@@ -121,15 +122,15 @@ boolector_mc_new (void)
   BTOR_CNEW (mm, res);
   res->btor    = btor;
   res->inputs  = btor_hashptr_table_new (mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
+                                        (BtorHashPtr) btor_node_hash_by_id,
+                                        (BtorCmpPtr) btor_node_compare_by_id);
   res->latches = btor_hashptr_table_new (mm,
-                                         (BtorHashPtr) btor_hash_exp_by_id,
-                                         (BtorCmpPtr) btor_compare_exp_by_id);
+                                         (BtorHashPtr) btor_node_hash_by_id,
+                                         (BtorCmpPtr) btor_node_compare_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
   assert (!res->forward2const);
-  res->continue_checking_if_reached = 0;
-  res->stop                         = 1;
+  res->continue_checking_if_reached = false;
+  res->stop                         = true;
   BTOR_INIT_STACK (mm, res->frames);
   BTOR_INIT_STACK (mm, res->bad);
   BTOR_INIT_STACK (mm, res->constraints);
@@ -138,7 +139,7 @@ boolector_mc_new (void)
 }
 
 void
-boolector_mc_set_verbosity (BtorMC *mc, int verbosity)
+boolector_mc_set_verbosity (BtorMC *mc, uint32_t verbosity)
 {
   BTOR_ABORT_ARG_NULL (mc);
   mc->verbosity = verbosity;
@@ -146,7 +147,7 @@ boolector_mc_set_verbosity (BtorMC *mc, int verbosity)
 }
 
 void
-boolector_mc_set_stop_at_first_reached_property (BtorMC *mc, int stop)
+boolector_mc_set_stop_at_first_reached_property (BtorMC *mc, bool stop)
 {
   BTOR_ABORT_ARG_NULL (mc);
   mc->stop = stop;
@@ -176,7 +177,7 @@ boolector_mc_enable_trace_gen (BtorMC *mc)
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   assert (!BTOR_COUNT_STACK (mc->frames));
-  mc->trace_enabled = 1;
+  mc->trace_enabled = true;
 }
 
 Btor *
@@ -257,7 +258,7 @@ mc_release_assignment (BtorMC *mc)
                 1,
                 "releasing model to constant mapping of size %d at time %d",
                 boolector_nodemap_count (f->model2const),
-                (int) (f - mc->frames.start));
+                (int32_t) (f - mc->frames.start));
       boolector_nodemap_delete (f->model2const);
       f->model2const = 0;
     }
@@ -301,7 +302,7 @@ boolector_mc_delete (BtorMC *mc)
   BTOR_RELEASE_STACK (mc->reached);
   if (mc->forward) boolector_delete (mc->forward);
   BTOR_DELETE (mm, mc);
-  btor_delete_btor (btor);
+  btor_delete (btor);
 }
 
 BoolectorNode *
@@ -324,7 +325,7 @@ boolector_input (BtorMC *mc, uint32_t width, const char *name)
   boolector_release_sort (btor, s);
   BTOR_NEW (mm, input);
   assert (input);
-  input->id   = (int) mc->inputs->count;
+  input->id   = (int32_t) mc->inputs->count;
   input->node = res;
   bucket      = btor_hashptr_table_add (mc->inputs, res);
   assert (bucket);
@@ -366,7 +367,7 @@ boolector_latch (BtorMC *mc, uint32_t width, const char *name)
   boolector_release_sort (btor, s);
   BTOR_NEW (mm, latch);
   assert (latch);
-  latch->id   = (int) mc->latches->count;
+  latch->id   = (int32_t) mc->latches->count;
   latch->node = res;
   latch->init = latch->next = 0;
   bucket                    = btor_hashptr_table_add (mc->latches, res);
@@ -450,10 +451,10 @@ boolector_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   mc->initialized++;
 }
 
-int
+int32_t
 boolector_bad (BtorMC *mc, BoolectorNode *bad)
 {
-  int res;
+  int32_t res;
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (bad);
@@ -469,10 +470,10 @@ boolector_bad (BtorMC *mc, BoolectorNode *bad)
   return res;
 }
 
-int
+int32_t
 boolector_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
-  int res;
+  int32_t res;
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (constraint);
@@ -489,11 +490,11 @@ boolector_constraint (BtorMC *mc, BoolectorNode *constraint)
 }
 
 static char *
-timed_symbol (Btor *btor, BoolectorNode *node, int time)
+timed_symbol (Btor *btor, BoolectorNode *node, int32_t time)
 {
   char *res, suffix[20];
   const char *symbol;
-  int symlen, reslen;
+  uint32_t symlen, reslen;
   assert (btor);
   assert (node);
   assert (time >= 0);
@@ -516,17 +517,17 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
   BoolectorSort s;
   BtorPtrHashTableIterator it;
   char *sym;
-  int w;
+  uint32_t w;
 
 #ifndef NDEBUG
-  int i = 0;
+  int32_t i = 0;
   BtorMcInput *input;
 #endif
 
   BTOR_MSG (boolector_get_btor_msg (mc->btor),
             2,
-            "initializing %d inputs of frame %d",
-            (int) mc->inputs->count,
+            "initializing %u inputs of frame %d",
+            mc->inputs->count,
             f->time);
 
   BTOR_INIT_STACK (mc->btor->mm, f->inputs);
@@ -566,7 +567,8 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   const char *bits;
   BtorMcFrame *p;
   char *sym;
-  int i, w;
+  int32_t i;
+  uint32_t w;
 
   assert (mc);
   assert (f);
@@ -574,8 +576,8 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
 
   BTOR_MSG (boolector_get_btor_msg (mc->btor),
             2,
-            "initializing %d latches in frame %d",
-            (int) mc->latches->count,
+            "initializing %u latches in frame %d",
+            mc->latches->count,
             f->time);
 
   BTOR_INIT_STACK (mc->btor->mm, f->latches);
@@ -627,7 +629,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
   BoolectorNode *src, *dst, *node;
   BtorMcLatch *latch;
   BtorPtrHashTableIterator it;
-  int nextstates, i;
+  int32_t nextstates, i;
   (void) node;
 
   assert (mc);
@@ -676,7 +678,7 @@ initialize_constraints_of_frame (BtorMC *mc,
                                  BtorMcFrame *f)
 {
   BoolectorNode *src, *dst, *constraint;
-  int i;
+  uint32_t i;
 
   assert (mc);
   assert (map);
@@ -684,8 +686,8 @@ initialize_constraints_of_frame (BtorMC *mc,
 
   BTOR_MSG (boolector_get_btor_msg (mc->btor),
             2,
-            "initializing %d environment constraints of frame %d",
-            (int) BTOR_COUNT_STACK (mc->constraints),
+            "initializing %u environment constraints of frame %d",
+            BTOR_COUNT_STACK (mc->constraints),
             f->time);
 
   constraint = 0;
@@ -719,7 +721,7 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
                                           BtorMcFrame *f)
 {
   BoolectorNode *src, *dst;
-  int i;
+  uint32_t i;
 
   assert (mc);
   assert (map);
@@ -727,8 +729,8 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
 
   BTOR_MSG (boolector_get_btor_msg (mc->btor),
             2,
-            "initializing %d bad state propeties of frame %d",
-            (int) BTOR_COUNT_STACK (mc->bad),
+            "initializing %u bad state propeties of frame %d",
+            BTOR_COUNT_STACK (mc->bad),
             f->time);
 
   BTOR_INIT_STACK (mc->btor->mm, f->bad);
@@ -757,7 +759,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   BoolectorNode *src, *dst;
   BoolectorNodeMap *res;
   BtorPtrHashTableIterator it;
-  int i;
+  uint32_t i;
 
   assert (mc);
   assert (f);
@@ -791,7 +793,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     i += 1;
   }
 
-  assert ((unsigned) boolector_nodemap_count (res)
+  assert ((uint32_t) boolector_nodemap_count (res)
           == mc->inputs->count + mc->latches->count);
 
   return res;
@@ -802,9 +804,9 @@ initialize_new_forward_frame (BtorMC *mc)
 {
   BtorMcFrame frame, *f;
   BoolectorNodeMap *map;
-  int time;
+  int32_t time;
 #ifndef NDEBUG
-  int old_mc_btor_num_nodes;
+  uint32_t old_mc_btor_num_nodes;
 #endif
 
   assert (mc);
@@ -821,7 +823,7 @@ initialize_new_forward_frame (BtorMC *mc)
   if (!mc->forward)
   {
     BTOR_MSG (boolector_get_btor_msg (mc->btor), 1, "new forward manager");
-    mc->forward = btor_new_btor ();
+    mc->forward = btor_new ();
     boolector_set_opt (mc->forward, BTOR_OPT_INCREMENTAL, 1);
     if (mc->trace_enabled)
       boolector_set_opt (mc->forward, BTOR_OPT_MODEL_GEN, 1);
@@ -853,14 +855,14 @@ initialize_new_forward_frame (BtorMC *mc)
 #if 0
 
 static void
-print_trace (BtorMC * mc, int p, int k)
+print_trace (BtorMC * mc, int32_t p, int32_t k)
 {
   const char * symbol;
   BoolectorNode * node;
   BtorMcFrame * f;
   char buffer[30];
   char * a;
-  int i, j;
+  int32_t i, j;
 
   printf ("bad state property %d at bound k = %d satisfiable:\n", p, k);
 
@@ -891,10 +893,10 @@ print_trace (BtorMC * mc, int p, int k)
 
 #endif
 
-static int
+static int32_t
 check_last_forward_frame (BtorMC *mc)
 {
-  int k, i, res, satisfied;
+  int32_t k, i, res, satisfied;
   BtorMcFrame *f;
   BoolectorNode *bad;
 
@@ -914,7 +916,7 @@ check_last_forward_frame (BtorMC *mc)
     bad = BTOR_PEEK_STACK (f->bad, i);
     if (!bad)
     {
-      int reached;
+      int32_t reached;
       assert (!mc->continue_checking_if_reached);
       reached = BTOR_PEEK_STACK (mc->reached, i);
       assert (reached >= 0);
@@ -976,10 +978,10 @@ check_last_forward_frame (BtorMC *mc)
   return satisfied;
 }
 
-int
-boolector_mc_bmc (BtorMC *mc, int mink, int maxk)
+int32_t
+boolector_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
 {
-  int k;
+  int32_t k;
 
   BTOR_ABORT_ARG_NULL (mc);
 
@@ -988,8 +990,8 @@ boolector_mc_bmc (BtorMC *mc, int mink, int maxk)
   BTOR_MSG (
       boolector_get_btor_msg (mc->btor),
       1,
-      "calling BMC on %d properties from bound %d up-to maximum bound k = %d",
-      (int) BTOR_COUNT_STACK (mc->bad),
+      "calling BMC on %u properties from bound %d up-to maximum bound k = %d",
+      BTOR_COUNT_STACK (mc->bad),
       mink,
       maxk);
 
@@ -1095,7 +1097,7 @@ typedef struct BtorMcModel2ConstMapper BtorMcModel2ConstMapper;
 
 struct BtorMcModel2ConstMapper
 {
-  int time;
+  int32_t time;
   BtorMC *mc;
 };
 
@@ -1111,7 +1113,7 @@ mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
   BtorMcLatch *latch;
   BtorMC *mc;
   char *bits;
-  int time;
+  int32_t time;
 
   assert (!BTOR_IS_INVERTED_NODE (node));
 
@@ -1172,7 +1174,7 @@ mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
 }
 
 static BoolectorNode *
-mc_model2const (BtorMC *mc, BoolectorNode *node, int time)
+mc_model2const (BtorMC *mc, BoolectorNode *node, int32_t time)
 {
   BtorMcModel2ConstMapper mapper;
   BoolectorNodeMap *map;
@@ -1188,7 +1190,7 @@ mc_model2const (BtorMC *mc, BoolectorNode *node, int time)
 }
 
 char *
-boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
+boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
 {
   BoolectorNode *node_at_time, *const_node;
   const char *bits_owned_by_forward, *bits;
@@ -1260,7 +1262,7 @@ boolector_mc_dump (BtorMC *mc, FILE *file)
 {
   BtorPtrHashTableIterator it;
   BtorDumpContext *bdc;
-  int i;
+  uint32_t i;
 
   (void) boolector_simplify (mc->btor);
 
@@ -1315,8 +1317,8 @@ boolector_mc_dump (BtorMC *mc, FILE *file)
   btor_dumpbtor_delete_dump_context (bdc);
 }
 
-int
-boolector_mc_reached_bad_at_bound (BtorMC *mc, int badidx)
+int32_t
+boolector_mc_reached_bad_at_bound (BtorMC *mc, int32_t badidx)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (mc->state == BTOR_NO_MC_STATE,

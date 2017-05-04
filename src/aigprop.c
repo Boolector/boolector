@@ -50,12 +50,12 @@ msg (char *fmt, ...)
 
 /*------------------------------------------------------------------------*/
 
-int
+int32_t
 aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
 
-  int res;
+  int32_t res;
   int32_t id;
 
   if (btor_aig_is_true (aig)) return 1;
@@ -130,7 +130,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   BtorHashTableData *d;
   BtorMemMgr *mm;
 #ifndef NDEBUG
-  int a;
+  int32_t a;
 #endif
 
   curid = btor_aig_get_id (aig);
@@ -348,7 +348,7 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   assert (aprop->model);
   assert (aig);
 
-  int aleft, aright;
+  int32_t aleft, aright;
   BtorAIG *cur, *real_cur, *left, *right;
   BtorAIGPtrStack stack;
   BtorIntHashTable *cache;
@@ -431,7 +431,7 @@ aigprop_init_model (AIGProp *aprop)
 }
 
 void
-aigprop_generate_model (AIGProp *aprop, int reset)
+aigprop_generate_model (AIGProp *aprop, bool reset)
 {
   assert (aprop);
   assert (aprop->roots);
@@ -449,7 +449,7 @@ aigprop_generate_model (AIGProp *aprop, int reset)
 /*------------------------------------------------------------------------*/
 
 static inline void
-update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int assignment)
+update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
 {
   assert (aprop);
   assert (aig);
@@ -489,7 +489,7 @@ update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int assignment)
 }
 
 static void
-update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
+update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
 {
   assert (aprop);
   assert (aig);
@@ -719,7 +719,7 @@ select_root (AIGProp *aprop, uint32_t nmoves)
 
   if (aprop->use_bandit)
   {
-    int *selected;
+    int32_t *selected;
     double value, max_value, score;
     BtorHashTableData *d;
 
@@ -780,7 +780,10 @@ select_root (AIGProp *aprop, uint32_t nmoves)
 }
 
 static void
-select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
+select_move (AIGProp *aprop,
+             BtorAIG *root,
+             BtorAIG **input,
+             int32_t *assignment)
 {
   assert (aprop);
   assert (root);
@@ -788,7 +791,8 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
   assert (input);
   assert (assignment);
 
-  int i, asscur, ass[2], assnew, eidx;
+  int32_t i, asscur, ass[2], assnew;
+  uint32_t eidx;
   BtorAIG *cur, *real_cur, *c[2];
   BtorHashTableData *d;
 
@@ -843,7 +847,6 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
         else
           eidx = btor_rng_pick_rand (&aprop->rng, 0, 1);
       }
-      assert (eidx >= 0);
       if (asscur == 1)
         assnew = 1;
       else if (ass[eidx ? 0 : 1] == 1)
@@ -867,7 +870,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
   }
 }
 
-static int
+static int32_t
 move (AIGProp *aprop, uint32_t nmoves)
 {
   assert (aprop);
@@ -875,7 +878,7 @@ move (AIGProp *aprop, uint32_t nmoves)
   assert (aprop->unsatroots);
   assert (aprop->model);
 
-  int assignment;
+  int32_t assignment;
   BtorAIG *root, *input;
 
   /* roots contain false AIG -> unsat */
@@ -886,7 +889,7 @@ move (AIGProp *aprop, uint32_t nmoves)
   AIGPROPLOG (1, "");
   AIGPROPLOG (1, "*** move");
 #ifndef NDEBUG
-  int a = aigprop_get_assignment_aig (aprop, input);
+  int32_t a = aigprop_get_assignment_aig (aprop, input);
   AIGPROPLOG (1,
               "    * input: %s%d",
               BTOR_IS_INVERTED_AIG (input) ? "-" : "",
@@ -903,7 +906,7 @@ move (AIGProp *aprop, uint32_t nmoves)
 /*------------------------------------------------------------------------*/
 
 // TODO termination callback?
-int
+int32_t
 aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
 {
   assert (aprop);
@@ -986,7 +989,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
   BTOR_RELEASE_STACK (stack);
 
   /* generate initial model, all inputs are initialized with false */
-  aigprop_generate_model (aprop, 1);
+  aigprop_generate_model (aprop, true);
 
   for (;;)
   {
@@ -1022,7 +1025,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
     }
 
     /* restart */
-    aigprop_generate_model (aprop, 1);
+    aigprop_generate_model (aprop, true);
     btor_hashint_map_delete (aprop->score);
     aprop->score = 0;
     btor_hashint_map_delete (aprop->unsatroots);

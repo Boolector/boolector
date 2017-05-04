@@ -38,7 +38,7 @@ BtorNode* btor_beta_reduce_partial_collect_new (Btor* btor,
                                                 BtorNodePtrStack* exps,
                                                 BtorIntHashTable* cache);
 
-BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int bound);
+BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int32_t bound);
 
 void btor_beta_assign_param (Btor* btor, BtorNode* lambda, BtorNode* arg);
 

@@ -61,7 +61,6 @@ enum BtorMainOption
   BTORMAIN_OPT_ENGINE,
   BTORMAIN_OPT_SAT_ENGINE,
   BTORMAIN_OPT_LGL_NOFORK,
-  BTORMAIN_OPT_LGL_OPTS,
   BTORMAIN_OPT_HEX,
   BTORMAIN_OPT_DEC,
   BTORMAIN_OPT_BIN,
@@ -274,18 +273,6 @@ btormain_init_opts (BtorMainApp *app)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "do not use 'fork/clone' for Lingeling");
-  init_main_opt (app,
-                 BTORMAIN_OPT_LGL_OPTS,
-                 true,
-                 false,
-                 "lingeling-opts",
-                 0,
-                 0,
-                 0,
-                 1,
-                 false,
-                 BTORMAIN_OPT_ARG_STR,
-                 "set lingeling option(s) '--<opt>=<val>'");
 #endif
   init_main_opt (app,
                  BTORMAIN_OPT_HEX,
@@ -540,16 +527,8 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<engine>");
   else if (!isflag)
     sprintf (paramstr, "<n>");
-  else if (!strcmp (lng, "lingeling-opts"))
-    sprintf (paramstr, "[,<opt>=<val>]+");
   else
     paramstr[0] = '\0';
-
-  assert (!strcmp (lng, "lingeling-opts")
-          || (shrt
-              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 5
-                  <= LEN_OPTSTR))
-          || (!shrt && (strlen (paramstr) + strlen (lng) + 5 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -666,8 +645,8 @@ print_help (BtorMainApp *app)
   {
     if (!app->options[mo].general) continue;
     if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
-        || mo == BTORMAIN_OPT_LGL_OPTS || mo == BTORMAIN_OPT_HEX
-        || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_DUMP_BTOR)
+        || mo == BTORMAIN_OPT_HEX || mo == BTORMAIN_OPT_BTOR
+        || mo == BTORMAIN_OPT_DUMP_BTOR)
       fprintf (out, "\n");
     PRINT_MAIN_OPT (app, &app->options[mo]);
   }
@@ -741,6 +720,13 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "\n");
   fprintf (out, "This software is linked against MiniSAT\n");
   fprintf (out, "Copyright (c) 2003-2013, Niklas Een, Niklas Sorensson\n");
+#endif
+#ifdef BTOR_USE_CADICAL
+  fprintf (out, "\n");
+  fprintf (out, "This software is linked against CaDiCaL\n");
+  fprintf (out, "Copyright (c) 2016-2017 Armin Biere\n");
+  fprintf (out, "Institute for Formal Models and Verification\n");
+  fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
   app->done = 1;
 }
@@ -1145,6 +1131,12 @@ boolector_main (int argc, char **argv)
                 g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
           else
 #endif
+#ifdef BTOR_USE_CADICAL
+              if (!strcasecmp (valstr, "cadical"))
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_CADICAL);
+          else
+#endif
           {
             btormain_error (g_app,
                             "invalid sat solver '%s' for '%s'",
@@ -1157,10 +1149,6 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_LINGELING
         case BTORMAIN_OPT_LGL_NOFORK:
           boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
-          break;
-
-        case BTORMAIN_OPT_LGL_OPTS:
-          btor_opt_set_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
           break;
 #endif
 
