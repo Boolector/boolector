@@ -1542,7 +1542,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_BTOR_MISMATCH (btor, e0);
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
-  BTOR_ABORT (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1),
+  BTOR_ABORT (btor_exp_get_sort_id (e0) != btor_exp_get_sort_id (e1)
+                  || BTOR_REAL_ADDR_NODE (e0)->is_array
+                         != BTOR_REAL_ADDR_NODE (e1)->is_array,
               "nodes must have equal sorts");
   BTOR_ABORT (btor_sort_is_fun (btor, btor_exp_get_sort_id (e0))
                   && (BTOR_REAL_ADDR_NODE (e0)->parameterized
