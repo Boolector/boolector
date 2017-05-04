@@ -105,9 +105,9 @@ do
     -no-picosat|--no-picosat) picosat=no;;
     -lingeling|--lingeling) lingeling=yes;;
     -no-lingeling|--no-lingeling) lingeling=no;;
-    -only-lingeling|--only-lingeling) lingeling=yes;minisat=no;picosat=no;;
-    -only-picosat|--only-picosat) lingeling=no;minisat=no;picosat=yes;;
-    -only-minisat|--only-minisat) lingeling=no;minisat=yes;picosat=no;;
+    -only-lingeling|--only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;;
+    -only-picosat|--only-picosat) lingeling=no;minisat=no;picosat=yes;cadical=no;;
+    -only-minisat|--only-minisat) lingeling=no;minisat=yes;picosat=no;cadical=no;;
     -only-cadical|--only-cadical) lingeling=no;minisat=no;picosat=no;cadical=yes;;
     -minisat|--minisat) minisat=yes;;
     -no-minisat|--no-minisat) minisat=no;;
