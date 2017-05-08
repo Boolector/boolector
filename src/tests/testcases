@@ -727,3 +727,4 @@ getvalue1 -o src/tests/log/getvalue1.log src/tests/log/getvalue1.smt2
 getvalue2 -o src/tests/log/getvalue2.log src/tests/log/getvalue2.smt2
 invalidmodel1 -o src/tests/log/invalidmodel1.log src/tests/log/invalidmodel1.smt2
 invalidmodel2 -xl=0 -ml=0 -rwl=2 -o src/tests/log/invalidmodel2.log src/tests/log/invalidmodel2.smt2
+invalidmodel3 -o src/tests/log/invalidmodel3.log src/tests/log/invalidmodel3.btor
