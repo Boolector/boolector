@@ -486,8 +486,12 @@ btor_print_stats (Btor *btor)
   BTOR_MSG (btor->msg, 1, "%5lld lambdas merged", btor->stats.lambdas_merged);
   BTOR_MSG (btor->msg,
             1,
-            "%5d applies propagated during construction",
-            btor->stats.apply_props_construct);
+            "%5d static apply propagations over lambdas",
+            btor->stats.prop_apply_lambda);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d static apply propagations over updates",
+            btor->stats.prop_apply_update);
   BTOR_MSG (
       btor->msg, 1, "%5lld beta reductions", btor->stats.beta_reduce_calls);
   BTOR_MSG (btor->msg, 1, "%5lld clone calls", btor->stats.clone_calls);

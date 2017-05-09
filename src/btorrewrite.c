@@ -20,6 +20,7 @@
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
+#include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
 #include "btorrewrite.h"
@@ -4267,7 +4268,7 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
  * propagate apply over parameterized bv conditionals
  */
 static inline bool
-applies_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
+applies_prop_apply_lambda (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
   (void) e1;
@@ -4277,9 +4278,9 @@ applies_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 static inline BtorNode *
-apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
+apply_prop_apply_lambda (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (applies_prop_apply (btor, e0, e1));
+  assert (applies_prop_apply_lambda (btor, e0, e1));
 
   BtorNode *result, *cur_fun, *next_fun, *cur_args, *e_cond, *array, *args;
   BtorNode *beta_cond, *cur_cond, *real_cur_cond;
@@ -4504,7 +4505,73 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (result && inv_result) result = BTOR_INVERT_NODE (result);
 
-  btor->stats.apply_props_construct += apply_propagations;
+  btor->stats.prop_apply_lambda += apply_propagations;
+  return result;
+}
+
+static inline bool
+applies_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  (void) btor;
+  (void) e1;
+  return btor_node_is_update (e0);
+}
+
+static inline BtorNode *
+apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_prop_apply_update (btor, e0, e1));
+
+  uint32_t propagations = 0;
+  bool prop_down;
+  BtorNode *cur, *args, *value, *a1, *a2, *result = 0;
+  BtorArgsIterator it1, it2;
+
+  cur = e0;
+  while (btor_node_is_update (cur))
+  {
+    args  = cur->e[1];
+    value = cur->e[2];
+
+    if (e1 == args)
+    {
+      propagations++;
+      result = btor_node_copy (btor, value);
+      break;
+    }
+
+    prop_down = false;
+    assert (e1->sort_id == args->sort_id);
+    btor_iter_args_init (&it1, e1);
+    btor_iter_args_init (&it2, args);
+    while (btor_iter_args_has_next (&it1))
+    {
+      assert (btor_iter_args_has_next (&it2));
+      a1 = btor_iter_args_next (&it1);
+      a2 = btor_iter_args_next (&it2);
+
+      if (is_always_unequal (btor, a1, a2))
+      {
+        prop_down = true;
+        break;
+      }
+    }
+
+    if (prop_down)
+    {
+      propagations++;
+      cur = cur->e[0];
+    }
+    /* propagated until 'cur', create apply on 'cur' */
+    else
+    {
+      BTOR_INC_REC_RW_CALL (btor);
+      result = rewrite_apply_exp (btor, cur, e1);
+      BTOR_DEC_REC_RW_CALL (btor);
+      break;
+    }
+  }
+  btor->stats.prop_apply_update += propagations;
   return result;
 }
 
@@ -6147,7 +6214,8 @@ rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   ADD_RW_RULE (const_lambda_apply, e0, e1);
   ADD_RW_RULE (param_lambda_apply, e0, e1);
   ADD_RW_RULE (apply_apply, e0, e1);
-  ADD_RW_RULE (prop_apply, e0, e1);
+  ADD_RW_RULE (prop_apply_lambda, e0, e1);
+  ADD_RW_RULE (prop_apply_update, e0, e1);
 
   assert (!result);
   result = btor_node_create_apply (btor, e0, e1);

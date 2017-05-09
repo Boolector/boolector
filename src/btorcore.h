@@ -178,7 +178,8 @@ struct Btor
     uint32_t ands_normalized; /* number of and chains normalizations */
     uint32_t muls_normalized; /* number of mul chains normalizations */
     uint32_t ackermann_constraints;
-    long long apply_props_construct; /* number of static apply propagations */
+    long long prop_apply_lambda; /* number of static props over lambdas */
+    long long prop_apply_update; /* number of static props over updates */
     uint32_t bv_uc_props;
     uint32_t fun_uc_props;
     uint32_t param_uc_props;
