@@ -1539,7 +1539,6 @@ push_applies_for_propagation (Btor *btor,
   BtorNode *cur;
   BtorNodePtrStack visit;
   BtorMemMgr *mm;
-  BtorBitVector *bv;
 
   start = btor_util_time_stamp ();
   slv   = BTOR_FUN_SOLVER (btor);
@@ -1566,19 +1565,8 @@ push_applies_for_propagation (Btor *btor,
       BTOR_PUSH_STACK (*prop_stack, cur->e[0]);
       continue;
     }
-    // TODO (ma): try to use more justification techniques here?
-    else if (btor_node_is_cond (cur))
-    {
-      bv = get_bv_assignment (btor, cur->e[0]);
-      BTOR_PUSH_STACK (visit, cur->e[0]);
-      if (btor_bv_is_true (bv))
-        BTOR_PUSH_STACK (visit, cur->e[1]);
-      else
-        BTOR_PUSH_STACK (visit, cur->e[2]);
-      btor_bv_free (mm, bv);
-    }
-    else
-      for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
+
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   } while (!BTOR_EMPTY_STACK (visit));
   BTOR_RELEASE_STACK (visit);
   slv->time.find_prop_app += btor_util_time_stamp () - start;
