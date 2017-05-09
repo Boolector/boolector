@@ -191,7 +191,8 @@ incremental_required (Btor *btor)
 
     if (btor_hashint_table_contains (cache, cur->id)) continue;
 
-    if (btor_node_is_fun (cur))
+    btor_hashint_table_add (cache, cur->id);
+    if (btor_node_is_fun (cur) || cur->apply_below || cur->lambda_below)
     {
       res = true;
       break;
