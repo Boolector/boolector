@@ -163,7 +163,8 @@ incremental_required (Btor *btor)
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
 
-  if (btor->lambdas->count == 0 && btor->ufs->count == 0) return false;
+  if (btor->lambdas->count > 0 || btor->ufs->count > 0 || btor->feqs->count > 0)
+    return true;
 
   BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_hashint_table_new (btor->mm);
@@ -180,8 +181,6 @@ incremental_required (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&it));
-    /* no parents -> is not reachable from the roots */
-    if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) continue;
     BTOR_PUSH_STACK (stack, cur);
   }
 
