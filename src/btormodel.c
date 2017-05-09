@@ -1046,6 +1046,37 @@ btor_model_recursively_compute_assignment (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
+static void
+collect_nodes (Btor *btor,
+               BtorNode *roots[],
+               uint32_t num_roots,
+               BtorNodePtrStack *nodes)
+{
+  uint32_t i;
+  BtorNodePtrStack visit;
+  BtorNode *cur;
+  BtorIntHashTable *cache;
+
+  BTOR_INIT_STACK (btor->mm, visit);
+  cache = btor_hashint_table_new (btor->mm);
+
+  for (i = 0; i < num_roots; i++) BTOR_PUSH_STACK (visit, roots[i]);
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_hashint_table_contains (cache, cur->id)) continue;
+
+    if (!cur->parameterized && !btor_node_is_args (cur))
+      BTOR_PUSH_STACK (*nodes, cur);
+    btor_hashint_table_add (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (visit);
+  btor_hashint_table_delete (cache);
+}
+
 void
 btor_model_generate (Btor *btor,
                      BtorIntHashTable *bv_model,
@@ -1060,27 +1091,12 @@ btor_model_generate (Btor *btor,
   double start;
   BtorNode *cur;
   BtorPtrHashTableIterator it;
-  BtorNodePtrStack stack;
+  BtorNodePtrStack roots, nodes;
   BtorBitVector *bv;
 
   start = btor_util_time_stamp ();
 
-  BTOR_INIT_STACK (btor->mm, stack);
-
-  /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
-  btor_iter_hashptr_init (&it, btor->fun_rhs);
-  if (!model_for_all_nodes)
-  {
-    btor_iter_hashptr_queue (&it, btor->var_rhs);
-    btor_iter_hashptr_queue (&it, btor->bv_vars);
-    btor_iter_hashptr_queue (&it, btor->ufs);
-  }
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    cur =
-        btor_pointer_chase_simplified_exp (btor, btor_iter_hashptr_next (&it));
-    BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur));
-  }
+  BTOR_INIT_STACK (btor->mm, nodes);
 
   if (model_for_all_nodes)
   {
@@ -1090,29 +1106,36 @@ btor_model_generate (Btor *btor,
       if (!cur || btor_node_is_args (cur) || btor_node_is_proxy (cur)
           || cur->parameterized)
         continue;
-      BTOR_PUSH_STACK (stack, cur);
+      BTOR_PUSH_STACK (nodes, cur);
     }
   }
-  else /* push roots only */
+  else /* push nodes reachable from roots only */
   {
-    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+    BTOR_INIT_STACK (btor->mm, roots);
+    /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
+    btor_iter_hashptr_init (&it, btor->fun_rhs);
+    btor_iter_hashptr_queue (&it, btor->var_rhs);
+    btor_iter_hashptr_queue (&it, btor->unsynthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->assumptions);
     while (btor_iter_hashptr_has_next (&it))
     {
       cur = btor_iter_hashptr_next (&it);
-      BTOR_PUSH_STACK (stack, cur);
+      cur = btor_pointer_chase_simplified_exp (btor, cur);
+      BTOR_PUSH_STACK (roots, cur);
     }
+    collect_nodes (btor, roots.start, BTOR_COUNT_STACK (roots), &nodes);
+    BTOR_RELEASE_STACK (roots);
   }
 
-  qsort (stack.start,
-         BTOR_COUNT_STACK (stack),
+  qsort (nodes.start,
+         BTOR_COUNT_STACK (nodes),
          sizeof (BtorNode *),
          btor_node_compare_by_id_qsort_asc);
 
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  for (i = 0; i < BTOR_COUNT_STACK (nodes); i++)
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (stack, i));
+    cur = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (nodes, i));
     assert (!cur->parameterized);
     BTORLOG (3, "generate model for %s", btor_util_node2string (cur));
     if (btor_node_is_fun (cur))
@@ -1124,7 +1147,7 @@ btor_model_generate (Btor *btor,
       btor_bv_free (btor->mm, bv);
     }
   }
-  BTOR_RELEASE_STACK (stack);
+  BTOR_RELEASE_STACK (nodes);
 
   btor->time.model_gen += btor_util_time_stamp () - start;
 }
