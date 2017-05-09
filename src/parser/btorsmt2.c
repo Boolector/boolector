@@ -3838,11 +3838,6 @@ read_command_smt2 (BtorSMT2Parser *parser)
   switch (tag)
   {
     case BTOR_SET_LOGIC_TAG_SMT2:
-      if (parser->commands.all)
-        BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  1,
-                  "WARNING 'set-logic' not first command in '%s'",
-                  parser->infile_name);
       tag = read_token_smt2 (parser);
       if (tag == EOF)
       {
