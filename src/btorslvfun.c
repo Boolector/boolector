@@ -1754,20 +1754,25 @@ propagate (Btor *btor,
       {
         if (!equal_bv_assignments (app, fun->e[2]))
         {
-          if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
-          {
-            btor_hashint_table_add (conf_apps, app->id);
-            restart = find_conflict_app (btor, app, conf_apps);
-          }
-          else if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_ALL)
-            restart = false;
+#if 0
+		  if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
+		    {
+		      btor_hashint_table_add (conf_apps, app->id);
+		      restart = find_conflict_app (btor, app, conf_apps);
+		    }
+		  else if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_ALL)
+		    restart = false;
+#endif
 
           slv->stats.beta_reduction_conflicts++;
           add_lemma (btor, fun, app, 0);
           conflict = true;
 
-          /* stop at first conflict */
-          if (restart) break;
+#if 0
+		  /* stop at first conflict */
+		  if (restart)
+		    break;
+#endif
         }
       }
       else
