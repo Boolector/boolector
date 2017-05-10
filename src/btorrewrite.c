@@ -296,6 +296,7 @@ static bool
 is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
+  BtorNode *e0_const = 0, *e0_node = 0, *e1_const = 0, *e1_node = 0;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -325,28 +326,45 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
       && e0 != e1)
     return true;
 
-  if (real_e0->kind == BTOR_ADD_NODE)
+  if (btor_node_is_add (real_e0))
   {
-    if (btor_node_is_bv_const (real_e0->e[0])
-        && !is_const_zero_exp (btor, real_e0->e[0])
-        && BTOR_COND_INVERT_NODE (e0, real_e0->e[1]) == e1)
-      return true;
-    if (btor_node_is_bv_const (real_e0->e[1])
-        && !is_const_zero_exp (btor, real_e0->e[1])
-        && BTOR_COND_INVERT_NODE (e0, real_e0->e[0]) == e1)
+    if (btor_node_is_bv_const (real_e0->e[0]))
+    {
+      e0_const = real_e0->e[0];
+      e0_node  = real_e1->e[1];
+    }
+    else if (btor_node_is_bv_const (real_e0->e[1]))
+    {
+      e0_const = real_e0->e[1];
+      e0_node  = real_e1->e[0];
+    }
+
+    if (e0_const && !is_const_zero_exp (btor, e0_const)
+        && BTOR_COND_INVERT_NODE (e0, e0_node) == e1)
       return true;
   }
 
-  if (real_e1->kind == BTOR_ADD_NODE)
+  if (btor_node_is_add (real_e1))
   {
-    if (btor_node_is_bv_const (real_e1->e[0])
-        && !is_const_zero_exp (btor, real_e1->e[0])
-        && BTOR_COND_INVERT_NODE (e1, real_e1->e[1]) == e0)
+    if (btor_node_is_bv_const (real_e1->e[0]))
+    {
+      e1_const = real_e1->e[0];
+      e1_node  = real_e1->e[1];
+    }
+    else if (btor_node_is_bv_const (real_e1->e[1]))
+    {
+      e1_const = real_e1->e[1];
+      e1_node  = real_e1->e[0];
+    }
+
+    if (e1_const && !is_const_zero_exp (btor, e1_const)
+        && BTOR_COND_INVERT_NODE (e1, e1_node) == e1)
       return true;
-    if (btor_node_is_bv_const (real_e1->e[1])
-        && !is_const_zero_exp (btor, real_e1->e[1])
-        && BTOR_COND_INVERT_NODE (e1, real_e1->e[0]) == e0)
-      return true;
+  }
+
+  if (e0_const && e1_const)
+  {
+    if (e0_node == e1_node && e0_const != e1_const) return true;
   }
 
   return false;
