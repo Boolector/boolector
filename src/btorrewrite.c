@@ -331,12 +331,12 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
     if (btor_node_is_bv_const (real_e0->e[0]))
     {
       e0_const = real_e0->e[0];
-      e0_node  = real_e1->e[1];
+      e0_node  = real_e0->e[1];
     }
     else if (btor_node_is_bv_const (real_e0->e[1]))
     {
       e0_const = real_e0->e[1];
-      e0_node  = real_e1->e[0];
+      e0_node  = real_e0->e[0];
     }
 
     if (e0_const && !is_const_zero_exp (btor, e0_const)
@@ -362,9 +362,10 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
       return true;
   }
 
-  if (e0_const && e1_const)
+  if (e0_const && e1_const && !BTOR_IS_INVERTED_NODE (e0)
+      && !BTOR_IS_INVERTED_NODE (e1))
   {
-    if (e0_node == e1_node && e0_const != e1_const) return true;
+    return e0_node == e1_node && e0_const != e1_const;
   }
 
   return false;
