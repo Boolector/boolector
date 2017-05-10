@@ -362,8 +362,8 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
       return true;
   }
 
-  if (e0_const && e1_const && !BTOR_IS_INVERTED_NODE (e0)
-      && !BTOR_IS_INVERTED_NODE (e1))
+  if (e0_const && e1_const
+      && BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1))
   {
     return e0_node == e1_node && e0_const != e1_const;
   }
