@@ -29,7 +29,7 @@
 
 /*------------------------------------------------------------------------*/
 
-void boolector_set_btor_id (Btor *, BoolectorNode *, int);
+void boolector_set_btor_id (Btor *, BoolectorNode *, int32_t);
 
 /*------------------------------------------------------------------------*/
 
@@ -59,14 +59,14 @@ struct BtorBTORParser
   BtorMemMgr *mem;
   Btor *btor;
 
-  int nprefix;
+  uint32_t nprefix;
   BtorCharStack *prefix;
   FILE *infile;
   const char *infile_name;
   FILE *outfile;  // TODO not used at the moment, but will be with BTOR 2.0
-  int lineno;
-  int saved; /* boolean flag */
-  int saved_char;
+  uint32_t lineno;
+  bool saved;
+  int32_t saved_char;
   char *error;
 
   BoolectorNodePtrStack exps;
@@ -86,10 +86,10 @@ struct BtorBTORParser
   const char **ops;
 
   uint32_t idx;
-  int verbosity;
+  uint32_t verbosity;
 
-  int found_arrays;
-  int found_lambdas;
+  bool found_arrays;
+  bool found_lambdas;
 };
 
 /*------------------------------------------------------------------------*/
@@ -146,15 +146,15 @@ hash_op (const char *str, unsigned salt)
 
 /*------------------------------------------------------------------------*/
 
-static int
+static int32_t
 nextch_btor (BtorBTORParser *parser)
 {
-  int ch;
+  int32_t ch;
 
   if (parser->saved)
   {
     ch            = parser->saved_char;
-    parser->saved = 0;
+    parser->saved = false;
   }
   else if (parser->prefix
            && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
@@ -170,12 +170,12 @@ nextch_btor (BtorBTORParser *parser)
 }
 
 static void
-savech_btor (BtorBTORParser *parser, int ch)
+savech_btor (BtorBTORParser *parser, int32_t ch)
 {
   assert (!parser->saved);
 
   parser->saved_char = ch;
-  parser->saved      = 1;
+  parser->saved      = true;
 
   if (ch == '\n')
   {
@@ -187,7 +187,7 @@ savech_btor (BtorBTORParser *parser, int ch)
 static const char *
 parse_non_negative_int (BtorBTORParser *parser, uint32_t *res_ptr)
 {
-  int res, ch;
+  int32_t res, ch;
 
   ch = nextch_btor (parser);
   if (!isdigit (ch)) return perr_btor (parser, "expected digit");
@@ -214,7 +214,7 @@ parse_non_negative_int (BtorBTORParser *parser, uint32_t *res_ptr)
 static const char *
 parse_positive_int (BtorBTORParser *parser, uint32_t *res_ptr)
 {
-  int res, ch;
+  int32_t res, ch;
 
   ch = nextch_btor (parser);
   if (!isdigit (ch)) return perr_btor (parser, "expected digit");
@@ -234,7 +234,7 @@ parse_positive_int (BtorBTORParser *parser, uint32_t *res_ptr)
 static const char *
 parse_non_zero_int (BtorBTORParser *parser, int32_t *res_ptr)
 {
-  int res, sign, ch;
+  int32_t res, sign, ch;
 
   ch = nextch_btor (parser);
 
@@ -336,7 +336,7 @@ parse_exp (BtorBTORParser *parser,
 static const char *
 parse_space (BtorBTORParser *parser)
 {
-  int ch;
+  int32_t ch;
 
   ch = nextch_btor (parser);
   if (ch != ' ' && ch != '\t')
@@ -353,10 +353,10 @@ SKIP:
   return 0;
 }
 
-static int
+static int32_t
 parse_symbol (BtorBTORParser *parser)
 {
-  int ch;
+  int32_t ch;
 
   while ((ch = nextch_btor (parser)) == ' ' || ch == '\t')
     ;
@@ -465,7 +465,7 @@ parse_array (BtorBTORParser *parser, uint32_t width)
   BTOR_PUSH_STACK (parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
 
-  parser->found_arrays = 1;
+  parser->found_arrays = true;
 
   return res;
 }
@@ -506,7 +506,7 @@ static BoolectorNode *
 parse_const (BtorBTORParser *parser, uint32_t width)
 {
   BoolectorNode *res;
-  int ch;
+  int32_t ch;
   uint32_t cwidth;
 
   if (parse_space (parser)) return 0;
@@ -545,7 +545,7 @@ parse_const (BtorBTORParser *parser, uint32_t width)
 static BoolectorNode *
 parse_consth (BtorBTORParser *parser, uint32_t width)
 {
-  int ch;
+  int32_t ch;
   uint32_t cwidth;
   char *tmp, *ext;
   BtorBitVector *tmpbv, *extbv;
@@ -574,7 +574,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
 
   tmp =
       btor_util_hex_to_bin_str_n (parser->mem, parser->constant.start, cwidth);
-  cwidth = (int) strlen (tmp);
+  cwidth = strlen (tmp);
 
   if (cwidth > width)
   {
@@ -615,7 +615,7 @@ parse_consth (BtorBTORParser *parser, uint32_t width)
 static BoolectorNode *
 parse_constd (BtorBTORParser *parser, uint32_t width)
 {
-  int ch;
+  int32_t ch;
   uint32_t cwidth;
   char *tmp, *ext;
   BtorBitVector *tmpbv, *extbv;
@@ -662,7 +662,7 @@ parse_constd (BtorBTORParser *parser, uint32_t width)
 
   savech_btor (parser, ch);
 
-  cwidth = (int) strlen (tmp);
+  cwidth = strlen (tmp);
   if (cwidth > width)
   {
     (void) perr_btor (parser,
@@ -1012,7 +1012,7 @@ parse_iff (BtorBTORParser *parser, uint32_t width)
 
 static BoolectorNode *
 parse_compare_and_overflow (BtorBTORParser *parser,
-                            int width,
+                            uint32_t width,
                             Binary f,
                             bool can_be_array)
 {
@@ -1542,7 +1542,7 @@ parse_lambda (BtorBTORParser *parser, uint32_t width)
   BTOR_DELETE (parser->mem, params);
   boolector_release (parser->btor, exp);
 
-  parser->found_lambdas = 1;
+  parser->found_lambdas = true;
   BTOR_PUSH_STACK (parser->lambdas, res);
 
   return res;
@@ -1551,7 +1551,7 @@ parse_lambda (BtorBTORParser *parser, uint32_t width)
 static BoolectorNode *
 parse_apply (BtorBTORParser *parser, uint32_t width)
 {
-  int i, arity;
+  uint32_t i, arity;
   BoolectorNode *res, *fun, *arg;
   BoolectorNodePtrStack args;
 
@@ -1798,7 +1798,7 @@ delete_btor_parser (BtorBTORParser *parser)
 {
   BoolectorNode *e;
   BtorMemMgr *mm;
-  int i;
+  uint32_t i;
 
   for (i = 0; i < BTOR_COUNT_STACK (parser->exps); i++)
     if ((e = parser->exps.start[i]))
@@ -1837,7 +1837,7 @@ parse_btor_parser (BtorBTORParser *parser,
                    BtorParseResult *res)
 {
   BtorOpParser op_parser;
-  int ch;
+  int32_t ch;
   uint32_t width;
   BoolectorNode *e;
 
@@ -1854,7 +1854,7 @@ parse_btor_parser (BtorBTORParser *parser,
   parser->infile_name = infile_name;
   parser->outfile     = outfile;
   parser->lineno      = 1;
-  parser->saved       = 0;
+  parser->saved       = false;
 
   BTOR_INIT_STACK (parser->mem, parser->lambdas);
   BTOR_INIT_STACK (parser->mem, parser->params);
