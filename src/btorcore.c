@@ -4142,6 +4142,7 @@ check_failed_assumptions (Btor *btor)
   Btor *clone;
   BtorNode *ass, *cass;
   BtorPtrHashTableIterator it;
+  BtorNodePtrStack stack;
 
   clone = btor_clone_exp_layer (btor, 0);
   btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
@@ -4157,6 +4158,7 @@ check_failed_assumptions (Btor *btor)
   clone->slv = 0;
 
   /* assert failed assumptions */
+  BTOR_INIT_STACK (btor->mm, stack);
   btor_iter_hashptr_init (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
@@ -4165,10 +4167,16 @@ check_failed_assumptions (Btor *btor)
     {
       cass = btor_node_match (clone, ass);
       assert (cass);
-      btor_assert_exp (clone, cass);
-      btor_node_release (clone, cass);
+      BTOR_PUSH_STACK (stack, cass);
     }
   }
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cass = BTOR_POP_STACK (stack);
+    btor_assert_exp (clone, cass);
+    btor_node_release (clone, cass);
+  }
+  BTOR_RELEASE_STACK (stack);
 
   /* cleanup assumptions */
   btor_iter_hashptr_init (&it, clone->assumptions);
