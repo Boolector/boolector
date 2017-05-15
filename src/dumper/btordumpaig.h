@@ -12,30 +12,31 @@
 #define BTORDUMPAIG_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "btoraig.h"
 #include "btortypes.h"
 
 /* Dumps AIG in AIGER format to file. */
 void btor_dumpaig_dump_aig (BtorAIGMgr* amgr,
-                            int binary,
+                            bool is_binary,
                             FILE* output,
                             BtorAIG* aig);
 
 /* Dumps sequential AIGER model to file. */
 void btor_dumpaig_dump_seq (BtorAIGMgr* amgr,
-                            int binary,
+                            bool is_binary,
                             FILE* output,
-                            int naigs,
+                            int32_t naigs,
                             BtorAIG** aigs,
-                            int nregs,
+                            int32_t nregs,
                             BtorAIG** regs,
                             BtorAIG** nexts,
                             BtorPtrHashTable* back_annotation);
 
 /* Dumps AIGs in AIGER format to file. */
 void btor_dumpaig_dump (Btor* btor,
-                        FILE* output,
                         bool is_binary,
+                        FILE* output,
                         bool merge_roots);
 #endif

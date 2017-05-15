@@ -17,12 +17,12 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
-static unsigned
+static uint32_t
 aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 {
   BtorPtrHashBucket *b;
   BtorAIG *real_aig;
-  unsigned res;
+  uint32_t res;
 
   if (aig == BTOR_AIG_FALSE) return 0;
 
@@ -33,7 +33,7 @@ aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
   b = btor_hashptr_table_get (table, real_aig);
   assert (b);
 
-  res = 2 * (unsigned) b->data.as_int;
+  res = 2 * (uint32_t) b->data.as_int;
 
   if (BTOR_IS_INVERTED_AIG (aig)) res ^= 1;
 
@@ -41,13 +41,16 @@ aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 }
 
 void
-btor_dumpaig_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
+btor_dumpaig_dump_aig (BtorAIGMgr *amgr,
+                       bool is_binary,
+                       FILE *output,
+                       BtorAIG *aig)
 {
-  btor_dumpaig_dump_seq (amgr, binary, output, 1, &aig, 0, 0, 0, 0);
+  btor_dumpaig_dump_seq (amgr, is_binary, output, 1, &aig, 0, 0, 0, 0);
 }
 
 void
-btor_dumpaig_dump (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
+btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
 {
   assert (btor->lambdas->count == 0);
   assert (btor->ufs->count == 0);
@@ -58,7 +61,7 @@ btor_dumpaig_dump (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   BtorAIG *tmp, *merged;
   BtorAIGMgr *amgr;
   BtorAIGVecMgr *avmgr;
-  int lazy_synthesize;
+  uint32_t lazy_synthesize;
   BtorAIGPtrStack roots;
 
   BTOR_INIT_STACK (btor->mm, roots);
@@ -124,20 +127,20 @@ btor_dumpaig_dump (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 
 void
 btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
-                       int binary,
+                       bool is_binary,
                        FILE *file,
-                       int naigs,
+                       int32_t naigs,
                        BtorAIG **aigs,
-                       int nregs,
+                       int32_t nregs,
                        BtorAIG **regs,
                        BtorAIG **nexts,
                        BtorPtrHashTable *backannotation)
 {
-  unsigned aig_id, left_id, right_id, tmp, delta;
+  uint32_t aig_id, left_id, right_id, tmp, delta;
   BtorPtrHashTable *table, *latches;
   BtorAIG *aig, *left, *right;
   BtorPtrHashBucket *p, *b;
-  int M, I, L, O, A, i, l;
+  int32_t M, I, L, O, A, i, l;
   BtorAIGPtrStack stack;
   unsigned char ch;
   BtorMemMgr *mm;
@@ -285,7 +288,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
 
   O = naigs;
 
-  fprintf (file, "a%cg %d %d %d %d %d\n", binary ? 'i' : 'a', M, I, L, O, A);
+  fprintf (file, "a%cg %d %d %d %d %d\n", is_binary ? 'i' : 'a', M, I, L, O, A);
 
   /* Only need to print inputs in non binary mode.
    */
@@ -301,7 +304,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
 
     if (btor_hashptr_table_get (latches, aig)) continue;
 
-    if (!binary) fprintf (file, "%d\n", 2 * p->data.as_int);
+    if (!is_binary) fprintf (file, "%d\n", 2 * p->data.as_int);
 
     i++;
   }
@@ -310,7 +313,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
    */
   for (i = 0; i < nregs; i++)
   {
-    if (!binary) fprintf (file, "%u ", aiger_encode_aig (table, regs[i]));
+    if (!is_binary) fprintf (file, "%u ", aiger_encode_aig (table, regs[i]));
 
     fprintf (file, "%u\n", aiger_encode_aig (table, nexts[i]));
   }
@@ -333,16 +336,16 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
     left  = btor_aig_get_left_child (amgr, aig);
     right = btor_aig_get_right_child (amgr, aig);
 
-    aig_id   = 2 * (unsigned) p->data.as_int;
+    aig_id   = 2 * (uint32_t) p->data.as_int;
     left_id  = aiger_encode_aig (table, left);
     right_id = aiger_encode_aig (table, right);
 
-    if (left_id < right_id) BTOR_SWAP (int, left_id, right_id);
+    if (left_id < right_id) BTOR_SWAP (int32_t, left_id, right_id);
 
     assert (aig_id > left_id);
     assert (left_id >= right_id); /* strict ? */
 
-    if (binary)
+    if (is_binary)
     {
       for (i = 0; i < 2; i++)
       {
