@@ -52,7 +52,7 @@ struct BtorParseOpt
   uint32_t incremental;
   BtorParseMode incremental_smt1; /* smt v1 only */
   uint32_t verbosity;
-  uint32_t need_model;
+  uint32_t modelgen;
   uint32_t interactive;
 };
 

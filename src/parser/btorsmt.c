@@ -187,7 +187,7 @@ struct BtorSMTParser
 
   uint32_t incremental;
   BtorParseMode incremental_smt1;
-  uint32_t need_model;
+  uint32_t modelgen;
 
   struct
   {
@@ -370,7 +370,7 @@ delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (node->exp) boolector_release (parser->btor, node->exp);
 
-  if (!parser->need_model && isleaf (car (node)))
+  if (!parser->modelgen && isleaf (car (node)))
   {
     s = strip (car (node));
     if (s->last == node) remove_and_delete_symbol (parser, s);
@@ -677,7 +677,7 @@ new_smt_parser (Btor *btor, BtorParseOpt *opts)
   res->verbosity        = opts->verbosity;
   res->incremental      = opts->incremental;
   res->incremental_smt1 = opts->incremental_smt1;
-  res->need_model       = opts->need_model;
+  res->modelgen         = opts->modelgen;
 
   smt_message (res, 2, "initializing SMT parser");
   if (opts->incremental)
@@ -1219,7 +1219,7 @@ btorsmtpp (BtorSMTNode *node)
 static void
 push_input (BtorSMTParser *parser, BoolectorNode *v)
 {
-  if (parser->need_model)
+  if (parser->modelgen)
     BTOR_PUSH_STACK (parser->inputs, boolector_copy (parser->btor, v));
 }
 
