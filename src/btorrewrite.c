@@ -4581,6 +4581,7 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
       BTOR_DEC_REC_RW_CALL (btor);
       if (eq == BTOR_INVERT_NODE (btor->true_exp))
       {
+        btor_node_release (btor, eq);
         prop_down = true;
         break;
       }
@@ -4588,7 +4589,6 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
       {
         num_eq++;
       }
-
       btor_node_release (btor, eq);
     }
 
