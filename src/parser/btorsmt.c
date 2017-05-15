@@ -182,32 +182,32 @@ struct BtorSMTParser
 {
   BtorMemMgr *mem;
   Btor *btor;
-  int verbosity;
-  int parsed;
+  uint32_t verbosity;
+  bool parsed;
 
-  int incremental;
+  uint32_t incremental;
   BtorParseMode incremental_smt1;
-  int model;
+  uint32_t need_model;
 
   struct
   {
-    int parsed, handled;
+    uint32_t nparsed, handled;
   } assumptions;
   struct
   {
-    int parsed, handled, checked;
+    uint32_t nparsed, handled, nchecked;
   } formulas;
 
-  int nprefix;
+  uint32_t nprefix;
   BtorCharStack *prefix;
   FILE *infile;
   const char *infile_name;
   FILE *outfile;
-  int lineno;
-  int saved; /* boolean flag */
-  int saved_char;
+  uint32_t lineno;
+  bool saved;
+  int32_t saved_char;
 
-  unsigned long long bytes;
+  uint64_t bytes;
 
   BtorLogic required_logic;
 
@@ -218,10 +218,10 @@ struct BtorSMTParser
 
   BtorSMTSymbol *symbol;
   BtorSMTSymbol **symtab;
-  unsigned szsymtab;
-  unsigned symbols;
+  uint32_t szsymtab;
+  uint32_t symbols;
 
-  unsigned constants;
+  uint32_t constants;
 
   BtorSMTNode *bind;
   BtorSMTNode *translated;
@@ -231,7 +231,7 @@ struct BtorSMTParser
   BtorSMTNodePtrStack delete;
   BtorIntStack heads;
 
-  unsigned nodes;
+  uint32_t nodes;
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   BtorSMTNode *first;
   BtorSMTNode *last;
@@ -243,7 +243,7 @@ struct BtorSMTParser
 
 /*------------------------------------------------------------------------*/
 
-static unsigned btor_smt_primes[] = {1001311, 2517041, 3543763, 4026227};
+static uint32_t btor_smt_primes[] = {1001311, 2517041, 3543763, 4026227};
 #define BTOR_SMT_PRIMES ((sizeof btor_smt_primes) / sizeof *btor_smt_primes)
 
 static void *
@@ -297,10 +297,10 @@ cons (BtorSMTParser *parser, void *h, void *t)
   return res;
 }
 
-static unsigned
+static uint32_t
 hash_name (const char *name)
 {
-  unsigned i, res;
+  uint32_t i, res;
   const char *p;
   char ch;
 
@@ -309,7 +309,7 @@ hash_name (const char *name)
 
   for (p = name; (ch = *p); p++)
   {
-    res += btor_smt_primes[i++] * (unsigned) ch;
+    res += btor_smt_primes[i++] * (uint32_t) ch;
 
     if (i == BTOR_SMT_PRIMES) i = 0;
 
@@ -322,7 +322,7 @@ hash_name (const char *name)
 static BtorSMTSymbol **
 find_symbol_position (BtorSMTParser *parser, const char *name)
 {
-  unsigned h = hash_name (name) & (parser->szsymtab - 1);
+  uint32_t h = hash_name (name) & (parser->szsymtab - 1);
   BtorSMTSymbol **p, *s;
 
   for (p = parser->symtab + h; (s = *p) && strcmp (name, s->name); p = &s->next)
@@ -370,7 +370,7 @@ delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (node->exp) boolector_release (parser->btor, node->exp);
 
-  if (!parser->model && isleaf (car (node)))
+  if (!parser->need_model && isleaf (car (node)))
   {
     s = strip (car (node));
     if (s->last == node) remove_and_delete_symbol (parser, s);
@@ -405,17 +405,15 @@ delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 }
 
 static void
-smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
+smt_message (BtorSMTParser *parser, uint32_t level, const char *fmt, ...)
 {
   va_list ap;
-
-  assert (level >= 0);
 
   if (parser->verbosity < level) return;
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->formulas.checked);
+  if (parser->incremental) printf ("%d : ", parser->formulas.nchecked);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -454,11 +452,11 @@ recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
   }
 }
 
-static unsigned
+static uint32_t
 length (BtorSMTNode *node)
 {
   BtorSMTNode *p;
-  unsigned res;
+  uint32_t res;
 
   assert (!isleaf (node));
 
@@ -469,7 +467,7 @@ length (BtorSMTNode *node)
 }
 
 static bool
-is_list_of_length (BtorSMTNode *node, unsigned l)
+is_list_of_length (BtorSMTNode *node, uint32_t l)
 {
   if (isleaf (node)) return false;
 
@@ -480,7 +478,7 @@ static void
 release_smt_symbols (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p, *next;
-  unsigned i;
+  uint32_t i;
 
   for (i = 0; i < parser->szsymtab; i++)
   {
@@ -614,7 +612,7 @@ static void
 enlarge_symtab (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p, *next, **old_symtab, **new_symtab;
-  unsigned h, i, old_size, new_size;
+  uint32_t h, i, old_size, new_size;
 
   old_symtab = parser->symtab;
   old_size   = parser->szsymtab;
@@ -670,7 +668,7 @@ new_smt_parser (Btor *btor, BtorParseOpt *opts)
   BtorMemMgr *mem;
   BtorSMTParser *res;
   unsigned char type;
-  int ch;
+  int32_t ch;
 
   mem = btor_mem_mgr_new ();
   BTOR_NEW (mem, res);
@@ -679,7 +677,7 @@ new_smt_parser (Btor *btor, BtorParseOpt *opts)
   res->verbosity        = opts->verbosity;
   res->incremental      = opts->incremental;
   res->incremental_smt1 = opts->incremental_smt1;
-  res->model            = opts->need_model;
+  res->need_model       = opts->need_model;
 
   smt_message (res, 2, "initializing SMT parser");
   if (opts->incremental)
@@ -828,15 +826,15 @@ new_smt_parser (Btor *btor, BtorParseOpt *opts)
   return res;
 }
 
-static int
+static int32_t
 nextch_smt (BtorSMTParser *parser)
 {
-  int res;
+  int32_t res;
 
   if (parser->saved)
   {
     res           = parser->saved_char;
-    parser->saved = 0;
+    parser->saved = false;
   }
   else if (parser->prefix
            && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
@@ -856,12 +854,12 @@ nextch_smt (BtorSMTParser *parser)
 }
 
 static void
-savech_smt (BtorSMTParser *parser, int ch)
+savech_smt (BtorSMTParser *parser, int32_t ch)
 {
   assert (!parser->saved);
 
   parser->saved_char = ch;
-  parser->saved      = 1;
+  parser->saved      = true;
 
   if (ch == '\n')
   {
@@ -871,7 +869,7 @@ savech_smt (BtorSMTParser *parser, int ch)
 }
 
 static unsigned char
-int2type (BtorSMTParser *parser, int ch)
+int2type (BtorSMTParser *parser, int32_t ch)
 {
   if (0 > ch || ch >= 256) return 0;
   return parser->types[ch];
@@ -892,7 +890,8 @@ nextok (BtorSMTParser *parser)
 {
   unsigned char type;
   BtorSMTToken res;
-  int ch, count;
+  int32_t ch;
+  uint32_t count;
 
   parser->symbol = 0;
   BTOR_RESET_STACK (parser->buffer);
@@ -1186,9 +1185,9 @@ UNEXPECTED_CHARACTER:
 }
 
 static void
-btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
+btorsmtppaux (FILE *file, BtorSMTNode *node, uint32_t indent)
 {
-  int i;
+  uint32_t i;
 
   if (isleaf (node))
     fprintf (file, "%s", ((BtorSMTSymbol *) strip (node))->name);
@@ -1220,7 +1219,7 @@ btorsmtpp (BtorSMTNode *node)
 static void
 push_input (BtorSMTParser *parser, BoolectorNode *v)
 {
-  if (parser->model)
+  if (parser->need_model)
     BTOR_PUSH_STACK (parser->inputs, boolector_copy (parser->btor, v));
 }
 
@@ -1228,18 +1227,18 @@ static const char *
 next_numeral (const char *str)
 {
   const char *p = str;
-  int ch;
+  int32_t ch;
 
   assert (str);
 
-  if (isdigit ((int) *p++))
+  if (isdigit ((int32_t) *p++))
   {
     while (isdigit (ch = *p++))
       ;
 
     if (ch == ':')
     {
-      assert (isdigit ((int) *p));
+      assert (isdigit ((int32_t) *p));
       return p;
     }
 
@@ -1250,7 +1249,7 @@ next_numeral (const char *str)
     while ((ch = *p++))
       if (ch == '[')
       {
-        assert (isdigit ((int) *p));
+        assert (isdigit ((int32_t) *p));
         return p;
       }
   }
@@ -1258,12 +1257,12 @@ next_numeral (const char *str)
   return 0;
 }
 
-static int
+static int32_t
 extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 {
   BtorSMTSymbol *symbol, *sortsymbol;
   BtorSMTNode *node, *sort;
-  int addrlen, datalen;
+  int32_t addrlen, datalen;
   const char *p;
   BoolectorSort s, is, es;
 
@@ -1346,7 +1345,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   return 1;
 }
 
-static int
+static bool
 extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
@@ -1358,10 +1357,10 @@ extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
   for (p = list; p; p = cdr (p))
     if (!extrafun (parser, car (p))) return 0;
 
-  return !parser->error;
+  return parser->error == 0;
 }
 
-static int
+static bool
 extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
 {
   BtorSMTSymbol *symbol;
@@ -1384,10 +1383,10 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
   boolector_release_sort (parser->btor, s);
   push_input (parser, symbol->exp);
 
-  return 1;
+  return true;
 }
 
-static int
+static bool
 extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
@@ -1397,7 +1396,7 @@ extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
                       "expected non empty list as argument to ':extrapreds'");
 
   for (p = list; p; p = cdr (p))
-    if (!extrapred (parser, car (p))) return 0;
+    if (!extrapred (parser, car (p))) return false;
 
   return !parser->error;
 }
@@ -1408,10 +1407,10 @@ node2token (BtorSMTNode *node)
   return (node && isleaf (node)) ? strip (node)->token : BTOR_SMTOK_ERR;
 }
 
-static int
+static bool
 is_let_or_flet (BtorSMTNode *node)
 {
-  int token = node2token (node);
+  BtorSMTToken token = node2token (node);
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
@@ -1422,7 +1421,8 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
   char *tmp, *ext, ch;
   BtorBitVector *tmpbv, *extbv;
   BtorSMTSymbol *symbol;
-  int len, tlen, token;
+  int32_t len, tlen;
+  BtorSMTToken token;
 
   if (isleaf (node))
   {
@@ -1439,15 +1439,15 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
     p = symbol->name;
     if (*p++ == 'b' && *p++ == 'v')
     {
-      if (isdigit ((int) *p))
+      if (isdigit ((int32_t) *p))
       {
         start = p++;
-        for (end = p; isdigit ((int) *end); end++)
+        for (end = p; isdigit ((int32_t) *end); end++)
           ;
 
         if (*end == '[')
         {
-          for (p = end + 1; isdigit ((int) *p); p++)
+          for (p = end + 1; isdigit ((int32_t) *p); p++)
             ;
 
           if (*p == ']')
@@ -1458,7 +1458,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
               tmp =
                   btor_util_dec_to_bin_str_n (parser->mem, start, end - start);
 
-              tlen = (int) strlen (tmp);
+              tlen = (int32_t) strlen (tmp);
 
               if (tlen <= len)
               {
@@ -1504,14 +1504,14 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
       }
       else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
       {
-        for (start = p; isxdigit ((int) *p); p++)
+        for (start = p; isxdigit ((int32_t) *p); p++)
           ;
 
         if (start < p && !*p)
         {
           len  = 4 * (p - start);
           tmp  = btor_util_hex_to_bin_str (parser->mem, start);
-          tlen = (int) strlen (tmp);
+          tlen = (int32_t) strlen (tmp);
           assert (tlen <= len);
           if (tlen < len)
           {
@@ -1654,7 +1654,8 @@ translate_binary (BtorSMTParser *parser,
 static void
 translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  int isarray0, isarray1, len0, len1;
+  bool isarray0, isarray1;
+  uint32_t len0, len1;
   BtorSMTNode *c0, *c1;
   BoolectorNode *a0, *a1;
 
@@ -1879,7 +1880,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
   BoolectorNode *tmp, *exp, *res;
   BtorSMTSymbol *symbol;
   const char *p;
-  int i, count;
+  int32_t i, count;
 
   assert (!node->exp);
 
@@ -1931,7 +1932,7 @@ translate_extend (BtorSMTParser *parser,
   BtorSMTSymbol *symbol;
   const char *p;
   BoolectorNode *exp;
-  int pad;
+  int32_t pad;
 
   assert (!node->exp);
 
@@ -1963,7 +1964,7 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BoolectorNode *exp, *l, *r;
   BtorSMTSymbol *symbol;
-  int token;
+  BtorSMTToken token;
   uint32_t shift, width;
   const char *p;
 
@@ -2275,7 +2276,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   BtorSMTNode *assignment, *body;
   BtorSMTSymbol *symbol;
   BtorSMTToken token;
-  int start, end;
+  uint32_t start, end;
   BoolectorNode *exp;
 
   assert (BTOR_EMPTY_STACK (parser->work));
@@ -2599,12 +2600,12 @@ smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                 BoolectorNode *exp)
 {
   char formula[40], *prefix;
-  int satres, checked, ndigits;
-  assert (parser->formulas.checked < parser->formulas.parsed);
-  sprintf (formula, "%d", parser->formulas.checked);
-  checked = 1;
+  int32_t satres, nchecked, ndigits;
+  assert (parser->formulas.nchecked < parser->formulas.nparsed);
+  sprintf (formula, "%d", parser->formulas.nchecked);
+  nchecked = 1;
 
-  if (parser->formulas.checked + 1 == parser->formulas.parsed)
+  if (parser->formulas.nchecked + 1 == parser->formulas.nparsed)
   {
     smt_message (parser, 3, "adding last ':formula' %s permanently", formula);
     boolector_assert (parser->btor, exp);
@@ -2633,22 +2634,22 @@ smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   }
   if (parser->verbosity >= 2) boolector_print_stats (parser->btor);
 
-  parser->formulas.checked += checked;
+  parser->formulas.nchecked += nchecked;
 
-  ndigits = btor_util_num_digits (parser->formulas.checked);
+  ndigits = btor_util_num_digits (parser->formulas.nchecked);
   BTOR_NEWN (parser->mem, prefix, ndigits + 1);
-  sprintf (prefix, "%d:", parser->formulas.checked);
+  sprintf (prefix, "%d:", parser->formulas.nchecked);
   boolector_set_msg_prefix (parser->btor, prefix);
   BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
 
-  if (parser->formulas.checked == parser->formulas.parsed)
+  if (parser->formulas.nchecked == parser->formulas.nparsed)
     boolector_set_msg_prefix (parser->btor, 0);
 }
 
-static int
+static bool
 continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
-  if (res->result != BOOLECTOR_SAT) return 1;
+  if (res->result != BOOLECTOR_SAT) return true;
   return parser->incremental
          && parser->incremental_smt1
                 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
@@ -2899,7 +2900,7 @@ count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
   BtorSMTNode *p, *n;
   BtorSMTSymbol *s;
 
-  parser->formulas.parsed = parser->assumptions.parsed = 0;
+  parser->formulas.nparsed = parser->assumptions.nparsed = 0;
 
   for (p = top; p; p = cdr (p))
   {
@@ -2909,9 +2910,9 @@ count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
 
     s = strip (n);
 
-    if (s->token == BTOR_SMTOK_FORMULA) parser->formulas.parsed++;
+    if (s->token == BTOR_SMTOK_FORMULA) parser->formulas.nparsed++;
 
-    if (s->token == BTOR_SMTOK_ASSUMPTION) parser->assumptions.parsed++;
+    if (s->token == BTOR_SMTOK_ASSUMPTION) parser->assumptions.nparsed++;
   }
 }
 
@@ -2920,7 +2921,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
 {
   BtorSMTNode *n, *h, *t;
   BtorSMTSymbol *s;
-  int occs = 0;
+  uint32_t occs = 0;
 
   assert (BTOR_EMPTY_STACK (parser->stack));
 
@@ -2953,7 +2954,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
       BTOR_PUSH_STACK (parser->stack, h);
   }
 
-  smt_message (parser, 1, "found %d occurrences of symbols", occs);
+  smt_message (parser, 1, "found %u occurrences of symbols", occs);
 }
 
 /* Note: we need prefix in case of stdin as input (also applies to compressed
@@ -2969,10 +2970,10 @@ parse (BtorSMTParser *parser,
   BtorSMTNode *node, *top, **p, **first;
   BtorSMTToken token;
   const char *err;
-  int head;
+  int32_t head;
 
   assert (!parser->parsed);
-  parser->parsed = 1;
+  parser->parsed = true;
 
   smt_message (parser, 1, "parsing SMT file %s", infile_name);
 
@@ -2982,7 +2983,7 @@ parse (BtorSMTParser *parser,
   parser->infile      = infile;
   parser->outfile     = outfile;
   parser->lineno      = 1;
-  parser->saved       = 0;
+  parser->saved       = false;
 
   BTOR_CLR (res);
 
@@ -3033,9 +3034,10 @@ NEXT_TOKEN:
 
     count_assumptions_and_formulas (parser, top);
 
-    smt_message (parser, 1, "found %d assumptions", parser->assumptions.parsed);
+    smt_message (
+        parser, 1, "found %d assumptions", parser->assumptions.nparsed);
 
-    smt_message (parser, 1, "found %d formulas", parser->formulas.parsed);
+    smt_message (parser, 1, "found %d formulas", parser->formulas.nparsed);
 
     set_last_occurrence_of_symbols (parser, top);
 
