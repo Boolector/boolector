@@ -4541,9 +4541,9 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_prop_apply_update (btor, e0, e1));
 
-  uint32_t propagations = 0;
+  uint32_t propagations = 0, num_eq;
   bool prop_down;
-  BtorNode *cur, *args, *value, *a1, *a2, *result = 0;
+  BtorNode *cur, *args, *value, *a1, *a2, *result = 0, *eq;
   BtorArgsIterator it1, it2;
 
   cur = e0;
@@ -4560,6 +4560,7 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
 
     prop_down = false;
+    num_eq    = 0;
     assert (e1->sort_id == args->sort_id);
     btor_iter_args_init (&it1, e1);
     btor_iter_args_init (&it2, args);
@@ -4574,6 +4575,28 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
         prop_down = true;
         break;
       }
+
+      BTOR_INC_REC_RW_CALL (btor);
+      eq = rewrite_eq_exp (btor, a1, a2);
+      BTOR_DEC_REC_RW_CALL (btor);
+      if (eq == BTOR_INVERT_NODE (btor->true_exp))
+      {
+        prop_down = true;
+        break;
+      }
+      else if (eq == btor->true_exp)
+      {
+        num_eq++;
+      }
+
+      btor_node_release (btor, eq);
+    }
+
+    if (num_eq == btor_node_args_get_arity (btor, args))
+    {
+      propagations++;
+      result = btor_node_copy (btor, value);
+      break;
     }
 
     if (prop_down)
