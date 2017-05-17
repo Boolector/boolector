@@ -84,17 +84,17 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
   assert (aprop);
 
   int32_t bit;
-  uint32_t i, j, len;
+  uint32_t i, j, width;
   BtorBitVector *res;
   BtorAIGVec *av;
 
   if (!exp->av) return btor_bv_new (mm, btor_node_get_width (exp->btor, exp));
 
-  av  = exp->av;
-  len = av->len;
-  res = btor_bv_new (mm, len);
+  av    = exp->av;
+  width = av->width;
+  res   = btor_bv_new (mm, width);
 
-  for (i = 0, j = len - 1; i < len; i++, j--)
+  for (i = 0, j = width - 1; i < width; i++, j--)
   {
     bit = get_assignment_aig (aprop, av->aigs[j]);
     assert (bit == -1 || bit == 1);
@@ -253,7 +253,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     root = btor_iter_hashptr_next (&it);
 
     if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
-    assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
+    assert (BTOR_REAL_ADDR_NODE (root)->av->width == 1);
     aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;

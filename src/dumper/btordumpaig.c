@@ -84,7 +84,7 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   {
     av =
         btor_exp_to_aigvec (btor, btor_iter_hashptr_next (&it), backannotation);
-    assert (av->len == 1);
+    assert (av->width == 1);
     if (merge_roots)
     {
       tmp = btor_aig_and (amgr, merged, av->aigs[0]);

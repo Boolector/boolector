@@ -239,7 +239,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   assert (init_x_values || BTOR_REAL_ADDR_NODE (exp)->av);
   assert (init_x_values == 0 || init_x_values == 1);
 
-  uint32_t i, j, len;
+  uint32_t i, j, width;
   int32_t bit;
   bool inv;
   BtorNode *real_exp;
@@ -252,13 +252,13 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   if (!real_exp->av)
     return btor_bv_new (mm, btor_node_get_width (real_exp->btor, real_exp));
 
-  amgr = btor_get_aig_mgr (real_exp->btor);
-  av   = real_exp->av;
-  len  = av->len;
-  res  = btor_bv_new (mm, len);
-  inv  = BTOR_IS_INVERTED_NODE (exp);
+  amgr  = btor_get_aig_mgr (real_exp->btor);
+  av    = real_exp->av;
+  width = av->width;
+  res   = btor_bv_new (mm, width);
+  inv   = BTOR_IS_INVERTED_NODE (exp);
 
-  for (i = 0, j = len - 1; i < len; i++, j--)
+  for (i = 0, j = width - 1; i < width; i++, j--)
   {
     bit = btor_aig_get_assignment (amgr, av->aigs[j]);
     if (init_x_values && bit == 0) bit = -1;

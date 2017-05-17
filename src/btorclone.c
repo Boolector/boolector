@@ -1046,7 +1046,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     if (!exp_layer_only)
     {
       if (!btor_node_is_fun (cur) && cur->av)
-        allocated += sizeof (*(cur->av)) + cur->av->len * sizeof (BtorAIG *);
+        allocated += sizeof (*(cur->av)) + cur->av->width * sizeof (BtorAIG *);
     }
     if (btor_node_is_lambda (cur) && btor_node_lambda_get_static_rho (cur))
       allocated += MEM_PTR_HASH_TABLE (btor_node_lambda_get_static_rho (cur));

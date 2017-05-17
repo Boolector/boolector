@@ -541,8 +541,8 @@ btor_chkclone_exp (Btor *btor,
     if (real_exp->av)
     {
       assert (real_cexp->av);
-      assert (real_exp->av->len == real_cexp->av->len);
-      for (i = 0; i < real_exp->av->len; i++)
+      assert (real_exp->av->width == real_cexp->av->width);
+      for (i = 0; i < real_exp->av->width; i++)
         chkclone_aig (real_exp->av->aigs[i], real_cexp->av->aigs[i]);
     }
     else

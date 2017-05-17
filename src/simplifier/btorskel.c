@@ -32,7 +32,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
   assert (btor_node_get_width (btor, real_exp) == 1);
   if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
   assert (real_exp->av);
-  assert (real_exp->av->len == 1);
+  assert (real_exp->av->width == 1);
   assert (real_exp->av->aigs);
   aig = real_exp->av->aigs[0];
   if (aig == BTOR_AIG_TRUE)

@@ -3299,11 +3299,11 @@ btor_synthesize_exp (Btor *btor,
           if (btor_node_get_width (btor, cur) > 1)
           {
             indexed_name = btor_mem_malloc (mm, len);
-            for (i = 0; i < cur->av->len; i++)
+            for (i = 0; i < cur->av->width; i++)
             {
               b = btor_hashptr_table_add (backannotation, cur->av->aigs[i]);
               assert (b->key == cur->av->aigs[i]);
-              sprintf (indexed_name, "%s[%d]", name, cur->av->len - i - 1);
+              sprintf (indexed_name, "%s[%d]", name, cur->av->width - i - 1);
               b->data.as_str = btor_mem_strdup (mm, indexed_name);
             }
             btor_mem_free (mm, indexed_name, len);
@@ -3900,7 +3900,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
   av = BTOR_REAL_ADDR_NODE (exp)->av;
 
   assert (av);
-  assert (av->len == 1);
+  assert (av->width == 1);
 
   result = av->aigs[0];
 
