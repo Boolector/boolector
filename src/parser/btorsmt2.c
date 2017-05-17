@@ -221,7 +221,7 @@ typedef enum BtorSMT2Tag
 
 typedef struct BtorSMT2Coo
 {
-  int x, y;
+  int32_t x, y;
 } BtorSMT2Coo;
 
 typedef struct BtorSMT2Node
@@ -299,11 +299,18 @@ typedef struct BtorSMT2Parser
 {
   Btor *btor;
   BtorMemMgr *mem;
-  int verbosity, incremental, model, need_functions, interactive, done;
-  int saved, savedch;
-  int last_end_of_line_ycoo;
-  int nprefix;
-  int binding, expecting_let_body;
+  bool done;
+  bool need_functions;
+  uint32_t verbosity;
+  uint32_t incremental;
+  uint32_t modelgen;
+  uint32_t interactive;
+  bool saved;
+  int32_t savedch;
+  int32_t last_end_of_line_ycoo;
+  uint32_t nprefix;
+  bool isbinding;
+  bool expecting_let_body;
   char *error;
   unsigned char cc[256];
   FILE *infile;
@@ -323,29 +330,29 @@ typedef struct BtorSMT2Parser
 #endif
   BoolectorNodePtrStack assumptions;
   BtorUIntStack assumptions_trail;
-  unsigned num_scopes;
-  unsigned cur_scope_num_terms;
+  uint32_t num_scopes;
+  uint32_t cur_scope_num_terms;
   struct
   {
-    unsigned size, count;
+    uint32_t size, count;
     BtorSMT2Node **table;
   } symbol;
   struct
   {
-    int all, set_logic, asserts, check_sat, exits, model;
+    int32_t all, set_logic, asserts, check_sat, exits, model;
   } commands;
 
   /* SMT2 options */
   bool print_success;
 } BtorSMT2Parser;
 
-static int
+static int32_t
 xcoo_smt2 (BtorSMT2Parser *parser)
 {
   return parser->perrcoo.x ? parser->perrcoo.x : parser->coo.x;
 }
 
-static int
+static int32_t
 ycoo_smt2 (BtorSMT2Parser *parser)
 {
   return parser->perrcoo.x ? parser->perrcoo.y : parser->coo.y;
@@ -378,7 +385,7 @@ static void
 savech_smt2 (BtorSMT2Parser *parser, char ch)
 {
   assert (!parser->saved);
-  parser->saved   = 1;
+  parser->saved   = true;
   parser->savedch = ch;
   if (ch == '\n')
   {
@@ -394,7 +401,7 @@ savech_smt2 (BtorSMT2Parser *parser, char ch)
 }
 
 static char *
-cerr_smt2 (BtorSMT2Parser *parser, const char *p, int ch, const char *s)
+cerr_smt2 (BtorSMT2Parser *parser, const char *p, int32_t ch, const char *s)
 {
   const char *d, *n;
 
@@ -475,12 +482,12 @@ symbol_position_smt2 (BtorSMT2Parser *parser, const char *name)
   return p;
 }
 
-static int
+static int32_t
 nextch_smt2 (BtorSMT2Parser *parser)
 {
-  int res;
+  int32_t res;
   if (parser->saved)
-    res = parser->savedch, parser->saved = 0;
+    res = parser->savedch, parser->saved = false;
   else if (parser->prefix
            && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
     res = parser->prefix->start[parser->nprefix++];
@@ -1018,8 +1025,8 @@ new_smt2_parser (Btor *btor, BtorParseOpt *opts)
   res->verbosity     = opts->verbosity;
   res->incremental   = opts->incremental;
   res->interactive   = opts->interactive;
-  res->model         = opts->need_model;
-  res->done          = 0;
+  res->modelgen      = opts->modelgen;
+  res->done          = false;
   res->btor          = btor;
   res->mem           = mem;
   res->num_scopes    = 0;
@@ -1110,31 +1117,31 @@ delete_smt2_parser (BtorSMT2Parser *parser)
 }
 
 static bool
-isspace_smt2 (int ch)
+isspace_smt2 (int32_t ch)
 {
   return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
 }
 
 static unsigned
-cc_smt2 (BtorSMT2Parser *parser, int ch)
+cc_smt2 (BtorSMT2Parser *parser, int32_t ch)
 {
   if (ch < 0 || ch >= 256) return 0;
   return parser->cc[(unsigned char) ch];
 }
 
 static void
-pushch_smt2 (BtorSMT2Parser *parser, int ch)
+pushch_smt2 (BtorSMT2Parser *parser, int32_t ch)
 {
   assert (ch != EOF);
   BTOR_PUSH_STACK (parser->token, ch);
 }
 
-static int
+static int32_t
 read_token_aux_smt2 (BtorSMT2Parser *parser)
 {
   BtorSMT2Node *node;
   unsigned char cc;
-  int ch;
+  int32_t ch;
   assert (!BTOR_INVALID_TAG_SMT2);  // error code:          0
   BTOR_RESET_STACK (parser->token);
   parser->last_node = 0;
@@ -1378,10 +1385,10 @@ RESTART:
   return !perr_smt2 (parser, "internal token reading error");
 }
 
-static int
+static int32_t
 read_token_smt2 (BtorSMT2Parser *parser)
 {
-  int res;
+  int32_t res;
   parser->lastcoo = parser->coo;
   res             = read_token_aux_smt2 (parser);
   if (parser->verbosity >= 4)
@@ -1398,10 +1405,10 @@ read_token_smt2 (BtorSMT2Parser *parser)
   return res;
 }
 
-static int
+static int32_t
 read_rpar_smt2 (BtorSMT2Parser *parser, const char *msg)
 {
-  int tag = read_token_smt2 (parser);
+  int32_t tag = read_token_smt2 (parser);
   if (tag == EOF)
     return !perr_smt2 (parser, "expected ')'%s at end-of-file", msg ? msg : "");
   if (tag == BTOR_INVALID_TAG_SMT2)
@@ -1415,10 +1422,10 @@ read_rpar_smt2 (BtorSMT2Parser *parser, const char *msg)
   return 1;
 }
 
-static int
+static int32_t
 read_lpar_smt2 (BtorSMT2Parser *parser, const char *msg)
 {
-  int tag = read_token_smt2 (parser);
+  int32_t tag = read_token_smt2 (parser);
   if (tag == EOF)
     return !perr_smt2 (parser, "expected '('%s at end-of-file", msg ? msg : "");
   if (tag == BTOR_INVALID_TAG_SMT2)
@@ -1432,10 +1439,10 @@ read_lpar_smt2 (BtorSMT2Parser *parser, const char *msg)
   return 1;
 }
 
-static int
-skip_sexprs (BtorSMT2Parser *parser, int initial)
+static int32_t
+skip_sexprs (BtorSMT2Parser *parser, int32_t initial)
 {
-  int tag, open = initial;
+  int32_t tag, open = initial;
   while (open > 0)
   {
     tag = read_token_smt2 (parser);
@@ -1457,10 +1464,10 @@ skip_sexprs (BtorSMT2Parser *parser, int initial)
   return 1;
 }
 
-static int
+static int32_t
 read_symbol (BtorSMT2Parser *parser, const char *errmsg, BtorSMT2Node **resptr)
 {
-  int tag = read_token_smt2 (parser);
+  int32_t tag = read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !perr_smt2 (parser,
@@ -1476,16 +1483,17 @@ read_symbol (BtorSMT2Parser *parser, const char *errmsg, BtorSMT2Node **resptr)
   return 1;
 }
 
-static int
+static int32_t
 str2int32_smt2 (BtorSMT2Parser *parser,
-                int posonly,
+                bool posonly,
                 const char *str,
-                int *resptr)
+                int32_t *resptr)
 {
-  int res, ch, digit;
+  int32_t res;
+  int32_t ch, digit;
   const char *p;
   res = 0;
-  assert (sizeof (int) == 4);
+  assert (sizeof (int32_t) == 4);
   for (p = str; (ch = *p); p++)
   {
     if (res > INT_MAX / 10 || ch < '0' || ch > '9')
@@ -1502,6 +1510,18 @@ str2int32_smt2 (BtorSMT2Parser *parser,
         parser, "expected positive non-zero 32-bit integer at '%s'", str);
   *resptr = res;
   return 1;
+}
+
+static int32_t
+str2uint32_smt2 (BtorSMT2Parser *parser,
+                 bool posonly,
+                 const char *str,
+                 uint32_t *resptr)
+{
+  int32_t res, rint;
+  res     = str2int32_smt2 (parser, posonly, str, &rint);
+  *resptr = (uint32_t) rint;
+  return res;
 }
 
 static BtorSMT2Item *
@@ -1532,19 +1552,19 @@ last_lpar_smt2 (BtorSMT2Parser *parser)
    | BTOR_ARRAY_TAG_CLASS_SMT2 | BTOR_BITVEC_TAG_CLASS_SMT2   \
    | BTOR_LOGIC_TAG_CLASS_SMT2)
 
-static int
-item_with_node_smt2 (BtorSMT2Item *item)
+static bool
+is_item_with_node_smt2 (BtorSMT2Item *item)
 {
-  if (item->tag == BTOR_SYMBOL_TAG_SMT2) return 1;
-  if (item->tag == BTOR_ATTRIBUTE_TAG_SMT2) return 1;
-  if (item->tag & BTOR_TAG_CLASS_MASK_SMT2) return 1;
-  return 0;
+  if (item->tag == BTOR_SYMBOL_TAG_SMT2) return true;
+  if (item->tag == BTOR_ATTRIBUTE_TAG_SMT2) return true;
+  if (item->tag & BTOR_TAG_CLASS_MASK_SMT2) return true;
+  return false;
 }
 
 static const char *
 item2str_smt2 (BtorSMT2Item *item)
 {
-  if (item_with_node_smt2 (item))
+  if (is_item_with_node_smt2 (item))
   {
     if (!item->node) return "<zero-node-item>";
     assert (item->node->name);
@@ -1559,35 +1579,35 @@ item2str_smt2 (BtorSMT2Item *item)
     return "<non-printable-item>";
 }
 
-static int
-bvconst_str_smt2 (const char *str)
+static bool
+is_bvconst_str_smt2 (const char *str)
 {
   const char *p;
-  if (str[0] != 'b' || str[1] != 'v') return 0;
-  if (!isdigit ((int) str[2])) return 0;
+  if (str[0] != 'b' || str[1] != 'v') return false;
+  if (!isdigit ((int32_t) str[2])) return false;
   for (p = str + 3; *p; p++)
-    if (!isdigit ((int) *p)) return 0;
-  return 1;
+    if (!isdigit ((int32_t) *p)) return false;
+  return true;
 }
 
-static int
+static bool
 prev_item_was_lpar_smt2 (BtorSMT2Parser *parser)
 {
   if (BTOR_COUNT_STACK (parser->work) >= 2
       && parser->work.top[-2].tag == BTOR_LPAR_TAG_SMT2)
-    return 1;
+    return true;
   return !perr_smt2 (parser, "expected '(' before '%s'", parser->token.start);
 }
 
 /* Note: we need tokens string only for get-value (for printing the originally
  *	 parsed, non-simplified expression) */
-static int
+static int32_t
 parse_int32_smt2 (BtorSMT2Parser *parser,
-                  int posonly,
-                  int *resptr,
+                  bool posonly,
+                  int32_t *resptr,
                   BtorCharStack *tokens)
 {
-  int i, tag;
+  int32_t i, tag;
   char c, t;
 
   tag = read_token_smt2 (parser);
@@ -1611,10 +1631,23 @@ parse_int32_smt2 (BtorSMT2Parser *parser,
   return str2int32_smt2 (parser, posonly, parser->token.start, resptr);
 }
 
-static bool
-check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
+static int32_t
+parse_uint32_smt2 (BtorSMT2Parser *parser,
+                   bool posonly,
+                   uint32_t *resptr,
+                   BtorCharStack *tokens)
 {
-  int i, width;
+  int32_t res, rint;
+  res     = parse_int32_smt2 (parser, posonly, &rint, tokens);
+  *resptr = (uint32_t) rint;
+  return res;
+}
+
+static bool
+check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int32_t nargs)
+{
+  int32_t i;
+  uint32_t width;
   for (i = 1; i <= nargs; i++)
   {
     if (boolector_is_array (parser->btor, p[i].exp))
@@ -1637,9 +1670,12 @@ check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 }
 
 static bool
-check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
+check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
+                            BtorSMT2Item *p,
+                            int32_t nargs)
 {
-  int i, domain, width, width2;
+  int32_t i;
+  uint32_t domain, width, width2;
   assert (nargs >= 1);
   width           = boolector_get_width (parser->btor, p[1].exp);
   parser->perrcoo = p->coo;
@@ -1728,7 +1764,7 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 static bool
 check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 {
-  int domain, width, width2;
+  uint32_t domain, width, width2;
   assert (p->tag == BTOR_ITE_TAG_SMT2);
   if (boolector_is_array (parser->btor, p[1].exp))
   {
@@ -1808,10 +1844,10 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 static bool
 check_nargs_smt2 (BtorSMT2Parser *parser,
                   BtorSMT2Item *p,
-                  int actual,
-                  int required)
+                  int32_t actual,
+                  int32_t required)
 {
-  int diff       = actual - required;
+  int32_t diff   = actual - required;
   const char *op = p->node->name;
   if (diff) parser->perrcoo = p->coo;
   if (diff == -1)
@@ -1828,9 +1864,9 @@ check_nargs_smt2 (BtorSMT2Parser *parser,
 static bool
 check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
                                  BtorSMT2Item *p,
-                                 int nargs)
+                                 int32_t nargs)
 {
-  int i;
+  int32_t i;
   for (i = 1; i <= nargs; i++)
   {
     if (boolector_is_array (parser->btor, p[i].exp))
@@ -2001,13 +2037,13 @@ translate_rotate_smt2 (Btor *btor,
 }
 
 static BoolectorNode *
-rotate_left_smt2 (Btor *btor, BoolectorNode *exp, int shift)
+rotate_left_smt2 (Btor *btor, BoolectorNode *exp, int32_t shift)
 {
   return translate_rotate_smt2 (btor, exp, shift, 1);
 }
 
 static BoolectorNode *
-rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int shift)
+rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int32_t shift)
 {
   return translate_rotate_smt2 (btor, exp, shift, 0);
 }
@@ -2016,7 +2052,7 @@ static BoolectorNode *
 translate_ext_rotate_smt2 (Btor *btor,
                            BoolectorNode *exp,
                            BoolectorNode *shift,
-                           int left)
+                           int32_t left)
 {
   assert (boolector_is_const (btor, shift));
 
@@ -2037,10 +2073,10 @@ translate_ext_rotate_smt2 (Btor *btor,
 /* Note: we need look ahead and tokens string only for get-value
  *	 (for parsing a term list and printing the originally parsed,
  *	 non-simplified expression) */
-static int
+static int32_t
 parse_term_aux_smt2 (BtorSMT2Parser *parser,
-                     int have_look_ahead,
-                     int look_ahead,
+                     bool have_look_ahead,
+                     int32_t look_ahead,
                      BoolectorNode **resptr,
                      BtorSMT2Coo *cooptr,
                      BtorCharStack *tokens)
@@ -2050,7 +2086,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   uint32_t i, j, nargs, width, width2, domain;
   BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
   BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);
-  BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
+  BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int32_t);
   BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
   BoolectorSort s;
@@ -2067,7 +2103,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
     if (have_look_ahead)
     {
       tag             = look_ahead;
-      have_look_ahead = 0;
+      have_look_ahead = false;
     }
     else
       tag = read_token_smt2 (parser);
@@ -2749,20 +2785,20 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         assert (!l[0].node->bound);
         l[0].node->bound = 1;
         parser->work.top = p;
-        assert (!parser->binding);
-        parser->binding = 1;
+        assert (!parser->isbinding);
+        parser->isbinding = true;
       }
       else if (tag == BTOR_PARLETBINDING_TAG_SMT2)
       {
-        assert (parser->binding);
-        parser->binding = 0;
+        assert (parser->isbinding);
+        parser->isbinding = false;
 #ifndef NDEBUG
         for (i = 1; i <= nargs; i++) assert (p[i].tag == BTOR_SYMBOL_TAG_SMT2);
 #endif
         for (i = 0; i < nargs; i++) l[i] = p[i + 1];
         parser->work.top = l + nargs;
         assert (!parser->expecting_let_body);
-        parser->expecting_let_body = 1;
+        parser->expecting_let_body = true;
       }
       else
       {
@@ -2778,16 +2814,16 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
     }
     else
     {
-      if (parser->expecting_let_body) parser->expecting_let_body = 0;
+      if (parser->expecting_let_body) parser->expecting_let_body = false;
       p = push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
       {
-        if (parser->binding)
+        if (parser->isbinding)
         {
           BtorSMT2Node *s;
           BtorSMT2Item *q;
           push_item_smt2 (parser, BTOR_LETBIND_TAG_SMT2);
-          parser->binding = 0;
+          parser->isbinding = false;
 
           tag = read_token_smt2 (parser);
 
@@ -2831,12 +2867,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         }
         open++;
       }
-      else if (parser->binding)
+      else if (parser->isbinding)
       {
         return !perr_smt2 (
             parser, "expected binding at '%s'", parser->token.start);
       }
-      else if (item_with_node_smt2 (p))
+      else if (is_item_with_node_smt2 (p))
       {
         p->node = parser->last_node;
         if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
@@ -2853,8 +2889,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
             open++, assert (open > 0);
             push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
-            assert (!parser->binding);
-            parser->binding = 1;
+            assert (!parser->isbinding);
+            parser->isbinding = true;
           }
           else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
           {
@@ -2878,7 +2914,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
 
             if (tag == BTOR_REPEAT_TAG_SMT2)
             {
-              assert (node && tag == (int) node->tag);
+              assert (node && tag == (int32_t) node->tag);
               read_rpar_msg = " to close '(_ repeat'";
             ONE_FIXED_NUM_PARAMETRIC:
               assert (BTOR_COUNT_STACK (parser->work) >= 2);
@@ -2900,7 +2936,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                                    node->name);
               }
               l = p - 1;
-              if (!parse_int32_smt2 (parser, 0, &l->num, tokens)) return 0;
+              if (!parse_int32_smt2 (parser, false, &l->num, tokens)) return 0;
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
@@ -2932,14 +2968,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             else if (tag == BTOR_EXTRACT_TAG_SMT2)
             {
               BtorSMT2Coo firstcoo;
-              assert (node && tag == (int) node->tag);
+              assert (node && tag == (int32_t) node->tag);
               if (BTOR_COUNT_STACK (parser->work) < 3
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
                 goto ONE_FIXED_NUM_PARAMETRIC;
               l = p - 1;
-              if (!parse_int32_smt2 (parser, 0, &l->hi, tokens)) return 0;
+              if (!parse_int32_smt2 (parser, false, &l->hi, tokens)) return 0;
               firstcoo = parser->coo;
-              if (!parse_int32_smt2 (parser, 0, &l->lo, tokens)) return 0;
+              if (!parse_int32_smt2 (parser, false, &l->lo, tokens)) return 0;
               if (l->hi < l->lo)
               {
                 parser->perrcoo = firstcoo;
@@ -2958,7 +2994,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               open--;
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
-                     && bvconst_str_smt2 (parser->token.start))
+                     && is_bvconst_str_smt2 (parser->token.start))
             {
               char *constr, *decstr;
               BtorSMT2Coo coo;
@@ -2968,7 +3004,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                                                  parser->token.start + 2);
               coo    = parser->coo;
               coo.y += 2;
-              if (!parse_int32_smt2 (parser, 1, (int32_t *) &width, tokens))
+              if (!parse_uint32_smt2 (parser, true, &width, tokens))
                 goto UNDERSCORE_DONE;
               width2 = strlen (constr);
               if (width2 > width)
@@ -3145,27 +3181,27 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   return 1;
 }
 
-static int
+static int32_t
 parse_term_smt2 (BtorSMT2Parser *parser,
                  BoolectorNode **resptr,
                  BtorSMT2Coo *cooptr)
 {
-  return parse_term_aux_smt2 (parser, 0, 0, resptr, cooptr, 0);
+  return parse_term_aux_smt2 (parser, false, 0, resptr, cooptr, 0);
 }
 
 /*
  * skiptokens = 1 -> skip BTOR_LPAR_TAG_SMT2
  * skiptokens = 2 -> skip BTOR_UNDERSCORE_TAG_SMT2
  */
-static int
+static int32_t
 parse_bitvec_sort (BtorSMT2Parser *parser,
-                   int skiptokens,
+                   uint32_t skiptokens,
                    BoolectorSort *resptr)
 {
-  assert (skiptokens >= 0);
   assert (skiptokens <= 2);
 
-  int tag, width;
+  int32_t tag;
+  uint32_t width;
   if (skiptokens < 1 && !read_lpar_smt2 (parser, 0)) return 0;
   if (skiptokens < 2)
   {
@@ -3199,7 +3235,7 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
     return !perr_smt2 (parser, "invalid zero bit-width");
   }
   width = 0;
-  if (!str2int32_smt2 (parser, 1, parser->token.start, &width)) return 0;
+  if (!str2uint32_smt2 (parser, true, parser->token.start, &width)) return 0;
   BTOR_MSG (boolector_get_btor_msg (parser->btor),
             3,
             "parsed bit-vector sort of width %d",
@@ -3210,13 +3246,13 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
   return read_rpar_smt2 (parser, " to close bit-vector sort");
 }
 
-static int parse_sort (BtorSMT2Parser *parser,
-                       int tag,
-                       bool allow_array_sort,
-                       BoolectorSort *sort);
+static int32_t parse_sort (BtorSMT2Parser *parser,
+                           int32_t tag,
+                           bool allow_array_sort,
+                           BoolectorSort *sort);
 
-static int
-parse_array_sort (BtorSMT2Parser *parser, int tag, BoolectorSort *sort)
+static int32_t
+parse_array_sort (BtorSMT2Parser *parser, int32_t tag, BoolectorSort *sort)
 {
   BoolectorSort index, value;
   if (tag == BTOR_ARRAY_TAG_SMT2)
@@ -3238,9 +3274,9 @@ parse_array_sort (BtorSMT2Parser *parser, int tag, BoolectorSort *sort)
   return !perr_smt2 (parser, "expected 'Array' at '%s'", parser->token.start);
 }
 
-static int
+static int32_t
 parse_sort (BtorSMT2Parser *parser,
-            int tag,
+            int32_t tag,
             bool allow_array_sort,
             BoolectorSort *sort)
 {
@@ -3288,12 +3324,12 @@ parse_sort (BtorSMT2Parser *parser,
       parser, "expected '(' or 'Bool' at '%s'", parser->token.start);
 }
 
-static int
+static int32_t
 declare_fun_smt2 (BtorSMT2Parser *parser)
 {
   char *symbol;
   uint32_t i;
-  int tag;
+  int32_t tag;
   BoolectorSortStack args;
   BtorSMT2Node *fun;
   fun = 0;
@@ -3344,7 +3380,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
                 fun->name,
                 fun->coo.x,
                 fun->coo.y);
-      parser->need_functions = 1;
+      parser->need_functions = true;
     }
     else
     {
@@ -3394,7 +3430,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
               fun->name,
               fun->coo.x,
               fun->coo.y);
-    parser->need_functions = 1;
+    parser->need_functions = true;
   }
   (void) boolector_copy (parser->btor, fun->exp);
   BTOR_PUSH_STACK (parser->inputs, fun->exp);
@@ -3407,10 +3443,10 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
  *       assert (= var assignment), define-funs for funs with args >= 1
  *       have to be built before asserting.
  *       Further, all symbols we parse are already defined -> check sort. */
-static int
+static int32_t
 define_fun_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, nargs = 0, len;
+  int32_t tag, nargs = 0, len;
   BoolectorNode *eq, *tmp, *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
@@ -3496,7 +3532,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
                 fun->name,
                 fun->coo.x,
                 fun->coo.y);
-      parser->need_functions = 1;
+      parser->need_functions = true;
     }
     else
     {
@@ -3591,7 +3627,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       symbol   = create_symbol_current_scope (parser, fun->name);
       boolector_set_symbol (parser->btor, fun->exp, symbol);
       btor_mem_freestr (parser->mem, symbol);
-      parser->need_functions = 1;
+      parser->need_functions = true;
     }
     while (!BTOR_EMPTY_STACK (args))
       boolector_release (parser->btor, BTOR_POP_STACK (args));
@@ -3618,10 +3654,10 @@ define_fun_smt2 (BtorSMT2Parser *parser)
   return read_rpar_smt2 (parser, " to close definition");
 }
 
-static int
+static int32_t
 define_sort_smt2 (BtorSMT2Parser *parser)
 {
-  int tag;
+  int32_t tag;
   BtorSMT2Node *sort_alias;
   BoolectorSort sort;
 
@@ -3653,10 +3689,10 @@ define_sort_smt2 (BtorSMT2Parser *parser)
   return read_rpar_smt2 (parser, " to close sort definition");
 }
 
-static int
+static int32_t
 set_info_smt2 (BtorSMT2Parser *parser)
 {
-  int tag = read_token_smt2 (parser);
+  int32_t tag = read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !perr_smt2 (parser, "unexpected end-of-file after 'set-info'");
@@ -3692,10 +3728,10 @@ set_info_smt2 (BtorSMT2Parser *parser)
   return skip_sexprs (parser, 1);
 }
 
-static int
+static int32_t
 set_option_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, val, verb = 0;
+  int32_t tag, val, verb = 0;
   char *opt;
   BtorOption o;
 
@@ -3784,15 +3820,11 @@ print_success (BtorSMT2Parser *parser)
   fflush (parser->outfile);
 }
 
-static int
+static int32_t
 read_command_smt2 (BtorSMT2Parser *parser)
 {
-#if 0
-  float ratio;
-  unsigned fsize
-#endif
-  unsigned i;
-  int tag, width;
+  uint32_t i, width;
+  int32_t tag;
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
   BtorCharStack tokens; /* for get-value (printing the originally parsed
@@ -3928,7 +3960,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
                   1,
                   "parser not interactive, aborted on first "
                   "'check-sat' command");
-        parser->done = 1;
+        parser->done = true;
       }
       break;
 
@@ -3984,7 +4016,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
       if (!read_rpar_smt2 (parser, " after 'exit'")) return 0;
       assert (!parser->commands.exits);
       parser->commands.exits++;
-      parser->done = 1;
+      parser->done = true;
       print_success (parser);
       break;
 
@@ -4004,7 +4036,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
       if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;
       BTOR_INIT_STACK (parser->mem, tokens);
-      if (!parse_term_aux_smt2 (parser, 0, 0, &exp, &coo, &tokens))
+      if (!parse_term_aux_smt2 (parser, false, 0, &exp, &coo, &tokens))
       {
         BTOR_RELEASE_STACK (tokens);
         return 0;
@@ -4017,7 +4049,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
       tag = read_token_smt2 (parser);
       while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
       {
-        if (!parse_term_aux_smt2 (parser, 1, tag, &exp, &coo, &tokens))
+        if (!parse_term_aux_smt2 (parser, true, tag, &exp, &coo, &tokens))
         {
           BTOR_RELEASE_STACK (tokens);
           return 0;
@@ -4065,7 +4097,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_PUSH_TAG_SMT2:
-      tag = parse_int32_smt2 (parser, 1, &tag, 0);
+      tag = parse_int32_smt2 (parser, true, &tag, 0);
       if (!read_rpar_smt2 (parser, " after 'push'")) return 0;
         // TODO: open more scopes if tag > 1
 #ifdef BTOR_USE_CLONE_SCOPES
@@ -4077,7 +4109,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_POP_TAG_SMT2:
-      tag = parse_int32_smt2 (parser, 1, &tag, 0);
+      tag = parse_int32_smt2 (parser, true, &tag, 0);
       if (!read_rpar_smt2 (parser, " after 'pop'")) return 0;
         // TODO: close more scopes if tag > 1
 #ifdef BTOR_USE_CLONE_SCOPES
@@ -4114,7 +4146,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   parser->infile      = infile;
   parser->infile_name = btor_mem_strdup (parser->mem, infile_name);
   parser->outfile     = outfile;
-  parser->saved       = 0;
+  parser->saved       = false;
   parser->parse_start = start;
   BTOR_CLR (res);
   parser->res = res;

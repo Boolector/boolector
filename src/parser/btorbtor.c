@@ -1698,7 +1698,7 @@ new_btor_parser (Btor *btor, BtorParseOpt *opts)
   BtorBTORParser *res;
 
   (void) opts->incremental;  // TODO what about incremental?
-  (void) opts->need_model;   // TODO use at least this
+  (void) opts->modelgen;     // TODO use at least this
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
