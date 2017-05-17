@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2017 Mathias Preiner.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -26,20 +27,20 @@ init (BtorSATMgr *smgr)
 }
 
 static void
-add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int32_t lit)
 {
   ccadical_add (smgr->solver, lit);
 }
 
-static int
-sat (BtorSATMgr *smgr, int limit)
+static int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
 {
   (void) limit;
   return ccadical_sat (smgr->solver);
 }
 
-static int
-deref (BtorSATMgr *smgr, int lit)
+static int32_t
+deref (BtorSATMgr *smgr, int32_t lit)
 {
   return ccadical_deref (smgr->solver, lit);
 }
