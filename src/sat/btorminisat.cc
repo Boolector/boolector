@@ -39,10 +39,10 @@ using namespace Minisat;
 class BtorMiniSAT : public SimpSolver
 {
   vec<Lit> assumptions, clause;
-  int szfmap;
+  int32_t szfmap;
   signed char* fmap;
   bool nomodel;
-  Lit import (int lit)
+  Lit import (int32_t lit)
   {
     assert (0 < abs (lit) && abs (lit) <= nVars ());
     return mkLit (Var (abs (lit) - 1), (lit < 0));
@@ -57,9 +57,9 @@ class BtorMiniSAT : public SimpSolver
   {
     fmap = new signed char[szfmap = nVars ()];
     memset (fmap, 0, szfmap);
-    for (int i = 0; i < conflict.size (); i++)
+    for (int32_t i = 0; i < conflict.size (); i++)
     {
-      int tmp = var (conflict[i]);
+      int32_t tmp = var (conflict[i]);
       assert (0 <= tmp && tmp < szfmap);
       fmap[tmp] = 1;
     }
@@ -70,21 +70,21 @@ class BtorMiniSAT : public SimpSolver
 
   ~BtorMiniSAT () { reset (); }
 
-  int inc ()
+  int32_t inc ()
   {
-    nomodel = true;
-    int res = newVar ();
+    nomodel     = true;
+    int32_t res = newVar ();
     assert (0 <= res && res == nVars () - 1);
     return res + 1;
   }
 
-  void assume (int lit)
+  void assume (int32_t lit)
   {
     nomodel = true;
     assumptions.push (import (lit));
   }
 
-  void add (int lit)
+  void add (int32_t lit)
   {
     nomodel = true;
     if (lit)
@@ -95,7 +95,7 @@ class BtorMiniSAT : public SimpSolver
 
   unsigned long long calls;
 
-  int sat (bool simp)
+  int32_t sat (bool simp)
   {
     calls++;
     reset ();
@@ -105,18 +105,18 @@ class BtorMiniSAT : public SimpSolver
     return res == l_Undef ? 0 : (res == l_True ? 10 : 20);
   }
 
-  int failed (int lit)
+  int32_t failed (int32_t lit)
   {
     if (!fmap) ana ();
-    int tmp = var (import (lit));
+    int32_t tmp = var (import (lit));
     assert (0 <= tmp && tmp < nVars ());
     return fmap[tmp];
   }
 
-  int fixed (int lit)
+  int32_t fixed (int32_t lit)
   {
-    Var v   = var (import (lit));
-    int idx = v, res;
+    Var v       = var (import (lit));
+    int32_t idx = v, res;
     assert (0 <= idx && idx < nVars ());
     lbool val = assigns[idx];
     if (val == l_Undef || level (v))
@@ -127,7 +127,7 @@ class BtorMiniSAT : public SimpSolver
     return res;
   }
 
-  int deref (int lit)
+  int32_t deref (int32_t lit)
   {
     if (nomodel) return fixed (lit);
     lbool res = modelValue (import (lit));
@@ -146,14 +146,14 @@ init (BtorSATMgr* smgr)
 }
 
 static void
-add (BtorSATMgr* smgr, int lit)
+add (BtorSATMgr* smgr, int32_t lit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->add (lit);
 }
 
-static int
-sat (BtorSATMgr* smgr, int limit)
+static int32_t
+sat (BtorSATMgr* smgr, int32_t limit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   if (limit < 0)
@@ -163,8 +163,8 @@ sat (BtorSATMgr* smgr, int limit)
   return solver->sat (!smgr->inc_required);
 }
 
-static int
-deref (BtorSATMgr* smgr, int lit)
+static int32_t
+deref (BtorSATMgr* smgr, int32_t lit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->deref (lit);
@@ -177,7 +177,7 @@ reset (BtorSATMgr* smgr)
   delete solver;
 }
 
-static int
+static int32_t
 inc_max_var (BtorSATMgr* smgr)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
@@ -185,28 +185,28 @@ inc_max_var (BtorSATMgr* smgr)
 }
 
 static void
-assume (BtorSATMgr* smgr, int lit)
+assume (BtorSATMgr* smgr, int32_t lit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->assume (lit);
 }
 
-static int
-fixed (BtorSATMgr* smgr, int lit)
+static int32_t
+fixed (BtorSATMgr* smgr, int32_t lit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->fixed (lit);
 }
 
-static int
-failed (BtorSATMgr* smgr, int lit)
+static int32_t
+failed (BtorSATMgr* smgr, int32_t lit)
 {
   BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->failed (lit);
 }
 
 static void
-enable_verbosity (BtorSATMgr* smgr, int level)
+enable_verbosity (BtorSATMgr* smgr, int32_t level)
 {
   (void) smgr;
   if (level >= 2) ((BtorMiniSAT*) smgr->solver)->verbosity = level - 1;
