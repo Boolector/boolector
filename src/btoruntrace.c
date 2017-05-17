@@ -1628,6 +1628,7 @@ NEXT:
         boolector_dump_smt2 (btor, outfile);
       }
 
+      BTORUNT_LOG ("dump formula to %s", outfilename);
       fclose (outfile);
       outfile = fopen (outfilename, "r");
       tmpbtor = boolector_new ();
