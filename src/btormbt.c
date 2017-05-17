@@ -324,7 +324,7 @@ const char *const g_op2str[] = {
     "write",   "apply",
 };
 
-static int
+static bool
 is_unary_op (BtorMBTOperator op)
 {
   return op >= NOT && op <= REDAND;
@@ -332,14 +332,14 @@ is_unary_op (BtorMBTOperator op)
 
 #if 0
 // NOTE (ma): not required right now
-static int
+static bool
 is_boolean_unary_op (BtorMBTOperator op)
 {
   return (op >= REDOR && op <= REDAND);
 }
 #endif
 
-static int
+static bool
 is_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= CONCAT);
@@ -347,7 +347,7 @@ is_binary_op (BtorMBTOperator op)
 
 #if 0
 // NOTE (ma): not required right now
-static int
+static bool
 is_boolean_binary_op (BtorMBTOperator op)
 {
   return (op >= EQ && op <= IFF);
@@ -355,13 +355,13 @@ is_boolean_binary_op (BtorMBTOperator op)
 #endif
 
 #ifndef NDEBUG
-static int
+static bool
 is_ternary_op (BtorMBTOperator op)
 {
   return op == COND;
 }
 
-static int
+static bool
 is_array_op (BtorMBTOperator op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
@@ -420,8 +420,8 @@ BTOR_DECLARE_STACK (BtorMBTExpPtr, BtorMBTExp *);
 struct BtorMBTExpStack
 {
   BtorMBTExpPtrStack exps;
-  int last_pos_parents; /* position of last parents check */
-  int init_layer_size;  /* size of initial layer */
+  uint32_t last_pos_parents; /* position of last parents check */
+  uint32_t init_layer_size;  /* size of initial layer */
 };
 
 typedef struct BtorMBTExpStack BtorMBTExpStack;
@@ -470,12 +470,12 @@ btormbt_pop_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
 }
 
 static void
-btormbt_del_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack, int idx)
+btormbt_del_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack, uint32_t idx)
 {
   assert (expstack);
-  assert (idx >= 0 && idx < BTOR_COUNT_STACK (expstack->exps));
+  assert (idx < BTOR_COUNT_STACK (expstack->exps));
 
-  int i;
+  uint32_t i;
 
   BTOR_DELETE (mm, expstack->exps.start[idx]);
   for (i = idx; i < BTOR_COUNT_STACK (expstack->exps) - 1; i++)
@@ -489,7 +489,7 @@ btormbt_reset_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
 {
   assert (expstack);
 
-  int i;
+  uint32_t i;
 
   for (i = 0; i < BTOR_COUNT_STACK (expstack->exps); i++)
     BTOR_DELETE (mm, expstack->exps.start[i]);
@@ -518,7 +518,7 @@ btormbt_release_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
 #define RELEASE_EXP_STACK(stack, dorelease)                         \
   do                                                                \
   {                                                                 \
-    int i;                                                          \
+    uint32_t i;                                                     \
     if (dorelease)                                                  \
     {                                                               \
       for (i = 0; i < BTOR_COUNT_STACK (mbt->stack->exps); i++)     \
@@ -565,7 +565,7 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
 #define RELEASE_SORT_STACK(stack)                               \
   do                                                            \
   {                                                             \
-    int i;                                                      \
+    uint32_t i;                                                 \
     for (i = 0; i < BTOR_COUNT_STACK (*mbt->stack); i++)        \
       boolector_release_sort (mbt->btor, mbt->stack->start[i]); \
     btormbt_release_sort_stack (mbt->mm, mbt->stack);           \
@@ -1058,7 +1058,7 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
 static BtorMBTExpStack *
 btormbt_copy_exp_stack (BtorMBT *mbt, BtorMBTExpStack *expstack)
 {
-  int i;
+  uint32_t i;
   BtorMBTExpStack *res;
   BtorMBTExp *e;
 
@@ -1093,15 +1093,15 @@ static BtorMBT *g_btormbt;
 static BtorMBTStatistics *g_btormbtstats = 0;
 static char g_shmfilename[128];
 
-static int g_caught_sig;
-static void (*sig_int_handler) (int);
-static void (*sig_segv_handler) (int);
-static void (*sig_abrt_handler) (int);
-static void (*sig_term_handler) (int);
-static void (*sig_bus_handler) (int);
+static int32_t g_caught_sig;
+static void (*sig_int_handler) (int32_t);
+static void (*sig_segv_handler) (int32_t);
+static void (*sig_abrt_handler) (int32_t);
+static void (*sig_term_handler) (int32_t);
+static void (*sig_bus_handler) (int32_t);
 
-static int g_set_alarm;
-static void (*sig_alrm_handler) (int);
+static int32_t g_set_alarm;
+static void (*sig_alrm_handler) (int32_t);
 
 void boolector_chkclone (Btor *);
 
@@ -1110,26 +1110,26 @@ void boolector_chkclone (Btor *);
 static void
 erase (void)
 {
-  int i;
+  int32_t i;
   fputc ('\r', stdout);
   for (i = 0; i < 80; i++) fputc (' ', stdout);
   fputc ('\r', stdout);
 }
 
-static int
-isnumstr (const char *str)
+static bool
+is_num_str (const char *str)
 {
   const char *p;
   for (p = str; *p; p++)
-    if (!isdigit ((int) *p)) return 0;
-  return 1;
+    if (!isdigit ((int32_t) *p)) return false;
+  return true;
 }
 
-static int
-hashmac (void)
+static int32_t
+hash_mac (void)
 {
   FILE *file = fopen ("/sys/class/net/eth0/address", "r");
-  int mac[6], res = 0;
+  int32_t mac[6], res = 0;
   if (!file) return 0;
   if (fscanf (file,
               "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -1173,10 +1173,10 @@ average (double a, double b)
   return b ? a / b : 0;
 }
 
-/* returns power of 2 val nearest to i and its log2, minimum of pow2 = 2*/
+/* returns power of 2 val nearest to i and its log2, minimum of is 2 */
 /* used for log2 operators */
 static void
-nextpow2 (int val, int *pow2, int *log2)
+next_pow_of_2 (uint32_t val, uint32_t *pow2, uint32_t *log2)
 {
   *pow2 = 2;
   *log2 = 1;
@@ -1223,7 +1223,7 @@ btormbt_error (char *msg, ...)
 static void
 btormbt_print_stats (BtorMBT *mbt)
 {
-  int i;
+  int32_t i;
   double t = get_time ();
   btormbt_msg ("runtime %0.2f seconds", t);
   btormbt_msg ("%d rounds = %0.2f rounds per second",
@@ -1257,7 +1257,7 @@ reset_sig_handlers (void)
 }
 
 static void
-catch_sig (int sig)
+catch_sig (int32_t sig)
 {
   if (!g_caught_sig)
   {
@@ -1289,7 +1289,7 @@ reset_alarm (void)
 }
 
 static void
-catch_alarm (int sig)
+catch_alarm (int32_t sig)
 {
   (void) sig;
   assert (sig == SIGALRM);
@@ -1464,7 +1464,7 @@ btormbt_const (BtorMBT *mbt)
 {
   char *bits;
   const char *sbits;
-  int width, val, i;
+  uint32_t i, width, val;
   BoolectorNode *node;
   //  BtorMBTNodeAttr attr;
   BtorMBTOperator op;
@@ -1584,7 +1584,7 @@ btormbt_array (BtorMBT *mbt)
 static BoolectorNode *
 btormbt_constraint (BtorMBT *mbt)
 {
-  int i, pos, num_nodes, start, end;
+  uint32_t i, pos, num_nodes, start, end;
   BoolectorNode *res, *tmp, *node;
 
   /* select from init layer with lower probability */
@@ -1675,8 +1675,7 @@ btormbt_binary_op (BtorMBT *mbt,
 {
   assert (is_binary_op (op));
 
-  int tmp0, tmp1;
-  uint32_t e0_width, e1_width;
+  uint32_t e0_width, e1_width, tmp0, tmp1;
   BoolectorNode *node;
 
   e0_width = boolector_get_width (mbt->btor, e0);
@@ -1705,7 +1704,7 @@ btormbt_binary_op (BtorMBT *mbt,
   else if (op >= SLL && op <= ROR)
   {
     /* modify width of e0 power of 2 and e1 log2(e0) */
-    nextpow2 (e0_width, &tmp0, &tmp1);
+    next_pow_of_2 (e0_width, &tmp0, &tmp1);
     e0       = modify_bv (mbt, e0, tmp0);
     e1       = modify_bv (mbt, e1, tmp1);
     e0_width = tmp0;
@@ -1873,7 +1872,7 @@ btormbt_array_op (BtorMBT *mbt,
  *    1 ... select parameterized expression
  */
 static BoolectorNode *
-select_exp (BtorMBT *mbt, BtorMBTExpType type, int force_param)
+select_exp (BtorMBT *mbt, BtorMBTExpType type, int32_t force_param)
 {
   assert (force_param >= -1);
   assert (force_param <= 1);
@@ -1968,7 +1967,7 @@ select_arr_exp (BtorMBT *mbt,
                 BoolectorNode *node,
                 uint32_t eew,
                 uint32_t eiw,
-                int force_param)
+                int32_t force_param)
 {
   uint32_t i, idx, sel_eew, sel_eiw, rand;
   BtorMBTExp *exp;
@@ -2072,7 +2071,7 @@ btormbt_bv_sort (BtorMBT *mbt)
 static void
 init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
 {
-  int i, arity;
+  uint32_t i, arity;
 
   if (btor_rng_pick_with_prob (&mbt->round.rng, mbt->p_sort_fun_unary))
   {
@@ -2120,7 +2119,7 @@ btormbt_fun_sort (BtorMBT *mbt)
 
 /* Generate parameterized unary/binary/ternary operation. */
 static void
-btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
+btormbt_param_bv_op (BtorMBT *mbt, int32_t op_from, int32_t op_to)
 {
   uint32_t i, rand;
   BoolectorNode *e[3];
@@ -2247,7 +2246,7 @@ btormbt_param_array_op (BtorMBT *mbt)
 }
 
 static void
-btormbt_bv_fun (BtorMBT *mbt, int nlevel)
+btormbt_bv_fun (BtorMBT *mbt, int32_t nlevel)
 {
   int32_t id;
   uint32_t i, n, width, max_param_exps, rand;
@@ -2609,7 +2608,7 @@ static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
   bool inc = true;
-  int i;
+  uint32_t i;
   BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
 
@@ -3394,7 +3393,7 @@ btormbt_state_assume_assert (BtorMBT *mbt)
 static void *
 btormbt_state_dump (BtorMBT *mbt)
 {
-  int tmppid;
+  uint32_t tmppid;
   Btor *tmpbtor;
   FILE *outfile;
   int32_t len, pstat;
@@ -3546,7 +3545,8 @@ btormbt_state_dump (BtorMBT *mbt)
 static void *
 btormbt_state_sat (BtorMBT *mbt)
 {
-  int i, res, failed;
+  int32_t i, res;
+  bool failed;
   BoolectorNode *ass;
 
   BTORMBT_LOG (1, "calling sat...");
@@ -3834,13 +3834,13 @@ reset_round_data (BtorMBT *mbt)
   btor_rng_init (&mbt->round.rng, mbt->seed);
 }
 
-static int
+static int32_t
 run (BtorMBT *mbt)
 {
   assert (mbt);
 
   BtorMBTState state, next;
-  int status, null;
+  int32_t status, null;
   pid_t id;
 
   if (!mbt->seeded && (id = fork ()))
@@ -3889,14 +3889,14 @@ run (BtorMBT *mbt)
 
 /*------------------------------------------------------------------------*/
 
-int
-main (int argc, char **argv)
+int32_t
+main (int32_t argc, char **argv)
 {
-  int exitcode;
-  int i, j, mac, pid, prev, res, status;
+  int32_t exitcode;
+  int32_t i, j, mac, pid, prev, res, status;
   uint32_t val;
   char *name, *cmd, *tmp;
-  int namelen, cmdlen, tmppid, fd;
+  int32_t namelen, cmdlen, tmppid, fd;
   BtorMBTBtorOpt *btoropt, *tmpopt;
 
   g_btormbt             = btormbt_new_btormbt ();
@@ -3927,7 +3927,7 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-s"))
     {
       if (++i == argc) btormbt_error ("argument to '-s' missing (try '-h')");
-      if (!isnumstr (argv[i]))
+      if (!is_num_str (argv[i]))
         btormbt_error ("argument '%s' to '-s' is not a number (try '-h')",
                        argv[i]);
       g_btormbt->fshadow = atoi (argv[i]);
@@ -3959,7 +3959,7 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) btormbt_error ("argument to '-m' missing (try '-h')");
-      if (!isnumstr (argv[i]))
+      if (!is_num_str (argv[i]))
         btormbt_error ("argument '%s' to '-m' is not a number (try '-h')",
                        argv[i]);
       g_btormbt->max_rounds = atoi (argv[i]);
@@ -3967,7 +3967,7 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-t"))
     {
       if (++i == argc) btormbt_error ("argument to '-t' missing (try '-h')");
-      if (!isnumstr (argv[i]))
+      if (!is_num_str (argv[i]))
         btormbt_error ("argument '%s' to '-t' is not a number (try '-h')",
                        argv[i]);
       g_set_alarm = atoi (argv[i]);
@@ -4013,7 +4013,7 @@ main (int argc, char **argv)
       btoropt->val          = val;
       btoropt->forced_by_cl = true;
     }
-    else if (!isnumstr (argv[i]))
+    else if (!is_num_str (argv[i]))
     {
       btormbt_error ("invalid command line option '%s' (try '-h')", argv[i]);
     }
@@ -4041,7 +4041,7 @@ main (int argc, char **argv)
   (void) unlink (g_shmfilename);
   memset (g_btormbtstats, 0, sizeof (BtorMBTStatistics));
 
-  mac = hashmac ();
+  mac = hash_mac ();
   for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->max_rounds;
        g_btormbt->rounds++)
   {
