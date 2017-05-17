@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,6 +13,8 @@
 #ifndef BTORMAIN_H_INCLUDED
 #define BTORMAIN_H_INCLUDED
 
-int boolector_main (int argc, char **argv);
+#include <stdint.h>
+
+int32_t boolector_main (int32_t argc, char **argv);
 
 #endif
