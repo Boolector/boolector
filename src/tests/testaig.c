@@ -166,7 +166,7 @@ test_aig_to_sat (void)
 }
 
 void
-run_aig_tests (int argc, char **argv)
+run_aig_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_aig_mgr);
   BTOR_RUN_TEST_CHECK_LOG (false_aig);

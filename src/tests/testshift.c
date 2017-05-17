@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -30,7 +30,7 @@
 #define BTOR_TEST_SHIFT_LOW 2
 #define BTOR_TEST_SHIFT_HIGH 8
 
-static int g_argc       = 6;
+static int32_t g_argc   = 6;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
@@ -40,7 +40,7 @@ void
 init_shift_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_SHIFT_TEMP_FILE_NAME, "w");
-  int pos_rwr;
+  int32_t pos_rwr;
 
   assert (f != NULL);
   fclose (f);
@@ -67,10 +67,10 @@ init_shift_tests (void)
 }
 
 static char *
-int_to_str (int x, int num_bits)
+int_to_str (int32_t x, int32_t num_bits)
 {
   char *result = NULL;
-  int i        = 0;
+  int32_t i    = 0;
   assert (x >= 0);
   assert (num_bits > 0);
   result = (char *) btor_mem_malloc (g_mm, sizeof (char) * (num_bits + 1));
@@ -84,17 +84,17 @@ int_to_str (int x, int num_bits)
 }
 
 static void
-shift_test (char *(*func) (int, int, int),
+shift_test (char *(*func) (int32_t, int32_t, int32_t),
             const char *func_name,
-            int low,
-            int high)
+            int32_t low,
+            int32_t high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  char *result = 0;
-  int num_bits = 0;
-  int max      = 0;
+  FILE *f          = NULL;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  char *result     = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
   assert (func != NULL);
   assert (func_name != NULL);
   assert (low > 0);
@@ -128,9 +128,9 @@ shift_test (char *(*func) (int, int, int),
 }
 
 static char *
-sll (int x, int y, int num_bits)
+sll (int32_t x, int32_t y, int32_t num_bits)
 {
-  int i        = 0;
+  int32_t i    = 0;
   char *result = NULL;
   assert (x >= 0);
   assert (y >= 0);
@@ -143,9 +143,9 @@ sll (int x, int y, int num_bits)
 }
 
 static char *
-srl (int x, int y, int num_bits)
+srl (int32_t x, int32_t y, int32_t num_bits)
 {
-  int i        = 0;
+  int32_t i    = 0;
   char *result = NULL;
   assert (x >= 0);
   assert (y >= 0);
@@ -158,9 +158,9 @@ srl (int x, int y, int num_bits)
 }
 
 static char *
-sra (int x, int y, int num_bits)
+sra (int32_t x, int32_t y, int32_t num_bits)
 {
-  int i        = 0;
+  int32_t i    = 0;
   char *result = NULL;
   char sign    = '0';
   assert (x >= 0);
@@ -175,10 +175,10 @@ sra (int x, int y, int num_bits)
 }
 
 static char *
-rol (int x, int y, int num_bits)
+rol (int32_t x, int32_t y, int32_t num_bits)
 {
-  int i        = 0;
-  int j        = 0;
+  int32_t i    = 0;
+  int32_t j    = 0;
   char temp    = '0';
   char *result = NULL;
   assert (x >= 0);
@@ -196,10 +196,10 @@ rol (int x, int y, int num_bits)
 }
 
 static char *
-ror (int x, int y, int num_bits)
+ror (int32_t x, int32_t y, int32_t num_bits)
 {
-  int i        = 0;
-  int j        = 0;
+  int32_t i    = 0;
+  int32_t j    = 0;
   char temp    = '0';
   char *result = NULL;
   assert (x >= 0);
@@ -247,7 +247,7 @@ test_ror_shift (void)
 }
 
 static void
-run_all_tests (int argc, char **argv)
+run_all_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (sll_shift);
   BTOR_RUN_TEST (srl_shift);
@@ -257,7 +257,7 @@ run_all_tests (int argc, char **argv)
 }
 
 void
-run_shift_tests (int argc, char **argv)
+run_shift_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
   g_argv[1] = "-rwl";
@@ -268,7 +268,7 @@ run_shift_tests (int argc, char **argv)
 void
 finish_shift_tests (void)
 {
-  int result = remove (BTOR_TEST_SHIFT_TEMP_FILE_NAME);
+  int32_t result = remove (BTOR_TEST_SHIFT_TEMP_FILE_NAME);
   assert (result == 0);
   btor_mem_mgr_delete (g_mm);
   free (g_btor_str);

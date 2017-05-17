@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,9 +11,11 @@
 #ifndef TESTMAP_H_INCLUDED
 #define TESTMAP_H_INCLUDED
 
+#include <stdint.h>
+
 void init_map_tests (void);
 
-void run_map_tests (int argc, char **argv);
+void run_map_tests (int32_t argc, char **argv);
 
 void finish_map_tests (void);
 

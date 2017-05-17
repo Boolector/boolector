@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -35,7 +35,7 @@
 #define BTOR_TEST_RED_LOGIC_LOW 2
 #define BTOR_TEST_RED_LOGIC_HIGH 4
 
-static int g_argc       = 6;
+static int32_t g_argc   = 6;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
@@ -43,7 +43,7 @@ void
 init_logic_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
-  int pos_rwr;
+  int32_t pos_rwr;
 
   assert (f != NULL);
   fclose (f);
@@ -69,20 +69,20 @@ init_logic_tests (void)
 }
 
 static void
-not_logic_test (int low, int high)
+not_logic_test (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  unsigned int i         = 0;
-  unsigned int result    = 0;
-  int num_bits           = 0;
-  int max                = 0;
+  uint32_t i             = 0;
+  uint32_t result        = 0;
+  int32_t num_bits       = 0;
+  int32_t max            = 0;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
-    for (i = 0; i < (unsigned int) max; i++)
+    for (i = 0; i < (uint32_t) max; i++)
     {
       result = ~i & (max - 1);
       f      = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
@@ -100,17 +100,17 @@ not_logic_test (int low, int high)
 }
 
 static void
-binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
+binary_logic_test (uint32_t (*func) (uint32_t, uint32_t),
                    const char *func_name,
-                   int low,
-                   int high)
+                   int32_t low,
+                   int32_t high)
 {
   FILE *f                = NULL;
-  unsigned int i         = 0;
-  unsigned int j         = 0;
-  unsigned int result    = 0;
-  int num_bits           = 0;
-  int max                = 0;
+  uint32_t i             = 0;
+  uint32_t j             = 0;
+  uint32_t result        = 0;
+  int32_t num_bits       = 0;
+  int32_t max            = 0;
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
@@ -119,9 +119,9 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
-    for (i = 0; i < (unsigned int) max; i++)
+    for (i = 0; i < (uint32_t) max; i++)
     {
-      for (j = 0; j < (unsigned int) max; j++)
+      for (j = 0; j < (uint32_t) max; j++)
       {
         result = func (i, j);
         f      = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
@@ -142,23 +142,23 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
 }
 
 static void
-xnor_logic_test (int low, int high)
+xnor_logic_test (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  unsigned int i         = 0;
-  unsigned int j         = 0;
-  unsigned int result    = 0;
-  int num_bits           = 0;
-  int max                = 0;
+  uint32_t i             = 0;
+  uint32_t j             = 0;
+  uint32_t result        = 0;
+  int32_t num_bits       = 0;
+  int32_t max            = 0;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
-    for (i = 0; i < (unsigned int) max; i++)
+    for (i = 0; i < (uint32_t) max; i++)
     {
-      for (j = 0; j < (unsigned int) max; j++)
+      for (j = 0; j < (uint32_t) max; j++)
       {
         result = ~(i ^ j) & (max - 1);
         f      = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
@@ -179,16 +179,16 @@ xnor_logic_test (int low, int high)
 }
 
 static void
-red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
+red_logic_test (uint32_t (*func) (uint32_t, uint32_t),
                 const char *func_name,
-                int low,
-                int high)
+                int32_t low,
+                int32_t high)
 {
   FILE *f                = NULL;
-  unsigned int i         = 0;
-  unsigned int result    = 0;
-  int num_bits           = 0;
-  int max                = 0;
+  uint32_t i             = 0;
+  uint32_t result        = 0;
+  int32_t num_bits       = 0;
+  int32_t max            = 0;
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
@@ -197,9 +197,9 @@ red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
-    for (i = 0; i < (unsigned int) max; i++)
+    for (i = 0; i < (uint32_t) max; i++)
     {
-      result = func (i, (unsigned int) num_bits);
+      result = func (i, (uint32_t) num_bits);
       f      = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
       assert (f != NULL);
       fprintf (f, "1 constd %d %u\n", num_bits, i);
@@ -219,28 +219,28 @@ red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
   }
 }
 
-static unsigned int and (unsigned int x, unsigned int y) { return x & y; }
+static uint32_t and (uint32_t x, uint32_t y) { return x & y; }
 
-static unsigned int or (unsigned int x, unsigned int y) { return x | y; }
+static uint32_t or (uint32_t x, uint32_t y) { return x | y; }
 
-static unsigned int
-    xor (unsigned int x, unsigned int y) { return x ^ y; }
+static uint32_t
+    xor (uint32_t x, uint32_t y) { return x ^ y; }
 
-    static unsigned int redand (unsigned int x, unsigned int num_bits)
+    static uint32_t redand (uint32_t x, uint32_t num_bits)
 {
-  unsigned int result = 1;
-  unsigned int i      = 0;
+  uint32_t result = 1;
+  uint32_t i      = 0;
   assert (num_bits > 1);
   assert (num_bits <= 32);
   for (i = 0; result && i < num_bits; i++) result = result && (x & (1 << i));
   return result;
 }
 
-static unsigned int
-redor (unsigned int x, unsigned int num_bits)
+static uint32_t
+redor (uint32_t x, uint32_t num_bits)
 {
-  unsigned int result = 0;
-  unsigned int i      = 0;
+  uint32_t result = 0;
+  uint32_t i      = 0;
   assert (num_bits > 1);
   assert (num_bits <= 32);
   for (i = 0; !result && i < num_bits; i++) result = result || (x & (1 << i));
@@ -249,11 +249,11 @@ redor (unsigned int x, unsigned int num_bits)
 
 #define BTOR_TEST_RED_LOGIC_XOR(a, b) (((a) || (b)) && !((a) && (b)))
 
-static unsigned int
-redxor (unsigned int x, unsigned int num_bits)
+static uint32_t
+redxor (uint32_t x, uint32_t num_bits)
 {
-  unsigned int result = 0;
-  unsigned int i      = 0;
+  uint32_t result = 0;
+  uint32_t i      = 0;
   assert (num_bits > 1);
   assert (num_bits <= 32);
   result = BTOR_TEST_RED_LOGIC_XOR (x & 1, x & 2);
@@ -314,7 +314,7 @@ test_redxor_logic ()
 }
 
 static void
-run_all_tests (int argc, char **argv)
+run_all_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (not_logic);
   BTOR_RUN_TEST (and_logic);
@@ -327,7 +327,7 @@ run_all_tests (int argc, char **argv)
 }
 
 void
-run_logic_tests (int argc, char **argv)
+run_logic_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
   g_argv[1] = "-rwl";
@@ -338,7 +338,7 @@ run_logic_tests (int argc, char **argv)
 void
 finish_logic_tests (void)
 {
-  int result = remove (BTOR_TEST_LOGIC_TEMP_FILE_NAME);
+  int32_t result = remove (BTOR_TEST_LOGIC_TEMP_FILE_NAME);
   assert (result == 0);
   free (g_btor_str);
   free (g_argv);

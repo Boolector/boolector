@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -118,7 +119,7 @@ test_add_int_hash_table (void)
     }
   printf ("%.3f find\n", btor_util_time_stamp () - start);
 
-  int num_free = 0;
+  int32_t num_free = 0;
   for (i = 0; i < ht->size; i++)
     {
       if (!ht->table[i])
@@ -204,7 +205,7 @@ test_add_int_hash_table (void)
 }
 
 void
-run_int_hash_table_tests (int argc, char **argv)
+run_int_hash_table_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_int_hash_table);
   BTOR_RUN_TEST (add_int_hash_table);

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,9 +13,11 @@
 #ifndef TESTCOMP_H_INCLUDED
 #define TESTCOMP_H_INCLUDED
 
+#include <stdint.h>
+
 void init_comp_tests (void);
 
-void run_comp_tests (int argc, char **argv);
+void run_comp_tests (int32_t argc, char **argv);
 
 void finish_comp_tests (void);
 

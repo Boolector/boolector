@@ -2,7 +2,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -126,7 +126,7 @@ test_map1 ()
 /*------------------------------------------------------------------------*/
 
 void
-run_map_tests (int argc, char **argv)
+run_map_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (mapnewdel);
   BTOR_RUN_TEST (map0);

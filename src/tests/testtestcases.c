@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -29,7 +29,7 @@ static BtorCharPtrStack g_args;
 static void
 test_testcase (void)
 {
-  int i, len;
+  uint32_t i, len;
   char *syscall_string;
 
   /* Note: skip testcases name */
@@ -53,13 +53,13 @@ init_testcases_tests (void)
 }
 
 void
-run_testcases_tests (int argc, char **argv)
+run_testcases_tests (int32_t argc, char **argv)
 {
   BtorCharStack buffer;
   BtorMemMgr *mem;
   char *s, *token;
   FILE *file;
-  int ch;
+  int32_t ch;
 
   s = (char *) malloc (sizeof (char *) * (strlen (BTOR_TEST_DIR) + 20));
   sprintf (s, "%stestcases", BTOR_TEST_DIR);
