@@ -39,19 +39,19 @@ init (BtorSATMgr *smgr)
 }
 
 static void
-add (BtorSATMgr *smgr, int lit)
+add (BtorSATMgr *smgr, int32_t lit)
 {
   (void) picosat_add (smgr->solver, lit);
 }
 
-static int
-sat (BtorSATMgr *smgr, int limit)
+static int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
 {
   return picosat_sat (smgr->solver, limit);
 }
 
-static int
-deref (BtorSATMgr *smgr, int lit)
+static int32_t
+deref (BtorSATMgr *smgr, int32_t lit)
 {
   return picosat_deref (smgr->solver, lit);
 }
@@ -76,12 +76,12 @@ set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-enable_verbosity (BtorSATMgr *smgr, int level)
+enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   if (level >= 2) picosat_set_verbosity (smgr->solver, level - 1);
 }
 
-static int
+static int32_t
 inc_max_var (BtorSATMgr *smgr)
 {
   return picosat_inc_max_var (smgr->solver);
@@ -93,8 +93,8 @@ stats (BtorSATMgr *smgr)
   picosat_stats (smgr->solver);
 }
 
-static int
-fixed (BtorSATMgr *smgr, int lit)
+static int32_t
+fixed (BtorSATMgr *smgr, int32_t lit)
 {
   return picosat_deref_toplevel (smgr->solver, lit);
 }
@@ -102,13 +102,13 @@ fixed (BtorSATMgr *smgr, int lit)
 /*------------------------------------------------------------------------*/
 
 static void
-assume (BtorSATMgr *smgr, int lit)
+assume (BtorSATMgr *smgr, int32_t lit)
 {
   (void) picosat_assume (smgr->solver, lit);
 }
 
-static int
-failed (BtorSATMgr *smgr, int lit)
+static int32_t
+failed (BtorSATMgr *smgr, int32_t lit)
 {
   return picosat_failed_assumption (smgr->solver, lit);
 }
