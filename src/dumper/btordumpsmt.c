@@ -499,8 +499,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
   assert (btor_hashptr_table_get (sdc->dump, BTOR_REAL_ADDR_NODE (exp)));
 
   unsigned depth;
-  bool is_bool, zero_extend, expect_bool;
-  uint32_t pad, i;
+  bool is_bool, expect_bool;
+  uint32_t pad, i, zero_extend;
   int32_t add_space;
   BtorBitVector *bits;
   const char *op, *fmt;
@@ -530,6 +530,14 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
     assert (!BTOR_EMPTY_STACK (add_space_stack));
     assert (!BTOR_EMPTY_STACK (zero_extend_stack));
     assert (!BTOR_EMPTY_STACK (depth_stack));
+    assert (BTOR_COUNT_STACK (expect_bv_stack)
+            == BTOR_COUNT_STACK (expect_bool_stack));
+    assert (BTOR_COUNT_STACK (expect_bool_stack)
+            == BTOR_COUNT_STACK (add_space_stack));
+    assert (BTOR_COUNT_STACK (add_space_stack)
+            == BTOR_COUNT_STACK (zero_extend_stack));
+    assert (BTOR_COUNT_STACK (zero_extend_stack)
+            == BTOR_COUNT_STACK (depth_stack));
     depth       = BTOR_POP_STACK (depth_stack);
     exp         = BTOR_POP_STACK (dump);
     expect_bv   = BTOR_POP_STACK (expect_bv_stack);
