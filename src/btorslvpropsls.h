@@ -41,8 +41,11 @@ btor_propsls_rec_conf (Btor* btor)
 }
 
 static inline BtorBitVector*
-btor_propsls_non_rec_conf (
-    Btor* btor, BtorBitVector* bve, BtorBitVector* bvexp, int eidx, char* op)
+btor_propsls_non_rec_conf (Btor* btor,
+                           BtorBitVector* bve,
+                           BtorBitVector* bvexp,
+                           int32_t eidx,
+                           char* op)
 {
   assert (btor);
   assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
@@ -103,68 +106,68 @@ BtorBitVector* inv_add_bv (Btor* btor,
                            BtorNode* add_exp,
                            BtorBitVector* bvadd,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_and_bv (Btor* btor,
                            BtorNode* and_exp,
                            BtorBitVector* bvand,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_eq_bv (Btor* btor,
                           BtorNode* eq_exp,
                           BtorBitVector* bveq,
                           BtorBitVector* bve,
-                          int eidx);
+                          int32_t eidx);
 
 BtorBitVector* inv_ult_bv (Btor* btor,
                            BtorNode* ult_exp,
                            BtorBitVector* bvult,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_sll_bv (Btor* btor,
                            BtorNode* sll_exp,
                            BtorBitVector* bvsll,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_srl_bv (Btor* btor,
                            BtorNode* srl_exp,
                            BtorBitVector* bvsrl,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_mul_bv (Btor* btor,
                            BtorNode* mul_exp,
                            BtorBitVector* bvmul,
                            BtorBitVector* bve,
-                           int eidx);
+                           int32_t eidx);
 
 BtorBitVector* inv_udiv_bv (Btor* btor,
                             BtorNode* div_exp,
                             BtorBitVector* bvdiv,
                             BtorBitVector* bve,
-                            int eidx);
+                            int32_t eidx);
 
 BtorBitVector* inv_urem_bv (Btor* btor,
                             BtorNode* urem_exp,
                             BtorBitVector* bvurem,
                             BtorBitVector* bve,
-                            int eidx);
+                            int32_t eidx);
 
 BtorBitVector* inv_concat_bv (Btor* btor,
                               BtorNode* conc_exp,
                               BtorBitVector* bvconc,
                               BtorBitVector* bve,
-                              int eidx);
+                              int32_t eidx);
 
 BtorBitVector* inv_slice_bv (Btor* btor,
                              BtorNode* slice_exp,
                              BtorBitVector* bvslice,
                              BtorBitVector* bve);
 
-int sat_prop_solver_aux (Btor* btor);
+int32_t sat_prop_solver_aux (Btor* btor);
 #endif
 
 /*------------------------------------------------------------------------*/
