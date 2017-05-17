@@ -446,7 +446,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
 
   bool skip;
   uint32_t i;
-  int64_t id;
+  int32_t id;
   BtorNode *cur, *real_cur;
   BtorNodePtrQueue visit;
   BtorPtrHashBucket *b;

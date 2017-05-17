@@ -857,12 +857,12 @@ btor_node_set_btor_id (Btor *btor, BtorNode *exp, int32_t id)
   b->data.as_int = id;
 }
 
-int64_t
+int32_t
 btor_node_get_btor_id (BtorNode *exp)
 {
   assert (exp);
 
-  int64_t id = 0;
+  int32_t id = 0;
   Btor *btor;
   BtorNode *real_exp;
   BtorPtrHashBucket *b;
