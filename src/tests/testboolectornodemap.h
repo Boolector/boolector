@@ -10,9 +10,11 @@
 #ifndef TESTBOOLECTORNODEMAP_H_INCLUDED
 #define TESTBOOLECTORNODEMAP_H_INCLUDED
 
+#include <stdint.h>
+
 void init_boolectornodemap_tests (void);
 
-void run_boolectornodemap_tests (int argc, char **argv);
+void run_boolectornodemap_tests (int32_t argc, char **argv);
 
 void finish_boolectornodemap_tests (void);
 

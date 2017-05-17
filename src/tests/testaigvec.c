@@ -64,8 +64,8 @@ test_var_aigvec (void)
 static void
 test_invert_aigvec (void)
 {
-  int i                = 0;
-  int len              = 0;
+  int32_t i            = 0;
+  int32_t len          = 0;
   BtorBitVector *bits  = btor_bv_uint64_to_bv (g_btor->mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (g_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
@@ -286,7 +286,7 @@ test_cond_aigvec (void)
 }
 
 void
-run_aigvec_tests (int argc, char **argv)
+run_aigvec_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_aigvec_mgr);
   BTOR_RUN_TEST (const_aigvec);

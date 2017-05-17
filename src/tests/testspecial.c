@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -24,14 +24,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int g_argc       = 4;
+static int32_t g_argc   = 4;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
 void
 init_special_tests (void)
 {
-  int pos_rwr;
+  int32_t pos_rwr;
 
   pos_rwr = 0;
 
@@ -50,7 +50,7 @@ init_special_tests (void)
 }
 
 static void
-run_test (char *name, int expected)
+run_test (char *name, int32_t expected)
 {
   char *full_name;
 
@@ -1274,8 +1274,8 @@ test_regrcalypto3_special ()
   run_unsat_test ("regrcalypto3.smt2");
 }
 
-static int
-run_verbose_test (char *name, int verbosity)
+static int32_t
+run_verbose_test (char *name, int32_t verbosity)
 {
   assert (verbosity > 0);
   assert (verbosity <= 3);
@@ -1283,7 +1283,7 @@ run_verbose_test (char *name, int verbosity)
   char *full_name;
   char *redirect_str, *v1_str, *v2_str, *v3_str, *v_str;
   char *syscall_str;
-  int res;
+  int32_t res;
 
   full_name = (char *) malloc (sizeof (char)
                                * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
@@ -1341,7 +1341,7 @@ test_verbose2_special ()
 }
 
 void
-run_special_tests (int argc, char **argv)
+run_special_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (const1_special);
   BTOR_RUN_TEST (const2_special);

@@ -19,7 +19,7 @@
 #define BTOR_SLS_SCORE_CFACT 0.5     /* same as in Z3 (c1) */
 #define BTOR_SLS_SCORE_F_CFACT 0.025 /* same as in Z3 (c3) */
 
-static int
+static uint32_t
 hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
@@ -27,7 +27,7 @@ hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1->width == bv2->width);
   assert (bv1->len == bv2->len);
 
-  int res;
+  uint32_t res;
   BtorBitVector *bv, *bvdec = 0, *zero, *ones, *tmp;
 
   zero = btor_bv_new (btor->mm, bv1->width);
@@ -337,7 +337,7 @@ recursively_compute_sls_score_node (Btor *btor,
   assert (score);
   assert (exp);
 
-  int i;
+  uint32_t i;
   double res;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack stack;
@@ -409,7 +409,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
   assert (fun_model);
   assert (score);
 
-  int i;
+  uint32_t i;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack stack;
   BtorPtrHashTableIterator pit;
@@ -808,7 +808,7 @@ btor_propsls_update_cone (Btor *btor,
 
 /*========================================================================*/
 
-static inline int
+static inline int32_t
 select_path_non_const (BtorNode *exp)
 {
   assert (exp);
@@ -817,7 +817,8 @@ select_path_non_const (BtorNode *exp)
   assert (!btor_node_is_bv_const (exp->e[0])
           || (exp->arity > 1 && !btor_node_is_bv_const (exp->e[1])));
 
-  int i, eidx;
+  uint32_t i;
+  int32_t eidx;
 
   for (i = 0, eidx = -1; i < exp->arity; i++)
     if (btor_node_is_bv_const (exp->e[i]))
@@ -829,15 +830,15 @@ select_path_non_const (BtorNode *exp)
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_random (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return (int) btor_rng_pick_rand (&btor->rng, 0, exp->arity - 1);
+  return (int32_t) btor_rng_pick_rand (&btor->rng, 0, exp->arity - 1);
 }
 
-static inline int
+static inline int32_t
 select_path_add (Btor *btor,
                  BtorNode *add,
                  BtorBitVector *bvadd,
@@ -852,7 +853,7 @@ select_path_add (Btor *btor,
   (void) bvadd;
   (void) bve;
 
-  int eidx;
+  int32_t eidx;
 
   eidx = select_path_non_const (add);
   if (eidx == -1) eidx = select_path_random (btor, add);
@@ -873,7 +874,7 @@ select_path_add (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_and (Btor *btor,
                  BtorNode *and,
                  BtorBitVector *bvand,
@@ -886,7 +887,7 @@ select_path_and (Btor *btor,
   assert (bve);
 
   uint32_t opt;
-  int i, eidx;
+  int32_t i, eidx;
   BtorBitVector *tmp;
   BtorMemMgr *mm;
 
@@ -940,7 +941,7 @@ select_path_and (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_eq (Btor *btor,
                 BtorNode *eq,
                 BtorBitVector *bveq,
@@ -955,7 +956,7 @@ select_path_eq (Btor *btor,
   (void) bveq;
   (void) bve;
 
-  int eidx;
+  int32_t eidx;
   eidx = select_path_non_const (eq);
   if (eidx == -1) eidx = select_path_random (btor, eq);
   assert (eidx >= 0);
@@ -975,7 +976,7 @@ select_path_eq (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_ult (Btor *btor,
                  BtorNode *ult,
                  BtorBitVector *bvult,
@@ -987,7 +988,7 @@ select_path_ult (Btor *btor,
   assert (bvult);
   assert (bve);
 
-  int eidx;
+  int32_t eidx;
   BtorBitVector *bvmax;
   BtorMemMgr *mm;
 
@@ -1028,7 +1029,7 @@ select_path_ult (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_sll (Btor *btor,
                  BtorNode *sll,
                  BtorBitVector *bvsll,
@@ -1040,7 +1041,7 @@ select_path_sll (Btor *btor,
   assert (bvsll);
   assert (bve);
 
-  int eidx;
+  int32_t eidx;
   uint64_t i, j, shift;
 
   eidx = select_path_non_const (sll);
@@ -1086,7 +1087,7 @@ DONE:
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_srl (Btor *btor,
                  BtorNode *srl,
                  BtorBitVector *bvsrl,
@@ -1098,7 +1099,7 @@ select_path_srl (Btor *btor,
   assert (bvsrl);
   assert (bve);
 
-  int eidx;
+  int32_t eidx;
   uint64_t i, j, shift;
 
   eidx = select_path_non_const (srl);
@@ -1145,7 +1146,7 @@ DONE:
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_mul (Btor *btor,
                  BtorNode *mul,
                  BtorBitVector *bvmul,
@@ -1158,7 +1159,7 @@ select_path_mul (Btor *btor,
   assert (bve);
 
   uint32_t ctz_bvmul;
-  int eidx, lsbve0, lsbve1;
+  int32_t eidx, lsbve0, lsbve1;
   bool iszerobve0, iszerobve1;
 
   eidx = select_path_non_const (mul);
@@ -1214,7 +1215,7 @@ select_path_mul (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_udiv (Btor *btor,
                   BtorNode *udiv,
                   BtorBitVector *bvudiv,
@@ -1226,8 +1227,7 @@ select_path_udiv (Btor *btor,
   assert (bvudiv);
   assert (bve);
 
-  int eidx;
-  int cmp_udiv_max;
+  int32_t eidx, cmp_udiv_max;
   BtorBitVector *bvmax, *up, *lo, *tmp;
   BtorMemMgr *mm;
 
@@ -1295,7 +1295,7 @@ select_path_udiv (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_urem (Btor *btor,
                   BtorNode *urem,
                   BtorBitVector *bvurem,
@@ -1307,7 +1307,7 @@ select_path_urem (Btor *btor,
   assert (bvurem);
   assert (bve);
 
-  int eidx;
+  int32_t eidx;
   BtorBitVector *bvmax, *sub, *tmp;
   BtorMemMgr *mm;
 
@@ -1375,7 +1375,7 @@ select_path_urem (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_concat (Btor *btor,
                     BtorNode *concat,
                     BtorBitVector *bvconcat,
@@ -1387,7 +1387,7 @@ select_path_concat (Btor *btor,
   assert (bvconcat);
   assert (bve);
 
-  int eidx;
+  int32_t eidx;
   BtorBitVector *tmp;
   BtorMemMgr *mm;
 
@@ -1429,7 +1429,7 @@ select_path_concat (Btor *btor,
   return eidx;
 }
 
-static inline int
+static inline int32_t
 select_path_slice (Btor *btor,
                    BtorNode *slice,
                    BtorBitVector *bvslice,
@@ -1461,7 +1461,7 @@ select_path_slice (Btor *btor,
   return 0;
 }
 
-static inline int
+static inline int32_t
 select_path_cond (Btor *btor,
                   BtorNode *cond,
                   BtorBitVector *bvcond,
@@ -1587,7 +1587,7 @@ cons_add_bv (Btor *btor,
              BtorNode *add,
              BtorBitVector *bvadd,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (add);
@@ -1614,7 +1614,7 @@ cons_and_bv (Btor *btor,
              BtorNode *and,
              BtorBitVector *bvand,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (and);
@@ -1667,8 +1667,11 @@ cons_and_bv (Btor *btor,
 }
 
 static inline BtorBitVector *
-cons_eq_bv (
-    Btor *btor, BtorNode *eq, BtorBitVector *bveq, BtorBitVector *bve, int eidx)
+cons_eq_bv (Btor *btor,
+            BtorNode *eq,
+            BtorBitVector *bveq,
+            BtorBitVector *bve,
+            int32_t eidx)
 {
   assert (btor);
   assert (eq);
@@ -1706,7 +1709,7 @@ cons_ult_bv (Btor *btor,
              BtorNode *ult,
              BtorBitVector *bvult,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (ult);
@@ -1764,7 +1767,7 @@ cons_sll_bv (Btor *btor,
              BtorNode *sll,
              BtorBitVector *bvsll,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (sll);
@@ -1820,7 +1823,7 @@ cons_srl_bv (Btor *btor,
              BtorNode *srl,
              BtorBitVector *bvsrl,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (srl);
@@ -1877,7 +1880,7 @@ cons_mul_bv (Btor *btor,
              BtorNode *mul,
              BtorBitVector *bvmul,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (mul);
@@ -1964,7 +1967,7 @@ cons_udiv_bv (Btor *btor,
               BtorNode *udiv,
               BtorBitVector *bvudiv,
               BtorBitVector *bve,
-              int eidx)
+              int32_t eidx)
 {
   assert (btor);
   assert (udiv);
@@ -2052,7 +2055,7 @@ cons_urem_bv (Btor *btor,
               BtorNode *urem,
               BtorBitVector *bvurem,
               BtorBitVector *bve,
-              int eidx)
+              int32_t eidx)
 {
   assert (btor);
   assert (urem);
@@ -2116,7 +2119,7 @@ cons_concat_bv (Btor *btor,
                 BtorNode *concat,
                 BtorBitVector *bvconcat,
                 BtorBitVector *bve,
-                int eidx)
+                int32_t eidx)
 {
   assert (btor);
   assert (concat);
@@ -2190,7 +2193,7 @@ check_result_binary_dbg (Btor *btor,
                          BtorBitVector *bve,
                          BtorBitVector *bvexp,
                          BtorBitVector *res,
-                         int eidx,
+                         int32_t eidx,
                          char *op)
 {
   assert (btor);
@@ -2236,7 +2239,7 @@ inv_add_bv (Btor *btor,
             BtorNode *add,
             BtorBitVector *bvadd,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (add);
@@ -2274,7 +2277,7 @@ inv_and_bv (Btor *btor,
             BtorNode *and,
             BtorBitVector *bvand,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (and);
@@ -2286,7 +2289,7 @@ inv_and_bv (Btor *btor,
   assert (!btor_node_is_bv_const (and->e[eidx]));
 
   uint32_t i;
-  int bitand, bite;
+  int32_t bitand, bite;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2369,8 +2372,11 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_eq_bv (
-    Btor *btor, BtorNode *eq, BtorBitVector *bveq, BtorBitVector *bve, int eidx)
+inv_eq_bv (Btor *btor,
+           BtorNode *eq,
+           BtorBitVector *bveq,
+           BtorBitVector *bve,
+           int32_t eidx)
 {
   assert (btor);
   assert (eq);
@@ -2435,7 +2441,7 @@ inv_ult_bv (Btor *btor,
             BtorNode *ult,
             BtorBitVector *bvult,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (ult);
@@ -2550,7 +2556,7 @@ inv_sll_bv (Btor *btor,
             BtorNode *sll,
             BtorBitVector *bvsll,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (sll);
@@ -2692,7 +2698,7 @@ inv_srl_bv (Btor *btor,
             BtorNode *srl,
             BtorBitVector *bvsrl,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (srl);
@@ -2806,7 +2812,7 @@ inv_srl_bv (Btor *btor,
   else
   {
     /* cast is no problem (max bit width handled by Boolector is INT_MAX) */
-    shift = (int) btor_bv_to_uint64 (bve);
+    shift = (int32_t) btor_bv_to_uint64 (bve);
 
     /* CONFLICT: the MSBs shifted must be zero -------------------------- */
     if (btor_bv_get_num_leading_zeros (bvsrl) < shift) goto BVSRL_CONF;
@@ -2834,7 +2840,7 @@ inv_mul_bv (Btor *btor,
             BtorNode *mul,
             BtorBitVector *bvmul,
             BtorBitVector *bve,
-            int eidx)
+            int32_t eidx)
 {
   assert (btor);
   assert (mul);
@@ -2845,7 +2851,7 @@ inv_mul_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (mul->e[eidx]));
 
-  int lsbve, lsbvmul, ispow2_bve;
+  int32_t lsbve, lsbvmul, ispow2_bve;
   uint32_t i, j, bw;
   BtorBitVector *res, *inv, *tmp, *tmp2;
   BtorMemMgr *mm;
@@ -3027,7 +3033,7 @@ inv_udiv_bv (Btor *btor,
              BtorNode *udiv,
              BtorBitVector *bvudiv,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (udiv);
@@ -3272,7 +3278,7 @@ inv_urem_bv (Btor *btor,
              BtorNode *urem,
              BtorBitVector *bvurem,
              BtorBitVector *bve,
-             int eidx)
+             int32_t eidx)
 {
   assert (btor);
   assert (urem);
@@ -3284,7 +3290,7 @@ inv_urem_bv (Btor *btor,
   assert (!btor_node_is_bv_const (urem->e[eidx]));
 
   uint32_t bw, cnt;
-  int cmp;
+  int32_t cmp;
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *n, *mul, *up, *sub;
   BtorMemMgr *mm;
@@ -3595,7 +3601,7 @@ inv_concat_bv (Btor *btor,
                BtorNode *concat,
                BtorBitVector *bvconcat,
                BtorBitVector *bve,
-               int eidx)
+               int32_t eidx)
 {
   assert (btor);
   assert (concat);

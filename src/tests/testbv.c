@@ -776,7 +776,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
 static void
 test_one_bitvec (void)
 {
-  int i;
+  int32_t i;
   char *s, *sbv;
   BtorBitVector *bv;
 
@@ -797,7 +797,7 @@ test_one_bitvec (void)
 static void
 test_ones_bitvec (void)
 {
-  int i;
+  int32_t i;
   char *s, *sbv;
   BtorBitVector *bv;
 
@@ -956,7 +956,7 @@ test_urem_bitvec (void)
 static void
 concat_bitvec (int32_t num_tests, uint32_t bit_width)
 {
-  int i;
+  int32_t i;
   uint32_t bw1, bw2;
   BtorBitVector *bv1, *bv2, *res;
   uint64_t a1, a2, ares, bres;
@@ -1171,7 +1171,7 @@ test_flipped_bit_range_bitvec (void)
   } while (0)
 
 static void
-is_umulo_bitvec (int bw)
+is_umulo_bitvec (uint32_t bw)
 {
   BtorBitVector *bv0, *bv1;
 
@@ -1209,7 +1209,7 @@ test_is_umulo_bitvec (void)
 static void
 test_compare_bitvec (void)
 {
-  int i, j, k;
+  int32_t i, j, k;
   BtorBitVector *bv1, *bv2;
 
   for (i = 0; i < 15; i++)
@@ -1257,7 +1257,7 @@ test_compare_bitvec (void)
 static void
 test_is_one_bitvec (void)
 {
-  int i;
+  int32_t i;
   char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
@@ -1284,7 +1284,7 @@ test_is_one_bitvec (void)
 static void
 test_is_ones_bitvec (void)
 {
-  int i;
+  int32_t i;
   char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
@@ -1310,7 +1310,7 @@ test_is_ones_bitvec (void)
 static void
 test_is_zero_bitvec (void)
 {
-  int i;
+  int32_t i;
   char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
@@ -1336,7 +1336,7 @@ test_is_zero_bitvec (void)
 static void
 test_is_special_const_bitvec (void)
 {
-  int i;
+  int32_t i;
   BtorBitVector *bv;
 
   bv = btor_bv_char_to_bv (g_mm, "0");
@@ -1955,7 +1955,7 @@ test_get_num_leading_ones_bitvec (void)
 }
 
 void
-run_bitvec_tests (int argc, char **argv)
+run_bitvec_tests (int32_t argc, char **argv)
 {
   srand (42);
 

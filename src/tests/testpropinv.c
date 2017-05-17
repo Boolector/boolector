@@ -613,7 +613,7 @@ prop_inv_conf_sll_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i;
+  int32_t i;
   BtorNode *sll, *e[2], *csll, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bvsll, *bve;
@@ -770,7 +770,7 @@ prop_inv_conf_srl_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i;
+  int32_t i;
   BtorNode *srl, *e[2], *csrl, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bvsrl, *bve;
@@ -1043,7 +1043,7 @@ prop_inv_conf_udiv_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int k;
+  int32_t k;
   BtorNode *udiv, *e[2], *cudiv, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bve, *bvudiv, *bvmax, *zero, *tmp, *tmp2;
@@ -1128,7 +1128,7 @@ prop_inv_conf_urem_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int k;
+  int32_t k;
   BtorNode *urem, *e[2], *curem, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bve, *bvurem, *bvmax, *zero, *two, *tmp, *tmp2;
@@ -1310,7 +1310,7 @@ prop_inv_conf_concat_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int k, cnt;
+  int32_t k, cnt;
   uint32_t i, j, bws[2];
   BtorNode *concat, *e[2], *ce[2], *cconcat[2];
   BtorSortId sorts[2];
@@ -1488,7 +1488,7 @@ init_propinv_tests (void)
 }
 
 void
-run_propinv_tests (int argc, char **argv)
+run_propinv_tests (int32_t argc, char **argv)
 {
   (void) argc;
   (void) argv;

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -912,7 +912,7 @@ test_dec_exp (void)
 }
 
 void
-run_exp_tests (int argc, char **argv)
+run_exp_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_btor);
   BTOR_RUN_TEST_CHECK_LOG (const_exp);

@@ -58,7 +58,7 @@ void
 test_bitvec_sort (void)
 {
   init_sort_test ();
-  int i, j;
+  int32_t i, j;
   BtorSortId s0, s1;
 
   for (i = 1; i <= 128; i++)
@@ -80,7 +80,7 @@ void
 test_array_sort (void)
 {
   init_sort_test ();
-  int i, j, k, l;
+  int32_t i, j, k, l;
   BtorSortId s0, s1, s2, s3, a0, a1;
 
   for (i = 1; i <= 16; i++)
@@ -245,7 +245,7 @@ test_tuple_sort (void)
 }
 
 void
-run_sort_tests (int argc, char **argv)
+run_sort_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (bool_sort);
   BTOR_RUN_TEST (bitvec_sort);

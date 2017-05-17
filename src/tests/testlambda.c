@@ -23,9 +23,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-static Btor *g_btor   = NULL;
-static int g_index_bw = 32;
-static int g_elem_bw  = 16;
+static Btor *g_btor       = NULL;
+static int32_t g_index_bw = 32;
+static int32_t g_elem_bw  = 16;
 static BtorSortId g_elem_sort;
 static BtorSortId g_index_sort;
 static BtorSortId g_array_sort;
@@ -55,9 +55,9 @@ init_lambda_tests (void)
 }
 
 static void
-assert_parameterized (int argc, ...)
+assert_parameterized (int32_t argc, ...)
 {
-  int i;
+  int32_t i;
   va_list ap;
   BtorNode *e;
 
@@ -71,9 +71,9 @@ assert_parameterized (int argc, ...)
 }
 
 static void
-assert_not_parameterized (int argc, ...)
+assert_not_parameterized (int32_t argc, ...)
 {
-  int i;
+  int32_t i;
   va_list ap;
   BtorNode *e;
 
@@ -87,14 +87,14 @@ assert_not_parameterized (int argc, ...)
 }
 
 static BtorNode *
-apply_and_reduce (Btor *btor, BtorNode *args[], int argc, BtorNode *lambda)
+apply_and_reduce (Btor *btor, BtorNode *args[], int32_t argc, BtorNode *lambda)
 {
   assert (btor);
   assert (argc >= 0);
   assert (argc < 1 || args);
   assert (lambda);
 
-  int i;
+  int32_t i;
   BtorNode *result, *cur;
   BtorNodePtrStack unassign;
   BtorMemMgr *mm;
@@ -356,7 +356,7 @@ test_lambda_param_slice (void)
 {
   BtorNode *result;
   BtorNode *var, *param, *expected, *slice, *lambda;
-  int lower, upper;
+  int32_t lower, upper;
 
   init_lambda_test ();
 
@@ -389,7 +389,7 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
   BtorNode *result;
   BtorNode *var, *param, *expected, *param_exp, *lambda;
   BtorSortId lower_sort, upper_sort;
-  int lower, upper;
+  int32_t lower, upper;
 
   init_lambda_test ();
 
@@ -438,7 +438,7 @@ test_lambda_param_sext (void)
 
 /* (lambda x . bin_exp (x, v2)) (v1) or (lambda x . bin_exp (v1, x)) (v2) */
 static void
-binary_param_exp_test (int param_pos,
+binary_param_exp_test (int32_t param_pos,
                        BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 {
   assert (param_pos == 0 || param_pos == 1);
@@ -446,7 +446,7 @@ binary_param_exp_test (int param_pos,
   BtorNode *result;
   BtorNode *param_exp, *v1, *v2, *expected, *x;
   BtorSortId v1_sort, v2_sort, x_sort;
-  int x_bw, v1_bw, v2_bw;
+  int32_t x_bw, v1_bw, v2_bw;
 
   init_lambda_test ();
 
@@ -1387,7 +1387,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
 {
   BtorNode *result;
   BtorNode **params, **indices, *var, *fun;
-  int i, nesting_lvl;
+  int32_t i, nesting_lvl;
   size_t size;
 
   init_lambda_test ();
@@ -1604,8 +1604,8 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
 static void
 test_lambda_define_fun (void)
 {
-  int i;
-  int nesting_lvl = 1000;
+  int32_t i;
+  int32_t nesting_lvl = 1000;
   size_t size;
   BtorNode **params, **lambdas, **ands, *left, *right, *expected, *result;
 
@@ -1662,7 +1662,7 @@ test_lambda_define_fun (void)
 }
 
 void
-run_lambda_tests (int argc, char **argv)
+run_lambda_tests (int32_t argc, char **argv)
 {
   /* constant lambda tests */
   BTOR_RUN_TEST (lambda_const_lambda_const);

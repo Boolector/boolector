@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014-2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -28,15 +28,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char *g_name = NULL;
-int g_smtlib = 1;
+char *g_name     = NULL;
+int32_t g_smtlib = 1;
 
 void
 init_parseerror_tests (void)
 {
 }
 
-static int
+static bool
 file_exists (const char *path)
 {
   struct stat buf;
@@ -50,7 +50,7 @@ run_smt_parse_error_test (void)
   char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
   char *smt_opt    = (g_smtlib == 1) ? "--smt1" : "--smt2";
   char *syscall_string;
-  int res, len, suff_len;
+  int32_t res, len, suff_len;
 
   len      = strlen (fname);
   suff_len = strlen (smt_suffix);
@@ -95,22 +95,22 @@ run_smt_parse_error_test (void)
   free (syscall_string);
 }
 
-static int
+static bool
 hasprefix (const char *str, const char *prefix)
 {
   return !strncmp (str, prefix, strlen (prefix));
 }
 
-static int
+static bool
 hassuffix (const char *str, const char *suffix)
 {
-  int difflen = strlen (str) - strlen (suffix);
+  int32_t difflen = strlen (str) - strlen (suffix);
   if (difflen < 0) return 0;
   return !strcmp (str + difflen, suffix);
 }
 
 void
-run_parseerror_tests (int argc, char **argv)
+run_parseerror_tests (int32_t argc, char **argv)
 {
   DIR *dir = opendir (BTOR_LOG_DIR);
   struct dirent *de;

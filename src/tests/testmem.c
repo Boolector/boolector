@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -36,44 +37,45 @@ test_new_delete_mem_mgr (void)
 static void
 test_malloc_mem (void)
 {
-  int *test      = NULL;
+  int32_t *test  = NULL;
   BtorMemMgr *mm = btor_mem_mgr_new ();
-  test           = (int *) btor_mem_malloc (mm, sizeof (int));
+  test           = (int32_t *) btor_mem_malloc (mm, sizeof (int32_t));
   assert (test != NULL);
   *test = 3;
-  btor_mem_free (mm, test, sizeof (int));
+  btor_mem_free (mm, test, sizeof (int32_t));
   btor_mem_mgr_delete (mm);
 }
 
 static void
 test_realloc_mem (void)
 {
-  int *test      = NULL;
+  int32_t *test  = NULL;
   BtorMemMgr *mm = btor_mem_mgr_new ();
-  test           = (int *) btor_mem_malloc (mm, sizeof (int));
+  test           = (int32_t *) btor_mem_malloc (mm, sizeof (int32_t));
   assert (test != NULL);
   test[0] = 3;
-  test    = (int *) btor_mem_realloc (mm, test, sizeof (int), sizeof (int) * 2);
+  test    = (int32_t *) btor_mem_realloc (
+      mm, test, sizeof (int32_t), sizeof (int32_t) * 2);
   assert (test[0] == 3);
   test[1] = 5;
   assert (test[0] == 3);
   assert (test[1] == 5);
-  btor_mem_free (mm, test, sizeof (int) * 2);
+  btor_mem_free (mm, test, sizeof (int32_t) * 2);
   btor_mem_mgr_delete (mm);
 }
 
 static void
 test_calloc_mem (void)
 {
-  int *test      = NULL;
+  int32_t *test  = NULL;
   BtorMemMgr *mm = btor_mem_mgr_new ();
-  test           = (int *) btor_mem_calloc (mm, sizeof (int), 4);
+  test           = (int32_t *) btor_mem_calloc (mm, sizeof (int32_t), 4);
   assert (test != NULL);
   assert (test[0] == 0);
   assert (test[1] == 0);
   assert (test[2] == 0);
   assert (test[3] == 0);
-  btor_mem_free (mm, test, sizeof (int) * 4);
+  btor_mem_free (mm, test, sizeof (int32_t) * 4);
   btor_mem_mgr_delete (mm);
 }
 
@@ -88,7 +90,7 @@ test_strdup_mem (void)
 }
 
 void
-run_mem_tests (int argc, char **argv)
+run_mem_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_mem_mgr);
   BTOR_RUN_TEST (malloc_mem);

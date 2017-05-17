@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -29,11 +29,11 @@ init_modelgen_tests (void)
 }
 
 static void
-modelgen_test (const char *fname, int rwl)
+modelgen_test (const char *fname, int32_t rwl)
 {
   char *btor_fname, *log_fname, *syscall_string;
   size_t len;
-  int ret_val;
+  int32_t ret_val;
 
   assert (rwl >= 0);
   assert (rwl <= 3);
@@ -247,7 +247,7 @@ test_modelgen27 ()
 }
 
 void
-run_modelgen_tests (int argc, char **argv)
+run_modelgen_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (modelgen1);
   BTOR_RUN_TEST (modelgen2);

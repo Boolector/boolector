@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -13,16 +13,19 @@
 #ifndef TESTRUNNER_H_INCLUDED
 #define TESTRUNNER_H_INCLUDED
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "btorconfig.h"
 
-extern int g_rwreads;
+extern int32_t g_rwreads;
 extern FILE *g_logfile;
 
 #define BTOR_RUN_TEST_CHECK_LOG(name) \
-  run_test_case (argc, argv, test_##name, #name, 1)
+  run_test_case (argc, argv, test_##name, #name, true)
 
-#define BTOR_RUN_TEST(name) run_test_case (argc, argv, test_##name, #name, 0)
+#define BTOR_RUN_TEST(name) \
+  run_test_case (argc, argv, test_##name, #name, false)
 
 enum BtorTestCaseSpeed
 {
@@ -33,12 +36,15 @@ enum BtorTestCaseSpeed
 
 typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
 
-void init_tests (BtorTestCaseSpeed speed, int skip_broken);
+void init_tests (BtorTestCaseSpeed speed, bool skip_broken);
 
 void print_test_suite_name (const char *name);
 
-void run_test_case (
-    int argc, char **argv, void (*funcp) (), char *name, int check_log_file);
+void run_test_case (int32_t argc,
+                    char **argv,
+                    void (*funcp) (),
+                    char *name,
+                    bool check_log_file);
 
 void finish_tests (void);
 

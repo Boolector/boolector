@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -64,7 +65,7 @@ test_traverse_hash_str2i (void)
   BtorPtrHashTable *ht;
   BtorPtrHashBucket *p;
   char buffer[20];
-  int i;
+  int32_t i;
 
   ht = btor_hashptr_table_new (mem, btor_hash_str, btor_compare_str);
 
@@ -100,7 +101,7 @@ test_hash_str2str (void)
   BtorHashTableData data;
   char buffer[20];
   void *key;
-  int i;
+  int32_t i;
 
   ht = btor_hashptr_table_new (mem, btor_hash_str, btor_compare_str);
 
@@ -141,7 +142,7 @@ test_hash_str2str (void)
 }
 
 void
-run_hash_tests (int argc, char **argv)
+run_hash_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_hash);
   BTOR_RUN_TEST (hash_str2i);

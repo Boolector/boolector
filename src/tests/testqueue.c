@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -93,7 +94,7 @@ static void
 test_reset_queue (void)
 {
   BtorIntQueue queue;
-  int i, j, k;
+  int32_t i, j, k;
 
   BTOR_INIT_QUEUE (g_mm, queue);
 
@@ -126,7 +127,7 @@ test_reset_queue (void)
 }
 
 void
-run_queue_tests (int argc, char **argv)
+run_queue_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (init_release_queue);
   BTOR_RUN_TEST (functionality_queue);

@@ -66,7 +66,7 @@ static BtorRNG *g_rng;
 static inline void
 prop_complete_binary_eidx (
     uint32_t n,
-    int eidx,
+    int32_t eidx,
     uint32_t bw0,
     uint32_t bw1,
     BtorBitVector *bve,
@@ -77,9 +77,9 @@ prop_complete_binary_eidx (
                                  const BtorBitVector *,
                                  const BtorBitVector *),
     BtorBitVector *(*inv_bv) (
-        Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int) )
+        Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int32_t))
 {
-  int i, idx, sat_res;
+  int32_t i, idx, sat_res;
   BtorNode *e[2], *exp, *val, *eq;
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
   BtorSortId sort0, sort1;
@@ -172,7 +172,7 @@ prop_complete_binary (uint32_t n,
                                                 BtorNode *,
                                                 BtorBitVector *,
                                                 BtorBitVector *,
-                                                int) )
+                                                int32_t))
 {
   uint32_t bw0, bw1;
   uint64_t i, j, k;
@@ -394,7 +394,7 @@ static void
 test_prop_complete_slice_bv (void)
 {
 #ifndef NDEBUG
-  int sat_res;
+  int32_t sat_res;
   uint32_t bw;
   uint64_t up, lo, i, j, k;
   BtorNode *exp, *e, *val, *eq;
@@ -486,7 +486,7 @@ init_prop_tests (void)
 }
 
 void
-run_prop_tests (int argc, char **argv)
+run_prop_tests (int32_t argc, char **argv)
 {
   (void) argc;
   (void) argv;

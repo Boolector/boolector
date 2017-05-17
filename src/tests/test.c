@@ -80,10 +80,11 @@
   "      propinv, queue, sat, shift, smtaxioms, sort, special, stack,\n"     \
   "      util, testcases\n\n"
 
-int
-main (int argc, char **argv)
+int32_t
+main (int32_t argc, char **argv)
 {
-  int i, skip_broken = 1;
+  int32_t i;
+  bool skip_broken        = true;
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
 
   for (i = 1; i < argc; i++)
@@ -99,7 +100,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-b") || !strcmp (argv[i], "--broken"))
     {
-      skip_broken = 0;
+      skip_broken = false;
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {

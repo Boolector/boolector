@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -113,7 +114,7 @@ test_num_digits_util (void)
 }
 
 void
-run_util_tests (int argc, char **argv)
+run_util_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (is_power_of_2_util);
   BTOR_RUN_TEST (log_2_util);
