@@ -144,6 +144,31 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   return exp->id;
 }
 
+static bool
+symbol_needs_quotes (const char *sym)
+{
+  char ch;
+  size_t i, len;
+
+  len = strlen (sym);
+
+  /* already quoted */
+  if (sym[0] == '|' && sym[len - 1] == '|') return false;
+
+  for (i = 0; i < len; i++)
+  {
+    ch = sym[i];
+    if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122)
+        || (ch >= 48 && ch <= 57) || ch == '~' || ch == '!' || ch == '@'
+        || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*'
+        || ch == '_' || ch == '-' || ch == '+' || ch == '=' || ch == '<'
+        || ch == '>' || ch == '.' || ch == '?' || ch == '/')
+      continue;
+    return true;
+  }
+  return false;
+}
+
 static void
 dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
@@ -164,7 +189,10 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       sym = btor_node_get_symbol (sdc->btor, exp);
       if (sym && !isdigit ((int32_t) sym[0]))
       {
-        fputs (sym, sdc->file);
+        if (symbol_needs_quotes (sym))
+          fprintf (sdc->file, "|%s|", sym);
+        else
+          fputs (sym, sdc->file);
         return;
       }
       break;
