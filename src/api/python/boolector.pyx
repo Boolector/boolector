@@ -965,19 +965,15 @@ cdef class Boolector:
             :type solver:  str
             :param clone: Force non-incremental SAT solver usage.
             :type clone:  bool
-            :return: True if setting the SAT solver was successful and False otherwise. 
-            :rtype: bool
 
             .. note::
                 Parameter ``clone`` is currently only supported by Lingeling.
         """
         solver = solver.strip().lower()
         if solver == "lingeling":
-            return btorapi.boolector_set_sat_solver_lingeling(
-                        self._c_btor, not clone) == 1
+            btorapi.boolector_set_sat_solver_lingeling(self._c_btor, not clone)
         else:
-            return btorapi.boolector_set_sat_solver(
-                        self._c_btor, _ChPtr(solver)._c_str) == 1
+            btorapi.boolector_set_sat_solver(self._c_btor, _ChPtr(solver)._c_str)
 
     def Print_model(self, str format = "btor", outfile = None):
         """ Print_model(format = "btor", outfile = None)

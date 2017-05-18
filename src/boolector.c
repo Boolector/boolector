@@ -510,7 +510,7 @@ boolector_simplify (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
-int32_t
+void
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {
   uint32_t sat_engine;
@@ -551,11 +551,10 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver, solver);
 #endif
-  return 1;
 }
 
 #ifdef BTOR_USE_LINGELING
-int32_t
+void
 boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -569,12 +568,11 @@ boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_lingeling, nofork);
 #endif
-  return 1;
 }
 #endif
 
 #ifdef BTOR_USE_PICOSAT
-int32_t
+void
 boolector_set_sat_solver_picosat (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -587,12 +585,11 @@ boolector_set_sat_solver_picosat (Btor *btor)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_picosat);
 #endif
-  return 1;
 }
 #endif
 
 #ifdef BTOR_USE_MINISAT
-int32_t
+void
 boolector_set_sat_solver_minisat (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -605,7 +602,6 @@ boolector_set_sat_solver_minisat (Btor *btor)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_sat_solver_minisat);
 #endif
-  return 1;
 }
 #endif
 

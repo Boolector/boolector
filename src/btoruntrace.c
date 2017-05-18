@@ -619,31 +619,27 @@ NEXT:
     else if (!strcmp (tok, "set_sat_solver"))
     {
       PARSE_ARGS1 (tok, str);
-      ret_int = boolector_set_sat_solver (btor, arg1_str);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver (btor, arg1_str);
     }
 #ifdef BTOR_USE_LINGELING
     else if (!strcmp (tok, "set_sat_solver_lingeling"))
     {
       PARSE_ARGS1 (tok, int);
-      ret_int = boolector_set_sat_solver_lingeling (btor, arg2_int);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver_lingeling (btor, arg2_int);
     }
 #endif
 #ifdef BTOR_USE_PICOSAT
     else if (!strcmp (tok, "set_sat_solver_picosat"))
     {
       PARSE_ARGS0 (tok);
-      ret_int = boolector_set_sat_solver_picosat (btor);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver_picosat (btor);
     }
 #endif
 #ifdef BTOR_USE_MINISAT
     else if (!strcmp (tok, "set_sat_solver_minisat"))
     {
       PARSE_ARGS0 (tok);
-      ret_int = boolector_set_sat_solver_minisat (btor);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver_minisat (btor);
     }
 #endif
     else if (!strcmp (tok, "set_opt"))

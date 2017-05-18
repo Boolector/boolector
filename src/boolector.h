@@ -319,9 +319,8 @@ int32_t boolector_simplify (Btor *btor);
 
   :param btor: Boolector instance
   :param solver: Solver identifier string.
-  :return: Non-zero value if setting the SAT solver was successful.
 */
-int32_t boolector_set_sat_solver (Btor *btor, const char *solver);
+void boolector_set_sat_solver (Btor *btor, const char *solver);
 
 #ifdef BTOR_USE_LINGELING
 /*!
@@ -334,7 +333,7 @@ int32_t boolector_set_sat_solver (Btor *btor, const char *solver);
   :param nofork: Do not use fork/clone for Lingeling.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int32_t boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork);
+void boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork);
 #endif
 
 #ifdef BTOR_USE_PICOSAT
@@ -347,7 +346,7 @@ int32_t boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork);
   :param btor: Boolector instance.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int32_t boolector_set_sat_solver_picosat (Btor *btor);
+void boolector_set_sat_solver_picosat (Btor *btor);
 #endif
 
 #ifdef BTOR_USE_MINISAT
@@ -360,7 +359,7 @@ int32_t boolector_set_sat_solver_picosat (Btor *btor);
   :param btor: Boolector instance.
   :return: Non-zero value if setting the SAT solver was successful.
 */
-int32_t boolector_set_sat_solver_minisat (Btor *btor);
+void boolector_set_sat_solver_minisat (Btor *btor);
 #endif
 
 /*------------------------------------------------------------------------*/
