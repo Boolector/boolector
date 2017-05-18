@@ -23,12 +23,11 @@
 
 /*------------------------------------------------------------------------*/
 
-typedef struct BtorParseOpt BtorParseOpt;
 typedef struct BtorParser BtorParser;
 typedef struct BtorParseResult BtorParseResult;
 typedef struct BtorParserAPI BtorParserAPI;
 
-typedef BtorParser *(*BtorInitParser) (Btor *, BtorParseOpt *);
+typedef BtorParser *(*BtorInitParser) (Btor *);
 
 typedef void (*BtorResetParser) (void *);
 
@@ -46,15 +45,6 @@ enum BtorParseMode
 };
 
 typedef enum BtorParseMode BtorParseMode;
-
-struct BtorParseOpt
-{
-  uint32_t incremental;
-  BtorParseMode incremental_smt1; /* smt v1 only */
-  uint32_t verbosity;
-  uint32_t modelgen;
-  uint32_t interactive;
-};
 
 struct BtorParseResult
 {

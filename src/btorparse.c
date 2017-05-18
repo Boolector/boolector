@@ -54,23 +54,17 @@ parse_aux (Btor *btor,
   assert (status);
 
   BtorParser *parser;
-  BtorParseOpt parse_opt;
   BtorParseResult parse_res;
   BoolectorNode *root;
   uint32_t i, root_len;
   int32_t res;
   char *emsg;
 
-  res                        = BOOLECTOR_UNKNOWN;
-  *error_msg                 = 0;
-  parse_opt.verbosity        = btor_opt_get (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental      = btor_opt_get (btor, BTOR_OPT_INCREMENTAL);
-  parse_opt.incremental_smt1 = btor_opt_get (btor, BTOR_OPT_INCREMENTAL_SMT1);
-  parse_opt.interactive      = btor_opt_get (btor, BTOR_OPT_PARSE_INTERACTIVE);
-  parse_opt.modelgen         = btor_opt_get (btor, BTOR_OPT_MODEL_GEN);
+  res        = BOOLECTOR_UNKNOWN;
+  *error_msg = 0;
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
-  parser = parser_api->init (btor, &parse_opt);
+  parser = parser_api->init (btor);
 
   if ((emsg = parser_api->parse (
            parser, prefix, infile, infile_name, outfile, &parse_res)))
@@ -83,7 +77,7 @@ parse_aux (Btor *btor,
   {
     res = parse_res.nsatcalls ? parse_res.result : BOOLECTOR_PARSE_UNKNOWN;
 
-    if (!parse_opt.incremental)
+    if (!boolector_get_opt (btor, BTOR_OPT_INCREMENTAL))
     {
       // FIXME this is only used for non-incremental smt1 and btor
       // maybe move root handling into respective parsers??

@@ -182,12 +182,12 @@ struct BtorSMTParser
 {
   BtorMemMgr *mem;
   Btor *btor;
-  uint32_t verbosity;
   bool parsed;
 
+  uint32_t verbosity;
+  uint32_t modelgen;
   uint32_t incremental;
   BtorParseMode incremental_smt1;
-  uint32_t modelgen;
 
   struct
   {
@@ -662,7 +662,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-new_smt_parser (Btor *btor, BtorParseOpt *opts)
+new_smt_parser (Btor *btor)
 {
   BtorSMTSymbol *bind, *translated;
   BtorMemMgr *mem;
@@ -674,18 +674,18 @@ new_smt_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity        = opts->verbosity;
-  res->incremental      = opts->incremental;
-  res->incremental_smt1 = opts->incremental_smt1;
-  res->modelgen         = opts->modelgen;
+  res->verbosity        = boolector_get_opt (btor, BTOR_OPT_VERBOSITY);
+  res->modelgen         = boolector_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  res->incremental      = boolector_get_opt (btor, BTOR_OPT_INCREMENTAL);
+  res->incremental_smt1 = boolector_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
 
   smt_message (res, 2, "initializing SMT parser");
-  if (opts->incremental)
+  if (res->incremental)
   {
     smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (opts->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
+    if (res->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
       smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else if (opts->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+    else if (res->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
       smt_message (res, 2, "check all ':formula' for satisfiability");
   }
 

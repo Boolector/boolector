@@ -301,10 +301,6 @@ typedef struct BtorSMT2Parser
   BtorMemMgr *mem;
   bool done;
   bool need_functions;
-  uint32_t verbosity;
-  uint32_t incremental;
-  uint32_t modelgen;
-  uint32_t interactive;
   bool saved;
   int32_t savedch;
   int32_t last_end_of_line_ycoo;
@@ -1016,16 +1012,12 @@ insert_logics_smt2 (BtorSMT2Parser *parser)
 }
 
 static BtorSMT2Parser *
-new_smt2_parser (Btor *btor, BtorParseOpt *opts)
+new_smt2_parser (Btor *btor)
 {
   BtorSMT2Parser *res;
   BtorMemMgr *mem = btor_mem_mgr_new ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
-  res->verbosity     = opts->verbosity;
-  res->incremental   = opts->incremental;
-  res->interactive   = opts->interactive;
-  res->modelgen      = opts->modelgen;
   res->done          = false;
   res->btor          = btor;
   res->mem           = mem;
@@ -1391,7 +1383,7 @@ read_token_smt2 (BtorSMT2Parser *parser)
   int32_t res;
   parser->lastcoo = parser->coo;
   res             = read_token_aux_smt2 (parser);
-  if (parser->verbosity >= 4)
+  if (boolector_get_opt (parser->btor, BTOR_OPT_VERBOSITY) >= 4)
   {
     printf ("[btorsmt2] line %-8d column %-4d token %08x %s\n",
             parser->coo.x,
@@ -3802,12 +3794,6 @@ set_option_smt2 (BtorSMT2Parser *parser)
       val =
           verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
     boolector_set_opt (parser->btor, o, val);
-
-    /* update parser options */
-    if (o == BTOR_OPT_INCREMENTAL)
-      parser->incremental = val;
-    else if (o == BTOR_OPT_VERBOSITY)
-      parser->verbosity = val;
   }
   return skip_sexprs (parser, 1);
 }
@@ -3906,11 +3892,12 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
-      if (parser->commands.check_sat++ && !parser->incremental)
+      if (parser->commands.check_sat++
+          && !boolector_get_opt (parser->btor, BTOR_OPT_INCREMENTAL))
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
                   1,
                   "WARNING additional 'check-sat' command");
-      if (parser->interactive)
+      if (boolector_get_opt (parser->btor, BTOR_OPT_PARSE_INTERACTIVE))
       {
 #if 1
         for (i = 0; i < BTOR_COUNT_STACK (parser->assumptions); i++)

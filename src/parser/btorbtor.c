@@ -86,7 +86,6 @@ struct BtorBTORParser
   const char **ops;
 
   uint32_t idx;
-  uint32_t verbosity;
 
   bool found_arrays;
   bool found_lambdas;
@@ -1692,13 +1691,10 @@ find_parser (BtorBTORParser *parser, const char *op)
 }
 
 static BtorBTORParser *
-new_btor_parser (Btor *btor, BtorParseOpt *opts)
+new_btor_parser (Btor *btor)
 {
   BtorMemMgr *mem = btor_mem_mgr_new ();
   BtorBTORParser *res;
-
-  (void) opts->incremental;  // TODO what about incremental?
-  (void) opts->modelgen;     // TODO use at least this
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
@@ -1787,8 +1783,6 @@ new_btor_parser (Btor *btor, BtorParseOpt *opts)
   new_parser (res, parse_param, "param");
   new_parser (res, parse_lambda, "lambda");
   new_parser (res, parse_apply, "apply");
-
-  res->verbosity = opts->verbosity;
 
   return res;
 }
