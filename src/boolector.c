@@ -270,7 +270,7 @@ boolector_terminate (Btor *btor)
   BTOR_ABORT_ARG_NULL (btor);
   res = btor_terminate (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, terminate);
+  BTOR_CHKCLONE_RES_INT (res, terminate);
 #endif
   return res;
 }
@@ -469,7 +469,7 @@ boolector_sat (Btor *btor)
   res = btor_check_sat (btor, -1, -1);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, sat);
+  BTOR_CHKCLONE_RES_INT (res, sat);
 #endif
   return res;
 }
@@ -487,7 +487,7 @@ boolector_limited_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   res = btor_check_sat (btor, lod_limit, sat_limit);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, limited_sat, lod_limit, sat_limit);
+  BTOR_CHKCLONE_RES_INT (res, limited_sat, lod_limit, sat_limit);
 #endif
   return res;
 }
@@ -503,7 +503,7 @@ boolector_simplify (Btor *btor)
   res = btor_simplify (btor);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, simplify);
+  BTOR_CHKCLONE_RES_INT (res, simplify);
 #endif
   return res;
 }
@@ -2739,7 +2739,7 @@ boolector_get_id (Btor *btor, BoolectorNode *node)
   res = btor_node_get_id (BTOR_REAL_ADDR_NODE (exp));
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_id, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_INT (res, get_id, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
@@ -3216,7 +3216,7 @@ boolector_fun_sort_check (Btor *btor,
   BoolectorNode *carg_nodes[argc];
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
-  BTOR_CHKCLONE_RES (
+  BTOR_CHKCLONE_RES_INT (
       res, fun_sort_check, carg_nodes, argc, BTOR_CLONED_EXP (e_fun));
 #endif
   return res;

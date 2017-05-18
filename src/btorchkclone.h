@@ -39,7 +39,7 @@ void btor_chkclone_sort (Btor *btor,
     btor_chkclone (btor, btor->clone);     \
   } while (0)
 
-#define BTOR_CHKCLONE_RES(res, fun, args...)                  \
+#define BTOR_CHKCLONE_RES_INT(res, fun, args...)              \
   do                                                          \
   {                                                           \
     if (!btor->clone) break;                                  \
