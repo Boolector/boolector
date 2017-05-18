@@ -34,20 +34,20 @@
 typedef struct BtorMainApp BtorMainApp;
 static BtorMainApp *g_app;
 
-static int g_verbosity;
-static int g_set_alarm;
-static int g_caught_sig;
+static uint32_t g_verbosity;
+static uint32_t g_set_alarm;
+static bool g_caught_sig;
 #ifdef BTOR_HAVE_GETRUSAGE
-static int g_start_time;
+static double g_start_time;
 #endif
 
-static void (*sig_int_handler) (int);
-static void (*sig_segv_handler) (int);
-static void (*sig_abrt_handler) (int);
-static void (*sig_term_handler) (int);
-static void (*sig_bus_handler) (int);
+static void (*sig_int_handler) (int32_t);
+static void (*sig_segv_handler) (int32_t);
+static void (*sig_abrt_handler) (int32_t);
+static void (*sig_term_handler) (int32_t);
+static void (*sig_bus_handler) (int32_t);
 
-static void (*sig_alrm_handler) (int);
+static void (*sig_alrm_handler) (int32_t);
 
 /*------------------------------------------------------------------------*/
 
@@ -122,14 +122,14 @@ struct BtorMainApp
   Btor *btor;
   BtorMemMgr *mm;
   BtorMainOpt *options;
-  int done;
-  int err;
+  bool done;
+  int32_t err;
   char *infile_name;
   FILE *infile;
-  int close_infile;
+  int32_t close_infile;
   FILE *outfile;
   char *outfile_name;
-  int close_outfile;
+  bool close_outfile;
 };
 
 /*------------------------------------------------------------------------*/
@@ -504,9 +504,9 @@ print_opt (BtorMainApp *app,
            const char *lng,
            const char *shrt,
            bool isflag,
-           int dflt,
+           uint32_t dflt,
            const char *desc,
-           int print_dflt)
+           bool print_dflt)
 {
   assert (app);
   assert (lng);
@@ -514,7 +514,7 @@ print_opt (BtorMainApp *app,
 
   char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
   char *descstr, descstrline[LEN_HELPSTR], *word;
-  int i, j, len;
+  int32_t i, j, len;
   BtorCharPtrStack words;
 
   if (!strcmp (lng, "time"))
@@ -554,7 +554,7 @@ print_opt (BtorMainApp *app,
   {
     len = strlen (desc) + 3 + btor_util_num_digits (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);
-    sprintf (descstr, "%s [%d]", desc, dflt);
+    sprintf (descstr, "%s [%u]", desc, dflt);
   }
   else
   {
@@ -610,7 +610,7 @@ print_opt (BtorMainApp *app,
                (opt)->isflag,    \
                (opt)->dflt,      \
                (opt)->desc,      \
-               0);               \
+               false);           \
   } while (0)
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \
@@ -683,10 +683,10 @@ print_help (BtorMainApp *app)
                app->btor->options[o].isflag,
                app->btor->options[o].dflt,
                app->btor->options[o].desc,
-               1);
+               true);
   }
 
-  app->done = 1;
+  app->done = true;
 }
 
 static void
@@ -728,7 +728,7 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #endif
-  app->done = 1;
+  app->done = true;
 }
 
 static void
@@ -736,11 +736,11 @@ print_version (BtorMainApp *app)
 {
   assert (app);
   fprintf (app->outfile, "%s\n", BTOR_VERSION);
-  app->done = 1;
+  app->done = true;
 }
 
 static void
-print_static_stats (int sat_res)
+print_static_stats (int32_t sat_res)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
   double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
@@ -755,7 +755,7 @@ print_static_stats (int sat_res)
 }
 
 static void
-print_sat_result (BtorMainApp *app, int sat_result)
+print_sat_result (BtorMainApp *app, int32_t sat_result)
 {
   assert (app);
   if (sat_result == BOOLECTOR_UNSAT)
@@ -782,11 +782,11 @@ reset_sig_handlers (void)
 }
 
 static void
-catch_sig (int sig)
+catch_sig (int32_t sig)
 {
   if (!g_caught_sig)
   {
-    g_caught_sig = 1;
+    g_caught_sig = true;
     if (g_verbosity > 0)
     {
       boolector_print_stats (g_app->btor);
@@ -818,7 +818,7 @@ reset_alarm (void)
 }
 
 static void
-catch_alarm (int sig)
+catch_alarm (int32_t sig)
 {
   (void) sig;
   assert (sig == SIGALRM);
@@ -848,10 +848,10 @@ set_alarm (void)
 
 /*------------------------------------------------------------------------*/
 
-static int
+static bool
 has_suffix (const char *str, const char *suffix)
 {
-  int l, k, d;
+  int32_t l, k, d;
   l = strlen (str);
   k = strlen (suffix);
   d = l - k;
@@ -884,15 +884,16 @@ has_suffix (const char *str, const char *suffix)
 #define HAS_INVALID_ARGUMENT(arg, candisable) \
   (arg == BTORMAIN_OPT_ARG_INT && readval == BTORMAIN_READ_ARG_STR_VIA_EQ)
 
-int
-boolector_main (int argc, char **argv)
+int32_t
+boolector_main (int32_t argc, char **argv)
 {
   bool dump_merge;
-  int i, j, len, val, format;
+  int32_t i, j, len, format;
+  uint32_t val;
   BtorMainReadArg readval;
-  int isshrt, isdisable;
-  int res, parse_res, parse_status, sat_res;
-  int mgen, pmodel, inc, dump;
+  bool isshrt, isdisable;
+  int32_t res, parse_res, parse_status, sat_res;
+  uint32_t mgen, pmodel, inc, dump;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   BtorCharStack opt, errarg;
   BtorOption k;
@@ -925,8 +926,8 @@ boolector_main (int argc, char **argv)
   {
     arg       = argv[i];
     len       = strlen (argv[i]);
-    isshrt    = 0;
-    isdisable = 0;
+    isshrt    = false;
+    isdisable = false;
     readval   = BTORMAIN_READ_ARG_NONE;
     val       = 0;
     valstr    = 0;
@@ -990,7 +991,7 @@ boolector_main (int argc, char **argv)
     BTOR_PUSH_STACK (errarg, '\0');
 
     /* extract option name */
-    isshrt = arg[1] == '-' ? 0 : 1;
+    isshrt = arg[1] != '-';
     j      = isshrt ? 1 : 2;
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
@@ -1006,7 +1007,7 @@ boolector_main (int argc, char **argv)
       if (valstr[0] != 0)
       {
         readval = BTORMAIN_READ_ARG_STR_VIA_EQ;
-        val     = (int) strtol (valstr, &tmp, 10);
+        val     = (uint32_t) strtol (valstr, &tmp, 10);
         if (tmp[0] == 0) readval = BTORMAIN_READ_ARG_INT_VIA_EQ;
       }
     }
@@ -1016,7 +1017,7 @@ boolector_main (int argc, char **argv)
       {
         readval = BTORMAIN_READ_ARG_STR;
         valstr  = argv[i + 1];
-        val     = (int) strtol (valstr, &tmp, 10);
+        val     = (uint32_t) strtol (valstr, &tmp, 10);
         if (tmp[0] == 0) readval = BTORMAIN_READ_ARG_INT;
       }
     }
@@ -1320,7 +1321,7 @@ boolector_main (int argc, char **argv)
       btormain_error (g_app, "can not create '%s'", g_app->outfile_name);
       goto DONE;
     }
-    g_app->close_outfile = 1;
+    g_app->close_outfile = true;
   }
 
   /* automatically enable model generation if smt2 models are forced */
@@ -1439,7 +1440,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
     if (g_verbosity)
     {
-      double delta_time = delta_time = btor_util_time_stamp () - g_start_time;
+      double delta_time = btor_util_time_stamp () - g_start_time;
       btormain_msg ("%.1f seconds", delta_time);
     }
 #endif

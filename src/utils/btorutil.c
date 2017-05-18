@@ -70,11 +70,10 @@ btor_util_next_power_of_2 (int32_t x)
   return x + 1;
 }
 
-int32_t
-btor_util_num_digits (int32_t x)
+uint32_t
+btor_util_num_digits (uint32_t x)
 {
   int32_t result;
-  assert (x >= 0);
 
   result = 0;
   do
