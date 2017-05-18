@@ -3396,7 +3396,7 @@ btormbt_state_dump (BtorMBT *mbt)
   uint32_t tmppid;
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t len, pstat;
+  int32_t len, pres, pstat;
   char *outfilename, *emsg, *envname = 0;
   uint32_t outformat;
   BoolectorNode *node;
@@ -3460,26 +3460,30 @@ btormbt_state_dump (BtorMBT *mbt)
     boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
     {
-      assert (BOOLECTOR_PARSE_ERROR
-              != boolector_parse (
-                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+      pres = boolector_parse (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
     }
     else if (outformat == BTOR_OUTPUT_FORMAT_BTOR
              && !BTOR_COUNT_STACK (mbt->uf->exps)
              // TODO: we cannot parse equality over lambdas in btor right now
              && mbt->round.num_eq_fun == 0)
     {
-      assert (BOOLECTOR_PARSE_ERROR
-              != boolector_parse_btor (
-                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+      pres = boolector_parse_btor (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
     }
     else
     {
-      assert (BOOLECTOR_PARSE_ERROR
-              != boolector_parse_smt2 (
-                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
+      pres = boolector_parse_smt2 (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (emsg)
+        fprintf (
+            stderr, "btormbt: error while parsing dumped file: %s\n", emsg);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
     }
-    (void) emsg;
     (void) pstat;
     boolector_delete (tmpbtor);
     fclose (outfile);

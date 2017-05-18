@@ -1687,7 +1687,7 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
       if (!boolector_is_array (parser->btor, p[i].exp))
         return !perr_smt2 (
             parser,
-            "first argument of '%s' is an array but argument %d not",
+            "first argument of '%s' is an array but argument %d is not",
             p->node->name,
             i);
       if ((width2 = boolector_get_width (parser->btor, p[i].exp)) != width)

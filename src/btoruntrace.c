@@ -360,7 +360,7 @@ parse (FILE *file)
 
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t flen, pstat;
+  int32_t flen, pres, pstat;
   char *outfilename, *emsg;
 
   BTORUNT_LOG ("parsing %s", g_btorunt->filename);
@@ -1636,10 +1636,10 @@ NEXT:
       outfile = fopen (outfilename, "r");
       tmpbtor = boolector_new ();
       boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-      assert (BOOLECTOR_PARSE_ERROR
-              != boolector_parse (
-                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
-      (void) emsg;
+      pres = boolector_parse (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
       (void) pstat;
       boolector_delete (tmpbtor);
       fclose (outfile);
