@@ -13,10 +13,10 @@
 
 #include "utils/btorhashptr.h"
 
-static unsigned
+static uint32_t
 btor_hash_ptr (const void *p)
 {
-  return 1183477 * (unsigned) (unsigned long) p;
+  return 1183477 * (uint32_t) (unsigned long) p;
 }
 
 static int32_t
@@ -29,7 +29,7 @@ static void
 btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 {
   BtorPtrHashBucket *p, *chain, **old_table, **new_table;
-  unsigned old_size, new_size, i, h;
+  uint32_t old_size, new_size, i, h;
   BtorHashPtr hash;
 
   old_size  = p2iht->size;
@@ -133,7 +133,7 @@ BtorPtrHashBucket *
 btor_hashptr_table_get (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket *res, **p, *b;
-  unsigned i, h;
+  uint32_t i, h;
 
   assert (p2iht->size > 0);
 
@@ -158,7 +158,7 @@ static BtorPtrHashBucket **
 btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket **p, *b;
-  unsigned h;
+  uint32_t h;
 
   if (p2iht->count == p2iht->size) btor_enlarge_ptr_hash_table (p2iht);
 
@@ -197,15 +197,15 @@ btor_hashptr_table_add (BtorPtrHashTable *p2iht, void *key)
   return res;
 }
 
-static unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
+static uint32_t btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
 
 #define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
 
-unsigned
+uint32_t
 btor_hash_str (const void *str)
 {
   const char *p = (const char *) str;
-  unsigned res, i;
+  uint32_t res, i;
   char ch;
 
   i   = 0;
@@ -213,7 +213,7 @@ btor_hash_str (const void *str)
 
   while ((ch = *p++))
   {
-    res += btor_hash_primes[i++] * (unsigned) ch;
+    res += btor_hash_primes[i++] * (uint32_t) ch;
     if (i == BTOR_HASH_PRIMES) i = 0;
   }
 

@@ -3741,7 +3741,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_power2_udiv (btor, e0, e1));
 
-  unsigned l, n;
+  uint32_t l, n;
   BtorNode *slice, *pad, *result;
   BtorSortId sort;
 
@@ -4115,7 +4115,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_sll (btor, e0, e1));
 
-  unsigned shiftlen;
+  uint32_t shiftlen;
   BtorBitVector *bits;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
   BtorSortId sort;
@@ -4127,7 +4127,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   bits = btor_node_const_get_bits (real_e1);
   if (BTOR_IS_INVERTED_NODE (e1)) bits = btor_bv_not (btor->mm, bits);
-  shiftlen = (unsigned) btor_bv_to_uint64 (bits);
+  shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
   if (BTOR_IS_INVERTED_NODE (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
   assert (shiftlen < btor_node_get_width (btor, real_e0));
@@ -4163,7 +4163,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_srl (btor, e0, e1));
 
-  unsigned shiftlen;
+  uint32_t shiftlen;
   BtorBitVector *bits;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
   BtorSortId sort;
@@ -4175,7 +4175,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   bits = btor_node_const_get_bits (real_e1);
   if (BTOR_IS_INVERTED_NODE (e1)) bits = btor_bv_not (btor->mm, bits);
-  shiftlen = (unsigned) btor_bv_to_uint64 (bits);
+  shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
   if (BTOR_IS_INVERTED_NODE (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
   assert (shiftlen < btor_node_get_width (btor, real_e0));

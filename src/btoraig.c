@@ -136,9 +136,9 @@ delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 static uint32_t
-hash_aig (int32_t id0, int32_t id1, unsigned table_size)
+hash_aig (int32_t id0, int32_t id1, uint32_t table_size)
 {
-  unsigned hash;
+  uint32_t hash;
   assert (table_size > 0);
   assert (btor_util_is_power_of_2 (table_size));
   hash = 547789289u * (uint32_t) abs (id0);
@@ -149,7 +149,7 @@ hash_aig (int32_t id0, int32_t id1, unsigned table_size)
 }
 
 static uint32_t
-compute_aig_hash (BtorAIG *aig, unsigned table_size)
+compute_aig_hash (BtorAIG *aig, uint32_t table_size)
 {
   uint32_t hash;
   assert (!BTOR_IS_INVERTED_AIG (aig));
@@ -1118,7 +1118,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   BtorAIG *root, *cur;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
-  unsigned local;
+  uint32_t local;
   BtorAIG **p;
 
   if (btor_aig_is_const (start)) return;

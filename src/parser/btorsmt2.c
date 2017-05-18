@@ -227,9 +227,9 @@ typedef struct BtorSMT2Coo
 typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
-  unsigned bound : 1;
-  unsigned sort : 1;
-  unsigned scope_level;
+  uint32_t bound : 1;
+  uint32_t sort : 1;
+  uint32_t scope_level;
   BtorSMT2Coo coo;
   char *name;
   BoolectorNode *exp;
@@ -451,15 +451,15 @@ cerr_smt2 (BtorSMT2Parser *parser, const char *p, int32_t ch, const char *s)
                     (s ? s : ""));
 }
 
-static unsigned btor_primes_smt2[] = {
+static uint32_t btor_primes_smt2[] = {
     1000000007u, 2000000011u, 3000000019u, 4000000007u};
 
 #define BTOR_NPRIMES_SMT2 (sizeof btor_primes_smt2 / sizeof *btor_primes_smt2)
 
-static unsigned
+static uint32_t
 hash_name_smt2 (BtorSMT2Parser *parser, const char *name)
 {
-  unsigned res = 0, i = 0;
+  uint32_t res = 0, i = 0;
   unsigned char ch;
   const char *p;
   for (p = name; (ch = *p); p++)
@@ -474,7 +474,7 @@ hash_name_smt2 (BtorSMT2Parser *parser, const char *name)
 static BtorSMT2Node **
 symbol_position_smt2 (BtorSMT2Parser *parser, const char *name)
 {
-  unsigned h = hash_name_smt2 (parser, name);
+  uint32_t h = hash_name_smt2 (parser, name);
   BtorSMT2Node **p, *s;
   for (p = parser->symbol.table + h; (s = *p) && strcmp (s->name, name);
        p = &s->next)
@@ -508,10 +508,10 @@ nextch_smt2 (BtorSMT2Parser *parser)
 static void
 enlarge_symbol_table_smt2 (BtorSMT2Parser *parser)
 {
-  unsigned old_size        = parser->symbol.size;
-  unsigned new_size        = old_size ? 2 * old_size : 1;
+  uint32_t old_size        = parser->symbol.size;
+  uint32_t new_size        = old_size ? 2 * old_size : 1;
   BtorSMT2Node **old_table = parser->symbol.table, *p, *next, **q;
-  unsigned h, i;
+  uint32_t h, i;
   BTOR_NEWN (parser->mem, parser->symbol.table, new_size);
   BTOR_CLRN (parser->symbol.table, new_size);
   parser->symbol.size = new_size;
@@ -585,7 +585,7 @@ static void
 release_symbols_smt2 (BtorSMT2Parser *parser)
 {
   BtorSMT2Node *p, *next;
-  unsigned i;
+  uint32_t i;
   for (i = 0; i < parser->symbol.size; i++)
     for (p = parser->symbol.table[i]; p; p = next)
       next = p->next, release_symbol_smt2 (parser, p);
@@ -603,7 +603,7 @@ release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
     btor_mem_freestr (parser->mem, item->str);
 }
 
-static unsigned
+static uint32_t
 get_current_formula_size (BtorSMT2Parser *parser)
 {
   return parser->btor->bv_vars->count + parser->btor->ufs->count
@@ -635,7 +635,7 @@ close_current_scope (BtorSMT2Parser *parser)
   assert (!BTOR_EMPTY_STACK (parser->assumptions_trail));
 
   double start;
-  unsigned i, offset, scope_level;
+  uint32_t i, offset, scope_level;
   BtorSMT2Node *node, *next;
 
   start       = btor_util_time_stamp ();
@@ -699,7 +699,7 @@ static void
 open_new_btor_scope (BtorSMT2Parser *parser)
 {
   double start;
-  unsigned i;
+  uint32_t i;
   Btor *scope;
   BtorSMT2Node *node;
 
@@ -738,7 +738,7 @@ close_current_btor_scope (BtorSMT2Parser *parser)
   assert (BTOR_COUNT_STACK (parser->btor_scopes) > 1);
 
   double start;
-  unsigned i, scope_level, offset;
+  uint32_t i, scope_level, offset;
   Btor *scope;
   BtorSMT2Node *node, *next;
   BtorSMT2Item item;
@@ -1122,7 +1122,7 @@ isspace_smt2 (int32_t ch)
   return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
 }
 
-static unsigned
+static uint32_t
 cc_smt2 (BtorSMT2Parser *parser, int32_t ch)
 {
   if (ch < 0 || ch >= 256) return 0;

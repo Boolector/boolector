@@ -60,7 +60,7 @@ const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
 
 /*------------------------------------------------------------------------*/
 
-static unsigned hash_primes[] = {333444569u, 76891121u, 456790003u};
+static uint32_t hash_primes[] = {333444569u, 76891121u, 456790003u};
 
 #define NPRIMES ((uint32_t) (sizeof hash_primes / sizeof *hash_primes))
 

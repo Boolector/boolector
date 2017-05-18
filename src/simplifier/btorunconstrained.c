@@ -88,8 +88,7 @@ btor_optimize_unconstrained (Btor *btor)
   assert (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
 
   double start, delta;
-  unsigned num_ucs;
-  uint32_t i;
+  uint32_t i, num_ucs;
   bool uc[3], ucp[3];
   BtorNode *cur, *cur_parent;
   BtorNodePtrStack stack, roots;

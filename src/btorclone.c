@@ -254,7 +254,7 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
   assert (btor);
   assert (clone);
 
-  unsigned i, j;
+  uint32_t i, j;
   BtorSort *sort, *csort;
   BtorSortId cid;
   BtorSortIdStack elements;

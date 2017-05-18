@@ -172,25 +172,24 @@ struct Btor
     uint32_t linear_equations;  /* number of linear equations */
     uint32_t gaussian_eliminations; /* number of gaussian eliminations */
     uint32_t eliminated_slices;     /* number of eliminated slices */
-    uint32_t
-        skeleton_constraints; /* number of extracted skeleton constraints */
-    uint32_t adds_normalized; /* number of add chains normalizations */
-    uint32_t ands_normalized; /* number of and chains normalizations */
-    uint32_t muls_normalized; /* number of mul chains normalizations */
+    uint32_t skeleton_constraints;  /* number of skeleton constraints */
+    uint32_t adds_normalized;       /* number of add chains normalizations */
+    uint32_t ands_normalized;       /* number of and chains normalizations */
+    uint32_t muls_normalized;       /* number of mul chains normalizations */
     uint32_t ackermann_constraints;
-    long long prop_apply_lambda; /* number of static props over lambdas */
-    long long prop_apply_update; /* number of static props over updates */
+    uint_least64_t prop_apply_lambda; /* number of static props over lambdas */
+    uint_least64_t prop_apply_update; /* number of static props over updates */
     uint32_t bv_uc_props;
     uint32_t fun_uc_props;
     uint32_t param_uc_props;
-    long long lambdas_merged;
+    uint_least64_t lambdas_merged;
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
-    long long expressions;
-    long long clone_calls;
+    uint_least64_t expressions;
+    uint_least64_t clone_calls;
     size_t node_bytes_alloc;
-    long long beta_reduce_calls;
-    long long betap_reduce_calls;
+    uint_least64_t beta_reduce_calls;
+    uint_least64_t betap_reduce_calls;
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif

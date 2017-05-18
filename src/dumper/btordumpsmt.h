@@ -21,7 +21,7 @@
 void btor_dumpsmt_dump_node (Btor* btor,
                              FILE* file,
                              BtorNode* node,
-                             unsigned depth);
+                             uint32_t depth);
 
 void btor_dumpsmt_dump (Btor* btor, FILE* file);
 

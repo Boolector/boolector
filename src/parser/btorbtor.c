@@ -47,8 +47,8 @@ typedef struct Info Info;
 
 struct Info
 {
-  unsigned var : 1;
-  unsigned array : 1;
+  uint32_t var : 1;
+  uint32_t array : 1;
 };
 
 BTOR_DECLARE_STACK (BtorInfo, Info);
@@ -117,16 +117,16 @@ perr_btor (BtorBTORParser *parser, const char *fmt, ...)
 
 /*------------------------------------------------------------------------*/
 
-static unsigned btor_primes_btor[4] = {
+static uint32_t btor_primes_btor[4] = {
     111130391, 22237357, 33355519, 444476887};
 
 #define BTOR_PRIMES_BTOR \
   ((sizeof btor_primes_btor) / sizeof btor_primes_btor[0])
 
-static unsigned
-hash_op (const char *str, unsigned salt)
+static uint32_t
+hash_op (const char *str, uint32_t salt)
 {
-  unsigned i, res;
+  uint32_t i, res;
   const char *p;
 
   assert (salt < BTOR_PRIMES_BTOR);
@@ -135,7 +135,7 @@ hash_op (const char *str, unsigned salt)
   i   = salt;
   for (p = str; *p; p++)
   {
-    res += btor_primes_btor[i++] * (unsigned) *p;
+    res += btor_primes_btor[i++] * (uint32_t) *p;
     if (i == BTOR_PRIMES_BTOR) i = 0;
   }
 
@@ -1647,7 +1647,7 @@ parse_uext (BtorBTORParser *parser, uint32_t width)
 static void
 new_parser (BtorBTORParser *parser, BtorOpParser op_parser, const char *op)
 {
-  unsigned p, d;
+  uint32_t p, d;
 
   p = hash_op (op, 0);
   assert (p < SIZE_PARSERS);
@@ -1673,7 +1673,7 @@ static BtorOpParser
 find_parser (BtorBTORParser *parser, const char *op)
 {
   const char *str;
-  unsigned p, d;
+  uint32_t p, d;
 
   p = hash_op (op, 0);
   if ((str = parser->ops[p]) && strcasecmp (str, op))

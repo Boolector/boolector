@@ -40,7 +40,7 @@ check_bits_sll_dbg (const BtorBitVector *bv,
   assert (res);
   assert (bv->width == res->width);
 
-  unsigned i;
+  uint32_t i;
 
   for (i = 0; shift + i < bv->width; i++)
     assert (btor_bv_get_bit (bv, i) == btor_bv_get_bit (res, shift + i));
@@ -52,7 +52,7 @@ check_bits_sll_dbg (const BtorBitVector *bv,
 static void
 set_rem_bits_to_zero (BtorBitVector *bv)
 {
-  if ((unsigned) bv->width != BTOR_BV_TYPE_BW * bv->len)
+  if (bv->width != BTOR_BV_TYPE_BW * bv->len)
     bv->bits[0] &= BTOR_MASK_REM_BITS (bv);
 }
 
@@ -512,7 +512,7 @@ uint64_t
 btor_bv_to_uint64 (const BtorBitVector *bv)
 {
   assert (bv);
-  assert ((unsigned) bv->width <= sizeof (uint64_t) * 8);
+  assert (bv->width <= sizeof (uint64_t) * 8);
   assert (bv->len <= 2);
 
   uint32_t i;

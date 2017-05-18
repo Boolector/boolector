@@ -262,7 +262,7 @@ test_array_exp (void)
 static void
 unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 {
-  const unsigned len = 8;
+  const uint32_t len = 8;
   BtorNode *exp1, *exp2, *exp3;
   BtorSortId sort;
 

@@ -38,8 +38,8 @@ struct BtorAIGVecMgr
 {
   Btor *btor;
   BtorAIGMgr *amgr;
-  long long max_num_aigvecs;
-  long long cur_num_aigvecs;
+  uint_least64_t max_num_aigvecs;
+  uint_least64_t cur_num_aigvecs;
 };
 
 /*------------------------------------------------------------------------*/

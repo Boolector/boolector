@@ -303,7 +303,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
 void
 btor_dumpsmt_dump_sort (BtorSort *sort, FILE *file)
 {
-  unsigned i;
+  uint32_t i;
   const char *fmt;
 
   switch (sort->kind)
@@ -520,13 +520,13 @@ static void
 recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                           BtorNode *exp,
                           int32_t expect_bv,
-                          unsigned depth_limit)
+                          uint32_t depth_limit)
 {
   assert (sdc);
   assert (exp);
   assert (btor_hashptr_table_get (sdc->dump, BTOR_REAL_ADDR_NODE (exp)));
 
-  unsigned depth;
+  uint32_t depth;
   bool is_bool, expect_bool;
   uint32_t pad, i, zero_extend;
   int32_t add_space;
@@ -1425,7 +1425,7 @@ btor_dumpsmt_dump (Btor *btor, FILE *file)
 }
 
 void
-btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
+btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, uint32_t depth)
 {
   assert (btor);
 

@@ -1979,7 +1979,7 @@ add_extensionality_lemmas (Btor *btor)
   double start, delta;
   bool skip;
   BtorBitVector *evalbv;
-  unsigned num_lemmas = 0;
+  uint32_t num_lemmas = 0;
   BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
   BtorPtrHashTableIterator it;
   BtorPtrHashTable *table0, *table1, *conflicts;

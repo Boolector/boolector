@@ -207,7 +207,7 @@ struct BtorSMTParser
   bool saved;
   int32_t saved_char;
 
-  uint64_t bytes;
+  uint_least64_t bytes;
 
   BtorLogic required_logic;
 

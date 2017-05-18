@@ -107,7 +107,7 @@ btor_aigvec_slice (BtorAIGVecMgr *avmgr,
                    uint32_t lower)
 {
   BtorAIGVec *result;
-  unsigned i, width, diff, counter;
+  uint32_t i, width, diff, counter;
   assert (avmgr);
   assert (av);
   assert (av->width > 0);
@@ -352,7 +352,7 @@ srl_n_bits_aigvec (BtorAIGVecMgr *avmgr,
   BtorAIGMgr *amgr;
   BtorAIGVec *result;
   BtorAIG *and1, *and2, *not_shift;
-  unsigned i, width;
+  uint32_t i, width;
   assert (avmgr);
   assert (av);
   assert (av->width > 0);
@@ -670,7 +670,7 @@ btor_aigvec_clone (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
   assert (av);
   assert (avmgr);
 
-  unsigned i;
+  uint32_t i;
   BtorAIGVec *res;
   BtorAIGMgr *amgr;
   BtorAIG *aig, *caig;

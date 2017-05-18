@@ -33,7 +33,7 @@ struct BtorBVAss
 struct BtorBVAssList
 {
   BtorMemMgr *mm;
-  unsigned count;
+  uint32_t count;
   BtorBVAss *first;
   BtorBVAss *last;
 };
@@ -76,7 +76,7 @@ struct BtorFunAss
 struct BtorFunAssList
 {
   BtorMemMgr *mm;
-  unsigned count;
+  uint32_t count;
   BtorFunAss *first;
   BtorFunAss *last;
 };

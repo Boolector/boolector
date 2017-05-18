@@ -100,7 +100,7 @@ void btor_hashptr_table_remove (BtorPtrHashTable *,
                                 void **stored_key_ptr,
                                 BtorHashTableData *stored_data_ptr);
 
-unsigned btor_hash_str (const void *str);
+uint32_t btor_hash_str (const void *str);
 
 #define btor_compare_str ((BtorCmpPtr) strcmp)
 
