@@ -1510,7 +1510,7 @@ str2uint32_smt2 (BtorSMT2Parser *parser,
                  const char *str,
                  uint32_t *resptr)
 {
-  int32_t res, rint;
+  int32_t res, rint = 0;
   res     = str2int32_smt2 (parser, posonly, str, &rint);
   *resptr = (uint32_t) rint;
   return res;
@@ -1629,7 +1629,7 @@ parse_uint32_smt2 (BtorSMT2Parser *parser,
                    uint32_t *resptr,
                    BtorCharStack *tokens)
 {
-  int32_t res, rint;
+  int32_t res, rint = 0;
   res     = parse_int32_smt2 (parser, posonly, &rint, tokens);
   *resptr = (uint32_t) rint;
   return res;
