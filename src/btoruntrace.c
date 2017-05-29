@@ -1660,6 +1660,7 @@ NEXT:
       boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
       pres = boolector_parse (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      (void) pres;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
       (void) pstat;

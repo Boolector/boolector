@@ -163,9 +163,6 @@ incremental_required (Btor *btor)
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
 
-  if (btor->lambdas->count > 0 || btor->ufs->count > 0 || btor->feqs->count > 0)
-    return true;
-
   BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_hashint_table_new (btor->mm);
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);

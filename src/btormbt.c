@@ -3462,6 +3462,7 @@ btormbt_state_dump (BtorMBT *mbt)
     {
       pres = boolector_parse (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      (void) pres;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
     }
@@ -3472,6 +3473,7 @@ btormbt_state_dump (BtorMBT *mbt)
     {
       pres = boolector_parse_btor (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      (void) pres;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
     }
@@ -3479,6 +3481,7 @@ btormbt_state_dump (BtorMBT *mbt)
     {
       pres = boolector_parse_smt2 (
           tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      (void) pres;
       if (emsg)
         fprintf (
             stderr, "btormbt: error while parsing dumped file: %s\n", emsg);
