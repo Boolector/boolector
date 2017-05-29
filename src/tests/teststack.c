@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -25,7 +26,7 @@ static BtorMemMgr *g_mm;
 void
 init_stack_tests (void)
 {
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 }
 
 static void
@@ -95,7 +96,7 @@ static void
 test_fit_stack (void)
 {
   BtorIntStack stack;
-  int i;
+  int32_t i;
   BTOR_INIT_STACK (g_mm, stack);
   for (i = 0; i < 100; i++)
   {
@@ -129,7 +130,7 @@ test_reset_stack (void)
 }
 
 void
-run_stack_tests (int argc, char **argv)
+run_stack_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (init_release_stack);
   BTOR_RUN_TEST (functionality_stack);
@@ -140,5 +141,5 @@ run_stack_tests (int argc, char **argv)
 void
 finish_stack_tests (void)
 {
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
 }

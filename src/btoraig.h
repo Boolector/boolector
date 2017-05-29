@@ -61,15 +61,15 @@ struct BtorAIGMgr
   BtorAIGPtrStack id2aig; /* id to AIG node */
   BtorIntStack cnfid2aig; /* cnf id to AIG id */
 
-  long long cur_num_aigs;     /* current number of ANDs */
-  long long cur_num_aig_vars; /* current number of AIG variables */
+  uint_least64_t cur_num_aigs;     /* current number of ANDs */
+  uint_least64_t cur_num_aig_vars; /* current number of AIG variables */
 
   /* statistics */
-  long long max_num_aigs;
-  long long max_num_aig_vars;
-  long long num_cnf_vars;
-  long long num_cnf_clauses;
-  long long num_cnf_literals;
+  uint_least64_t max_num_aigs;
+  uint_least64_t max_num_aig_vars;
+  uint_least64_t num_cnf_vars;
+  uint_least64_t num_cnf_clauses;
+  uint_least64_t num_cnf_literals;
 };
 
 typedef struct BtorAIGMgr BtorAIGMgr;
@@ -167,42 +167,42 @@ btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
 }
 
 /*------------------------------------------------------------------------*/
-BtorAIGMgr *btor_new_aig_mgr (Btor *btor);
-BtorAIGMgr *btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr);
-void btor_delete_aig_mgr (BtorAIGMgr *amgr);
+BtorAIGMgr *btor_aig_mgr_new (Btor *btor);
+BtorAIGMgr *btor_aig_mgr_clone (Btor *btor, BtorAIGMgr *amgr);
+void btor_aig_mgr_delete (BtorAIGMgr *amgr);
 
-BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
+BtorSATMgr *btor_aig_get_sat_mgr (const BtorAIGMgr *amgr);
 
 /* Variable representing 1 bit. */
-BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
+BtorAIG *btor_aig_var (BtorAIGMgr *amgr);
 
 /* Inverter. */
-BtorAIG *btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+BtorAIG *btor_aig_not (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Logical AND. */
-BtorAIG *btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
+BtorAIG *btor_aig_and (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
 /* Logical OR. */
-BtorAIG *btor_or_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
+BtorAIG *btor_aig_or (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
 /* Logical EQUIVALENCE. */
-BtorAIG *btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
+BtorAIG *btor_aig_eq (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
 /* If then Else. */
-BtorAIG *btor_cond_aig (BtorAIGMgr *amgr,
+BtorAIG *btor_aig_cond (BtorAIGMgr *amgr,
                         BtorAIG *aig_cond,
                         BtorAIG *aig_if,
                         BtorAIG *aig_else);
 
 /* Copies AIG (increments reference counter). */
-BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+BtorAIG *btor_aig_copy (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Releases AIG (decrements reference counter).
  * If reference counter reaches 0,
  * then also the children are released
  * and AIG is deleted from memory.
  */
-void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+void btor_aig_release (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Translates AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
@@ -210,7 +210,7 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 /* As 'btor_aig_to_sat' but also add the argument as new SAT constraint.
  * Actually this will result in less constraints being generated.
  */
-void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
+void btor_aig_add_toplevel_to_sat (BtorAIGMgr *, BtorAIG *);
 
 /* Translates AIG into SAT instance in both phases.
  * The function guarantees that after finishing every reachable AIG
@@ -218,23 +218,19 @@ void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
  */
 void btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig);
 
-/* Solves SAT instance with root AIG aig. */
-int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
-
 /* Gets current assignment of AIG aig (in the SAT case).
- * Do not call before calling btor_sat_aig.
  */
-int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+int32_t btor_aig_get_assignment (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_compare_aig (const BtorAIG *aig0, const BtorAIG *aig1);
+int32_t btor_aig_compare (const BtorAIG *aig0, const BtorAIG *aig1);
 
 /* hash AIG by id */
-uint32_t btor_hash_aig_by_id (const BtorAIG *aig);
+uint32_t btor_aig_hash_by_id (const BtorAIG *aig);
 
 /* compare AIG by id */
-int btor_compare_aig_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
-int btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
+int32_t btor_aig_compare_by_id (const BtorAIG *aig0, const BtorAIG *aig1);
+int32_t btor_compare_aig_by_id_qsort_asc (const void *aig0, const void *aig1);
 #endif

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -32,7 +32,7 @@
 #define BTOR_TEST_COMP_LOW 1
 #define BTOR_TEST_COMP_HIGH 4
 
-static int g_argc       = 6;
+static int32_t g_argc   = 6;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
@@ -40,7 +40,7 @@ void
 init_comp_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_COMP_TEMP_FILE_NAME, "w");
-  int pos_rwr;
+  int32_t pos_rwr;
 
   assert (f != NULL);
   fclose (f);
@@ -66,14 +66,17 @@ init_comp_tests (void)
 }
 
 static void
-u_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
+u_comp_test (int32_t (*func) (int32_t, int32_t),
+             const char *func_name,
+             int32_t low,
+             int32_t high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  int result   = 0;
-  int num_bits = 0;
-  int max      = 0;
+  FILE *f          = NULL;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  int32_t result   = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
   assert (func != NULL);
   assert (func_name != NULL);
   assert (low > 0);
@@ -81,7 +84,7 @@ u_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
   BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -109,16 +112,19 @@ u_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
 }
 
 static void
-s_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
+s_comp_test (int32_t (*func) (int32_t, int32_t),
+             const char *func_name,
+             int32_t low,
+             int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int const1_id          = 0;
-  int const2_id          = 0;
-  int result             = 0;
-  int num_bits           = 0;
-  int max                = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
+  int32_t const1_id      = 0;
+  int32_t const2_id      = 0;
+  int32_t result         = 0;
+  int32_t num_bits       = 0;
+  int32_t max            = 0;
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
@@ -126,7 +132,7 @@ s_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits - 1);
+    max = btor_util_pow_2 (num_bits - 1);
     for (i = -max; i < max; i++)
     {
       for (j = -max; j < max; j++)
@@ -179,38 +185,38 @@ s_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
   }
 }
 
-static int
-eq (int x, int y)
+static int32_t
+eq (int32_t x, int32_t y)
 {
   return x == y;
 }
 
-static int
-ne (int x, int y)
+static int32_t
+ne (int32_t x, int32_t y)
 {
   return x != y;
 }
 
-static int
-lt (int x, int y)
+static int32_t
+lt (int32_t x, int32_t y)
 {
   return x < y;
 }
 
-static int
-lte (int x, int y)
+static int32_t
+lte (int32_t x, int32_t y)
 {
   return x <= y;
 }
 
-static int
-gt (int x, int y)
+static int32_t
+gt (int32_t x, int32_t y)
 {
   return x > y;
 }
 
-static int
-gte (int x, int y)
+static int32_t
+gte (int32_t x, int32_t y)
 {
   return x >= y;
 }
@@ -288,7 +294,7 @@ test_sgte_comp (void)
 }
 
 static void
-run_all_tests (int argc, char **argv)
+run_all_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (eq_1_comp);
   BTOR_RUN_TEST (ne_1_comp);
@@ -305,7 +311,7 @@ run_all_tests (int argc, char **argv)
 }
 
 void
-run_comp_tests (int argc, char **argv)
+run_comp_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
   g_argv[1] = "-rwl";
@@ -316,7 +322,7 @@ run_comp_tests (int argc, char **argv)
 void
 finish_comp_tests (void)
 {
-  int result = remove (BTOR_TEST_COMP_TEMP_FILE_NAME);
+  int32_t result = remove (BTOR_TEST_COMP_TEMP_FILE_NAME);
   assert (result == 0);
   free (g_btor_str);
   free (g_argv);

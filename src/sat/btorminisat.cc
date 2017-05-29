@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2014 Armin Biere.
- *  Copyright (C) 2014 Mathias Preiner.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -28,34 +28,38 @@
 
 extern "C" {
 
-#include "btorminisat.h"
-#include "btoropt.h"
+#include "btorabort.h"
 #include "btorsat.h"
+#include "sat/btorminisat.h"
 
 using namespace Minisat;
+
+/*------------------------------------------------------------------------*/
 
 class BtorMiniSAT : public SimpSolver
 {
   vec<Lit> assumptions, clause;
-  int szfmap;
-  signed char *fmap;
+  int32_t szfmap;
+  signed char* fmap;
   bool nomodel;
-  Lit import (int lit)
+  Lit import (int32_t lit)
   {
     assert (0 < abs (lit) && abs (lit) <= nVars ());
     return mkLit (Var (abs (lit) - 1), (lit < 0));
   }
+
   void reset ()
   {
     if (fmap) delete[] fmap, fmap = 0, szfmap = 0;
   }
+
   void ana ()
   {
     fmap = new signed char[szfmap = nVars ()];
     memset (fmap, 0, szfmap);
-    for (int i = 0; i < conflict.size (); i++)
+    for (int32_t i = 0; i < conflict.size (); i++)
     {
-      int tmp = var (conflict[i]);
+      int32_t tmp = var (conflict[i]);
       assert (0 <= tmp && tmp < szfmap);
       fmap[tmp] = 1;
     }
@@ -63,20 +67,24 @@ class BtorMiniSAT : public SimpSolver
 
  public:
   BtorMiniSAT () : szfmap (0), fmap (0), nomodel (true) {}
+
   ~BtorMiniSAT () { reset (); }
-  int inc ()
+
+  int32_t inc ()
   {
-    nomodel = true;
-    int res = newVar ();
+    nomodel     = true;
+    int32_t res = newVar ();
     assert (0 <= res && res == nVars () - 1);
     return res + 1;
   }
-  void assume (int lit)
+
+  void assume (int32_t lit)
   {
     nomodel = true;
     assumptions.push (import (lit));
   }
-  void add (int lit)
+
+  void add (int32_t lit)
   {
     nomodel = true;
     if (lit)
@@ -84,8 +92,10 @@ class BtorMiniSAT : public SimpSolver
     else
       addClause (clause), clause.clear ();
   }
+
   unsigned long long calls;
-  int sat (bool simp)
+
+  int32_t sat (bool simp)
   {
     calls++;
     reset ();
@@ -94,17 +104,19 @@ class BtorMiniSAT : public SimpSolver
     nomodel = res != l_True;
     return res == l_Undef ? 0 : (res == l_True ? 10 : 20);
   }
-  int failed (int lit)
+
+  int32_t failed (int32_t lit)
   {
     if (!fmap) ana ();
-    int tmp = var (import (lit));
+    int32_t tmp = var (import (lit));
     assert (0 <= tmp && tmp < nVars ());
     return fmap[tmp];
   }
-  int fixed (int lit)
+
+  int32_t fixed (int32_t lit)
   {
-    Var v   = var (import (lit));
-    int idx = v, res;
+    Var v       = var (import (lit));
+    int32_t idx = v, res;
     assert (0 <= idx && idx < nVars ());
     lbool val = assigns[idx];
     if (val == l_Undef || level (v))
@@ -114,7 +126,8 @@ class BtorMiniSAT : public SimpSolver
     if (lit < 0) res = -res;
     return res;
   }
-  int deref (int lit)
+
+  int32_t deref (int32_t lit)
   {
     if (nomodel) return fixed (lit);
     lbool res = modelValue (import (lit));
@@ -122,31 +135,27 @@ class BtorMiniSAT : public SimpSolver
   }
 };
 
-void *
-btor_minisat_init (BtorSATMgr *smgr)
+/*------------------------------------------------------------------------*/
+
+static void*
+init (BtorSATMgr* smgr)
 {
   (void) smgr;
-  BtorMiniSAT *res = new BtorMiniSAT ();
+  BtorMiniSAT* res = new BtorMiniSAT ();
   return res;
 }
 
-const char *
-btor_minisat_version (void)
+static void
+add (BtorSATMgr* smgr, int32_t lit)
 {
-  return "unknown";
-}
-
-void
-btor_minisat_add (BtorSATMgr *smgr, int lit)
-{
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->add (lit);
 }
 
-int
-btor_minisat_sat (BtorSATMgr *smgr, int limit)
+static int32_t
+sat (BtorSATMgr* smgr, int32_t limit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   if (limit < 0)
     solver->budgetOff ();
   else
@@ -154,84 +163,59 @@ btor_minisat_sat (BtorSATMgr *smgr, int limit)
   return solver->sat (!smgr->inc_required);
 }
 
-int
-btor_minisat_deref (BtorSATMgr *smgr, int lit)
+static int32_t
+deref (BtorSATMgr* smgr, int32_t lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->deref (lit);
 }
 
-int
-btor_minisat_repr (BtorSATMgr *smgr, int lit)
+static void
+reset (BtorSATMgr* smgr)
 {
-  (void) smgr;
-  return lit;
-}
-
-void
-btor_minisat_reset (BtorSATMgr *smgr)
-{
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   delete solver;
 }
 
-int
-btor_minisat_inc_max_var (BtorSATMgr *smgr)
+static int32_t
+inc_max_var (BtorSATMgr* smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->inc ();
 }
 
-#if 0
-int btor_minisat_variables (BtorSATMgr * smgr) {
-  BtorMiniSAT * solver = (BtorMiniSAT*) BTOR_GET_SOLVER_SAT (smgr);
-  return solver->nVars ();
-}
-#endif
-
-void
-btor_minisat_assume (BtorSATMgr *smgr, int lit)
+static void
+assume (BtorSATMgr* smgr, int32_t lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   solver->assume (lit);
 }
 
-int
-btor_minisat_fixed (BtorSATMgr *smgr, int lit)
+static int32_t
+fixed (BtorSATMgr* smgr, int32_t lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->fixed (lit);
 }
 
-int
-btor_minisat_failed (BtorSATMgr *smgr, int lit)
+static int32_t
+failed (BtorSATMgr* smgr, int32_t lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   return solver->failed (lit);
 }
 
-void
-btor_minisat_set_output (BtorSATMgr *, FILE *)
-{
-}
-
-void
-btor_minisat_set_prefix (BtorSATMgr *, const char *)
-{
-}
-
-void
-btor_minisat_enable_verbosity (BtorSATMgr *smgr, int level)
+static void
+enable_verbosity (BtorSATMgr* smgr, int32_t level)
 {
   (void) smgr;
-  if (level >= 2)
-    ((BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr))->verbosity = level - 1;
+  if (level >= 2) ((BtorMiniSAT*) smgr->solver)->verbosity = level - 1;
 }
 
-void
-btor_minisat_stats (BtorSATMgr *smgr)
+static void
+stats (BtorSATMgr* smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  BtorMiniSAT* solver = (BtorMiniSAT*) smgr->solver;
   printf (
       "[minisat] calls %llu\n"
       "[minisat] restarts %llu\n"
@@ -246,11 +230,34 @@ btor_minisat_stats (BtorSATMgr *smgr)
   fflush (stdout);
 }
 
-#if 0
-int btor_minisat_changed (BtorSATMgr *) { return 1; }
+/*------------------------------------------------------------------------*/
 
-int btor_minisat_inconsistent (BtorSATMgr *) { return 0; }
-#endif
+bool
+btor_sat_enable_minisat (BtorSATMgr* smgr)
+{
+  assert (smgr != NULL);
+
+  BTOR_ABORT (smgr->initialized,
+              "'btor_sat_init' called before 'btor_sat_enable_minisat'");
+
+  smgr->name = "MiniSAT";
+
+  BTOR_CLR (&smgr->api);
+  smgr->api.add              = add;
+  smgr->api.assume           = assume;
+  smgr->api.deref            = deref;
+  smgr->api.enable_verbosity = enable_verbosity;
+  smgr->api.failed           = failed;
+  smgr->api.fixed            = fixed;
+  smgr->api.inc_max_var      = inc_max_var;
+  smgr->api.init             = init;
+  smgr->api.repr             = 0;
+  smgr->api.reset            = reset;
+  smgr->api.sat              = sat;
+  smgr->api.set_output       = 0;
+  smgr->api.set_prefix       = 0;
+  smgr->api.stats            = stats;
+  return true;
+}
 };
-
 #endif

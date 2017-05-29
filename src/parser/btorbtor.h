@@ -16,6 +16,6 @@
 
 #include <stdio.h>
 
-const BtorParserAPI* btor_btor_parser_api ();
+const BtorParserAPI* btor_parsebtor_parser_api ();
 
 #endif

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -23,17 +23,17 @@
 #include <string.h>
 #include <unistd.h>
 
-int g_rwreads;
+int32_t g_rwreads;
 
 FILE *g_logfile = NULL;
 
-static int g_skip_broken;
+static bool g_skip_broken;
 
-static int g_speed = BTOR_NORMAL_TEST_CASE;
-static int g_num_tests;
-static int g_num_skipped_tests;
-static int g_compared;
-static int g_compared_succ;
+static int32_t g_speed = BTOR_NORMAL_TEST_CASE;
+static int32_t g_num_tests;
+static int32_t g_num_skipped_tests;
+static int32_t g_compared;
+static int32_t g_compared_succ;
 
 static struct
 {
@@ -154,7 +154,7 @@ static const char *brokentests[] = {
 };
 
 void
-init_tests (BtorTestCaseSpeed speed, int skip_broken)
+init_tests (BtorTestCaseSpeed speed, bool skip_broken)
 {
   g_skip_broken       = skip_broken;
   g_speed             = speed;
@@ -195,12 +195,12 @@ print_test_suite_name (const char *name)
   printf ("Registered %s tests\n", name);
 }
 
-static int
+static int32_t
 cmp_file (const char *a, const char *b)
 {
   FILE *f, *g;
   char *stack_a, *stack_b, *sa, *sb;
-  int res, c, d, init_size = 100, size, nelems = 0;
+  int32_t res, c, d, init_size = 100, size, nelems = 0;
   bool isperr_a, isperr_b;
 
   assert (a);
@@ -304,7 +304,7 @@ check_log (char *logfile_name, char *outfile_name)
   }
 }
 
-static int
+static bool
 match (const char *str, const char *pattern)
 {
   return strstr (str, pattern) != NULL;
@@ -312,14 +312,14 @@ match (const char *str, const char *pattern)
 
 // currently unused (but maybe useful in the future)
 #if 0
-static int
-find (const char *str, const char **testset, int testset_size)
+static int32_t
+find (const char *str, const char **testset, int32_t testset_size)
 {
   assert (testset_size > 0);
 
-  int min_idx = 0, max_idx = testset_size - 1;
-  int pivot = min_idx + (max_idx - min_idx) / 2;
-  int cmp;
+  int32_t min_idx = 0, max_idx = testset_size - 1;
+  int32_t pivot = min_idx + (max_idx - min_idx) / 2;
+  int32_t cmp;
 
   while ((cmp = strcmp (str, testset[pivot])))
     {
@@ -338,15 +338,19 @@ find (const char *str, const char **testset, int testset_size)
 #endif
 
 void
-run_test_case (
-    int argc, char **argv, void (*funcp) (void), char *name, int check_log_file)
+run_test_case (int32_t argc,
+               char **argv,
+               void (*funcp) (void),
+               char *name,
+               bool check_log_file)
 {
-  int i, count, skip, len;
+  bool skip;
+  int32_t i, count, len;
   char *logfile_name, *outfile_name;
   const char **p;
 
   g_num_tests++;
-  skip = 0;
+  skip = false;
 
   if (g_skip_broken)
     for (p = brokentests; !skip && *p; p++) skip = match (name, *p);
@@ -371,7 +375,7 @@ run_test_case (
 
   if (!skip && count)
   {
-    skip = 1;
+    skip = true;
     for (i = 1; skip && i < argc; i++)
       if (argv[i][0] != '-') skip = !match (name, argv[i]);
   }

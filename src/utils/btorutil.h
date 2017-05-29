@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2015-2016 Aina Niemetz.
- *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,6 +14,7 @@
 #ifndef BTORUTIL_H_INCLUDED
 #define BTORUTIL_H_INCLUDED
 
+#include "btortypes.h"
 #include "utils/btormem.h"
 
 #include <stdbool.h>
@@ -39,45 +40,48 @@
 
 /*------------------------------------------------------------------------*/
 
-bool btor_is_power_of_2_util (uint32_t x);
+bool btor_util_is_power_of_2 (uint32_t x);
 
-uint32_t btor_log_2_util (uint32_t x);
+uint32_t btor_util_log_2 (uint32_t x);
 
-int btor_pow_2_util (int x);
+int32_t btor_util_pow_2 (int32_t x);
 
-int btor_next_power_of_2_util (int x);
-
-/*------------------------------------------------------------------------*/
-
-int btor_num_digits_util (int x);
+int32_t btor_util_next_power_of_2 (int32_t x);
 
 /*------------------------------------------------------------------------*/
 
-char *btor_dec_to_bin_str_util (BtorMemMgr *mm, const char *str);
+uint32_t btor_util_num_digits (uint32_t x);
 
-char *btor_dec_to_bin_str_n_util (BtorMemMgr *mm,
+/*------------------------------------------------------------------------*/
+
+char *btor_util_dec_to_bin_str (BtorMemMgr *mm, const char *str);
+
+char *btor_util_dec_to_bin_str_n (BtorMemMgr *mm,
                                   const char *str,
                                   uint32_t len);
 
-char *btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str);
+char *btor_util_hex_to_bin_str (BtorMemMgr *mm, const char *str);
 
-char *btor_hex_to_bin_str_n_util (BtorMemMgr *mm,
+char *btor_util_hex_to_bin_str_n (BtorMemMgr *mm,
                                   const char *str,
                                   uint32_t len);
 
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_HAVE_GETRUSAGE
-double btor_time_stamp (void);
-double btor_process_time_thread (void);
+double btor_util_time_stamp (void);
+double btor_util_process_time_thread (void);
 #endif
 
-double btor_current_time (void);
+double btor_util_current_time (void);
 
 /*------------------------------------------------------------------------*/
 
-int btor_file_exists (const char *);
+int32_t btor_util_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
+
+char *btor_util_node2string (BtorNode *);
+int32_t btor_util_vis_exp (Btor *btor, BtorNode *exp);
 
 #endif

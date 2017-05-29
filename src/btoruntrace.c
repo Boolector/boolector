@@ -42,7 +42,7 @@
 /*------------------------------------------------------------------------*/
 
 void boolector_chkclone (Btor *);
-void boolector_set_btor_id (Btor *, BoolectorNode *, int);
+void boolector_set_btor_id (Btor *, BoolectorNode *, int32_t);
 void boolector_get_btor_msg (Btor *);
 void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
@@ -53,7 +53,7 @@ struct BtorUNTBtorOpt
 {
   BtorOption kind;
   char *name;
-  int val;
+  uint32_t val;
 };
 
 typedef struct BtorUNTBtorOpt BtorUNTBtorOpt;
@@ -64,23 +64,23 @@ struct BtorUNT
 {
   BtorMemMgr *mm;
   BtorUNTBtorOptPtrStack btor_opts;
-  int verbosity;
-  int exit_on_abort;
-  int line;
-  int skip;
-  int ignore_sat;
+  uint32_t verbosity;
+  uint32_t exit_on_abort;
+  uint32_t line;
+  uint32_t skip;
+  uint32_t ignore_sat;
   char *filename;
 };
 
 /*------------------------------------------------------------------------*/
 
 static BtorUNT *
-new_btorunt (void)
+btorunt_new (void)
 {
   BtorUNT *res;
   BtorMemMgr *mm;
 
-  mm = btor_new_mem_mgr ();
+  mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
   BTOR_INIT_STACK (mm, res->btor_opts);
@@ -89,9 +89,9 @@ new_btorunt (void)
 }
 
 static void
-delete_btorunt (BtorUNT *unt)
+btorunt_delete (BtorUNT *unt)
 {
-  int i;
+  uint32_t i;
   BtorUNTBtorOpt *o;
   BtorMemMgr *mm;
 
@@ -100,20 +100,20 @@ delete_btorunt (BtorUNT *unt)
   {
     o = BTOR_PEEK_STACK (unt->btor_opts, i);
     assert (o);
-    btor_freestr (mm, o->name);
+    btor_mem_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
   BTOR_RELEASE_STACK (unt->btor_opts);
   BTOR_DELETE (mm, unt);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static bool
-has_btor_opt (BtorUNT *unt, BtorOption opt)
+btorunt_has_btor_opt (BtorUNT *unt, BtorOption opt)
 {
   assert (unt);
 
-  int i;
+  uint32_t i;
   BtorUNTBtorOpt *o;
 
   for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
@@ -172,19 +172,19 @@ btorunt_parse_error (const char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
-static int
-isnumstr (const char *str)
+static bool
+is_num_str (const char *str)
 {
   const char *p;
-  int ch;
+  int32_t ch;
   if (*(p = str) == '-') p++;
-  if (!isdigit ((int) *p++)) return 0;
+  if (!isdigit ((int32_t) *p++)) return false;
   while (isdigit (ch = *p)) p++;
-  return !ch;
+  return ch == 0;
 }
 
 void
-checklastarg (char *op)
+parse_check_last_arg (char *op)
 {
   if (strtok (0, " "))
   {
@@ -193,7 +193,7 @@ checklastarg (char *op)
 }
 
 static bool
-boolarg (char *op)
+parse_bool_arg (char *op)
 {
   const char *tok;
   if (!(tok = strtok (0, " "))
@@ -205,11 +205,11 @@ boolarg (char *op)
   return !strcmp (tok, "true") ? true : false;
 }
 
-static int
-intarg (char *op)
+static int32_t
+parse_int_arg (char *op)
 {
   const char *tok;
-  if (!(tok = strtok (0, " ")) || !isnumstr (tok))
+  if (!(tok = strtok (0, " ")) || !is_num_str (tok))
   {
     btorunt_parse_error ("expected integer argument for '%s'", op);
   }
@@ -217,8 +217,20 @@ intarg (char *op)
   return atoi (tok);
 }
 
+static int32_t
+parse_uint_arg (char *op)
+{
+  const char *tok;
+  if (!(tok = strtok (0, " ")) || !is_num_str (tok) || tok[0] == '-')
+  {
+    btorunt_parse_error ("expected unsigned integer argument for '%s'", op);
+  }
+  assert (tok);
+  return atoi (tok);
+}
+
 static char *
-strarg (char *op)
+parse_str_arg (char *op)
 {
   char *tok;
   if (!(tok = strtok (0, " ")))
@@ -228,24 +240,24 @@ strarg (char *op)
   return tok;
 }
 
-#define PARSE_ARGS0(op) checklastarg (op);
+#define PARSE_ARGS0(op) parse_check_last_arg (op);
 
-#define PARSE_ARGS1(op, type1)    \
-  arg1_##type1 = type1##arg (op); \
-  checklastarg (op);
+#define PARSE_ARGS1(op, type1)             \
+  arg1_##type1 = parse_##type1##_arg (op); \
+  parse_check_last_arg (op);
 
-#define PARSE_ARGS2(op, type1, type2) \
-  arg1_##type1 = type1##arg (op);     \
-  arg2_##type2 = type2##arg (op);     \
-  checklastarg (op);
+#define PARSE_ARGS2(op, type1, type2)      \
+  arg1_##type1 = parse_##type1##_arg (op); \
+  arg2_##type2 = parse_##type2##_arg (op); \
+  parse_check_last_arg (op);
 
 #define PARSE_ARGS3(op, type1, type2, type3) \
-  arg1_##type1 = type1##arg (op);            \
-  arg2_##type2 = type2##arg (op);            \
-  arg3_##type3 = type3##arg (op);            \
-  checklastarg (op);
+  arg1_##type1 = parse_##type1##_arg (op);   \
+  arg2_##type2 = parse_##type2##_arg (op);   \
+  arg3_##type3 = parse_##type3##_arg (op);   \
+  parse_check_last_arg (op);
 
-/*------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
 
 static void *
 hmap_get (BtorPtrHashTable *hmap, char *key)
@@ -255,7 +267,7 @@ hmap_get (BtorPtrHashTable *hmap, char *key)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket) btorunt_error ("'%s' is not hashed", key);
   assert (bucket);
   return bucket->data.as_ptr;
@@ -275,13 +287,13 @@ hmap_add (BtorPtrHashTable *hmap, char *key, void *value)
 
   BtorPtrHashBucket *bucket;
 
-  bucket = btor_get_ptr_hash_table (hmap, key);
+  bucket = btor_hashptr_table_get (hmap, key);
   if (!bucket)
   {
     char *key_cp;
     BTOR_NEWN (hmap->mm, key_cp, (strlen (key) + 1));
     strcpy (key_cp, key);
-    bucket = btor_add_ptr_hash_table (hmap, key_cp);
+    bucket = btor_hashptr_table_add (hmap, key_cp);
   }
   assert (bucket);
   bucket->data.as_ptr = value;
@@ -297,7 +309,7 @@ hmap_clear (BtorPtrHashTable *hmap)
   for (bucket = hmap->first; bucket; bucket = hmap->first)
   {
     char *key = (char *) bucket->key;
-    btor_remove_ptr_hash_table (hmap, key, NULL, NULL);
+    btor_hashptr_table_remove (hmap, key, NULL, NULL);
     BTOR_DELETEN (hmap->mm, key, (strlen (key) + 1));
   }
 }
@@ -307,9 +319,10 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_NONE 0
 #define RET_VOIDPTR 1
 #define RET_INT 2
-#define RET_CHARPTR 3
-#define RET_ARRASS 4
-#define RET_BOOL 5
+#define RET_UINT 3
+#define RET_CHARPTR 4
+#define RET_ARRASS 5
+#define RET_BOOL 6
 #define RET_SKIP -1
 
 BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
@@ -319,24 +332,27 @@ BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
 void
 parse (FILE *file)
 {
-  int i, ch, delete;
-  size_t len, buffer_len;
+  int32_t i, ch;
+  bool delete;
+  uint32_t j, len, buffer_len;
   char *buffer, *tok, *basename;
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
 
   Btor *btor;
 
-  int exp_ret;                   /* expected return value */
+  int32_t exp_ret;               /* expected return value */
   bool ret_bool;                 /* actual return value bool */
-  int ret_int;                   /* actual return value int */
+  int32_t ret_int;               /* actual return value int */
+  uint32_t ret_uint;             /* actual return value unsigned int */
   char *ret_str;                 /* actual return value string */
   void *ret_ptr;                 /* actual return value string */
   char **res1_pptr, **res2_pptr; /* result pointer */
 
   char *btor_str; /* btor pointer string */
   char *exp_str;  /* expression string (pointer) */
-  int arg1_int, arg2_int, arg3_int;
+  int32_t arg1_int, arg2_int, arg3_int;
+  uint32_t arg3_uint;
   char *arg1_str, *arg2_str, *arg3_str;
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
@@ -344,15 +360,16 @@ parse (FILE *file)
 
   Btor *tmpbtor;
   FILE *outfile;
-  int32_t flen, pstat;
+  int32_t flen, pres, pstat;
   char *outfilename, *emsg;
 
   BTORUNT_LOG ("parsing %s", g_btorunt->filename);
 
-  delete = 1;
+  delete = true;
 
   exp_ret    = RET_NONE;
   ret_int    = 0;
+  ret_uint   = 0;
   ret_ptr    = 0;
   ret_str    = 0;
   ret_bool   = false;
@@ -361,7 +378,7 @@ parse (FILE *file)
   arg2_int   = 0;
   btor       = 0;
 
-  hmap = btor_new_ptr_hash_table (
+  hmap = btor_hashptr_table_new (
       g_btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   BTOR_CNEWN (g_btorunt->mm, buffer, buffer_len);
@@ -403,13 +420,13 @@ NEXT:
     {
       if (exp_ret == RET_VOIDPTR)
       {
-        exp_str = strarg ("return");
-        checklastarg ("return");
+        exp_str = parse_str_arg ("return");
+        parse_check_last_arg ("return");
         hmap_add (hmap, exp_str, ret_ptr);
       }
       else if (exp_ret == RET_BOOL)
       {
-        bool exp_bool = boolarg ("return");
+        bool exp_bool = parse_bool_arg ("return");
         if (exp_bool != ret_bool)
           btorunt_error ("expected return value %s but got %s",
                          exp_bool ? "true" : "false",
@@ -417,16 +434,24 @@ NEXT:
       }
       else if (exp_ret == RET_INT)
       {
-        int exp_int = intarg ("return");
-        checklastarg ("return");
+        int32_t exp_int = parse_int_arg ("return");
+        parse_check_last_arg ("return");
         if (exp_int != ret_int)
           btorunt_error (
               "expected return value %d but got %d", exp_int, ret_int);
       }
+      else if (exp_ret == RET_UINT)
+      {
+        uint32_t exp_uint = parse_uint_arg ("return");
+        parse_check_last_arg ("return");
+        if (exp_uint != ret_uint)
+          btorunt_error (
+              "expected return value %d but got %d", exp_uint, ret_uint);
+      }
       else if (exp_ret == RET_CHARPTR)
       {
-        exp_str = strarg ("return");
-        checklastarg ("return");
+        exp_str = parse_str_arg ("return");
+        parse_check_last_arg ("return");
         if (strcmp (exp_str, ret_str))
           btorunt_error (
               "expected return string %s but got %s", exp_str, ret_str);
@@ -457,10 +482,10 @@ NEXT:
     /* get btor object for all functions except for 'new' and 'get_btor' */
     if (strcmp (tok, "new") && strcmp (tok, "get_btor"))
     {
-      exp_str = strarg (tok);
+      exp_str = parse_str_arg (tok);
       len     = strlen (exp_str);
-      for (i = 0; (size_t) i < len; i++) btor_str[i] = exp_str[i];
-      btor_str[i] = 0;
+      for (j = 0; j < len; j++) btor_str[j] = exp_str[j];
+      btor_str[j] = 0;
       btor        = hmap_get (hmap, btor_str);
       assert (btor);
     }
@@ -515,7 +540,7 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       boolector_delete (btor);
-      delete = 0;
+      delete = false;
     }
     else if (!strcmp (tok, "set_btor_id"))
     {
@@ -594,32 +619,27 @@ NEXT:
     else if (!strcmp (tok, "set_sat_solver"))
     {
       PARSE_ARGS1 (tok, str);
-      ret_int = boolector_set_sat_solver (btor, arg1_str);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver (btor, arg1_str);
     }
 #ifdef BTOR_USE_LINGELING
     else if (!strcmp (tok, "set_sat_solver_lingeling"))
     {
-      PARSE_ARGS2 (tok, str, int);
-      arg1_str = !strcmp (arg1_str, "(null)") ? 0 : arg1_str;
-      ret_int  = boolector_set_sat_solver_lingeling (btor, arg1_str, arg2_int);
-      exp_ret  = RET_INT;
+      PARSE_ARGS1 (tok, int);
+      boolector_set_sat_solver_lingeling (btor, arg2_int);
     }
 #endif
 #ifdef BTOR_USE_PICOSAT
     else if (!strcmp (tok, "set_sat_solver_picosat"))
     {
       PARSE_ARGS0 (tok);
-      ret_int = boolector_set_sat_solver_picosat (btor);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver_picosat (btor);
     }
 #endif
 #ifdef BTOR_USE_MINISAT
     else if (!strcmp (tok, "set_sat_solver_minisat"))
     {
       PARSE_ARGS0 (tok);
-      ret_int = boolector_set_sat_solver_minisat (btor);
-      exp_ret = RET_INT;
+      boolector_set_sat_solver_minisat (btor);
     }
 #endif
     else if (!strcmp (tok, "set_opt"))
@@ -627,7 +647,7 @@ NEXT:
       PARSE_ARGS3 (tok, int, str, int);
       assert (!boolector_get_opt_lng (btor, arg1_int)
               || !strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
-      if (!has_btor_opt (g_btorunt, arg1_int))
+      if (!btorunt_has_btor_opt (g_btorunt, arg1_int))
       {
         boolector_set_opt (btor, arg1_int, arg3_int);
         BTORUNT_LOG ("     set boolector option '%s' to '%u' (via trace)",
@@ -1188,22 +1208,24 @@ NEXT:
     }
     else if (!strcmp (tok, "fun"))
     {
-      arg1_int = intarg (tok);                  /* paramc */
+      arg1_int = parse_int_arg (tok);           /* paramc */
       BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* params */
-      for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
-      arg1_str = strarg (tok); /* function body */
-      checklastarg (tok);
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, parse_str_arg (tok));
+      arg1_str = parse_str_arg (tok); /* function body */
+      parse_check_last_arg (tok);
       ret_ptr = boolector_fun (btor, tmp, arg1_int, hmap_get (hmap, arg1_str));
       BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "exists"))
     {
-      arg1_int = intarg (tok);
+      arg1_int = parse_int_arg (tok);
       BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* vars */
-      for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
-      arg1_str = strarg (tok); /* body */
-      checklastarg (tok);
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, parse_str_arg (tok));
+      arg1_str = parse_str_arg (tok); /* body */
+      parse_check_last_arg (tok);
       ret_ptr =
           boolector_exists (btor, tmp, arg1_int, hmap_get (hmap, arg1_str));
       BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
@@ -1211,11 +1233,12 @@ NEXT:
     }
     else if (!strcmp (tok, "forall"))
     {
-      arg1_int = intarg (tok);
+      arg1_int = parse_int_arg (tok);
       BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* vars */
-      for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
-      arg1_str = strarg (tok); /* body */
-      checklastarg (tok);
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, parse_str_arg (tok));
+      arg1_str = parse_str_arg (tok); /* body */
+      parse_check_last_arg (tok);
       ret_ptr =
           boolector_forall (btor, tmp, arg1_int, hmap_get (hmap, arg1_str));
       BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
@@ -1223,11 +1246,12 @@ NEXT:
     }
     else if (!strcmp (tok, "apply"))
     {
-      arg1_int = intarg (tok);                  /* argc */
+      arg1_int = parse_int_arg (tok);           /* argc */
       BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* args */
-      for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
-      arg1_str = strarg (tok); /* function */
-      checklastarg (tok);
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, parse_str_arg (tok));
+      arg1_str = parse_str_arg (tok); /* function */
+      parse_check_last_arg (tok);
       ret_ptr =
           boolector_apply (btor, tmp, arg1_int, hmap_get (hmap, arg1_str));
       BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
@@ -1436,12 +1460,12 @@ NEXT:
     }
     else if (!strcmp (tok, "fun_sort_check"))
     {
-      arg1_int = intarg (tok); /* argc */
+      arg1_int = parse_int_arg (tok); /* argc */
       BTOR_NEWN (g_btorunt->mm, tmp, arg1_int);
       for (i = 0; i < arg1_int; i++) /* args */
-        tmp[i] = hmap_get (hmap, strarg (tok));
-      arg1_str = strarg (tok); /* function body */
-      checklastarg (tok);
+        tmp[i] = hmap_get (hmap, parse_str_arg (tok));
+      arg1_str = parse_str_arg (tok); /* function body */
+      parse_check_last_arg (tok);
       ret_int = boolector_fun_sort_check (
           btor, tmp, arg1_int, hmap_get (hmap, arg1_str));
       exp_ret = RET_SKIP;
@@ -1463,27 +1487,31 @@ NEXT:
     {
       PARSE_ARGS1 (tok, str);
       boolector_array_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_array_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_array_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_array_assignment (btor,
+                                       hmap_get (hmap, arg1_str),
+                                       hmap_get (hmap, arg2_str),
+                                       arg3_uint);
     }
     else if (!strcmp (tok, "uf_assignment"))
     {
       PARSE_ARGS1 (tok, str);
       boolector_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+          btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_uint);
       exp_ret = RET_ARRASS;
     }
     else if (!strcmp (tok, "free_uf_assignment"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      boolector_free_uf_assignment (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+      PARSE_ARGS3 (tok, str, str, uint);
+      boolector_free_uf_assignment (btor,
+                                    hmap_get (hmap, arg1_str),
+                                    hmap_get (hmap, arg2_str),
+                                    arg3_uint);
     }
     else if (!strcmp (tok, "print_model"))
     {
@@ -1625,14 +1653,15 @@ NEXT:
         boolector_dump_smt2 (btor, outfile);
       }
 
+      BTORUNT_LOG ("dump formula to %s", outfilename);
       fclose (outfile);
       outfile = fopen (outfilename, "r");
       tmpbtor = boolector_new ();
       boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-      assert (BOOLECTOR_PARSE_ERROR
-              != boolector_parse (
-                     tmpbtor, outfile, outfilename, stdout, &emsg, &pstat));
-      (void) emsg;
+      pres = boolector_parse (
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+      if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
+      assert (pres != BOOLECTOR_PARSE_ERROR);
       (void) pstat;
       boolector_delete (tmpbtor);
       fclose (outfile);
@@ -1663,21 +1692,21 @@ DONE:
   BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
   BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
   hmap_clear (hmap);
-  btor_delete_ptr_hash_table (hmap);
+  btor_hashptr_table_delete (hmap);
   if (delete) boolector_delete (btor);
 }
 
 static void
-exitonsig (int sig)
+exit_on_signal (int32_t sig)
 {
   BTORUNT_LOG ("exit on signal %d", sig);
   raise (sig);
 }
 
-int
-main (int argc, char **argv)
+int32_t
+main (int32_t argc, char **argv)
 {
-  int i;
+  int32_t i;
   uint32_t val;
   Btor *tmpbtor;
   BtorOption o;
@@ -1686,7 +1715,7 @@ main (int argc, char **argv)
   const char *lng;
   FILE *file;
 
-  g_btorunt = new_btorunt ();
+  g_btorunt = btorunt_new ();
 
   for (i = 1, tmpbtor = 0; i < argc; i++)
   {
@@ -1721,7 +1750,7 @@ main (int argc, char **argv)
       if (tmp[0] != 0) btorunt_error ("invalid argument to '-b' (try -h)");
       BTOR_NEW (g_btorunt->mm, btoropt);
       btoropt->kind = o;
-      btoropt->name = btor_strdup (g_btorunt->mm, lng);
+      btoropt->name = btor_mem_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }
@@ -1746,14 +1775,14 @@ main (int argc, char **argv)
   if (g_btorunt->exit_on_abort)
   {
     BTORUNT_LOG ("setting signal handlers since '-e' specified");
-    signal (SIGINT, exitonsig);
-    signal (SIGSEGV, exitonsig);
-    signal (SIGABRT, exitonsig);
-    signal (SIGTERM, exitonsig);
+    signal (SIGINT, exit_on_signal);
+    signal (SIGSEGV, exit_on_signal);
+    signal (SIGABRT, exit_on_signal);
+    signal (SIGTERM, exit_on_signal);
   }
 
   parse (file);
   fclose (file);
-  delete_btorunt (g_btorunt);
+  btorunt_delete (g_btorunt);
   return 0;
 }

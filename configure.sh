@@ -14,11 +14,13 @@ ROOT=`dirname "$(readlink -f $0)"|sed -e 's, ,\\ ,g'`
 lingeling=yes
 minisat=unknown
 picosat=unknown
+cadical=unknown
 arch=unknown
 
 onlylingeling=no
 onlyminisat=no
 onlypicosat=no
+onlycadical=no
 
 gcov=no
 gprof=no
@@ -61,16 +63,19 @@ By specifying one of them 'configure.sh' fails if it can not be used.
   --lingeling       use and link with Lingeling (default)
   --picosat         use and link with PicoSAT
   --minisat         use and link with MiniSAT
+  --cadical         use and link with CaDiCaL
 
 Disable compilation of specific SAT solver back-ends:
 
   --no-lingeling    do not use Lingeling
   --no-picosat      do not use PicoSAT
   --no-minisat      do not use MiniSAT
+  --no-cadical      do not use CaDiCaL
 
   --only-lingeling  only use Lingeling
   --only-picosat    only use PicoSAT
   --only-minisat    only use MiniSAT
+  --only-cadical    only use CaDiCaL
 
 You might also want to use the environment variables
 CC and CXX to specify the used C and C++ compiler, as in
@@ -100,11 +105,14 @@ do
     -no-picosat|--no-picosat) picosat=no;;
     -lingeling|--lingeling) lingeling=yes;;
     -no-lingeling|--no-lingeling) lingeling=no;;
-    -only-lingeling|--only-lingeling) lingeling=yes;minisat=no;picosat=no;;
-    -only-picosat|--only-picosat) lingeling=no;minisat=no;picosat=yes;;
-    -only-minisat|--only-minisat) lingeling=no;minisat=yes;picosat=no;;
+    -only-lingeling|--only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;;
+    -only-picosat|--only-picosat) lingeling=no;minisat=no;picosat=yes;cadical=no;;
+    -only-minisat|--only-minisat) lingeling=no;minisat=yes;picosat=no;cadical=no;;
+    -only-cadical|--only-cadical) lingeling=no;minisat=no;picosat=no;cadical=yes;;
     -minisat|--minisat) minisat=yes;;
     -no-minisat|--no-minisat) minisat=no;;
+    -cadical|--cadical) cadical=yes;;
+    -no-cadical|--no-cadical) cadical=no;;
     -h|-help|--help) usage;;
     -gcov) gcov=yes;;
     -gprof) gprof=yes;;
@@ -141,7 +149,7 @@ BUILDIR="build"
 TESTDIR="tests"
 SRCDIR="src"
 
-SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/normalizer src/tests src/utils"
+SRCDIRS="src src/dumper src/parser src/sat src/simplifier src/normalizer src/utils"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS $SRCDIR/api/python"
@@ -413,7 +421,7 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
-    OBJS="${OBJS}$BUILDIR/btorminisat.o"
+    OBJS="${OBJS}$BUILDIR/sat/btorminisat.o"
     RPATHS="${RPATHS}\,-rpath\,$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
@@ -431,10 +439,67 @@ else
 
 fi
 
+if [ $cadical = no ]
+then
+  msg "not using CaDiCaL"
+else
+
+  for path in \
+    $ROOT/../cadical \
+    $ROOT/../cadical/build \
+    allfound
+  do
+    [ -d $path ] || break
+  done
+
+  if [ $path = allfound ]
+  then
+    for path in \
+      $ROOT/../cadical/build/libcadical.a \
+      allfound
+    do
+      [ -f $path ] || break
+    done
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using CaDiCaL in '$ROOT/../cadical'"
+    cadical=yes
+  elif [ $cadical = yes ]
+  then
+    die "impossible to use CaDiCaL: '$path' missing"
+  else
+    msg "disabling CaDiCaL: '$path' missing"
+  fi
+
+  if [ $cadical = yes ]
+  then
+    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+    [ X"$OBJS" = X ] || OBJS="$OBJS "
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    [ X"$INCS" = X ] || INCS="$INCS "
+    CFLAGS="${CFLAGS}-DBTOR_USE_CADICAL"
+    OBJS="${OBJS}$BUILDIR/sat/btorcadical.o"
+    RPATHS="${RPATHS}\,-rpath=$ROOT/../cadical/build/"
+    if [ $shared = yes ]
+    then
+      LIBS="${LIBS}-L$ROOT/../cadical/build -lcadical"
+      LDEPS="${LDEPS}$ROOT/../cadical/build/libcadical.a"
+    else
+      LIBS="${LIBS}-L$ROOT/../cadical/build -lcadical"
+      LDEPS="${LDEPS}$ROOT/../cadical/build/libcadical.a"
+    fi
+    LIBSTDCPP=yes
+    INCS="${INCS}-I$ROOT/../cadical/src"
+  fi
+fi
+
 #--------------------------------------------------------------------------#
 
-[ $picosat = no -a $lingeling = no -a $minisat = no ] && \
-  die "either need MiniSAT, PicoSAT or Lingeling"
+[ $picosat = no -a $lingeling = no -a $minisat = no -a $cadical = no ] && \
+  die "either need MiniSAT, PicoSAT, Lingeling or CaDiCaL"
 
 #--------------------------------------------------------------------------#
 
@@ -489,6 +554,11 @@ then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs $ROOT/../minisat/build/dynamic/lib"
     py_inc_dirs="$py_inc_dirs $ROOT/../minisat/build/dynamic/lib"
+  fi
+  if [ $cadical = yes ]; then
+    py_libraries="$py_libraries cadical"
+    py_library_dirs="$py_library_dirs $ROOT/../cadical/build"
+    py_inc_dirs="$py_inc_dirs $ROOT/../cadical/build"
   fi
   OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`

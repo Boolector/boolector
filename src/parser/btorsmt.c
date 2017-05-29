@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2014-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -11,7 +11,7 @@
  */
 
 #include "btorsmt.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
@@ -182,32 +182,32 @@ struct BtorSMTParser
 {
   BtorMemMgr *mem;
   Btor *btor;
-  int verbosity;
-  int parsed;
+  bool parsed;
 
-  int incremental;
+  uint32_t verbosity;
+  uint32_t modelgen;
+  uint32_t incremental;
   BtorParseMode incremental_smt1;
-  int model;
 
   struct
   {
-    int parsed, handled;
+    uint32_t nparsed, handled;
   } assumptions;
   struct
   {
-    int parsed, handled, checked;
+    uint32_t nparsed, handled, nchecked;
   } formulas;
 
-  int nprefix;
+  uint32_t nprefix;
   BtorCharStack *prefix;
   FILE *infile;
   const char *infile_name;
   FILE *outfile;
-  int lineno;
-  int saved; /* boolean flag */
-  int saved_char;
+  uint32_t lineno;
+  bool saved;
+  int32_t saved_char;
 
-  unsigned long long bytes;
+  uint_least64_t bytes;
 
   BtorLogic required_logic;
 
@@ -218,10 +218,10 @@ struct BtorSMTParser
 
   BtorSMTSymbol *symbol;
   BtorSMTSymbol **symtab;
-  unsigned szsymtab;
-  unsigned symbols;
+  uint32_t szsymtab;
+  uint32_t symbols;
 
-  unsigned constants;
+  uint32_t constants;
 
   BtorSMTNode *bind;
   BtorSMTNode *translated;
@@ -231,7 +231,7 @@ struct BtorSMTParser
   BtorSMTNodePtrStack delete;
   BtorIntStack heads;
 
-  unsigned nodes;
+  uint32_t nodes;
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   BtorSMTNode *first;
   BtorSMTNode *last;
@@ -243,7 +243,7 @@ struct BtorSMTParser
 
 /*------------------------------------------------------------------------*/
 
-static unsigned btor_smt_primes[] = {1001311, 2517041, 3543763, 4026227};
+static uint32_t btor_smt_primes[] = {1001311, 2517041, 3543763, 4026227};
 #define BTOR_SMT_PRIMES ((sizeof btor_smt_primes) / sizeof *btor_smt_primes)
 
 static void *
@@ -297,10 +297,10 @@ cons (BtorSMTParser *parser, void *h, void *t)
   return res;
 }
 
-static unsigned
+static uint32_t
 hash_name (const char *name)
 {
-  unsigned i, res;
+  uint32_t i, res;
   const char *p;
   char ch;
 
@@ -309,7 +309,7 @@ hash_name (const char *name)
 
   for (p = name; (ch = *p); p++)
   {
-    res += btor_smt_primes[i++] * (unsigned) ch;
+    res += btor_smt_primes[i++] * (uint32_t) ch;
 
     if (i == BTOR_SMT_PRIMES) i = 0;
 
@@ -322,7 +322,7 @@ hash_name (const char *name)
 static BtorSMTSymbol **
 find_symbol_position (BtorSMTParser *parser, const char *name)
 {
-  unsigned h = hash_name (name) & (parser->szsymtab - 1);
+  uint32_t h = hash_name (name) & (parser->szsymtab - 1);
   BtorSMTSymbol **p, *s;
 
   for (p = parser->symtab + h; (s = *p) && strcmp (name, s->name); p = &s->next)
@@ -339,7 +339,7 @@ delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
   assert (parser->symbols > 0);
   parser->symbols--;
 
-  btor_freestr (parser->mem, symbol->name);
+  btor_mem_freestr (parser->mem, symbol->name);
 
   if ((exp = symbol->exp)) boolector_release (parser->btor, exp);
 
@@ -359,7 +359,7 @@ remove_and_delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
 }
 
 static void
-btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
+delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTSymbol *s;
 
@@ -370,7 +370,7 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (node->exp) boolector_release (parser->btor, node->exp);
 
-  if (!parser->model && isleaf (car (node)))
+  if (!parser->modelgen && isleaf (car (node)))
   {
     s = strip (car (node));
     if (s->last == node) remove_and_delete_symbol (parser, s);
@@ -405,26 +405,24 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 }
 
 static void
-btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
+smt_message (BtorSMTParser *parser, uint32_t level, const char *fmt, ...)
 {
   va_list ap;
-
-  assert (level >= 0);
 
   if (parser->verbosity < level) return;
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->formulas.checked);
+  if (parser->incremental) printf ("%d : ", parser->formulas.nchecked);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
+  fprintf (stdout, " after %.2f seconds\n", btor_util_time_stamp ());
   fflush (stdout);
 }
 
 static void
-btor_recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
+recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node;
 
@@ -450,15 +448,15 @@ btor_recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
       BTOR_PUSH_STACK (parser->delete, car (node));
     }
 
-    btor_delete_smt_node (parser, node);
+    delete_smt_node (parser, node);
   }
 }
 
-static unsigned
+static uint32_t
 length (BtorSMTNode *node)
 {
   BtorSMTNode *p;
-  unsigned res;
+  uint32_t res;
 
   assert (!isleaf (node));
 
@@ -469,7 +467,7 @@ length (BtorSMTNode *node)
 }
 
 static bool
-is_list_of_length (BtorSMTNode *node, unsigned l)
+is_list_of_length (BtorSMTNode *node, uint32_t l)
 {
   if (isleaf (node)) return false;
 
@@ -477,10 +475,10 @@ is_list_of_length (BtorSMTNode *node, unsigned l)
 }
 
 static void
-btor_release_smt_symbols (BtorSMTParser *parser)
+release_smt_symbols (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p, *next;
-  unsigned i;
+  uint32_t i;
 
   for (i = 0; i < parser->szsymtab; i++)
   {
@@ -496,14 +494,14 @@ btor_release_smt_symbols (BtorSMTParser *parser)
 }
 
 static void
-btor_release_smt_nodes (BtorSMTParser *parser)
+release_smt_nodes (BtorSMTParser *parser)
 {
   BtorSMTNode *node;
 
   while (!BTOR_EMPTY_STACK (parser->stack))
   {
     node = BTOR_POP_STACK (parser->stack);
-    btor_recursively_delete_smt_node (parser, node);
+    recursively_delete_smt_node (parser, node);
   }
 
   while (!BTOR_EMPTY_STACK (parser->work))
@@ -515,7 +513,7 @@ btor_release_smt_nodes (BtorSMTParser *parser)
     if (isleaf (node)) continue;
 
 #if 1
-    if (car (node) == parser->bind) btor_delete_smt_node (parser, node);
+    if (car (node) == parser->bind) delete_smt_node (parser, node);
 #endif
   }
 
@@ -545,10 +543,10 @@ btor_release_smt_nodes (BtorSMTParser *parser)
 }
 
 static void
-btor_release_smt_internals (BtorSMTParser *parser)
+release_smt_internals (BtorSMTParser *parser)
 {
-  btor_release_smt_nodes (parser);
-  btor_release_smt_symbols (parser);
+  release_smt_nodes (parser);
+  release_smt_symbols (parser);
 
   BTOR_RELEASE_STACK (parser->stack);
   BTOR_RELEASE_STACK (parser->work);
@@ -558,7 +556,7 @@ btor_release_smt_internals (BtorSMTParser *parser)
 }
 
 static void
-btor_release_smt_vars (BtorSMTParser *parser)
+release_smt_vars (BtorSMTParser *parser)
 {
   BoolectorNode **p;
 
@@ -569,28 +567,28 @@ btor_release_smt_vars (BtorSMTParser *parser)
 }
 
 static void
-btor_delete_smt_parser (BtorSMTParser *parser)
+delete_smt_parser (BtorSMTParser *parser)
 {
   BoolectorNode **p;
   BtorMemMgr *mm;
 
   mm = parser->mem;
 
-  btor_release_smt_internals (parser);
+  release_smt_internals (parser);
 
-  btor_freestr (mm, parser->error);
-  btor_release_smt_vars (parser);
+  btor_mem_freestr (mm, parser->error);
+  release_smt_vars (parser);
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
     boolector_release (parser->btor, *p);
   BTOR_RELEASE_STACK (parser->outputs);
 
   BTOR_DELETE (mm, parser);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
 }
 
 static char *
-btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
+perr_smt (BtorSMTParser *parser, const char *fmt, ...)
 {
   size_t bytes;
   va_list ap;
@@ -598,11 +596,11 @@ btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
+    bytes = btor_mem_parse_error_msg_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
-    parser->error = btor_parse_error_message (
+    parser->error = btor_mem_parse_error_msg (
         parser->mem, parser->infile_name, parser->lineno, -1, fmt, ap, bytes);
     va_end (ap);
   }
@@ -614,7 +612,7 @@ static void
 enlarge_symtab (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p, *next, **old_symtab, **new_symtab;
-  unsigned h, i, old_size, new_size;
+  uint32_t h, i, old_size, new_size;
 
   old_symtab = parser->symtab;
   old_size   = parser->szsymtab;
@@ -654,7 +652,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
     BTOR_CLR (res);
 
     res->token = BTOR_SMTOK_IDENTIFIER;
-    res->name  = btor_strdup (parser->mem, name);
+    res->name  = btor_mem_strdup (parser->mem, name);
 
     parser->symbols++;
     *p = res;
@@ -664,31 +662,31 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
+new_smt_parser (Btor *btor)
 {
   BtorSMTSymbol *bind, *translated;
   BtorMemMgr *mem;
   BtorSMTParser *res;
   unsigned char type;
-  int ch;
+  int32_t ch;
 
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity        = opts->verbosity;
-  res->incremental      = opts->incremental;
-  res->incremental_smt1 = opts->incremental_smt1;
-  res->model            = opts->need_model;
+  res->verbosity        = boolector_get_opt (btor, BTOR_OPT_VERBOSITY);
+  res->modelgen         = boolector_get_opt (btor, BTOR_OPT_MODEL_GEN);
+  res->incremental      = boolector_get_opt (btor, BTOR_OPT_INCREMENTAL);
+  res->incremental_smt1 = boolector_get_opt (btor, BTOR_OPT_INCREMENTAL_SMT1);
 
-  btor_smt_message (res, 2, "initializing SMT parser");
-  if (opts->incremental)
+  smt_message (res, 2, "initializing SMT parser");
+  if (res->incremental)
   {
-    btor_smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (opts->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
-      btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else if (opts->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-      btor_smt_message (res, 2, "check all ':formula' for satisfiability");
+    smt_message (res, 2, "incremental checking of SMT benchmark");
+    if (res->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
+      smt_message (res, 2, "stop after first satisfiable ':formula'");
+    else if (res->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+      smt_message (res, 2, "check all ':formula' for satisfiability");
   }
 
   res->mem  = mem;
@@ -828,15 +826,15 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   return res;
 }
 
-static int
-btor_nextch_smt (BtorSMTParser *parser)
+static int32_t
+nextch_smt (BtorSMTParser *parser)
 {
-  int res;
+  int32_t res;
 
   if (parser->saved)
   {
     res           = parser->saved_char;
-    parser->saved = 0;
+    parser->saved = false;
   }
   else if (parser->prefix
            && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
@@ -856,12 +854,12 @@ btor_nextch_smt (BtorSMTParser *parser)
 }
 
 static void
-btor_savech_smt (BtorSMTParser *parser, int ch)
+savech_smt (BtorSMTParser *parser, int32_t ch)
 {
   assert (!parser->saved);
 
   parser->saved_char = ch;
-  parser->saved      = 1;
+  parser->saved      = true;
 
   if (ch == '\n')
   {
@@ -871,7 +869,7 @@ btor_savech_smt (BtorSMTParser *parser, int ch)
 }
 
 static unsigned char
-int2type (BtorSMTParser *parser, int ch)
+int2type (BtorSMTParser *parser, int32_t ch)
 {
   if (0 > ch || ch >= 256) return 0;
   return parser->types[ch];
@@ -892,14 +890,15 @@ nextok (BtorSMTParser *parser)
 {
   unsigned char type;
   BtorSMTToken res;
-  int ch, count;
+  int32_t ch;
+  uint32_t count;
 
   parser->symbol = 0;
   BTOR_RESET_STACK (parser->buffer);
 
 SKIP_WHITE_SPACE:
 
-  ch = btor_nextch_smt (parser);
+  ch = nextch_smt (parser);
   if (ch == EOF) return EOF;
 
   type = int2type (parser, ch);
@@ -909,7 +908,7 @@ SKIP_WHITE_SPACE:
   {
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    while (int2type (parser, (ch = btor_nextch_smt (parser)))
+    while (int2type (parser, (ch = nextch_smt (parser)))
            & BTOR_SMTCC_IDENTIFIER_MIDDLE)
       BTOR_PUSH_STACK (parser->buffer, ch);
 
@@ -919,7 +918,7 @@ SKIP_WHITE_SPACE:
     {
       BTOR_PUSH_STACK (parser->buffer, ch);
 
-      ch = btor_nextch_smt (parser);
+      ch = nextch_smt (parser);
 
       for (;;)
       {
@@ -927,7 +926,7 @@ SKIP_WHITE_SPACE:
         {
           BTOR_PUSH_STACK (parser->buffer, ch);
 
-          while (int2type (parser, (ch = btor_nextch_smt (parser)))
+          while (int2type (parser, (ch = nextch_smt (parser)))
                  & BTOR_SMTCC_DIGIT)
             BTOR_PUSH_STACK (parser->buffer, ch);
 
@@ -940,19 +939,19 @@ SKIP_WHITE_SPACE:
           if (ch != ':') goto UNEXPECTED_CHARACTER;
 
           BTOR_PUSH_STACK (parser->buffer, ':');
-          ch = btor_nextch_smt (parser);
+          ch = nextch_smt (parser);
         }
         else if (ch == '0')
         {
           BTOR_PUSH_STACK (parser->buffer, ch);
-          ch = btor_nextch_smt (parser);
+          ch = nextch_smt (parser);
           goto COUNT_AND_CONTINUE_WITH_NEXT_INDEX;
         }
         else
           goto UNEXPECTED_CHARACTER;
       }
 
-      if (!count) return !btor_perr_smt (parser, "empty index list");
+      if (!count) return !perr_smt (parser, "empty index list");
 
       assert (ch == ']');
       BTOR_PUSH_STACK (parser->buffer, ch);
@@ -961,7 +960,7 @@ SKIP_WHITE_SPACE:
     {
       if (!ch) goto UNEXPECTED_CHARACTER;
 
-      btor_savech_smt (parser, ch);
+      savech_smt (parser, ch);
     }
 
     BTOR_PUSH_STACK (parser->buffer, 0);
@@ -992,7 +991,7 @@ SKIP_WHITE_SPACE:
   CHECK_FOR_UNSUPPORTED_KEYWORD:
 
     if (parser->symbol->token >= BTOR_SMTOK_UNSUPPORTED_KEYWORD)
-      return !btor_perr_smt (
+      return !perr_smt (
           parser, "unsupported keyword '%s'", parser->buffer.start);
 
     return parser->symbol->token;
@@ -1014,19 +1013,19 @@ SKIP_WHITE_SPACE:
 
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    ch = btor_nextch_smt (parser);
+    ch = nextch_smt (parser);
     if (!(int2type (parser, ch) & BTOR_SMTCC_IDENTIFIER_START))
-      return !btor_perr_smt (parser, "expected identifier after '%c'", res);
+      return !perr_smt (parser, "expected identifier after '%c'", res);
 
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    while (int2type (parser, (ch = btor_nextch_smt (parser)))
+    while (int2type (parser, (ch = nextch_smt (parser)))
            & BTOR_SMTCC_IDENTIFIER_MIDDLE)
       BTOR_PUSH_STACK (parser->buffer, ch);
 
     if (!ch) goto UNEXPECTED_CHARACTER;
 
-    btor_savech_smt (parser, ch);
+    savech_smt (parser, ch);
     BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
@@ -1041,8 +1040,7 @@ SKIP_WHITE_SPACE:
   {
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    while (int2type (parser, (ch = btor_nextch_smt (parser)))
-           & BTOR_SMTCC_DIGIT)
+    while (int2type (parser, (ch = nextch_smt (parser))) & BTOR_SMTCC_DIGIT)
       BTOR_PUSH_STACK (parser->buffer, ch);
 
   CHECK_FOR_FRACTIONAL_PART:
@@ -1052,13 +1050,13 @@ SKIP_WHITE_SPACE:
       res = BTOR_SMTOK_RATIONAL;
 
       BTOR_PUSH_STACK (parser->buffer, ch);
-      ch = btor_nextch_smt (parser);
+      ch = nextch_smt (parser);
 
       if (int2type (parser, ch) & BTOR_SMTCC_NUMERAL_START)
       {
         BTOR_PUSH_STACK (parser->buffer, ch);
 
-        while (int2type (parser, (ch = btor_nextch_smt (parser)))
+        while (int2type (parser, (ch = nextch_smt (parser)))
                & BTOR_SMTCC_NUMERAL_START)
           BTOR_PUSH_STACK (parser->buffer, ch);
       }
@@ -1066,7 +1064,7 @@ SKIP_WHITE_SPACE:
       {
         BTOR_PUSH_STACK (parser->buffer, ch);
 
-        ch = btor_nextch_smt (parser);
+        ch = nextch_smt (parser);
         if (int2type (parser, ch) & BTOR_SMTCC_DIGIT)
           goto UNEXPECTED_DIGIT_AFTER_ZERO;
       }
@@ -1078,7 +1076,7 @@ SKIP_WHITE_SPACE:
 
     if (!ch) goto UNEXPECTED_CHARACTER;
 
-    btor_savech_smt (parser, ch);
+    savech_smt (parser, ch);
     BTOR_PUSH_STACK (parser->buffer, 0);
 
     parser->symbol        = insert_symbol (parser, parser->buffer.start);
@@ -1091,11 +1089,11 @@ SKIP_WHITE_SPACE:
   {
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    ch = btor_nextch_smt (parser);
+    ch = nextch_smt (parser);
     if (int2type (parser, ch) & BTOR_SMTCC_DIGIT)
     {
     UNEXPECTED_DIGIT_AFTER_ZERO:
-      return !btor_perr_smt (parser, "unexpected digit after '0'");
+      return !perr_smt (parser, "unexpected digit after '0'");
     }
 
     goto CHECK_FOR_FRACTIONAL_PART;
@@ -1105,7 +1103,7 @@ SKIP_WHITE_SPACE:
   {
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    while (int2type (parser, (ch = btor_nextch_smt (parser)))
+    while (int2type (parser, (ch = nextch_smt (parser)))
            & BTOR_SMTCC_ARITHMETIC_OPERATOR)
       BTOR_PUSH_STACK (parser->buffer, ch);
 
@@ -1122,7 +1120,7 @@ SKIP_WHITE_SPACE:
 
   if (ch == ';')
   {
-    while ((ch = btor_nextch_smt (parser)) != '\n')
+    while ((ch = nextch_smt (parser)) != '\n')
       if (ch == EOF) return BTOR_SMTOK_EOF;
 
     goto SKIP_WHITE_SPACE;
@@ -1132,17 +1130,17 @@ SKIP_WHITE_SPACE:
   {
     BTOR_PUSH_STACK (parser->buffer, ch);
 
-    while ((ch = btor_nextch_smt (parser)) != '}')
+    while ((ch = nextch_smt (parser)) != '}')
     {
-      if (ch == '{') return !btor_perr_smt (parser, "unescaped '{' after '{'");
+      if (ch == '{') return !perr_smt (parser, "unescaped '{' after '{'");
 
       if (ch == '\\')
       {
         BTOR_PUSH_STACK (parser->buffer, ch);
-        ch = btor_nextch_smt (parser);
+        ch = nextch_smt (parser);
       }
 
-      if (ch == EOF) return !btor_perr_smt (parser, "unexpected EOF after '{'");
+      if (ch == EOF) return !perr_smt (parser, "unexpected EOF after '{'");
 
       BTOR_PUSH_STACK (parser->buffer, ch);
     }
@@ -1159,16 +1157,15 @@ SKIP_WHITE_SPACE:
 
   if (ch == '"')
   {
-    while ((ch = btor_nextch_smt (parser)) != '"')
+    while ((ch = nextch_smt (parser)) != '"')
     {
       if (ch == '\\')
       {
         BTOR_PUSH_STACK (parser->buffer, ch);
-        ch = btor_nextch_smt (parser);
+        ch = nextch_smt (parser);
       }
 
-      if (ch == EOF)
-        return !btor_perr_smt (parser, "unexpected EOF after '\"'");
+      if (ch == EOF) return !perr_smt (parser, "unexpected EOF after '\"'");
 
       BTOR_PUSH_STACK (parser->buffer, ch);
     }
@@ -1182,16 +1179,15 @@ SKIP_WHITE_SPACE:
   }
 
 UNEXPECTED_CHARACTER:
-  if (isprint (ch))
-    return !btor_perr_smt (parser, "unexpected character '%c'", ch);
+  if (isprint (ch)) return !perr_smt (parser, "unexpected character '%c'", ch);
 
-  return !btor_perr_smt (parser, "unexpected character with ASCII code %d", ch);
+  return !perr_smt (parser, "unexpected character with ASCII code %d", ch);
 }
 
 static void
-btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
+btorsmtppaux (FILE *file, BtorSMTNode *node, uint32_t indent)
 {
-  int i;
+  uint32_t i;
 
   if (isleaf (node))
     fprintf (file, "%s", ((BtorSMTSymbol *) strip (node))->name);
@@ -1223,7 +1219,7 @@ btorsmtpp (BtorSMTNode *node)
 static void
 push_input (BtorSMTParser *parser, BoolectorNode *v)
 {
-  if (parser->model)
+  if (parser->modelgen)
     BTOR_PUSH_STACK (parser->inputs, boolector_copy (parser->btor, v));
 }
 
@@ -1231,18 +1227,18 @@ static const char *
 next_numeral (const char *str)
 {
   const char *p = str;
-  int ch;
+  int32_t ch;
 
   assert (str);
 
-  if (isdigit ((int) *p++))
+  if (isdigit ((int32_t) *p++))
   {
     while (isdigit (ch = *p++))
       ;
 
     if (ch == ':')
     {
-      assert (isdigit ((int) *p));
+      assert (isdigit ((int32_t) *p));
       return p;
     }
 
@@ -1253,7 +1249,7 @@ next_numeral (const char *str)
     while ((ch = *p++))
       if (ch == '[')
       {
-        assert (isdigit ((int) *p));
+        assert (isdigit ((int32_t) *p));
         return p;
       }
   }
@@ -1261,37 +1257,36 @@ next_numeral (const char *str)
   return 0;
 }
 
-static int
+static int32_t
 extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 {
   BtorSMTSymbol *symbol, *sortsymbol;
   BtorSMTNode *node, *sort;
-  int addrlen, datalen;
+  int32_t addrlen, datalen;
   const char *p;
   BoolectorSort s, is, es;
 
   if (!fdecl || !cdr (fdecl) || isleaf (fdecl) || !isleaf (node = car (fdecl))
       || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
-    return !btor_perr_smt (parser, "invalid function declaration");
+    return !perr_smt (parser, "invalid function declaration");
 
   if (cdr (cdr (fdecl)))
-    return !btor_perr_smt (parser,
-                           "no support for function declaration "
-                           "with more than one argument");
+    return !perr_smt (parser,
+                      "no support for function declaration "
+                      "with more than one argument");
 
   sort = car (cdr (fdecl));
   if (!sort || !isleaf (sort)
       || (sortsymbol = strip (sort))->token != BTOR_SMTOK_IDENTIFIER)
   {
   INVALID_SORT:
-    return !btor_perr_smt (parser,
-                           "invalid or unsupported sort "
-                           "in function declaration");
+    return !perr_smt (parser,
+                      "invalid or unsupported sort "
+                      "in function declaration");
   }
 
   if (symbol->exp)
-    return !btor_perr_smt (
-        parser, "multiple definitions for '%s'", symbol->name);
+    return !perr_smt (parser, "multiple definitions for '%s'", symbol->name);
 
   p = sortsymbol->name;
 
@@ -1336,7 +1331,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
     if (parser->required_logic == BTOR_LOGIC_QF_BV)
     {
-      btor_smt_message (parser, 2, "requires QF_AUFBV");
+      smt_message (parser, 2, "requires QF_AUFBV");
       parser->required_logic = BTOR_LOGIC_QF_AUFBV;
     }
 
@@ -1350,22 +1345,22 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   return 1;
 }
 
-static int
+static bool
 extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
 
   if (!list || isleaf (list))
-    return !btor_perr_smt (
-        parser, "expected non empty list as argument to ':extrafuns'");
+    return !perr_smt (parser,
+                      "expected non empty list as argument to ':extrafuns'");
 
   for (p = list; p; p = cdr (p))
     if (!extrafun (parser, car (p))) return 0;
 
-  return !parser->error;
+  return parser->error == 0;
 }
 
-static int
+static bool
 extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
 {
   BtorSMTSymbol *symbol;
@@ -1374,35 +1369,34 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
 
   if (!pdecl || isleaf (pdecl) || !isleaf (node = car (pdecl))
       || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
-    return !btor_perr_smt (parser, "invalid predicate declaration");
+    return !perr_smt (parser, "invalid predicate declaration");
 
   if (cdr (pdecl))
-    return !btor_perr_smt (
-        parser, "no support for predicate declarations with arguments");
+    return !perr_smt (parser,
+                      "no support for predicate declarations with arguments");
 
   if (symbol->exp)
-    return !btor_perr_smt (
-        parser, "multiple definitions for '%s'", symbol->name);
+    return !perr_smt (parser, "multiple definitions for '%s'", symbol->name);
 
   s           = boolector_bool_sort (parser->btor);
   symbol->exp = boolector_var (parser->btor, s, symbol->name);
   boolector_release_sort (parser->btor, s);
   push_input (parser, symbol->exp);
 
-  return 1;
+  return true;
 }
 
-static int
+static bool
 extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
 
   if (!list || isleaf (list))
-    return !btor_perr_smt (
-        parser, "expected non empty list as argument to ':extrapreds'");
+    return !perr_smt (parser,
+                      "expected non empty list as argument to ':extrapreds'");
 
   for (p = list; p; p = cdr (p))
-    if (!extrapred (parser, car (p))) return 0;
+    if (!extrapred (parser, car (p))) return false;
 
   return !parser->error;
 }
@@ -1413,10 +1407,10 @@ node2token (BtorSMTNode *node)
   return (node && isleaf (node)) ? strip (node)->token : BTOR_SMTOK_ERR;
 }
 
-static int
+static bool
 is_let_or_flet (BtorSMTNode *node)
 {
-  int token = node2token (node);
+  BtorSMTToken token = node2token (node);
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
@@ -1427,7 +1421,8 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
   char *tmp, *ext, ch;
   BtorBitVector *tmpbv, *extbv;
   BtorSMTSymbol *symbol;
-  int len, tlen, token;
+  int32_t len, tlen;
+  BtorSMTToken token;
 
   if (isleaf (node))
   {
@@ -1444,15 +1439,15 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
     p = symbol->name;
     if (*p++ == 'b' && *p++ == 'v')
     {
-      if (isdigit ((int) *p))
+      if (isdigit ((int32_t) *p))
       {
         start = p++;
-        for (end = p; isdigit ((int) *end); end++)
+        for (end = p; isdigit ((int32_t) *end); end++)
           ;
 
         if (*end == '[')
         {
-          for (p = end + 1; isdigit ((int) *p); p++)
+          for (p = end + 1; isdigit ((int32_t) *p); p++)
             ;
 
           if (*p == ']')
@@ -1461,9 +1456,9 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             if (len)
             {
               tmp =
-                  btor_dec_to_bin_str_n_util (parser->mem, start, end - start);
+                  btor_util_dec_to_bin_str_n (parser->mem, start, end - start);
 
-              tlen = (int) strlen (tmp);
+              tlen = (int32_t) strlen (tmp);
 
               if (tlen <= len)
               {
@@ -1471,16 +1466,16 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                 {
                   tmpbv = 0;
                   if (!strcmp (tmp, ""))
-                    extbv = btor_new_bv (parser->mem, len - tlen);
+                    extbv = btor_bv_new (parser->mem, len - tlen);
                   else
                   {
-                    tmpbv = btor_char_to_bv (parser->mem, tmp);
-                    extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+                    tmpbv = btor_bv_char_to_bv (parser->mem, tmp);
+                    extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
                   }
-                  ext = btor_bv_to_char_bv (parser->mem, extbv);
-                  btor_freestr (parser->mem, tmp);
-                  btor_free_bv (parser->mem, extbv);
-                  if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+                  ext = btor_bv_to_char (parser->mem, extbv);
+                  btor_mem_freestr (parser->mem, tmp);
+                  btor_bv_free (parser->mem, extbv);
+                  if (tmpbv) btor_bv_free (parser->mem, tmpbv);
                   tmp = ext;
                 }
 
@@ -1488,7 +1483,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                 parser->constants++;
               }
 
-              btor_freestr (parser->mem, tmp);
+              btor_mem_freestr (parser->mem, tmp);
             }
           }
         }
@@ -1509,33 +1504,33 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
       }
       else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
       {
-        for (start = p; isxdigit ((int) *p); p++)
+        for (start = p; isxdigit ((int32_t) *p); p++)
           ;
 
         if (start < p && !*p)
         {
           len  = 4 * (p - start);
-          tmp  = btor_hex_to_bin_str_util (parser->mem, start);
-          tlen = (int) strlen (tmp);
+          tmp  = btor_util_hex_to_bin_str (parser->mem, start);
+          tlen = (int32_t) strlen (tmp);
           assert (tlen <= len);
           if (tlen < len)
           {
             tmpbv = 0;
             if (!strcmp (tmp, ""))
-              extbv = btor_new_bv (parser->mem, len - tlen);
+              extbv = btor_bv_new (parser->mem, len - tlen);
             else
             {
-              tmpbv = btor_char_to_bv (parser->mem, tmp);
-              extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+              tmpbv = btor_bv_char_to_bv (parser->mem, tmp);
+              extbv = btor_bv_uext (parser->mem, tmpbv, len - tlen);
             }
-            ext = btor_bv_to_char_bv (parser->mem, extbv);
-            btor_freestr (parser->mem, tmp);
-            btor_free_bv (parser->mem, extbv);
-            if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+            ext = btor_bv_to_char (parser->mem, extbv);
+            btor_mem_freestr (parser->mem, tmp);
+            btor_bv_free (parser->mem, extbv);
+            if (tmpbv) btor_bv_free (parser->mem, tmpbv);
             tmp = ext;
           }
           symbol->exp = boolector_const (parser->btor, tmp);
-          btor_freestr (parser->mem, tmp);
+          btor_mem_freestr (parser->mem, tmp);
           parser->constants++;
         }
       }
@@ -1547,7 +1542,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 
     if (symbol->exp) return symbol->exp;
 
-    (void) btor_perr_smt (parser, "'%s' undefined", strip (node)->name);
+    (void) perr_smt (parser, "'%s' undefined", strip (node)->name);
     return 0;
   }
   else
@@ -1567,7 +1562,7 @@ node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
   res = node2exp (parser, node);
   if (res && boolector_is_array (parser->btor, res))
   {
-    (void) btor_perr_smt (parser, "unexpected array argument");
+    (void) perr_smt (parser, "unexpected array argument");
     res = 0;
   }
 
@@ -1592,7 +1587,7 @@ translate_symbol (BtorSMTParser *parser, BtorSMTNode *node)
   assert (!node->exp);
   if (!is_list_of_length (node, 1))
   {
-    (void) btor_perr_smt (parser, "symbolic head with argument");
+    (void) perr_smt (parser, "symbolic head with argument");
     return;
   }
 
@@ -1614,8 +1609,7 @@ translate_unary (BtorSMTParser *parser,
 
   if (!is_list_of_length (node, 2))
   {
-    (void) btor_perr_smt (
-        parser, "expected exactly one argument to '%s'", name);
+    (void) perr_smt (parser, "expected exactly one argument to '%s'", name);
     return;
   }
 
@@ -1639,8 +1633,7 @@ translate_binary (BtorSMTParser *parser,
 
   if (!is_list_of_length (node, 3))
   {
-    (void) btor_perr_smt (
-        parser, "expected exactly two arguments to '%s'", name);
+    (void) perr_smt (parser, "expected exactly two arguments to '%s'", name);
     return;
   }
 
@@ -1652,7 +1645,7 @@ translate_binary (BtorSMTParser *parser,
     {
       if (boolector_get_width (parser->btor, a0)
           != boolector_get_width (parser->btor, a1))
-        (void) btor_perr_smt (parser, "expression width mismatch");
+        (void) perr_smt (parser, "expression width mismatch");
       else
         translate_node (parser, node, f (parser->btor, a0, a1));
     }
@@ -1661,7 +1654,8 @@ translate_binary (BtorSMTParser *parser,
 static void
 translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  int isarray0, isarray1, len0, len1;
+  bool isarray0, isarray1;
+  uint32_t len0, len1;
   BtorSMTNode *c0, *c1;
   BoolectorNode *a0, *a1;
 
@@ -1669,7 +1663,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 3))
   {
-    (void) btor_perr_smt (parser, "expected exactly two arguments to '='");
+    (void) perr_smt (parser, "expected exactly two arguments to '='");
     return;
   }
 
@@ -1686,7 +1680,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (len0 != len1)
   {
-    (void) btor_perr_smt (parser, "expression width mismatch in '='");
+    (void) perr_smt (parser, "expression width mismatch in '='");
     return;
   }
 
@@ -1695,7 +1689,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (isarray0 != isarray1)
   {
-    (void) btor_perr_smt (parser, "'=' between array and non array expression");
+    (void) perr_smt (parser, "'=' between array and non array expression");
     return;
   }
 
@@ -1706,7 +1700,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
     if (len0 != len1)
     {
-      (void) btor_perr_smt (parser, "index width mismatch in '='");
+      (void) perr_smt (parser, "index width mismatch in '='");
       return;
     }
   }
@@ -1754,7 +1748,7 @@ translate_associative_binary (BtorSMTParser *parser,
 
     if (boolector_get_width (parser->btor, exp) != width)
     {
-      btor_perr_smt (parser, "mismatched width of arguments of '%s'", name);
+      perr_smt (parser, "mismatched width of arguments of '%s'", name);
       goto RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN;
     }
 
@@ -1778,8 +1772,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
   if (!is_list_of_length (node, 4))
   {
-    (void) btor_perr_smt (
-        parser, "expected exactly three arguments to '%s'", name);
+    (void) perr_smt (parser, "expected exactly three arguments to '%s'", name);
     return;
   }
 
@@ -1792,7 +1785,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
   if (boolector_get_width (parser->btor, a0) != 1)
   {
-    (void) btor_perr_smt (parser, "non boolean conditional");
+    (void) perr_smt (parser, "non boolean conditional");
     return;
   }
 
@@ -1807,7 +1800,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
   if (width1 != width2)
   {
-    (void) btor_perr_smt (parser, "expression width mismatch in conditional");
+    (void) perr_smt (parser, "expression width mismatch in conditional");
     return;
   }
 
@@ -1816,8 +1809,8 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
   if (isarray1 != isarray2)
   {
-    (void) btor_perr_smt (parser,
-                          "conditional between array and non array expression");
+    (void) perr_smt (parser,
+                     "conditional between array and non array expression");
     return;
   }
 
@@ -1828,7 +1821,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
     if (width1 != width2)
     {
-      (void) btor_perr_smt (parser, "index width mismatch in conditional");
+      (void) perr_smt (parser, "index width mismatch in conditional");
       return;
     }
   }
@@ -1852,7 +1845,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 2))
   {
-    (void) btor_perr_smt (parser, "expected exactly one argument to '%s'", p);
+    (void) perr_smt (parser, "expected exactly one argument to '%s'", p);
     return;
   }
 
@@ -1873,8 +1866,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (len <= upper || upper < lower)
   {
-    (void) btor_perr_smt (
-        parser, "invalid '%s' on expression of width %d", p, len);
+    (void) perr_smt (parser, "invalid '%s' on expression of width %d", p, len);
     return;
   }
 
@@ -1888,7 +1880,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
   BoolectorNode *tmp, *exp, *res;
   BtorSMTSymbol *symbol;
   const char *p;
-  int i, count;
+  int32_t i, count;
 
   assert (!node->exp);
 
@@ -1899,7 +1891,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 2))
   {
-    (void) btor_perr_smt (parser, "expected exactly one argument to '%s'", p);
+    (void) perr_smt (parser, "expected exactly one argument to '%s'", p);
     return;
   }
 
@@ -1916,7 +1908,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!count)
   {
-    (void) btor_perr_smt (parser, "can not handle 'repeat[0]'");
+    (void) perr_smt (parser, "can not handle 'repeat[0]'");
     return;
   }
 
@@ -1935,12 +1927,12 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 static void
 translate_extend (BtorSMTParser *parser,
                   BtorSMTNode *node,
-                  BoolectorNode *(*f) (Btor *, BoolectorNode *, int) )
+                  BoolectorNode *(*f) (Btor *, BoolectorNode *, uint32_t))
 {
   BtorSMTSymbol *symbol;
   const char *p;
   BoolectorNode *exp;
-  int pad;
+  int32_t pad;
 
   assert (!node->exp);
 
@@ -1949,7 +1941,7 @@ translate_extend (BtorSMTParser *parser,
 
   if (!is_list_of_length (node, 2))
   {
-    (void) btor_perr_smt (parser, "expected exactly one argument to '%s'", p);
+    (void) perr_smt (parser, "expected exactly one argument to '%s'", p);
     return;
   }
 
@@ -1972,7 +1964,7 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BoolectorNode *exp, *l, *r;
   BtorSMTSymbol *symbol;
-  int token;
+  BtorSMTToken token;
   uint32_t shift, width;
   const char *p;
 
@@ -1986,7 +1978,7 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 2))
   {
-    (void) btor_perr_smt (parser, "expected exactly one argument to '%s'", p);
+    (void) perr_smt (parser, "expected exactly one argument to '%s'", p);
     return;
   }
 
@@ -2034,7 +2026,7 @@ translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 3))
   {
-    (void) btor_perr_smt (parser, "expected exactly two arguments to 'concat'");
+    (void) perr_smt (parser, "expected exactly two arguments to 'concat'");
     return;
   }
 
@@ -2063,8 +2055,7 @@ translate_shift (BtorSMTParser *parser,
 
   if (!is_list_of_length (node, 3))
   {
-    (void) btor_perr_smt (
-        parser, "expected exactly two arguments to '%s'", name);
+    (void) perr_smt (parser, "expected exactly two arguments to '%s'", name);
     return;
   }
 
@@ -2087,7 +2078,7 @@ translate_shift (BtorSMTParser *parser,
 
   if (width != boolector_get_width (parser->btor, a1))
   {
-    (void) btor_perr_smt (parser, "expression width mismatch");
+    (void) perr_smt (parser, "expression width mismatch");
     return;
   }
 
@@ -2184,7 +2175,7 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 3))
   {
-    (void) btor_perr_smt (parser, "expected exactly two arguments to 'select'");
+    (void) perr_smt (parser, "expected exactly two arguments to 'select'");
     return;
   }
 
@@ -2199,7 +2190,7 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!boolector_is_array (parser->btor, a0))
   {
-    (void) btor_perr_smt (parser, "invalid first argument to 'select'");
+    (void) perr_smt (parser, "invalid first argument to 'select'");
     return;
   }
 
@@ -2212,7 +2203,7 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
   if (boolector_get_index_width (parser->btor, a0)
       != boolector_get_width (parser->btor, a1))
   {
-    (void) btor_perr_smt (parser, "mismatched bit width of 'select' index");
+    (void) perr_smt (parser, "mismatched bit width of 'select' index");
     return;
   }
 
@@ -2229,8 +2220,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!is_list_of_length (node, 4))
   {
-    (void) btor_perr_smt (parser,
-                          "expected exactly three arguments to 'store'");
+    (void) perr_smt (parser, "expected exactly three arguments to 'store'");
     return;
   }
 
@@ -2246,7 +2236,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!boolector_is_array (parser->btor, a0))
   {
-    (void) btor_perr_smt (parser, "invalid first argument to 'store'");
+    (void) perr_smt (parser, "invalid first argument to 'store'");
     return;
   }
 
@@ -2259,7 +2249,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
   if (boolector_get_index_width (parser->btor, a0)
       != boolector_get_width (parser->btor, a1))
   {
-    (void) btor_perr_smt (parser, "mismatched bit width of 'store' index");
+    (void) perr_smt (parser, "mismatched bit width of 'store' index");
     return;
   }
 
@@ -2272,7 +2262,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
   if (boolector_get_width (parser->btor, a2)
       != boolector_get_width (parser->btor, a0))
   {
-    (void) btor_perr_smt (parser, "mismatched bit width of 'store' value");
+    (void) perr_smt (parser, "mismatched bit width of 'store' value");
     return;
   }
 
@@ -2286,7 +2276,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   BtorSMTNode *assignment, *body;
   BtorSMTSymbol *symbol;
   BtorSMTToken token;
-  int start, end;
+  uint32_t start, end;
   BoolectorNode *exp;
 
   assert (BTOR_EMPTY_STACK (parser->work));
@@ -2319,7 +2309,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             || (token != BTOR_SMTOK_FVAR && token != BTOR_SMTOK_VAR)
             || !cdr (assignment) || cdr (cdr (assignment)) || !cdr (cdr (node))
             || cdr (cdr (cdr (node))))
-          return btor_perr_smt (parser, "illformed 'let' or 'flet'"),
+          return perr_smt (parser, "illformed 'let' or 'flet'"),
                  (BoolectorNode *) 0;
 
         body = car (cdr (cdr (node)));
@@ -2390,8 +2380,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
     child = car (node);
 
-    if (!child)
-      return btor_perr_smt (parser, "empty list"), (BoolectorNode *) 0;
+    if (!child) return perr_smt (parser, "empty list"), (BoolectorNode *) 0;
 
     if (isleaf (child))
     {
@@ -2434,7 +2423,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           assert (isleaf (car (cdr (node))));
           symbol = strip (car (cdr (node)));
           if (symbol->exp)
-            return btor_perr_smt (parser, "unsupported nested '[f]let'"),
+            return perr_smt (parser, "unsupported nested '[f]let'"),
                    (BoolectorNode *) 0;
           body = car (cdr (cdr (node)));
           if ((exp = node2exp (parser, body)))
@@ -2443,7 +2432,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             {
               if (boolector_get_width (parser->btor, exp) != 1)
               {
-                return btor_perr_smt (parser, "flet assignment width not one"),
+                return perr_smt (parser, "flet assignment width not one"),
                        (BoolectorNode *) 0;
               }
             }
@@ -2456,7 +2445,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           /* Prevent leaking of 'bind' nodes.
            */
           *s = 0;
-          btor_delete_smt_node (parser, node);
+          delete_smt_node (parser, node);
           break;
         case BTOR_SMTOK_LET:
         case BTOR_SMTOK_FLET:
@@ -2581,7 +2570,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           translate_node (parser, node, boolector_copy (parser->btor, exp));
       }
       else
-        (void) btor_perr_smt (parser, "invalid list expression");
+        (void) perr_smt (parser, "invalid list expression");
     }
 
     if (parser->error) return (BoolectorNode *) 0;
@@ -2596,7 +2585,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   }
 
   if (boolector_get_width (parser->btor, exp) != 1)
-    return btor_perr_smt (parser, "non boolean formula"), (BoolectorNode *) 0;
+    return perr_smt (parser, "non boolean formula"), (BoolectorNode *) 0;
 
   assert (!parser->error);
 
@@ -2606,25 +2595,24 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 }
 
 static void
-btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
-                                     BtorParseResult *res,
-                                     BoolectorNode *exp)
+smt_parser_inc_add_release_sat (BtorSMTParser *parser,
+                                BtorParseResult *res,
+                                BoolectorNode *exp)
 {
   char formula[40], *prefix;
-  int satres, checked, ndigits;
-  assert (parser->formulas.checked < parser->formulas.parsed);
-  sprintf (formula, "%d", parser->formulas.checked);
-  checked = 1;
+  int32_t satres, nchecked, ndigits;
+  assert (parser->formulas.nchecked < parser->formulas.nparsed);
+  sprintf (formula, "%d", parser->formulas.nchecked);
+  nchecked = 1;
 
-  if (parser->formulas.checked + 1 == parser->formulas.parsed)
+  if (parser->formulas.nchecked + 1 == parser->formulas.nparsed)
   {
-    btor_smt_message (
-        parser, 3, "adding last ':formula' %s permanently", formula);
+    smt_message (parser, 3, "adding last ':formula' %s permanently", formula);
     boolector_assert (parser->btor, exp);
   }
   else
   {
-    btor_smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
+    smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
     boolector_assume (parser->btor, exp);
   }
   boolector_release (parser->btor, exp);
@@ -2633,35 +2621,35 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   res->nsatcalls += 1;
   if (satres == BOOLECTOR_SAT)
   {
-    btor_smt_message (parser, 1, "':formula' %s SAT", formula);
+    smt_message (parser, 1, "':formula' %s SAT", formula);
     res->result = BOOLECTOR_SAT;
     fprintf (parser->outfile, "sat\n");
   }
   else
   {
     assert (satres == BOOLECTOR_UNSAT);
-    btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
+    smt_message (parser, 1, "':formula' %s UNSAT", formula);
     if (res->result == BOOLECTOR_UNKNOWN) res->result = BOOLECTOR_UNSAT;
     fprintf (parser->outfile, "unsat\n");
   }
   if (parser->verbosity >= 2) boolector_print_stats (parser->btor);
 
-  parser->formulas.checked += checked;
+  parser->formulas.nchecked += nchecked;
 
-  ndigits = btor_num_digits_util (parser->formulas.checked);
+  ndigits = btor_util_num_digits (parser->formulas.nchecked);
   BTOR_NEWN (parser->mem, prefix, ndigits + 1);
-  sprintf (prefix, "%d:", parser->formulas.checked);
+  sprintf (prefix, "%d:", parser->formulas.nchecked);
   boolector_set_msg_prefix (parser->btor, prefix);
   BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
 
-  if (parser->formulas.checked == parser->formulas.parsed)
+  if (parser->formulas.nchecked == parser->formulas.nparsed)
     boolector_set_msg_prefix (parser->btor, 0);
 }
 
-static int
+static bool
 continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
-  if (res->result != BOOLECTOR_SAT) return 1;
+  if (res->result != BOOLECTOR_SAT) return true;
   return parser->incremental
          && parser->incremental_smt1
                 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
@@ -2677,23 +2665,23 @@ translate_benchmark (BtorSMTParser *parser,
   BoolectorNode *exp;
   BtorSMTToken status;
 
-  btor_smt_message (parser, 2, "extracting expressions");
+  smt_message (parser, 2, "extracting expressions");
 
   p = top;
 
   if (!p || !(node = car (p)) || !isleaf (node)
       || strip (node)->token != BTOR_SMTOK_BENCHMARK)
-    return btor_perr_smt (parser, "expected 'benchmark' keyword");
+    return perr_smt (parser, "expected 'benchmark' keyword");
 
   p = cdr (p);
 
   if (!p || !(benchmark = car (p)) || !isleaf (benchmark)
       || strip (benchmark)->token != BTOR_SMTOK_IDENTIFIER)
-    return btor_perr_smt (parser, "expected benchmark name");
+    return perr_smt (parser, "expected benchmark name");
 
   benchmark = strip (benchmark);
 
-  btor_smt_message (parser, 2, "benchmark %s", benchmark->name);
+  smt_message (parser, 2, "benchmark %s", benchmark->name);
 
   symbol = 0;
 
@@ -2709,19 +2697,18 @@ translate_benchmark (BtorSMTParser *parser,
         || symbol->token == BTOR_SMTOK_EXTRAPREDS
         || symbol->token == BTOR_SMTOK_ASSUMPTION
         || symbol->token == BTOR_SMTOK_FORMULA)
-      return btor_perr_smt (parser, "'%s' before ':logic'", symbol->name);
+      return perr_smt (parser, "'%s' before ':logic'", symbol->name);
 
     if (symbol->token == BTOR_SMTOK_LOGICATTR) break;
   }
 
-  if (!p) return btor_perr_smt (parser, "no ':logic' attribute found");
+  if (!p) return perr_smt (parser, "no ':logic' attribute found");
 
   p = cdr (p);
-  if (!p) return btor_perr_smt (parser, "argument to ':logic' missing");
+  if (!p) return perr_smt (parser, "argument to ':logic' missing");
 
   node = car (p);
-  if (!isleaf (node))
-    return btor_perr_smt (parser, "invalid argument to ':logic'");
+  if (!isleaf (node)) return perr_smt (parser, "invalid argument to ':logic'");
 
   logic = strip (node);
   if (!strcmp (logic->name, "QF_BV"))
@@ -2729,7 +2716,7 @@ translate_benchmark (BtorSMTParser *parser,
   else if (!strcmp (logic->name, "QF_AUFBV") || !strcmp (logic->name, "QF_ABV"))
     res->logic = BTOR_LOGIC_QF_AUFBV;
   else
-    return btor_perr_smt (parser, "unsupported logic '%s'", logic->name);
+    return perr_smt (parser, "unsupported logic '%s'", logic->name);
 
   for (p = top; p; p = cdr (p))
   {
@@ -2743,13 +2730,13 @@ translate_benchmark (BtorSMTParser *parser,
   if (p)
   {
     p = cdr (p);
-    if (!p) return btor_perr_smt (parser, "argument to ':status' missing");
+    if (!p) return perr_smt (parser, "argument to ':status' missing");
 
     node = car (p);
     if (!isleaf (node))
     {
     INVALID_STATUS_ARGUMENT:
-      return btor_perr_smt (parser, "invalid ':status' argument");
+      return perr_smt (parser, "invalid ':status' argument");
     }
 
     symbol = strip (node);
@@ -2777,8 +2764,7 @@ translate_benchmark (BtorSMTParser *parser,
     {
       case BTOR_SMTOK_EXTRAFUNS:
         p = cdr (p);
-        if (!p)
-          return btor_perr_smt (parser, "argument to ':extrafuns' missing");
+        if (!p) return perr_smt (parser, "argument to ':extrafuns' missing");
 
         if (!extrafuns (parser, car (p)))
         {
@@ -2791,8 +2777,7 @@ translate_benchmark (BtorSMTParser *parser,
       case BTOR_SMTOK_EXTRAPREDS:
 
         p = cdr (p);
-        if (!p)
-          return btor_perr_smt (parser, "argument to ':extrapreds' missing");
+        if (!p) return perr_smt (parser, "argument to ':extrapreds' missing");
 
         if (!extrapreds (parser, car (p)))
         {
@@ -2805,8 +2790,7 @@ translate_benchmark (BtorSMTParser *parser,
       case BTOR_SMTOK_ASSUMPTION:
 
         p = cdr (p);
-        if (!p)
-          return btor_perr_smt (parser, "argument to ':assumption' missing");
+        if (!p) return perr_smt (parser, "argument to ':assumption' missing");
 
         exp = translate_formula (parser, car (p));
         if (!exp)
@@ -2815,15 +2799,15 @@ translate_benchmark (BtorSMTParser *parser,
           return parser->error;
         }
 
-        btor_recursively_delete_smt_node (parser, p->head);
+        recursively_delete_smt_node (parser, p->head);
         p->head = 0;
 
         if (parser->incremental)
         {
-          btor_smt_message (parser,
-                            3,
-                            "adding ':assumption' %d",
-                            parser->assumptions.handled);
+          smt_message (parser,
+                       3,
+                       "adding ':assumption' %d",
+                       parser->assumptions.handled);
           boolector_assert (parser->btor, exp);
           boolector_release (parser->btor, exp);
         }
@@ -2839,7 +2823,7 @@ translate_benchmark (BtorSMTParser *parser,
       case BTOR_SMTOK_FORMULA:
 
         p = cdr (p);
-        if (!p) return btor_perr_smt (parser, "argument to ':formula' missing");
+        if (!p) return perr_smt (parser, "argument to ':formula' missing");
 
         exp = translate_formula (parser, car (p));
         if (!exp)
@@ -2848,7 +2832,7 @@ translate_benchmark (BtorSMTParser *parser,
           return parser->error;
         }
 
-        btor_recursively_delete_smt_node (parser, p->head);
+        recursively_delete_smt_node (parser, p->head);
         p->head = 0;
 
         if (!parser->incremental)
@@ -2856,14 +2840,14 @@ translate_benchmark (BtorSMTParser *parser,
           BTOR_PUSH_STACK (parser->outputs, exp);
         }
         else
-          btor_smt_parser_inc_add_release_sat (parser, res, exp);
+          smt_parser_inc_add_release_sat (parser, res, exp);
 
         parser->formulas.handled++;
 
         break;
 
       case BTOR_SMTOK_EXTRASORTS:
-        return btor_perr_smt (parser, "':extrasorts' unsupported");
+        return perr_smt (parser, "':extrasorts' unsupported");
 
       default: break;
     }
@@ -2872,7 +2856,7 @@ translate_benchmark (BtorSMTParser *parser,
     {
       node    = q->head;
       q->head = 0;
-      btor_recursively_delete_smt_node (parser, node);
+      recursively_delete_smt_node (parser, node);
       if (q == p) break;
       q = cdr (q);
     }
@@ -2883,14 +2867,14 @@ translate_benchmark (BtorSMTParser *parser,
   {
     if (parser->incremental)
     {
-      btor_smt_message (
+      smt_message (
           parser,
           1,
           "need QF_AUFBV but only QF_BV specified in incremental mode");
       res->logic = BTOR_LOGIC_QF_AUFBV;
     }
     else
-      return btor_perr_smt (
+      return perr_smt (
           parser,
           "need QF_AUFBV but only QF_BV specified in non-incremental mode");
   }
@@ -2898,7 +2882,7 @@ translate_benchmark (BtorSMTParser *parser,
   if (parser->required_logic == BTOR_LOGIC_QF_BV
       && res->logic == BTOR_LOGIC_QF_AUFBV)
   {
-    btor_smt_message (
+    smt_message (
         parser,
         1,
         "no arrays found: only need QF_BV (even though QF_AUFBV specified)");
@@ -2916,7 +2900,7 @@ count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
   BtorSMTNode *p, *n;
   BtorSMTSymbol *s;
 
-  parser->formulas.parsed = parser->assumptions.parsed = 0;
+  parser->formulas.nparsed = parser->assumptions.nparsed = 0;
 
   for (p = top; p; p = cdr (p))
   {
@@ -2926,9 +2910,9 @@ count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
 
     s = strip (n);
 
-    if (s->token == BTOR_SMTOK_FORMULA) parser->formulas.parsed++;
+    if (s->token == BTOR_SMTOK_FORMULA) parser->formulas.nparsed++;
 
-    if (s->token == BTOR_SMTOK_ASSUMPTION) parser->assumptions.parsed++;
+    if (s->token == BTOR_SMTOK_ASSUMPTION) parser->assumptions.nparsed++;
   }
 }
 
@@ -2937,7 +2921,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
 {
   BtorSMTNode *n, *h, *t;
   BtorSMTSymbol *s;
-  int occs = 0;
+  uint32_t occs = 0;
 
   assert (BTOR_EMPTY_STACK (parser->stack));
 
@@ -2970,7 +2954,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
       BTOR_PUSH_STACK (parser->stack, h);
   }
 
-  btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
+  smt_message (parser, 1, "found %u occurrences of symbols", occs);
 }
 
 /* Note: we need prefix in case of stdin as input (also applies to compressed
@@ -2986,12 +2970,12 @@ parse (BtorSMTParser *parser,
   BtorSMTNode *node, *top, **p, **first;
   BtorSMTToken token;
   const char *err;
-  int head;
+  int32_t head;
 
   assert (!parser->parsed);
-  parser->parsed = 1;
+  parser->parsed = true;
 
-  btor_smt_message (parser, 1, "parsing SMT file %s", infile_name);
+  smt_message (parser, 1, "parsing SMT file %s", infile_name);
 
   parser->infile_name = infile_name;
   parser->nprefix     = 0;
@@ -2999,7 +2983,7 @@ parse (BtorSMTParser *parser,
   parser->infile      = infile;
   parser->outfile     = outfile;
   parser->lineno      = 1;
-  parser->saved       = 0;
+  parser->saved       = false;
 
   BTOR_CLR (res);
 
@@ -3023,7 +3007,7 @@ NEXT_TOKEN:
   if (token == BTOR_SMTOK_RP)
   {
     if (BTOR_EMPTY_STACK (parser->heads))
-      return btor_perr_smt (parser, "too many closing ')'");
+      return perr_smt (parser, "too many closing ')'");
 
     node = 0;
     head = BTOR_POP_STACK (parser->heads);
@@ -3038,27 +3022,27 @@ NEXT_TOKEN:
     if (!BTOR_EMPTY_STACK (parser->heads)) goto NEXT_TOKEN;
 
     token = nextok (parser);
-    if (token != BTOR_SMTOK_EOF) return btor_perr_smt (parser, "expected EOF");
+    if (token != BTOR_SMTOK_EOF) return perr_smt (parser, "expected EOF");
 
     assert (BTOR_COUNT_STACK (parser->stack) == 1);
     top = parser->stack.start[0];
     BTOR_RESET_STACK (parser->stack);
 
-    btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
-    btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
-    btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
+    smt_message (parser, 2, "read %llu bytes", parser->bytes);
+    smt_message (parser, 2, "found %u symbols", parser->symbols);
+    smt_message (parser, 2, "generated %u nodes", parser->nodes);
 
     count_assumptions_and_formulas (parser, top);
 
-    btor_smt_message (
-        parser, 1, "found %d assumptions", parser->assumptions.parsed);
+    smt_message (
+        parser, 1, "found %d assumptions", parser->assumptions.nparsed);
 
-    btor_smt_message (parser, 1, "found %d formulas", parser->formulas.parsed);
+    smt_message (parser, 1, "found %d formulas", parser->formulas.nparsed);
 
     set_last_occurrence_of_symbols (parser, top);
 
     err = translate_benchmark (parser, top, res);
-    btor_recursively_delete_smt_node (parser, top);
+    recursively_delete_smt_node (parser, top);
 
     if (err)
     {
@@ -3066,7 +3050,7 @@ NEXT_TOKEN:
       return parser->error;
     }
 
-    btor_smt_message (parser, 2, "found %u constants", parser->constants);
+    smt_message (parser, 2, "found %u constants", parser->constants);
 
     res->inputs  = parser->inputs.start;
     res->ninputs = BTOR_COUNT_STACK (parser->inputs);
@@ -3083,10 +3067,10 @@ NEXT_TOKEN:
     return parser->error;
   }
 
-  if (token == BTOR_SMTOK_EOF) return btor_perr_smt (parser, "unexpected EOF");
+  if (token == BTOR_SMTOK_EOF) return perr_smt (parser, "unexpected EOF");
 
   if (BTOR_EMPTY_STACK (parser->heads))
-    return btor_perr_smt (parser, "expected '('");
+    return perr_smt (parser, "expected '('");
 
   assert (parser->symbol);
   BTOR_PUSH_STACK (parser->stack, leaf (parser->symbol));
@@ -3095,26 +3079,26 @@ NEXT_TOKEN:
 }
 
 static const char *
-btor_parse_smt_parser (BtorSMTParser *parser,
-                       BtorCharStack *prefix,
-                       FILE *infile,
-                       const char *infile_name,
-                       FILE *outfile,
-                       BtorParseResult *res)
+parse_smt_parser (BtorSMTParser *parser,
+                  BtorCharStack *prefix,
+                  FILE *infile,
+                  const char *infile_name,
+                  FILE *outfile,
+                  BtorParseResult *res)
 {
   (void) parse (parser, prefix, infile, infile_name, outfile, res);
-  btor_release_smt_internals (parser);
+  release_smt_internals (parser);
   return parser->error;
 }
 
-static BtorParserAPI static_btor_smt_parser_api = {
-    (BtorInitParser) btor_new_smt_parser,
-    (BtorResetParser) btor_delete_smt_parser,
-    (BtorParse) btor_parse_smt_parser,
+static BtorParserAPI static_btor_parsesmt_parser_api = {
+    (BtorInitParser) new_smt_parser,
+    (BtorResetParser) delete_smt_parser,
+    (BtorParse) parse_smt_parser,
 };
 
 const BtorParserAPI *
-btor_smt_parser_api ()
+btor_parsesmt_parser_api ()
 {
-  return &static_btor_smt_parser_api;
+  return &static_btor_parsesmt_parser_api;
 }

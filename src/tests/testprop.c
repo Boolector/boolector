@@ -9,10 +9,11 @@
  */
 
 #include "testprop.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"
+#include "btornode.h"
 #include "btorslvpropsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
@@ -31,19 +32,19 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INIT                                             \
   do                                                               \
   {                                                                \
-    g_btor            = btor_new_btor ();                          \
+    g_btor            = btor_new ();                               \
     g_btor->slv       = btor_new_prop_solver (g_btor);             \
     g_btor->slv->btor = g_btor;                                    \
-    btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
-    btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
-    btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
-    btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
-    btor_set_opt (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
-    /*btor_set_opt (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
+    btor_opt_set (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);      \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_USE_INV_VALUE, 1000); \
+    btor_opt_set (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);              \
+    btor_opt_set (g_btor, BTOR_OPT_SORT_EXP, 0);                   \
+    btor_opt_set (g_btor, BTOR_OPT_INCREMENTAL, 1);                \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_CONC_FLIP, 0);        \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_SLICE_FLIP, 0);       \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_EQ_FLIP, 0);          \
+    btor_opt_set (g_btor, BTOR_OPT_PROP_PROB_AND_FLIP, 0);         \
+    /*btor_opt_set (g_btor, BTOR_OPT_LOGLEVEL, 2);*/               \
     g_mm  = g_btor->mm;                                            \
     g_rng = &g_btor->rng;                                          \
   } while (0)
@@ -58,14 +59,14 @@ static BtorRNG *g_rng;
 #define TEST_PROP_ONE_COMPLETE_BINARY_FINISH(fun) \
   do                                              \
   {                                               \
-    btor_delete_btor (g_btor);                    \
+    btor_delete (g_btor);                         \
   } while (0)
 
 #ifndef NDEBUG
 static inline void
 prop_complete_binary_eidx (
     uint32_t n,
-    int eidx,
+    int32_t eidx,
     uint32_t bw0,
     uint32_t bw1,
     BtorBitVector *bve,
@@ -76,50 +77,50 @@ prop_complete_binary_eidx (
                                  const BtorBitVector *,
                                  const BtorBitVector *),
     BtorBitVector *(*inv_bv) (
-        Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int) )
+        Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int32_t))
 {
-  int i, idx, sat_res;
+  int32_t i, idx, sat_res;
   BtorNode *e[2], *exp, *val, *eq;
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
   BtorSortId sort0, sort1;
 
-  sort0 = btor_bitvec_sort (g_btor, bw0);
-  sort1 = btor_bitvec_sort (g_btor, bw1);
-  e[0]  = btor_var_exp (g_btor, sort0, 0);
-  e[1]  = btor_var_exp (g_btor, sort1, 0);
+  sort0 = btor_sort_bitvec (g_btor, bw0);
+  sort1 = btor_sort_bitvec (g_btor, bw1);
+  e[0]  = btor_exp_var (g_btor, sort0, 0);
+  e[1]  = btor_exp_var (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
-  val   = btor_const_exp (g_btor, bvexp);
-  eq    = btor_eq_exp (g_btor, exp, val);
+  val   = btor_exp_const (g_btor, bvexp);
+  eq    = btor_exp_eq (g_btor, exp, val);
 
   idx = eidx ? 0 : 1;
 
-  bvetmp[eidx] = btor_new_random_bv (g_mm, g_rng, eidx ? bw1 : bw0);
-  bvetmp[idx]  = n == 1 ? btor_copy_bv (g_mm, bve)
-                       : btor_new_random_bv (g_mm, g_rng, idx ? bw1 : bw0);
+  bvetmp[eidx] = btor_bv_new_random (g_mm, g_rng, eidx ? bw1 : bw0);
+  bvetmp[idx]  = n == 1 ? btor_bv_copy (g_mm, bve)
+                       : btor_bv_new_random (g_mm, g_rng, idx ? bw1 : bw0);
   bvexptmp = create_bv (g_mm, bvetmp[0], bvetmp[1]);
 
   /* init bv model */
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
-  // printf ("eidx %d bvetmp[0] %s bvetmp[1] %s\n", eidx, btor_bv_to_char_bv
-  // (g_mm, bvetmp[0]), btor_bv_to_char_bv (g_mm, bvetmp[1]));
+  // printf ("eidx %d bvetmp[0] %s bvetmp[1] %s\n", eidx, btor_bv_to_char (g_mm,
+  // bvetmp[0]), btor_bv_to_char (g_mm, bvetmp[1]));
   /* -> first test local completeness  */
   /* we must find a solution within n move(s) */
   res[eidx] = inv_bv (g_btor, exp, bvexp, bve, eidx);
   assert (res[eidx]);
-  res[idx] = n == 1 ? btor_copy_bv (g_mm, bve)
+  res[idx] = n == 1 ? btor_bv_copy (g_mm, bve)
                     : inv_bv (g_btor, exp, bvexp, res[eidx], idx);
   assert (res[idx]);
   /* Note: this is also tested within the inverse function(s) */
   tmp = create_bv (g_mm, res[0], res[1]);
-  assert (!btor_compare_bv (tmp, bvexp));
-  btor_free_bv (g_mm, tmp);
-  btor_free_bv (g_mm, res[0]);
-  btor_free_bv (g_mm, res[1]);
+  assert (!btor_bv_compare (tmp, bvexp));
+  btor_bv_free (g_mm, tmp);
+  btor_bv_free (g_mm, res[0]);
+  btor_bv_free (g_mm, res[1]);
   /* try to find the exact given solution */
   if (n == 1)
   {
@@ -127,34 +128,34 @@ prop_complete_binary_eidx (
     {
       res[eidx] = inv_bv (g_btor, exp, bvexp, bve, eidx);
       assert (res[eidx]);
-      if (!btor_compare_bv (res[eidx], bvres)) break;
-      btor_free_bv (g_mm, res[eidx]);
+      if (!btor_bv_compare (res[eidx], bvres)) break;
+      btor_bv_free (g_mm, res[eidx]);
       res[eidx] = 0;
     }
     assert (res[eidx]);
-    assert (!btor_compare_bv (res[eidx], bvres));
-    btor_free_bv (g_mm, res[eidx]);
+    assert (!btor_bv_compare (res[eidx], bvres));
+    btor_bv_free (g_mm, res[eidx]);
   }
 
   /* -> then test completeness of the whole propagation algorithm
    *    (we must find a solution within n move(s)) */
   ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
   btor_assume_exp (g_btor, eq);
-  btor_init_bv_model (g_btor, &g_btor->bv_model);
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
-  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
-  btor_free_bv (g_mm, bvetmp[0]);
-  btor_free_bv (g_mm, bvetmp[1]);
-  btor_free_bv (g_mm, bvexptmp);
-  btor_release_exp (g_btor, eq);
-  btor_release_exp (g_btor, val);
-  btor_release_exp (g_btor, exp);
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
-  btor_release_sort (g_btor, sort0);
-  btor_release_sort (g_btor, sort1);
+  btor_model_init_bv (g_btor, &g_btor->bv_model);
+  btor_model_init_fun (g_btor, &g_btor->fun_model);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[idx], bvetmp[idx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, e[eidx], bvetmp[eidx]);
+  btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
+  btor_bv_free (g_mm, bvetmp[0]);
+  btor_bv_free (g_mm, bvetmp[1]);
+  btor_bv_free (g_mm, bvexptmp);
+  btor_node_release (g_btor, eq);
+  btor_node_release (g_btor, val);
+  btor_node_release (g_btor, exp);
+  btor_node_release (g_btor, e[0]);
+  btor_node_release (g_btor, e[1]);
+  btor_sort_release (g_btor, sort0);
+  btor_sort_release (g_btor, sort1);
   sat_res = sat_prop_solver_aux (g_btor);
   assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
@@ -171,25 +172,25 @@ prop_complete_binary (uint32_t n,
                                                 BtorNode *,
                                                 BtorBitVector *,
                                                 BtorBitVector *,
-                                                int) )
+                                                int32_t))
 {
   uint32_t bw0, bw1;
   uint64_t i, j, k;
   BtorBitVector *bve[2], *bvexp;
 
   TEST_PROP_ONE_COMPLETE_BINARY_INIT (create_exp);
-  if (create_exp == btor_sll_exp || create_exp == btor_srl_exp)
-    bw1 = btor_log_2_util (bw0);
+  if (create_exp == btor_exp_sll || create_exp == btor_exp_srl)
+    bw1 = btor_util_log_2 (bw0);
 
   for (i = 0; i < (uint32_t) (1 << bw0); i++)
   {
-    bve[0] = btor_uint64_to_bv (g_mm, i, bw0);
+    bve[0] = btor_bv_uint64_to_bv (g_mm, i, bw0);
     for (j = 0; j < (uint32_t) (1 << bw1); j++)
     {
-      bve[1] = btor_uint64_to_bv (g_mm, j, bw1);
+      bve[1] = btor_bv_uint64_to_bv (g_mm, j, bw1);
       bvexp  = create_bv (g_mm, bve[0], bve[1]);
-      // printf ("bve[0] %s bve[1] %s bvexp %s\n", btor_bv_to_char_bv (g_mm,
-      // bve[0]), btor_bv_to_char_bv (g_mm, bve[1]), btor_bv_to_char_bv (g_mm,
+      // printf ("bve[0] %s bve[1] %s bvexp %s\n", btor_bv_to_char (g_mm,
+      // bve[0]), btor_bv_to_char (g_mm, bve[1]), btor_bv_to_char (g_mm,
       // bvexp));
       /* -> first test local completeness  */
       for (k = 0; k < bw0; k++)
@@ -215,10 +216,10 @@ prop_complete_binary (uint32_t n,
                                    create_bv,
                                    inv_bv);
       }
-      btor_free_bv (g_mm, bve[1]);
-      btor_free_bv (g_mm, bvexp);
+      btor_bv_free (g_mm, bve[1]);
+      btor_bv_free (g_mm, bvexp);
     }
-    btor_free_bv (g_mm, bve[0]);
+    btor_bv_free (g_mm, bve[0]);
   }
 
   TEST_PROP_ONE_COMPLETE_BINARY_FINISH (fun);
@@ -231,7 +232,7 @@ static void
 test_prop_one_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_add_exp, btor_add_bv, inv_add_bv);
+  prop_complete_binary (1, btor_exp_add, btor_bv_add, inv_add_bv);
 #endif
 }
 
@@ -239,7 +240,7 @@ static void
 test_prop_one_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_and_exp, btor_and_bv, inv_and_bv);
+  prop_complete_binary (1, btor_exp_and, btor_bv_and, inv_and_bv);
 #endif
 }
 
@@ -247,7 +248,7 @@ static void
 test_prop_one_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_eq_exp, btor_eq_bv, inv_eq_bv);
+  prop_complete_binary (1, btor_exp_eq, btor_bv_eq, inv_eq_bv);
 #endif
 }
 
@@ -255,7 +256,7 @@ static void
 test_prop_one_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_ult_exp, btor_ult_bv, inv_ult_bv);
+  prop_complete_binary (1, btor_exp_ult, btor_bv_ult, inv_ult_bv);
 #endif
 }
 
@@ -263,7 +264,7 @@ static void
 test_prop_one_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_sll_exp, btor_sll_bv, inv_sll_bv);
+  prop_complete_binary (1, btor_exp_sll, btor_bv_sll, inv_sll_bv);
 #endif
 }
 
@@ -271,7 +272,7 @@ static void
 test_prop_one_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_srl_exp, btor_srl_bv, inv_srl_bv);
+  prop_complete_binary (1, btor_exp_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 
@@ -279,7 +280,7 @@ static void
 test_prop_one_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_mul_exp, btor_mul_bv, inv_mul_bv);
+  prop_complete_binary (1, btor_exp_mul, btor_bv_mul, inv_mul_bv);
 #endif
 }
 
@@ -287,7 +288,7 @@ static void
 test_prop_one_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
+  prop_complete_binary (1, btor_exp_udiv, btor_bv_udiv, inv_udiv_bv);
 #endif
 }
 
@@ -295,7 +296,7 @@ static void
 test_prop_one_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_urem_exp, btor_urem_bv, inv_urem_bv);
+  prop_complete_binary (1, btor_exp_urem, btor_bv_urem, inv_urem_bv);
 #endif
 }
 
@@ -303,7 +304,7 @@ static void
 test_prop_one_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_concat_exp, btor_concat_bv, inv_concat_bv);
+  prop_complete_binary (1, btor_exp_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 
@@ -313,7 +314,7 @@ static void
 test_prop_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_add_exp, btor_add_bv, inv_add_bv);
+  prop_complete_binary (2, btor_exp_add, btor_bv_add, inv_add_bv);
 #endif
 }
 
@@ -321,7 +322,7 @@ static void
 test_prop_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_and_exp, btor_and_bv, inv_and_bv);
+  prop_complete_binary (2, btor_exp_and, btor_bv_and, inv_and_bv);
 #endif
 }
 
@@ -329,7 +330,7 @@ static void
 test_prop_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_eq_exp, btor_eq_bv, inv_eq_bv);
+  prop_complete_binary (2, btor_exp_eq, btor_bv_eq, inv_eq_bv);
 #endif
 }
 
@@ -337,7 +338,7 @@ static void
 test_prop_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_ult_exp, btor_ult_bv, inv_ult_bv);
+  prop_complete_binary (2, btor_exp_ult, btor_bv_ult, inv_ult_bv);
 #endif
 }
 
@@ -345,7 +346,7 @@ static void
 test_prop_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_sll_exp, btor_sll_bv, inv_sll_bv);
+  prop_complete_binary (2, btor_exp_sll, btor_bv_sll, inv_sll_bv);
 #endif
 }
 
@@ -353,7 +354,7 @@ static void
 test_prop_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_srl_exp, btor_srl_bv, inv_srl_bv);
+  prop_complete_binary (2, btor_exp_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 
@@ -361,7 +362,7 @@ static void
 test_prop_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_mul_exp, btor_mul_bv, inv_mul_bv);
+  prop_complete_binary (2, btor_exp_mul, btor_bv_mul, inv_mul_bv);
 #endif
 }
 
@@ -369,7 +370,7 @@ static void
 test_prop_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
+  prop_complete_binary (2, btor_exp_udiv, btor_bv_udiv, inv_udiv_bv);
 #endif
 }
 
@@ -377,7 +378,7 @@ static void
 test_prop_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_urem_exp, btor_urem_bv, inv_urem_bv);
+  prop_complete_binary (2, btor_exp_urem, btor_bv_urem, inv_urem_bv);
 #endif
 }
 
@@ -385,7 +386,7 @@ static void
 test_prop_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_concat_exp, btor_concat_bv, inv_concat_bv);
+  prop_complete_binary (2, btor_exp_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 
@@ -393,7 +394,7 @@ static void
 test_prop_complete_slice_bv (void)
 {
 #ifndef NDEBUG
-  int sat_res;
+  int32_t sat_res;
   uint32_t bw;
   uint64_t up, lo, i, j, k;
   BtorNode *exp, *e, *val, *eq;
@@ -402,7 +403,7 @@ test_prop_complete_slice_bv (void)
 
   TEST_PROP_INIT;
   bw   = TEST_PROP_COMPLETE_BW;
-  sort = btor_bitvec_sort (g_btor, bw);
+  sort = btor_sort_bitvec (g_btor, bw);
 
   for (lo = 0; lo < bw; lo++)
   {
@@ -412,58 +413,58 @@ test_prop_complete_slice_bv (void)
       {
         for (j = 0; j < bw; j++)
         {
-          e        = btor_var_exp (g_btor, sort, 0);
-          exp      = btor_slice_exp (g_btor, e, up, lo);
-          bve      = btor_uint64_to_bv (g_mm, i, bw);
-          bvexp    = btor_slice_bv (g_mm, bve, up, lo);
-          val      = btor_const_exp (g_btor, bvexp);
-          eq       = btor_eq_exp (g_btor, exp, val);
-          bvetmp   = btor_new_random_bv (g_mm, g_rng, bw);
-          bvexptmp = btor_slice_bv (g_mm, bvetmp, up, lo);
+          e        = btor_exp_var (g_btor, sort, 0);
+          exp      = btor_exp_slice (g_btor, e, up, lo);
+          bve      = btor_bv_uint64_to_bv (g_mm, i, bw);
+          bvexp    = btor_bv_slice (g_mm, bve, up, lo);
+          val      = btor_exp_const (g_btor, bvexp);
+          eq       = btor_exp_eq (g_btor, exp, val);
+          bvetmp   = btor_bv_new_random (g_mm, g_rng, bw);
+          bvexptmp = btor_bv_slice (g_mm, bvetmp, up, lo);
           /* init bv model */
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
 
           /* -> first test local completeness
            *    we must find a solution within one move */
           res = inv_slice_bv (g_btor, exp, bvexp, bve);
           assert (res);
           /* Note: this is also tested within inverse function */
-          tmp = btor_slice_bv (g_mm, res, up, lo);
-          assert (!btor_compare_bv (tmp, bvexp));
-          btor_free_bv (g_mm, tmp);
-          btor_free_bv (g_mm, res);
+          tmp = btor_bv_slice (g_mm, res, up, lo);
+          assert (!btor_bv_compare (tmp, bvexp));
+          btor_bv_free (g_mm, tmp);
+          btor_bv_free (g_mm, res);
           /* try to find exact given solution */
           for (k = 0, res = 0; k < TEST_PROP_COMPLETE_N_TESTS; k++)
           {
             res = inv_slice_bv (g_btor, exp, bvexp, bve);
             assert (res);
-            if (!btor_compare_bv (res, bve)) break;
-            btor_free_bv (g_mm, res);
+            if (!btor_bv_compare (res, bve)) break;
+            btor_bv_free (g_mm, res);
             res = 0;
           }
           assert (res);
-          assert (!btor_compare_bv (res, bve));
-          btor_free_bv (g_mm, res);
+          assert (!btor_bv_compare (res, bve));
+          btor_bv_free (g_mm, res);
 
           /* -> then test completeness of whole propagation algorithm
            *    (we must find a solution within one move) */
           ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
           btor_assume_exp (g_btor, eq);
-          btor_init_bv_model (g_btor, &g_btor->bv_model);
-          btor_init_fun_model (g_btor, &g_btor->fun_model);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
-          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
-          btor_free_bv (g_mm, bve);
-          btor_free_bv (g_mm, bvexp);
-          btor_free_bv (g_mm, bvetmp);
-          btor_free_bv (g_mm, bvexptmp);
-          btor_release_exp (g_btor, eq);
-          btor_release_exp (g_btor, val);
-          btor_release_exp (g_btor, exp);
-          btor_release_exp (g_btor, e);
+          btor_model_init_bv (g_btor, &g_btor->bv_model);
+          btor_model_init_fun (g_btor, &g_btor->fun_model);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_model_add_to_bv (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_bv_free (g_mm, bve);
+          btor_bv_free (g_mm, bvexp);
+          btor_bv_free (g_mm, bvetmp);
+          btor_bv_free (g_mm, bvexptmp);
+          btor_node_release (g_btor, eq);
+          btor_node_release (g_btor, val);
+          btor_node_release (g_btor, exp);
+          btor_node_release (g_btor, e);
           sat_res = sat_prop_solver_aux (g_btor);
           assert (sat_res == BTOR_RESULT_SAT);
           assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
@@ -472,8 +473,8 @@ test_prop_complete_slice_bv (void)
       }
     }
   }
-  btor_release_sort (g_btor, sort);
-  btor_delete_btor (g_btor);
+  btor_sort_release (g_btor, sort);
+  btor_delete (g_btor);
 #endif
 }
 
@@ -485,7 +486,7 @@ init_prop_tests (void)
 }
 
 void
-run_prop_tests (int argc, char **argv)
+run_prop_tests (int32_t argc, char **argv)
 {
   (void) argc;
   (void) argv;

@@ -1,1 +1,1 @@
-boolector: log/smt2perr020.smt2:1:2: invalid backslash '\\' in quoted symbol
+boolector: /home/aina/dev/boolector/src/tests/log/smt2perr020.smt2:2:1: unexpected end-of-file in quoted symbol

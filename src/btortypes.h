@@ -344,6 +344,8 @@ enum BtorOption
   */
   BTOR_OPT_FUN_EAGER_LEMMAS,
 
+  BTOR_OPT_FUN_STORE_LAMBDAS,
+
   /* --------------------------------------------------------------------- */
   /*!
    **SLS Engine Options:**

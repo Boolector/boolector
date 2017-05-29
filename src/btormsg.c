@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -17,7 +17,7 @@
 #include "btorcore.h"
 
 BtorMsg *
-btor_new_btor_msg (Btor *btor)
+btor_msg_new (Btor *btor)
 {
   assert (btor);
 
@@ -29,11 +29,11 @@ btor_new_btor_msg (Btor *btor)
 }
 
 void
-btor_delete_btor_msg (BtorMsg *msg)
+btor_msg_delete (BtorMsg *msg)
 {
   assert (msg);
 
-  btor_freestr (msg->btor->mm, msg->prefix);
+  btor_mem_freestr (msg->btor->mm, msg->prefix);
   BTOR_DELETE (msg->btor->mm, msg);
 }
 
@@ -42,7 +42,7 @@ btor_msg (BtorMsg *msg, bool log, const char *filename, const char *fmt, ...)
 {
   va_list ap;
   char *path, *fname, *c, *p;
-  int len;
+  uint32_t len;
 
   len = strlen (filename) + 1;
   BTOR_NEWN (msg->btor->mm, path, len);

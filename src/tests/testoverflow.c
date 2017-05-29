@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +33,7 @@
 #define BTOR_TEST_OVERFLOW_LOW 1
 #define BTOR_TEST_OVERFLOW_HIGH 4
 
-static int g_argc       = 6;
+static int32_t g_argc   = 6;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
@@ -40,7 +41,7 @@ void
 init_overflow_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "w");
-  int pos_rwr;
+  int32_t pos_rwr;
 
   assert (f != NULL);
   fclose (f);
@@ -69,7 +70,7 @@ init_overflow_tests (void)
 
 #ifdef EXTRACTBENCHMARKS
 static void
-extract (const char *name, int n, int i, int j, int res)
+extract (const char *name, int32_t n, int32_t i, int32_t j, int32_t res)
 {
   char cmd[200];
   sprintf (cmd,
@@ -84,35 +85,32 @@ extract (const char *name, int n, int i, int j, int res)
 #endif
 
 static void
-u_overflow_test (int (*func) (int, int),
+u_overflow_test (int32_t (*func) (int32_t, int32_t),
                  const char *func_name,
-                 int low,
-                 int high)
+                 int32_t low,
+                 int32_t high)
 {
-  FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int result             = 0;
-  int overflow_test      = 0;
-  int overflow_boolector = 0;
-  int num_bits           = 0;
-  int max                = 0;
-  assert (func != NULL);
-  assert (func_name != NULL);
+  assert (func);
+  assert (func_name);
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
+
+  FILE *f;
+  int32_t i, j, num_bits, max, result;
+  bool overflow_test, overflow_boolector;
+  BtorExitCode exit_code;
+
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
       {
-        overflow_test      = 0;
-        overflow_boolector = 0;
+        overflow_test      = false;
+        overflow_boolector = false;
         result             = func (i, j);
-        if (result < 0 || result >= max) overflow_test = 1;
+        if (result < 0 || result >= max) overflow_test = true;
         f = fopen (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "w");
         assert (f != NULL);
         fprintf (f, "1 constd %d %d\n", num_bits, i);
@@ -125,7 +123,7 @@ u_overflow_test (int (*func) (int, int),
         extract (func_name, num_bits, i, j, exit_code);
 #endif
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
-        if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
+        if (exit_code == BTOR_SAT_EXIT) overflow_boolector = true;
         if (overflow_boolector) assert (overflow_test);
         if (overflow_test) assert (overflow_boolector);
       }
@@ -134,40 +132,36 @@ u_overflow_test (int (*func) (int, int),
 }
 
 static void
-s_overflow_test (int (*func) (int, int),
+s_overflow_test (int32_t (*func) (int32_t, int32_t),
                  const char *func_name,
-                 int exclude_second_zero,
-                 int low,
-                 int high)
+                 bool exclude_second_zero,
+                 int32_t low,
+                 int32_t high)
 {
-  FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int overflow_test      = 0;
-  int overflow_boolector = 0;
-  int const1_id          = 0;
-  int const2_id          = 0;
-  int result             = 0;
-  int num_bits           = 0;
-  int max                = 0;
-  BtorExitCode exit_code = 0;
-  assert (func != NULL);
-  assert (func_name != NULL);
+  assert (func);
+  assert (func_name);
   assert (low > 0);
   assert (low <= high);
+
+  FILE *f;
+  int32_t i, j;
+  bool overflow_test, overflow_boolector;
+  int32_t const1_id, const2_id, result, num_bits, max;
+  BtorExitCode exit_code;
+
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits - 1);
+    max = btor_util_pow_2 (num_bits - 1);
     for (i = -max; i < max; i++)
     {
       for (j = -max; j < max; j++)
       {
         if (!exclude_second_zero || j != 0)
         {
-          overflow_test      = 0;
-          overflow_boolector = 0;
+          overflow_test      = false;
+          overflow_boolector = false;
           result             = func (i, j);
-          if (!(result >= -max && result < max)) overflow_test = 1;
+          if (!(result >= -max && result < max)) overflow_test = true;
           f = fopen (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "w");
           assert (f != NULL);
           if (i < 0)
@@ -207,7 +201,7 @@ s_overflow_test (int (*func) (int, int),
           extract (func_name, num_bits, i, j, exit_code);
 #endif
           assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
-          if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
+          if (exit_code == BTOR_SAT_EXIT) overflow_boolector = true;
           if (overflow_boolector) assert (overflow_test);
           if (overflow_test) assert (overflow_boolector);
         }
@@ -216,26 +210,26 @@ s_overflow_test (int (*func) (int, int),
   }
 }
 
-static int
-add (int x, int y)
+static int32_t
+add (int32_t x, int32_t y)
 {
   return x + y;
 }
 
-static int
-sub (int x, int y)
+static int32_t
+sub (int32_t x, int32_t y)
 {
   return x - y;
 }
 
-static int
-mul (int x, int y)
+static int32_t
+mul (int32_t x, int32_t y)
 {
   return x * y;
 }
 
-static int
-divide (int x, int y)
+static int32_t
+divide (int32_t x, int32_t y)
 {
   assert (y != 0);
   return x / y;
@@ -266,32 +260,32 @@ static void
 test_saddo_overflow (void)
 {
   s_overflow_test (
-      add, "saddo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
+      add, "saddo", false, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_ssubo_overflow (void)
 {
   s_overflow_test (
-      sub, "ssubo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
+      sub, "ssubo", false, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_smulo_overflow (void)
 {
   s_overflow_test (
-      mul, "smulo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
+      mul, "smulo", false, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_sdivo_overflow (void)
 {
   s_overflow_test (
-      divide, "sdivo", 1, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
+      divide, "sdivo", true, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
-run_all_tests (int argc, char **argv)
+run_all_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (uaddo_overflow);
   BTOR_RUN_TEST (usubo_overflow);
@@ -303,7 +297,7 @@ run_all_tests (int argc, char **argv)
 }
 
 void
-run_overflow_tests (int argc, char **argv)
+run_overflow_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
   g_argv[1] = "-rwl";
@@ -314,7 +308,7 @@ run_overflow_tests (int argc, char **argv)
 void
 finish_overflow_tests (void)
 {
-  int result = remove (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME);
+  int32_t result = remove (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME);
   assert (result == 0);
   free (g_btor_str);
   free (g_argv);

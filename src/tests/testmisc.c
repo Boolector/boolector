@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -32,7 +32,7 @@
 #define BTOR_TEST_MISC_LOW 1
 #define BTOR_TEST_MISC_HIGH 4
 
-static int g_argc       = 6;
+static int32_t g_argc   = 6;
 static char **g_argv    = NULL;
 static char *g_btor_str = NULL;
 
@@ -42,11 +42,11 @@ void
 init_misc_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_MISC_TEMP_FILE_NAME, "w");
-  int pos_rwr;
+  int32_t pos_rwr;
 
   assert (f != NULL);
   fclose (f);
-  g_mm = btor_new_mem_mgr ();
+  g_mm = btor_mem_mgr_new ();
 
   pos_rwr = 0;
 
@@ -69,13 +69,13 @@ init_misc_tests (void)
 }
 
 static char *
-int_to_str (int x, int num_bits)
+int_to_str (int32_t x, int32_t num_bits)
 {
   char *result = NULL;
-  int i        = 0;
+  int32_t i    = 0;
   assert (x >= 0);
   assert (num_bits > 0);
-  result = (char *) btor_malloc (g_mm, sizeof (char) * (num_bits + 1));
+  result = (char *) btor_mem_malloc (g_mm, sizeof (char) * (num_bits + 1));
   for (i = num_bits - 1; i >= 0; i--)
   {
     result[i] = x % 2 ? '1' : '0';
@@ -86,12 +86,12 @@ int_to_str (int x, int num_bits)
 }
 
 static char *
-slice (int x, int high, int low, int num_bits)
+slice (int32_t x, int32_t high, int32_t low, int32_t num_bits)
 {
-  char *temp   = NULL;
-  char *result = NULL;
-  int i        = 0;
-  int counter  = 0;
+  char *temp      = NULL;
+  char *result    = NULL;
+  int32_t i       = 0;
+  int32_t counter = 0;
   assert (high < num_bits);
   assert (low >= 0);
   assert (low <= high);
@@ -100,19 +100,19 @@ slice (int x, int high, int low, int num_bits)
   result  = int_to_str (0, high - low + 1);
   counter = high - low;
   for (i = low; i <= high; i++) result[counter--] = temp[num_bits - 1 - i];
-  btor_freestr (g_mm, temp);
+  btor_mem_freestr (g_mm, temp);
   return result;
 }
 
 static void
-slice_test_misc (int low, int high)
+slice_test_misc (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
   char *result           = 0;
-  int num_bits           = 0;
-  const int x            = 11;
+  int32_t num_bits       = 0;
+  const int32_t x        = 11;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
@@ -133,14 +133,14 @@ slice_test_misc (int low, int high)
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
 }
 
 static char *
-uext (int x, int y, int num_bits)
+uext (int32_t x, int32_t y, int32_t num_bits)
 {
   char *result = NULL;
   assert (x >= 0);
@@ -151,10 +151,10 @@ uext (int x, int y, int num_bits)
 }
 
 static char *
-sext (int x, int y, int num_bits)
+sext (int32_t x, int32_t y, int32_t num_bits)
 {
   char *result = NULL;
-  int i        = 0;
+  int32_t i    = 0;
   assert (x >= 0);
   assert (y >= 0);
   assert (num_bits >= 1);
@@ -167,17 +167,17 @@ sext (int x, int y, int num_bits)
 }
 
 static void
-ext_test_misc (char *(*func) (int, int, int),
+ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
                const char *func_name,
-               int low,
-               int high)
+               int32_t low,
+               int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int max                = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
+  int32_t max            = 0;
   char *result           = 0;
-  int num_bits           = 0;
+  int32_t num_bits       = 0;
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
@@ -186,7 +186,7 @@ ext_test_misc (char *(*func) (int, int, int),
   assert (func == uext || func == sext);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < num_bits; j++)
@@ -202,14 +202,14 @@ ext_test_misc (char *(*func) (int, int, int),
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
 }
 
 static char *
-concat (int x, int y, int num_bits)
+concat (int32_t x, int32_t y, int32_t num_bits)
 {
   char *x_string = NULL;
   char *y_string = NULL;
@@ -220,29 +220,30 @@ concat (int x, int y, int num_bits)
   assert (num_bits <= INT_MAX / 2);
   x_string = int_to_str (x, num_bits);
   y_string = int_to_str (y, num_bits);
-  result   = (char *) btor_malloc (g_mm, sizeof (char) * ((num_bits << 1) + 1));
+  result =
+      (char *) btor_mem_malloc (g_mm, sizeof (char) * ((num_bits << 1) + 1));
   strcpy (result, x_string);
   strcat (result, y_string);
-  btor_freestr (g_mm, x_string);
-  btor_freestr (g_mm, y_string);
+  btor_mem_freestr (g_mm, x_string);
+  btor_mem_freestr (g_mm, y_string);
   return result;
 }
 
 static void
-concat_test_misc (int low, int high)
+concat_test_misc (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int max                = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
+  int32_t max            = 0;
   char *result           = 0;
-  int num_bits           = 0;
+  int32_t num_bits       = 0;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -259,28 +260,28 @@ concat_test_misc (int low, int high)
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
-        btor_freestr (g_mm, result);
+        btor_mem_freestr (g_mm, result);
       }
     }
   }
 }
 
 static void
-cond_test_misc (int low, int high)
+cond_test_misc (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int k                  = 0;
-  int max                = 0;
-  int result             = 0;
-  int num_bits           = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
+  int32_t k              = 0;
+  int32_t max            = 0;
+  int32_t result         = 0;
+  int32_t num_bits       = 0;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -307,19 +308,19 @@ cond_test_misc (int low, int high)
 }
 
 static void
-read_test_misc (int low, int high)
+read_test_misc (int32_t low, int32_t high)
 {
   FILE *f                = NULL;
-  int i                  = 0;
-  int j                  = 0;
-  int max                = 0;
-  int num_bits           = 0;
+  int32_t i              = 0;
+  int32_t j              = 0;
+  int32_t max            = 0;
+  int32_t num_bits       = 0;
   BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
-    max = btor_pow_2_util (num_bits);
+    max = btor_util_pow_2 (num_bits);
     for (i = 0; i < max; i++)
     {
       for (j = 0; j < max; j++)
@@ -382,7 +383,7 @@ test_read_misc (void)
 }
 
 static void
-run_all_tests (int argc, char **argv)
+run_all_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (slice_misc);
   BTOR_RUN_TEST (uext_misc);
@@ -393,7 +394,7 @@ run_all_tests (int argc, char **argv)
 }
 
 void
-run_misc_tests (int argc, char **argv)
+run_misc_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
   g_argv[1] = "-rwl";
@@ -404,9 +405,9 @@ run_misc_tests (int argc, char **argv)
 void
 finish_misc_tests (void)
 {
-  int result = remove (BTOR_TEST_MISC_TEMP_FILE_NAME);
+  int32_t result = remove (BTOR_TEST_MISC_TEMP_FILE_NAME);
   assert (result == 0);
-  btor_delete_mem_mgr (g_mm);
+  btor_mem_mgr_delete (g_mm);
   free (g_btor_str);
   free (g_argv);
 }

@@ -11,14 +11,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "utils/btorexpiter.h"
+#include "utils/btornodeiter.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators					                  */
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_apply_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
+btor_iter_apply_parent_init (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -26,16 +26,16 @@ btor_init_apply_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_apply_parent_iterator (const BtorNodeIterator *it)
+btor_iter_apply_parent_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   assert (BTOR_IS_REGULAR_NODE (it->cur));
   /* function child of apply is at position 0, so cur is not tagged */
-  return it->cur && btor_is_apply_node (it->cur);
+  return it->cur && btor_node_is_apply (it->cur);
 }
 
 BtorNode *
-btor_next_apply_parent_iterator (BtorNodeIterator *it)
+btor_iter_apply_parent_next (BtorNodeIterator *it)
 {
   BtorNode *result;
   assert (it);
@@ -43,14 +43,14 @@ btor_next_apply_parent_iterator (BtorNodeIterator *it)
   assert (result);
   it->cur = BTOR_REAL_ADDR_NODE (BTOR_PREV_PARENT (result));
   assert (BTOR_IS_REGULAR_NODE (result));
-  assert (btor_is_apply_node (result));
+  assert (btor_node_is_apply (result));
   return result;
 }
 
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
+btor_iter_parent_init (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -58,14 +58,14 @@ btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_parent_iterator (const BtorNodeIterator *it)
+btor_iter_parent_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   return it->cur != 0;
 }
 
 BtorNode *
-btor_next_parent_iterator (BtorNodeIterator *it)
+btor_iter_parent_next (BtorNodeIterator *it)
 {
   assert (it);
 
@@ -80,12 +80,12 @@ btor_next_parent_iterator (BtorNodeIterator *it)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp)
+btor_iter_args_init (BtorArgsIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (btor_is_args_node (exp));
+  assert (btor_node_is_args (exp));
 
   it->pos = 0;
   it->exp = exp;
@@ -93,14 +93,14 @@ btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp)
 }
 
 bool
-btor_has_next_args_iterator (const BtorArgsIterator *it)
+btor_iter_args_has_next (const BtorArgsIterator *it)
 {
   assert (it);
   return it->cur != 0;
 }
 
 BtorNode *
-btor_next_args_iterator (BtorArgsIterator *it)
+btor_iter_args_next (BtorArgsIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -110,7 +110,7 @@ btor_next_args_iterator (BtorArgsIterator *it)
   result = it->cur;
 
   /* end of this args node, continue with next */
-  if (btor_is_args_node (result))
+  if (btor_node_is_args (result))
   {
     assert (it->pos == 2);
     assert (BTOR_IS_REGULAR_NODE (result));
@@ -127,25 +127,25 @@ btor_next_args_iterator (BtorArgsIterator *it)
   else
     it->cur = 0;
 
-  assert (!btor_is_args_node (result));
+  assert (!btor_node_is_args (result));
   return result;
 }
 
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_binder_iterator (BtorNodeIterator *it, BtorNode *exp)
+btor_iter_binder_init (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (btor_is_binder_node (exp));
+  assert (btor_node_is_binder (exp));
 
   it->cur = exp;
 }
 
 BtorNode *
-btor_next_binder_iterator (BtorNodeIterator *it)
+btor_iter_binder_next (BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -157,49 +157,49 @@ btor_next_binder_iterator (BtorNodeIterator *it)
 }
 
 bool
-btor_has_next_binder_iterator (BtorNodeIterator *it)
+btor_iter_binder_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
-  return !BTOR_IS_INVERTED_NODE (it->cur) && btor_is_binder_node (it->cur);
+  return !BTOR_IS_INVERTED_NODE (it->cur) && btor_node_is_binder (it->cur);
 }
 
 void
-btor_init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp)
+btor_iter_lambda_init (BtorNodeIterator *it, BtorNode *exp)
 {
-  btor_init_binder_iterator (it, exp);
-  assert (btor_is_lambda_node (exp));
+  btor_iter_binder_init (it, exp);
+  assert (btor_node_is_lambda (exp));
 }
 
 BtorNode *
-btor_next_lambda_iterator (BtorNodeIterator *it)
+btor_iter_lambda_next (BtorNodeIterator *it)
 {
-  return btor_next_binder_iterator (it);
+  return btor_iter_binder_next (it);
 }
 
 bool
-btor_has_next_lambda_iterator (const BtorNodeIterator *it)
+btor_iter_lambda_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
-  return btor_is_lambda_node (it->cur);
+  return btor_node_is_lambda (it->cur);
 }
 
 /*------------------------------------------------------------------------*/
 
 #if 0
 void
-btor_init_param_iterator (BtorNodeIterator * it, BtorNode * exp)
+btor_iter_param_init (BtorNodeIterator * it, BtorNode * exp)
 {
-  btor_init_binder_iterator (it, exp);
+  btor_iter_binder_init (it, exp);
 }
 
 BtorNode *
-btor_next_param_iterator (BtorNodeIterator * it)
+btor_iter_param_next (BtorNodeIterator * it)
 {
   BtorNode *result;
-  result = btor_next_binder_iterator (it);
-  assert (btor_is_param_node (result->e[0]));
+  result = btor_iter_binder_next (it);
+  assert (btor_node_is_param (result->e[0]));
   return result->e[0];
 }
 
@@ -223,7 +223,7 @@ find_next_unique_node (BtorNodeIterator * it)
 }
 
 void
-btor_init_unique_table_iterator (BtorNodeIterator * it, const Btor * btor)
+btor_iter_unique_table_init (BtorNodeIterator * it, const Btor * btor)
 {
   assert (btor);
   assert (it);
@@ -238,7 +238,7 @@ btor_init_unique_table_iterator (BtorNodeIterator * it, const Btor * btor)
 }
 
 bool
-btor_has_next_unique_table_iterator (const BtorNodeIterator * it)
+btor_iter_unique_table_has_next (const BtorNodeIterator * it)
 {
   assert (it);
   assert (it->cur || it->pos >= it->btor->nodes_unique_table.size);
@@ -246,7 +246,7 @@ btor_has_next_unique_table_iterator (const BtorNodeIterator * it)
 }
 
 BtorNode *
-btor_next_unique_table_iterator (BtorNodeIterator * it)
+btor_iter_unique_table_next (BtorNodeIterator * it)
 {
   assert (it);
   assert (it->cur);

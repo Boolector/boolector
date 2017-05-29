@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2016 Aina Niemetz.
+ *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,7 +12,7 @@
 #ifndef BTORSLVFUN_H_INCLUDED
 #define BTORSLVFUN_H_INCLUDED
 
-#include "btorexp.h"
+#include "btornode.h"
 #include "btorslv.h"
 #include "utils/btorhashptr.h"
 
@@ -28,34 +28,34 @@ struct BtorFunSolver
   BtorPtrHashTable *score; /* dcr score */
 
   // TODO (ma): make options for these
-  int lod_limit;
-  int sat_limit;
+  int32_t lod_limit;
+  int32_t sat_limit;
   bool assume_lemmas;
 
   struct
   {
-    int lod_refinements; /* number of lemmas on demand refinements */
-    int refinement_iterations;
+    uint32_t lod_refinements; /* number of lemmas on demand refinements */
+    uint32_t refinement_iterations;
 
-    int function_congruence_conflicts;
-    int beta_reduction_conflicts;
-    int extensionality_lemmas;
+    uint32_t function_congruence_conflicts;
+    uint32_t beta_reduction_conflicts;
+    uint32_t extensionality_lemmas;
 
-    BtorIntStack lemmas_size;      /* distribution of n-size lemmas */
-    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
+    BtorUIntStack lemmas_size;      /* distribution of n-size lemmas */
+    uint_least64_t lemmas_size_sum; /* sum of the size of all added lemmas */
 
-    int dp_failed_vars; /* number of vars in FA (dual prop) of last
-                           sat call (final bv skeleton) */
-    int dp_assumed_vars;
-    int dp_failed_applies; /* number of applies in FA (dual prop) of last
-                              sat call (final bv skeleton) */
-    int dp_assumed_applies;
-    int dp_failed_eqs;
-    int dp_assumed_eqs;
+    uint32_t dp_failed_vars; /* number of vars in FA (dual prop) of last
+                                sat call (final bv skeleton) */
+    uint32_t dp_assumed_vars;
+    uint32_t dp_failed_applies; /* number of applies in FA (dual prop) of last
+                                   sat call (final bv skeleton) */
+    uint32_t dp_assumed_applies;
+    uint32_t dp_failed_eqs;
+    uint32_t dp_assumed_eqs;
 
-    long long eval_exp_calls;
-    long long propagations;
-    long long propagations_down;
+    uint_least64_t eval_exp_calls;
+    uint_least64_t propagations;
+    uint_least64_t propagations_down;
   } stats;
 
   struct

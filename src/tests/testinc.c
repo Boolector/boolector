@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *  Copyright (C) 2016 Mathias Preiner
  *
  *  All rights reserved.
@@ -44,7 +44,7 @@ test_inc_true_false (void)
 {
   BoolectorNode *ff;
   BoolectorNode *tt;
-  int res;
+  int32_t res;
 
   init_inc_test ();
 
@@ -66,13 +66,14 @@ test_inc_true_false (void)
 }
 
 static void
-test_inc_counter (int w, int nondet)
+test_inc_counter (uint32_t w, bool nondet)
 {
   BoolectorNode *nonzero, *allzero, *one, *oracle;
   BoolectorNode *current, *next, *inc;
   BoolectorSort s;
   char name[100];
-  int i, res;
+  uint32_t i;
+  int32_t res;
 
   assert (w > 0);
 
@@ -127,11 +128,11 @@ test_inc_counter (int w, int nondet)
     }
     assert (res == BOOLECTOR_UNSAT);
     assert (boolector_failed (g_btor, allzero));
-    assert (i < (1 << w));
+    assert (i < (uint32_t) (1 << w));
     boolector_release (g_btor, allzero);
   }
 
-  assert (i == (1 << w));
+  assert (i == (uint32_t) (1 << w));
 
   boolector_release (g_btor, one);
   boolector_release (g_btor, current);
@@ -142,70 +143,71 @@ test_inc_counter (int w, int nondet)
 static void
 test_inc_count1 (void)
 {
-  test_inc_counter (1, 0);
+  test_inc_counter (1, false);
 }
 
 static void
 test_inc_count2 (void)
 {
-  test_inc_counter (2, 0);
+  test_inc_counter (2, false);
 }
 
 static void
 test_inc_count3 (void)
 {
-  test_inc_counter (3, 0);
+  test_inc_counter (3, false);
 }
 
 static void
 test_inc_count4 (void)
 {
-  test_inc_counter (4, 0);
+  test_inc_counter (4, false);
 }
 
 static void
 test_inc_count8 (void)
 {
-  test_inc_counter (8, 0);
+  test_inc_counter (8, false);
 }
 
 static void
 test_inc_count1nondet (void)
 {
-  test_inc_counter (1, 1);
+  test_inc_counter (1, true);
 }
 
 static void
 test_inc_count2nondet (void)
 {
-  test_inc_counter (2, 1);
+  test_inc_counter (2, true);
 }
 
 static void
 test_inc_count3nondet (void)
 {
-  test_inc_counter (3, 1);
+  test_inc_counter (3, true);
 }
 
 static void
 test_inc_count4nondet (void)
 {
-  test_inc_counter (4, 1);
+  test_inc_counter (4, true);
 }
 
 static void
 test_inc_count8nondet (void)
 {
-  test_inc_counter (8, 1);
+  test_inc_counter (8, true);
 }
 
 static void
-test_inc_lt (int w)
+test_inc_lt (uint32_t w)
 {
   BoolectorNode *prev, *next, *lt;
   BoolectorSort s;
   char name[100];
-  int i, res;
+  uint32_t i;
+  int32_t res;
 
   assert (w > 0);
 
@@ -237,10 +239,10 @@ test_inc_lt (int w)
     if (res == BOOLECTOR_UNSAT) break;
 
     assert (res == BOOLECTOR_SAT);
-    assert (i <= (1 << w));
+    assert (i <= (uint32_t) (1 << w));
   }
 
-  assert (i == (1 << w) + 1);
+  assert (i == (uint32_t) (1 << w) + 1);
 
   boolector_release (g_btor, prev);
 
@@ -280,7 +282,7 @@ test_inc_lt8 (void)
 static void
 test_inc_assume_assert1 (void)
 {
-  int sat_result;
+  int32_t sat_result;
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
   BoolectorSort s, as;
 
@@ -321,7 +323,7 @@ test_inc_assume_assert1 (void)
 static void
 test_inc_lemmas_on_demand_1 ()
 {
-  int sat_result;
+  int32_t sat_result;
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
   BoolectorSort s, as;
 
@@ -362,7 +364,7 @@ init_inc_tests (void)
 }
 
 void
-run_inc_tests (int argc, char **argv)
+run_inc_tests (int32_t argc, char **argv)
 {
   BTOR_RUN_TEST (inc_true_false);
   BTOR_RUN_TEST (inc_count1);

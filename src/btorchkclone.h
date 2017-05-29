@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -39,14 +39,14 @@ void btor_chkclone_sort (Btor *btor,
     btor_chkclone (btor, btor->clone);     \
   } while (0)
 
-#define BTOR_CHKCLONE_RES(res, fun, args...)              \
-  do                                                      \
-  {                                                       \
-    if (!btor->clone) break;                              \
-    int cloneres = boolector_##fun (btor->clone, ##args); \
-    (void) cloneres;                                      \
-    assert (cloneres == res);                             \
-    btor_chkclone (btor, btor->clone);                    \
+#define BTOR_CHKCLONE_RES_INT(res, fun, args...)              \
+  do                                                          \
+  {                                                           \
+    if (!btor->clone) break;                                  \
+    int32_t cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                          \
+    assert (cloneres == res);                                 \
+    btor_chkclone (btor, btor->clone);                        \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_UINT(res, fun, args...)              \
@@ -100,8 +100,8 @@ void btor_chkclone_sort (Btor *btor,
     const BtorSortId cloneres =                                             \
         BTOR_IMPORT_BOOLECTOR_SORT (boolector_##fun (btor->clone, ##args)); \
     const BtorSort *s0, *s1;                                                \
-    s0 = btor_get_sort_by_id (btor, res);                                   \
-    s1 = btor_get_sort_by_id (btor->clone, cloneres);                       \
+    s0 = btor_sort_get_by_id (btor, res);                                   \
+    s1 = btor_sort_get_by_id (btor->clone, cloneres);                       \
     btor_chkclone_sort (btor, btor->clone, s0, s1);                         \
   } while (0)
 

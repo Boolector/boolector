@@ -67,9 +67,9 @@
   do                                                              \
   {                                                               \
     assert ((queue).mm);                                          \
-    int old_size     = BTOR_SIZE_QUEUE (queue), new_size;         \
-    int old_tail_pos = (queue).tail - (queue).start;              \
-    int old_head_pos = (queue).head - (queue).start;              \
+    uint32_t old_size     = BTOR_SIZE_QUEUE (queue), new_size;    \
+    uint32_t old_tail_pos = (queue).tail - (queue).start;         \
+    uint32_t old_head_pos = (queue).head - (queue).start;         \
     BTOR_ENLARGE ((queue).mm, (queue).start, old_size, new_size); \
     (queue).tail = (queue).start + old_tail_pos;                  \
     (queue).head = (queue).start + old_head_pos;                  \
@@ -80,8 +80,8 @@
   do                                                                      \
   {                                                                       \
     assert ((queue).mm);                                                  \
-    int offset = (queue).head - (queue).start;                            \
-    int count  = BTOR_COUNT_QUEUE ((queue));                              \
+    uint32_t offset = (queue).head - (queue).start;                       \
+    uint32_t count  = BTOR_COUNT_QUEUE ((queue));                         \
     memmove ((queue).start, (queue).head, count * sizeof *(queue).start); \
     (queue).head = (queue).start;                                         \
     (queue).tail -= offset;                                               \
@@ -104,6 +104,6 @@
 
 #define BTOR_DEQUEUE(queue) (assert ((queue).mm), *(queue).head++)
 
-BTOR_DECLARE_QUEUE (BtorInt, int);
+BTOR_DECLARE_QUEUE (BtorInt, int32_t);
 
 #endif

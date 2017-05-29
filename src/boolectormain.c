@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -9,10 +10,11 @@
  *  See COPYING for more information on using this software.
  */
 
+#include <stdint.h>
 #include "btormain.h"
 
-int
-main (int argc, char **argv)
+int32_t
+main (int32_t argc, char **argv)
 {
   return boolector_main (argc, argv);
 }

@@ -13,7 +13,7 @@
 #define BTORPRINTMODEL_H_INCLUDED
 
 #include "btorcore.h"
-#include "btorexp.h"
+#include "btornode.h"
 
 void btor_print_model (Btor* btor, char* format, FILE* file);
 

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2013 Armin Biere.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -24,47 +24,51 @@ typedef struct BtorMC BtorMC;
 
 /*------------------------------------------------------------------------*/
 
-BtorMC *boolector_new_mc (void);
-void boolector_delete_mc (BtorMC *);
+BtorMC *boolector_mc_new (void);
+void boolector_mc_delete (BtorMC *);
 
-void boolector_set_verbosity_mc (BtorMC *, int verbosity);
+void boolector_mc_set_verbosity (BtorMC *, uint32_t verbosity);
 
 /* Default is to stop at the first reached bad state property.  Given a zero
  * argument 'stop == 0' to this function will result in the model checker to
  * run until all properties have been reached (or proven not to be
  * reachable) or the maximum bound is reached.
  */
-void boolector_set_stop_at_first_reached_property_mc (BtorMC *, int stop);
+void boolector_mc_set_stop_at_first_reached_property (BtorMC *, bool stop);
 
 /* In order to be able to obtain the trace after model checking you
- * need to request trace generation (before calling 'boolector_bmc').
+ * need to request trace generation (before calling 'boolector_mc_bmc').
  */
-void boolector_enable_trace_gen (BtorMC *);
+void boolector_mc_enable_trace_gen (BtorMC *);
 
 /*------------------------------------------------------------------------*/
 
-Btor *boolector_btor_mc (BtorMC *);
+Btor *boolector_mc_btor (BtorMC *);
 
 /*------------------------------------------------------------------------*/
+/* model checking API */
+
+void boolector_mc_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
+
+/*------------------------------------------------------------------------*/
+/* model checking API */
 
 BoolectorNode *boolector_input (BtorMC *, uint32_t width, const char *);
 BoolectorNode *boolector_latch (BtorMC *, uint32_t width, const char *);
 
 void boolector_next (BtorMC *, BoolectorNode *latch, BoolectorNode *next);
 
-void boolector_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
+int32_t boolector_bad (BtorMC *, BoolectorNode *bad);
 
-int boolector_bad (BtorMC *, BoolectorNode *bad);
-
-int boolector_constraint (BtorMC *, BoolectorNode *constraint);
+int32_t boolector_constraint (BtorMC *, BoolectorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 
-void boolector_dump_btormc (BtorMC *, FILE *);
+void boolector_mc_dump (BtorMC *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
-int boolector_bmc (BtorMC *, int mink, int maxk);
+int32_t boolector_mc_bmc (BtorMC *, int32_t mink, int32_t maxk);
 
 /*------------------------------------------------------------------------*/
 
@@ -75,41 +79,41 @@ int boolector_bmc (BtorMC *, int mink, int maxk);
  * it is an error if the user did not request to continue after the first
  * property was reached.
  */
-int boolector_reached_bad_at_bound_mc (BtorMC *, int badidx);
+int32_t boolector_mc_reached_bad_at_bound (BtorMC *, int32_t badidx);
 
 /* Alternatively the user can provide a call back function which is called
  * the first time a bad state property is reached.  The same comment as in
  * the previous function applies, e.g. the user might want to call
- * 'boolector_set_stop_at_first_reached_property_mc (btormc, 0)' before
+ * 'boolector_mc_set_stop_at_first_reached_property (btormc, 0)' before
  * calling the model checker.
  */
-typedef void (*BtorMCReachedAtBound) (void *, int badidx, int k);
+typedef void (*BtorMCReachedAtBound) (void *, int32_t badidx, int32_t k);
 
-void boolector_set_reached_at_bound_call_back_mc (BtorMC *,
+void boolector_mc_set_reached_at_bound_call_back (BtorMC *,
                                                   void *state,
                                                   BtorMCReachedAtBound fun);
 
 /*------------------------------------------------------------------------*/
 
-typedef void (*BtorMCStartingBound) (void *, int k);
+typedef void (*BtorMCStartingBound) (void *, int32_t k);
 
-void boolector_set_starting_bound_call_back_mc (BtorMC *,
+void boolector_mc_set_starting_bound_call_back (BtorMC *,
                                                 void *state,
                                                 BtorMCStartingBound fun);
 
 /*------------------------------------------------------------------------*/
 
-/* Assumes that 'boolector_enable_trace_gen' was called and then
- * 'boolector_bmc' which returned a 'k' with '0 <= time <= k'.
+/* Assumes that 'boolector_mc_enable_trace_gen' was called and then
+ * 'boolector_mc_bmc' which returned a 'k' with '0 <= time <= k'.
  */
 char *boolector_mc_assignment (BtorMC *,
                                BoolectorNode *input_or_latch,
-                               int time);
+                               int32_t time);
 
 /* The caller of 'boolector_mc_assignment' has to release the returned
- * assignment with this 'boolector_free_mc_assignment' again.
+ * assignment with this 'boolector_mc_free_assignment' again.
  */
-void boolector_free_mc_assignment (BtorMC *, char *);
+void boolector_mc_free_assignment (BtorMC *, char *);
 
 /*------------------------------------------------------------------------*/
 #endif

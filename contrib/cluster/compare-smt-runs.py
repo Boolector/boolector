@@ -16,7 +16,6 @@ SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
 
 g_args = None
 g_benchmarks = set() 
-g_parse_err_only = False
 
 COLOR_BEST = '\033[36m'
 COLOR_DIFF = '\033[32m'
@@ -52,6 +51,13 @@ def select_column(line, old_pos):
     if _is_number(cols[old_pos]):
         return cols[old_pos]
     return cols[1]
+
+def _status_to_num(s):
+    if s == 'sat':
+        return 10
+    elif s == 'unsat':
+        return 20
+    return 0
 
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>
@@ -218,6 +224,10 @@ FILTER_LOG = [
    'DSY[s]', 
    lambda x: 'seconds dual synthesizing' in x,
    lambda x: select_column(x, 1)),
+  ('result',
+   'RES', 
+   lambda x: 'sat' == x or 'unsat' == x or 'unknown' == x,
+   lambda x: _status_to_num(x)),
 ]
 
 def _read_status(line):
@@ -242,8 +252,8 @@ FILTER_ERR = [
    'STAT', 
    lambda x: 'runlim' in x and 'status:' in x,
    _read_status),
-  ('result',
-   'RES', 
+  ('exit_code',
+   'EXIT', 
    lambda x: 'runlim' in x and 'result:' in x,
    lambda x: x.split()[2]),
   ('time_real',
@@ -563,10 +573,9 @@ def _read_cache_file(dir):
                     keys = line.split()
 
                     expected_keys = list(filter_err_keys)
-                    if not g_parse_err_only:
-                        expected_keys.extend(filter_log_keys)
-                        if g_args.m:
-                            expected_keys.extend(filter_out_keys)
+                    expected_keys.extend(filter_log_keys)
+                    if g_args.m:
+                        expected_keys.extend(filter_out_keys)
 
                     missing_keys = set(expected_keys) - set(keys)
                     if len(missing_keys) > 0:
@@ -622,16 +631,13 @@ def _read_data (dirs):
                     if f_name not in g_benchmarks:
                         g_benchmarks.add(f_name)
                     _read_err_file (d, "{}{}".format(f[:-3], "err"))
-                    # do not extract data from log file if only data from error
-                    # file is required
-                    if not g_parse_err_only:
-                        _read_log_file (d, f)
-                        if g_args.m:
-                            outfile = "{}{}".format(f[:-3], "out")
-                            if not os.path.isfile(os.path.join (d, outfile)):
-                                raise CmpSMTException ("missing '{}'".format (
-                                    os.path.join (d, outfile)))
-                            _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                    _read_log_file (d, f)
+                    if g_args.m:
+                        outfile = "{}{}".format(f[:-3], "out")
+                        if not os.path.isfile(os.path.join (d, outfile)):
+                            raise CmpSMTException ("missing '{}'".format (
+                                os.path.join (d, outfile)))
+                        _read_out_file (d, "{}{}".format(f[:-3], "out"))
         # create cache file
         _save_cache_file(d)
 
@@ -1322,7 +1328,7 @@ if __name__ == "__main__":
                     "status,result,g_solved,g_total,g_time,g_mem,g_err," \
                     "time_cpu,space"
             else:
-                g_args.columns = "status,result,time_cpu,space"
+                g_args.columns = "status,result,exit_code,time_cpu,space"
             
         # column options
         if g_args.bs:
@@ -1386,9 +1392,6 @@ if __name__ == "__main__":
 
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
-
-        if len(set(g_args.columns).intersection(filter_log_keys)) == 0:
-            g_parse_err_only = True
 
         _read_data(g_args.dirs)
 

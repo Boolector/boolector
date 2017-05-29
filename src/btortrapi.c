@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -40,14 +40,14 @@ btor_trapi (Btor *btor, const char *fname, const char *msg, ...)
 }
 
 void
-btor_open_apitrace (Btor *btor, const char *name)
+btor_trapi_open_trace (Btor *btor, const char *name)
 {
   assert (btor);
   assert (name);
 
   FILE *file;
   char *cmd;
-  int len = strlen (name);
+  uint32_t len = strlen (name);
 
   if (len >= 3 && !strcmp (name + len - 3, ".gz"))
   {

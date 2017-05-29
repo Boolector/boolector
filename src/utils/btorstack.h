@@ -170,9 +170,9 @@
     (stack).start[idx] = (elem);               \
   } while (0)
 
-BTOR_DECLARE_STACK (BtorInt, int);
+BTOR_DECLARE_STACK (BtorInt, int32_t);
 
-BTOR_DECLARE_STACK (BtorUInt, unsigned);
+BTOR_DECLARE_STACK (BtorUInt, uint32_t);
 
 BTOR_DECLARE_STACK (BtorChar, char);
 

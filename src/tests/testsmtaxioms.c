@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -53,7 +53,7 @@ test_g_args_unsat (void)
 }
 
 static void
-test_smtaxiom (int argc, char **argv, char *p, int i)
+test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
 {
   char *buffer, *name, *prefix = "smtaxiom";
 
@@ -85,13 +85,13 @@ init_smtaxioms_tests (void)
 }
 
 void
-run_smtaxioms_tests (int argc, char **argv)
+run_smtaxioms_tests (int32_t argc, char **argv)
 {
   BtorMemMgr *mem;
-  int i, first;
+  int32_t i, first;
   char **p;
 
-  mem = btor_new_mem_mgr ();
+  mem = btor_mem_mgr_new ();
 
   BTOR_INIT_STACK (mem, g_args);
 
@@ -114,7 +114,7 @@ run_smtaxioms_tests (int argc, char **argv)
   }
 
   BTOR_RELEASE_STACK (g_args);
-  btor_delete_mem_mgr (mem);
+  btor_mem_mgr_delete (mem);
 }
 
 void

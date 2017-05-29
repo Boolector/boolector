@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2015 Mathias Preiner.
-# Copyright (C) 2014-2016 Aina Niemetz.
+# Copyright (C) 2014-2017 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -12,6 +12,7 @@
 cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
+from libc.stdint cimport int32_t, uint32_t
 from cpython cimport bool
 from cpython.ref cimport PyObject
 import math, os, sys
@@ -55,7 +56,7 @@ cdef str _to_str(const char * string):
     cdef bytes py_str = string
     return str(py_str.decode())
 
-def _is_power2(int num):
+def _is_power2(uint32_t num):
     return num != 0 and (num & (num - 1)) == 0
 
 cdef _to_node(x, y):
@@ -80,7 +81,7 @@ cdef _to_node(x, y):
     y = btor.Const(y, width)
     return x, y
 
-cdef int _get_argument_width(BoolectorFunNode fun, int pos):
+cdef uint32_t _get_argument_width(BoolectorFunNode fun, uint32_t pos):
     if fun._params:
         return (<BoolectorNode> fun._params[pos]).width
     else:
@@ -102,7 +103,7 @@ def _check_precond_shift(BoolectorBVNode a, BoolectorBVNode b):
                   "Bit width of operand 'b' must be equal to "\
                   "log2(bit width of a)") 
 
-def _check_precond_slice(BoolectorBVNode a, int upper, int lower):
+def _check_precond_slice(BoolectorBVNode a, uint32_t upper, uint32_t lower):
         if upper >= a.width:
             raise BoolectorException(
                       "Upper limit of slice must be lower than the bit width "\
@@ -150,7 +151,7 @@ cdef class _BoolectorFunSort(BoolectorSort):
     cdef BoolectorSort _codomain
 
 cdef class _BoolectorBitVecSort(BoolectorSort):
-    cdef int _width
+    cdef uint32_t _width
 
 cdef class _BoolectorBoolSort(BoolectorSort):
     pass
@@ -190,9 +191,9 @@ cdef class BoolectorOpt:
     The class representing a Boolector option.
     """
     cdef Boolector btor
-    cdef int opt
+    cdef int32_t opt
 
-    def __init__(self, Boolector boolector, int opt):
+    def __init__(self, Boolector boolector, int32_t opt):
         self.btor = boolector
         self.opt = opt
 
@@ -336,7 +337,7 @@ cdef class BoolectorNode:
         def __get__(self):
             cdef char ** c_str_i
             cdef char ** c_str_v
-            cdef int size
+            cdef uint32_t size
             cdef const char * c_str
             cdef bytes py_str
 
@@ -650,7 +651,7 @@ cdef class Boolector:
             :return True if termination condition is fulfilled, else False.
             :rtype: bool
         """
-        cdef int res
+        cdef int32_t res
         res = btorapi.boolector_terminate(self._c_btor)
         return res > 0
 
@@ -758,7 +759,7 @@ cdef class Boolector:
         """
         btorapi.boolector_reset_assumptions(self._c_btor)
 
-    def Sat(self, int lod_limit = -1, int sat_limit = -1):
+    def Sat(self, int32_t lod_limit = -1, int32_t sat_limit = -1):
         """ Sat (lod_limit = -1, sat_limit = -1)
 
             Solve an input formula.
@@ -778,9 +779,9 @@ cdef class Boolector:
             the underlying SAT solver (``sat_limit``).
 
             :param lod_limit: Limit for Lemmas on Demand (-1: unlimited).
-            :type lod_limit:  int
+            :type lod_limit:  int32_t
             :param sat_limit: Conflict limit for the SAT solver (-1: unlimited).
-            :type sat_limit:  int
+            :type sat_limit:  int32_t
             :return: :data:`~boolector.Boolector.SAT` if the input formula is satisfiable (under possibly given assumptions), :data:`~boolector.Boolector.UNSAT` if it is unsatisfiable, and :data:`~boolector.Boolector.UNKNOWN` if the instance could not be solved within given limits.
 
             .. note::
@@ -886,7 +887,7 @@ cdef class Boolector:
         return r
 
     # Boolector options
-    def Set_opt(self, int opt, int value):
+    def Set_opt(self, int32_t opt, uint32_t value):
         """ Set_opt(opt, value)
 
             Set option.
@@ -902,16 +903,16 @@ cdef class Boolector:
 
                 pyboolector_options.rst
 
-            :param opt:   Option name.
-            :type opt:    str
+            :param opt:   Option identifier.
+            :type opt:    int32_t
             :param value: Option value.
-            :type value:  int
+            :type value:  uint32_t
         """
         if not btorapi.boolector_has_opt (self._c_btor, opt):
             raise BoolectorException("Invalid Boolector option")
         btorapi.boolector_set_opt(self._c_btor, opt, value)
 
-    def Get_opt(self, int opt):
+    def Get_opt(self, int32_t opt):
         """ Get_opt(opt)
 
             Get the Boolector option with name ``opt``.
@@ -919,8 +920,8 @@ cdef class Boolector:
             For a list of all available options, see 
             :func:`~boolector.Boolector.Set_opt`.
 
-            :param opt: Option name.
-            :type opt: str
+            :param opt: Option identifier.
+            :type opt: int32_t
             :return: Option with name ``opt``.
             :rtype: :class:`~boolector.BoolectorOpt`
         """
@@ -945,8 +946,8 @@ cdef class Boolector:
         """
         return BoolectorOptions(self)
 
-    def Set_sat_solver(self, str solver, str optstr = None, bool clone = True):
-        """ Set_sat_solver(solver, optstr = None, clone = True)
+    def Set_sat_solver(self, str solver, bool clone = True):
+        """ Set_sat_solver(solver, clone = True)
 
             Set the SAT solver to use.
 
@@ -962,24 +963,17 @@ cdef class Boolector:
 
             :param solver: Solver identifier string.
             :type solver:  str
-            :param optstr: Solver option string.
-            :type optstr:  str
             :param clone: Force non-incremental SAT solver usage.
             :type clone:  bool
-            :return: True if setting the SAT solver was successful and False otherwise. 
-            :rtype: bool
 
             .. note::
-                Parameters ``optstr`` and ``clone`` are currently only supported
-                by Lingeling.
+                Parameter ``clone`` is currently only supported by Lingeling.
         """
         solver = solver.strip().lower()
         if solver == "lingeling":
-            return btorapi.boolector_set_sat_solver_lingeling(
-                        self._c_btor, _ChPtr(optstr)._c_str, not clone) == 1
+            btorapi.boolector_set_sat_solver_lingeling(self._c_btor, not clone)
         else:
-            return btorapi.boolector_set_sat_solver(
-                        self._c_btor, _ChPtr(solver)._c_str) == 1
+            btorapi.boolector_set_sat_solver(self._c_btor, _ChPtr(solver)._c_str)
 
     def Print_model(self, str format = "btor", outfile = None):
         """ Print_model(format = "btor", outfile = None)
@@ -1068,9 +1062,9 @@ cdef class Boolector:
         """
         cdef FILE * c_infile
         cdef FILE * c_outfile
-        cdef int res
+        cdef int32_t res
         cdef char * err_msg
-        cdef int status
+        cdef int32_t status
 
         if not os.path.isfile(infile):
             raise BoolectorException("File '{}' does not exist".format(infile))
@@ -1131,7 +1125,7 @@ cdef class Boolector:
 
     # Boolector nodes
 
-    def Const(self, c, int width = 1):
+    def Const(self, c, uint32_t width = 1):
         """ Const(c, width = 1)
         
             Create a bit vector constant of value ``c`` and bit width ``width``.
@@ -1139,7 +1133,7 @@ cdef class Boolector:
             :param c: Value of the constant.
             :type  c: int, bool, str
             :param width: Bit width of the constant.
-            :type width:  int
+            :type width:  uint32_t
             :return: A bit vector constant of value ``c`` and bit width ``width``.
             :rtype: :class:`~boolector.BoolectorNode`
 
@@ -1410,7 +1404,7 @@ cdef class Boolector:
         r._c_node = btorapi.boolector_redand(self._c_btor, n._c_node)
         return r
 
-    def Slice(self, BoolectorBVNode n, int upper, int lower):
+    def Slice(self, BoolectorBVNode n, uint32_t upper, uint32_t lower):
         """ Slice(n, upper, lower)
 
             Create a bit vector slice of node ``n`` from index ``upper``
@@ -1427,9 +1421,9 @@ cdef class Boolector:
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :param upper: Upper index, which must be greater than or equal to zero, and less than the bit width of node ``n``.
-            :type upper: int
+            :type upper: uint32_t
             :param lower: Lower index, which must be greater than or equal to zero, and less than or equal to ``upper``.
-            :type lower: int
+            :type lower: uint32_t
             :return: A Bit vector with bit width ``upper`` - ``lower`` + 1.
             :rtype: :class:`~boolector.BoolectorNode`
 
@@ -1440,7 +1434,7 @@ cdef class Boolector:
                                             upper, lower)
         return r
                                                                 
-    def Uext(self, BoolectorBVNode n, int width):
+    def Uext(self, BoolectorBVNode n, uint32_t width):
         """ Uext(n, width)
 
             Create unsigned extension.
@@ -1450,7 +1444,7 @@ cdef class Boolector:
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :param width: Number of zeros to pad.
-            :type width: int
+            :type width: uint32_t
             :return: A bit vector extended by ``width`` zeroes.
             :rtype: :class:`~boolector.BoolectorNode`
         """
@@ -1458,7 +1452,7 @@ cdef class Boolector:
         r._c_node = btorapi.boolector_uext(self._c_btor, n._c_node, width)
         return r
 
-    def Sext(self, BoolectorBVNode n, int width):
+    def Sext(self, BoolectorBVNode n, uint32_t width):
         """ Sext(n, width)
 
             Create signed extension.
@@ -1470,7 +1464,7 @@ cdef class Boolector:
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :param width: Number of bits to pad.
-            :type width: int
+            :type width: uint32_t
             :return: A bit vector extended by ``width`` bits.
             :rtype: :class:`~boolector.BoolectorNode`
         """
@@ -2580,7 +2574,7 @@ cdef class Boolector:
                 not be reused in other functions. 
                 Call a function via :func:`~boolector.Boolector.Apply`.
         """
-        cdef int paramc = len(params)
+        cdef uint32_t paramc = len(params)
         cdef btorapi.BoolectorNode ** c_params = \
             <btorapi.BoolectorNode **> \
                 malloc(paramc * sizeof(btorapi.BoolectorNode *))
@@ -2660,7 +2654,7 @@ cdef class Boolector:
             :return:  A function application on function ``fun`` with arguments ``args``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        cdef int argc = len(args)
+        cdef uint32_t argc = len(args)
         cdef btorapi.BoolectorNode ** c_args = \
             <btorapi.BoolectorNode **> \
               malloc(argc * sizeof(btorapi.BoolectorNode *))
@@ -2705,7 +2699,7 @@ cdef class Boolector:
         r._c_sort = btorapi.boolector_bool_sort(self._c_btor)
         return r
 
-    def BitVecSort(self, int width):
+    def BitVecSort(self, uint32_t width):
         """ BitVecSort(width)
           
             Create bit vector sort of bit width ``width``.
@@ -2713,7 +2707,7 @@ cdef class Boolector:
             See :func:`~boolector.Boolector.UF`.
 
             :param width: Bit width.
-            :type width: int
+            :type width: uint32_t
             :return:  Bit vector sort of bit width ``width``.
             :rtype: :class:`~boolector.BoolectorSort`
         """
@@ -2757,7 +2751,7 @@ cdef class Boolector:
             :return:  Function sort, which maps ``domain`` to ``codomain``.
             :rtype: :class:`~boolector.BoolectorSort`
           """
-        cdef int arity = len(domain)
+        cdef uint32_t arity = len(domain)
         cdef btorapi.BoolectorSort * c_domain = \
             <btorapi.BoolectorSort *> \
                 malloc(arity * sizeof(btorapi.BoolectorSort))

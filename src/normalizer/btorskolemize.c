@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2016 Mathias Preiner.
+ *  Copyright (C) 2016-2017 Mathias Preiner.
+ *  Copyright (C) 2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,8 +11,10 @@
 
 #include "normalizer/btorskolemize.h"
 #include "btorcore.h"
-#include "utils/btorexpiter.h"
+#include "btorexp.h"
+#include "btornode.h"
 #include "utils/btorhashint.h"
+#include "utils/btornodeiter.h"
 
 BtorNode *
 btor_skolemize_node (Btor *btor,
@@ -32,7 +35,7 @@ btor_skolemize_node (Btor *btor,
   BtorSortId tuple_s, fun_s;
 
   mm  = btor->mm;
-  map = btor_new_int_hash_map (mm);
+  map = btor_hashint_map_new (mm);
 
   BTOR_INIT_STACK (mm, args);
   BTOR_INIT_STACK (mm, params);
@@ -45,16 +48,16 @@ btor_skolemize_node (Btor *btor,
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    //      assert (!BTOR_IS_QUANTIFIER_NODE (real_cur) ||
+    //      assert (!btor_node_is_quantifier (real_cur) ||
     //      !BTOR_IS_INVERTED_NODE (cur));
 
-    d = btor_get_int_hash_map (map, real_cur->id);
+    d = btor_hashint_map_get (map, real_cur->id);
 
     if (!d)
     {
-      btor_add_int_hash_map (map, real_cur->id);
+      btor_hashint_map_add (map, real_cur->id);
 
-      if (btor_is_forall_node (real_cur)) BTOR_PUSH_STACK (quants, cur);
+      if (btor_node_is_forall (real_cur)) BTOR_PUSH_STACK (quants, cur);
 
       BTOR_PUSH_STACK (visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
@@ -68,16 +71,16 @@ btor_skolemize_node (Btor *btor,
 
       if (real_cur->arity == 0)
       {
-        if (btor_is_param_node (real_cur))
+        if (btor_node_is_param (real_cur))
         {
-          symbol = btor_get_symbol_exp (btor, real_cur);
+          symbol = btor_node_get_symbol (btor, real_cur);
           buf    = 0;
-          if (btor_param_is_exists_var (real_cur))
+          if (btor_node_param_is_exists_var (real_cur))
           {
             if (symbol)
             {
               len = strlen (symbol) + 5;
-              buf = btor_malloc (mm, len);
+              buf = btor_mem_malloc (mm, len);
               sprintf (buf, "sk(%s)", symbol);
             }
 
@@ -87,7 +90,7 @@ btor_skolemize_node (Btor *btor,
               for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
               {
                 quant = BTOR_PEEK_STACK (quants, i);
-                d_p   = btor_get_int_hash_map (map, quant->e[0]->id);
+                d_p   = btor_hashint_map_get (map, quant->e[0]->id);
                 assert (d_p);
                 assert (d_p->as_ptr);
                 param = d_p->as_ptr;
@@ -96,31 +99,31 @@ btor_skolemize_node (Btor *btor,
               }
 
               tuple_s =
-                  btor_tuple_sort (btor, sorts.start, BTOR_COUNT_STACK (sorts));
-              fun_s = btor_fun_sort (btor, tuple_s, real_cur->sort_id);
-              btor_release_sort (btor, tuple_s);
+                  btor_sort_tuple (btor, sorts.start, BTOR_COUNT_STACK (sorts));
+              fun_s = btor_sort_fun (btor, tuple_s, real_cur->sort_id);
+              btor_sort_release (btor, tuple_s);
 
-              uf = btor_uf_exp (btor, fun_s, buf);
-              btor_release_sort (btor, fun_s);
+              uf = btor_exp_uf (btor, fun_s, buf);
+              btor_sort_release (btor, fun_s);
 
-              result = btor_apply_exps (
-                  btor, params.start, BTOR_COUNT_STACK (params), uf);
+              result = btor_exp_apply_n (
+                  btor, uf, params.start, BTOR_COUNT_STACK (params));
 
               if (skolem_consts)
-                btor_add_ptr_hash_table (skolem_consts,
-                                         btor_copy_exp (btor, uf));
+                btor_hashptr_table_add (skolem_consts,
+                                        btor_node_copy (btor, uf));
 
-              btor_release_exp (btor, uf);
+              btor_node_release (btor, uf);
               BTOR_RESET_STACK (sorts);
               BTOR_RESET_STACK (params);
             }
             /* substitute param with variable in outermost scope */
             else
             {
-              result = btor_var_exp (btor, real_cur->sort_id, buf);
+              result = btor_exp_var (btor, real_cur->sort_id, buf);
               if (skolem_consts)
-                btor_add_ptr_hash_table (skolem_consts,
-                                         btor_copy_exp (btor, result));
+                btor_hashptr_table_add (skolem_consts,
+                                        btor_node_copy (btor, result));
             }
           }
           else
@@ -128,58 +131,58 @@ btor_skolemize_node (Btor *btor,
             if (symbol)
             {
               len = strlen (symbol) + 3;
-              buf = btor_malloc (mm, len);
+              buf = btor_mem_malloc (mm, len);
               sprintf (buf, "%s!0", symbol);
             }
-            result = btor_param_exp (btor, real_cur->sort_id, buf);
+            result = btor_exp_param (btor, real_cur->sort_id, buf);
           }
 
-          if (buf) btor_freestr (mm, buf);
+          if (buf) btor_mem_freestr (mm, buf);
         }
         else
-          result = btor_copy_exp (btor, real_cur);
+          result = btor_node_copy (btor, real_cur);
       }
-      else if (btor_is_slice_node (real_cur))
+      else if (btor_node_is_slice (real_cur))
       {
-        result = btor_slice_exp (btor,
+        result = btor_exp_slice (btor,
                                  e[0],
-                                 btor_slice_get_upper (real_cur),
-                                 btor_slice_get_lower (real_cur));
+                                 btor_node_slice_get_upper (real_cur),
+                                 btor_node_slice_get_lower (real_cur));
       }
-      else if (btor_is_exists_node (real_cur))
+      else if (btor_node_is_exists (real_cur))
       {
-        assert (!btor_is_param_node (e[0]));
-        result = btor_copy_exp (btor, e[1]);
+        assert (!btor_node_is_param (e[0]));
+        result = btor_node_copy (btor, e[1]);
       }
       else
-        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
+        result = btor_exp_create (btor, real_cur->kind, e, real_cur->arity);
 
-      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
+      for (i = 0; i < real_cur->arity; i++) btor_node_release (btor, e[i]);
 
-      d->as_ptr = btor_copy_exp (btor, result);
+      d->as_ptr = btor_node_copy (btor, result);
       if (node_map)
       {
-        assert (!btor_contains_int_hash_map (node_map, real_cur->id));
-        btor_add_int_hash_map (node_map, real_cur->id)->as_int =
+        assert (!btor_hashint_map_contains (node_map, real_cur->id));
+        btor_hashint_map_add (node_map, real_cur->id)->as_int =
             BTOR_REAL_ADDR_NODE (result)->id;
       }
     PUSH_RESULT:
 
-      if (btor_is_forall_node (real_cur))
+      if (btor_node_is_forall (real_cur))
       {
         quant = BTOR_POP_STACK (quants);
         assert (quant == cur);
       }
 
       result = BTOR_COND_INVERT_NODE (cur, result);
-      assert (!btor_is_quantifier_node (result)
+      assert (!btor_node_is_quantifier (result)
               || !BTOR_IS_INVERTED_NODE (result));
       BTOR_PUSH_STACK (args, result);
     }
     else
     {
       assert (d->as_ptr);
-      result = btor_copy_exp (btor, d->as_ptr);
+      result = btor_node_copy (btor, d->as_ptr);
       goto PUSH_RESULT;
     }
   }
@@ -189,9 +192,9 @@ btor_skolemize_node (Btor *btor,
   for (j = 0; j < map->size; j++)
   {
     if (!map->data[j].as_ptr) continue;
-    btor_release_exp (btor, map->data[j].as_ptr);
+    btor_node_release (btor, map->data[j].as_ptr);
   }
-  btor_delete_int_hash_map (map);
+  btor_hashint_map_delete (map);
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (quants);
   BTOR_RELEASE_STACK (params);
@@ -222,16 +225,16 @@ btor_skolemize (Btor *btor)
   BtorNodeMapIterator nit;
 
   mm    = btor->mm;
-  cache = btor_new_int_hash_map (mm);
-  map   = btor_new_node_map (btor);
+  cache = btor_hashint_map_new (mm);
+  map   = btor_nodemap_new (btor);
 
   BTOR_INIT_STACK (mm, visit);
 
   /* push roots */
-  btor_init_ptr_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
     BTOR_PUSH_STACK (visit, cur);
   }
 
@@ -242,13 +245,13 @@ btor_skolemize (Btor *btor)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
-    d   = btor_get_int_hash_map (cache, cur->id);
+    d   = btor_hashint_map_get (cache, cur->id);
 
     if (!d)
     {
-      (void) btor_add_int_hash_map (cache, cur->id);
+      (void) btor_hashint_map_add (cache, cur->id);
 
-      if (btor_is_forall_node (cur)) BTOR_PUSH_STACK (quants, cur);
+      if (btor_node_is_forall (cur)) BTOR_PUSH_STACK (quants, cur);
 
       BTOR_PUSH_STACK (visit, cur);
       for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
@@ -257,12 +260,12 @@ btor_skolemize (Btor *btor)
     {
       d->as_int = 1;
 
-      if (btor_is_forall_node (cur))
+      if (btor_node_is_forall (cur))
       {
         quant = BTOR_POP_STACK (quants);
         assert (quant == cur);
       }
-      else if (btor_is_exists_node (cur) && BTOR_COUNT_STACK (quants) > 0)
+      else if (btor_node_is_exists (cur) && BTOR_COUNT_STACK (quants) > 0)
       {
         param = cur->e[0];
         for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
@@ -272,63 +275,63 @@ btor_skolemize (Btor *btor)
           BTOR_PUSH_STACK (sorts, quant->e[0]->sort_id);
         }
 
-        tuple_s = btor_tuple_sort (btor, sorts.start, BTOR_COUNT_STACK (sorts));
-        fun_s   = btor_fun_sort (btor, tuple_s, param->sort_id);
+        tuple_s = btor_sort_tuple (btor, sorts.start, BTOR_COUNT_STACK (sorts));
+        fun_s   = btor_sort_fun (btor, tuple_s, param->sort_id);
 
-        symbol = btor_get_symbol_exp (btor, param);
+        symbol = btor_node_get_symbol (btor, param);
         //	      printf ("%s\n", symbol);
         if (symbol)
         {
           len = strlen (symbol) + 5;
-          buf = btor_malloc (mm, len);
+          buf = btor_mem_malloc (mm, len);
           sprintf (buf, "sk(%s)", symbol);
         }
         else
           buf = 0;
-        uf  = btor_uf_exp (btor, fun_s, buf);
-        app = btor_apply_exps (btor, args.start, BTOR_COUNT_STACK (args), uf);
+        uf  = btor_exp_uf (btor, fun_s, buf);
+        app = btor_exp_apply_n (btor, uf, args.start, BTOR_COUNT_STACK (args));
         //	      printf ("%s -> %s\n", node2string (param), node2string
         //(uf));
 
-        btor_map_node (map, param, app);
-        btor_freestr (mm, buf);
-        btor_release_sort (btor, tuple_s);
-        btor_release_sort (btor, fun_s);
-        btor_release_exp (btor, uf);
+        btor_nodemap_map (map, param, app);
+        btor_mem_freestr (mm, buf);
+        btor_sort_release (btor, tuple_s);
+        btor_sort_release (btor, fun_s);
+        btor_node_release (btor, uf);
         BTOR_RESET_STACK (sorts);
         BTOR_RESET_STACK (args);
       }
     }
   }
 
-  btor_init_ptr_hash_table_iterator (&it, btor->quantifiers);
-  while (btor_has_next_ptr_hash_table_iterator (&it))
+  btor_iter_hashptr_init (&it, btor->quantifiers);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_next_ptr_hash_table_iterator (&it);
+    cur = btor_iter_hashptr_next (&it);
 
-    if (btor_is_forall_node (cur)) continue;
+    if (btor_node_is_forall (cur)) continue;
 
     /* exists quanftifier in most outer scope */
-    if (!btor_mapped_node (map, cur->e[0])) continue;
+    if (!btor_nodemap_mapped (map, cur->e[0])) continue;
 
-    subst = btor_substitute_terms (btor, btor_binder_get_body (cur), map);
-    btor_map_node (map, cur, subst);
-    assert (!btor_get_ptr_hash_table (btor->substitutions, cur));
+    subst = btor_substitute_terms (btor, btor_node_binder_get_body (cur), map);
+    btor_nodemap_map (map, cur, subst);
+    assert (!btor_hashptr_table_get (btor->substitutions, cur));
     btor_insert_substitution (btor, cur, subst, 0);
   }
 
   btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
 
-  btor_init_node_map_iterator (&nit, map);
-  while (btor_has_next_node_map_iterator (&nit))
+  btor_iter_nodemap_init (&nit, map);
+  while (btor_iter_nodemap_has_next (&nit))
   {
-    cur = btor_next_data_node_map_iterator (&nit)->as_ptr;
-    btor_release_exp (btor, cur);
+    cur = btor_iter_nodemap_next_data (&nit)->as_ptr;
+    btor_node_release (btor, cur);
   }
 
-  btor_delete_node_map (map);
-  btor_delete_int_hash_map (cache);
+  btor_nodemap_delete (map);
+  btor_hashint_map_delete (cache);
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (quants);
   BTOR_RELEASE_STACK (args);
