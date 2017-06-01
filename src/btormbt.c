@@ -875,6 +875,8 @@ btormbt_new_btormbt (void)
         btoropt->engine = BTOR_ENGINE_AIGPROP;
       else if (strstr (btoropt->name, "prop:"))
         btoropt->engine = BTOR_ENGINE_PROP;
+      else if (strstr (btoropt->name, "ef:"))
+        btoropt->engine = BTOR_ENGINE_EF;
       else
       {
         assert (strstr (btoropt->name, "sls:"));
