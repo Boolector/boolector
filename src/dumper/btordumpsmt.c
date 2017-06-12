@@ -724,7 +724,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (expect_bool && !is_bool)
       {
         open_sexp (sdc);
-        fputs ("(= ", sdc->file);
+        fputs ("= ", sdc->file);
         bits = btor_bv_one (sdc->btor->mm, 1);
         dump_const_value_aux_smt (sdc, bits);
         btor_bv_free (sdc->btor->mm, bits);
