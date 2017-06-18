@@ -891,7 +891,7 @@ btor_opt_init_opts (Btor *btor)
             true,
             "ef:dual",
             0,
-            0,
+            1,
             0,
             1,
             "dual EF solver");
