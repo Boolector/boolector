@@ -845,7 +845,7 @@ btor_opt_init_opts (Btor *btor)
             true,
             "ef:der",
             0,
-            0,
+            1,
             0,
             1,
             "apply destructive equality resolution (DER)");
@@ -855,7 +855,7 @@ btor_opt_init_opts (Btor *btor)
             true,
             "ef:cer",
             0,
-            0,
+            1,
             0,
             1,
             "apply constructive equality resolution (CER)");
@@ -865,7 +865,7 @@ btor_opt_init_opts (Btor *btor)
             true,
             "ef:ms",
             0,
-            0,
+            1,
             0,
             1,
             "apply miniscoping");
