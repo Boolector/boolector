@@ -62,12 +62,13 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
   }
 
   if (btor_node_is_apply (exp) || btor_node_is_lambda (exp)
-      || btor_node_is_fun_eq (exp))
+      || btor_node_is_fun_eq (exp) || btor_node_is_update (exp))
     btor->stats.fun_uc_props++;
   else
     btor->stats.bv_uc_props++;
 
-  if (btor_node_is_lambda (exp) || btor_node_is_fun_cond (exp))
+  if (btor_node_is_lambda (exp) || btor_node_is_fun_cond (exp)
+      || btor_node_is_update (exp))
   {
     subst           = btor_exp_uf (btor, btor_node_get_sort_id (exp), 0);
     subst->is_array = exp->is_array;
@@ -231,6 +232,9 @@ btor_optimize_unconstrained (Btor *btor)
               /* case: x = t ? uc : ucp */
               if (is_uc_write (cur)) mark_uc (btor, ucsp, cur);
             }
+            break;
+          case BTOR_UPDATE_NODE:
+            if (uc[0] && uc[2]) mark_uc (btor, ucs, cur);
             break;
           // TODO (ma): functions with parents > 1 can still be
           //            handled as unconstrained, but the applications
