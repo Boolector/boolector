@@ -3891,6 +3891,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   /* disabling slice elimination is better on QF_ABV and BV */
   if (btor->ufs->count > 0 || btor->quantifiers->count > 0)
     btor_opt_set (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
+  /* disable unconstrained optimization in case of quantifiers */
+  if (btor->quantifiers->count > 0) btor_opt_set (btor, BTOR_OPT_UCOPT, 0);
 
   res = btor_simplify (btor);
 
