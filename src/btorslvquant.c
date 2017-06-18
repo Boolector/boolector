@@ -2527,7 +2527,8 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
   if (gslv->result != BTOR_RESULT_UNKNOWN)
   {
     res = gslv->result;
-    if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
+    //      if (res == BTOR_RESULT_SAT)
+    //	print_cur_model (gslv);
   }
   else
   {
@@ -2538,7 +2539,7 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
                 1,
                 "dual solver result: sat, original formula: unsat");
       res = BTOR_RESULT_UNSAT;
-      print_cur_model (dual_gslv);
+      //	  print_cur_model (dual_gslv);
     }
     else
     {
@@ -2624,7 +2625,8 @@ sat_ef_solver (BtorEFSolver *slv)
     }
     gslv->result = res;
 
-    if (res == BTOR_RESULT_SAT) print_cur_model (gslv);
+    //      if (res == BTOR_RESULT_SAT)
+    //	print_cur_model (gslv);
   }
 
   slv->solver_result = gslv->result;
