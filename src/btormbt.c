@@ -2726,18 +2726,18 @@ btormbt_state_opt (BtorMBT *mbt)
         boolector_set_sat_solver (mbt->btor, "lingeling");
 #endif
 #ifdef BTOR_USE_PICOSAT
-      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+      if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
         boolector_set_sat_solver (mbt->btor, "picosat");
 #endif
 #ifdef BTOR_USE_MINISAT
-      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+      if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
         boolector_set_sat_solver (mbt->btor, "minisat");
 #endif
 #ifdef BTOR_USE_CADICAL
-      else if (btoropt->val == BTOR_SAT_ENGINE_CADICAL
-               // for now CaDiCaL only support non-incremental calls
-               && mbt->round.logic == BTORMBT_LOGIC_QF_BV
-               && !boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL))
+      if (btoropt->val == BTOR_SAT_ENGINE_CADICAL
+          // for now CaDiCaL only support non-incremental calls
+          && mbt->round.logic == BTORMBT_LOGIC_QF_BV
+          && !boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL))
       {
         boolector_set_sat_solver (mbt->btor, "cadical");
         inc = false;
@@ -2752,11 +2752,11 @@ btormbt_state_opt (BtorMBT *mbt)
             mbt->btor, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
 #endif
 #ifdef BTOR_USE_PICOSAT
-      else if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
+      if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
         boolector_set_sat_solver_picosat (mbt->btor);
 #endif
 #ifdef BTOR_USE_MINISAT
-      else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+      if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
         boolector_set_sat_solver_minisat (mbt->btor);
 #endif
     }
