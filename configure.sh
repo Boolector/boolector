@@ -492,6 +492,7 @@ else
       LDEPS="${LDEPS}$ROOT/../cadical/build/libcadical.a"
     fi
     LIBSTDCPP=yes
+    LIBM=yes
     INCS="${INCS}-I$ROOT/../cadical/src"
   fi
 fi
