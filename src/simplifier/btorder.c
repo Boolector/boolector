@@ -408,10 +408,9 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
   assert (BTOR_REAL_ADDR_NODE (result)->parameterized
           == BTOR_REAL_ADDR_NODE (root)->parameterized);
 
-  printf ("substituted %u out of %u %s variables\n",
-          num_elim_vars,
-          num_quant_vars,
-          elim_evars ? "existential" : "universal");
+  //  printf ("substituted %u out of %u %s variables\n",
+  //	  num_elim_vars, num_quant_vars, elim_evars ? "existential" :
+  //"universal");
 
   for (i = 0; i < mark->size; i++)
   {
