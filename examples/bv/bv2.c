@@ -24,7 +24,6 @@ main (void)
   int result, i;
 
   btor = boolector_new ();
-  sort = boolector_bitvec_sort (btor, BV2_EXAMPLE_NUM_BITS);
   boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   s    = boolector_bitvec_sort (btor, BV2_EXAMPLE_NUM_BITS);
