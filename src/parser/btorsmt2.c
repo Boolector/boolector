@@ -4247,7 +4247,9 @@ read_command_smt2 (BtorSMT2Parser *parser)
         boolector_release (parser->btor, exp);
         tag = read_token_smt2 (parser);
       }
-      fprintf (parser->outfile, ")\n");
+      /* NOTE: we do not have to close the parenthesis here since it is part
+       * of the parsed token string. ')' from the get-value command */
+      fprintf (parser->outfile, "\n");
       fflush (parser->outfile);
       if (tag != BTOR_RPAR_TAG_SMT2)
       {
