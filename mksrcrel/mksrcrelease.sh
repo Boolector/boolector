@@ -24,7 +24,7 @@ if [ ! -d doc/_build/html ]; then
   die "can not find documentation. generate documentation with 'make html' in directory ../doc/"
 fi
 
-LC_TIME="en_US"
+LC_TIME="en_US.UTF-8"
 export LC_TIME
 
 date=`date +%y%m%d`
