@@ -28,12 +28,6 @@
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
-// #define BTOR_PRINT_DIMACS_FOR_LINGELING // enable to print dimacs files
-#ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
-#include <sys/types.h>  // for getpid
-#include <unistd.h>     // for getpid
-#endif
-/*------------------------------------------------------------------------*/
 
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT) \
     && !defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_CADICAL)

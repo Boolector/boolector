@@ -28,6 +28,13 @@
 #define BTOR_LGL_MAX_BLIMIT 200000
 
 /*------------------------------------------------------------------------*/
+//#define BTOR_PRINT_DIMACS_FOR_LINGELING // enable to print dimacs files
+#ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
+#include <sys/types.h>  // for getpid
+#include <unistd.h>     // for getpid
+#endif
+
+/*------------------------------------------------------------------------*/
 
 static void *
 init (BtorSATMgr *smgr)
