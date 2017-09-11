@@ -367,7 +367,7 @@ btor_dumpsmt_dump_sort_node (BtorNode *exp, FILE *file)
 
   exp  = BTOR_REAL_ADDR_NODE (exp);
   btor = exp->btor;
-  if (btor_node_is_array (exp) && !btor_node_is_lambda (exp))
+  if (btor_node_is_array (exp))
   {
     s_fid = btor_node_get_sort_id (exp);
     s_tid = btor_sort_fun_get_domain (btor, s_fid);
@@ -589,7 +589,7 @@ expand_lambda (BtorSMTDumpContext *sdc,
     if (btor_node_is_lambda (cur))
     {
       assert (btor_node_is_array (cur));
-      static_rho = btor_node_lambda_get_static_rho (exp);
+      static_rho = btor_node_lambda_get_static_rho (cur);
       assert (static_rho);
 
       btor_iter_hashptr_init (&it, static_rho);
@@ -610,10 +610,12 @@ expand_lambda (BtorSMTDumpContext *sdc,
       continue;
     }
 
-    btor_hashptr_table_add (sdc->dumped, cur);
+    if (!btor_hashptr_table_get (sdc->dumped, cur))
+      btor_hashptr_table_add (sdc->dumped, cur);
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
+  assert (*base_array);
   BTOR_RELEASE_STACK (visit);
   btor_hashint_table_delete (cache);
 }
@@ -692,8 +694,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       {
         fputc (' ', sdc->file);
         open_sexp (sdc);
-        fmt = "(_ zero_extend %d) ";
-        fprintf (sdc->file, fmt, zero_extend);
+        fprintf (sdc->file, "(_ zero_extend %d) ", zero_extend);
       }
 
       /* always print constants */
@@ -1182,7 +1183,7 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
     fputs ("Bool", sdc->file);
   else
     btor_dumpsmt_dump_sort_node (exp, sdc->file);
-  fputc (sdc->pretty_print ? '\n' : ' ', sdc->file);
+  fputc (' ', sdc->file);
   recursively_dump_exp_smt (sdc, exp, !is_bool, 0);
   close_sexp (sdc);
   fputc ('\n', sdc->file);
@@ -1196,6 +1197,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   assert (sdc);
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (btor_node_is_lambda (fun));
+  assert (!btor_node_is_array (fun));
   assert (!fun->parameterized);
   assert (!btor_hashptr_table_get (sdc->dumped, fun));
 
@@ -1496,12 +1498,13 @@ dump_smt (BtorSMTDumpContext *sdc)
 
   bool quantifiers = false;
   uint32_t i, j;
-  BtorNode *e, *cur;
+  BtorNode *e, *cur, *value, *index;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, all, vars, shared, ufs;
+  BtorNodePtrStack visit, all, vars, shared, ufs, larr;
   BtorPtrHashBucket *b;
   BtorPtrHashTableIterator it;
   BtorArgsIterator ait;
+  BtorPtrHashTable *static_rho;
 
   mm = sdc->btor->mm;
   BTOR_INIT_STACK (mm, visit);
@@ -1509,6 +1512,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (mm, all);
   BTOR_INIT_STACK (mm, vars);
   BTOR_INIT_STACK (mm, ufs);
+  BTOR_INIT_STACK (mm, larr);
 
   btor_iter_hashptr_init (&it, sdc->roots);
   while (btor_iter_hashptr_has_next (&it))
@@ -1536,11 +1540,45 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (btor_node_is_lambda (cur) && !btor_node_is_array (cur)
              && !cur->parameterized && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (shared, cur);
+    else if (btor_node_is_lambda (cur) && btor_node_is_array (cur))
+      BTOR_PUSH_STACK (larr, cur);
     else if (btor_node_is_quantifier (cur))
       quantifiers = true;
 
     for (j = 0; j < cur->arity; j++)
       BTOR_PUSH_STACK (visit, BTOR_REAL_ADDR_NODE (cur->e[j]));
+  }
+
+  /* compute reference counts of indices and elements for array writes
+   * (represented as lambdas) */
+  for (i = 0; i < BTOR_COUNT_STACK (larr); i++)
+  {
+    cur        = BTOR_PEEK_STACK (larr, i);
+    static_rho = btor_node_lambda_get_static_rho (cur);
+    assert (static_rho);
+
+    btor_iter_hashptr_init (&it, static_rho);
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      value = BTOR_REAL_ADDR_NODE (it.bucket->data.as_ptr);
+      index = BTOR_REAL_ADDR_NODE (btor_iter_hashptr_next (&it));
+      assert (btor_node_is_args (index));
+      assert (btor_node_args_get_arity (sdc->btor, index) == 1);
+      if (!(b = btor_hashptr_table_get (sdc->dump, value)))
+      {
+        b              = btor_hashptr_table_add (sdc->dump, value);
+        b->data.as_int = 0;
+        BTOR_PUSH_STACK (all, value); /* not yet seen */
+      }
+      b->data.as_int += 1;
+      if (!(b = btor_hashptr_table_get (sdc->dump, index)))
+      {
+        b              = btor_hashptr_table_add (sdc->dump, index);
+        b->data.as_int = 0;
+        BTOR_PUSH_STACK (all, index); /* not yet seen */
+      }
+      b->data.as_int += 1;
+    }
   }
 
   /* compute reference counts of expressions (required for determining shared
@@ -1553,9 +1591,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     cur = BTOR_PEEK_STACK (all, i);
     b   = btor_hashptr_table_get (sdc->dump, cur);
     assert (b);
-    assert (b->data.as_int == 0);
     /* cache result for later reuse */
-    b->data.as_int = get_references (sdc, cur);
+    b->data.as_int += get_references (sdc, cur);
 
     /* update references for expressions under argument nodes */
     if (btor_node_is_args (cur) && b->data.as_int > 0)
@@ -1645,7 +1682,7 @@ dump_smt (BtorSMTDumpContext *sdc)
 
     assert (!cur->parameterized);
 
-    if (btor_node_is_lambda (cur))
+    if (btor_node_is_lambda (cur) && !btor_node_is_array (cur))
       dump_fun_smt2 (sdc, cur);
     else
       dump_fun_let_smt2 (sdc, cur);
@@ -1670,7 +1707,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     if (btor_node_is_bv_const (cur)
         || btor_node_is_apply (cur)
         /* argument nodes are never dumped and not in mark */
-        || btor_node_is_args (cur))
+        || btor_node_is_args (cur) || cur->parameterized
+        || (btor_node_is_lambda (cur) && btor_node_is_array (cur)))
       continue;
     assert (btor_hashptr_table_get (sdc->dumped, cur));
   }
@@ -1681,6 +1719,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (all);
   BTOR_RELEASE_STACK (vars);
   BTOR_RELEASE_STACK (ufs);
+  BTOR_RELEASE_STACK (larr);
 
   fputs ("(check-sat)\n", sdc->file);
   fputs ("(exit)\n", sdc->file);
@@ -1824,7 +1863,7 @@ btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, uint32_t depth)
   }
 
   mark_boolean (sdc, &all);
-  if (btor_node_is_lambda (exp))
+  if (btor_node_is_lambda (exp) && !btor_node_is_array (exp))
     dump_fun_smt2 (sdc, exp);
   else
   {
