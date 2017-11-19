@@ -176,7 +176,7 @@ BtorIBV::msg (uint32_t level, const BtorIBVAssignment &a, const char *fmt, ...)
 BtorIBV::BtorIBV () : state (BTOR_IBV_START), gentrace (false), verbosity (0)
 {
   btormc = boolector_mc_new ();
-  btor   = boolector_mc_btor (btormc);
+  btor   = boolector_mc_get_btor (btormc);
   BTOR_CLR (&stats);
   BTOR_INIT_STACK (btor->mm, idtab);
   BTOR_INIT_STACK (btor->mm, assertions);
@@ -241,13 +241,13 @@ void
 BtorIBV::setVerbosity (uint32_t v)
 {
   verbosity = v;
-  boolector_mc_set_verbosity (btormc, v);
+  boolector_mc_set_opt (btormc, BTOR_MC_OPT_VERBOSITY, v);
 }
 
 void
 BtorIBV::setStop (bool stop)
 {
-  boolector_mc_set_stop_at_first_reached_property (btormc, stop);
+  boolector_mc_set_opt (btormc, BTOR_MC_OPT_STOP_FIRST, stop);
 }
 
 void
@@ -319,7 +319,7 @@ void
 BtorIBV::enableTraceGeneration ()
 {
   gentrace = true;
-  boolector_mc_enable_trace_gen (btormc);
+  boolector_mc_set_opt (btormc, BTOR_MC_OPT_TRACE_GEN, 1);
 }
 
 BtorIBVNode *
@@ -3053,9 +3053,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           assert (pos < na->nranges);
           BtorIBVNode *next = id2node (na->ranges[pos].id);
 #if 0
-	  BtorIBVRange nr (na->ranges[pos].id,
-	                   r.msb - r.lsb + na->ranges[pos].lsb,
-			   na->ranges[pos].lsb);
+          BtorIBVRange nr (na->ranges[pos].id,
+                           r.msb - r.lsb + na->ranges[pos].lsb,
+                           na->ranges[pos].lsb);
 #else
           BtorIBVRange nr (na->ranges[pos].id, r.msb, r.lsb);
 #endif

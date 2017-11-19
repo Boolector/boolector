@@ -45,7 +45,7 @@ init_mc_test (void)
   assert (!g_mc);
   g_mc = boolector_mc_new ();
   assert (!g_btor);
-  g_btor = boolector_mc_btor (g_mc);
+  g_btor = boolector_mc_get_btor (g_mc);
   assert (g_btor);
 }
 
@@ -91,9 +91,9 @@ test_mctoggle ()
   {
     init_mc_test ();
     s = boolector_bitvec_sort (g_btor, 1);
-    if (mode) boolector_mc_enable_trace_gen (g_mc);
+    if (mode) boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
 
-    // boolector_mc_set_verbosity (g_mc, 3);
+    // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
     bit  = boolector_latch (g_mc, 1, "counter");
     one  = boolector_one (g_btor, s);
@@ -155,9 +155,9 @@ test_mccount2enable ()
     init_mc_test ();
     s = boolector_bitvec_sort (g_btor, 2);
 
-    if (mode) boolector_mc_enable_trace_gen (g_mc);
+    if (mode) boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
 
-    // boolector_mc_set_verbosity (g_mc, 3);
+    // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
     counter = boolector_latch (g_mc, 2, "counter");
     enable  = boolector_input (g_mc, 1, "enable");
@@ -227,8 +227,8 @@ test_mccount2resetenable ()
 
   init_mc_test ();
 
-  boolector_mc_enable_trace_gen (g_mc);
-  // boolector_mc_set_verbosity (g_mc, 3);
+  boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
+  // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
   enable  = boolector_input (g_mc, 1, "enable");
@@ -297,8 +297,8 @@ test_mctwostepsmodel ()
 
   init_mc_test ();
 
-  boolector_mc_enable_trace_gen (g_mc);
-  boolector_mc_set_verbosity (g_mc, 3);
+  boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
+  boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
   a = boolector_latch (g_mc, 1, "a");
   b = boolector_latch (g_mc, 1, "b");
@@ -419,8 +419,8 @@ test_mccount2multi ()
   BoolectorSort s;
 
   init_mc_test ();
-  // boolector_mc_set_verbosity (g_mc, 3);
-  boolector_mc_set_stop_at_first_reached_property (g_mc, 0);
+  // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
+  boolector_mc_set_opt (g_mc, BTOR_MC_OPT_STOP_FIRST, 0);
 
   BoolectorNode *count, *one, *zero, *two, *three, *next;
   BoolectorNode *eqzero, *eqone, *eqtwo, *eqthree;

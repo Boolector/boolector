@@ -607,3 +607,29 @@ btor_util_vis_exp (Btor *btor, BtorNode *exp)
   res = system (cmd);
   return res;
 }
+
+/*------------------------------------------------------------------------*/
+
+char *
+btor_util_getenv_value (const char *lname)
+{
+  char uname[40];
+  size_t i, j;
+
+  assert (strlen (lname) + 4 + 1 < sizeof (uname));
+  uname[0] = 'B';
+  uname[1] = 'T';
+  uname[2] = 'O';
+  uname[3] = 'R';
+  for (i = 4, j = 0; i < sizeof (uname); i++, j++)
+  {
+    if (lname[j] == '-' || lname[j] == '_' || lname[j] == ':')
+    {
+      i -= 1;
+      continue;
+    }
+    uname[i] = toupper ((int32_t) lname[j]);
+  }
+
+  return getenv (uname);
+}

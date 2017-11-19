@@ -17,6 +17,7 @@
 #include "btortypes.h"
 #include "utils/btormem.h"
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -83,5 +84,11 @@ int32_t btor_util_file_exists (const char *);
 
 char *btor_util_node2string (BtorNode *);
 int32_t btor_util_vis_exp (Btor *btor, BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+char *btor_util_getenv_value (const char *name);
+
+/*------------------------------------------------------------------------*/
 
 #endif

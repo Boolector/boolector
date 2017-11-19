@@ -109,9 +109,9 @@ main (int argc, char** argv)
   }
 
   BtorMC* mc = boolector_mc_new ();
-  boolector_mc_set_verbosity (mc, verbosity);
+  boolector_mc_set_opt (mc, BTOR_MC_OPT_VERBOSITY, verbosity);
   if (witness) boolector_mc_enable_trace_gen (mc);
-  Btor* btor = boolector_mc_btor (mc);
+  Btor* btor = boolector_mc_get_btor (mc);
 
   BoolectorNode* year  = boolector_latch (mc, 32, "year");
   BoolectorNode* c1977 = boolector_int (btor, 1977, 32);

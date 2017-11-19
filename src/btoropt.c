@@ -11,7 +11,6 @@
  */
 
 #include "btoropt.h"
-#include <ctype.h>
 #include <limits.h>
 #include "boolector.h"
 #include "btorclone.h"
@@ -21,32 +20,9 @@
 #include "btorparse.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorrng.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
-
-static char *
-getenv_value (const char *lname)
-{
-  char uname[40];
-  size_t i, j;
-
-  assert (strlen (lname) + 4 + 1 < sizeof (uname));
-  uname[0] = 'B';
-  uname[1] = 'T';
-  uname[2] = 'O';
-  uname[3] = 'R';
-  for (i = 4, j = 0; i < sizeof (uname); i++, j++)
-  {
-    if (lname[j] == '-' || lname[j] == '_' || lname[j] == ':')
-    {
-      i -= 1;
-      continue;
-    }
-    uname[i] = toupper ((int32_t) lname[j]);
-  }
-
-  return getenv (uname);
-}
 
 static void
 init_opt (Btor *btor,
@@ -84,7 +60,7 @@ init_opt (Btor *btor,
 
   btor_hashptr_table_add (btor->str2opt, lng)->data.as_int = opt;
 
-  if ((valstr = getenv_value (lng)))
+  if ((valstr = btor_util_getenv_value (lng)))
   {
     v = atoi (valstr);
     if (v < min)
