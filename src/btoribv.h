@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -15,9 +15,9 @@
 #include "BitVector.h"
 
 extern "C" {
+#include "boolectormc.h"
 #include "btorabort.h"
 #include "btorcore.h"
-#include "btormc.h"
 #include "utils/btorstack.h"
 };
 
@@ -406,7 +406,7 @@ class BtorIBV : public BitVector
   //
   void setStop (bool stop);
 
-  // First alternative C-style function pointer API (as in 'btormc.h').
+  // First alternative C-style function pointer API (as in 'boolectormc.h').
   //
   void setReachedAtBoundCallBack (
       void *state, void (*fun) (void *state, int32_t i, int32_t k));

@@ -1,5 +1,5 @@
 #include "boolector.h"
-#include "btormc.h"
+#include "boolectormc.h"
 
 #include <assert.h>
 #include <stdio.h>

@@ -11,8 +11,8 @@
 
 /*------------------------------------------------------------------------*/
 
-#ifndef btormc_h_INCLUDED
-#define btormc_h_INCLUDED
+#ifndef boolectormc_h_INCLUDED
+#define boolectormc_h_INCLUDED
 
 /*------------------------------------------------------------------------*/
 

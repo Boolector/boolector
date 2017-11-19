@@ -10,7 +10,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btormc.h"
+#include "boolectormc.h"
 
 #include "boolector.h"
 #include "btorabort.h"
