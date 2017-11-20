@@ -48,15 +48,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 /*------------------------------------------------------------------------*/
 
 #define BTOR_FORMAT_MAXID (1l << 40) /* assume 64-bit compilation */
-#define BTOR_FORMAT_MAXLEN ((1l << 31) - 1)
+#define BTOR_FORMAT_MAXBITWIDTH ((1l << 31) - 1)
 
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorFormatReader BtorFormatReader;
 typedef struct BtorFormatLine BtorFormatLine;
-typedef struct BtorFormatType BtorFormatType;
+typedef struct BtorFormatSort BtorFormatSort;
 typedef struct BtorFormatLineIterator BtorFormatLineIterator;
 typedef enum BtorFormatTag BtorFormatTag;
+typedef enum BtorFormatSortTag BtorFormatSortTag;
 
 /*------------------------------------------------------------------------*/
 /* These BTOR format tags can be used for fast(er) traversal and operations
@@ -68,14 +69,10 @@ typedef enum BtorFormatTag BtorFormatTag;
  */
 enum BtorFormatTag
 {
-  BTOR_FORMAT_TAG_acond,
   BTOR_FORMAT_TAG_add,
   BTOR_FORMAT_TAG_and,
-  BTOR_FORMAT_TAG_anext,
-  BTOR_FORMAT_TAG_array,
   BTOR_FORMAT_TAG_bad,
   BTOR_FORMAT_TAG_concat,
-  BTOR_FORMAT_TAG_cond,
   BTOR_FORMAT_TAG_const,
   BTOR_FORMAT_TAG_constraint,
   BTOR_FORMAT_TAG_constd,
@@ -88,8 +85,8 @@ enum BtorFormatTag
   BTOR_FORMAT_TAG_inc,
   BTOR_FORMAT_TAG_init,
   BTOR_FORMAT_TAG_input,
+  BTOR_FORMAT_TAG_ite,
   BTOR_FORMAT_TAG_justice,
-  BTOR_FORMAT_TAG_latch,
   BTOR_FORMAT_TAG_mul,
   BTOR_FORMAT_TAG_nand,
   BTOR_FORMAT_TAG_ne,
@@ -106,7 +103,6 @@ enum BtorFormatTag
   BTOR_FORMAT_TAG_redor,
   BTOR_FORMAT_TAG_redxor,
   BTOR_FORMAT_TAG_rol,
-  BTOR_FORMAT_TAG_root,
   BTOR_FORMAT_TAG_ror,
   BTOR_FORMAT_TAG_saddo,
   BTOR_FORMAT_TAG_sdiv,
@@ -118,12 +114,14 @@ enum BtorFormatTag
   BTOR_FORMAT_TAG_sll,
   BTOR_FORMAT_TAG_slt,
   BTOR_FORMAT_TAG_slte,
+  BTOR_FORMAT_TAG_sort,
   BTOR_FORMAT_TAG_smod,
   BTOR_FORMAT_TAG_smulo,
   BTOR_FORMAT_TAG_sra,
   BTOR_FORMAT_TAG_srem,
   BTOR_FORMAT_TAG_srl,
   BTOR_FORMAT_TAG_ssubo,
+  BTOR_FORMAT_TAG_state,
   BTOR_FORMAT_TAG_sub,
   BTOR_FORMAT_TAG_uaddo,
   BTOR_FORMAT_TAG_udiv,
@@ -135,33 +133,50 @@ enum BtorFormatTag
   BTOR_FORMAT_TAG_umulo,
   BTOR_FORMAT_TAG_urem,
   BTOR_FORMAT_TAG_usubo,
-  BTOR_FORMAT_TAG_var,
   BTOR_FORMAT_TAG_write,
   BTOR_FORMAT_TAG_xnor,
   BTOR_FORMAT_TAG_xor,
   BTOR_FORMAT_TAG_zero,
 };
 
+enum BtorFormatSortTag
+{
+  BTOR_FORMAT_TAG_SORT_array,
+  BTOR_FORMAT_TAG_SORT_bitvec,
+};
+
 /*------------------------------------------------------------------------*/
 
-struct BtorFormatType
+struct BtorFormatSort
 {
-  int len;    /* length = bit-width                     */
-  int idxlen; /* index length                           */
-              /* non-zero for arrays and functions      */
+  long id;
+  BtorFormatSortTag tag;
+  const char *name;
+  union
+  {
+    struct
+    {
+      long index;
+      long element;
+    } array;
+    struct
+    {
+      unsigned width;
+    } bitvec;
+  };
 };
 
 struct BtorFormatLine
 {
-  long id;             /* positive id (non zero)                 */
-  const char *name;    /* name in ASCII: "and", "add", ...       */
-  BtorFormatTag tag;   /* same as name but encoded as integer    */
-  BtorFormatType type; /* length = bit-width (also for indices)  */
-  int arity;           /* redundant (0 <= arity <= 3)            */
-  long arg[3];         /* non zero ids up to arity               */
-  long init, next;     /* non zero if initialized or has next    */
-  char *constant;      /* non zero for const, constd, consth     */
-  char *symbol;        /* optional for: var array latch input    */
+  long id;           /* positive id (non zero)                 */
+  const char *name;  /* name in ASCII: "and", "add", ...       */
+  BtorFormatTag tag; /* same as name but encoded as integer    */
+  BtorFormatSort sort;
+  char nargs;      /* redundant (0 <= nargs <= 3)            */
+  long arg[3];     /* non zero ids up to nargs               */
+  long init, next; /* non zero if initialized or has next    */
+  char *constant;  /* non zero for const, constd, consth     */
+  char *symbol;    /* optional for: var array latch input    */
 };
 
 struct BtorFormatLineIterator

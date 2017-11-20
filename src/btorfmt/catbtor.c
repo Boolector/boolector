@@ -115,9 +115,31 @@ main (int argc, char** argv)
   it = iterate_btor_format_line (reader);
   while ((l = next_btor_format_line (&it)))
   {
-    printf ("%ld %s %d", l->id, l->name, l->type.len);
-    if (l->type.idxlen) printf (" %d", l->type.idxlen);
-    for (i = 0; i < 3 && l->arg[i]; i++) printf (" %ld", l->arg[i]);
+    printf ("%ld %s", l->id, l->name);
+    if (l->tag == BTOR_FORMAT_TAG_sort)
+    {
+      printf (" %s", l->sort.name);
+      switch (l->sort.tag)
+      {
+        case BTOR_FORMAT_TAG_SORT_bitvec:
+          printf (" %u", l->sort.bitvec.width);
+          break;
+        case BTOR_FORMAT_TAG_SORT_array:
+          printf (" %ld %ld", l->sort.array.index, l->sort.array.element);
+          break;
+        default:
+          assert (0);
+          fprintf (stderr, "*** catbtor: invalid sort encountered\n");
+          exit (1);
+      }
+    }
+    else if (l->sort.id)
+      printf (" %ld", l->sort.id);
+    for (i = 0; i < l->nargs; i++) printf (" %ld", l->arg[i]);
+    if (l->tag == BTOR_FORMAT_TAG_slice)
+      printf (" %ld %ld", l->arg[1], l->arg[2]);
+    if (l->tag == BTOR_FORMAT_TAG_sext || l->tag == BTOR_FORMAT_TAG_uext)
+      printf (" %ld", l->arg[1]);
     if (l->constant) printf (" %s", l->constant);
     if (l->symbol) printf (" %s", l->symbol);
     fputc ('\n', stdout);
