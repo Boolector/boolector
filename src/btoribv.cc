@@ -3005,7 +3005,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
       char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_input (btormc, r.getWidth (), nextname);
+      a->current.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
       btor_mem_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -3017,17 +3017,17 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_latch (btormc, r.getWidth (), name);
+      a->current.exp = boolector_mc_state (btormc, r.getWidth (), name);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
-      stats.latches++;
+      stats.states++;
     }
     break;
 
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_input (btormc, r.getWidth (), name);
+      a->current.exp = boolector_mc_input (btormc, r.getWidth (), name);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -3039,10 +3039,11 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       {
         {
           char *currentname = btor_ibv_atom_base_name (btor, n, r, 0);
-          a->current.exp = boolector_latch (btormc, r.getWidth (), currentname);
+          a->current.exp =
+              boolector_mc_state (btormc, r.getWidth (), currentname);
           btor_mem_freestr (btor->mm, currentname);
           (void) boolector_copy (btor, a->current.exp);
-          stats.latches++;
+          stats.states++;
         }
         if (n->next)
         {
@@ -3061,7 +3062,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 #endif
           char *nextname =
               btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
-          a->next.exp = boolector_input (btormc, nr.getWidth (), nextname);
+          a->next.exp = boolector_mc_input (btormc, nr.getWidth (), nextname);
           btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3070,7 +3071,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         {
           char *nextname = btor_ibv_atom_base_name (
               btor, n, r, "BtorIBV::past2");  // TODO Why?
-          a->next.exp = boolector_input (btormc, r.getWidth (), nextname);
+          a->next.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
           btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3081,10 +3082,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_CURRENT_STATE:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_latch (btormc, r.getWidth (), name);
+      a->current.exp = boolector_mc_state (btormc, r.getWidth (), name);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
-      stats.latches++;
+      stats.states++;
     }
     break;
   }
@@ -3288,7 +3289,7 @@ BtorIBV::translate ()
           assert (as->nranges == 2);
           assert (boolector_get_width (btor, n->cached)
                   >= as->range.getWidth ());
-          BoolectorNode *latch =
+          BoolectorNode *state =
               boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
           if (as->ranges[0].id)
           {
@@ -3301,7 +3302,7 @@ BtorIBV::translate ()
             assert (n->cached);
             BoolectorNode *initexp =
                 boolector_slice (btor, initnode->cached, msb0, lsb0);
-            boolector_mc_init (btormc, latch, initexp);
+            boolector_mc_init (btormc, state, initexp);
             boolector_release (btor, initexp);
             stats.inits++;
           }
@@ -3313,8 +3314,8 @@ BtorIBV::translate ()
           assert (nextnode->cached);
           BoolectorNode *nextexp =
               boolector_slice (btor, nextnode->cached, msb, lsb);
-          boolector_next (btormc, latch, nextexp);
-          boolector_release (btor, latch);
+          boolector_mc_next (btormc, state, nextexp);
+          boolector_release (btor, state);
           boolector_release (btor, nextexp);
           stats.nexts++;
         }
@@ -3338,7 +3339,7 @@ BtorIBV::translate ()
               boolector_slice (btor, nextnode->cached, msb, lsb);
           BoolectorNode *curexp =
               boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
-          boolector_next (btormc, curexp, nextexp);
+          boolector_mc_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
           boolector_release (btor, curexp);
           stats.nexts++;
@@ -3361,7 +3362,7 @@ BtorIBV::translate ()
               boolector_slice (btor, nextnode->cached, msb, lsb);
           BoolectorNode *curexp =
               boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
-          boolector_next (btormc, curexp, nextexp);
+          boolector_mc_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
           boolector_release (btor, curexp);
           stats.nexts++;
@@ -3397,14 +3398,14 @@ BtorIBV::translate ()
     BoolectorNode *good = boolector_slice (btor, n->cached, b->bit, b->bit);
     BoolectorNode *bad  = boolector_not (btor, good);
     boolector_release (btor, good);
-    boolector_bad (btormc, bad);
+    boolector_mc_bad (btormc, bad);
     boolector_release (btor, bad);
     stats.bads++;
   }
 
   /*----------------------------------------------------------------------*/
 
-  BoolectorNode *initialized_latch = 0;
+  BoolectorNode *initialized_state = 0;
   int32_t ninitialized             = 0;
   for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
   {
@@ -3418,20 +3419,21 @@ BtorIBV::translate ()
     assert (boolector_get_width (btor, constraint) == 1);
     if (a->initial)
     {
-      if (!initialized_latch)
+      if (!initialized_state)
       {
         assert (!ninitialized);
-        initialized_latch = boolector_latch (btormc, 1, "BtorIBV::initialized");
-        BoolectorSort s   = boolector_bitvec_sort (btor, 1);
+        initialized_state =
+            boolector_mc_state (btormc, 1, "BtorIBV::initialized");
+        BoolectorSort s     = boolector_bitvec_sort (btor, 1);
         BoolectorNode *zero = boolector_zero (btor, s);
         BoolectorNode *one  = boolector_one (btor, s);
         boolector_release_sort (btor, s);
-        boolector_mc_init (btormc, initialized_latch, zero);
-        boolector_next (btormc, initialized_latch, one);
+        boolector_mc_init (btormc, initialized_state, zero);
+        boolector_mc_next (btormc, initialized_state, one);
         boolector_release (btor, zero);
         boolector_release (btor, one);
       }
-      BoolectorNode *inv = boolector_not (btor, initialized_latch);
+      BoolectorNode *inv = boolector_not (btor, initialized_state);
       BoolectorNode *tmp = boolector_implies (btor, inv, constraint);
       boolector_release (btor, inv);
       boolector_release (btor, constraint);
@@ -3439,7 +3441,7 @@ BtorIBV::translate ()
       ninitialized++;
     }
 
-    boolector_constraint (btormc, constraint);
+    boolector_mc_constraint (btormc, constraint);
     boolector_release (btor, constraint);
     stats.constraints++;
   }
@@ -3451,10 +3453,10 @@ BtorIBV::translate ()
   /*----------------------------------------------------------------------*/
 
   msg (2,
-       "translated %u inputs, %u latches, %u nexts, %u inits, "
+       "translated %u inputs, %u states, %u nexts, %u inits, "
        "%u bads, %u constraints",
        stats.inputs,
-       stats.latches,
+       stats.states,
        stats.nexts,
        stats.inits,
        stats.bads,

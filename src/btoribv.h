@@ -368,7 +368,7 @@ class BtorIBV : public BitVector
 
   struct
   {
-    uint32_t inputs, latches, nexts, inits, bads, constraints;
+    uint32_t inputs, states, nexts, inits, bads, constraints;
   } stats;
 
  public:

@@ -23,11 +23,11 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorstack.h"
 
-typedef struct BtorDumpContextLatch BtorDumpContextLatch;
+typedef struct BtorDumpContextState BtorDumpContextState;
 
-struct BtorDumpContextLatch
+struct BtorDumpContextState
 {
-  BtorNode *latch;
+  BtorNode *state;
   BtorNode *init;
   BtorNode *next;
 };
@@ -40,7 +40,7 @@ struct BtorDumpContext
   Btor *btor;
   BtorPtrHashTable *idtab;
   BtorPtrHashTable *inputs;
-  BtorPtrHashTable *latches;
+  BtorPtrHashTable *states;
   BtorPtrHashTable *sorts;
   BtorNodePtrStack outputs;
   BtorNodePtrStack bads;
@@ -60,9 +60,9 @@ btor_dumpbtor_new_dump_context (Btor *btor)
   res->inputs  = btor_hashptr_table_new (btor->mm,
                                         (BtorHashPtr) btor_node_hash_by_id,
                                         (BtorCmpPtr) btor_node_compare_by_id);
-  res->latches = btor_hashptr_table_new (btor->mm,
-                                         (BtorHashPtr) btor_node_hash_by_id,
-                                         (BtorCmpPtr) btor_node_compare_by_id);
+  res->states  = btor_hashptr_table_new (btor->mm,
+                                        (BtorHashPtr) btor_node_hash_by_id,
+                                        (BtorCmpPtr) btor_node_compare_by_id);
   res->idtab   = btor_hashptr_table_new (btor->mm,
                                        (BtorHashPtr) btor_node_hash_by_id,
                                        (BtorCmpPtr) btor_node_compare_by_id);
@@ -110,17 +110,17 @@ btor_dumpbtor_delete_dump_context (BtorDumpContext *bdc)
     btor_node_release (bdc->btor, btor_iter_hashptr_next (&it));
   btor_hashptr_table_delete (bdc->inputs);
 
-  btor_iter_hashptr_init (&it, bdc->latches);
+  btor_iter_hashptr_init (&it, bdc->states);
   while (btor_iter_hashptr_has_next (&it))
   {
-    BtorDumpContextLatch *l = it.bucket->data.as_ptr;
-    btor_node_release (bdc->btor, l->latch);
+    BtorDumpContextState *l = it.bucket->data.as_ptr;
+    btor_node_release (bdc->btor, l->state);
     if (l->next) btor_node_release (bdc->btor, l->next);
     if (l->init) btor_node_release (bdc->btor, l->init);
     BTOR_DELETE (bdc->btor->mm, l);
     (void) btor_iter_hashptr_next (&it);
   }
-  btor_hashptr_table_delete (bdc->latches);
+  btor_hashptr_table_delete (bdc->states);
 
   btor_iter_hashptr_init (&it, bdc->idtab);
   while (btor_iter_hashptr_has_next (&it))
@@ -138,54 +138,54 @@ btor_dumpbtor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
   assert (BTOR_IS_REGULAR_NODE (input));
   assert (btor_node_is_bv_var (input));
   assert (!btor_hashptr_table_get (bdc->inputs, input));
-  assert (!btor_hashptr_table_get (bdc->latches, input));
+  assert (!btor_hashptr_table_get (bdc->states, input));
   (void) btor_node_copy (bdc->btor, input);
   (void) btor_hashptr_table_add (bdc->inputs, input);
 }
 
 void
-btor_dumpbtor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
+btor_dumpbtor_add_state_to_dump_context (BtorDumpContext *bdc, BtorNode *state)
 {
   BtorPtrHashBucket *b;
-  BtorDumpContextLatch *bdcl;
-  assert (BTOR_IS_REGULAR_NODE (latch));
-  assert (btor_node_is_bv_var (latch));
-  assert (!btor_hashptr_table_get (bdc->inputs, latch));
-  assert (!btor_hashptr_table_get (bdc->latches, latch));
-  b = btor_hashptr_table_add (bdc->latches, latch);
+  BtorDumpContextState *bdcl;
+  assert (BTOR_IS_REGULAR_NODE (state));
+  assert (btor_node_is_bv_var (state));
+  assert (!btor_hashptr_table_get (bdc->inputs, state));
+  assert (!btor_hashptr_table_get (bdc->states, state));
+  b = btor_hashptr_table_add (bdc->states, state);
   BTOR_CNEW (bdc->btor->mm, bdcl);
-  bdcl->latch    = btor_node_copy (bdc->btor, latch);
+  bdcl->state    = btor_node_copy (bdc->btor, state);
   b->data.as_ptr = bdcl;
 }
 
 void
 btor_dumpbtor_add_next_to_dump_context (BtorDumpContext *bdc,
-                                        BtorNode *latch,
+                                        BtorNode *state,
                                         BtorNode *next)
 {
-  BtorDumpContextLatch *l;
+  BtorDumpContextState *l;
   BtorPtrHashBucket *b;
-  b = btor_hashptr_table_get (bdc->latches, latch);
+  b = btor_hashptr_table_get (bdc->states, state);
   assert (b);
   l = b->data.as_ptr;
   assert (l);
-  assert (l->latch == latch);
+  assert (l->state == state);
   assert (!l->next);
   l->next = btor_node_copy (bdc->btor, next);
 }
 
 void
 btor_dumpbtor_add_init_to_dump_context (BtorDumpContext *bdc,
-                                        BtorNode *latch,
+                                        BtorNode *state,
                                         BtorNode *init)
 {
-  BtorDumpContextLatch *l;
+  BtorDumpContextState *l;
   BtorPtrHashBucket *b;
-  b = btor_hashptr_table_get (bdc->latches, latch);
+  b = btor_hashptr_table_get (bdc->states, state);
   assert (b);
   l = b->data.as_ptr;
   assert (l);
-  assert (l->latch == latch);
+  assert (l->state == state);
   assert (!l->init);
   l->init = btor_node_copy (bdc->btor, init);
 }
@@ -699,7 +699,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  btor_iter_hashptr_init (&it, bdc->latches);
+  btor_iter_hashptr_init (&it, bdc->states);
   while (btor_iter_hashptr_has_next (&it))
   {
     BtorNode *node = btor_iter_hashptr_next (&it);
@@ -707,19 +707,19 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_REGULAR_NODE (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d latch %u", id, btor_node_get_width (bdc->btor, node));
+    fprintf (file, "%d state %u", id, btor_node_get_width (bdc->btor, node));
     if ((symbol = btor_node_get_symbol (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
   }
 
-  btor_iter_hashptr_init (&it, bdc->latches);
+  btor_iter_hashptr_init (&it, bdc->states);
   while (btor_iter_hashptr_has_next (&it))
   {
-    BtorDumpContextLatch *bdcl = it.bucket->data.as_ptr;
-    assert (bdcl->latch);
-    assert (BTOR_IS_REGULAR_NODE (bdcl->latch));
-    assert (btor_node_is_bv_var (bdcl->latch));
+    BtorDumpContextState *bdcl = it.bucket->data.as_ptr;
+    assert (bdcl->state);
+    assert (BTOR_IS_REGULAR_NODE (bdcl->state));
+    assert (btor_node_is_bv_var (bdcl->state));
     if (bdcl->next)
     {
       bdcrec (bdc, bdcl->next, file);
@@ -728,7 +728,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
                "%d next %u %d %d\n",
                id,
                btor_node_get_width (bdc->btor, bdcl->next),
-               bdcid (bdc, bdcl->latch),
+               bdcid (bdc, bdcl->state),
                bdcid (bdc, bdcl->next));
     }
     if (bdcl->init)
@@ -739,7 +739,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
                "%d init %u %d %d\n",
                id,
                btor_node_get_width (bdc->btor, bdcl->init),
-               bdcid (bdc, bdcl->latch),
+               bdcid (bdc, bdcl->state),
                bdcid (bdc, bdcl->init));
     }
     (void) btor_iter_hashptr_next (&it);

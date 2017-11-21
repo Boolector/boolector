@@ -71,23 +71,26 @@ bool boolector_mc_is_valid_opt (BtorMC *btormc, const BtorMCOption opt);
 
 /*------------------------------------------------------------------------*/
 
+/* Get model checker's Boolector instance. */
 Btor *boolector_mc_get_btor (BtorMC *);
 
 /*------------------------------------------------------------------------*/
-/* model checking API */
 
-void boolector_mc_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
+/* Initialize state 'node' with constant 'init'. */
+void boolector_mc_init (BtorMC *, BoolectorNode *state, BoolectorNode *init);
 
-/*------------------------------------------------------------------------*/
-/* model checking API */
-BoolectorNode *boolector_input (BtorMC *, uint32_t width, const char *);
-BoolectorNode *boolector_latch (BtorMC *, uint32_t width, const char *);
+/* Create input. */
+BoolectorNode *boolector_mc_input (BtorMC *, uint32_t width, const char *);
+/* Create state. */
+BoolectorNode *boolector_mc_state (BtorMC *, uint32_t width, const char *);
 
-void boolector_next (BtorMC *, BoolectorNode *latch, BoolectorNode *next);
+/* Define 'next' state of 'state'. */
+void boolector_mc_next (BtorMC *, BoolectorNode *state, BoolectorNode *next);
 
-int32_t boolector_bad (BtorMC *, BoolectorNode *bad);
-
-int32_t boolector_constraint (BtorMC *, BoolectorNode *constraint);
+/* Define safety property 'bad'. */
+int32_t boolector_mc_bad (BtorMC *, BoolectorNode *bad);
+/* Define invariant 'constraint'. */
+int32_t boolector_mc_constraint (BtorMC *, BoolectorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 
@@ -135,7 +138,7 @@ void boolector_mc_set_starting_bound_call_back (BtorMC *,
  * '0 <= time <= k'.
  */
 char *boolector_mc_assignment (BtorMC *,
-                               BoolectorNode *input_or_latch,
+                               BoolectorNode *input_or_state,
                                int32_t time);
 
 /* The caller of 'boolector_mc_assignment' has to release the returned
