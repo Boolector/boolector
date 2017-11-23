@@ -23,7 +23,7 @@ BtorDumpContext *btor_dumpbtor_new_dump_context (Btor *);
 void btor_dumpbtor_delete_dump_context (BtorDumpContext *);
 
 void btor_dumpbtor_add_input_to_dump_context (BtorDumpContext *, BtorNode *);
-void btor_dumpbtor_add_latch_to_dump_context (BtorDumpContext *, BtorNode *);
+void btor_dumpbtor_add_state_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_dumpbtor_add_next_to_dump_context (BtorDumpContext *,
                                              BtorNode *,
                                              BtorNode *);
