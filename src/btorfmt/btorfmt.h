@@ -173,11 +173,11 @@ struct BtorFormatLine
   const char *name;  /* name in ASCII: "and", "add", ...       */
   BtorFormatTag tag; /* same as name but encoded as integer    */
   BtorFormatSort sort;
-  char nargs;      /* redundant (0 <= nargs <= 3)            */
-  long arg[3];     /* non zero ids up to nargs               */
   long init, next; /* non zero if initialized or has next    */
   char *constant;  /* non zero for const, constd, consth     */
   char *symbol;    /* optional for: var array latch input    */
+  unsigned nargs;  /* number of arguments                    */
+  long *args;      /* non zero ids up to nargs               */
 };
 
 struct BtorFormatLineIterator

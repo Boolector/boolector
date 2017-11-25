@@ -137,11 +137,11 @@ main (int argc, char** argv)
     }
     else if (l->sort.id)
       printf (" %ld", l->sort.id);
-    for (i = 0; i < l->nargs; i++) printf (" %ld", l->arg[i]);
+    for (i = 0; i < l->nargs; i++) printf (" %ld", l->args[i]);
     if (l->tag == BTOR_FORMAT_TAG_slice)
-      printf (" %ld %ld", l->arg[1], l->arg[2]);
+      printf (" %ld %ld", l->args[1], l->args[2]);
     if (l->tag == BTOR_FORMAT_TAG_sext || l->tag == BTOR_FORMAT_TAG_uext)
-      printf (" %ld", l->arg[1]);
+      printf (" %ld", l->args[1]);
     if (l->constant) printf (" %s", l->constant);
     if (l->symbol) printf (" %s", l->symbol);
     fputc ('\n', stdout);

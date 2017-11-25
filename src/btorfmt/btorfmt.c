@@ -99,6 +99,7 @@ reset_bfr (BtorFormatReader* bfr)
       if (!l) continue;
       if (l->symbol) free (l->symbol);
       if (l->constant) free (l->constant);
+      free (l->args);
       free (l);
     }
     free (bfr->table);
@@ -226,7 +227,7 @@ parse_signed_id_bfr (BtorFormatReader* bfr, long* res)
 }
 
 static int
-parse_bit_width_bfr (BtorFormatReader* bfr, unsigned* res)
+parse_pos_number_bfr (BtorFormatReader* bfr, unsigned* res)
 {
   long num;
   int ch;
@@ -390,6 +391,8 @@ new_line_bfr (BtorFormatReader* bfr,
   res->id   = id;
   res->tag  = tag;
   res->name = name;
+  res->args = malloc (sizeof (long) * 3);
+  memset (res->args, 0, sizeof (long) * 3);
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
   return res;
@@ -418,9 +421,13 @@ sort_check_bitvec (BtorFormatReader* bfr,
 static int
 sort_check_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 {
+  BtorFormatLine* arg;
   BtorFormatLine* args[3];
   unsigned i;
-  for (i = 0; i < l->nargs; i++) args[i] = id2line_bfr (bfr, l->arg[i]);
+  if (l->tag != BTOR_FORMAT_TAG_justice)
+  {
+    for (i = 0; i < l->nargs; i++) args[i] = id2line_bfr (bfr, l->args[i]);
+  }
 
   switch (l->tag)
   {
@@ -561,10 +568,10 @@ sort_check_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
     case BTOR_FORMAT_TAG_slice:
       assert (l->nargs == 1);
       if (!sort_check_bitvec (bfr, l, args)) return 0;
-      /* NOTE: this cast is safe since l->arg[1] and l->arg[2] contains
+      /* NOTE: this cast is safe since l->args[1] and l->args[2] contains
        *       upper and lower indices, which are unsigned */
-      unsigned upper = (unsigned) l->arg[1];
-      unsigned lower = (unsigned) l->arg[2];
+      unsigned upper = (unsigned) l->args[1];
+      unsigned lower = (unsigned) l->args[2];
       if (l->sort.bitvec.width != upper - lower + 1)
         return perr_bfr (bfr,
                          "expected bitvec of size %u for %s but got %u",
@@ -626,16 +633,27 @@ sort_check_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
       break;
 
     case BTOR_FORMAT_TAG_justice:
-      // TODO: check that every argument is 1?
+      for (i = 0; i < l->nargs; i++)
+      {
+        arg = id2line_bfr (bfr, l->args[i]);
+        if (arg->sort.tag != BTOR_FORMAT_TAG_SORT_bitvec)
+          return perr_bfr (bfr, "expected bitvec of size 1 for argument %u", i);
+        if (arg->sort.bitvec.width != 1)
+          return perr_bfr (bfr,
+                           "expected bitvec of size 1 for argument %u "
+                           "but got %u",
+                           i,
+                           arg->sort.bitvec.width);
+      }
       break;
 
     case BTOR_FORMAT_TAG_sext:
     case BTOR_FORMAT_TAG_uext:
       assert (l->nargs == 1);
       if (!sort_check_bitvec (bfr, l, args)) return 0;
-      /* NOTE: this cast is safe since l->arg[1] contains the extension
+      /* NOTE: this cast is safe since l->args[1] contains the extension
        *       bit-width, which is unsigned */
-      unsigned ext = args[0]->sort.bitvec.width + (unsigned) l->arg[1];
+      unsigned ext = args[0]->sort.bitvec.width + (unsigned) l->args[1];
       if (l->sort.bitvec.width != ext)
         return perr_bfr (bfr,
                          "expected bitvec of size %u for %s but got %u",
@@ -724,7 +742,7 @@ parse_sort_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   {
     tmp.tag  = BTOR_FORMAT_TAG_SORT_bitvec;
     tmp.name = "bitvec";
-    if (!parse_bit_width_bfr (bfr, &tmp.bitvec.width))
+    if (!parse_pos_number_bfr (bfr, &tmp.bitvec.width))
       return perr_bfr (bfr, "invalid width for sort bitvec");
     if (tmp.bitvec.width == 0)
       return perr_bfr (bfr, "bit width must be greater than 0");
@@ -756,14 +774,12 @@ parse_sort_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 static int
 parse_args (BtorFormatReader* bfr, BtorFormatLine* l, unsigned nargs)
 {
-  assert (nargs <= 3);
-
   unsigned i = 0;
   if (getc_bfr (bfr) != ' ')
     return perr_bfr (bfr, "expected space after sort id");
   while (i < nargs)
   {
-    if (!(l->arg[i] = parse_arg_bfr (bfr))) return 0;
+    if (!(l->args[i] = parse_arg_bfr (bfr))) return 0;
     if (i < nargs - 1 && getc_bfr (bfr) != ' ')
       return perr_bfr (bfr, "expected space after argument (argument missing)");
     i++;
@@ -788,8 +804,8 @@ parse_ext_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   if (!parse_args (bfr, l, 1)) return 0;
   if (getc_bfr (bfr) != ' ')
     return perr_bfr (bfr, "expected space after first argument");
-  if (!parse_bit_width_bfr (bfr, &ext)) return 0;
-  l->arg[1] = ext;
+  if (!parse_pos_number_bfr (bfr, &ext)) return 0;
+  l->args[1] = ext;
   return 1;
 }
 
@@ -800,9 +816,9 @@ parse_slice_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   if (!parse_ext_bfr (bfr, l)) return 0;
   if (getc_bfr (bfr) != ' ')
     return perr_bfr (bfr, "expected space after second argument");
-  if (!parse_bit_width_bfr (bfr, &lower)) return 0;
-  l->arg[2] = lower;
-  if (lower > l->arg[1])
+  if (!parse_pos_number_bfr (bfr, &lower)) return 0;
+  l->args[2] = lower;
+  if (lower > l->args[1])
     return perr_bfr (bfr, "lower has to be less than or equal to upper");
   return 1;
 }
@@ -913,16 +929,16 @@ parse_init_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   BtorFormatLine* state;
   if (!parse_sort_id_bfr (bfr, &l->sort)) return 0;
   if (!parse_args (bfr, l, 2)) return 0;
-  if (l->arg[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
-  state = id2line_bfr (bfr, l->arg[0]);
+  if (l->args[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
+  state = id2line_bfr (bfr, l->args[0]);
   // TODO: allow initialization of arrays?
   if (state->tag != BTOR_FORMAT_TAG_state)
     return perr_bfr (bfr, "expected state as first argument");
-  if (!is_constant_bfr (bfr, l->arg[1]))
+  if (!is_constant_bfr (bfr, l->args[1]))
     return perr_bfr (bfr, "expected id of constant as second argument");
   if (state->init)
     return perr_bfr (bfr, "state %ld initialized twice", state->id);
-  state->init = l->arg[1];
+  state->init = l->args[1];
   return 1;
 }
 
@@ -932,30 +948,22 @@ parse_next_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   BtorFormatLine* state;
   if (!parse_sort_id_bfr (bfr, &l->sort)) return 0;
   if (!parse_args (bfr, l, 2)) return 0;
-  if (l->arg[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
-  state = id2line_bfr (bfr, l->arg[0]);
+  if (l->args[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
+  state = id2line_bfr (bfr, l->args[0]);
   if (state->tag != BTOR_FORMAT_TAG_state)
     return perr_bfr (bfr, "expected state as first argument");
   if (state->next)
     return perr_bfr (bfr, "next for state %ld set twice", state->id);
-  state->next = l->arg[1];
+  state->next = l->args[1];
   return 1;
-}
-
-static int
-parse_output_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
-{
-  (void) bfr;
-  (void) l;
-  return 0;
 }
 
 static int
 parse_constraint_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 {
   /* contraint, bad, justice, fairness do not have a sort id after the tag */
-  if (!(l->arg[0] = parse_arg_bfr (bfr))) return 0;
-  BtorFormatLine* arg = id2line_bfr (bfr, l->arg[0]);
+  if (!(l->args[0] = parse_arg_bfr (bfr))) return 0;
+  BtorFormatLine* arg = id2line_bfr (bfr, l->args[0]);
   if (arg->tag == BTOR_FORMAT_TAG_sort)
     return perr_bfr (bfr, "unexpected sort id after tag");
   l->nargs = 1;
@@ -965,9 +973,11 @@ parse_constraint_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 static int
 parse_justice_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 {
-  // TODO: implement
-  (void) bfr;
-  (void) l;
+  unsigned nargs;
+  if (!parse_pos_number_bfr (bfr, &nargs)) return 0;
+  l->args  = realloc (l->args, sizeof (long) * nargs);
+  l->nargs = nargs;
+  if (!parse_args (bfr, l, nargs)) return 0;
   return 1;
 }
 
@@ -1061,9 +1071,7 @@ START:
       PARSE (input, input);
       PARSE (ite, ternary_op);
       break;
-    case 'j':
-      //      PARSE (justice, justice);
-      break;
+    case 'j': PARSE (justice, justice); break;
     case 'l': PARSE (state, input); break;
     case 'm': PARSE (mul, binary_op); break;
     case 'n':
