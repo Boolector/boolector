@@ -3,6 +3,7 @@ The BtorFMT software provides a generic parser for the BTOR format.
 In contrast to Boolector it falls under the following MIT style license:
 
 Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
+Copyright (c) 2017, Mathias Preiner
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -259,6 +260,17 @@ id2line_bfr (BtorFormatReader* bfr, long id)
 }
 
 static int
+skip_comment (BtorFormatReader* bfr)
+{
+  int ch;
+  while ((ch = getc_bfr (bfr)) != '\n')
+  {
+    if (ch == EOF) return perr_bfr (bfr, "unexpected end-of-file in comment");
+  }
+  return 1;
+}
+
+static int
 cmp_sort_ids (BtorFormatReader* bfr, long sort_id1, long sort_id2)
 {
   (void) bfr;
@@ -323,7 +335,16 @@ parse_symbol_bfr (BtorFormatReader* bfr)
     if (ch == EOF)
       return perr_bfr (bfr, "unexpected end-of-file in symbol");
     else if (ch == ' ' || ch == '\t')
-      return perr_bfr (bfr, "unexpected white-space in symbol");
+    {
+      ch = getc_bfr (bfr);
+      if (ch == ';')
+      {
+        if (!skip_comment (bfr)) return 0;
+        break;
+      }
+      else
+        return perr_bfr (bfr, "unexpected white-space in symbol");
+    }
     pushc_bfr (bfr, ch);
   }
   if (!bfr->nbuf) return perr_bfr (bfr, "empty symbol");
@@ -337,8 +358,17 @@ parse_opt_symbol_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
   int ch;
   if ((ch = getc_bfr (bfr)) == ' ')
   {
-    if (!parse_symbol_bfr (bfr)) return 0;
-    l->symbol = strdup (bfr->buf);
+    ch = getc_bfr (bfr);
+    if (ch == ';')
+    {
+      if (!skip_comment (bfr)) return 0;
+    }
+    else
+    {
+      ungetc_bfr (bfr, ch);
+      if (!parse_symbol_bfr (bfr)) return 0;
+      l->symbol = strdup (bfr->buf);
+    }
   }
   else if (ch != '\n')
     return perr_bfr (
@@ -954,14 +984,12 @@ parse_justice_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
         assert (bfr->table[id] == LINE);                                      \
         if (!sort_check_bfr (bfr, LINE) || !parse_opt_symbol_bfr (bfr, LINE)) \
         {                                                                     \
-          free (LINE);                                                        \
           return 0;                                                           \
         }                                                                     \
         return 1;                                                             \
       }                                                                       \
       else                                                                    \
       {                                                                       \
-        free (LINE);                                                          \
         return 0;                                                             \
       }                                                                       \
     }                                                                         \
@@ -973,6 +1001,11 @@ parse_justice_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 //         -> if yes, with constants? all values are set to constant?
 //         -> of lambdas?  -> more complicated
 //
+//
+
+// draft changes:
+// 1) allow white spaces at beginning of the line
+// 2) allow comments at the end of the line
 
 static int
 readl_bfr (BtorFormatReader* bfr)
@@ -981,17 +1014,16 @@ readl_bfr (BtorFormatReader* bfr)
   long id;
   int ch;
 START:
-  ch = getc_bfr (bfr);
+  // skip white spaces at the beginning of the line
+  while ((ch = getc_bfr (bfr)) == ' ')
+    ;
   if (ch == EOF) return 0;
   if (ch == '\n') goto START;
-  if (ch == ' ')
-    return perr_bfr (bfr, "unexpected space character at start of line");
   if (ch == '\t')
     return perr_bfr (bfr, "unexpected tab character at start of line");
   if (ch == ';')
   {
-    while ((ch = getc_bfr (bfr)) != '\n')
-      if (ch == EOF) return perr_bfr (bfr, "unexpected end-of-file in comment");
+    if (!skip_comment (bfr)) return 0;
     goto START;
   }
   ungetc_bfr (bfr, ch);

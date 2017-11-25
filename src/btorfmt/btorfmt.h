@@ -3,6 +3,7 @@ The BtorFMT software provides a generic parser for the BTOR format.
 In contrast to Boolector it falls under the following MIT style license:
 
 Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
+Copyright (c) 2017, Mathias Preiner
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
