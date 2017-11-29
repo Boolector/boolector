@@ -158,7 +158,7 @@ print_trace (BtorMC * mc, int32_t p, int32_t k)
   BoolectorNode * node;
   BtorMCFrame * f;
   char buffer[30];
-  char * a;
+  const char * a;
   int32_t i, j;
 
   printf ("bad state property %d at bound k = %d satisfiable:\n", p, k);
@@ -173,7 +173,7 @@ print_trace (BtorMC * mc, int32_t p, int32_t k)
       for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
         {
           node = BTOR_PEEK_STACK (f->inputs, j);
-          a = btor_bv_assignment_str (f->btor, node);
+          a = boolector_bv_assignment (f->btor, node);
           if (node->symbol)
             symbol = node->symbol;
           else
@@ -182,7 +182,7 @@ print_trace (BtorMC * mc, int32_t p, int32_t k)
               symbol = buffer;
             }
           printf ("%s = %s\n", symbol, a);
-          btor_mem_freestr (f->mm, a);
+          boolector_free_bv_assignment (btor, a);
         }
     }
   fflush (stdout);
@@ -313,7 +313,7 @@ btor_mc_delete (BtorMC *mc)
   BTOR_DELETEN (mm, mc->options, BTOR_MC_OPT_NUM_OPTS);
   BTOR_DELETE (mm, mc);
   btor_mem_mgr_delete (mm);
-  btor_delete (btor);
+  boolector_delete (btor);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1013,15 +1013,8 @@ initialize_new_forward_frame (BtorMC *mc)
   BtorMCFrame frame, *f;
   BoolectorNodeMap *map;
   int32_t time;
-#ifndef NDEBUG
-  uint32_t old_mc_btor_num_nodes;
-#endif
 
   btor = mc->btor;
-
-#ifndef NDEBUG
-  old_mc_btor_num_nodes = btor->nodes_unique_table.num_elements;
-#endif
 
   time = BTOR_COUNT_STACK (mc->frames);
   BTOR_CLR (&frame);
@@ -1033,7 +1026,7 @@ initialize_new_forward_frame (BtorMC *mc)
   {
     uint32_t v;
     BTOR_MSG (boolector_get_btor_msg (btor), 1, "new forward manager");
-    mc->forward = btor_new ();
+    mc->forward = boolector_new ();
     boolector_set_opt (mc->forward, BTOR_OPT_INCREMENTAL, 1);
     if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
       boolector_set_opt (mc->forward, BTOR_OPT_MODEL_GEN, 1);
@@ -1053,8 +1046,6 @@ initialize_new_forward_frame (BtorMC *mc)
   initialize_bad_state_properties_of_frame (mc, map, f);
 
   boolector_nodemap_delete (map);
-
-  assert (old_mc_btor_num_nodes == btor->nodes_unique_table.num_elements);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             1,
@@ -1337,8 +1328,6 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
     res = mc_forward2const (mc, node_at_time);
     res = boolector_copy (btor, res);
   }
-
-  // TODO wrap into Aina's BtorBVAss ....
 
   return res;
 }
