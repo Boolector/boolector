@@ -79,6 +79,7 @@ double btor_util_current_time (void);
 /*------------------------------------------------------------------------*/
 
 int32_t btor_util_file_exists (const char *);
+bool btor_util_file_has_suffix (const char *path, const char *suffix);
 
 /*------------------------------------------------------------------------*/
 

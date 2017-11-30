@@ -501,6 +501,17 @@ btor_util_file_exists (const char *path)
 }
 #endif
 
+bool
+btor_util_file_has_suffix (const char *path, const char *suffix)
+{
+  int32_t l, k, d;
+  l = strlen (path);
+  k = strlen (suffix);
+  d = l - k;
+  if (d < 0) return 0;
+  return !strcmp (path + d, suffix);
+}
+
 /*------------------------------------------------------------------------*/
 
 #define BUFFER_SIZE 1024

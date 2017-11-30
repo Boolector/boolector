@@ -804,19 +804,6 @@ set_alarm (void)
 
 /*------------------------------------------------------------------------*/
 
-static bool
-has_suffix (const char *str, const char *suffix)
-{
-  int32_t l, k, d;
-  l = strlen (str);
-  k = strlen (suffix);
-  d = l - k;
-  if (d < 0) return 0;
-  return !strcmp (str + d, suffix);
-}
-
-/*------------------------------------------------------------------------*/
-
 #define NO_VALUE_READ(val) \
   (val == BTORMAIN_READ_ARG_NONE || val == BTORMAIN_READ_ARG_NONE_VIA_EQ)
 
@@ -904,19 +891,19 @@ boolector_main (int32_t argc, char **argv)
       {
         g_app->infile = 0;
       }
-      else if (has_suffix (g_app->infile_name, ".gz")
-               || has_suffix (g_app->infile_name, ".bz2")
-               || has_suffix (g_app->infile_name, ".7z")
-               || has_suffix (g_app->infile_name, ".zip"))
+      else if (btor_util_file_has_suffix (g_app->infile_name, ".gz")
+               || btor_util_file_has_suffix (g_app->infile_name, ".bz2")
+               || btor_util_file_has_suffix (g_app->infile_name, ".7z")
+               || btor_util_file_has_suffix (g_app->infile_name, ".zip"))
       {
         BTOR_NEWN (g_app->mm, cmd, len + 40);
-        if (has_suffix (g_app->infile_name, ".gz"))
+        if (btor_util_file_has_suffix (g_app->infile_name, ".gz"))
           sprintf (cmd, "gunzip -c %s", g_app->infile_name);
-        else if (has_suffix (g_app->infile_name, ".bz2"))
+        else if (btor_util_file_has_suffix (g_app->infile_name, ".bz2"))
           sprintf (cmd, "bzcat %s", g_app->infile_name);
-        else if (has_suffix (g_app->infile_name, ".7z"))
+        else if (btor_util_file_has_suffix (g_app->infile_name, ".7z"))
           sprintf (cmd, "7z x -so %s 2> /dev/null", g_app->infile_name);
-        else if (has_suffix (g_app->infile_name, ".zip"))
+        else if (btor_util_file_has_suffix (g_app->infile_name, ".zip"))
           sprintf (cmd, "unzip -p %s", g_app->infile_name);
 
         if ((g_app->infile = popen (cmd, "r"))) g_app->close_infile = 2;
