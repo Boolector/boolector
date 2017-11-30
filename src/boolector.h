@@ -2170,4 +2170,25 @@ void boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots);
   :param merge_roots: Merge all roots of AIG.
 */
 void boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots);
+
+/*------------------------------------------------------------------------*/
+
+/*!
+  Get Boolector's copyright notice.
+
+  :param btor: Boolector instance
+  :return: A string with Boolector's copyright notice.
+*/
+const char *boolector_copyright (Btor *btor);
+
+/*!
+  Get Boolector's version string.
+
+  :param btor: Boolector instance.
+  :return: A string with Boolector's version.
+*/
+const char *boolector_version (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
 #endif

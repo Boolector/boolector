@@ -308,9 +308,9 @@ cdef extern from "boolector.h":
 
 #    bool boolector_is_var (Btor * btor, BoolectorNode * node)
 
-    const char * boolector_get_bits (Btor *, BoolectorNode * node)
+    const char * boolector_get_bits (Btor * btor, BoolectorNode * node)
 
-    void boolector_free_bits (Btor *, const char * bits)
+    void boolector_free_bits (Btor * btor, const char * bits)
 
 #    bool boolector_is_array (Btor * btor, BoolectorNode * node)
 
@@ -410,3 +410,7 @@ cdef extern from "boolector.h":
     void boolector_dump_aiger_ascii (Btor * btor, FILE * file, bool merge_roots)
 
     void boolector_dump_aiger_binary (Btor * btor, FILE * file, bool merge_roots)
+
+    const char * boolector_copyright (Btor * btor);
+
+    const char * boolector_version (Btor * btor);

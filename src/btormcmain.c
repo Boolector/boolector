@@ -105,15 +105,12 @@ print_opt (FILE *out,
 }
 
 static void
-print_help (BtorMC *mc)
+print_help (FILE *out, BtorMC *mc)
 {
   assert (mc);
 
   int32_t i;
   BtorMCOpt *o;
-  FILE *out;
-
-  out = stdout;
 
   fprintf (out, "usage: boolectormc [<option>...][<input>]\n");
   fprintf (out, "\n");
@@ -138,16 +135,30 @@ int32_t
 main (int32_t argc, char **argv)
 {
   int32_t i;
-  BtorMC *btormc;
+  char *arg;
+  BtorMC *mc;
+  FILE *out;
 
-  btormc = boolector_mc_new ();
+  out = stdout;
+  mc  = boolector_mc_new ();
 
   for (i = 1; i < argc; i++)
   {
-    if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
+    arg = argv[i];
+
+    if (strcmp (arg, "-h") == 0 || strcmp (arg, "--help") == 0)
     {
-      print_help (btormc);
+      print_help (out, mc);
       return 0;
+    }
+    else if (strcmp (arg, "--copyright") == 0)
+    {
+      fprintf (out, "%s", boolector_copyright (mc->btor));
+      return 0;
+    }
+    else if (strcmp (arg, "--version") == 0)
+    {
+      fprintf (out, "%s\n", boolector_version (mc->btor));
     }
   }
 }

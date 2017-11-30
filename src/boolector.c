@@ -4147,3 +4147,53 @@ boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
   BTOR_CHKCLONE_NORES (dump_aiger_binary, stdout, merge_roots);
 #endif
 }
+
+/*------------------------------------------------------------------------*/
+
+const char *
+boolector_copyright (Btor *btor)
+{
+  /* do not trace, not necessary */
+  BTOR_ABORT_ARG_NULL (btor);
+  return "This software is\n"
+         "Copyright (c) 2007-2009 Robert Brummayer\n"
+         "Copyright (c) 2007-2016 Armin Biere\n"
+         "Copyright (c) 2012-2017 Aina Niemetz, Mathias Preiner\n"
+         "Institute for Formal Models and Verification\n"
+         "Johannes Kepler University, Linz, Austria\n"
+#ifdef BTOR_USE_LINGELING
+         "\n"
+         "This software is linked against Lingeling\n"
+         "Copyright (c) 2010-2016 Armin Biere\n"
+         "Institute for Formal Models and Verification\n"
+         "Johannes Kepler University, Linz, Austria\n"
+#endif
+#ifdef BTOR_USE_PICOSAT
+         "\n"
+         "This software is linked against PicoSAT\n"
+         "Copyright (c) 2006-2016 Armin Biere\n"
+         "Institute for Formal Models and Verification\n"
+         "Johannes Kepler University, Linz, Austria\n"
+#endif
+#ifdef BTOR_USE_MINISAT
+         "\n"
+         "This software is linked against MiniSAT\n"
+         "Copyright (c) 2003-2013, Niklas Een, Niklas Sorensson\n"
+#endif
+#ifdef BTOR_USE_CADICAL
+         "\n"
+         "This software is linked against CaDiCaL\n"
+         "Copyright (c) 2016-2017 Armin Biere\n"
+         "Institute for Formal Models and Verification\n"
+         "Johannes Kepler University, Linz, Austria\n"
+#endif
+         "";
+}
+
+const char *
+boolector_version (Btor *btor)
+{
+  /* do not trace, not necessary */
+  BTOR_ABORT_ARG_NULL (btor);
+  return btor_version (btor);
+}

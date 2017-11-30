@@ -4,6 +4,9 @@ from boolector import Boolector
 
 if __name__ == "__main__":
     b = Boolector() 
+    print ("Boolector version " + b.Version())
+    print ()
+    print (b.Copyright())
 
 ### Creating Boolector nodes
 

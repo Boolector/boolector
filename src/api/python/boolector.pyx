@@ -599,8 +599,9 @@ cdef class Boolector:
         if self._c_btor is not NULL:
             btorapi.boolector_py_delete(self._c_btor)
 
+    #########################################################################
     # termination callback 
-    
+
     def Set_term(self, fun, args):
         """ Set_term(fun, args)
 
@@ -655,7 +656,18 @@ cdef class Boolector:
         res = btorapi.boolector_terminate(self._c_btor)
         return res > 0
 
+    #########################################################################
     # Boolector API functions (general)
+
+    def Copyright(self):
+            cdef const char * c_str
+            c_str = btorapi.boolector_copyright(self._c_btor)
+            return _to_str(c_str)
+
+    def Version(self):
+            cdef const char * c_str
+            c_str = btorapi.boolector_version(self._c_btor)
+            return _to_str(c_str)
 
     def Assert(self, *assertions):
         """ Assert(a,...)
