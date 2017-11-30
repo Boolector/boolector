@@ -7,6 +7,6 @@ $(BINDIR)/boolectormc: $(BUILDIR)/btormcmain.o $(LDEPS)
 
 clean: boolectormc.clean
 
-btormbt.clean:
+boolectormc.clean:
 	rm -f $(BUILDIR)/boolectormc $(BUILDIR)/boolectormc.o $(BUILDIR)/btormcmain.o
 
