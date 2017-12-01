@@ -1,3 +1,16 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2016-2017 Aina Niemetz.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
+#ifndef BTOROPTPARSE_H_INCLUDED
+#define BTOROPTPARSE_H_INCLUDED
+
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
@@ -5,16 +18,49 @@
 
 /*------------------------------------------------------------------------*/
 
-enum BtorReadArg
+enum BtorArgRead
 {
-  BTOR_READ_ARG_NONE,
-  BTOR_READ_ARG_NONE_VIA_EQ,
-  BTOR_READ_ARG_STR,
-  BTOR_READ_ARG_STR_VIA_EQ,
-  BTOR_READ_ARG_INT,
-  BTOR_READ_ARG_INT_VIA_EQ,
+  BTOR_ARG_READ_NONE,
+  BTOR_ARG_READ_NONE_VIA_EQ,
+  BTOR_ARG_READ_STR,
+  BTOR_ARG_READ_STR_VIA_EQ,
+  BTOR_ARG_READ_INT,
+  BTOR_ARG_READ_INT_VIA_EQ,
 };
-typedef enum BtorReadArg BtorReadArg;
+typedef enum BtorArgRead BtorArgRead;
+
+enum BtoArgExpected
+{
+  BTOR_ARG_EXPECT_NONE,
+  BTOR_ARG_EXPECT_INT,
+  BTOR_ARG_EXPECT_STR,
+};
+typedef enum BtoArgExpected BtoArgExpected;
+
+/*------------------------------------------------------------------------*/
+
+#define BTOR_ARG_READ_NO_VALUE(val) \
+  (val == BTOR_ARG_READ_NONE || val == BTOR_ARG_READ_NONE_VIA_EQ)
+
+#define BTOR_ARG_READ_IS_INT(val) \
+  (val == BTOR_ARG_READ_INT || val == BTOR_ARG_READ_INT_VIA_EQ)
+
+#define BTOR_ARG_IS_UNEXPECTED(arg, readval, isdisable)                       \
+  ((arg == BTOR_ARG_EXPECT_NONE || (arg == BTOR_ARG_EXPECT_INT && isdisable)) \
+   && (readval == BTOR_ARG_READ_STR_VIA_EQ                                    \
+       || readval == BTOR_ARG_READ_INT_VIA_EQ                                 \
+       || readval == BTOR_ARG_READ_INT))
+
+#define BTOR_ARG_IS_MISSING(arg, candisable, readval)               \
+  ((arg == BTOR_ARG_EXPECT_STR && BTOR_ARG_READ_NO_VALUE (readval)) \
+   || (arg == BTOR_ARG_EXPECT_INT                                   \
+       && (((!candisable                                            \
+             && (BTOR_ARG_READ_NO_VALUE (readval)                   \
+                 || !BTOR_ARG_READ_IS_INT (readval))))              \
+           || (readval == BTOR_ARG_READ_NONE_VIA_EQ))))
+
+#define BTOR_ARG_IS_INVALID(arg, candisable, readval) \
+  (arg == BTOR_ARG_EXPECT_INT && readval == BTOR_ARG_READ_STR_VIA_EQ)
 
 /*------------------------------------------------------------------------*/
 
@@ -27,7 +73,7 @@ struct BtorParsedOpt
   char *valstr;        /* original option value string (0 if not given) */
   bool isshrt;         /* is short option? */
   bool isdisable;      /* is --no-* option? (disabling option) */
-  BtorReadArg readval; /* how did we read the passed option value? */
+  BtorArgRead readval; /* how did we read the passed option value? */
 };
 typedef struct BtorParsedOpt BtorParsedOpt;
 
@@ -50,3 +96,5 @@ void btor_optparse_parse (BtorMemMgr *mm,
                           BtorParsedOptPtrStack *opts,
                           BtorParsedInputPtrStack *infiles,
                           bool (*has_str_arg) (const char *));
+
+#endif

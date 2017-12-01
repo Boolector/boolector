@@ -82,14 +82,6 @@ enum BtorMainOption
 };
 typedef enum BtorMainOption BtorMainOption;
 
-enum BtorMainOptArg
-{
-  BTORMAIN_OPT_ARG_NONE,
-  BTORMAIN_OPT_ARG_INT,
-  BTORMAIN_OPT_ARG_STR,
-};
-typedef enum BtorMainOptArg BtorMainOptArg;
-
 typedef struct BtorMainOpt
 {
   bool general;       /* general option? */
@@ -102,7 +94,7 @@ typedef struct BtorMainOpt
   uint32_t max;       /* max value */
   bool candisable;    /* can be disabled via '-(-)no-XX'? */
   bool isflag;        /* is option flag? */
-  BtorMainOptArg arg; /* expects argument? */
+  BtoArgExpected arg; /* expects argument? */
 } BtorMainOpt;
 
 /*------------------------------------------------------------------------*/
@@ -135,7 +127,7 @@ btormain_init_opt (BtorMainApp *app,
                    uint32_t min,
                    uint32_t max,
                    bool candisable,
-                   BtorMainOptArg arg,
+                   BtoArgExpected arg,
                    char *desc)
 {
   assert (app);
@@ -175,7 +167,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "print this message and exit");
   btormain_init_opt (app,
                      BTORMAIN_OPT_COPYRIGHT,
@@ -187,7 +179,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "print copyright and exit");
   btormain_init_opt (app,
                      BTORMAIN_OPT_VERSION,
@@ -199,7 +191,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "print version and exit");
   btormain_init_opt (app,
                      BTORMAIN_OPT_TIME,
@@ -211,7 +203,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      UINT_MAX,
                      false,
-                     BTORMAIN_OPT_ARG_INT,
+                     BTOR_ARG_EXPECT_INT,
                      "set time limit");
   btormain_init_opt (app,
                      BTORMAIN_OPT_OUTPUT,
@@ -223,7 +215,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      false,
-                     BTORMAIN_OPT_ARG_STR,
+                     BTOR_ARG_EXPECT_STR,
                      "set output file for dumping");
   btormain_init_opt (
       app,
@@ -236,7 +228,7 @@ btormain_init_opts (BtorMainApp *app)
       BTOR_ENGINE_MIN,
       BTOR_ENGINE_MAX,
       false,
-      BTORMAIN_OPT_ARG_STR,
+      BTOR_ARG_EXPECT_STR,
       "set engine (core sls prop aigprop) [core]");
   btormain_init_opt (
       app,
@@ -249,7 +241,7 @@ btormain_init_opts (BtorMainApp *app)
       BTOR_SAT_ENGINE_MIN + 1,
       BTOR_SAT_ENGINE_MAX - 1,
       false,
-      BTORMAIN_OPT_ARG_STR,
+      BTOR_ARG_EXPECT_STR,
       "set sat solver");
 #ifdef BTOR_USE_LINGELING
   btormain_init_opt (app,
@@ -262,7 +254,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "do not use 'fork/clone' for Lingeling");
 #endif
   btormain_init_opt (app,
@@ -275,7 +267,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force hexadecimal number output");
   btormain_init_opt (app,
                      BTORMAIN_OPT_DEC,
@@ -287,7 +279,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force decimal number output");
   btormain_init_opt (app,
                      BTORMAIN_OPT_BIN,
@@ -299,7 +291,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force binary number output");
   btormain_init_opt (app,
                      BTORMAIN_OPT_BTOR,
@@ -311,7 +303,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force BTOR input format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_SMT2,
@@ -323,7 +315,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force SMT-LIB v2 input format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_SMT1,
@@ -335,7 +327,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "force SMT-LIB v1 input format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_DUMP_BTOR,
@@ -347,12 +339,12 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "dump formula in BTOR format");
 #if 0
   btormain_init_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, true,
                      "dump-btor2", "db2", 0, 0, 1,
-                     false, BTORMAIN_OPT_ARG_NONE,
+                     false, BTOR_ARG_EXPECT_NONE,
                      "dump formula in BTOR 2.0 format");
 #endif
   btormain_init_opt (app,
@@ -365,7 +357,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "dump formula in SMT-LIB v2 format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_DUMP_AAG,
@@ -377,7 +369,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "dump QF_BV formula in ascii AIGER format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_DUMP_AIG,
@@ -389,7 +381,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "dump QF_BV formula in binary AIGER format");
   btormain_init_opt (app,
                      BTORMAIN_OPT_DUMP_AIGER_MERGE,
@@ -401,7 +393,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      true,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "merge all roots of AIG [0]");
   btormain_init_opt (app,
                      BTORMAIN_OPT_SMT2_MODEL,
@@ -413,7 +405,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      1,
                      false,
-                     BTORMAIN_OPT_ARG_NONE,
+                     BTOR_ARG_EXPECT_NONE,
                      "print model in SMT-LIB v2 format "
                      "if model generation is enabled");
 }
@@ -431,7 +423,7 @@ btormain_opt_has_str_arg (const char *opt)
     mo = &g_app->options[mopt];
     if ((mo->shrt && strcmp (mo->shrt, opt) == 0) || strcmp (mo->lng, opt) == 0)
     {
-      return g_app->options[mopt].arg == BTORMAIN_OPT_ARG_STR;
+      return g_app->options[mopt].arg == BTOR_ARG_EXPECT_STR;
     }
   }
   return false;
@@ -819,29 +811,6 @@ set_alarm (void)
 
 /*------------------------------------------------------------------------*/
 
-#define NO_VALUE_READ(val) \
-  (val == BTOR_READ_ARG_NONE || val == BTOR_READ_ARG_NONE_VIA_EQ)
-
-#define READ_ARG_IS_INT(val) \
-  (val == BTOR_READ_ARG_INT || val == BTOR_READ_ARG_INT_VIA_EQ)
-
-#define HAS_UNEXPECTED_ARGUMENT(arg, readval, isdisable) \
-  ((arg == BTORMAIN_OPT_ARG_NONE                         \
-    || (arg == BTORMAIN_OPT_ARG_INT && isdisable))       \
-   && (readval == BTOR_READ_ARG_STR_VIA_EQ               \
-       || readval == BTOR_READ_ARG_INT_VIA_EQ            \
-       || readval == BTOR_READ_ARG_INT))
-
-#define HAS_MISSING_ARGUMENT(arg, candisable, readval)                    \
-  ((arg == BTORMAIN_OPT_ARG_STR && NO_VALUE_READ (readval))               \
-   || (arg == BTORMAIN_OPT_ARG_INT                                        \
-       && (((!candisable                                                  \
-             && (NO_VALUE_READ (readval) || !READ_ARG_IS_INT (readval)))) \
-           || (readval == BTOR_READ_ARG_NONE_VIA_EQ))))
-
-#define HAS_INVALID_ARGUMENT(arg, candisable, readval) \
-  (arg == BTORMAIN_OPT_ARG_INT && readval == BTOR_READ_ARG_STR_VIA_EQ)
-
 int32_t
 boolector_main (int32_t argc, char **argv)
 {
@@ -960,9 +929,9 @@ boolector_main (int32_t argc, char **argv)
         btormain_error (g_app, "invalid option '%s'", po->orig.start);
         goto DONE;
       }
-      if (bmo->arg == BTORMAIN_OPT_ARG_NONE)
+      if (bmo->arg == BTOR_ARG_EXPECT_NONE)
       {
-        if (HAS_UNEXPECTED_ARGUMENT (bmo->arg, po->readval, po->isdisable))
+        if (BTOR_ARG_IS_UNEXPECTED (bmo->arg, po->readval, po->isdisable))
         {
           btormain_error (
               g_app, "option '%s' does not expect an argument", po->orig.start);
@@ -971,12 +940,12 @@ boolector_main (int32_t argc, char **argv)
       }
       else
       {
-        if (HAS_MISSING_ARGUMENT (bmo->arg, bmo->candisable, po->readval))
+        if (BTOR_ARG_IS_MISSING (bmo->arg, bmo->candisable, po->readval))
         {
           btormain_error (g_app, "missing argument for '%s'", po->orig.start);
           goto DONE;
         }
-        if (HAS_INVALID_ARGUMENT (bmo->arg, bmo->candisable, po->readval))
+        if (BTOR_ARG_IS_INVALID (bmo->arg, bmo->candisable, po->readval))
         {
           btormain_error (
               g_app, "invalid argument for '%s', expected int", po->orig.start);
@@ -1157,12 +1126,12 @@ boolector_main (int32_t argc, char **argv)
         btormain_error (g_app, "invalid option '%s'", po->orig.start);
         goto DONE;
       }
-      if (HAS_MISSING_ARGUMENT (BTORMAIN_OPT_ARG_INT, bo->isflag, po->readval))
+      if (BTOR_ARG_IS_MISSING (BTOR_ARG_EXPECT_INT, bo->isflag, po->readval))
       {
         btormain_error (g_app, "missing argument for '%s'", po->orig.start);
         goto DONE;
       }
-      if (HAS_INVALID_ARGUMENT (BTORMAIN_OPT_ARG_INT, bo->isflag, po->readval))
+      if (BTOR_ARG_IS_INVALID (BTOR_ARG_EXPECT_INT, bo->isflag, po->readval))
       {
         btormain_error (
             g_app, "invalid argument for '%s', expected int", po->orig.start);
@@ -1185,7 +1154,7 @@ boolector_main (int32_t argc, char **argv)
           switch (bopt)
           {
             case BTOR_OPT_MODEL_GEN:
-              if (READ_ARG_IS_INT (po->readval) && po->val == 0)
+              if (BTOR_ARG_READ_IS_INT (po->readval) && po->val == 0)
               {
                 mgen   = 0;
                 pmodel = 0;
@@ -1202,7 +1171,7 @@ boolector_main (int32_t argc, char **argv)
 #else
             case BTOR_OPT_VERBOSITY:
 #endif
-              if (READ_ARG_IS_INT (po->readval))
+              if (BTOR_ARG_READ_IS_INT (po->readval))
                 boolector_set_opt (btor, bopt, po->val);
               else
                 boolector_set_opt (
@@ -1210,7 +1179,7 @@ boolector_main (int32_t argc, char **argv)
               break;
             default:
               assert (bopt != BTOR_OPT_NUM_OPTS);
-              if (READ_ARG_IS_INT (po->readval))
+              if (BTOR_ARG_READ_IS_INT (po->readval))
                 boolector_set_opt (btor, bopt, po->val);
               else
                 boolector_set_opt (btor, bopt, 1);
@@ -1219,7 +1188,7 @@ boolector_main (int32_t argc, char **argv)
       }
       else
       {
-        assert (READ_ARG_IS_INT (po->readval));
+        assert (BTOR_ARG_READ_IS_INT (po->readval));
         boolector_set_opt (btor, bopt, po->val);
       }
     }

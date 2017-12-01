@@ -1,6 +1,17 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2016-2017 Aina Niemetz.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
 
 #include "utils/btoroptparse.h"
 #include "utils/btorutil.h"
+
+/*------------------------------------------------------------------------*/
 
 void
 btor_optparse_parse (BtorMemMgr *mm,
@@ -60,25 +71,25 @@ btor_optparse_parse (BtorMemMgr *mm,
       /* extract option argument (if any) */
       if (arg[j] == '=')
       {
-        o->readval = BTOR_READ_ARG_NONE_VIA_EQ;
+        o->readval = BTOR_ARG_READ_NONE_VIA_EQ;
         o->valstr  = arg + j + 1;
         if (o->valstr[0] != 0)
         {
-          o->readval = BTOR_READ_ARG_STR_VIA_EQ;
+          o->readval = BTOR_ARG_READ_STR_VIA_EQ;
           o->val     = (uint32_t) strtol (o->valstr, &tmp, 10);
-          if (tmp[0] == 0) o->readval = BTOR_READ_ARG_INT_VIA_EQ;
+          if (tmp[0] == 0) o->readval = BTOR_ARG_READ_INT_VIA_EQ;
         }
       }
       else
       {
         if (i + 1 < argc && argv[i + 1][0] != '-')
         {
-          o->readval = BTOR_READ_ARG_STR;
+          o->readval = BTOR_ARG_READ_STR;
           o->valstr  = argv[i + 1];
           o->val     = (uint32_t) strtol (o->valstr, &tmp, 10);
           if (tmp[0] == 0)
           {
-            o->readval = BTOR_READ_ARG_INT;
+            o->readval = BTOR_ARG_READ_INT;
             i += 1;
           }
           else if (has_str_arg (o->name.start))
@@ -87,7 +98,7 @@ btor_optparse_parse (BtorMemMgr *mm,
           }
           else
           {
-            o->readval = BTOR_READ_ARG_NONE;
+            o->readval = BTOR_ARG_READ_NONE;
             o->valstr  = 0;
           }
         }
