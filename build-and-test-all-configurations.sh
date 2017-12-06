@@ -3,7 +3,7 @@ msg () {
   echo "[`basename $0`] $*" | tee -a $log
 }
 die () {
-  echo "*** `basenae $0`: $*" | tee -a $log 1>&2
+  echo "*** `basename $0`: $*" | tee -a $log | tee -a $err 1>&2
   exit 1
 }
 build () {
@@ -13,24 +13,28 @@ build () {
   msg "CC=$CC CXX=$CXX ./configure.sh $*"
   if [ -f makefile ]
   then
-    make clean >> $log || die "'make clean' failed"
+    make clean 1>> $log 2>>$err || die "'make clean' failed"
   fi
-  CC=$CC CXX=$CXX ./configure.sh $* >> $log || die "'configure.sh' failed"
-  make >> $log || die "'make' failed"
+  CC=$CC CXX=$CXX ./configure.sh $* 1>> $log 2>>$err || \
+    die "'configure.sh' failed"
+  make 1>> $log 2>>$err || die "'make' failed"
   [ -f bin/test ] || die "'./bin/test' not found"
-  ./bin/test >> $log || die "'./bin/test' failed"
+  ./bin/test 1>> $log 2>>$err || die "'./bin/test' failed"
   passed=`expr $passed + 1`
 }
-
 
 msg "begin `date`"
 
 log="/tmp/`basename $0 .sh`.log"
-rm -f $log
-msg "logging stdout in '$log'"
+err="/tmp/`basename $0 .sh`.err"
+rm -f $log $err
 
-# we keep these on seperate lines to be able to move
-# failing configurations to the top for debugging
+msg "logging 'stdout' to '$log'"
+msg "logging 'stderr' to '$err'"
+msg "warning and error messages on 'stderr' are also shown here"
+
+# keep these on seperate lines in order to be able to
+# copy failing configurations to the top for debugging
 
 build clang clang++ --only-lingeling
 build clang clang++ --only-lingeling -g
