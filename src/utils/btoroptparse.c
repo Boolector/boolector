@@ -92,7 +92,7 @@ btor_optparse_parse (BtorMemMgr *mm,
             o->readval = BTOR_ARG_READ_INT;
             i += 1;
           }
-          else if (has_str_arg (o->name.start))
+          else if (has_str_arg && has_str_arg (o->name.start))
           {
             i += 1;
           }
