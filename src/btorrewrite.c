@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2015 Armin Biere.
+ *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
@@ -4746,21 +4746,21 @@ apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
 
 /* FORALL rules */
 
-#ifndef NDEBUG
+#if 0
 
 /* match:  (\forall x . t) where x does not occur in t
  * result: t
  */
 static inline int
-applies_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
-{
+applies_param_free_forall (Btor * btor, BtorNode * param, BtorNode * body)
+{ 
   (void) btor;
   (void) body;
   return param->parents == 0;
 }
 
 static inline BtorNode *
-apply_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
+apply_param_free_forall (Btor * btor, BtorNode * param, BtorNode * body)
 {
   assert (applies_param_free_forall (btor, param, body));
   (void) param;
@@ -4797,7 +4797,7 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_exp_false (btor);
 }
 
-#ifndef NDEBUG
+#if 0
 
 /* EXISTS rules */
 
@@ -4805,15 +4805,15 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
  * result: t
  */
 static inline int
-applies_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
-{
+applies_param_free_exists (Btor * btor, BtorNode * param, BtorNode * body)
+{ 
   (void) btor;
   (void) body;
   return param->parents == 0;
 }
 
 static inline BtorNode *
-apply_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
+apply_param_free_exists (Btor * btor, BtorNode * param, BtorNode * body)
 {
   assert (applies_param_free_exists (btor, param, body));
   (void) param;

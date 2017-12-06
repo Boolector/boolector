@@ -32,8 +32,8 @@ msg "logging stdout in '$log'"
 # we keep these on seperate lines to be able to move
 # failing configurations to the top for debugging
 
-build clang clang++ --only-lingeling -g
 build clang clang++ --only-lingeling
+build clang clang++ --only-lingeling -g
 build clang clang++ --only-lingeling -c
 build clang clang++ --only-lingeling -l
 
