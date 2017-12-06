@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2011-2014 Armin Biere.
+ *  Copyright (C) 2011-2017 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *
@@ -1643,10 +1643,7 @@ prev_item_was_lpar_smt2 (BtorSMT2Parser *parser)
 static int32_t
 parse_int32_smt2 (BtorSMT2Parser *parser, bool posonly, int32_t *resptr)
 {
-  int32_t i, tag;
-  char c, t;
-
-  tag = read_token_smt2 (parser);
+  int32_t tag = read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !perr_smt2 (parser,
@@ -2116,7 +2113,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                      BoolectorNode **resptr,
                      BtorSMT2Coo *cooptr)
 {
-  char c, t;
   const char *msg;
   int32_t k, tag, open = 0, work_cnt;
   uint32_t width, width2, domain, nargs, i, j;
