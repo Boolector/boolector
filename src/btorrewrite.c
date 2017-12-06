@@ -4746,6 +4746,8 @@ apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
 
 /* FORALL rules */
 
+#ifndef NDEBUG
+
 /* match:  (\forall x . t) where x does not occur in t
  * result: t
  */
@@ -4764,6 +4766,8 @@ apply_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
   (void) param;
   return btor_node_copy (btor, body);
 }
+
+#endif
 
 /* match: \forall x . x = t    if x \not \in vars(t)
  * match: \forall x . x != t    if x \not \in vars(t)
@@ -4793,6 +4797,8 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_exp_false (btor);
 }
 
+#ifndef NDEBUG
+
 /* EXISTS rules */
 
 /* match:  (\exists x . t) where x does not occur in t
@@ -4813,6 +4819,8 @@ apply_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
   (void) param;
   return btor_node_copy (btor, body);
 }
+
+#endif
 
 /* match: \exists x . x = t    if x \not \in vars(t)
  * match: \exists x . x != t    if x \not \in vars(t)

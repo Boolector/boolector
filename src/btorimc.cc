@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btoribv.h"
+#include "btoribv.hh"
 
 #include <cstdarg>
 #include <cstdio>
