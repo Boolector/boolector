@@ -4,6 +4,7 @@ In contrast to Boolector it falls under the following MIT style license:
 
 Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
 Copyright (c) 2017, Mathias Preiner
+Copyright (c) 2017, Aina Niemetz
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -44,7 +45,7 @@ struct BtorFormatReader
 };
 
 BtorFormatReader*
-new_btor_format_reader ()
+btorfmt_new ()
 {
   BtorFormatReader* res = malloc (sizeof *res);
   if (!res) return 0;
@@ -54,13 +55,13 @@ new_btor_format_reader ()
 }
 
 void
-set_btor_format_reader_verbosity (BtorFormatReader* bfr, int verbosity)
+btorfmt_set_verbosity (BtorFormatReader* bfr, int verbosity)
 {
   bfr->verbosity = verbosity;
 }
 
 void
-set_btor_format_reader_prefix (BtorFormatReader* bfr, const char* prefix)
+btorfmt_set_prefix (BtorFormatReader* bfr, const char* prefix)
 {
   free (bfr->prefix);
   bfr->prefix = strdup (prefix ? prefix : "");
@@ -120,7 +121,7 @@ reset_bfr (BtorFormatReader* bfr)
 }
 
 void
-delete_btor_format_reader (BtorFormatReader* bfr)
+btorfmt_delete (BtorFormatReader* bfr)
 {
   reset_bfr (bfr);
   free (bfr);
@@ -1140,7 +1141,7 @@ START:
 }
 
 int
-read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
+btorfmt_read_lines (BtorFormatReader* bfr, FILE* file)
 {
   reset_bfr (bfr);
   bfr->lineno = 1;
@@ -1152,7 +1153,7 @@ read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
 }
 
 const char*
-error_btor_format_reader (BtorFormatReader* bfr)
+btorfmt_error (BtorFormatReader* bfr)
 {
   return bfr->error;
 }
@@ -1167,7 +1168,7 @@ find_non_zero_line_bfr (BtorFormatReader* bfr, long start)
 }
 
 BtorFormatLineIterator
-iterate_btor_format_line (BtorFormatReader* bfr)
+btorfmt_iter_init (BtorFormatReader* bfr)
 {
   BtorFormatLineIterator res;
   res.reader = bfr;
@@ -1179,7 +1180,7 @@ iterate_btor_format_line (BtorFormatReader* bfr)
 }
 
 BtorFormatLine*
-next_btor_format_line (BtorFormatLineIterator* it)
+btorfmt_iter_next (BtorFormatLineIterator* it)
 {
   BtorFormatLine* res;
   if (!it->next) return 0;
@@ -1191,7 +1192,7 @@ next_btor_format_line (BtorFormatLineIterator* it)
 }
 
 BtorFormatLine*
-get_btor_format_line_from_id (BtorFormatReader* bfr, long id)
+btorfmt_get_line_by_id (BtorFormatReader* bfr, long id)
 {
   return id2line_bfr (bfr, id);
 }

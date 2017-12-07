@@ -4,6 +4,7 @@ In contrast to Boolector it falls under the following MIT style license:
 
 Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
 Copyright (c) 2017, Mathias Preiner
+Copyright (c) 2017, Aina Niemetz
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -91,15 +92,15 @@ main (int argc, char** argv)
              input_name);
     fflush (stderr);
   }
-  reader = new_btor_format_reader ();
-  set_btor_format_reader_prefix (reader, "; [catbtor] ");
-  set_btor_format_reader_verbosity (reader, verbosity);
-  if (!read_btor_format_lines (reader, input_file))
+  reader = btorfmt_new ();
+  btorfmt_set_prefix (reader, "; [catbtor] ");
+  btorfmt_set_verbosity (reader, verbosity);
+  if (!btorfmt_read_lines (reader, input_file))
   {
-    err = error_btor_format_reader (reader);
+    err = btorfmt_error (reader);
     assert (err);
     fprintf (stderr, "*** catbtor: parse error in '%s' %s\n", input_name, err);
-    delete_btor_format_reader (reader);
+    btorfmt_delete (reader);
     if (close_input) fclose (input_file);
     exit (1);
   }
@@ -114,8 +115,8 @@ main (int argc, char** argv)
     fprintf (stderr, "; [catbor] starting to dump BTOR model to '<stdout>'\n");
     fflush (stderr);
   }
-  it = iterate_btor_format_line (reader);
-  while ((l = next_btor_format_line (&it)))
+  it = btorfmt_iter_init (reader);
+  while ((l = btorfmt_iter_next (&it)))
   {
     printf ("%ld %s", l->id, l->name);
     if (l->tag == BTOR_FORMAT_TAG_sort)
@@ -146,7 +147,7 @@ main (int argc, char** argv)
     if (l->symbol) printf (" %s", l->symbol);
     fputc ('\n', stdout);
   }
-  delete_btor_format_reader (reader);
+  btorfmt_delete (reader);
   if (verbosity)
   {
     fprintf (stderr, "; [catbor] finished dumping BTOR model to '<stdout>'\n");
