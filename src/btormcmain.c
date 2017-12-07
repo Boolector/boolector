@@ -2,6 +2,7 @@
 #include "btormc.h"
 
 #include <assert.h>
+#include "btorfmt/btorfmt.h"
 #include "utils/btormem.h"
 #include "utils/btoroptparse.h"
 #include "utils/btorstack.h"
@@ -152,8 +153,8 @@ error (char *msg, ...)
 int32_t
 main (int32_t argc, char **argv)
 {
-  int32_t i, j, len, close_infile, res;
-  char *arg, *infile_name, *cmd;
+  int32_t i, len, close_infile, res;
+  char *infile_name, *cmd;
   FILE *infile, *out;
   BtorParsedOpt *po;
   BtorParsedOptPtrStack opts;
@@ -272,20 +273,20 @@ main (int32_t argc, char **argv)
       {
         if (po->isdisable)
         {
-          boolector_set_opt (mc, opt, 0);
+          btor_mc_set_opt (mc, opt, 0);
         }
         else
         {
           switch (opt)
           {
-            case BTOR_OPT_VERBOSITY:
+            case BTOR_MC_OPT_VERBOSITY:
               if (BTOR_ARG_READ_IS_INT (po->readval))
                 btor_mc_set_opt (mc, opt, po->val);
               else
                 btor_mc_set_opt (mc, opt, btor_mc_get_opt (mc, opt) + 1);
               break;
             default:
-              assert (opt != BTOR_OPT_NUM_OPTS);
+              assert (opt != BTOR_MC_OPT_NUM_OPTS);
               if (BTOR_ARG_READ_IS_INT (po->readval))
                 btor_mc_set_opt (mc, opt, po->val);
               else
@@ -302,7 +303,27 @@ main (int32_t argc, char **argv)
   }
 
 DONE:
+  if (close_infile == 1)
+    fclose (infile);
+  else if (close_infile == 2)
+    pclose (infile);
   boolector_mc_delete (mc);
   btor_mem_mgr_delete (mm);
+  while (!BTOR_EMPTY_STACK (opts))
+  {
+    po = BTOR_POP_STACK (opts);
+    assert (po->mm == mm);
+    BTOR_RELEASE_STACK (po->orig);
+    BTOR_RELEASE_STACK (po->name);
+    BTOR_DELETE (mm, po);
+  }
+  BTOR_RELEASE_STACK (opts);
+  while (!BTOR_EMPTY_STACK (infiles))
+  {
+    pin = BTOR_POP_STACK (infiles);
+    assert (pin->mm == mm);
+    BTOR_DELETE (mm, pin);
+  }
+  BTOR_RELEASE_STACK (infiles);
   return res;
 }
