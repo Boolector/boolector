@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2017 Aina Niemetz.
- *  Copyright (C) 2017 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -84,7 +83,7 @@ struct BtorSLSSolver
   BtorIntHashTable *max_cans; /* list of (can, neigh) */
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
-  int max_gw;               /* is groupwise move? (for stats) */
+  int32_t max_gw;           /* is groupwise move? (for stats) */
 
   /* statistics */
   struct
