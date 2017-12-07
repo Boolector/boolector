@@ -86,7 +86,7 @@ BtorIntHashTable *btor_hashint_map_clone (BtorMemMgr *mm,
                                           const void *data_map);
 
 /*------------------------------------------------------------------------*/
-/* iterators     		                                          */
+/* iterators                                                              */
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorIntHashTableIterator
