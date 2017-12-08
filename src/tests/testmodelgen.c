@@ -60,7 +60,6 @@ modelgen_test (const char *fname, int32_t rwl)
            BTOR_LOG_DIR,
            log_fname);
 
-  printf (syscall_string);
   ret_val = system (syscall_string); /* save to avoid warning */
   assert (ret_val);
   free (syscall_string);
