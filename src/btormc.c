@@ -91,7 +91,7 @@ init_options (BtorMC *mc)
   BTOR_CNEWN (mc->mm, mc->options, BTOR_MC_OPT_NUM_OPTS);
   init_opt (mc,
             BTOR_MC_OPT_VERBOSITY,
-            false,
+            true,
             "verbosity",
             "v",
             0,
