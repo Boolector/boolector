@@ -141,22 +141,23 @@ boolector_mc_get_btor (BtorMC* mc)
 /*------------------------------------------------------------------------*/
 
 BoolectorNode*
-boolector_mc_state (BtorMC* mc, uint32_t width, const char* symbol)
+boolector_mc_state (BtorMC* mc, BoolectorSort sort, const char* symbol)
 {
   BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT_ARG_NULL (sort);
   BTOR_ABORT (mc->state != BTOR_NO_MC_STATE,
               "may not be called after checking");
-  return btor_mc_state (mc, width, symbol);
+  return btor_mc_state (mc, sort, symbol);
 }
 
 BoolectorNode*
-boolector_mc_input (BtorMC* mc, uint32_t width, const char* symbol)
+boolector_mc_input (BtorMC* mc, BoolectorSort sort, const char* symbol)
 {
   BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT_ARG_NULL (sort);
   BTOR_ABORT (mc->state != BTOR_NO_MC_STATE,
               "may not be called after checking");
-  BTOR_ABORT (width == 0, "given width == 0");
-  return btor_mc_input (mc, width, symbol);
+  return btor_mc_input (mc, sort, symbol);
 }
 
 /*------------------------------------------------------------------------*/

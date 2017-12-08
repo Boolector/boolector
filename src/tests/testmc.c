@@ -95,7 +95,7 @@ test_mctoggle ()
 
     // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
-    bit  = boolector_mc_state (g_mc, 1, "counter");
+    bit  = boolector_mc_state (g_mc, s, "counter");
     one  = boolector_one (g_btor, s);
     zero = boolector_zero (g_btor, s);
     add  = boolector_add (g_btor, bit, one);
@@ -148,22 +148,23 @@ test_mccount2enable ()
   BoolectorNode *one, *zero, *three, *add, *ifenable, *bad;
   char *fname, *suffix = "mccount2enable.log";
   FILE *file;
-  BoolectorSort s;
+  BoolectorSort s1, s2;
 
   for (mode = 0; mode < 2; mode++)
   {
     init_mc_test ();
-    s = boolector_bitvec_sort (g_btor, 2);
+    s1 = boolector_bitvec_sort (g_btor, 1);
+    s2 = boolector_bitvec_sort (g_btor, 2);
 
     if (mode) boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
 
     // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
-    counter = boolector_mc_state (g_mc, 2, "counter");
-    enable  = boolector_mc_input (g_mc, 1, "enable");
+    counter = boolector_mc_state (g_mc, s2, "counter");
+    enable  = boolector_mc_input (g_mc, s1, "enable");
 
-    one      = boolector_one (g_btor, s);
-    zero     = boolector_zero (g_btor, s);
+    one      = boolector_one (g_btor, s2);
+    zero     = boolector_zero (g_btor, s2);
     three    = boolector_const (g_btor, "11");
     add      = boolector_add (g_btor, counter, one);
     ifenable = boolector_cond (g_btor, enable, add, counter);
@@ -209,7 +210,8 @@ test_mccount2enable ()
       free (fname);
     }
 
-    boolector_release_sort (g_btor, s);
+    boolector_release_sort (g_btor, s1);
+    boolector_release_sort (g_btor, s2);
     finish_mc_test ();
   }
 }
@@ -223,21 +225,24 @@ test_mccount2resetenable ()
   BoolectorNode *enable, *reset;  // two boolean control inputs
   char *fname, *suffix = "mccount2resetenable.log";
   FILE *file;
-  BoolectorSort s;
+  BoolectorSort s1, s2;
 
   init_mc_test ();
 
   boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
   // boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
-  counter = boolector_mc_state (g_mc, 2, "counter");
-  enable  = boolector_mc_input (g_mc, 1, "enable");
-  reset   = boolector_mc_input (g_mc, 1, "reset");
+  s1 = boolector_bitvec_sort (g_btor, 1);
+  s2 = boolector_bitvec_sort (g_btor, 2);
 
-  s    = boolector_bitvec_sort (g_btor, 2);
-  one  = boolector_one (g_btor, s);
-  zero = boolector_zero (g_btor, s);
-  boolector_release_sort (g_btor, s);
+  counter = boolector_mc_state (g_mc, s2, "counter");
+  enable  = boolector_mc_input (g_mc, s1, "enable");
+  reset   = boolector_mc_input (g_mc, s1, "reset");
+
+  one  = boolector_one (g_btor, s2);
+  zero = boolector_zero (g_btor, s2);
+  boolector_release_sort (g_btor, s1);
+  boolector_release_sort (g_btor, s2);
   three    = boolector_const (g_btor, "11");
   add      = boolector_add (g_btor, counter, one);
   ifenable = boolector_cond (g_btor, enable, add, counter);
@@ -293,6 +298,7 @@ test_mctwostepsmodel ()
   BoolectorNode * nexta, * nexta1, * nexta2;
   BoolectorNode * nextb, * nextb1, * nextb2;
   BoolectorNode * bad, * bada, *badb;
+  BoolectorSort s;
   char *fname, *suffix = "mctwostepsmodel.log";
 
   init_mc_test ();
@@ -300,19 +306,20 @@ test_mctwostepsmodel ()
   boolector_mc_set_opt (g_mc, BTOR_MC_OPT_TRACE_GEN, 1);
   boolector_mc_set_opt (g_mc, BTOR_MC_OPT_VERBOSITY, 3);
 
-  a = boolector_mc_state (g_mc, 1, "a");
-  b = boolector_mc_state (g_mc, 1, "b");
+  s = boolector_bitvec_sort (g_btor, 1);
+  a = boolector_mc_state (g_mc, s, "a");
+  b = boolector_mc_state (g_mc, s, "b");
 
   or = boolector_or (g_btor, a, b);	// dangling ...
   xor = boolector_xor (g_btor, a, b);	// dangling ...
 
-  one = boolector_ones (g_btor, 1);
-  zero = boolector_zero (g_btor, 1);
+  one = boolector_ones (g_btor, s);
+  zero = boolector_zero (g_btor, s);
 
   boolector_mc_init (g_mc, a, zero);
   boolector_mc_init (g_mc, b, zero);
 
-  t = boolector_mc_input (g_mc, 1, "t");
+  t = boolector_mc_input (g_mc, s, "t");
   n = boolector_not (g_btor, t);
 
   nexta1 = boolector_nor (g_btor, t, a);
@@ -391,6 +398,7 @@ test_mctwostepsmodel ()
   boolector_release (g_btor, bad);
   boolector_release (g_btor, bada);
   boolector_release (g_btor, badb);
+  boolector_release_sort (g_btor, s);
 
   finish_mc_test ();
 }
@@ -424,8 +432,8 @@ test_mccount2multi ()
 
   BoolectorNode *count, *one, *zero, *two, *three, *next;
   BoolectorNode *eqzero, *eqone, *eqtwo, *eqthree;
-  count = boolector_mc_state (g_mc, 2, "count");
   s     = boolector_bitvec_sort (g_btor, 2);
+  count = boolector_mc_state (g_mc, s, "count");
   one   = boolector_one (g_btor, s);
   zero  = boolector_zero (g_btor, s);
   boolector_release_sort (g_btor, s);

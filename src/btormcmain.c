@@ -1,19 +1,22 @@
 #include "boolectormc.h"
 #include "btormc.h"
 
-#include <assert.h>
 #include "btorfmt/btorfmt.h"
+#include "utils/btorhashint.h"
 #include "utils/btormem.h"
 #include "utils/btoroptparse.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
+#include <assert.h>
+#include <limits.h>
+
 #define LEN_OPTSTR 38
 #define LEN_PARAMSTR 16
 #define LEN_HELPSTR 80
 
-#define BTORMC_SUCC_EXIT 0
-#define BTORMC_ERR_EXIT 1
+#define BTOR_MC_SUCC_EXIT 0
+#define BTOR_MC_ERR_EXIT 1
 
 /*------------------------------------------------------------------------*/
 
@@ -139,15 +142,508 @@ print_help (FILE *out, BtorMC *mc)
 }
 
 static int32_t
-error (char *msg, ...)
+error (char *m, ...)
 {
   va_list list;
-  va_start (list, msg);
+  va_start (list, m);
   fputs ("boolectormc: ", stderr);
-  vfprintf (stderr, msg, list);
+  vfprintf (stderr, m, list);
   fprintf (stderr, "\n");
   va_end (list);
-  return BTORMC_ERR_EXIT;
+  return BTOR_MC_ERR_EXIT;
+}
+
+static void
+msg (char *m, ...)
+{
+  assert (m);
+
+  va_list list;
+  va_start (list, m);
+  fprintf (stdout, "[btormc] ");
+  vfprintf (stdout, m, list);
+  fprintf (stdout, "\n");
+  va_end (list);
+}
+
+#define BTOR_MC_BOOLECTOR_FUN(name) (n =)
+
+static int32_t
+parse (BtorMC *mc, FILE *infile, const char *infile_name)
+{
+  assert (mc);
+  assert (infile);
+  assert (infile_name);
+
+  uint32_t i, verb;
+  long j;
+  int32_t res;
+  const char *err;
+  BtorIntHashTable *sortmap;
+  BtorIntHashTable *nodemap;
+  BtorIntHashTableIterator it;
+  BtorFormatReader *bfr;
+  BtorFormatLineIterator lit;
+  BtorFormatLine *l;
+  BoolectorNode *e[3], *n;
+  BoolectorSort s, si, se;
+  Btor *btor;
+
+  verb = btor_mc_get_opt (mc, BTOR_MC_OPT_VERBOSITY);
+  res  = BTOR_MC_SUCC_EXIT;
+  bfr  = btorfmt_new ();
+  btorfmt_set_prefix (bfr, "[btormc] ");
+  btorfmt_set_verbosity (bfr, verb);
+  nodemap = 0;
+  sortmap = 0;
+
+  if (verb) msg ("parsing input file...");
+
+  if (!btorfmt_read_lines (bfr, infile))
+  {
+    err = btorfmt_error (bfr);
+    assert (err);
+    res = error ("parse error in '%s' %s\n", infile_name, err);
+    goto DONE;
+  }
+
+  if (verb) msg ("finished parsing");
+
+  sortmap = btor_hashint_map_new (mc->mm);
+  nodemap = btor_hashint_map_new (mc->mm);
+  btor    = mc->btor;
+
+  lit = btorfmt_iter_init (bfr);
+  while ((l = btorfmt_iter_next (&lit)))
+  {
+    n = 0;
+    s = 0;
+
+    if (l->id > INT_MAX)
+    {
+      res = error ("given id '%ld' exceeds INT_MAX", l->id);
+      goto DONE;
+    }
+
+    /* sort */
+    if (l->tag != BTOR_FORMAT_TAG_sort && l->sort.id)
+    {
+      if (l->sort.id > INT_MAX)
+      {
+        res = error ("given id '%ld' exceeds INT_MAX", l->sort.id);
+        goto DONE;
+      }
+      assert (btor_hashint_map_contains (sortmap, l->sort.id));
+      s = btor_hashint_map_get (sortmap, l->sort.id)->as_ptr;
+      assert (s);
+    }
+
+    /* args */
+    for (i = 0; i < l->nargs; i++)
+    {
+      assert (btor_hashint_map_contains (nodemap, l->args[i]));
+      e[i] = btor_hashint_map_get (nodemap, l->args[i])->as_ptr;
+      assert (e[i]);
+    }
+
+    switch (l->tag)
+    {
+      case BTOR_FORMAT_TAG_add:
+        assert (l->nargs == 2);
+        n = boolector_add (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_and:
+        assert (l->nargs == 2);
+        n = boolector_and (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_bad:
+        assert (l->nargs == 1);
+        boolector_mc_bad (mc, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_concat:
+        assert (l->nargs == 2);
+        n = boolector_concat (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_const:
+      case BTOR_FORMAT_TAG_constd:
+      case BTOR_FORMAT_TAG_consth:
+        assert (l->nargs == 0);
+        assert (l->constant);
+        n = boolector_const (btor, l->constant);
+        break;
+
+      case BTOR_FORMAT_TAG_constraint:
+        assert (l->nargs == 1);
+        boolector_mc_constraint (mc, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_dec:
+        assert (l->nargs == 1);
+        n = boolector_dec (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_eq:
+        assert (l->nargs == 2);
+        n = boolector_eq (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_fair:
+        // TODO
+        // assert (l->nargs == 1);
+        // boolector_mc_fair (mc, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_iff:
+        assert (l->nargs == 2);
+        n = boolector_iff (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_implies:
+        assert (l->nargs == 2);
+        n = boolector_implies (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_inc:
+        assert (l->nargs == 1);
+        n = boolector_inc (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_init:
+        assert (l->nargs == 2);
+        assert (boolector_get_sort (btor, e[0]) == s);
+        assert (boolector_get_sort (btor, e[1]) == s);
+        boolector_mc_init (mc, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_input:
+        assert (l->nargs == 0);
+        n = boolector_mc_input (mc, s, l->symbol);
+        break;
+
+      case BTOR_FORMAT_TAG_ite:
+        assert (l->nargs == 3);
+        n = boolector_cond (btor, e[0], e[1], e[2]);
+        break;
+
+      case BTOR_FORMAT_TAG_justice:
+        // TODO
+        // assert (l->nargs == 1);
+        // boolector_mc_justice (mc, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_mul:
+        assert (l->nargs == 2);
+        n = boolector_mul (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_nand:
+        assert (l->nargs == 2);
+        n = boolector_nand (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ne:
+        assert (l->nargs == 2);
+        n = boolector_ne (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_neg:
+        assert (l->nargs == 1);
+        n = boolector_neg (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_next:
+        assert (l->nargs == 2);
+        assert (boolector_get_sort (btor, e[0]) == s);
+        assert (boolector_get_sort (btor, e[1]) == s);
+        boolector_mc_next (mc, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_nor:
+        assert (l->nargs == 2);
+        n = boolector_nor (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_not:
+        assert (l->nargs == 1);
+        n = boolector_not (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_one:
+        assert (l->nargs == 0);
+        boolector_one (btor, s);
+        break;
+
+      case BTOR_FORMAT_TAG_ones:
+        assert (l->nargs == 0);
+        boolector_ones (btor, s);
+        break;
+
+      case BTOR_FORMAT_TAG_or:
+        assert (l->nargs == 2);
+        n = boolector_or (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_output:
+        // TODO
+        break;
+
+      case BTOR_FORMAT_TAG_read:
+        assert (l->nargs == 2);
+        n = boolector_read (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_redand:
+        assert (l->nargs == 1);
+        n = boolector_redand (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_redor:
+        assert (l->nargs == 1);
+        n = boolector_redor (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_redxor:
+        assert (l->nargs == 1);
+        n = boolector_redxor (btor, e[0]);
+        break;
+
+      case BTOR_FORMAT_TAG_rol:
+        assert (l->nargs == 2);
+        n = boolector_rol (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ror:
+        assert (l->nargs == 2);
+        n = boolector_ror (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_saddo:
+        assert (l->nargs == 2);
+        n = boolector_saddo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sdiv:
+        assert (l->nargs == 2);
+        n = boolector_sdiv (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sdivo:
+        assert (l->nargs == 2);
+        n = boolector_sdivo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sext:
+        assert (l->nargs == 1);
+        n = boolector_sext (btor, e[0], l->args[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sgt:
+        assert (l->nargs == 2);
+        n = boolector_sgt (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sgte:
+        assert (l->nargs == 2);
+        n = boolector_sgte (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_slice:
+        assert (l->nargs == 1);
+        n = boolector_slice (btor, e[0], l->args[1], l->args[2]);
+        break;
+
+      case BTOR_FORMAT_TAG_sll:
+        assert (l->nargs == 2);
+        n = boolector_sll (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_slt:
+        assert (l->nargs == 2);
+        n = boolector_slt (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_slte:
+        assert (l->nargs == 2);
+        n = boolector_slte (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sort:
+        if (l->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec)
+        {
+          assert (l->sort.bitvec.width);
+          s = boolector_bitvec_sort (btor, l->sort.bitvec.width);
+        }
+        else
+        {
+          assert (l->sort.tag == BTOR_FORMAT_TAG_SORT_array);
+          j = l->sort.array.index;
+          assert (j);
+          if (j > INT_MAX)
+          {
+            res = error ("given id '%ld' exceeds INT_MAX", j);
+            goto DONE;
+          }
+          assert (btor_hashint_map_contains (sortmap, j));
+          si = (BoolectorSort) btor_hashint_map_get (sortmap, j);
+          assert (si);
+          j = l->sort.array.element;
+          assert (j);
+          if (j > INT_MAX)
+          {
+            res = error ("given id '%ld' exceeds INT_MAX", j);
+            goto DONE;
+          }
+          assert (btor_hashint_map_contains (sortmap, j));
+          se = (BoolectorSort) btor_hashint_map_get (sortmap, j);
+          assert (se);
+          s = boolector_array_sort (btor, si, se);
+        }
+        assert (!btor_hashint_map_contains (sortmap, l->id));
+        btor_hashint_map_add (sortmap, l->id)->as_ptr = s;
+        break;
+
+      case BTOR_FORMAT_TAG_smod:
+        assert (l->nargs == 2);
+        n = boolector_smod (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_smulo:
+        assert (l->nargs == 2);
+        n = boolector_smulo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_sra:
+        assert (l->nargs == 2);
+        n = boolector_sra (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_srem:
+        assert (l->nargs == 2);
+        n = boolector_srem (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_srl:
+        assert (l->nargs == 2);
+        n = boolector_srl (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ssubo:
+        assert (l->nargs == 2);
+        n = boolector_ssubo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_state:
+        assert (l->nargs == 0);
+        n = boolector_mc_state (mc, s, l->symbol);
+        break;
+
+      case BTOR_FORMAT_TAG_sub:
+        assert (l->nargs == 2);
+        n = boolector_sub (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_uaddo:
+        assert (l->nargs == 2);
+        n = boolector_uaddo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_udiv:
+        assert (l->nargs == 2);
+        n = boolector_udiv (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_uext:
+        assert (l->nargs == 1);
+        n = boolector_uext (btor, e[0], l->args[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ugt:
+        assert (l->nargs == 2);
+        n = boolector_ugt (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ugte:
+        assert (l->nargs == 2);
+        n = boolector_ugte (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ult:
+        assert (l->nargs == 2);
+        n = boolector_ult (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_ulte:
+        assert (l->nargs == 2);
+        n = boolector_ulte (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_umulo:
+        assert (l->nargs == 2);
+        n = boolector_umulo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_urem:
+        assert (l->nargs == 2);
+        n = boolector_urem (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_usubo:
+        assert (l->nargs == 2);
+        n = boolector_usubo (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_write:
+        assert (l->nargs == 3);
+        n = boolector_write (btor, e[0], e[1], e[2]);
+        break;
+
+      case BTOR_FORMAT_TAG_xnor:
+        assert (l->nargs == 2);
+        n = boolector_xnor (btor, e[0], e[1]);
+        break;
+
+      case BTOR_FORMAT_TAG_xor:
+        assert (l->nargs == 2);
+        n = boolector_xor (btor, e[0], e[1]);
+        break;
+
+      default:
+        assert (l->tag == BTOR_FORMAT_TAG_zero);
+        assert (l->nargs == 0);
+        boolector_zero (btor, s);
+    }
+    assert (!s || !n || boolector_get_sort (btor, n) == s);
+    if (n)
+    {
+      assert (!btor_hashint_map_contains (nodemap, l->id));
+      btor_hashint_map_add (nodemap, l->id)->as_ptr = n;
+    }
+  }
+DONE:
+  if (nodemap)
+  {
+    btor_iter_hashint_init (&it, nodemap);
+    while (btor_iter_hashint_has_next (&it))
+    {
+      j = it.cur_pos;
+      n = btor_iter_hashint_next_data (&it)->as_ptr;
+      boolector_release (btor, n);
+    }
+    btor_hashint_map_delete (nodemap);
+  }
+  if (sortmap)
+  {
+    btor_iter_hashint_init (&it, sortmap);
+    while (btor_iter_hashint_has_next (&it))
+      boolector_release_sort (btor, btor_iter_hashint_next_data (&it)->as_ptr);
+    btor_hashint_map_delete (sortmap);
+  }
+  btorfmt_delete (bfr);
+  return res;
 }
 
 int32_t
@@ -165,10 +661,12 @@ main (int32_t argc, char **argv)
   BtorMCOpt *o;
   BtorMC *mc;
 
-  out = stdout;
-  res = BTORMC_SUCC_EXIT;
-  mm  = btor_mem_mgr_new ();
-  mc  = boolector_mc_new ();
+  infile      = stdin;
+  infile_name = "<stdin>";
+  out         = stdout;
+  res         = BTOR_MC_SUCC_EXIT;
+  mm          = btor_mem_mgr_new ();
+  mc          = boolector_mc_new ();
 
   BTOR_INIT_STACK (mm, opts);
   BTOR_INIT_STACK (mm, infiles);
@@ -302,13 +800,16 @@ main (int32_t argc, char **argv)
     }
   }
 
+  /* parse and execute ================================================ */
+
+  res = parse (mc, infile, infile_name);
+
 DONE:
   if (close_infile == 1)
     fclose (infile);
   else if (close_infile == 2)
     pclose (infile);
   boolector_mc_delete (mc);
-  btor_mem_mgr_delete (mm);
   while (!BTOR_EMPTY_STACK (opts))
   {
     po = BTOR_POP_STACK (opts);
@@ -325,5 +826,6 @@ DONE:
     BTOR_DELETE (mm, pin);
   }
   BTOR_RELEASE_STACK (infiles);
+  btor_mem_mgr_delete (mm);
   return res;
 }

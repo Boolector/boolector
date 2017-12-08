@@ -144,9 +144,13 @@ Btor *btor_mc_get_btor (BtorMC *mc);
 /*------------------------------------------------------------------------*/
 
 /* Create input. */
-BoolectorNode *btor_mc_input (BtorMC *mc, uint32_t width, const char *symbol);
+BoolectorNode *btor_mc_input (BtorMC *mc,
+                              BoolectorSort sort,
+                              const char *symbol);
 /* Create state. */
-BoolectorNode *btor_mc_state (BtorMC *mc, uint32_t width, const char *symbol);
+BoolectorNode *btor_mc_state (BtorMC *mc,
+                              BoolectorSort sort,
+                              const char *symbol);
 
 /*------------------------------------------------------------------------*/
 

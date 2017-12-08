@@ -3004,8 +3004,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
-      char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
+      char *nextname  = btor_ibv_atom_base_name (btor, n, r, 0);
+      BoolectorSort s = boolector_bitvec_sort (btor, r.getWidth ());
+      a->current.exp  = boolector_mc_input (btormc, s, nextname);
+      boolector_release_sort (btor, s);
       btor_mem_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -3016,8 +3018,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
-      char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_mc_state (btormc, r.getWidth (), name);
+      char *name      = btor_ibv_atom_base_name (btor, n, r, 0);
+      BoolectorSort s = boolector_bitvec_sort (btor, r.getWidth ());
+      a->current.exp  = boolector_mc_state (btormc, s, name);
+      boolector_release_sort (btor, s);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.states++;
@@ -3026,8 +3030,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     {
-      char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_mc_input (btormc, r.getWidth (), name);
+      char *name      = btor_ibv_atom_base_name (btor, n, r, 0);
+      BoolectorSort s = boolector_bitvec_sort (btor, r.getWidth ());
+      a->current.exp  = boolector_mc_input (btormc, s, name);
+      boolector_release_sort (btor, s);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -3039,8 +3045,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       {
         {
           char *currentname = btor_ibv_atom_base_name (btor, n, r, 0);
-          a->current.exp =
-              boolector_mc_state (btormc, r.getWidth (), currentname);
+          BoolectorSort s   = boolector_bitvec_sort (btor, r.getWidth ());
+          a->current.exp    = boolector_mc_state (btormc, s, currentname);
+          boolector_release_sort (btor, s);
           btor_mem_freestr (btor->mm, currentname);
           (void) boolector_copy (btor, a->current.exp);
           stats.states++;
@@ -3062,7 +3069,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 #endif
           char *nextname =
               btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
-          a->next.exp = boolector_mc_input (btormc, nr.getWidth (), nextname);
+          BoolectorSort s = boolector_bitvec_sort (btor, nr.getWidth ());
+          a->next.exp     = boolector_mc_input (btormc, s, nextname);
+          boolector_release_sort (btor, s);
           btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3071,7 +3080,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         {
           char *nextname = btor_ibv_atom_base_name (
               btor, n, r, "BtorIBV::past2");  // TODO Why?
-          a->next.exp = boolector_mc_input (btormc, r.getWidth (), nextname);
+          BoolectorSort s = boolector_bitvec_sort (btor, r.getWidth ());
+          a->next.exp     = boolector_mc_input (btormc, s, nextname);
+          boolector_release_sort (btor, s);
           btor_mem_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3081,8 +3092,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_CURRENT_STATE:
     {
-      char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_mc_state (btormc, r.getWidth (), name);
+      char *name      = btor_ibv_atom_base_name (btor, n, r, 0);
+      BoolectorSort s = boolector_bitvec_sort (btor, r.getWidth ());
+      a->current.exp  = boolector_mc_state (btormc, s, name);
+      boolector_release_sort (btor, s);
       btor_mem_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.states++;
@@ -3422,9 +3435,9 @@ BtorIBV::translate ()
       if (!initialized_state)
       {
         assert (!ninitialized);
+        BoolectorSort s = boolector_bitvec_sort (btor, 1);
         initialized_state =
-            boolector_mc_state (btormc, 1, "BtorIBV::initialized");
-        BoolectorSort s     = boolector_bitvec_sort (btor, 1);
+            boolector_mc_state (btormc, s, "BtorIBV::initialized");
         BoolectorNode *zero = boolector_zero (btor, s);
         BoolectorNode *one  = boolector_one (btor, s);
         boolector_release_sort (btor, s);

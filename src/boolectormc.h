@@ -81,11 +81,11 @@ void boolector_mc_init (BtorMC *mc, BoolectorNode *state, BoolectorNode *init);
 
 /* Create input. */
 BoolectorNode *boolector_mc_input (BtorMC *mc,
-                                   uint32_t width,
+                                   BoolectorSort sort,
                                    const char *symbol);
 /* Create state. */
 BoolectorNode *boolector_mc_state (BtorMC *mc,
-                                   uint32_t width,
+                                   BoolectorSort sort,
                                    const char *symbol);
 
 /* Define 'next' state of 'state'. */

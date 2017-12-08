@@ -414,27 +414,25 @@ btor_mc_get_btor (BtorMC *mc)
 /*------------------------------------------------------------------------*/
 
 BoolectorNode *
-btor_mc_input (BtorMC *mc, uint32_t width, const char *symbol)
+btor_mc_input (BtorMC *mc, BoolectorSort sort, const char *symbol)
 {
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
-  assert (width > 0);
+  assert (sort);
+  assert (boolector_is_bitvec_sort (mc->btor, sort));
 
   BtorPtrHashBucket *bucket;
   BtorMCInput *input;
   BoolectorNode *res;
-  BoolectorSort s;
   Btor *btor;
 
   btor = mc->btor;
-  s    = boolector_bitvec_sort (btor, width);
-  res  = boolector_var (btor, s, symbol);
-  boolector_release_sort (btor, s);
+  res  = boolector_var (btor, sort, symbol);
   BTOR_NEW (mc->mm, input);
   assert (input);
   input->id   = (int32_t) mc->inputs->count;
   input->node = res;
-  bucket      = btor_hashptr_table_add (mc->inputs, res);
+  bucket      = btor_hashptr_table_add (mc->inputs, boolector_copy (btor, res));
   assert (bucket);
   assert (!bucket->data.as_ptr);
   bucket->data.as_ptr = input;
@@ -444,39 +442,37 @@ btor_mc_input (BtorMC *mc, uint32_t width, const char *symbol)
               "declared input %d '%s' of width %d",
               input->id,
               symbol,
-              width);
+              boolector_get_width (btor, res));
   else
     BTOR_MSG (boolector_get_btor_msg (btor),
               2,
               "declared input %d of width %d",
               input->id,
-              width);
+              boolector_get_width (btor, res));
   return res;
 }
 
 BoolectorNode *
-btor_mc_state (BtorMC *mc, uint32_t width, const char *symbol)
+btor_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
 {
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
-  assert (width > 0);
+  assert (sort);
+  assert (boolector_is_bitvec_sort (mc->btor, sort));
 
   BtorPtrHashBucket *bucket;
   BtorMCstate *state;
   BoolectorNode *res;
-  BoolectorSort s;
   Btor *btor;
 
   btor = mc->btor;
-  s    = boolector_bitvec_sort (btor, width);
-  res  = boolector_var (btor, s, symbol);
-  boolector_release_sort (btor, s);
+  res  = boolector_var (btor, sort, symbol);
   BTOR_NEW (mc->mm, state);
   assert (state);
   state->id   = (int32_t) mc->states->count;
   state->node = res;
   state->init = state->next = 0;
-  bucket                    = btor_hashptr_table_add (mc->states, res);
+  bucket = btor_hashptr_table_add (mc->states, boolector_copy (btor, res));
   assert (bucket);
   assert (!bucket->data.as_ptr);
   bucket->data.as_ptr = state;
@@ -486,13 +482,13 @@ btor_mc_state (BtorMC *mc, uint32_t width, const char *symbol)
               "declared state %d '%s' of width %d",
               state->id,
               symbol,
-              width);
+              boolector_get_width (btor, res));
   else
     BTOR_MSG (boolector_get_btor_msg (btor),
               2,
               "declared state %d of width %d",
               state->id,
-              width);
+              boolector_get_width (btor, res));
   return res;
 }
 
@@ -1276,7 +1272,7 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
 
   BtorMCModel2ConstMapper *mapper;
   BoolectorNode *node_at_time, *res;
-  const char *sym, *constbits;
+  const char *constbits;
   BtorPtrHashBucket *bucket;
   BtorMCFrame *frame;
   BtorMCInput *input;
@@ -1318,8 +1314,6 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
   {
     bucket = btor_hashptr_table_get (mc->states, node);
     assert (bucket);
-    sym =
-        !boolector_is_var (btor, node) ? 0 : boolector_get_symbol (btor, node);
     state = bucket->data.as_ptr;
     assert (state);
     assert (state->node == node);

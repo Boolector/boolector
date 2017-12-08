@@ -41,7 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
  * If the line describes an operator, signed but non zero ids are used do
  * reference arguments.  For constants <const> is a string representing
  * a binary, decimal or hexadecimal constant.  Finally for basic variables,
- * arrays, latches, functions <sym> is an optional symbol name.
+ * arrays, states, functions <sym> is an optional symbol name.
  */
 /*------------------------------------------------------------------------*/
 
@@ -176,7 +176,7 @@ struct BtorFormatLine
   BtorFormatSort sort;
   long init, next; /* non zero if initialized or has next    */
   char *constant;  /* non zero for const, constd, consth     */
-  char *symbol;    /* optional for: var array latch input    */
+  char *symbol;    /* optional for: var array state input    */
   unsigned nargs;  /* number of arguments                    */
   long *args;      /* non zero ids up to nargs               */
 };
