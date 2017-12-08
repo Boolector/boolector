@@ -162,7 +162,7 @@ msg (char *m, ...)
 
   va_list list;
   va_start (list, m);
-  fprintf (stdout, "[btormc] ");
+  fprintf (stdout, "[btor>mc>main] ");
   vfprintf (stdout, m, list);
   fprintf (stdout, "\n");
   va_end (list);
