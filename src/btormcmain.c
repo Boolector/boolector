@@ -134,6 +134,8 @@ print_help (FILE *out, BtorMC *mc)
 
   fprintf (out, "\n");
 
+  // print_opt (out, mc->mm, "dump", "d", true, 0, "dump formula", false);
+
   for (i = 0; i < BTOR_MC_OPT_NUM_OPTS; i++)
   {
     o = &mc->options[i];
@@ -649,7 +651,11 @@ DONE:
 int32_t
 main (int32_t argc, char **argv)
 {
-  int32_t i, len, close_infile, res;
+  int32_t i;
+  int32_t len, close_infile;
+  int32_t res;
+  // bool dump;
+  uint32_t kmin, kmax;
   char *infile_name, *cmd;
   FILE *infile, *out;
   BtorParsedOpt *po;
@@ -664,9 +670,13 @@ main (int32_t argc, char **argv)
   infile      = stdin;
   infile_name = "<stdin>";
   out         = stdout;
-  res         = BTOR_MC_SUCC_EXIT;
-  mm          = btor_mem_mgr_new ();
-  mc          = boolector_mc_new ();
+
+  res = BTOR_MC_SUCC_EXIT;
+
+  // dump = false;
+
+  mm = btor_mem_mgr_new ();
+  mc = boolector_mc_new ();
 
   BTOR_INIT_STACK (mm, opts);
   BTOR_INIT_STACK (mm, infiles);
@@ -740,12 +750,17 @@ main (int32_t argc, char **argv)
     {
       fprintf (out, "%s\n", boolector_version (mc->btor));
     }
+    //      else if (strcmp (po->name.start, "d") == 0
+    //               || strcmp (po->name.start, "dump") == 0)
+    //        {
+    //          dump = true;
+    //        }
     else
     {
       for (opt = 0; opt < BTOR_MC_OPT_NUM_OPTS; opt++)
       {
         o = &mc->options[opt];
-        if (strcmp (po->name.start, o->shrt) == 0
+        if ((o->shrt && strcmp (po->name.start, o->shrt) == 0)
             || strcmp (po->name.start, o->lng) == 0)
         {
           break;
@@ -803,6 +818,17 @@ main (int32_t argc, char **argv)
   /* parse and execute ================================================ */
 
   res = parse (mc, infile, infile_name);
+  //  if (dump)
+  //    {
+  //      boolector_mc_dump (mc, out);
+  //    }
+  //  else
+  {
+    kmin = boolector_mc_get_opt (mc, BTOR_MC_OPT_MIN_K);
+    kmax = boolector_mc_get_opt (mc, BTOR_MC_OPT_MAX_K);
+    (void) boolector_mc_bmc (mc, kmin, kmax);
+    // TODO (armin)
+  }
 
 DONE:
   if (close_infile == 1)

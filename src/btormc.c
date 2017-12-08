@@ -90,6 +90,25 @@ init_options (BtorMC *mc)
   assert (mc);
   BTOR_CNEWN (mc->mm, mc->options, BTOR_MC_OPT_NUM_OPTS);
   init_opt (mc,
+            BTOR_MC_OPT_MIN_K,
+            false,
+            "bound-min",
+            "kmin",
+            0,
+            0,
+            UINT32_MAX,
+            "min bound for bmc, "
+            "set to 0 to disable property checking in initial state");
+  init_opt (mc,
+            BTOR_MC_OPT_MAX_K,
+            false,
+            "bound-max",
+            "kmax",
+            20,
+            0,
+            UINT32_MAX,
+            "max bound for bmc");
+  init_opt (mc,
             BTOR_MC_OPT_VERBOSITY,
             true,
             "verbosity",

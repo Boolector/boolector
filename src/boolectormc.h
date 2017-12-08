@@ -34,8 +34,10 @@ void boolector_mc_delete (BtorMC *mc);
 
 enum BtorMCOption
 {
-  /* Set the level of verbosity. */
-  BTOR_MC_OPT_VERBOSITY,
+  /* Set the minimum bound for BMC */
+  BTOR_MC_OPT_MIN_K,
+  /* Set the maximum bound for BMC */
+  BTOR_MC_OPT_MAX_K,
   /* Enable (val: 1) or disable (val: 0) stopping a the first reached bad
    * state property (default: 1). Disabling this option will result in the
    * model checker to run until all properties have been reached (or proven
@@ -45,6 +47,8 @@ enum BtorMCOption
    * In order to be able to obtain the trace after model checking you
    * need to enable this option before calling 'boolector_mc_bmc'. */
   BTOR_MC_OPT_TRACE_GEN,
+  /* Set the level of verbosity. */
+  BTOR_MC_OPT_VERBOSITY,
   /* This MUST be the last entry! */
   BTOR_MC_OPT_NUM_OPTS,
 };
@@ -101,6 +105,9 @@ int32_t boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint);
 void boolector_mc_dump (BtorMC *mc, FILE *file);
 
 /*------------------------------------------------------------------------*/
+
+#define BTOR_MC_BOUND_NONE -1
+#define BTOR_MC_BOUND_DEFAULT 20
 
 int32_t boolector_mc_bmc (BtorMC *, int32_t mink, int32_t maxk);
 
