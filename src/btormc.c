@@ -98,7 +98,7 @@ init_options (BtorMC *mc)
             0,
             UINT32_MAX,
             "min bound for bmc, "
-            "set to 0 to disable property checking in initial state");
+            "set to > 0 to disable property checking in initial state");
   init_opt (mc,
             BTOR_MC_OPT_MAX_K,
             false,
