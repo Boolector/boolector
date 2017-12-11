@@ -1117,6 +1117,10 @@ check_last_forward_frame (BtorMC *mc)
     res = boolector_sat (mc->forward);
     if (res == BOOLECTOR_SAT)
     {
+      if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
+      {
+        boolector_print_model (mc->forward, "btor", stdout);
+      }
       mc->state = BTOR_SAT_MC_STATE;
       BTOR_MSG (boolector_get_btor_msg (btor),
                 1,

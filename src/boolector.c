@@ -115,8 +115,8 @@ translate_shift (Btor *btor,
     u = btor_exp_slice (btor, a1, width - 1, width - p1);
     l = btor_exp_slice (btor, a1, l1 - 1, 0);
 
-    assert (btor_exp_get_width (btor, u) == p1);
-    assert (btor_exp_get_width (btor, l) == l1);
+    assert (btor_node_get_width (btor, u) == p1);
+    assert (btor_node_get_width (btor, l) == l1);
 
     if (p1 > 1)
       c = btor_exp_redor (btor, u);
