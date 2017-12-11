@@ -69,6 +69,106 @@ dec_sort_ext_ref_counter (Btor *btor, BtorSortId id)
 
 /*------------------------------------------------------------------------*/
 
+static BtorNode *
+translate_shift (Btor *btor,
+                 BtorNode *a0,
+                 BtorNode *a1,
+                 BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
+{
+  BtorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  BtorSortId s;
+  uint32_t width, l0, l1, p0, p1;
+
+  width = btor_node_get_width (btor, a0);
+
+  assert (width == btor_node_get_width (btor, a1));
+
+  l1 = 0;
+  for (l0 = 1; l0 < width; l0 *= 2) l1++;
+
+  assert (l0 == (1u << l1));
+
+  if (width == 1)
+  {
+    assert (l0 == 1);
+    assert (l1 == 0);
+
+    if (f != btor_exp_sra)
+    {
+      tmp = btor_exp_not (btor, a1);
+      res = btor_exp_and (btor, a0, tmp);
+      btor_node_release (btor, tmp);
+    }
+    else
+      res = btor_node_copy (btor, a0);
+  }
+  else
+  {
+    assert (width >= 1);
+    assert (width <= l0);
+
+    p0 = l0 - width;
+    p1 = width - l1;
+
+    assert (p1 > 0);
+
+    u = btor_exp_slice (btor, a1, width - 1, width - p1);
+    l = btor_exp_slice (btor, a1, l1 - 1, 0);
+
+    assert (btor_exp_get_width (btor, u) == p1);
+    assert (btor_exp_get_width (btor, l) == l1);
+
+    if (p1 > 1)
+      c = btor_exp_redor (btor, u);
+    else
+      c = btor_node_copy (btor, u);
+
+    btor_node_release (btor, u);
+
+    if (f == btor_exp_sra)
+    {
+      tmp = btor_exp_slice (btor, a0, width - 1, width - 1);
+      t   = btor_exp_sext (btor, tmp, width - 1);
+      btor_node_release (btor, tmp);
+    }
+    else
+    {
+      s = btor_sort_bitvec (btor, width);
+      t = btor_exp_zero (btor, s);
+      btor_sort_release (btor, s);
+    }
+
+    if (!p0)
+      e0 = btor_node_copy (btor, a0);
+    else if (f == btor_exp_sra)
+      e0 = btor_exp_sext (btor, a0, p0);
+    else
+      e0 = btor_exp_uext (btor, a0, p0);
+
+    assert (btor_node_get_width (btor, e0) == l0);
+
+    e = f (btor, e0, l);
+    btor_node_release (btor, e0);
+    btor_node_release (btor, l);
+
+    if (p0 > 0)
+    {
+      tmp = btor_exp_slice (btor, e, width - 1, 0);
+      btor_node_release (btor, e);
+      e = tmp;
+    }
+
+    res = btor_exp_cond (btor, c, t, e);
+
+    btor_node_release (btor, c);
+    btor_node_release (btor, t);
+    btor_node_release (btor, e);
+  }
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 void
 boolector_chkclone (Btor *btor)
 {
@@ -1991,12 +2091,20 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
+
   width = btor_node_get_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (width),
-              "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
-              "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_exp_sll (btor, e0, e1);
+  if (width == btor_node_get_width (btor, e1))
+  {
+    res = translate_shift (btor, e0, e1, btor_exp_sll);
+  }
+  else
+  {
+    BTOR_ABORT (!btor_util_is_power_of_2 (width),
+                "bit-width of 'e0' must be a power of 2");
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+                "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
+    res = btor_exp_sll (btor, e0, e1);
+  }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2024,11 +2132,18 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   width = btor_node_get_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (width),
-              "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
-              "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_exp_srl (btor, e0, e1);
+  if (width == btor_node_get_width (btor, e1))
+  {
+    res = translate_shift (btor, e0, e1, btor_exp_srl);
+  }
+  else
+  {
+    BTOR_ABORT (!btor_util_is_power_of_2 (width),
+                "bit-width of 'e0' must be a power of 2");
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+                "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
+    res = btor_exp_srl (btor, e0, e1);
+  }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2056,11 +2171,18 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   width = btor_node_get_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (width),
-              "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
-              "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_exp_sra (btor, e0, e1);
+  if (width == btor_node_get_width (btor, e1))
+  {
+    res = translate_shift (btor, e0, e1, btor_exp_sra);
+  }
+  else
+  {
+    BTOR_ABORT (!btor_util_is_power_of_2 (width),
+                "bit-width of 'e0' must be a power of 2");
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+                "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
+    res = btor_exp_sra (btor, e0, e1);
+  }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2069,6 +2191,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+// TODO (ma): allow width(n0) == width(n1)
 BoolectorNode *
 boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
@@ -2101,6 +2224,7 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+// TODO (ma): allow width(n0) == width(n1)
 BoolectorNode *
 boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {

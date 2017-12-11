@@ -1917,124 +1917,6 @@ check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
 }
 
 static BoolectorNode *
-translate_shift_smt2 (Btor *btor,
-                      BoolectorNode *a0,
-                      BoolectorNode *a1,
-                      BoolectorNode *(*f) (Btor *,
-                                           BoolectorNode *,
-                                           BoolectorNode *) )
-{
-  BoolectorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
-  BoolectorSort s;
-  uint32_t width, l0, l1, p0, p1;
-
-  width = boolector_get_width (btor, a0);
-
-  assert (width == boolector_get_width (btor, a1));
-
-  l1 = 0;
-  for (l0 = 1; l0 < width; l0 *= 2) l1++;
-
-  assert (l0 == (1u << l1));
-
-  if (width == 1)
-  {
-    assert (l0 == 1);
-    assert (l1 == 0);
-
-    if (f != boolector_sra)
-    {
-      tmp = boolector_not (btor, a1);
-      res = boolector_and (btor, a0, tmp);
-      boolector_release (btor, tmp);
-    }
-    else
-      res = boolector_copy (btor, a0);
-  }
-  else
-  {
-    assert (width >= 1);
-    assert (width <= l0);
-
-    p0 = l0 - width;
-    p1 = width - l1;
-
-    assert (p1 > 0);
-
-    u = boolector_slice (btor, a1, width - 1, width - p1);
-    l = boolector_slice (btor, a1, l1 - 1, 0);
-
-    assert (boolector_get_width (btor, u) == p1);
-    assert (boolector_get_width (btor, l) == l1);
-
-    if (p1 > 1)
-      c = boolector_redor (btor, u);
-    else
-      c = boolector_copy (btor, u);
-
-    boolector_release (btor, u);
-
-    if (f == boolector_sra)
-    {
-      tmp = boolector_slice (btor, a0, width - 1, width - 1);
-      t   = boolector_sext (btor, tmp, width - 1);
-      boolector_release (btor, tmp);
-    }
-    else
-    {
-      s = boolector_bitvec_sort (btor, width);
-      t = boolector_zero (btor, s);
-      boolector_release_sort (btor, s);
-    }
-
-    if (!p0)
-      e0 = boolector_copy (btor, a0);
-    else if (f == boolector_sra)
-      e0 = boolector_sext (btor, a0, p0);
-    else
-      e0 = boolector_uext (btor, a0, p0);
-
-    assert (boolector_get_width (btor, e0) == l0);
-
-    e = f (btor, e0, l);
-    boolector_release (btor, e0);
-    boolector_release (btor, l);
-
-    if (p0 > 0)
-    {
-      tmp = boolector_slice (btor, e, width - 1, 0);
-      boolector_release (btor, e);
-      e = tmp;
-    }
-
-    res = boolector_cond (btor, c, t, e);
-
-    boolector_release (btor, c);
-    boolector_release (btor, t);
-    boolector_release (btor, e);
-  }
-  return res;
-}
-
-static BoolectorNode *
-shl_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
-{
-  return translate_shift_smt2 (btor, a, b, boolector_sll);
-}
-
-static BoolectorNode *
-ashr_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
-{
-  return translate_shift_smt2 (btor, a, b, boolector_sra);
-}
-
-static BoolectorNode *
-lshr_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
-{
-  return translate_shift_smt2 (btor, a, b, boolector_srl);
-}
-
-static BoolectorNode *
 translate_rotate_smt2 (Btor *btor,
                        BoolectorNode *exp,
                        uint32_t shift,
@@ -2593,12 +2475,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_BVSHL_TAG_SMT2)
       {
-        binfun = shl_smt2;
+        binfun = boolector_sll;
         goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_BVLSHR_TAG_SMT2)
       {
-        binfun = lshr_smt2;
+        binfun = boolector_srl;
         goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_BVULT_TAG_SMT2)
@@ -2643,7 +2525,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_BVASHR_TAG_SMT2)
       {
-        binfun = ashr_smt2;
+        binfun = boolector_sra;
         goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_REPEAT_TAG_SMT2)
