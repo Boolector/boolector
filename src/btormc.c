@@ -140,7 +140,7 @@ init_options (BtorMC *mc)
 /*------------------------------------------------------------------------*/
 
 static void
-mc_release_assignment (BtorMC *mc)
+mc_release_assignments (BtorMC *mc)
 {
   BtorMCFrame *f;
   if (mc->forward2const)
@@ -302,7 +302,7 @@ btor_mc_delete (BtorMC *mc)
   btor = mc->btor;
   mm   = mc->mm;
 
-  mc_release_assignment (mc);
+  mc_release_assignments (mc);
   BTOR_MSG (
       boolector_get_btor_msg (btor),
       1,
@@ -1167,7 +1167,7 @@ btor_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
 
   btor = mc->btor;
 
-  mc_release_assignment (mc);
+  mc_release_assignments (mc);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             1,
@@ -1188,8 +1188,10 @@ btor_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
     if (mc->call_backs.starting_bound.fun)
+    {
       mc->call_backs.starting_bound.fun (mc->call_backs.starting_bound.state,
                                          k);
+    }
 
     initialize_new_forward_frame (mc);
     if (k < mink) continue;
