@@ -509,8 +509,7 @@ enlarge_symbol_table_smt2 (BtorSMT2Parser *parser)
   uint32_t new_size        = old_size ? 2 * old_size : 1;
   BtorSMT2Node **old_table = parser->symbol.table, *p, *next, **q;
   uint32_t h, i;
-  BTOR_NEWN (parser->mem, parser->symbol.table, new_size);
-  BTOR_CLRN (parser->symbol.table, new_size);
+  BTOR_CNEWN (parser->mem, parser->symbol.table, new_size);
   parser->symbol.size = new_size;
   for (i = 0; i < old_size; i++)
     for (p = old_table[i]; p; p = next)
@@ -561,8 +560,7 @@ static BtorSMT2Node *
 new_node_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
 {
   BtorSMT2Node *res;
-  BTOR_NEW (parser->mem, res);
-  BTOR_CLR (res);
+  BTOR_CNEW (parser->mem, res);
   res->tag = tag;
 #ifdef BTOR_USE_CLONE_SCOPES
   res->scope_level = BTOR_COUNT_STACK (parser->btor_scopes);
@@ -1042,8 +1040,7 @@ new_smt2_parser (Btor *btor)
 {
   BtorSMT2Parser *res;
   BtorMemMgr *mem = btor_mem_mgr_new ();
-  BTOR_NEW (mem, res);
-  BTOR_CLR (res);
+  BTOR_CNEW (mem, res);
   res->done          = false;
   res->btor          = btor;
   res->mem           = mem;
@@ -2129,6 +2126,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   unaryfun = 0;
   binfun   = 0;
   work_cnt = BTOR_COUNT_STACK (parser->work);
+  sym      = 0;
 
   do
   {

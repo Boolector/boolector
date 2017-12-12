@@ -1330,6 +1330,8 @@ parse_acond (BtorBTORParser *parser, uint32_t width)
   BoolectorNode *c, *t, *e, *res;
   uint32_t idxwidth;
 
+  idxwidth = 0;
+
   if (parse_space (parser)) return 0;
 
   if (parse_positive_int (parser, &idxwidth)) return 0;
@@ -1466,6 +1468,9 @@ parse_write (BtorBTORParser *parser, uint32_t width)
   BoolectorNode *array, *idx, *val, *res;
   uint32_t idxwidth, valwidth;
 
+  idxwidth = 0;
+  valwidth = 0;
+
   if (parse_space (parser)) return 0;
 
   if (parse_positive_int (parser, &idxwidth)) return 0;
@@ -1509,6 +1514,8 @@ parse_lambda (BtorBTORParser *parser, uint32_t width)
 {
   uint32_t paramwidth;
   BoolectorNode **params, *exp, *res;
+
+  paramwidth = 0;
 
   if (parse_space (parser)) return 0;
 
