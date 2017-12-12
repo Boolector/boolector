@@ -667,9 +667,10 @@ main (int32_t argc, char **argv)
   BtorMCOpt *o;
   BtorMC *mc;
 
-  infile      = stdin;
-  infile_name = "<stdin>";
-  out         = stdout;
+  close_infile = 0;
+  infile       = stdin;
+  infile_name  = "<stdin>";
+  out          = stdout;
 
   res = BTOR_MC_SUCC_EXIT;
 
