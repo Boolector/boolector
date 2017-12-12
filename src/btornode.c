@@ -688,21 +688,23 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, bool free_sort)
       btor_node_const_set_invbits (exp, 0);
       break;
     case BTOR_LAMBDA_NODE:
-      static_rho = btor_node_lambda_get_static_rho (exp);
-      if (static_rho)
-      {
-        btor_iter_hashptr_init (&it, static_rho);
-        while (btor_iter_hashptr_has_next (&it))
-        {
-          btor_node_release (btor, it.bucket->data.as_ptr);
-          btor_node_release (btor, btor_iter_hashptr_next (&it));
-        }
-        btor_hashptr_table_delete (static_rho);
-        ((BtorLambdaNode *) exp)->static_rho = 0;
-      }
-      /* fall through intended */
     case BTOR_UPDATE_NODE:
     case BTOR_UF_NODE:
+      if (exp->kind == BTOR_LAMBDA_NODE)
+      {
+        static_rho = btor_node_lambda_get_static_rho (exp);
+        if (static_rho)
+        {
+          btor_iter_hashptr_init (&it, static_rho);
+          while (btor_iter_hashptr_has_next (&it))
+          {
+            btor_node_release (btor, it.bucket->data.as_ptr);
+            btor_node_release (btor, btor_iter_hashptr_next (&it));
+          }
+          btor_hashptr_table_delete (static_rho);
+          ((BtorLambdaNode *) exp)->static_rho = 0;
+        }
+      }
       if (exp->rho)
       {
         btor_hashptr_table_delete (exp->rho);
