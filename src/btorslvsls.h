@@ -83,7 +83,7 @@ struct BtorSLSSolver
   BtorIntHashTable *max_cans; /* list of (can, neigh) */
   double max_score;
   BtorSLSMoveKind max_move; /* move kind (for stats) */
-  bool max_gw;              /* is groupwise move? (for stats) */
+  int32_t max_gw;           /* is groupwise move? (for stats) */
 
   /* statistics */
   struct

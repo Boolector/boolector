@@ -438,7 +438,7 @@ prop_inv_conf_and_bv (uint32_t bw)
   BtorNode *and, *cand[2], *e[2], *ce[2];
   BtorSortId sort;
   BtorBitVector *bvand, *bve[2], *res, *tmp, *tmp2;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_BINARY_INIT (and);
 
@@ -534,7 +534,7 @@ prop_inv_conf_ult_bv (uint32_t bw)
   BtorNode *ult, *e[2], *cult, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bvult, *bve, *zero, *bvmax;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_BINARY_INIT (ult);
 
@@ -617,7 +617,7 @@ prop_inv_conf_sll_bv (uint32_t bw)
   BtorNode *sll, *e[2], *csll, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bvsll, *bve;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_SHIFT_INIT (sll);
 
@@ -774,7 +774,7 @@ prop_inv_conf_srl_bv (uint32_t bw)
   BtorNode *srl, *e[2], *csrl, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bvsrl, *bve;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_SHIFT_INIT (srl);
 
@@ -931,7 +931,7 @@ prop_inv_conf_mul_bv (uint32_t bw)
   BtorNode *mul, *e[2], *cmul[2], *ce[2];
   BtorSortId sort;
   BtorBitVector *res, *bvmul, *bve;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_BINARY_INIT (mul);
 
@@ -1047,7 +1047,7 @@ prop_inv_conf_udiv_bv (uint32_t bw)
   BtorNode *udiv, *e[2], *cudiv, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bve, *bvudiv, *bvmax, *zero, *tmp, *tmp2;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_BINARY_INIT (udiv);
 
@@ -1132,7 +1132,7 @@ prop_inv_conf_urem_bv (uint32_t bw)
   BtorNode *urem, *e[2], *curem, *ce;
   BtorSortId sort;
   BtorBitVector *res, *bve, *bvurem, *bvmax, *zero, *two, *tmp, *tmp2;
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   TEST_PROP_INV_CONF_BINARY_INIT (urem);
 
@@ -1315,7 +1315,7 @@ prop_inv_conf_concat_bv (uint32_t bw)
   BtorNode *concat, *e[2], *ce[2], *cconcat[2];
   BtorSortId sorts[2];
   BtorBitVector *res, *bvconcat, *bve[2], *tmp[2];
-  BtorSolver *slv;
+  BtorSolver *slv = 0;
 
   /* prop engine: all conflicts are treated as fixable */
 

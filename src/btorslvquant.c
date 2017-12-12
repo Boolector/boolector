@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2015-2017 Mathias Preiner.
  *  Copyright (C) 2017 Aina Niemetz.
+ *  Copyright (C) 2017 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -300,25 +301,30 @@ time_stamp (void)
 
 /*------------------------------------------------------------------------*/
 
+#if 0
+
 static void
-print_cur_model (BtorEFGroundSolvers *gslv)
+print_cur_model (BtorEFGroundSolvers * gslv)
 {
   BtorNode *cur;
   BtorPtrHashTableIterator it;
   SynthResult *synth_res;
 
-  if (!gslv->forall_synth_model) return;
+  if (!gslv->forall_synth_model)
+    return;
 
   btor_iter_hashptr_init (&it, gslv->forall_synth_model);
   while (btor_iter_hashptr_has_next (&it))
-  {
-    synth_res = it.bucket->data.as_ptr;
-    cur       = btor_iter_hashptr_next (&it);
-    assert (btor_node_is_uf (cur) || btor_node_param_is_exists_var (cur));
-    printf ("\nmodel for %s\n", btor_node_get_symbol (gslv->forall, cur));
-    btor_dumpsmt_dump_node (gslv->forall, stdout, synth_res->value, -1);
-  }
+    {
+      synth_res = it.bucket->data.as_ptr;
+      cur = btor_iter_hashptr_next (&it);
+      assert (btor_node_is_uf (cur) || btor_node_param_is_exists_var (cur));
+      printf ("\nmodel for %s\n", btor_node_get_symbol (gslv->forall, cur));
+      btor_dumpsmt_dump_node (gslv->forall, stdout, synth_res->value, -1);
+    }
 }
+
+#endif
 
 static void
 delete_model (BtorEFGroundSolvers *gslv)
@@ -335,6 +341,7 @@ delete_model (BtorEFGroundSolvers *gslv)
     synth_res = it.bucket->data.as_ptr;
     cur       = btor_iter_hashptr_next (&it);
     assert (btor_node_is_uf (cur) || btor_node_param_is_exists_var (cur));
+    (void) cur;
     delete_synth_result (gslv->forall->mm, synth_res);
   }
   btor_hashptr_table_delete (gslv->forall_synth_model);

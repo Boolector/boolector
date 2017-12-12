@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2016-2017 Mathias Preiner.
  *  Copyright (C) 2017 Aina Niemetz.
+ *  Copyright (C) 2017 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -533,6 +534,8 @@ collect_existential_vars (Btor *btor, BtorNode *root)
   return result;
 }
 
+#ifndef NDEBUG
+
 static bool
 check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
 {
@@ -587,6 +590,8 @@ check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
   BTOR_RELEASE_STACK (visit);
   return res;
 }
+
+#endif
 
 static BtorNode *
 normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)

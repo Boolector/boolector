@@ -9,10 +9,10 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORIBV_H_INCLUDED
-#define BTORIBV_H_INCLUDED
+#ifndef BTORIBV_HH_INCLUDED
+#define BTORIBV_HH_INCLUDED
 
-#include "BitVector.h"
+#include "BitVector.hh"
 
 extern "C" {
 #include "boolectormc.h"

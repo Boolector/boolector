@@ -3842,7 +3842,9 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   if (check && btor_opt_get (btor, BTOR_OPT_CHK_MODEL))
   {
     mclone = btor_clone_exp_layer (btor, 0);
+#ifndef NBTORLOG
     btor_opt_set (mclone, BTOR_OPT_LOGLEVEL, 0);
+#endif
     btor_opt_set (mclone, BTOR_OPT_VERBOSITY, 0);
     btor_opt_set (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
     btor_opt_set (mclone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
@@ -4338,7 +4340,9 @@ check_failed_assumptions (Btor *btor)
   BtorNodePtrStack stack;
 
   clone = btor_clone_exp_layer (btor, 0);
+#ifndef NBTORLOG
   btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
+#endif
   btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
