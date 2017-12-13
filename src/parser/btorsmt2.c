@@ -2101,8 +2101,8 @@ static int parse_sort (BtorSMT2Parser *parser,
                        BoolectorSort *sort);
 
 /* Note: we need look ahead and tokens string only for get-value
- *	 (for parsing a term list and printing the originally parsed,
- *	 non-simplified expression) */
+ *       (for parsing a term list and printing the originally parsed,
+ *       non-simplified expression) */
 static int32_t
 parse_term_aux_smt2 (BtorSMT2Parser *parser,
                      bool have_look_ahead,
@@ -3590,7 +3590,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
 }
 
 /* Note: if we're currently parsing a model, define-fun for sorted vars
- *	 have to be transformed into assertions of the form
+ *       have to be transformed into assertions of the form
  *       assert (= var assignment), define-funs for funs with args >= 1
  *       have to be built before asserting.
  *       Further, all symbols we parse are already defined -> check sort. */
