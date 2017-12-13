@@ -91,20 +91,21 @@ typedef enum BtorSMT2Tag
   BTOR_DEFINE_SORT_TAG_SMT2    = 4 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_DECLARE_FUN_TAG_SMT2    = 5 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_DEFINE_FUN_TAG_SMT2     = 6 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_PUSH_TAG_SMT2           = 7 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_POP_TAG_SMT2            = 8 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_ASSERT_TAG_SMT2         = 9 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_CHECK_SAT_TAG_SMT2      = 10 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_ASSERTIONS_TAG_SMT2 = 11 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_PROOF_TAG_SMT2      = 12 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_UNSAT_CORE_TAG_SMT2 = 13 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_VALUE_TAG_SMT2      = 14 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_ASSIGNMENT_TAG_SMT2 = 15 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_OPTION_TAG_SMT2     = 16 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_INFO_TAG_SMT2       = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_EXIT_TAG_SMT2           = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_MODEL_TAG_SMT2      = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_MODEL_TAG_SMT2          = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DECLARE_CONST_TAG_SMT2  = 7 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_PUSH_TAG_SMT2           = 8 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_POP_TAG_SMT2            = 9 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_ASSERT_TAG_SMT2         = 10 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_CHECK_SAT_TAG_SMT2      = 11 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_ASSERTIONS_TAG_SMT2 = 12 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_PROOF_TAG_SMT2      = 13 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_UNSAT_CORE_TAG_SMT2 = 14 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_VALUE_TAG_SMT2      = 15 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_ASSIGNMENT_TAG_SMT2 = 16 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_OPTION_TAG_SMT2     = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_INFO_TAG_SMT2       = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_EXIT_TAG_SMT2           = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_MODEL_TAG_SMT2      = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_MODEL_TAG_SMT2          = 21 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
   BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -915,6 +916,7 @@ insert_commands_smt2 (BtorSMT2Parser *parser)
   INSERT ("check-sat", BTOR_CHECK_SAT_TAG_SMT2);
   INSERT ("declare-sort", BTOR_DECLARE_SORT_TAG_SMT2);
   INSERT ("declare-fun", BTOR_DECLARE_FUN_TAG_SMT2);
+  INSERT ("declare-const", BTOR_DECLARE_CONST_TAG_SMT2);
   INSERT ("define-sort", BTOR_DEFINE_SORT_TAG_SMT2);
   INSERT ("define-fun", BTOR_DEFINE_FUN_TAG_SMT2);
   INSERT ("exit", BTOR_EXIT_TAG_SMT2);
@@ -3476,7 +3478,7 @@ parse_sort (BtorSMT2Parser *parser,
 }
 
 static int32_t
-declare_fun_smt2 (BtorSMT2Parser *parser)
+declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
 {
   char *symbol;
   uint32_t i;
@@ -3486,8 +3488,15 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
   fun = 0;
   BoolectorSort sort, s;
 
-  if (!read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
+  if (!read_symbol (parser,
+                    isconst ? " after 'declare-const'" : " after 'declare-fun'",
+                    &fun))
+  {
+    return 0;
+  }
+
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
+
   if (fun->coo.x)
     return !perr_smt2 (parser,
                        "symbol '%s' already defined at line %d column %d",
@@ -3495,22 +3504,32 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
                        fun->coo.x,
                        fun->coo.y);
   fun->coo = parser->coo;
-  if (!read_lpar_smt2 (parser, " after function name")) return 0;
 
   BTOR_INIT_STACK (parser->mem, args);
-  do
+
+  if (!isconst)
   {
-    tag = read_token_smt2 (parser);
-    if (tag != BTOR_RPAR_TAG_SMT2)
+    if (!read_lpar_smt2 (
+            parser, isconst ? " after const name" : " after function name"))
     {
-      if (!parse_sort (parser, tag, false, &sort))
-      {
-        BTOR_RELEASE_STACK (args);
-        return 0;
-      }
-      BTOR_PUSH_STACK (args, sort);
+      BTOR_RELEASE_STACK (args);
+      return 0;
     }
-  } while (tag != BTOR_RPAR_TAG_SMT2);
+
+    do
+    {
+      tag = read_token_smt2 (parser);
+      if (tag != BTOR_RPAR_TAG_SMT2)
+      {
+        if (!parse_sort (parser, tag, false, &sort))
+        {
+          BTOR_RELEASE_STACK (args);
+          return 0;
+        }
+        BTOR_PUSH_STACK (args, sort);
+      }
+    } while (tag != BTOR_RPAR_TAG_SMT2);
+  }
 
   /* parse return sort */
   tag = read_token_smt2 (parser);
@@ -4119,7 +4138,12 @@ read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
-      if (!declare_fun_smt2 (parser)) return 0;
+      if (!declare_fun_smt2 (parser, false)) return 0;
+      print_success (parser);
+      break;
+
+    case BTOR_DECLARE_CONST_TAG_SMT2:
+      if (!declare_fun_smt2 (parser, true)) return 0;
       print_success (parser);
       break;
 
