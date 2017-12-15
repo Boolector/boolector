@@ -490,7 +490,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
-          si = (BoolectorSort) btor_hashint_map_get (sortmap, j);
+          si = (BoolectorSort) btor_hashint_map_get (sortmap, j)->as_ptr;
           assert (si);
           j = l->sort.array.element;
           assert (j);
@@ -500,7 +500,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
-          se = (BoolectorSort) btor_hashint_map_get (sortmap, j);
+          se = (BoolectorSort) btor_hashint_map_get (sortmap, j)->as_ptr;
           assert (se);
           s = boolector_array_sort (btor, si, se);
         }
