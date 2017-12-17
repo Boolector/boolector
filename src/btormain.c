@@ -1311,8 +1311,6 @@ boolector_main (int32_t argc, char **argv)
   assert (!g_app->done && !g_app->err);
 
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
-  g_dual_threads =
-      boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   /* open output file */
   if (g_app->outfile_name)
@@ -1410,6 +1408,9 @@ boolector_main (int32_t argc, char **argv)
 
   /* verbosity may have been increased via input (set-option) */
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
+
+  g_dual_threads =
+      boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
