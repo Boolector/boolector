@@ -10,22 +10,20 @@
  */
 
 #include "btorslvsls.h"
+#include "btorabort.h"
 #include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
+#include "btordbg.h"
+#include "btorlog.h"
 #include "btormodel.h"
+#include "btorprintmodel.h"
 #include "btorslvpropsls.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
 #include "utils/btornodemap.h"
 #include "utils/btorutil.h"
-#ifndef NBTORLOG
-#include "btorprintmodel.h"
-#endif
-#include "btorabort.h"
-#include "btordbg.h"
-#include "btorlog.h"
 
 #include <math.h>
 
