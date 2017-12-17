@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -359,9 +359,9 @@ btormain_init_opts (BtorMainApp *app)
                  "dump formula in BTOR format");
 #if 0
   init_main_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, true,
-	         "dump-btor2", "db2", 0, 0, 1,
-		 false, BTORMAIN_OPT_ARG_NONE,
-		 "dump formula in BTOR 2.0 format");
+                 "dump-btor2", "db2", 0, 0, 1,
+                 false, BTORMAIN_OPT_ARG_NONE,
+                 "dump formula in BTOR 2.0 format");
 #endif
   init_main_opt (app,
                  BTORMAIN_OPT_DUMP_SMT,
@@ -1195,9 +1195,9 @@ boolector_main (int32_t argc, char **argv)
           boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
           break;
 #if 0
-	      case BTORMAIN_OPT_DUMP_BTOR2:
-		dump = BTOR_OUTPUT_FORMAT_BTOR2;
-		goto SET_OUTPUT_FORMAT;
+              case BTORMAIN_OPT_DUMP_BTOR2:
+                dump = BTOR_OUTPUT_FORMAT_BTOR2;
+                goto SET_OUTPUT_FORMAT;
 #endif
         case BTORMAIN_OPT_DUMP_SMT:
           dump = BTOR_OUTPUT_FORMAT_SMT2;
@@ -1311,8 +1311,6 @@ boolector_main (int32_t argc, char **argv)
   assert (!g_app->done && !g_app->err);
 
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
-  g_dual_threads =
-      boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
 
   /* open output file */
   if (g_app->outfile_name)
@@ -1411,6 +1409,9 @@ boolector_main (int32_t argc, char **argv)
   /* verbosity may have been increased via input (set-option) */
   g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
 
+  g_dual_threads = boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1
+                   && g_app->btor->quantifiers->count > 0;
+
   if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
     /* NOTE: do not use btormain_error here as 'parse_err_msg' must not be
@@ -1462,10 +1463,10 @@ boolector_main (int32_t argc, char **argv)
         boolector_dump_btor (g_app->btor, g_app->outfile);
         break;
 #if 0
-	  case BTOR_OUTPUT_FORMAT_BTOR2:
-	    if (g_verbosity) btormain_msg ("dumping BTOR 2.0 expressions");
-	    boolector_dump_btor2 (g_app->btor, g_app->outfile);
-	    break;
+          case BTOR_OUTPUT_FORMAT_BTOR2:
+            if (g_verbosity) btormain_msg ("dumping BTOR 2.0 expressions");
+            boolector_dump_btor2 (g_app->btor, g_app->outfile);
+            break;
 #endif
       case BTOR_OUTPUT_FORMAT_SMT2:
         if (g_verbosity) btormain_msg ("dumping in SMT 2.0 format");
