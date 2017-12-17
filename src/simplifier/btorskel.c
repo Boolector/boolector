@@ -309,10 +309,10 @@ btor_process_skeleton (Btor *btor)
       val = lglfixed (lgl, lit);
       if (val)
       {
+        if (val < 0) exp = BTOR_INVERT_NODE (exp);
         if (!btor_hashptr_table_get (btor->synthesized_constraints, exp)
             && !btor_hashptr_table_get (btor->unsynthesized_constraints, exp))
         {
-          if (val < 0) exp = BTOR_INVERT_NODE (exp);
           btor_assert_exp (btor, exp);
           btor->stats.skeleton_constraints++;
           fixed++;
