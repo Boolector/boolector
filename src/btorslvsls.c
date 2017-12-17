@@ -1748,6 +1748,12 @@ print_time_stats_sls_solver (BtorSLSSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
 }
 
+static void
+print_model_sls_solver (BtorSLSSolver *slv, const char *format, FILE *file)
+{
+  btor_print_model_aufbv (slv->btor, format, file);
+}
+
 BtorSolver *
 btor_new_sls_solver (Btor *btor)
 {
@@ -1769,6 +1775,7 @@ btor_new_sls_solver (Btor *btor)
   slv->api.print_stats    = (BtorSolverPrintStats) print_stats_sls_solver;
   slv->api.print_time_stats =
       (BtorSolverPrintTimeStats) print_time_stats_sls_solver;
+  slv->api.print_model = (BtorSolverPrintModel) print_model_sls_solver;
 
   BTOR_MSG (btor->msg, 1, "enabled sls engine");
 

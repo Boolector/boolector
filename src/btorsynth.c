@@ -1040,7 +1040,7 @@ synthesize (Btor *btor,
                       value_in[i],
                       value_out[i],
                       value_in_map);
-      assert (btor_opt_get (btor, BTOR_OPT_EF_SYNTH) != BTOR_EF_SYNTH_ELMR
+      assert (btor_opt_get (btor, BTOR_OPT_EF_SYNTH) != BTOR_QUANT_SYNTH_ELMR
               || btor_bv_is_ones (bv));
       BTOR_PUSH_STACK (sig_constraints, bv);
       BTOR_PUSH_STACK (value_caches, value_cache);

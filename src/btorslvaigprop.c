@@ -16,6 +16,7 @@
 #include "btordbg.h"
 #include "btormodel.h"
 #include "btoropt.h"
+#include "btorprintmodel.h"
 #include "btorslvprop.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
@@ -339,6 +340,12 @@ print_time_stats_aigprop_solver (BtorAIGPropSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
 }
 
+static void
+print_model (BtorAIGPropSolver *slv, const char *format, FILE *file)
+{
+  btor_print_model_aufbv (slv->btor, format, file);
+}
+
 BtorSolver *
 btor_new_aigprop_solver (Btor *btor)
 {
@@ -359,6 +366,7 @@ btor_new_aigprop_solver (Btor *btor)
   slv->api.print_stats = (BtorSolverPrintStats) print_stats_aigprop_solver;
   slv->api.print_time_stats =
       (BtorSolverPrintTimeStats) print_time_stats_aigprop_solver;
+  slv->api.print_model = (BtorSolverPrintModel) print_model;
 
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr (btor),

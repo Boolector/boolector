@@ -3931,7 +3931,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       {
         BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
                     "quantifiers with functions not supported yet");
-        btor->slv = btor_new_ef_solver (btor);
+        btor->slv = btor_new_quantifier_solver (btor);
       }
       else
       {

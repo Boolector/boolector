@@ -515,6 +515,12 @@ print_time_stats_prop_solver (BtorPropSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
 }
 
+static void
+print_model_prop_solver (BtorPropSolver *slv, const char *format, FILE *file)
+{
+  btor_print_model_aufbv (slv->btor, format, file);
+}
+
 BtorSolver *
 btor_new_prop_solver (Btor *btor)
 {
@@ -535,6 +541,7 @@ btor_new_prop_solver (Btor *btor)
   slv->api.print_stats = (BtorSolverPrintStats) print_stats_prop_solver;
   slv->api.print_time_stats =
       (BtorSolverPrintTimeStats) print_time_stats_prop_solver;
+  slv->api.print_model = (BtorSolverPrintModel) print_model_prop_solver;
 
   BTOR_MSG (btor->msg, 1, "enabled prop engine");
 
