@@ -99,8 +99,8 @@ struct BtorQuantSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorEFGroundSolvers *gslv;      /* two ground solver instances */
-  BtorEFGroundSolvers *dual_gslv; /* two ground solver instances for dual */
+  BtorEFGroundSolvers *gslv;  /* two ground solver instances */
+  BtorEFGroundSolvers *dgslv; /* two ground solver instances for dual */
 };
 
 typedef struct BtorQuantSolver BtorQuantSolver;
@@ -507,8 +507,10 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
           btor_sort_release (dual_btor, sortid);
         }
         else if (btor_node_is_bv_const (real_cur))
+        {
           result =
               btor_exp_const (dual_btor, btor_node_const_get_bits (real_cur));
+        }
         else
         {
           assert (btor_node_is_uf (real_cur));
@@ -531,8 +533,10 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
       else if (btor_node_is_exists (real_cur))
         result = btor_exp_forall (dual_btor, e[0], e[1]);
       else
+      {
         result =
             btor_exp_create (dual_btor, real_cur->kind, e, real_cur->arity);
+      }
 
       d->as_ptr = btor_node_copy (dual_btor, result);
 
@@ -984,16 +988,12 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
     var_fs = it.it.bucket->data.as_ptr;
     uvar   = btor_iter_nodemap_next (&it);
     bv     = btor_model_get_bv (f_solver, btor_simplify_exp (f_solver, var_fs));
-    //      printf ("%s, %s = %zu ", btor_util_node2string (var_fs),
-    //      btor_node_get_symbol (f_solver, uvar), btor_bv_to_uint64_bv (bv));
-    //      btor_print_bv (bv);
-    c = btor_exp_const (e_solver, (BtorBitVector *) bv);
+    c      = btor_exp_const (e_solver, (BtorBitVector *) bv);
     btor_nodemap_map (map, uvar, c);
     btor_node_release (e_solver, c);
     btor_bv_add_to_tuple (f_solver->mm, ce, bv, i++);
   }
 
-  //  printf ("evar (refine)\n");
   i        = 0;
   evar_tup = 0;
   if (gslv->forall_evars->table->count)
@@ -1008,8 +1008,6 @@ refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
       assert (var_fs);
       bv = btor_model_get_bv (f_solver, btor_simplify_exp (f_solver, var_fs));
       btor_bv_add_to_tuple (f_solver->mm, evar_tup, bv, i++);
-      //      printf ("%s = %zu ", btor_node_get_symbol (f_solver, evar),
-      //      btor_bv_to_uint64_bv (bv)); btor_print_bv (bv);
     }
   }
 
@@ -1319,7 +1317,7 @@ delete_quant_solver (BtorQuantSolver *slv)
   Btor *btor;
   btor = slv->btor;
   delete_efg_solvers (slv, slv->gslv);
-  if (slv->dual_gslv) delete_efg_solvers (slv, slv->dual_gslv);
+  if (slv->dgslv) delete_efg_solvers (slv, slv->dgslv);
   BTOR_DELETE (btor->mm, slv);
   btor->slv = 0;
 }
@@ -2049,21 +2047,11 @@ build_input_output_values_quant_inst (BtorEFGroundSolvers *gslv,
 
     pos = 0;
     for (i = 0; i < uvar_tup->arity; i++)
-    {
-      //	printf ("u: %zu ", btor_bv_to_uint64_bv (uvar_tup->bv[i]));
-      // btor_print_bv (uvar_tup->bv[i]);
       btor_bv_add_to_tuple (mm, in, uvar_tup->bv[i], pos++);
-    }
     for (i = 0; i < evar_tup->arity; i++)
-    {
-      //	printf ("e: %zu ", btor_bv_to_uint64_bv (evar_tup->bv[i]));
-      // btor_print_bv (evar_tup->bv[i]);
       btor_bv_add_to_tuple (mm, in, evar_tup->bv[i], pos++);
-    }
 
     out = uvar_tup->bv[uvar_pos];
-    //      printf ("out: %zu ", btor_bv_to_uint64_bv (out)); btor_print_bv
-    //      (out);
     BTOR_PUSH_STACK (*value_in, in);
     BTOR_PUSH_STACK (*value_out, btor_bv_copy (mm, out));
   }
@@ -2356,11 +2344,11 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 #if 0
       btor_iter_nodemap_init (&it, gslv->exists_ufs);
       while (btor_iter_nodemap_has_next (&it))
-	{
-	  var_fs = it.it.bucket->data.as_ptr;
-	  var_es = btor_iter_nodemap_next (&it);
-	  btor_nodemap_map (map, var_fs, var_es);
-	}
+        {
+          var_fs = it.it.bucket->data.as_ptr;
+          var_es = btor_iter_nodemap_next (&it);
+          btor_nodemap_map (map, var_fs, var_es);
+        }
 #endif
     result = build_quant_inst_refinement (gslv, map);
     btor_assert_exp (e_solver, result);
@@ -2533,7 +2521,7 @@ thread_terminate (void *state)
 }
 
 static BtorSolverResult
-run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
+run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dgslv)
 {
   BtorSolverResult res;
   pthread_t thread_orig, thread_dual;
@@ -2541,10 +2529,10 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
   g_measure_thread_time = true;
   btor_set_term (gslv->forall, thread_terminate, 0);
   btor_set_term (gslv->exists, thread_terminate, 0);
-  btor_set_term (dual_gslv->forall, thread_terminate, 0);
-  btor_set_term (dual_gslv->exists, thread_terminate, 0);
+  btor_set_term (dgslv->forall, thread_terminate, 0);
+  btor_set_term (dgslv->exists, thread_terminate, 0);
   pthread_create (&thread_orig, 0, thread_work, gslv);
-  pthread_create (&thread_dual, 0, thread_work, dual_gslv);
+  pthread_create (&thread_dual, 0, thread_work, dgslv);
   pthread_join (thread_orig, 0);
   pthread_join (thread_dual, 0);
 
@@ -2554,19 +2542,19 @@ run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dual_gslv)
   }
   else
   {
-    assert (dual_gslv->result != BTOR_RESULT_UNKNOWN);
-    if (dual_gslv->result == BTOR_RESULT_SAT)
+    assert (dgslv->result != BTOR_RESULT_UNKNOWN);
+    if (dgslv->result == BTOR_RESULT_SAT)
     {
-      BTOR_MSG (dual_gslv->forall->msg,
+      BTOR_MSG (dgslv->forall->msg,
                 1,
                 "dual solver result: sat, original formula: unsat");
       res = BTOR_RESULT_UNSAT;
     }
     else
     {
-      assert (dual_gslv->result == BTOR_RESULT_UNSAT);
+      assert (dgslv->result == BTOR_RESULT_UNSAT);
       res = BTOR_RESULT_SAT;
-      BTOR_MSG (dual_gslv->forall->msg,
+      BTOR_MSG (dgslv->forall->msg,
                 1,
                 "dual solver result: unsat, original formula: sat");
     }
@@ -2629,9 +2617,9 @@ sat_quant_solver (BtorQuantSolver *slv)
 
   if (opt_dual_solver)
   {
-    slv->dual_gslv = setup_solvers (
+    slv->dgslv = setup_solvers (
         slv, slv->gslv->forall_formula, true, "dual_forall", "dual_exists");
-    res = run_parallel (slv->gslv, slv->dual_gslv);
+    res = run_parallel (slv->gslv, slv->dgslv);
   }
   else
   {
@@ -2705,33 +2693,33 @@ print_stats_quant_solver (BtorQuantSolver *slv)
   }
   if (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
-    assert (slv->dual_gslv);
+    assert (slv->dgslv);
     BTOR_MSG (slv->btor->msg,
               1,
               "cegqi dual solver refinements: %u",
-              slv->dual_gslv->statistics.stats.refinements);
+              slv->dgslv->statistics.stats.refinements);
     BTOR_MSG (slv->btor->msg,
               1,
               "cegqi dual solver failed refinements: %u",
-              slv->dual_gslv->statistics.stats.failed_refinements);
-    if (slv->dual_gslv->result == BTOR_RESULT_SAT
-        || slv->dual_gslv->result == BTOR_RESULT_UNKNOWN)
+              slv->dgslv->statistics.stats.failed_refinements);
+    if (slv->dgslv->result == BTOR_RESULT_SAT
+        || slv->dgslv->result == BTOR_RESULT_UNKNOWN)
     {
       BTOR_MSG (slv->btor->msg,
                 1,
                 "dual model synthesized const: %u (%u)",
-                slv->dual_gslv->statistics.stats.synthesize_model_const,
-                slv->dual_gslv->statistics.stats.synthesize_const);
+                slv->dgslv->statistics.stats.synthesize_model_const,
+                slv->dgslv->statistics.stats.synthesize_const);
       BTOR_MSG (slv->btor->msg,
                 1,
                 "dual model synthesized term: %u (%u)",
-                slv->dual_gslv->statistics.stats.synthesize_model_term,
-                slv->dual_gslv->statistics.stats.synthesize_term);
+                slv->dgslv->statistics.stats.synthesize_model_term,
+                slv->dgslv->statistics.stats.synthesize_term);
       BTOR_MSG (slv->btor->msg,
                 1,
                 "dual model synthesized none: %u (%u)",
-                slv->dual_gslv->statistics.stats.synthesize_model_none,
-                slv->dual_gslv->statistics.stats.synthesize_none);
+                slv->dgslv->statistics.stats.synthesize_model_none,
+                slv->dgslv->statistics.stats.synthesize_none);
     }
   }
 }
@@ -2770,34 +2758,35 @@ print_time_stats_quant_solver (BtorQuantSolver *slv)
             slv->gslv->statistics.time.checkinst);
   if (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
   {
-    assert (slv->dual_gslv);
+    assert (slv->dgslv);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual exists solver",
-              slv->dual_gslv->statistics.time.e_solver);
+              slv->dgslv->statistics.time.e_solver);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual forall solver",
-              slv->dual_gslv->statistics.time.f_solver);
+              slv->dgslv->statistics.time.f_solver);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual synthesizing functions",
-              slv->dual_gslv->statistics.time.synth);
+              slv->dgslv->statistics.time.synth);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual add refinement",
-              slv->dual_gslv->statistics.time.refine);
+              slv->dgslv->statistics.time.refine);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual quantifier instantiation",
-              slv->dual_gslv->statistics.time.qinst);
+              slv->dgslv->statistics.time.qinst);
     BTOR_MSG (slv->btor->msg,
               1,
               "%.2f seconds dual check instantiation",
-              slv->dual_gslv->statistics.time.checkinst);
+              slv->dgslv->statistics.time.checkinst);
   }
 }
 
+/* Note: Models are always printed in SMT2 format. */
 static void
 print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
 {
@@ -2809,12 +2798,8 @@ print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
   {
     if (slv->gslv->forall_synth_model)
     {
-      if (!strcmp (format, "smt2"))
-      {
-        fprintf (file,
-                 "(model%s",
-                 slv->gslv->forall_synth_model->count ? "\n" : " ");
-      }
+      fprintf (
+          file, "(model%s", slv->gslv->forall_synth_model->count ? "\n" : " ");
 
       btor_iter_hashptr_init (&it, slv->gslv->forall_synth_model);
       while (btor_iter_hashptr_has_next (&it))
@@ -2826,7 +2811,7 @@ print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
             slv->gslv->forall, cur, synth_res->value, format, file);
       }
 
-      if (!strcmp (format, "smt2")) fprintf (file, ")\n");
+      fprintf (file, ")\n");
     }
     else
     {
@@ -2836,8 +2821,8 @@ print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
   }
   else
   {
-    assert (slv->dual_gslv);
-    assert (slv->dual_gslv->result == BTOR_RESULT_UNSAT);
+    assert (slv->dgslv);
+    assert (slv->dgslv->result == BTOR_RESULT_UNSAT);
     assert (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER));
     fprintf (file, "cannot generate model, disable --ef:dual\n");
   }
