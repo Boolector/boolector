@@ -852,9 +852,9 @@ btor_opt_init_opts (Btor *btor)
             true,
             "ef:synth",
             0,
-            BTOR_EF_SYNTH_DFLT,
-            BTOR_EF_SYNTH_MIN,
-            BTOR_EF_SYNTH_MAX,
+            BTOR_QUANT_SYNTH_DFLT,
+            BTOR_QUANT_SYNTH_MIN,
+            BTOR_QUANT_SYNTH_MAX,
             "synthesis mode for Skolem functions:"
             "0=none,"
             "1=enumlearn,"

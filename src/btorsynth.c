@@ -667,52 +667,6 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
   candidates->nexps_level.start[exp_size]++;
 }
 
-#if 0
-struct Match
-{
-  uint32_t level; // TODO: set level in which exp was created
-  uint32_t num_matches;
-  BtorBitVector *matches;
-  BtorNode *exp;
-};
-
-typedef struct Match Match;
-
-static Match *
-new_match (BtorMemMgr * mm, uint32_t level, uint32_t num_matches,
-           BtorBitVector * matches, BtorNode * exp)
-{
-  Match *res;
-
-  BTOR_CNEW (mm, res);
-  res->level = level;
-  res->num_matches = num_matches;
-  res->matches = matches;
-  res->exp = btor_node_copy (BTOR_REAL_ADDR_NODE (exp)->btor, exp);
-  return res;
-}
-
-static uint32_t
-hash_match (Match * m)
-{
-  return btor_hash_bv (m->matches);
-}
-
-static int32_t 
-cmp_match (const Match * m0, const Match * m1)
-{
-  return btor_bv_compare (m0->matches, m1->matches);
-}
-
-static void
-delete_match (BtorMemMgr * mm, Match * m)
-{
-  btor_bv_free (mm, m->matches);
-  btor_node_release (BTOR_REAL_ADDR_NODE (m->exp)->btor, m->exp);
-  BTOR_DELETE (mm, m);
-}
-#endif
-
 static BtorBitVectorTuple *
 create_signature_exp (Btor *btor,
                       BtorNode *exp,
@@ -1040,7 +994,7 @@ synthesize (Btor *btor,
                       value_in[i],
                       value_out[i],
                       value_in_map);
-      assert (btor_opt_get (btor, BTOR_OPT_EF_SYNTH) != BTOR_EF_SYNTH_ELMR
+      assert (btor_opt_get (btor, BTOR_OPT_EF_SYNTH) != BTOR_QUANT_SYNTH_ELMR
               || btor_bv_is_ones (bv));
       BTOR_PUSH_STACK (sig_constraints, bv);
       BTOR_PUSH_STACK (value_caches, value_cache);

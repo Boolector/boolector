@@ -12,10 +12,12 @@
 #ifndef BTORSLV_H_INCLUDED
 #define BTORSLV_H_INCLUDED
 
-#include <stdbool.h>
 #include "btortypes.h"
 #include "utils/btormem.h"
 #include "utils/btornodemap.h"
+
+#include <stdbool.h>
+#include <stdio.h>
 
 enum BtorSolverKind
 {
@@ -23,7 +25,7 @@ enum BtorSolverKind
   BTOR_SLS_SOLVER_KIND,
   BTOR_PROP_SOLVER_KIND,
   BTOR_AIGPROP_SOLVER_KIND,
-  BTOR_EF_SOLVER_KIND,
+  BTOR_QUANT_SOLVER_KIND,
 };
 typedef enum BtorSolverKind BtorSolverKind;
 
@@ -35,6 +37,9 @@ typedef BtorSolverResult (*BtorSolverSat) (struct BtorSolver *);
 typedef void (*BtorSolverGenerateModel) (struct BtorSolver *, bool, bool);
 typedef void (*BtorSolverPrintStats) (struct BtorSolver *);
 typedef void (*BtorSolverPrintTimeStats) (struct BtorSolver *);
+typedef void (*BtorSolverPrintModel) (struct BtorSolver *,
+                                      const char *format,
+                                      FILE *file);
 
 #define BTOR_SOLVER_STRUCT                       \
   struct                                         \
@@ -49,6 +54,7 @@ typedef void (*BtorSolverPrintTimeStats) (struct BtorSolver *);
       BtorSolverGenerateModel generate_model;    \
       BtorSolverPrintStats print_stats;          \
       BtorSolverPrintTimeStats print_time_stats; \
+      BtorSolverPrintModel print_model;          \
     } api;                                       \
   }
 

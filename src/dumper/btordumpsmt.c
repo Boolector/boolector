@@ -1798,7 +1798,8 @@ btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, uint32_t depth)
 
   BTOR_INIT_STACK (btor->mm, all);
   BTOR_INIT_STACK (btor->mm, visit);
-  sdc = new_smt_dump_context (btor, file);
+  sdc          = new_smt_dump_context (btor, file);
+  sdc->newline = false;
 
   if (!exp)
   {
@@ -1868,7 +1869,6 @@ btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, uint32_t depth)
   else
   {
     recursively_dump_exp_let_smt (sdc, exp, false, depth);
-    fprintf (file, "\n");
   }
 CLEANUP:
   delete_smt_dump_context (sdc);

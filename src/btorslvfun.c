@@ -21,6 +21,7 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btoropt.h"
+#include "btorprintmodel.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "utils/btorhashint.h"
@@ -2636,6 +2637,12 @@ print_time_stats_fun_solver (BtorFunSolver *slv)
   BTOR_MSG (btor->msg, 1, "");
 }
 
+static void
+print_model_fun_solver (BtorFunSolver *slv, const char *format, FILE *file)
+{
+  btor_print_model_aufbv (slv->btor, format, file);
+}
+
 BtorSolver *
 btor_new_fun_solver (Btor *btor)
 {
@@ -2655,6 +2662,7 @@ btor_new_fun_solver (Btor *btor)
   slv->api.print_stats    = (BtorSolverPrintStats) print_stats_fun_solver;
   slv->api.print_time_stats =
       (BtorSolverPrintTimeStats) print_time_stats_fun_solver;
+  slv->api.print_model = (BtorSolverPrintModel) print_model_fun_solver;
 
   slv->lod_limit = -1;
   slv->sat_limit = -1;
