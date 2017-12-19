@@ -20,6 +20,7 @@
 #include "btormodel.h"
 #include "btornode.h"
 #include "btoropt.h"
+#include "btorprintmodel.h"
 
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
