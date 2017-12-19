@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -23,7 +23,7 @@
 static bool
 is_uc_write (BtorNode *cond)
 {
-  assert (BTOR_IS_REGULAR_NODE (cond));
+  assert (btor_node_is_regular (cond));
   assert (btor_node_is_bv_cond (cond));
   assert (cond->parameterized);
 
@@ -31,7 +31,7 @@ is_uc_write (BtorNode *cond)
 
   if (cond->parents != 1) return false;
 
-  lambda = BTOR_REAL_ADDR_NODE (cond->first_parent);
+  lambda = btor_node_real_addr (cond->first_parent);
   if (!btor_node_is_lambda (lambda)) return false;
 
   return btor_node_lambda_get_static_rho (lambda) != 0;
@@ -40,7 +40,7 @@ is_uc_write (BtorNode *cond)
 static void
 mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
 {
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   /* no inputs allowed here */
   assert (exp->arity > 0);
 
@@ -121,10 +121,10 @@ btor_optimize_unconstrained (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     if (cur->parents == 1)
     {
-      cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
+      cur_parent = btor_node_real_addr (cur->first_parent);
       btor_hashint_table_add (ucs, cur->id);
       BTOR_MSG (btor->msg, 2, "found uc input %s", btor_util_node2string (cur));
       // TODO (ma): why not just collect ufs and vars?
@@ -137,7 +137,7 @@ btor_optimize_unconstrained (Btor *btor)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     if (!btor_hashint_map_contains (mark, cur->id))
     {
       btor_hashint_map_add (mark, cur->id);
@@ -158,7 +158,7 @@ btor_optimize_unconstrained (Btor *btor)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     d = btor_hashint_map_get (mark, cur->id);
 
     if (!d) continue;
@@ -173,7 +173,7 @@ btor_optimize_unconstrained (Btor *btor)
       d->as_int = 1;
       BTOR_PUSH_STACK (stack, cur);
       for (i = 1; i <= cur->arity; i++)
-        BTOR_PUSH_STACK (stack, BTOR_REAL_ADDR_NODE (cur->e[cur->arity - i]));
+        BTOR_PUSH_STACK (stack, btor_node_real_addr (cur->e[cur->arity - i]));
     }
     else
     {
@@ -186,9 +186,9 @@ btor_optimize_unconstrained (Btor *btor)
         for (i = 0; i < cur->arity; i++)
         {
           uc[i] = btor_hashint_table_contains (
-              ucs, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
+              ucs, btor_node_real_addr (cur->e[i])->id);
           ucp[i] = btor_hashint_table_contains (
-              ucsp, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
+              ucsp, btor_node_real_addr (cur->e[i])->id);
           assert (!uc[i] || uc[i] != ucp[i]);
           assert (!ucp[i] || uc[i] != ucp[i]);
           assert (!ucp[i] || cur->parameterized || btor_node_is_lambda (cur));

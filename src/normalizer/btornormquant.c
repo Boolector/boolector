@@ -22,7 +22,7 @@
 static BtorNode *
 create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
 {
-  assert (BTOR_IS_REGULAR_NODE (ite));
+  assert (btor_node_is_regular (ite));
   assert (btor_node_is_bv_cond (ite));
 
   char buf[128];
@@ -44,7 +44,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
   BTOR_PUSH_STACK (visit, ite);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (mark, cur->id) || !cur->parameterized)
       continue;
@@ -146,7 +146,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     d        = btor_hashint_map_get (map, real_cur->id);
 
     if (!d)
@@ -180,7 +180,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
                                  btor_node_slice_get_lower (real_cur));
       }
       else if (btor_node_is_bv_cond (real_cur)
-               && BTOR_REAL_ADDR_NODE (real_cur->e[0])->quantifier_below)
+               && btor_node_real_addr (real_cur->e[0])->quantifier_below)
       {
         // TODO (ma): sanity check if a new UF is sufficient to express
         //            the same as a new existential variable
@@ -191,7 +191,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
         btor_node_release (btor, tmp);
 
         tmp      = btor_exp_eq (btor, result, e[2]);
-        ite_else = btor_exp_implies (btor, BTOR_INVERT_NODE (e[0]), tmp);
+        ite_else = btor_exp_implies (btor, btor_node_invert (e[0]), tmp);
         btor_node_release (btor, tmp);
 
         ite = btor_exp_and (btor, ite_if, ite_else);
@@ -224,7 +224,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 
       d->as_ptr = btor_node_copy (btor, result);
     PUSH_RESULT:
-      result = BTOR_COND_INVERT_NODE (cur, result);
+      result = btor_node_cond_invert (cur, result);
       BTOR_PUSH_STACK (args, result);
     }
     else
@@ -269,7 +269,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 static int32_t
 get_polarity (BtorNode *n)
 {
-  return BTOR_IS_INVERTED_NODE (n) ? -1 : 1;
+  return btor_node_is_inverted (n) ? -1 : 1;
 }
 
 static BtorNode *
@@ -299,7 +299,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
   {
     assert (BTOR_COUNT_STACK (visit) == BTOR_COUNT_STACK (polarity));
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     cur_pol  = BTOR_POP_STACK (polarity);
 
     /* bv variables have been converted to outermost existential vars in
@@ -317,15 +317,15 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
     {
       btor_hashint_map_add (map, id);
 
-      if (btor_node_is_quantifier (real_cur) && BTOR_IS_INVERTED_NODE (cur)
+      if (btor_node_is_quantifier (real_cur) && btor_node_is_inverted (cur)
           && cur_pol == -1)
       {
         BTOR_PUSH_STACK (visit, real_cur);
         BTOR_PUSH_STACK (polarity, cur_pol);
         /* push negation down */
-        BTOR_PUSH_STACK (visit, BTOR_INVERT_NODE (real_cur->e[1]));
+        BTOR_PUSH_STACK (visit, btor_node_invert (real_cur->e[1]));
         BTOR_PUSH_STACK (polarity,
-                         get_polarity (BTOR_INVERT_NODE (real_cur->e[1])));
+                         get_polarity (btor_node_invert (real_cur->e[1])));
         BTOR_PUSH_STACK (visit, real_cur->e[0]);
         BTOR_PUSH_STACK (polarity, 1);
       }
@@ -402,7 +402,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
         btor_node_release (btor, data.as_ptr);
       }
     PUSH_RESULT:
-      result = BTOR_COND_INVERT_NODE (cur, result);
+      result = btor_node_cond_invert (cur, result);
       BTOR_PUSH_STACK (args, result);
     }
     else
@@ -453,7 +453,7 @@ collect_existential_vars (Btor *btor, BtorNode *root)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     if (btor_node_is_quantifier (real_cur))
       id = btor_node_get_id (cur);
@@ -500,7 +500,7 @@ collect_existential_vars (Btor *btor, BtorNode *root)
 
       d->as_ptr = btor_node_copy (btor, result);
     PUSH_RESULT:
-      result = BTOR_COND_INVERT_NODE (cur, result);
+      result = btor_node_cond_invert (cur, result);
       BTOR_PUSH_STACK (args, result);
     }
     else
@@ -555,7 +555,7 @@ check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
   BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cache, cur->id)) continue;
     btor_hashint_table_add (cache, cur->id);
@@ -571,7 +571,7 @@ check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
   BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cache, cur->id)
         || btor_node_get_width (btor, cur) != 1)
@@ -673,7 +673,7 @@ btor_invert_quantifiers (Btor * btor, BtorNode * root,
   while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_POP_STACK (stack);
-      real_cur = BTOR_REAL_ADDR_NODE (cur);
+      real_cur = btor_node_real_addr (cur);
       d = btor_hashint_map_get (map, real_cur->id);
 
       if (!d)
@@ -711,7 +711,7 @@ btor_invert_quantifiers (Btor * btor, BtorNode * root,
 	    {
 	      /* quantifiers are never negated (but flipped) */
 	      if (!btor_node_is_quantifier (e[1]))
-		e[1] = BTOR_INVERT_NODE (e[1]);
+		e[1] = btor_node_invert (e[1]);
 	      result =
 		btor_exp_create (btor,
 				 real_cur->kind == BTOR_EXISTS_NODE
@@ -731,12 +731,12 @@ btor_invert_quantifiers (Btor * btor, BtorNode * root,
 	    {
 	      if (!btor_contains_int_hash_map (node_map, real_cur->id))
 		btor_hashint_map_add (node_map, real_cur->id)->as_int =
-		  BTOR_REAL_ADDR_NODE (result)->id;
+		  btor_node_real_addr (result)->id;
 	    }
 PUSH_RESULT:
 	  /* quantifiers are never negated (but flipped) */
 	  if (!btor_node_is_quantifier (real_cur))
-	    result = BTOR_COND_INVERT_NODE (cur, result);
+	    result = btor_node_cond_invert (cur, result);
 	  BTOR_PUSH_STACK (args, result);
 	}
       else
@@ -762,7 +762,7 @@ PUSH_RESULT:
 
   /* quantifiers are never negated (but flipped) */
   if (!btor_node_is_quantifier (result))
-    result = BTOR_INVERT_NODE (result);
+    result = btor_node_invert (result);
 
   return result;
 }

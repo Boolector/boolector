@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2012-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -135,7 +135,7 @@ btor_dumpbtor_delete_dump_context (BtorDumpContext *bdc)
 void
 btor_dumpbtor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
 {
-  assert (BTOR_IS_REGULAR_NODE (input));
+  assert (btor_node_is_regular (input));
   assert (btor_node_is_bv_var (input));
   assert (!btor_hashptr_table_get (bdc->inputs, input));
   assert (!btor_hashptr_table_get (bdc->states, input));
@@ -148,7 +148,7 @@ btor_dumpbtor_add_state_to_dump_context (BtorDumpContext *bdc, BtorNode *state)
 {
   BtorPtrHashBucket *b;
   BtorDumpContextState *bdcl;
-  assert (BTOR_IS_REGULAR_NODE (state));
+  assert (btor_node_is_regular (state));
   assert (btor_node_is_bv_var (state));
   assert (!btor_hashptr_table_get (bdc->inputs, state));
   assert (!btor_hashptr_table_get (bdc->states, state));
@@ -226,7 +226,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   BtorPtrHashBucket *b;
   BtorNode *real;
   int32_t res;
-  real = BTOR_REAL_ADDR_NODE (node);
+  real = btor_node_real_addr (node);
   b    = btor_hashptr_table_get (bdc->idtab, real);
   if (!b)
   {
@@ -237,7 +237,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
       b->data.as_int = real->id;
   }
   res = b->data.as_int;
-  if (!BTOR_IS_REGULAR_NODE (node)) res = -res;
+  if (!btor_node_is_regular (node)) res = -res;
   return res;
 }
 
@@ -296,7 +296,7 @@ mark_no_dump (BtorDumpContext *bdc, BtorNode *node)
   BTOR_PUSH_STACK (visit, node);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (!cur->parameterized || btor_hashptr_table_get (bdc->no_dump, cur))
       continue;
@@ -320,7 +320,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   BtorPtrHashTable *rho;
   BtorBitVector *bits;
 
-  node  = BTOR_REAL_ADDR_NODE (node);
+  node  = btor_node_real_addr (node);
   cbits = 0;
 
   /* argument nodes will not be dumped as they are purely internal nodes */
@@ -496,11 +496,11 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     index = rho->first->key;
     value = rho->first->data.as_ptr;
     assert (value);
-    assert (BTOR_IS_REGULAR_NODE (index));
+    assert (btor_node_is_regular (index));
     assert (btor_node_is_args (index));
-    assert (BTOR_IS_REGULAR_NODE (node->e[1]));
+    assert (btor_node_is_regular (node->e[1]));
     assert (btor_node_is_bv_cond (node->e[1]));
-    assert (BTOR_IS_REGULAR_NODE (node->e[1]->e[2]));
+    assert (btor_node_is_regular (node->e[1]->e[2]));
     assert (btor_node_is_apply (node->e[1]->e[2]));
     fprintf (file,
              " %d %d %d",
@@ -604,7 +604,7 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 
   while (!BTOR_EMPTY_STACK (work))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work));
+    cur = btor_node_real_addr (BTOR_POP_STACK (work));
 
     if (btor_hashptr_table_get (mark_nodes, cur)) continue;
 
@@ -655,7 +655,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
     node = BTOR_POP_STACK (bdc->work);
     if (node)
     {
-      node = BTOR_REAL_ADDR_NODE (node);
+      node = btor_node_real_addr (node);
       if (btor_hashptr_table_get (bdc->idtab, node)) continue;
       BTOR_PUSH_STACK (bdc->work, node);
       BTOR_PUSH_STACK (bdc->work, 0);
@@ -669,7 +669,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
     {
       assert (!BTOR_EMPTY_STACK (bdc->work));
       node = BTOR_POP_STACK (bdc->work);
-      assert (BTOR_IS_REGULAR_NODE (node));
+      assert (btor_node_is_regular (node));
       (void) bdcid (bdc, node);
       bdcnode (bdc, node, file);
     }
@@ -690,7 +690,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   {
     BtorNode *node = btor_iter_hashptr_next (&it);
     assert (node);
-    assert (BTOR_IS_REGULAR_NODE (node));
+    assert (btor_node_is_regular (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
     fprintf (file, "%d input %u", id, btor_node_get_width (bdc->btor, node));
@@ -704,7 +704,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   {
     BtorNode *node = btor_iter_hashptr_next (&it);
     assert (node);
-    assert (BTOR_IS_REGULAR_NODE (node));
+    assert (btor_node_is_regular (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
     fprintf (file, "%d state %u", id, btor_node_get_width (bdc->btor, node));
@@ -718,7 +718,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   {
     BtorDumpContextState *bdcl = it.bucket->data.as_ptr;
     assert (bdcl->state);
-    assert (BTOR_IS_REGULAR_NODE (bdcl->state));
+    assert (btor_node_is_regular (bdcl->state));
     assert (btor_node_is_bv_var (bdcl->state));
     if (bdcl->next)
     {

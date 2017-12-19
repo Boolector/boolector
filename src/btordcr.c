@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -50,7 +50,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
     BTOR_PUSH_STACK (stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
       d   = btor_hashint_map_get (mark, cur->id);
 
       if (d && d->as_int == 1) continue;
@@ -81,7 +81,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
         min_depth = -1;
         for (i = 0; i < cur->arity; i++)
         {
-          e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+          e = btor_node_real_addr (cur->e[i]);
           b = btor_hashptr_table_get (score, e);
           assert (b);
           if (min_depth == -1 || b->data.as_int < min_depth)
@@ -148,7 +148,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
       min_t = 0;
       for (i = 0; i < cur->arity; i++)
       {
-        e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+        e = btor_node_real_addr (cur->e[i]);
         b = btor_hashptr_table_get (slv->score, e);
         assert (b);
         t = (BtorPtrHashTable *) b->data.as_ptr;
@@ -168,7 +168,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
     {
       for (i = 0; i < cur->arity; i++)
       {
-        e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+        e = btor_node_real_addr (cur->e[i]);
         b = btor_hashptr_table_get (slv->score, e);
         if (b && (t = b->data.as_ptr))
         {
@@ -191,7 +191,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
           BTOR_PUSH_STACK (stack, e);
           while (!BTOR_EMPTY_STACK (stack))
           {
-            e = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+            e = btor_node_real_addr (BTOR_POP_STACK (stack));
             if (btor_hashint_table_contains (mark, e->id)) continue;
             btor_hashint_table_add (mark, e->id);
             if (!e->parameterized && btor_node_is_apply (e)
@@ -270,12 +270,12 @@ btor_dcr_compute_scores (Btor *btor)
     BTOR_PUSH_STACK (stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
       if (btor_hashint_table_contains (mark, cur->id)) continue;
       btor_hashint_table_add (mark, cur->id);
       for (i = 0; i < cur->arity; i++)
       {
-        e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+        e = btor_node_real_addr (cur->e[i]);
         if (!cur->parameterized && btor_node_is_and (cur)
             && !btor_hashptr_table_get (slv->score, e))
         {
@@ -346,7 +346,7 @@ btor_dcr_compute_scores_dual_prop (Btor *btor)
     BTOR_PUSH_STACK (stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
       if (btor_hashint_table_contains (mark, cur->id)) continue;
       btor_hashint_table_add (mark, cur->id);
 
@@ -391,8 +391,8 @@ btor_dcr_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   slv = BTOR_FUN_SOLVER (btor);
 
   h  = btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
-  a  = BTOR_REAL_ADDR_NODE (a);
-  b  = BTOR_REAL_ADDR_NODE (b);
+  a  = btor_node_real_addr (a);
+  b  = btor_node_real_addr (b);
   sa = sb = 0;
 
   if (!slv->score) return 0;

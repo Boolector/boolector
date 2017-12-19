@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2013-2016 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
  *  All rights reserved.
@@ -1020,7 +1020,6 @@ static void
 btormbt_release_node (BtorMBT *mbt, BoolectorNode *node)
 {
   assert (node);
-  assert (BTOR_REAL_ADDR_NODE (node)->ext_refs > 0);  // TODO (ma): cast...
   boolector_release (mbt->btor, node);
 }
 
@@ -1030,7 +1029,7 @@ btormbt_is_parameterized (BtorMBT *mbt, BoolectorNode *node)
   assert (node);
   (void) mbt;
   // TODO (ma): workaround need API for querying parameterized flag
-  return BTOR_REAL_ADDR_NODE (((BtorNode *) node))->parameterized == 1;
+  return btor_node_real_addr (((BtorNode *) node))->parameterized == 1;
 }
 
 static BtorMBTExp *

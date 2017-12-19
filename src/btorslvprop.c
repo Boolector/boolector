@@ -153,7 +153,7 @@ move (Btor *btor, uint32_t nmoves)
   BTORLOG (1, "move");
   BTORLOG (1,
            "  input: %s%s",
-           BTOR_IS_REGULAR_NODE (input) ? "" : "-",
+           btor_node_is_regular (input) ? "" : "-",
            btor_util_node2string (input));
   BTORLOG (1, "  prev. assignment: %s", a);
   btor_mem_freestr (btor->mm, a);
@@ -163,7 +163,7 @@ move (Btor *btor, uint32_t nmoves)
 #endif
 
   exps = btor_hashint_map_new (btor->mm);
-  assert (BTOR_IS_REGULAR_NODE (input));
+  assert (btor_node_is_regular (input));
   btor_hashint_map_add (exps, input->id)->as_ptr = assignment;
   btor_propsls_update_cone (
       btor,
@@ -253,9 +253,9 @@ sat_prop_solver_aux (Btor *btor)
   {
     root = btor_iter_hashptr_next (&it);
     if (btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                BTOR_INVERT_NODE (root)))
+                                btor_node_invert (root)))
       goto UNSAT;
-    if (btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)))
+    if (btor_hashptr_table_get (btor->assumptions, btor_node_invert (root)))
       goto UNSAT;
   }
 

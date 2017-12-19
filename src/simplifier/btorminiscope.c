@@ -74,7 +74,7 @@ miniscope (Btor *btor,
   btor_hashint_table_add (cone, quant->id);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cone, cur->id)) continue;
 
@@ -92,7 +92,7 @@ miniscope (Btor *btor,
   scope        = 0;
   while (true)
   {
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     if (btor_hashint_table_contains (cache, real_cur->id)
         || !btor_sort_is_bool (btor, real_cur->sort_id))
@@ -102,15 +102,15 @@ miniscope (Btor *btor,
 
     if (btor_node_is_and (cur))
     {
-      e0      = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
-      e1      = BTOR_REAL_ADDR_NODE (real_cur->e[1]);
+      e0      = btor_node_real_addr (real_cur->e[0]);
+      e1      = btor_node_real_addr (real_cur->e[1]);
       e0_cone = btor_hashint_table_contains (cone, e0->id);
       e1_cone = btor_hashint_table_contains (cone, e1->id);
       if (e0_cone && !e1_cone)
       {
-        if (BTOR_IS_INVERTED_NODE (cur)) cur_pol *= -1;
+        if (btor_node_is_inverted (cur)) cur_pol *= -1;
         cur          = real_cur->e[0];
-        cur_parent   = BTOR_TAG_NODE (real_cur, 0);
+        cur_parent   = btor_node_set_tag (real_cur, 0);
         scope        = cur;
         scope_parent = cur_parent;
         //	      printf ("push down: %s (%s)\n", node2string (cur),
@@ -119,9 +119,9 @@ miniscope (Btor *btor,
       }
       else if (!e0_cone && e1_cone)
       {
-        if (BTOR_IS_INVERTED_NODE (cur)) cur_pol *= -1;
+        if (btor_node_is_inverted (cur)) cur_pol *= -1;
         cur          = real_cur->e[1];
-        cur_parent   = BTOR_TAG_NODE (real_cur, 1);
+        cur_parent   = btor_node_set_tag (real_cur, 1);
         scope        = cur;
         scope_parent = cur_parent;
         //	      printf ("push down: %s (%s)\n", node2string (cur),
@@ -134,7 +134,7 @@ miniscope (Btor *btor,
              || real_cur->kind == quant->kind)
     {
       cur        = real_cur->e[1];
-      cur_parent = BTOR_TAG_NODE (real_cur, 1);
+      cur_parent = btor_node_set_tag (real_cur, 1);
       continue;
     }
     break;
@@ -159,7 +159,7 @@ miniscope (Btor *btor,
       BTOR_INIT_STACK (btor->mm, *pushed);
       b->data.as_ptr = pushed;
     }
-    quant = BTOR_COND_INVERT_NODE (cur_pol == -1, quant);
+    quant = (cur_pol == -1) ? btor_node_invert (quant) : quant;
     BTOR_PUSH_STACK (*pushed, quant);
     //      printf ("%s new scope %s\n", node2string (quant), node2string
     //      (cur));
@@ -189,7 +189,7 @@ rebuild_mk_quantifiers (Btor *btor,
    * pol=-1, Qx . t[x] -> -(Qx . -t[x])
    * pol=-1, Qx .-t[x] -> -(Qx . t[x])
    */
-  if (BTOR_IS_INVERTED_NODE (top_q)) result = BTOR_INVERT_NODE (result);
+  if (btor_node_is_inverted (top_q)) result = btor_node_invert (result);
 
   for (i = 0; i < BTOR_COUNT_STACK (*quants); i++)
   {
@@ -199,8 +199,8 @@ rebuild_mk_quantifiers (Btor *btor,
     //      printf ("rebuild: %s (%s)\n", node2string (q), node2string
     //      (result));
     /* all quantifiers must have the same polarity */
-    assert (BTOR_IS_INVERTED_NODE (top_q) == BTOR_IS_INVERTED_NODE (q));
-    d = btor_hashint_map_get (map, BTOR_REAL_ADDR_NODE (q)->e[0]->id);
+    assert (btor_node_is_inverted (top_q) == btor_node_is_inverted (q));
+    d = btor_hashint_map_get (map, btor_node_real_addr (q)->e[0]->id);
     assert (d);
     assert (d->as_ptr);
     if (btor_node_is_forall (q))
@@ -209,14 +209,14 @@ rebuild_mk_quantifiers (Btor *btor,
       tmp = btor_exp_exists (btor, d->as_ptr, result);
     btor_node_release (btor, result);
     result = tmp;
-    btor_hashint_table_add (pushed_quants, BTOR_REAL_ADDR_NODE (q)->id);
+    btor_hashint_table_add (pushed_quants, btor_node_real_addr (q)->id);
   }
 
   /* we do not have NNF, polarities of quantifiers must not be changed
    * pol=-1, Qx . t[x] -> -(Qx . -t[x])
    * pol=-1, Qx .-t[x] -> -(Qx . t[x])
    */
-  if (BTOR_IS_INVERTED_NODE (top_q)) result = BTOR_INVERT_NODE (result);
+  if (btor_node_is_inverted (top_q)) result = btor_node_invert (result);
 
   return result;
 }
@@ -246,7 +246,7 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (map, real_cur->id);
     if (!d)
@@ -273,7 +273,8 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
         BTOR_RELEASE_STACK (*quants);
         BTOR_DELETE (mm, quants);
       }
-      if ((b = btor_hashptr_table_get (pushed, BTOR_TAG_NODE (real_cur, 1))))
+      if ((b = btor_hashptr_table_get (pushed,
+                                       btor_node_set_tag (real_cur, 1))))
       {
         assert (btor_node_is_and (real_cur));
         quants = b->data.as_ptr;
@@ -310,7 +311,7 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
 
       d->as_ptr = btor_node_copy (btor, result);
     PUSH_RESULT:
-      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
+      BTOR_PUSH_STACK (args, btor_node_cond_invert (cur, result));
     }
     else
     {
@@ -356,7 +357,7 @@ btor_miniscope_node (Btor *btor, BtorNode *root)
   BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     d = btor_hashint_map_get (cache, cur->id);
     if (!d)
@@ -379,6 +380,6 @@ btor_miniscope_node (Btor *btor, BtorNode *root)
   btor_hashint_map_delete (pushed_to);
   btor_hashptr_table_delete (rev_pushed_to);
   BTOR_RELEASE_STACK (visit);
-  assert (!BTOR_REAL_ADDR_NODE (result)->parameterized);
+  assert (!btor_node_real_addr (result)->parameterized);
   return result;
 }

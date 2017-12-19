@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -22,14 +22,14 @@ btor_iter_apply_parent_init (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->last_parent);
+  it->cur = btor_node_real_addr (btor_node_real_addr (exp)->last_parent);
 }
 
 bool
 btor_iter_apply_parent_has_next (const BtorNodeIterator *it)
 {
   assert (it);
-  assert (BTOR_IS_REGULAR_NODE (it->cur));
+  assert (btor_node_is_regular (it->cur));
   /* function child of apply is at position 0, so cur is not tagged */
   return it->cur && btor_node_is_apply (it->cur);
 }
@@ -41,8 +41,8 @@ btor_iter_apply_parent_next (BtorNodeIterator *it)
   assert (it);
   result = it->cur;
   assert (result);
-  it->cur = BTOR_REAL_ADDR_NODE (BTOR_PREV_PARENT (result));
-  assert (BTOR_IS_REGULAR_NODE (result));
+  it->cur = btor_node_real_addr (BTOR_PREV_PARENT (result));
+  assert (btor_node_is_regular (result));
   assert (btor_node_is_apply (result));
   return result;
 }
@@ -54,7 +54,7 @@ btor_iter_parent_init (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
+  it->cur = btor_node_real_addr (exp)->first_parent;
 }
 
 bool
@@ -74,7 +74,7 @@ btor_iter_parent_next (BtorNodeIterator *it)
   assert (result);
   it->cur = BTOR_NEXT_PARENT (result);
 
-  return BTOR_REAL_ADDR_NODE (result);
+  return btor_node_real_addr (result);
 }
 
 /*------------------------------------------------------------------------*/
@@ -84,7 +84,7 @@ btor_iter_args_init (BtorArgsIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (btor_node_is_args (exp));
 
   it->pos = 0;
@@ -113,7 +113,7 @@ btor_iter_args_next (BtorArgsIterator *it)
   if (btor_node_is_args (result))
   {
     assert (it->pos == 2);
-    assert (BTOR_IS_REGULAR_NODE (result));
+    assert (btor_node_is_regular (result));
     it->pos = 0;
     it->exp = result;
     it->cur = result->e[0];
@@ -138,7 +138,7 @@ btor_iter_binder_init (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (btor_node_is_binder (exp));
 
   it->cur = exp;
@@ -161,7 +161,7 @@ btor_iter_binder_has_next (const BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
-  return !BTOR_IS_INVERTED_NODE (it->cur) && btor_node_is_binder (it->cur);
+  return !btor_node_is_inverted (it->cur) && btor_node_is_binder (it->cur);
 }
 
 void

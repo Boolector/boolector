@@ -215,28 +215,47 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_INVERT_NODE(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
+static inline BtorNode *
+btor_node_set_tag (BtorNode *node, uintptr_t tag)
+{
+  return (BtorNode *) (tag | (uintptr_t) node);
+}
 
-#define BTOR_IS_INVERTED_NODE(exp) (1ul & (unsigned long int) (exp))
+static inline BtorNode *
+btor_node_invert (const BtorNode *node)
+{
+  return (BtorNode *) (1ul ^ (uintptr_t) node);
+}
 
-#define BTOR_COND_INVERT_NODE(cond_exp, exp)           \
-  ((BtorNode *) (((unsigned long int) (cond_exp) &1ul) \
-                 ^ (unsigned long int) (exp)))
+static inline BtorNode *
+btor_node_cond_invert (const BtorNode *cond, const BtorNode *node)
+{
+  return (BtorNode *) (((uintptr_t) cond & 1ul) ^ (uintptr_t) node);
+}
 
-#define BTOR_REAL_ADDR_NODE(exp) \
-  ((struct BtorNode *) (~3ul & (unsigned long int) (exp)))
+static inline bool
+btor_node_is_inverted (const BtorNode *node)
+{
+  return (1ul & (uintptr_t) node) != 0;
+}
 
-#define BTOR_AIGVEC_NODE(btor, exp)                                     \
-  (BTOR_IS_INVERTED_NODE (exp)                                          \
-       ? btor_aigvec_not ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
-       : btor_aigvec_copy ((btor)->avmgr, exp->av))
+static inline BtorNode *
+btor_node_real_addr (const BtorNode *node)
+{
+  return (BtorNode *) (~3ul & (uintptr_t) node);
+}
 
-#define BTOR_TAG_NODE(exp, tag) \
-  ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
+static inline bool
+btor_node_is_regular (const BtorNode *node)
+{
+  return (3ul & (uintptr_t) node) == 0;
+}
 
-#define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
-
-#define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
+static inline bool
+btor_node_is_synth (const BtorNode *node)
+{
+  return btor_node_real_addr (node)->av != 0;
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -268,133 +287,133 @@ static inline bool
 btor_node_is_unary (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_is_unary_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
+  return btor_node_is_unary_kind (btor_node_real_addr (exp)->kind);
 }
 
 static inline bool
 btor_node_is_binary (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_is_binary_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
+  return btor_node_is_binary_kind (btor_node_real_addr (exp)->kind);
 }
 
 static inline bool
 btor_node_is_binary_commutative (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_is_binary_commutative_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
+  return btor_node_is_binary_commutative_kind (btor_node_real_addr (exp)->kind);
 }
 
 static inline bool
 btor_node_is_ternary (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_is_ternary_kind (BTOR_REAL_ADDR_NODE (exp)->kind);
+  return btor_node_is_ternary_kind (btor_node_real_addr (exp)->kind);
 }
 
 static inline bool
 btor_node_is_invalid (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_INVALID_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_INVALID_NODE;
 }
 
 static inline bool
 btor_node_is_proxy (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_PROXY_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_PROXY_NODE;
 }
 
 static inline bool
 btor_node_is_bv_const (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_CONST_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_CONST_NODE;
 }
 
 static inline bool
 btor_node_is_bv_var (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_VAR_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_VAR_NODE;
 }
 
 static inline bool
 btor_node_is_bv_eq (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_BV_EQ_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_EQ_NODE;
 }
 
 static inline bool
 btor_node_is_fun_eq (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_FUN_EQ_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_FUN_EQ_NODE;
 }
 
 static inline bool
 btor_node_is_and (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_AND_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_AND_NODE;
 }
 
 static inline bool
 btor_node_is_ult (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ULT_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_ULT_NODE;
 }
 
 static inline bool
 btor_node_is_add (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ADD_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_ADD_NODE;
 }
 
 static inline bool
 btor_node_is_mul (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_MUL_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_MUL_NODE;
 }
 
 static inline bool
 btor_node_is_udiv (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UDIV_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_UDIV_NODE;
 }
 
 static inline bool
 btor_node_is_urem (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UREM_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_UREM_NODE;
 }
 
 static inline bool
 btor_node_is_slice (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_SLICE_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_SLICE_NODE;
 }
 
 static inline bool
 btor_node_is_concat (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_CONCAT_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_CONCAT_NODE;
 }
 
 static inline bool
 btor_node_is_cond (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_COND_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_COND_NODE;
 }
 
 bool btor_node_is_bv_cond (const BtorNode *exp);
@@ -404,28 +423,28 @@ static inline bool
 btor_node_is_uf (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UF_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_UF_NODE;
 }
 
 static inline bool
 btor_node_is_array (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->is_array == 1;
+  return btor_node_real_addr (exp)->is_array == 1;
 }
 
 static inline bool
 btor_node_is_forall (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_FORALL_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_FORALL_NODE;
 }
 
 static inline bool
 btor_node_is_exists (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_EXISTS_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_EXISTS_NODE;
 }
 
 static inline bool
@@ -438,7 +457,7 @@ static inline bool
 btor_node_is_lambda (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_LAMBDA_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_LAMBDA_NODE;
 }
 
 static inline bool
@@ -451,7 +470,7 @@ static inline bool
 btor_node_is_update (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_UPDATE_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_UPDATE_NODE;
 }
 
 static inline bool
@@ -465,28 +484,28 @@ static inline bool
 btor_node_is_uf_array (const BtorNode *exp)
 {
   return btor_node_is_uf (exp)
-         && ((BtorUFNode *) BTOR_REAL_ADDR_NODE (exp))->is_array;
+         && ((BtorUFNode *) btor_node_real_addr (exp))->is_array;
 }
 
 static inline bool
 btor_node_is_param (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_PARAM_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_PARAM_NODE;
 }
 
 static inline bool
 btor_node_is_args (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_ARGS_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_ARGS_NODE;
 }
 
 static inline bool
 btor_node_is_apply (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->kind == BTOR_APPLY_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_APPLY_NODE;
 }
 
 static inline bool
@@ -502,13 +521,13 @@ static inline int32_t
 btor_node_get_id (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id;
+  return btor_node_is_inverted (exp) ? -btor_node_real_addr (exp)->id : exp->id;
 }
 
 static inline int32_t
 btor_node_get_tag (const BtorNode *exp)
 {
-  return (int32_t) (3ul & (unsigned long int) (exp));
+  return (int32_t) (3ul & (uintptr_t) exp);
 }
 
 /*========================================================================*/
@@ -525,14 +544,14 @@ static inline BtorSortId
 btor_node_get_sort_id (const BtorNode *exp)
 {
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->sort_id;
+  return btor_node_real_addr (exp)->sort_id;
 }
 
 static inline void
 btor_node_set_sort_id (BtorNode *exp, BtorSortId id)
 {
   assert (exp);
-  BTOR_REAL_ADDR_NODE (exp)->sort_id = id;
+  btor_node_real_addr (exp)->sort_id = id;
 }
 
 /*------------------------------------------------------------------------*/

@@ -135,12 +135,12 @@ boolector_chkclone (Btor *btor)
 #ifndef NDEBUG
 #define BTOR_CLONED_EXP(exp)                                                 \
   ((btor->clone ? BTOR_EXPORT_BOOLECTOR_NODE (                               \
-                      BTOR_IS_INVERTED_NODE (exp)                            \
-                          ? BTOR_INVERT_NODE (BTOR_PEEK_STACK (              \
+                      btor_node_is_inverted (exp)                            \
+                          ? btor_node_invert (BTOR_PEEK_STACK (              \
                                 btor->clone->nodes_id_table,                 \
-                                BTOR_REAL_ADDR_NODE (exp)->id))              \
+                                btor_node_real_addr (exp)->id))              \
                           : BTOR_PEEK_STACK (btor->clone->nodes_id_table,    \
-                                             BTOR_REAL_ADDR_NODE (exp)->id)) \
+                                             btor_node_real_addr (exp)->id)) \
                 : 0))
 
 #else
@@ -366,9 +366,9 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IS_NOT_BV (exp);
   BTOR_ABORT (btor_node_get_width (btor, exp) != 1,
               "'exp' must have bit-width one");
-  BTOR_ABORT (!btor_sort_is_bool (btor, BTOR_REAL_ADDR_NODE (exp)->sort_id),
+  BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (exp)->sort_id),
               "'exp' must have bit-width one");
-  BTOR_ABORT (BTOR_REAL_ADDR_NODE (exp)->parameterized,
+  BTOR_ABORT (btor_node_real_addr (exp)->parameterized,
               "assertion must not be parameterized");
   btor_assert_exp (btor, exp);
 #ifndef NDEBUG
@@ -390,9 +390,9 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (!btor_sort_is_bool (btor, BTOR_REAL_ADDR_NODE (exp)->sort_id),
+  BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (exp)->sort_id),
               "'exp' must have bit-width one");
-  BTOR_ABORT (BTOR_REAL_ADDR_NODE (exp)->parameterized,
+  BTOR_ABORT (btor_node_real_addr (exp)->parameterized,
               "assumption must not be parameterized");
   btor_assume_exp (btor, exp);
 #ifndef NDEBUG
@@ -858,7 +858,7 @@ boolector_release (Btor *btor, BoolectorNode *node)
 #ifndef NDEBUG
   BoolectorNode *cexp = BTOR_CLONED_EXP (exp);
 #endif
-  assert (BTOR_REAL_ADDR_NODE (exp)->ext_refs);
+  assert (btor_node_real_addr (exp)->ext_refs);
   btor_node_dec_ext_ref_counter (btor, exp);
   btor_node_release (btor, exp);
 #ifndef NDEBUG
@@ -1119,7 +1119,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               symb);
 
   res = btor_exp_uf (btor, s, symb);
-  assert (BTOR_IS_REGULAR_NODE (res));
+  assert (btor_node_is_regular (res));
   btor_node_inc_ext_ref_counter (btor, res);
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1540,12 +1540,12 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e0);
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT (btor_node_get_sort_id (e0) != btor_node_get_sort_id (e1)
-                  || BTOR_REAL_ADDR_NODE (e0)->is_array
-                         != BTOR_REAL_ADDR_NODE (e1)->is_array,
+                  || btor_node_real_addr (e0)->is_array
+                         != btor_node_real_addr (e1)->is_array,
               "nodes must have equal sorts");
   BTOR_ABORT (btor_sort_is_fun (btor, btor_node_get_sort_id (e0))
-                  && (BTOR_REAL_ADDR_NODE (e0)->parameterized
-                      || BTOR_REAL_ADDR_NODE (e1)->parameterized),
+                  && (btor_node_real_addr (e0)->parameterized
+                      || btor_node_real_addr (e1)->parameterized),
               "parameterized function equalities not supported");
   res = btor_exp_eq (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -1574,8 +1574,8 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT (btor_node_get_sort_id (e0) != btor_node_get_sort_id (e1),
               "nodes must have equal sorts");
   BTOR_ABORT (btor_sort_is_fun (btor, btor_node_get_sort_id (e0))
-                  && (BTOR_REAL_ADDR_NODE (e0)->parameterized
-                      || BTOR_REAL_ADDR_NODE (e1)->parameterized),
+                  && (btor_node_real_addr (e0)->parameterized
+                      || btor_node_real_addr (e1)->parameterized),
               "parameterized function equalities not supported");
   res = btor_exp_ne (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -2616,8 +2616,8 @@ boolector_apply (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (e_fun);
 
-  BTOR_ABORT_REFS_NOT_POS (n_fun);
-  BTOR_ABORT_BTOR_MISMATCH (btor, n_fun);
+  BTOR_ABORT_REFS_NOT_POS (e_fun);
+  BTOR_ABORT_BTOR_MISMATCH (btor, e_fun);
 
   len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
@@ -2734,7 +2734,7 @@ boolector_forall (Btor *btor,
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
-  BTOR_ABORT (!btor_sort_is_bool (btor, BTOR_REAL_ADDR_NODE (body)->sort_id),
+  BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of forall must be bit width 1, but has "
               "%d instead",
               btor_node_get_width (btor, body));
@@ -2789,7 +2789,7 @@ boolector_exists (Btor *btor,
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
-  BTOR_ABORT (!btor_sort_is_bool (btor, BTOR_REAL_ADDR_NODE (body)->sort_id),
+  BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of exists must be bit width 1, but has "
               "%d instead",
               btor_node_get_width (btor, body));
@@ -2817,7 +2817,7 @@ boolector_get_btor (BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_REFS_NOT_POS (exp);
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
   btor     = real_exp->btor;
   BTOR_TRAPI_UNFUN (exp);
   BTOR_TRAPI_RETURN_PTR (btor);
@@ -2844,7 +2844,7 @@ boolector_get_id (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  res = btor_node_get_id (BTOR_REAL_ADDR_NODE (exp));
+  res = btor_node_get_id (btor_node_real_addr (exp));
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_INT (res, get_id, BTOR_CLONED_EXP (exp));
@@ -3063,10 +3063,10 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT (!btor_node_is_bv_const (exp), "argument is not a constant node");
-  real = BTOR_REAL_ADDR_NODE (exp);
+  real = btor_node_real_addr (exp);
   /* representations of bits of const nodes are maintained analogously
    * to bv assignment strings */
-  if (!BTOR_IS_INVERTED_NODE (exp))
+  if (!btor_node_is_inverted (exp))
     bits = btor_bv_to_char (btor->mm, btor_node_const_get_bits (exp));
   else
     bits = btor_bv_to_char (btor->mm, btor_node_const_get_invbits (real));
@@ -3078,7 +3078,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   if (btor->clone)
   {
     const char *cloneres =
-        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
+        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (exp));
     assert (!strcmp (cloneres, res));
     bvass->cloned_assignment = cloneres;
     btor_chkclone (btor, btor->clone);
@@ -3406,7 +3406,7 @@ generate_fun_model_str (
   assert (args);
   assert (values);
   assert (size);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
 
   char *arg, *tmp, *bv;
   uint32_t i, j, len;
@@ -3478,7 +3478,7 @@ fun_assignment (Btor *btor,
   assert (args);
   assert (values);
   assert (size);
-  assert (BTOR_IS_REGULAR_NODE (n));
+  assert (btor_node_is_regular (n));
 
   uint32_t i;
   char **a = 0, **v = 0;

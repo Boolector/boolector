@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Mathias Preiner.
+ *  Copyright (C) 2015-2017 Mathias Preiner.
  *  Copyright (C) 2015-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -17,13 +17,13 @@
 #include "utils/btorutil.h"
 
 #define BTOR_CONST_GET_BITS(c)                                \
-  BTOR_IS_INVERTED_NODE (c) ? btor_node_const_get_invbits (c) \
+  btor_node_is_inverted (c) ? btor_node_const_get_invbits (c) \
                             : btor_node_const_get_bits (c)
 
 inline static void
 extract_base_addr_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
 {
-  assert (BTOR_IS_REGULAR_NODE (bvadd));
+  assert (btor_node_is_regular (bvadd));
   assert (btor_node_is_add (bvadd));
 
   if (btor_node_is_bv_const (bvadd->e[0]))
@@ -58,8 +58,8 @@ cmp_abs_rel_indices (const void *a, const void *b)
   }
   else /* relative address */
   {
-    assert (!BTOR_IS_INVERTED_NODE (x));
-    assert (!BTOR_IS_INVERTED_NODE (y));
+    assert (!btor_node_is_inverted (x));
+    assert (!btor_node_is_inverted (y));
     assert (btor_node_is_add (x));
     assert (btor_node_is_add (y));
     extract_base_addr_offset (x, &x_base_addr, &x_offset);
@@ -108,7 +108,7 @@ create_range (Btor *btor,
   assert (lower);
   assert (upper);
   assert (param);
-  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (btor_node_is_regular (param));
   assert (btor_node_is_param (param));
   assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
   assert (btor_node_is_bv_const (upper) || btor_node_is_add (upper));
@@ -173,8 +173,8 @@ create_pattern_memset (Btor *btor,
 {
   assert (lower);
   assert (upper);
-  assert (BTOR_REAL_ADDR_NODE (lower)->kind
-          == BTOR_REAL_ADDR_NODE (upper)->kind);
+  assert (btor_node_real_addr (lower)->kind
+          == btor_node_real_addr (upper)->kind);
   assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (offset);
@@ -206,8 +206,8 @@ create_pattern_itoi (Btor *btor,
 {
   assert (lower);
   assert (upper);
-  assert (BTOR_REAL_ADDR_NODE (lower)->kind
-          == BTOR_REAL_ADDR_NODE (upper)->kind);
+  assert (btor_node_real_addr (lower)->kind
+          == btor_node_real_addr (upper)->kind);
   assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (btor_sort_fun_get_codomain (btor, btor_node_get_sort_id (array))
@@ -241,8 +241,8 @@ create_pattern_itoip1 (Btor *btor,
 {
   assert (lower);
   assert (upper);
-  assert (BTOR_REAL_ADDR_NODE (lower)->kind
-          == BTOR_REAL_ADDR_NODE (upper)->kind);
+  assert (btor_node_real_addr (lower)->kind
+          == btor_node_real_addr (upper)->kind);
   assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (btor_sort_fun_get_codomain (btor, btor_node_get_sort_id (array))
@@ -278,8 +278,8 @@ create_pattern_cpy (Btor *btor,
                     BtorNode *dst_addr,
                     BtorBitVector *offset)
 {
-  assert (!BTOR_IS_INVERTED_NODE (lower));
-  assert (!BTOR_IS_INVERTED_NODE (upper));
+  assert (!btor_node_is_inverted (lower));
+  assert (!btor_node_is_inverted (upper));
   assert (btor_node_is_add (lower));
   assert (btor_node_is_add (upper));
 
@@ -312,7 +312,7 @@ is_write_exp (BtorNode *exp,
               BtorNode **value)
 {
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
 
   BtorNode *param, *body, *eq, *app;
 
@@ -323,21 +323,21 @@ is_write_exp (BtorNode *exp,
   param = exp->e[0];
   body  = btor_node_binder_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !btor_node_is_bv_cond (body))
+  if (btor_node_is_inverted (body) || !btor_node_is_bv_cond (body))
     return false;
 
   /* check condition */
   eq = body->e[0];
-  if (BTOR_IS_INVERTED_NODE (eq) || !btor_node_is_bv_eq (eq)
+  if (btor_node_is_inverted (eq) || !btor_node_is_bv_eq (eq)
       || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
     return false;
 
   /* check value */
-  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return false;
+  if (btor_node_real_addr (body->e[1])->parameterized) return false;
 
   /* check apply on unmodified array */
   app = body->e[2];
-  if (BTOR_IS_INVERTED_NODE (app) || !btor_node_is_apply (app)
+  if (btor_node_is_inverted (app) || !btor_node_is_apply (app)
       || btor_node_fun_get_arity (app->btor, app->e[0]) > 1
       || app->e[1]->e[0] != param)
     return false;
@@ -352,7 +352,7 @@ static bool
 is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
 {
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
 
   BtorNode *param, *body, *app_if, *app_else;
 
@@ -363,23 +363,23 @@ is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
   param = exp->e[0];
   body  = btor_node_binder_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !btor_node_is_bv_cond (body))
+  if (btor_node_is_inverted (body) || !btor_node_is_bv_cond (body))
     return false;
 
   /* check value */
-  if (!BTOR_REAL_ADDR_NODE (body->e[1])->parameterized
-      || !BTOR_REAL_ADDR_NODE (body->e[2])->parameterized)
+  if (!btor_node_real_addr (body->e[1])->parameterized
+      || !btor_node_real_addr (body->e[2])->parameterized)
     return false;
 
   /* check applies in if and else branch */
   app_if = body->e[1];
-  if (BTOR_IS_INVERTED_NODE (app_if) || !btor_node_is_apply (app_if)
+  if (btor_node_is_inverted (app_if) || !btor_node_is_apply (app_if)
       || btor_node_fun_get_arity (app_if->btor, app_if->e[0]) > 1
       || app_if->e[1]->e[0] != param)
     return false;
 
   app_else = body->e[1];
-  if (BTOR_IS_INVERTED_NODE (app_else) || !btor_node_is_apply (app_else)
+  if (btor_node_is_inverted (app_else) || !btor_node_is_apply (app_else)
       || btor_node_fun_get_arity (app_else->btor, app_else->e[0]) > 1
       || app_else->e[1]->e[0] != param)
     return false;
@@ -401,9 +401,9 @@ is_itoip1_pattern (BtorNode *index, BtorNode *value)
   bool res;
   BtorNode *inc;
 
-  inc = btor_exp_inc (BTOR_REAL_ADDR_NODE (index)->btor, index);
+  inc = btor_exp_inc (btor_node_real_addr (index)->btor, index);
   res = inc == value;
-  btor_node_release (BTOR_REAL_ADDR_NODE (index)->btor, inc);
+  btor_node_release (btor_node_real_addr (index)->btor, inc);
   return res;
 }
 
@@ -412,9 +412,9 @@ is_cpy_pattern (BtorNode *index, BtorNode *value)
 {
   BtorNode *bvadd, *dst_addr, *off;
 
-  if (BTOR_IS_INVERTED_NODE (index) || !btor_node_is_add (index)
-      || BTOR_IS_INVERTED_NODE (value) || !btor_node_is_apply (value)
-      || BTOR_IS_INVERTED_NODE (value->e[1]->e[0])
+  if (btor_node_is_inverted (index) || !btor_node_is_add (index)
+      || btor_node_is_inverted (value) || !btor_node_is_apply (value)
+      || btor_node_is_inverted (value->e[1]->e[0])
       || !btor_node_is_add (value->e[1]->e[0]))
     return false;
 
@@ -468,7 +468,7 @@ is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
 {
   BtorNode *base_addr, *offset, *prev_base_addr, *prev_offset;
 
-  if (BTOR_IS_INVERTED_NODE (index) || !btor_node_is_add (index)) return false;
+  if (btor_node_is_inverted (index) || !btor_node_is_add (index)) return false;
 
   if (!btor_node_is_bv_const (index->e[0])
       && !btor_node_is_bv_const (index->e[1]))
@@ -476,7 +476,7 @@ is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
 
   if (!prev_index) return true;
 
-  if (BTOR_IS_INVERTED_NODE (prev_index) || !btor_node_is_add (prev_index))
+  if (btor_node_is_inverted (prev_index) || !btor_node_is_add (prev_index))
     return false;
 
   if (!btor_node_is_bv_const (prev_index->e[0])
@@ -574,7 +574,7 @@ add_to_index_map (Btor *btor,
     offset = index;
   else
   {
-    assert (BTOR_IS_REGULAR_NODE (index));
+    assert (btor_node_is_regular (index));
     assert (btor_node_is_add (index));
     extract_base_addr_offset (index, 0, &offset);
     assert (btor_node_is_bv_const (offset));
@@ -644,7 +644,7 @@ collect_indices_updates (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (visit_cache, cur->id)) continue;
 
@@ -672,7 +672,7 @@ collect_indices_updates (Btor *btor,
       index_cache = btor_hashint_table_new (btor->mm);
       while (btor_node_is_update (cur_upd))
       {
-        assert (BTOR_IS_REGULAR_NODE (cur_upd));
+        assert (btor_node_is_regular (cur_upd));
         assert (cur_upd->is_array);
         index = cur_upd->e[1]->e[0];
         value = cur_upd->e[2];
@@ -745,7 +745,7 @@ collect_indices_lambdas (Btor *btor,
   while (btor_iter_hashptr_has_next (&it))
   {
     lambda = btor_iter_hashptr_next (&it);
-    assert (BTOR_IS_REGULAR_NODE (lambda));
+    assert (btor_node_is_regular (lambda));
 
     /* already visited */
     if (btor_hashptr_table_get (map_value_index, lambda)) continue;
@@ -785,7 +785,7 @@ collect_indices_lambdas (Btor *btor,
       prev_index = prev_value = 0;
       while (is_write_exp (cur, &array, &index, &value))
       {
-        assert (BTOR_IS_REGULAR_NODE (array));
+        assert (btor_node_is_regular (array));
         assert (btor_node_is_fun (array));
 
         /* index already cached, this index will be overwritten anyways,
@@ -848,13 +848,13 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    if (BTOR_IS_INVERTED_NODE (cur) || !btor_node_is_bv_eq (cur)) continue;
+    if (btor_node_is_inverted (cur) || !btor_node_is_bv_eq (cur)) continue;
 
     lhs = cur->e[0];
     rhs = cur->e[1];
 
     index = value = 0;
-    if (!BTOR_IS_INVERTED_NODE (lhs) && btor_node_is_apply (lhs)
+    if (!btor_node_is_inverted (lhs) && btor_node_is_apply (lhs)
         && btor_node_is_uf_array (lhs->e[0])
         && btor_node_is_bv_const (lhs->e[1]->e[0])
         && btor_node_is_bv_const (rhs))
@@ -864,7 +864,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
       index = lhs->e[1]->e[0];
       value = rhs;
     }
-    else if (!BTOR_IS_INVERTED_NODE (rhs) && btor_node_is_apply (rhs)
+    else if (!btor_node_is_inverted (rhs) && btor_node_is_apply (rhs)
              && btor_node_is_uf_array (rhs->e[0])
              && btor_node_is_bv_const (rhs->e[1]->e[0])
              && btor_node_is_bv_const (lhs))
@@ -938,8 +938,8 @@ find_ranges (Btor *btor,
      * addresses */
     for (i = 1; i < BTOR_COUNT_STACK (index_stack); i++)
     {
-      n0 = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (index_stack, i - 1));
-      n1 = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (index_stack, i));
+      n0 = btor_node_real_addr (BTOR_PEEK_STACK (index_stack, i - 1));
+      n1 = btor_node_real_addr (BTOR_PEEK_STACK (index_stack, i));
       assert (n0->kind == n1->kind);
       assert (btor_node_is_add (n0) || btor_node_is_bv_const (n0));
       if (btor_node_is_add (n0))
@@ -972,8 +972,8 @@ find_ranges (Btor *btor,
         }
         else
         {
-          assert (!BTOR_IS_INVERTED_NODE (n0));
-          assert (!BTOR_IS_INVERTED_NODE (n1));
+          assert (!btor_node_is_inverted (n0));
+          assert (!btor_node_is_inverted (n1));
           assert (btor_node_is_add (n0));
           assert (btor_node_is_add (n1));
           extract_base_addr_offset (n0, &n0_base_addr, &n0_offset);

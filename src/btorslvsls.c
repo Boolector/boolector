@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2017 Aina Niemetz.
- *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -190,7 +190,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     if (btor_hashint_table_contains (mark, real_cur->id)) continue;
     btor_hashint_table_add (mark, real_cur->id);
 
@@ -333,7 +333,7 @@ try_move (Btor *btor,
     prev_ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     BTORLOG (2,
              "      candidate: %s%s",
-             BTOR_IS_REGULAR_NODE (can) ? "" : "-",
+             btor_node_is_regular (can) ? "" : "-",
              btor_util_node2string (can));
     a = btor_bv_to_char (btor->mm, prev_ass);
     BTORLOG (2, "        prev. assignment: %s", a);
@@ -465,7 +465,7 @@ select_inc_dec_not_move (Btor *btor,
   {
     can = BTOR_PEEK_STACK (*candidates, i);
     assert (can);
-    assert (BTOR_IS_REGULAR_NODE (can));
+    assert (btor_node_is_regular (can));
 
     ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     assert (ass);
@@ -525,7 +525,7 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
     for (i = 0; i < BTOR_COUNT_STACK (*candidates); i++)
     {
       can = BTOR_PEEK_STACK (*candidates, i);
-      assert (BTOR_IS_REGULAR_NODE (can));
+      assert (btor_node_is_regular (can));
       assert (can);
 
       ass = (BtorBitVector *) btor_model_get_bv (btor, can);
@@ -592,7 +592,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
     {
       can = BTOR_PEEK_STACK (*candidates, i);
       assert (can);
-      assert (BTOR_IS_REGULAR_NODE (can));
+      assert (btor_node_is_regular (can));
 
       ass = (BtorBitVector *) btor_model_get_bv (btor, can);
       assert (ass);
@@ -673,7 +673,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
       {
         can = BTOR_PEEK_STACK (*candidates, i);
         assert (can);
-        assert (BTOR_IS_REGULAR_NODE (can));
+        assert (btor_node_is_regular (can));
 
         ass = (BtorBitVector *) btor_model_get_bv (btor, can);
         assert (ass);
@@ -757,7 +757,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
     {
       can = BTOR_PEEK_STACK (*candidates, i);
       assert (can);
-      assert (BTOR_IS_REGULAR_NODE (can));
+      assert (btor_node_is_regular (can));
 
       ass = (BtorBitVector *) btor_model_get_bv (btor, can);
       assert (ass);
@@ -935,7 +935,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     {
       neigh = btor_bv_copy (btor->mm, m->cans->data[iit.cur_pos].as_ptr);
       can   = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
-      assert (BTOR_IS_REGULAR_NODE (can));
+      assert (btor_node_is_regular (can));
       assert (neigh);
       btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
     }
@@ -959,7 +959,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       for (r = 0; r <= BTOR_COUNT_STACK (*candidates) - 1; r++)
       {
         can = BTOR_PEEK_STACK (*candidates, r);
-        assert (BTOR_IS_REGULAR_NODE (can));
+        assert (btor_node_is_regular (can));
         if (btor_node_get_width (btor, can) == 1)
           neigh = btor_bv_flipped_bit (
               btor->mm, (BtorBitVector *) btor_model_get_bv (btor, can), 0);
@@ -979,7 +979,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
           *candidates,
           btor_rng_pick_rand (
               &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1));
-      assert (BTOR_IS_REGULAR_NODE (can));
+      assert (btor_node_is_regular (can));
 
       if (btor_node_get_width (btor, can) == 1)
       {
@@ -1066,7 +1066,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
   for (i = 0; i < BTOR_COUNT_STACK (*pcans); i++)
   {
     can = BTOR_PEEK_STACK ((*pcans), i);
-    assert (BTOR_IS_REGULAR_NODE (can));
+    assert (btor_node_is_regular (can));
     ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     assert (ass);
 
@@ -1166,7 +1166,7 @@ move (Btor *btor, uint32_t nmoves)
     if (can)
     {
       assert (neigh);
-      btor_hashint_map_add (slv->max_cans, BTOR_REAL_ADDR_NODE (can)->id)
+      btor_hashint_map_add (slv->max_cans, btor_node_real_addr (can)->id)
           ->as_ptr = neigh;
     }
     else /* recovery move */
@@ -1242,7 +1242,7 @@ move (Btor *btor, uint32_t nmoves)
     a     = btor_bv_to_char (btor->mm, ass);
     BTORLOG (1,
              "  candidate: %s%s",
-             BTOR_IS_REGULAR_NODE (can) ? "" : "-",
+             btor_node_is_regular (can) ? "" : "-",
              btor_util_node2string (can));
     BTORLOG (1, "  prev. assignment: %s", a);
     btor_mem_freestr (btor->mm, a);
@@ -1508,7 +1508,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   {
     root = btor_iter_hashptr_next (&pit);
     assert (!btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                     BTOR_INVERT_NODE (root)));
+                                     btor_node_invert (root)));
     id = btor_node_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))
     {
@@ -1522,9 +1522,9 @@ sat_sls_solver (BtorSLSSolver *slv)
   {
     root = btor_iter_hashptr_next (&pit);
     if (btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                BTOR_INVERT_NODE (root)))
+                                btor_node_invert (root)))
       goto UNSAT;
-    if (btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)))
+    if (btor_hashptr_table_get (btor->assumptions, btor_node_invert (root)))
       goto UNSAT;
     id = btor_node_get_id (root);
     if (!btor_hashint_map_contains (slv->weights, id))

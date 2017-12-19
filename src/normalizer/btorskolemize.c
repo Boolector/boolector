@@ -47,9 +47,9 @@ btor_skolemize_node (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     //      assert (!btor_node_is_quantifier (real_cur) ||
-    //      !BTOR_IS_INVERTED_NODE (cur));
+    //      !btor_node_is_inverted (cur));
 
     d = btor_hashint_map_get (map, real_cur->id);
 
@@ -164,7 +164,7 @@ btor_skolemize_node (Btor *btor,
       {
         assert (!btor_hashint_map_contains (node_map, real_cur->id));
         btor_hashint_map_add (node_map, real_cur->id)->as_int =
-            BTOR_REAL_ADDR_NODE (result)->id;
+            btor_node_real_addr (result)->id;
       }
     PUSH_RESULT:
 
@@ -174,9 +174,9 @@ btor_skolemize_node (Btor *btor,
         assert (quant == cur);
       }
 
-      result = BTOR_COND_INVERT_NODE (cur, result);
+      result = btor_node_cond_invert (cur, result);
       assert (!btor_node_is_quantifier (result)
-              || !BTOR_IS_INVERTED_NODE (result));
+              || !btor_node_is_inverted (result));
       BTOR_PUSH_STACK (args, result);
     }
     else
@@ -244,7 +244,7 @@ btor_skolemize (Btor *btor)
   BTOR_INIT_STACK (mm, sorts);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
     d   = btor_hashint_map_get (cache, cur->id);
 
     if (!d)

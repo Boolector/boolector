@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -31,10 +31,10 @@ typedef struct BtorNodeIterator
 } BtorNodeIterator;
 
 #define BTOR_NEXT_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->next_parent[btor_node_get_tag (exp)])
+  (btor_node_real_addr (exp)->next_parent[btor_node_get_tag (exp)])
 
 #define BTOR_PREV_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->prev_parent[btor_node_get_tag (exp)])
+  (btor_node_real_addr (exp)->prev_parent[btor_node_get_tag (exp)])
 
 void btor_iter_apply_parent_init (BtorNodeIterator *it, const BtorNode *exp);
 bool btor_iter_apply_parent_has_next (const BtorNodeIterator *it);

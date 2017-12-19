@@ -54,7 +54,7 @@ mk_param_with_symbol (Btor *btor, BtorNode *node)
 static bool
 occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
 {
-  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (btor_node_is_regular (param));
   assert (btor_node_is_param (param));
 
   bool res = false;
@@ -70,7 +70,7 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
   BTOR_PUSH_STACK (visit, term);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (!cur->parameterized || btor_hashint_table_contains (mark, cur->id))
       continue;
@@ -117,26 +117,26 @@ find_subst (BtorIntHashTable *map, BtorNode *node)
   {
     node = d->as_ptr;
   FIND_SUBST:
-    if (BTOR_IS_INVERTED_NODE (node))
+    if (btor_node_is_inverted (node))
     {
       inv  = !inv;
-      node = BTOR_INVERT_NODE (node);
+      node = btor_node_invert (node);
     }
   }
-  return BTOR_COND_INVERT_NODE (inv, node);
+  return inv ? btor_node_invert (node) : node;
 }
 
 static void
 map_subst_node (BtorIntHashTable *map, BtorNode *left, BtorNode *right)
 {
   right = find_subst (map, right);
-  if (BTOR_IS_INVERTED_NODE (left))
+  if (btor_node_is_inverted (left))
   {
-    left  = BTOR_INVERT_NODE (left);
-    right = BTOR_INVERT_NODE (right);
+    left  = btor_node_invert (left);
+    right = btor_node_invert (right);
   }
 
-  assert (BTOR_IS_REGULAR_NODE (left));
+  assert (btor_node_is_regular (left));
 
   // TODO (ma): overwrite subst if substitution is "better"?
   if (btor_hashint_map_contains (map, left->id))
@@ -170,10 +170,10 @@ find_substitutions (Btor *btor,
 
   if (!btor_node_is_and (root)) return;
 
-  if (elim_evars && !BTOR_IS_INVERTED_NODE (root))
+  if (elim_evars && !btor_node_is_inverted (root))
     top_and = root;
-  else if (!elim_evars && BTOR_IS_INVERTED_NODE (root))
-    top_and = BTOR_REAL_ADDR_NODE (root);
+  else if (!elim_evars && btor_node_is_inverted (root))
+    top_and = btor_node_real_addr (root);
 
   if (!top_and) return;
 
@@ -184,24 +184,24 @@ find_substitutions (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     if (btor_hashint_table_contains (cache, real_cur->id)) continue;
 
     btor_hashint_table_add (cache, real_cur->id);
 
-    if (!BTOR_IS_INVERTED_NODE (cur) && btor_node_is_and (cur))
+    if (!btor_node_is_inverted (cur) && btor_node_is_and (cur))
     {
       BTOR_PUSH_STACK (visit, cur->e[0]);
       BTOR_PUSH_STACK (visit, cur->e[1]);
     }
 #if 0
-      else if (!BTOR_IS_INVERTED_NODE (cur) && btor_node_is_quantifier (cur))
+      else if (!btor_node_is_inverted (cur) && btor_node_is_quantifier (cur))
 	{
 	  BTOR_PUSH_STACK (visit, cur->e[1]);
 	}
 #endif
-    else if (!BTOR_IS_INVERTED_NODE (cur) && btor_node_is_bv_eq (cur))
+    else if (!btor_node_is_inverted (cur) && btor_node_is_bv_eq (cur))
     {
       if (btor_hashint_table_contains (vars, btor_node_get_id (cur->e[0]))
           && !occurs (btor, cur->e[0], cur->e[1], deps))
@@ -239,7 +239,7 @@ collect_quantifier_block_vars (Btor *btor,
   while (btor_iter_binder_has_next (&it))
   {
     cur = btor_iter_binder_next (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     assert (btor_node_is_quantifier (cur));
     if (cur->kind == kind) btor_hashint_table_add (vars, cur->e[0]->id);
     btor_hashint_table_add (qcache, cur->id);
@@ -267,7 +267,7 @@ compute_deps (Btor *btor, BtorNode *root)
   BTOR_PUSH_STACK (visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
     d   = btor_hashint_map_get (mark, cur->id);
 
     if (!d)
@@ -326,7 +326,7 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     cur_d    = btor_hashint_map_get (mark, real_cur->id);
 
     if (!cur_d)
@@ -366,9 +366,9 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
       for (i = 0; i < real_cur->arity; i++)
       {
         e[i] = find_subst (map, real_cur->e[i]);
-        d    = btor_hashint_map_get (mark, BTOR_REAL_ADDR_NODE (e[i])->id);
+        d    = btor_hashint_map_get (mark, btor_node_real_addr (e[i])->id);
         assert (d);
-        e[i] = BTOR_COND_INVERT_NODE (e[i], d->as_ptr);
+        e[i] = btor_node_cond_invert (e[i], d->as_ptr);
       }
       if (real_cur->arity == 0)
       {
@@ -401,12 +401,12 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
       cur_d->as_ptr = result;
     }
   }
-  d = btor_hashint_map_get (mark, BTOR_REAL_ADDR_NODE (root)->id);
+  d = btor_hashint_map_get (mark, btor_node_real_addr (root)->id);
   assert (d);
   assert (d->as_ptr);
-  result = btor_node_copy (btor, BTOR_COND_INVERT_NODE (root, d->as_ptr));
-  assert (BTOR_REAL_ADDR_NODE (result)->parameterized
-          == BTOR_REAL_ADDR_NODE (root)->parameterized);
+  result = btor_node_copy (btor, btor_node_cond_invert (root, d->as_ptr));
+  assert (btor_node_real_addr (result)->parameterized
+          == btor_node_real_addr (root)->parameterized);
 
   //  printf ("substituted %u out of %u %s variables\n",
   //	  num_elim_vars, num_quant_vars, elim_evars ? "existential" :

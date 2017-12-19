@@ -267,12 +267,12 @@ BtorNode *
 btor_exp_lambda (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 {
   assert (btor);
-  assert (BTOR_IS_REGULAR_NODE (e_param));
+  assert (btor_node_is_regular (e_param));
   assert (btor == e_param->btor);
   assert (btor_node_is_param (e_param));
-  assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
+  assert (!btor_node_real_addr (e_param)->simplified);
   assert (e_exp);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
+  assert (btor == btor_node_real_addr (e_exp)->btor);
 
   BtorNode *result;
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
@@ -293,10 +293,10 @@ quantifier_exp (Btor *btor, BtorNodeKind kind, BtorNode *param, BtorNode *body)
   param = btor_simplify_exp (btor, param);
   body  = btor_simplify_exp (btor, body);
 
-  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (btor_node_is_regular (param));
   assert (btor_node_is_param (param));
   assert (body);
-  assert (btor_sort_is_bool (btor, BTOR_REAL_ADDR_NODE (body)->sort_id));
+  assert (btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id));
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     return btor_rewrite_binary_exp (btor, kind, param, body);
   return btor_node_create_quantifier (btor, kind, param, body);
@@ -314,7 +314,7 @@ quantifier_n_exp (Btor *btor,
   assert (params);
   assert (n > 0);
   assert (body);
-  assert (btor == BTOR_REAL_ADDR_NODE (body)->btor);
+  assert (btor == btor_node_real_addr (body)->btor);
 
   uint32_t i, j;
   BtorNode *res, *tmp;
@@ -323,7 +323,7 @@ quantifier_n_exp (Btor *btor,
   for (j = 1, i = n - 1; j <= n; j++, i--)
   {
     assert (params[i]);
-    assert (btor == BTOR_REAL_ADDR_NODE (params[i])->btor);
+    assert (btor == btor_node_real_addr (params[i])->btor);
     assert (btor_node_is_param (params[i]));
     tmp = quantifier_exp (btor, kind, params[i], res);
     btor_node_release (btor, res);
@@ -363,7 +363,7 @@ btor_exp_fun (Btor *btor, BtorNode *params[], uint32_t paramc, BtorNode *exp)
   assert (paramc > 0);
   assert (params);
   assert (exp);
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
   assert (!btor_node_is_uf (exp));
 
   uint32_t i, j;
@@ -374,7 +374,7 @@ btor_exp_fun (Btor *btor, BtorNode *params[], uint32_t paramc, BtorNode *exp)
   {
     j = paramc - i;
     assert (params[j]);
-    assert (btor == BTOR_REAL_ADDR_NODE (params[j])->btor);
+    assert (btor == btor_node_real_addr (params[j])->btor);
     assert (btor_node_is_param (params[j]));
     fun = btor_exp_lambda (btor, params[j], fun);
     if (prev_fun) btor_node_release (btor, prev_fun);
@@ -396,8 +396,8 @@ btor_exp_apply (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (btor);
   assert (fun);
   assert (args);
-  assert (btor == BTOR_REAL_ADDR_NODE (fun)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (args)->btor);
+  assert (btor == btor_node_real_addr (fun)->btor);
+  assert (btor == btor_node_real_addr (args)->btor);
 
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
@@ -433,21 +433,21 @@ btor_exp_apply_n (Btor *btor, BtorNode *fun, BtorNode *args[], uint32_t argc)
 BtorNode *
 btor_exp_not (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   exp = btor_simplify_exp (btor, exp);
   assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   (void) btor;
   btor_node_copy (btor, exp);
-  return BTOR_INVERT_NODE (exp);
+  return btor_node_invert (exp);
 }
 
 BtorNode *
 btor_exp_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -467,14 +467,14 @@ btor_exp_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_neg (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *one;
 
   exp = btor_simplify_exp (btor, exp);
   assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
   one    = btor_exp_one (btor, btor_node_get_sort_id (exp));
-  result = btor_exp_add (btor, BTOR_INVERT_NODE (exp), one);
+  result = btor_exp_add (btor, btor_node_invert (exp), one);
   btor_node_release (btor, one);
   return result;
 }
@@ -482,7 +482,7 @@ btor_exp_neg (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_exp_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result;
 
@@ -501,21 +501,21 @@ btor_exp_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 BtorNode *
 btor_exp_or (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return BTOR_INVERT_NODE (
-      btor_exp_and (btor, BTOR_INVERT_NODE (e0), BTOR_INVERT_NODE (e1)));
+  return btor_node_invert (
+      btor_exp_and (btor, btor_node_invert (e0), btor_node_invert (e1)));
 }
 
 BtorNode *
 btor_exp_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -540,8 +540,8 @@ btor_exp_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -595,8 +595,8 @@ btor_exp_and_n (Btor *btor, BtorNode *args[], uint32_t argc)
 BtorNode *
 btor_exp_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, * or, *and;
 
@@ -606,7 +606,7 @@ btor_exp_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   or     = btor_exp_or (btor, e0, e1);
   and    = btor_exp_and (btor, e0, e1);
-  result = btor_exp_and (btor, or, BTOR_INVERT_NODE (and));
+  result = btor_exp_and (btor, or, btor_node_invert (and));
   btor_node_release (btor, or);
   btor_node_release (btor, and);
   return result;
@@ -615,20 +615,20 @@ btor_exp_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return BTOR_INVERT_NODE (btor_exp_xor (btor, e0, e1));
+  return btor_node_invert (btor_exp_xor (btor, e0, e1));
 }
 
 BtorNode *
 btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -648,9 +648,9 @@ btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e_cond)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_if)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_else)->btor);
+  assert (btor == btor_node_real_addr (e_cond)->btor);
+  assert (btor == btor_node_real_addr (e_if)->btor);
+  assert (btor == btor_node_real_addr (e_else)->btor);
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     return btor_rewrite_ternary_exp (
@@ -662,7 +662,7 @@ btor_exp_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 BtorNode *
 btor_exp_redor (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *zero;
 
@@ -670,7 +670,7 @@ btor_exp_redor (Btor *btor, BtorNode *exp)
   assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   zero   = btor_exp_zero (btor, btor_node_get_sort_id (exp));
-  result = BTOR_INVERT_NODE (btor_exp_eq (btor, exp, zero));
+  result = btor_node_invert (btor_exp_eq (btor, exp, zero));
   btor_node_release (btor, zero);
   return result;
 }
@@ -678,7 +678,7 @@ btor_exp_redor (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_exp_redxor (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *slice, *xor;
   uint32_t i, width;
@@ -703,7 +703,7 @@ btor_exp_redxor (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_exp_redand (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *ones;
 
@@ -719,7 +719,7 @@ btor_exp_redand (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_exp_uext (Btor *btor, BtorNode *exp, uint32_t width)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *zero;
   BtorSortId sort;
@@ -744,7 +744,7 @@ btor_exp_uext (Btor *btor, BtorNode *exp, uint32_t width)
 BtorNode *
 btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *result, *zero, *ones, *neg, *cond;
   uint32_t exp_width;
@@ -777,45 +777,45 @@ btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width)
 BtorNode *
 btor_exp_nand (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return BTOR_INVERT_NODE (btor_exp_and (btor, e0, e1));
+  return btor_node_invert (btor_exp_and (btor, e0, e1));
 }
 
 BtorNode *
 btor_exp_nor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return BTOR_INVERT_NODE (btor_exp_or (btor, e0, e1));
+  return btor_node_invert (btor_exp_or (btor, e0, e1));
 }
 
 BtorNode *
 btor_exp_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
   assert (btor_node_get_width (btor, e0) == 1);
-  return BTOR_INVERT_NODE (btor_exp_and (btor, e0, BTOR_INVERT_NODE (e1)));
+  return btor_node_invert (btor_exp_and (btor, e0, btor_node_invert (e1)));
 }
 
 BtorNode *
 btor_exp_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -827,20 +827,20 @@ btor_exp_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ne (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_eq_exp (btor, e0, e1));
-  return BTOR_INVERT_NODE (btor_exp_eq (btor, e0, e1));
+  return btor_node_invert (btor_exp_eq (btor, e0, e1));
 }
 
 BtorNode *
 btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *uext_e1, *uext_e2, *add;
   uint32_t width;
@@ -863,8 +863,8 @@ btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e1, *sign_e2, *sign_result;
   BtorNode *add, *and1, *and2, *or1, *or2;
@@ -880,9 +880,9 @@ btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   add         = btor_exp_add (btor, e0, e1);
   sign_result = btor_exp_slice (btor, add, width - 1, width - 1);
   and1        = btor_exp_and (btor, sign_e1, sign_e2);
-  or1         = btor_exp_and (btor, and1, BTOR_INVERT_NODE (sign_result));
+  or1         = btor_exp_and (btor, and1, btor_node_invert (sign_result));
   and2        = btor_exp_and (
-      btor, BTOR_INVERT_NODE (sign_e1), BTOR_INVERT_NODE (sign_e2));
+      btor, btor_node_invert (sign_e1), btor_node_invert (sign_e2));
   or2    = btor_exp_and (btor, and2, sign_result);
   result = btor_exp_or (btor, or1, or2);
   btor_node_release (btor, and1);
@@ -899,8 +899,8 @@ btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -920,8 +920,8 @@ btor_exp_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *uext_e1, *uext_e2, *mul, *slice, *and, * or, **temps_e2;
   BtorSortId sort;
@@ -979,8 +979,8 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sext_e1, *sext_e2, *sign_e1, *sign_e2, *sext_sign_e1;
   BtorNode *sext_sign_e2, *xor_sign_e1, *xor_sign_e2, *mul, *slice, *slice_n;
@@ -1066,8 +1066,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -1087,8 +1087,8 @@ btor_exp_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *determined_by_sign, *eq_sign, *ult, *eq_sign_and_ult;
   BtorNode *res, *s0, *s1, *r0, *r1, *l, *r;
@@ -1100,16 +1100,16 @@ btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width = btor_node_get_width (btor, e0);
-  if (width == 1) return btor_exp_and (btor, e0, BTOR_INVERT_NODE (e1));
+  if (width == 1) return btor_exp_and (btor, e0, btor_node_invert (e1));
   s0                 = btor_exp_slice (btor, e0, width - 1, width - 1);
   s1                 = btor_exp_slice (btor, e1, width - 1, width - 1);
   r0                 = btor_exp_slice (btor, e0, width - 2, 0);
   r1                 = btor_exp_slice (btor, e1, width - 2, 0);
   ult                = btor_exp_ult (btor, r0, r1);
-  determined_by_sign = btor_exp_and (btor, s0, BTOR_INVERT_NODE (s1));
+  determined_by_sign = btor_exp_and (btor, s0, btor_node_invert (s1));
   l                  = btor_node_copy (btor, determined_by_sign);
-  r                  = btor_exp_and (btor, BTOR_INVERT_NODE (s0), s1);
-  eq_sign = btor_exp_and (btor, BTOR_INVERT_NODE (l), BTOR_INVERT_NODE (r));
+  r                  = btor_exp_and (btor, btor_node_invert (s0), s1);
+  eq_sign = btor_exp_and (btor, btor_node_invert (l), btor_node_invert (r));
   eq_sign_and_ult = btor_exp_and (btor, eq_sign, ult);
   res             = btor_exp_or (btor, determined_by_sign, eq_sign_and_ult);
   btor_node_release (btor, s0);
@@ -1128,8 +1128,8 @@ btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ulte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *ult;
 
@@ -1146,8 +1146,8 @@ btor_exp_ulte (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_slte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *slt;
 
@@ -1164,8 +1164,8 @@ btor_exp_slte (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ugt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -1176,8 +1176,8 @@ btor_exp_ugt (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sgt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -1188,8 +1188,8 @@ btor_exp_sgt (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ugte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *ult;
 
@@ -1206,8 +1206,8 @@ btor_exp_ugte (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *slt;
 
@@ -1224,8 +1224,8 @@ btor_exp_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -1245,8 +1245,8 @@ btor_exp_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -1266,8 +1266,8 @@ btor_exp_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e1, *srl1, *srl2;
   uint32_t width;
@@ -1279,8 +1279,8 @@ btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
   width   = btor_node_get_width (btor, e0);
   sign_e1 = btor_exp_slice (btor, e0, width - 1, width - 1);
   srl1    = btor_exp_srl (btor, e0, e1);
-  srl2    = btor_exp_srl (btor, BTOR_INVERT_NODE (e0), e1);
-  result  = btor_exp_cond (btor, sign_e1, BTOR_INVERT_NODE (srl2), srl1);
+  srl2    = btor_exp_srl (btor, btor_node_invert (e0), e1);
+  result  = btor_exp_cond (btor, sign_e1, btor_node_invert (srl2), srl1);
   btor_node_release (btor, sign_e1);
   btor_node_release (btor, srl1);
   btor_node_release (btor, srl2);
@@ -1290,8 +1290,8 @@ btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sll, *neg_e2, *srl;
 
@@ -1312,8 +1312,8 @@ btor_exp_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *srl, *neg_e2, *sll;
 
@@ -1334,8 +1334,8 @@ btor_exp_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *neg_e2;
 
@@ -1352,8 +1352,8 @@ btor_exp_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *uext_e1, *uext_e2, *add1, *add2, *one;
   BtorSortId sort;
@@ -1365,14 +1365,14 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   width   = btor_node_get_width (btor, e0);
   uext_e1 = btor_exp_uext (btor, e0, 1);
-  uext_e2 = btor_exp_uext (btor, BTOR_INVERT_NODE (e1), 1);
+  uext_e2 = btor_exp_uext (btor, btor_node_invert (e1), 1);
   assert (width < INT_MAX);
   sort = btor_sort_bitvec (btor, width + 1);
   one  = btor_exp_one (btor, sort);
   btor_sort_release (btor, sort);
   add1   = btor_exp_add (btor, uext_e2, one);
   add2   = btor_exp_add (btor, uext_e1, add1);
-  result = BTOR_INVERT_NODE (btor_exp_slice (btor, add2, width, width));
+  result = btor_node_invert (btor_exp_slice (btor, add2, width, width));
   btor_node_release (btor, uext_e1);
   btor_node_release (btor, uext_e2);
   btor_node_release (btor, add1);
@@ -1384,8 +1384,8 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e1, *sign_e2, *sign_result;
   BtorNode *sub, *and1, *and2, *or1, *or2;
@@ -1400,10 +1400,10 @@ btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   sign_e2     = btor_exp_slice (btor, e1, width - 1, width - 1);
   sub         = btor_exp_sub (btor, e0, e1);
   sign_result = btor_exp_slice (btor, sub, width - 1, width - 1);
-  and1        = btor_exp_and (btor, BTOR_INVERT_NODE (sign_e1), sign_e2);
+  and1        = btor_exp_and (btor, btor_node_invert (sign_e1), sign_e2);
   or1         = btor_exp_and (btor, and1, sign_result);
-  and2        = btor_exp_and (btor, sign_e1, BTOR_INVERT_NODE (sign_e2));
-  or2         = btor_exp_and (btor, and2, BTOR_INVERT_NODE (sign_result));
+  and2        = btor_exp_and (btor, sign_e1, btor_node_invert (sign_e2));
+  or2         = btor_exp_and (btor, and2, btor_node_invert (sign_result));
   result      = btor_exp_or (btor, or1, or2);
   btor_node_release (btor, and1);
   btor_node_release (btor, and2);
@@ -1419,8 +1419,8 @@ btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -1440,8 +1440,8 @@ btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e1, *sign_e2, *xor, *neg_e1, *neg_e2;
   BtorNode *cond_e1, *cond_e2, *udiv, *neg_udiv;
@@ -1454,7 +1454,7 @@ btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   width = btor_node_get_width (btor, e0);
 
   if (width == 1)
-    return BTOR_INVERT_NODE (btor_exp_and (btor, BTOR_INVERT_NODE (e0), e1));
+    return btor_node_invert (btor_exp_and (btor, btor_node_invert (e0), e1));
 
   sign_e1 = btor_exp_slice (btor, e0, width - 1, width - 1);
   sign_e2 = btor_exp_slice (btor, e1, width - 1, width - 1);
@@ -1484,8 +1484,8 @@ btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *int_min, *ones, *eq1, *eq2;
 
@@ -1508,8 +1508,8 @@ btor_exp_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result;
 
@@ -1529,8 +1529,8 @@ btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1;
   BtorNode *cond_e0, *cond_e1, *urem, *neg_urem;
@@ -1542,7 +1542,7 @@ btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   width = btor_node_get_width (btor, e0);
 
-  if (width == 1) return btor_exp_and (btor, e0, BTOR_INVERT_NODE (e1));
+  if (width == 1) return btor_exp_and (btor, e0, btor_node_invert (e1));
 
   sign_e0 = btor_exp_slice (btor, e0, width - 1, width - 1);
   sign_e1 = btor_exp_slice (btor, e1, width - 1, width - 1);
@@ -1570,8 +1570,8 @@ btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e0)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e1)->btor);
+  assert (btor == btor_node_real_addr (e0)->btor);
+  assert (btor == btor_node_real_addr (e1)->btor);
 
   BtorNode *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1, *cond_e0, *cond_e1;
   BtorNode *neg_e0_and_e1, *neg_e0_and_neg_e1, *zero, *e0_zero;
@@ -1592,9 +1592,9 @@ btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
   neg_e0    = btor_exp_neg (btor, e0);
   neg_e1    = btor_exp_neg (btor, e1);
   e0_and_e1 = btor_exp_and (
-      btor, BTOR_INVERT_NODE (sign_e0), BTOR_INVERT_NODE (sign_e1));
-  e0_and_neg_e1     = btor_exp_and (btor, BTOR_INVERT_NODE (sign_e0), sign_e1);
-  neg_e0_and_e1     = btor_exp_and (btor, sign_e0, BTOR_INVERT_NODE (sign_e1));
+      btor, btor_node_invert (sign_e0), btor_node_invert (sign_e1));
+  e0_and_neg_e1     = btor_exp_and (btor, btor_node_invert (sign_e0), sign_e1);
+  neg_e0_and_e1     = btor_exp_and (btor, sign_e0, btor_node_invert (sign_e1));
   neg_e0_and_neg_e1 = btor_exp_and (btor, sign_e0, sign_e1);
   /* normalize e0 and e1 if necessary */
   cond_e0    = btor_exp_cond (btor, sign_e0, neg_e0, e0);
@@ -1644,8 +1644,8 @@ btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_exp_read (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (e_array)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
+  assert (btor == btor_node_real_addr (e_array)->btor);
+  assert (btor == btor_node_real_addr (e_index)->btor);
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
@@ -1703,9 +1703,9 @@ btor_exp_write (Btor *btor,
 {
   assert (btor);
   assert (btor_node_is_array (btor_simplify_exp (btor, e_array)));
-  assert (btor == BTOR_REAL_ADDR_NODE (e_array)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_value)->btor);
+  assert (btor == btor_node_real_addr (e_array)->btor);
+  assert (btor == btor_node_real_addr (e_index)->btor);
+  assert (btor == btor_node_real_addr (e_value)->btor);
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
@@ -1713,8 +1713,8 @@ btor_exp_write (Btor *btor,
   assert (btor_dbg_precond_write_exp (btor, e_array, e_index, e_value));
 
   if (btor_opt_get (btor, BTOR_OPT_FUN_STORE_LAMBDAS)
-      || BTOR_REAL_ADDR_NODE (e_index)->parameterized
-      || BTOR_REAL_ADDR_NODE (e_value)->parameterized)
+      || btor_node_real_addr (e_index)->parameterized
+      || btor_node_real_addr (e_value)->parameterized)
   {
     return btor_exp_lambda_write (btor, e_array, e_index, e_value);
   }
@@ -1745,7 +1745,7 @@ btor_exp_inc (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_exp_dec (Btor *btor, BtorNode *exp)
 {
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (btor == btor_node_real_addr (exp)->btor);
 
   BtorNode *one, *result;
 

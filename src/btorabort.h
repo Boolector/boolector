@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -56,7 +56,7 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
 #define BTOR_ABORT_REFS_NOT_POS(arg)                           \
   do                                                           \
   {                                                            \
-    BTOR_ABORT (BTOR_REAL_ADDR_NODE ((arg))->ext_refs < 1,     \
+    BTOR_ABORT (btor_node_real_addr (arg)->ext_refs < 1,       \
                 "reference counter of '%s' must not be < 1\n", \
                 #arg);                                         \
   } while (0)
@@ -64,7 +64,7 @@ void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
 #define BTOR_ABORT_BTOR_MISMATCH(argbtor, argnode)                         \
   do                                                                       \
   {                                                                        \
-    BTOR_ABORT (BTOR_REAL_ADDR_NODE (argnode)->btor != (argbtor),          \
+    BTOR_ABORT (btor_node_real_addr (argnode)->btor != (argbtor),          \
                 "argument '%s' belongs to different Boolector instance\n", \
                 #argnode);                                                 \
   } while (0)

@@ -191,7 +191,7 @@ collect_exps_post_order (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (cache, real_cur->id);
     if (!d)
@@ -232,7 +232,7 @@ collect_exps_post_order (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_POP_STACK (visit);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
 
     if (!btor_hashint_map_contains (cache, cur->id)
         || btor_hashint_table_contains (cone_hash, cur->id))
@@ -248,7 +248,7 @@ collect_exps_post_order (Btor *btor,
   for (i = 0; i < nroots; i++)
   {
     cur      = roots[i];
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     if (btor_hashint_table_contains (cone_hash, real_cur->id))
       BTOR_PUSH_STACK (visit, cur);
   }
@@ -259,7 +259,7 @@ collect_exps_post_order (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     if (!btor_hashint_table_contains (cone_hash, real_cur->id))
     {
@@ -327,7 +327,7 @@ eval_candidate (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (cache, real_cur->id);
     if (!d)
@@ -416,7 +416,7 @@ eval_candidate (Btor *btor,
       d->as_ptr = btor_bv_copy (mm, result);
 
     EVAL_EXP_PUSH_RESULT:
-      if (BTOR_IS_INVERTED_NODE (cur))
+      if (btor_node_is_inverted (cur))
       {
         inv_result = btor_bv_not (mm, result);
         btor_bv_free (mm, result);
@@ -479,7 +479,7 @@ eval_exps (Btor *btor,
   for (i = 0; i < nexps; i++)
   {
     cur      = exps[i];
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     assert (!btor_node_is_fun (real_cur));
     assert (!btor_node_is_apply (real_cur));
 
@@ -584,7 +584,7 @@ eval_exps (Btor *btor,
             btor_bv_copy (mm, result);
       }
     }
-    if (BTOR_IS_INVERTED_NODE (cur))
+    if (btor_node_is_inverted (cur))
     {
       inv_result = btor_bv_not (mm, result);
       btor_bv_free (mm, result);
@@ -630,7 +630,7 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
   BtorMemMgr *mm;
 
   mm   = btor->mm;
-  sort = BTOR_REAL_ADDR_NODE (exp)->sort_id;
+  sort = btor_node_real_addr (exp)->sort_id;
 
   if (exp_size >= BTOR_COUNT_STACK (candidates->exps))
   {
@@ -652,13 +652,13 @@ add_exp (Btor *btor, uint32_t exp_size, Candidates *candidates, BtorNode *exp)
   }
   BTOR_PUSH_STACK (*exps, exp);
   candidates->nexps++;
-  switch (BTOR_REAL_ADDR_NODE (exp)->arity)
+  switch (btor_node_real_addr (exp)->arity)
   {
     case 0: candidates->nnullary++; break;
     case 1: candidates->nunary++; break;
     case 2: candidates->nbinary++; break;
     default:
-      assert (BTOR_REAL_ADDR_NODE (exp)->arity == 3);
+      assert (btor_node_real_addr (exp)->arity == 3);
       candidates->nternary++;
       break;
   }
@@ -789,7 +789,7 @@ check_candidate_exps (Btor *btor,
     return false;
   }
 
-  if (nexps == 0 || BTOR_REAL_ADDR_NODE (exp)->sort_id == target_sort)
+  if (nexps == 0 || btor_node_real_addr (exp)->sort_id == target_sort)
   {
     /* check signature for candidate expression (in/out values) */
     sig_exp = create_signature_exp (
@@ -1251,7 +1251,7 @@ DONE:
   BTOR_RELEASE_STACK (trav_exps);
   BTOR_RELEASE_STACK (trav_cone);
 
-  assert (!result || BTOR_REAL_ADDR_NODE (result)->sort_id == target_sort);
+  assert (!result || btor_node_real_addr (result)->sort_id == target_sort);
   btor_sort_release (btor, bool_sort);
   btor_sort_release (btor, target_sort);
   return result;

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2013-2016 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -31,7 +31,7 @@
 #define BTOR_CHKCLONE_EXPID(exp, clone)                                        \
   do                                                                           \
   {                                                                            \
-    assert (BTOR_REAL_ADDR_NODE (exp)->id == BTOR_REAL_ADDR_NODE (clone)->id); \
+    assert (btor_node_real_addr (exp)->id == btor_node_real_addr (clone)->id); \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -454,15 +454,15 @@ chkclone_aig_cnf_id_table (Btor *btor, Btor *clone)
     }                                                               \
     assert (real_exp->field != real_cexp->field);                   \
     BTOR_CHKCLONE_EXPID (real_exp->field, real_cexp->field);        \
-    assert (BTOR_REAL_ADDR_NODE (real_exp->field)->btor == btor);   \
-    assert (BTOR_REAL_ADDR_NODE (real_cexp->field)->btor == clone); \
+    assert (btor_node_real_addr (real_exp->field)->btor == btor);   \
+    assert (btor_node_real_addr (real_cexp->field)->btor == clone); \
   } while (0)
 
 #define BTOR_CHKCLONE_EXPPTRINV(field)                    \
   do                                                      \
   {                                                       \
-    assert (BTOR_IS_INVERTED_NODE (real_exp->field)       \
-            == BTOR_IS_INVERTED_NODE (real_cexp->field)); \
+    assert (btor_node_is_inverted (real_exp->field)       \
+            == btor_node_is_inverted (real_cexp->field)); \
   } while (0)
 
 #define BTOR_CHKCLONE_EXPPTRTAG(field)                \
@@ -484,15 +484,15 @@ btor_chkclone_exp (Btor *btor,
   assert (cexp);
   assert (btor != clone);
   assert (exp != cexp);
-  assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (cexp))
-          || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (cexp)));
+  assert ((!btor_node_is_inverted (exp) && !btor_node_is_inverted (cexp))
+          || (btor_node_is_inverted (exp) && btor_node_is_inverted (cexp)));
 
   uint32_t i;
   BtorNode *real_exp, *real_cexp, *e, *ce;
   BtorPtrHashTableIterator it, cit;
 
-  real_exp  = BTOR_REAL_ADDR_NODE (exp);
-  real_cexp = BTOR_REAL_ADDR_NODE (cexp);
+  real_exp  = btor_node_real_addr (exp);
+  real_cexp = btor_node_real_addr (cexp);
   assert (real_exp != real_cexp);
   assert (cexp);
   assert (real_exp->id == real_cexp->id);
