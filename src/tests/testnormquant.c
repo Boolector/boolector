@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2016 Mathias Preiner.
+ *  Copyright (C) 2016-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -74,9 +74,9 @@ test_normquant_inv_exists (void)
   y[0]     = btor_exp_param (g_btor, sort, "y0");
   y[1]     = btor_exp_param (g_btor, sort, "y1");
   eqy      = btor_exp_eq (g_btor, y[0], y[1]);
-  expected = btor_exp_forall_n (g_btor, y, 2, BTOR_INVERT_NODE (eqy));
+  expected = btor_exp_forall_n (g_btor, y, 2, btor_node_invert (eqy));
 
-  result = btor_normalize_quantifiers_node (g_btor, BTOR_INVERT_NODE (exists));
+  result = btor_normalize_quantifiers_node (g_btor, btor_node_invert (exists));
   assert (result == expected);
 
   btor_node_release (g_btor, x[0]);
@@ -106,12 +106,12 @@ test_normquant_inv_forall (void)
   x[0]   = btor_exp_param (g_btor, sort, 0);
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
-  forall = BTOR_INVERT_NODE (btor_exp_forall_n (g_btor, x, 2, eqx));
+  forall = btor_node_invert (btor_exp_forall_n (g_btor, x, 2, eqx));
 
   y[0]     = btor_exp_param (g_btor, sort, 0);
   y[1]     = btor_exp_param (g_btor, sort, 0);
   eqy      = btor_exp_eq (g_btor, y[0], y[1]);
-  expected = btor_exp_exists_n (g_btor, y, 2, BTOR_INVERT_NODE (eqy));
+  expected = btor_exp_exists_n (g_btor, y, 2, btor_node_invert (eqy));
 
   result = btor_normalize_quantifiers_node (g_btor, forall);
   assert (result == expected);
@@ -146,12 +146,12 @@ test_normquant_inv_exists_nested (void)
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
   exists = btor_exp_exists (g_btor, x[0], eqx);
-  forall = btor_exp_forall (g_btor, x[1], BTOR_INVERT_NODE (exists));
+  forall = btor_exp_forall (g_btor, x[1], btor_node_invert (exists));
 
   y[0]     = btor_exp_param (g_btor, sort, 0);
   y[1]     = btor_exp_param (g_btor, sort, 0);
   eqy      = btor_exp_eq (g_btor, y[0], y[1]);
-  expected = btor_exp_forall_n (g_btor, y, 2, BTOR_INVERT_NODE (eqy));
+  expected = btor_exp_forall_n (g_btor, y, 2, btor_node_invert (eqy));
 
   result = btor_normalize_quantifiers_node (g_btor, forall);
   assert (result == expected);
@@ -187,8 +187,8 @@ test_normquant_inv_exists_nested2 (void)
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
   exists = btor_exp_exists (g_btor, x[0], eqx);
-  forall = BTOR_INVERT_NODE (
-      btor_exp_forall (g_btor, x[1], BTOR_INVERT_NODE (exists)));
+  forall = btor_node_invert (
+      btor_exp_forall (g_btor, x[1], btor_node_invert (exists)));
 
   y[0]     = btor_exp_param (g_btor, sort, 0);
   y[1]     = btor_exp_param (g_btor, sort, 0);
@@ -231,13 +231,13 @@ test_normquant_inv_prefix (void)
   and     = btor_exp_and_n (g_btor, x, 3);
   forall0 = btor_exp_forall (g_btor, x[0], and);
   exists  = btor_exp_exists (g_btor, x[1], forall0);
-  forall1 = BTOR_INVERT_NODE (btor_exp_forall (g_btor, x[2], exists));
+  forall1 = btor_node_invert (btor_exp_forall (g_btor, x[2], exists));
 
   y[0]     = btor_exp_param (g_btor, sort, 0);
   y[1]     = btor_exp_param (g_btor, sort, 0);
   y[2]     = btor_exp_param (g_btor, sort, 0);
   andy     = btor_exp_and_n (g_btor, y, 3);
-  exists0  = btor_exp_exists (g_btor, y[0], BTOR_INVERT_NODE (andy));
+  exists0  = btor_exp_exists (g_btor, y[0], btor_node_invert (andy));
   forall   = btor_exp_forall (g_btor, y[1], exists0);
   expected = btor_exp_exists (g_btor, y[2], forall);
 
@@ -291,7 +291,7 @@ test_normquant_inv_and_exists (void)
   ult     = btor_exp_ult (g_btor, x, y[1]);
   exists1 = btor_exp_exists (g_btor, y[1], ult);
   and     = btor_exp_and (g_btor, exists0, exists1);
-  forall  = btor_exp_forall (g_btor, x, BTOR_INVERT_NODE (and));
+  forall  = btor_exp_forall (g_btor, x, btor_node_invert (and));
 
   X        = btor_exp_param (g_btor, sort, 0);
   Y[0]     = btor_exp_param (g_btor, sort, 0);
@@ -301,7 +301,7 @@ test_normquant_inv_and_exists (void)
   ugte     = btor_exp_ult (g_btor, X, Y[1]);
   forall1  = btor_exp_forall (g_btor, Y[1], ugte);
   or       = btor_exp_and (g_btor, forall0, forall1);
-  expected = btor_exp_forall (g_btor, X, BTOR_INVERT_NODE (or));
+  expected = btor_exp_forall (g_btor, X, btor_node_invert (or));
 
   result = btor_normalize_quantifiers_node (g_btor, forall);
   assert (result == expected);
@@ -358,8 +358,8 @@ test_normquant_normalize_negated_quant (void)
   xugt0   = btor_exp_ugt (g_btor, x, zero);
   yugtx   = btor_exp_ugt (g_btor, y, x);
   existsy = btor_exp_exists (g_btor, y, yugtx);
-  and     = btor_exp_and (g_btor, BTOR_INVERT_NODE (existsy), xugt0);
-  forallx = btor_exp_forall (g_btor, x, BTOR_INVERT_NODE (and));
+  and     = btor_exp_and (g_btor, btor_node_invert (existsy), xugt0);
+  forallx = btor_exp_forall (g_btor, x, btor_node_invert (and));
 
   result = btor_normalize_quantifiers_node (g_btor, forallx);
   assert (result == forallx);
@@ -389,12 +389,12 @@ test_normquant_expand_quant (void)
   x       = btor_exp_param (g_btor, sort, "x");
   redandx = btor_exp_redand (g_btor, x);
   forall  = btor_exp_forall (g_btor, x, redandx);
-  and     = btor_exp_and (g_btor, BTOR_INVERT_NODE (forall), forall);
+  and     = btor_exp_and (g_btor, btor_node_invert (forall), forall);
   result  = btor_normalize_quantifiers_node (g_btor, and);
 
   X        = btor_exp_param (g_btor, sort, "X");
   redandX  = btor_exp_redand (g_btor, X);
-  exists   = btor_exp_exists (g_btor, X, BTOR_INVERT_NODE (redandX));
+  exists   = btor_exp_exists (g_btor, X, btor_node_invert (redandX));
   expected = btor_exp_and (g_btor, forall, exists);
 
   assert (result == expected);
@@ -464,11 +464,11 @@ test_normquant_elim_ite1 (void)
   eq0    = btor_exp_eq (g_btor, V[1], V[0]);
   eq1    = btor_exp_eq (g_btor, V[1], V[2]);
   eq2    = btor_exp_eq (g_btor, V[3], V[1]);
-  and0   = btor_exp_and (g_btor, forall, BTOR_INVERT_NODE (eq0));
+  and0   = btor_exp_and (g_btor, forall, btor_node_invert (eq0));
   and1 =
-      btor_exp_and (g_btor, BTOR_INVERT_NODE (exists), BTOR_INVERT_NODE (eq1));
+      btor_exp_and (g_btor, btor_node_invert (exists), btor_node_invert (eq1));
   and2 =
-      btor_exp_and (g_btor, BTOR_INVERT_NODE (and0), BTOR_INVERT_NODE (and1));
+      btor_exp_and (g_btor, btor_node_invert (and0), btor_node_invert (and1));
   and3     = btor_exp_and (g_btor, eq2, and2);
   expected = btor_exp_exists_n (g_btor, V, 4, and3);
 
@@ -561,11 +561,11 @@ test_normquant_elim_ite2 (void)
   ultY1    = btor_exp_ult (g_btor, X, Y[1]);
   forallY  = btor_exp_forall (g_btor, Y[0], ultY);
   existsY  = btor_exp_exists (g_btor, Y[1], ultY1);
-  imp_if   = btor_exp_and (g_btor, forallY, BTOR_INVERT_NODE (eqZv0));
+  imp_if   = btor_exp_and (g_btor, forallY, btor_node_invert (eqZv0));
   imp_else = btor_exp_and (
-      g_btor, BTOR_INVERT_NODE (existsY), BTOR_INVERT_NODE (eqZv1));
+      g_btor, btor_node_invert (existsY), btor_node_invert (eqZv1));
   and0 = btor_exp_and (
-      g_btor, BTOR_INVERT_NODE (imp_if), BTOR_INVERT_NODE (imp_else));
+      g_btor, btor_node_invert (imp_if), btor_node_invert (imp_else));
   and1     = btor_exp_and (g_btor, eqZX, and0);
   forallX  = btor_exp_forall (g_btor, X, and1);
   expected = btor_exp_exists_n (g_btor, V, 2, forallX);
@@ -658,10 +658,10 @@ test_normquant_elim_top_ite (void)
   ugte = btor_exp_ugte (g_btor, V[2], Y[1]);
   forallY = btor_exp_forall (g_btor, Y[0], ultY);
   existsY = btor_exp_exists (g_btor, Y[1], ugte);
-  imp_if = btor_exp_and (g_btor, forallY, BTOR_INVERT_NODE (eqZv0));
-  imp_else = btor_exp_and (g_btor, existsY, BTOR_INVERT_NODE (eqZv1));
-  and0 = btor_exp_and (g_btor, BTOR_INVERT_NODE (imp_if),
-		       BTOR_INVERT_NODE (imp_else));
+  imp_if = btor_exp_and (g_btor, forallY, btor_node_invert (eqZv0));
+  imp_else = btor_exp_and (g_btor, existsY, btor_node_invert (eqZv1));
+  and0 = btor_exp_and (g_btor, btor_node_invert (imp_if),
+		       btor_node_invert (imp_else));
   and1 = btor_exp_and (g_btor, eqZv2, and0); 
   expected = btor_exp_exists_n (g_btor, V, 4, and1);
 

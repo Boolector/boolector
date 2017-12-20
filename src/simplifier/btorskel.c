@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -28,9 +28,9 @@ fixed_exp (Btor *btor, BtorNode *exp)
   BtorAIG *aig;
   int32_t res, id;
 
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
   assert (btor_node_get_width (btor, real_exp) == 1);
-  if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
+  if (!btor_node_is_synth (real_exp)) return 0;
   assert (real_exp->av);
   assert (real_exp->av->width == 1);
   assert (real_exp->av->aigs);
@@ -46,7 +46,7 @@ fixed_exp (Btor *btor, BtorNode *exp)
     smgr = btor_get_sat_mgr (btor);
     res  = btor_sat_fixed (smgr, id);
   }
-  if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
+  if (btor_node_is_inverted (exp)) res = -res;
   return res;
 }
 
@@ -57,7 +57,7 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
   BtorNode *real_exp;
   int32_t res;
 
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
   assert (btor_node_get_width (real_exp->btor, real_exp) == 1);
   b = btor_hashptr_table_get (ids, real_exp);
   if (!b)
@@ -69,7 +69,7 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
   res = b->data.as_int;
   assert (res > 0);
 
-  if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
+  if (btor_node_is_inverted (exp)) res = -res;
 
   return res;
 }
@@ -94,7 +94,7 @@ process_skeleton_tseitin (Btor *btor,
   {
     exp = BTOR_POP_STACK (*work_stack);
     assert (exp);
-    exp = BTOR_REAL_ADDR_NODE (exp);
+    exp = btor_node_real_addr (exp);
     d   = btor_hashint_map_get (mark, exp->id);
 
     if (!d)
@@ -116,7 +116,7 @@ process_skeleton_tseitin (Btor *btor,
       for (i = 0; i < exp->arity; i++)
       {
         BtorNode *child = exp->e[i];
-        child           = BTOR_REAL_ADDR_NODE (child);
+        child           = btor_node_real_addr (child);
         d               = btor_hashint_map_get (mark, child->id);
         assert (d->as_int == 1);
         if (!btor_node_is_fun (child) && !btor_node_is_args (child)
@@ -304,12 +304,12 @@ btor_process_skeleton (Btor *btor)
     while (btor_iter_hashptr_has_next (&it))
     {
       exp = btor_iter_hashptr_next (&it);
-      assert (!BTOR_IS_INVERTED_NODE (exp));
+      assert (!btor_node_is_inverted (exp));
       lit = process_skeleton_tseitin_lit (ids, exp);
       val = lglfixed (lgl, lit);
       if (val)
       {
-        if (val < 0) exp = BTOR_INVERT_NODE (exp);
+        if (val < 0) exp = btor_node_invert (exp);
         if (!btor_hashptr_table_get (btor->synthesized_constraints, exp)
             && !btor_hashptr_table_get (btor->unsynthesized_constraints, exp))
         {

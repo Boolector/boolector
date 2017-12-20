@@ -483,7 +483,7 @@ clone_exp (Btor *clone,
 {
   assert (clone);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (parents);
   assert (nodes);
   assert (exp_map);
@@ -706,9 +706,9 @@ clone_nodes_id_table (Btor *btor,
     tmp = BTOR_POP_STACK (parents);
     assert (*tmp);
     tag  = btor_node_get_tag (*tmp);
-    *tmp = btor_nodemap_mapped (exp_map, BTOR_REAL_ADDR_NODE (*tmp));
+    *tmp = btor_nodemap_mapped (exp_map, btor_node_real_addr (*tmp));
     assert (*tmp);
-    *tmp = BTOR_TAG_NODE (*tmp, tag);
+    *tmp = btor_node_set_tag (*tmp, tag);
   }
 
   /* clone static_rho tables */
@@ -1456,7 +1456,7 @@ clone_aux_btor (Btor *btor,
   while (btor_iter_hashptr_has_next (&pit))
   {
     exp = btor_iter_hashptr_next (&pit);
-    assert (BTOR_REAL_ADDR_NODE (exp)->constraint);
+    assert (btor_node_real_addr (exp)->constraint);
   }
 #endif
 
@@ -1603,7 +1603,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
 {
   assert (btor);
   assert (exp);
-  assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
+  assert (btor_node_real_addr (exp)->btor == btor);
   assert (exp_map);
 
   uint32_t i, rwl;
@@ -1625,11 +1625,11 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
 
   BTOR_INIT_STACK (mm, work_stack);
 
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
   BTOR_PUSH_STACK (work_stack, real_exp);
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+    cur = btor_node_real_addr (BTOR_POP_STACK (work_stack));
 
     if (btor_nodemap_mapped (exp_map, cur)) continue;
 

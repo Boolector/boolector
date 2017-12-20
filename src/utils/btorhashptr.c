@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -16,13 +16,13 @@
 static uint32_t
 btor_hash_ptr (const void *p)
 {
-  return 1183477 * (uint32_t) (unsigned long) p;
+  return 1183477 * (uint32_t) (uintptr_t) p;
 }
 
 static int32_t
 btor_compare_ptr (const void *p, const void *q)
 {
-  return ((long) p) != ((long) q);
+  return ((uintptr_t) p) != ((uintptr_t) q);
 }
 
 static void

@@ -154,7 +154,7 @@ compute_sls_score_node (Btor *btor,
 #endif
 
   res      = 0.0;
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
 
   BTORLOG (3, "");
   BTORLOG (3, "*** compute sls score for: %s", btor_util_node2string (exp));
@@ -162,7 +162,7 @@ compute_sls_score_node (Btor *btor,
   if (btor_node_is_and (real_exp))
   {
     /* OR --------------------------------------------------------- */
-    if (BTOR_IS_INVERTED_NODE (exp))
+    if (btor_node_is_inverted (exp))
     {
       assert (btor_hashint_map_contains (score,
                                          -btor_node_get_id ((real_exp->e[0]))));
@@ -178,11 +178,11 @@ compute_sls_score_node (Btor *btor,
         a0 = btor_bv_to_char (
             btor->mm,
             btor_model_get_bv_aux (
-                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+                btor, bv_model, fun_model, btor_node_invert (real_exp->e[0])));
         a1 = btor_bv_to_char (
             btor->mm,
             btor_model_get_bv_aux (
-                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
+                btor, bv_model, fun_model, btor_node_invert (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
         btor_mem_freestr (mm, a0);
@@ -210,11 +210,11 @@ compute_sls_score_node (Btor *btor,
         a0 = btor_bv_to_char (
             btor->mm,
             btor_model_get_bv_aux (
-                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+                btor, bv_model, fun_model, btor_node_invert (real_exp->e[0])));
         a1 = btor_bv_to_char (
             btor->mm,
             btor_model_get_bv_aux (
-                btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
+                btor, bv_model, fun_model, btor_node_invert (real_exp->e[1])));
         BTORLOG (3, "      assignment e[0]: %s", a0);
         BTORLOG (3, "      assignment e[1]: %s", a1);
         btor_mem_freestr (mm, a0);
@@ -242,18 +242,18 @@ compute_sls_score_node (Btor *btor,
       a0 = btor_bv_to_char (
           btor->mm,
           btor_model_get_bv_aux (
-              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+              btor, bv_model, fun_model, btor_node_invert (real_exp->e[0])));
       a1 = btor_bv_to_char (
           btor->mm,
           btor_model_get_bv_aux (
-              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
+              btor, bv_model, fun_model, btor_node_invert (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
       btor_mem_freestr (mm, a0);
       btor_mem_freestr (mm, a1);
     }
 #endif
-    if (BTOR_IS_INVERTED_NODE (exp))
+    if (btor_node_is_inverted (exp))
       res = !btor_bv_compare (bv0, bv1) ? 0.0 : 1.0;
     else
       res = !btor_bv_compare (bv0, bv1)
@@ -276,18 +276,18 @@ compute_sls_score_node (Btor *btor,
       a0 = btor_bv_to_char (
           btor->mm,
           btor_model_get_bv_aux (
-              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[0])));
+              btor, bv_model, fun_model, btor_node_invert (real_exp->e[0])));
       a1 = btor_bv_to_char (
           btor->mm,
           btor_model_get_bv_aux (
-              btor, bv_model, fun_model, BTOR_INVERT_NODE (real_exp->e[1])));
+              btor, bv_model, fun_model, btor_node_invert (real_exp->e[1])));
       BTORLOG (3, "      assignment e[0]: %s", a0);
       BTORLOG (3, "      assignment e[1]: %s", a1);
       btor_mem_freestr (mm, a0);
       btor_mem_freestr (mm, a1);
     }
 #endif
-    if (BTOR_IS_INVERTED_NODE (exp))
+    if (btor_node_is_inverted (exp))
       res = btor_bv_compare (bv0, bv1) >= 0
                 ? 1.0
                 : BTOR_SLS_SCORE_CFACT
@@ -309,7 +309,7 @@ compute_sls_score_node (Btor *btor,
       a0 = btor_bv_to_char (
           btor->mm,
           btor_model_get_bv_aux (
-              btor, bv_model, fun_model, BTOR_INVERT_NODE (exp)));
+              btor, bv_model, fun_model, btor_node_invert (exp)));
       BTORLOG (3, "      assignment : %s", a0);
       btor_mem_freestr (mm, a0);
     }
@@ -360,7 +360,7 @@ recursively_compute_sls_score_node (Btor *btor,
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
@@ -434,7 +434,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     d        = btor_hashint_map_get (mark, real_cur->id);
 
     if ((d && d->as_int == 1)
@@ -456,7 +456,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
       (void) recursively_compute_sls_score_node (
           btor, bv_model, fun_model, score, cur);
       (void) recursively_compute_sls_score_node (
-          btor, bv_model, fun_model, score, BTOR_INVERT_NODE (cur));
+          btor, bv_model, fun_model, score, btor_node_invert (cur));
     }
   }
 
@@ -475,7 +475,7 @@ update_roots_table (Btor *btor,
   assert (btor);
   assert (roots);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (bv);
   assert (btor_bv_compare (btor_model_get_bv (btor, exp), bv));
 
@@ -495,7 +495,7 @@ update_roots_table (Btor *btor,
   {
     btor_hashint_map_remove (roots, -exp->id, 0);
     assert (
-        btor_bv_is_false (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
+        btor_bv_is_false (btor_model_get_bv (btor, btor_node_invert (exp))));
     assert (btor_bv_is_false (bv));
   }
   /* exp: old assignment = 1, new assignment = 0 (bv = 0)
@@ -511,7 +511,7 @@ update_roots_table (Btor *btor,
   {
     assert (btor_bv_is_true (bv));
     btor_hashint_map_add (roots, -exp->id);
-    assert (btor_bv_is_true (btor_model_get_bv (btor, BTOR_INVERT_NODE (exp))));
+    assert (btor_bv_is_true (btor_model_get_bv (btor, btor_node_invert (exp))));
   }
 }
 
@@ -576,9 +576,9 @@ btor_propsls_update_cone (Btor *btor,
   {
     root = btor_iter_hashptr_next (&pit);
     assert (!btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                     BTOR_INVERT_NODE (root)));
+                                     btor_node_invert (root)));
     assert (
-        !btor_hashptr_table_get (btor->assumptions, BTOR_INVERT_NODE (root)));
+        !btor_hashptr_table_get (btor->assumptions, btor_node_invert (root)));
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_hashint_map_contains (roots, btor_node_get_id (root)));
     else
@@ -594,7 +594,7 @@ btor_propsls_update_cone (Btor *btor,
   while (btor_iter_hashint_has_next (&iit))
   {
     exp = btor_node_get_by_id (btor, btor_iter_hashint_next (&iit));
-    assert (BTOR_IS_REGULAR_NODE (exp));
+    assert (btor_node_is_regular (exp));
     assert (btor_node_is_bv_var (exp));
     BTOR_PUSH_STACK (stack, exp);
   }
@@ -602,7 +602,7 @@ btor_propsls_update_cone (Btor *btor,
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     if (btor_hashint_table_contains (cache, cur->id)) continue;
     btor_hashint_table_add (cache, cur->id);
     if (!btor_hashint_table_contains (exps, cur->id))
@@ -633,7 +633,7 @@ btor_propsls_update_cone (Btor *btor,
     if (update_roots
         && (exp->constraint || btor_hashptr_table_get (btor->assumptions, exp)
             || btor_hashptr_table_get (btor->assumptions,
-                                       BTOR_INVERT_NODE (exp)))
+                                       btor_node_invert (exp)))
         && btor_bv_compare (d->as_ptr, ass))
     {
       /* old assignment != new assignment */
@@ -657,7 +657,7 @@ btor_propsls_update_cone (Btor *btor,
       assert (btor_hashint_map_contains (score, -btor_node_get_id (exp)));
       btor_hashint_map_get (score, -btor_node_get_id (exp))->as_dbl =
           compute_sls_score_node (
-              btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (exp));
+              btor, bv_model, btor->fun_model, score, btor_node_invert (exp));
     }
   }
 
@@ -673,26 +673,26 @@ btor_propsls_update_cone (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
   {
     cur = BTOR_PEEK_STACK (cone, i);
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     for (j = 0; j < cur->arity; j++)
     {
       if (btor_node_is_bv_const (cur->e[j]))
       {
-        e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
+        e[j] = btor_node_is_inverted (cur->e[j])
                    ? btor_bv_copy (mm, btor_node_const_get_invbits (cur->e[j]))
                    : btor_bv_copy (mm, btor_node_const_get_bits (cur->e[j]));
       }
       else
       {
         d = btor_hashint_map_get (bv_model,
-                                  BTOR_REAL_ADDR_NODE (cur->e[j])->id);
+                                  btor_node_real_addr (cur->e[j])->id);
         /* Note: generate model enabled branch for ite (and does not
          * generate model for nodes in the branch, hence !b may happen */
         if (!d)
           e[j] = btor_model_recursively_compute_assignment (
               btor, bv_model, btor->fun_model, cur->e[j]);
         else
-          e[j] = BTOR_IS_INVERTED_NODE (cur->e[j])
+          e[j] = btor_node_is_inverted (cur->e[j])
                      ? btor_bv_not (mm, d->as_ptr)
                      : btor_bv_copy (mm, d->as_ptr);
       }
@@ -729,7 +729,7 @@ btor_propsls_update_cone (Btor *btor,
     if (update_roots
         && (cur->constraint || btor_hashptr_table_get (btor->assumptions, cur)
             || btor_hashptr_table_get (btor->assumptions,
-                                       BTOR_INVERT_NODE (cur))))
+                                       btor_node_invert (cur))))
     {
       assert (d); /* must be contained, is root */
       /* old assignment != new assignment */
@@ -769,7 +769,7 @@ btor_propsls_update_cone (Btor *btor,
     for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
     {
       cur = BTOR_PEEK_STACK (cone, i);
-      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (btor_node_is_regular (cur));
 
       if (btor_node_get_width (btor, cur) != 1) continue;
 
@@ -784,7 +784,7 @@ btor_propsls_update_cone (Btor *btor,
           compute_sls_score_node (btor, bv_model, btor->fun_model, score, cur);
       assert (btor_hashint_map_contains (score, -id));
       btor_hashint_map_get (score, -id)->as_dbl = compute_sls_score_node (
-          btor, bv_model, btor->fun_model, score, BTOR_INVERT_NODE (cur));
+          btor, bv_model, btor->fun_model, score, btor_node_invert (cur));
     }
     *time_update_cone_compute_score += btor_util_time_stamp () - delta;
   }
@@ -812,7 +812,7 @@ static inline int32_t
 select_path_non_const (BtorNode *exp)
 {
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (exp->arity <= 2);
   assert (!btor_node_is_bv_const (exp->e[0])
           || (exp->arity > 1 && !btor_node_is_bv_const (exp->e[1])));
@@ -846,7 +846,7 @@ select_path_add (Btor *btor,
 {
   assert (btor);
   assert (add);
-  assert (BTOR_IS_REGULAR_NODE (add));
+  assert (btor_node_is_regular (add));
   assert (bvadd);
   assert (bve);
 
@@ -882,7 +882,7 @@ select_path_and (Btor *btor,
 {
   assert (btor);
   assert (and);
-  assert (BTOR_IS_REGULAR_NODE (and));
+  assert (btor_node_is_regular (and));
   assert (bvand);
   assert (bve);
 
@@ -949,7 +949,7 @@ select_path_eq (Btor *btor,
 {
   assert (btor);
   assert (eq);
-  assert (BTOR_IS_REGULAR_NODE (eq));
+  assert (btor_node_is_regular (eq));
   assert (bveq);
   assert (bve);
 
@@ -984,7 +984,7 @@ select_path_ult (Btor *btor,
 {
   assert (btor);
   assert (ult);
-  assert (BTOR_IS_REGULAR_NODE (ult));
+  assert (btor_node_is_regular (ult));
   assert (bvult);
   assert (bve);
 
@@ -1037,7 +1037,7 @@ select_path_sll (Btor *btor,
 {
   assert (btor);
   assert (sll);
-  assert (BTOR_IS_REGULAR_NODE (sll));
+  assert (btor_node_is_regular (sll));
   assert (bvsll);
   assert (bve);
 
@@ -1095,7 +1095,7 @@ select_path_srl (Btor *btor,
 {
   assert (btor);
   assert (srl);
-  assert (BTOR_IS_REGULAR_NODE (srl));
+  assert (btor_node_is_regular (srl));
   assert (bvsrl);
   assert (bve);
 
@@ -1154,7 +1154,7 @@ select_path_mul (Btor *btor,
 {
   assert (btor);
   assert (mul);
-  assert (BTOR_IS_REGULAR_NODE (mul));
+  assert (btor_node_is_regular (mul));
   assert (bvmul);
   assert (bve);
 
@@ -1223,7 +1223,7 @@ select_path_udiv (Btor *btor,
 {
   assert (btor);
   assert (udiv);
-  assert (BTOR_IS_REGULAR_NODE (udiv));
+  assert (btor_node_is_regular (udiv));
   assert (bvudiv);
   assert (bve);
 
@@ -1303,7 +1303,7 @@ select_path_urem (Btor *btor,
 {
   assert (btor);
   assert (urem);
-  assert (BTOR_IS_REGULAR_NODE (urem));
+  assert (btor_node_is_regular (urem));
   assert (bvurem);
   assert (bve);
 
@@ -1383,7 +1383,7 @@ select_path_concat (Btor *btor,
 {
   assert (btor);
   assert (concat);
-  assert (BTOR_IS_REGULAR_NODE (concat));
+  assert (btor_node_is_regular (concat));
   assert (bvconcat);
   assert (bve);
 
@@ -1437,7 +1437,7 @@ select_path_slice (Btor *btor,
 {
   assert (btor);
   assert (slice);
-  assert (BTOR_IS_REGULAR_NODE (slice));
+  assert (btor_node_is_regular (slice));
   assert (bvslice);
   assert (bve);
 
@@ -1471,7 +1471,7 @@ select_path_cond (Btor *btor,
   assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
           || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
   assert (cond);
-  assert (BTOR_IS_REGULAR_NODE (cond));
+  assert (btor_node_is_regular (cond));
   assert (bvcond);
   assert (bve0);
 
@@ -1591,7 +1591,7 @@ cons_add_bv (Btor *btor,
 {
   assert (btor);
   assert (add);
-  assert (BTOR_IS_REGULAR_NODE (add));
+  assert (btor_node_is_regular (add));
   assert (bvadd);
   assert (bve);
   assert (bve->width == bvadd->width);
@@ -1618,7 +1618,7 @@ cons_and_bv (Btor *btor,
 {
   assert (btor);
   assert (and);
-  assert (BTOR_IS_REGULAR_NODE (and));
+  assert (btor_node_is_regular (and));
   assert (bvand);
   assert (bve);
   assert (bve->width == bvand->width);
@@ -1675,7 +1675,7 @@ cons_eq_bv (Btor *btor,
 {
   assert (btor);
   assert (eq);
-  assert (BTOR_IS_REGULAR_NODE (eq));
+  assert (btor_node_is_regular (eq));
   assert (bveq);
   assert (bveq->width == 1);
   assert (bve);
@@ -1713,7 +1713,7 @@ cons_ult_bv (Btor *btor,
 {
   assert (btor);
   assert (ult);
-  assert (BTOR_IS_REGULAR_NODE (ult));
+  assert (btor_node_is_regular (ult));
   assert (bvult);
   assert (bvult->width == 1);
   assert (bve);
@@ -1771,7 +1771,7 @@ cons_sll_bv (Btor *btor,
 {
   assert (btor);
   assert (sll);
-  assert (BTOR_IS_REGULAR_NODE (sll));
+  assert (btor_node_is_regular (sll));
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -1827,7 +1827,7 @@ cons_srl_bv (Btor *btor,
 {
   assert (btor);
   assert (srl);
-  assert (BTOR_IS_REGULAR_NODE (srl));
+  assert (btor_node_is_regular (srl));
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -1884,7 +1884,7 @@ cons_mul_bv (Btor *btor,
 {
   assert (btor);
   assert (mul);
-  assert (BTOR_IS_REGULAR_NODE (mul));
+  assert (btor_node_is_regular (mul));
   assert (bvmul);
   assert (bve);
   assert (bve->width == bvmul->width);
@@ -1971,7 +1971,7 @@ cons_udiv_bv (Btor *btor,
 {
   assert (btor);
   assert (udiv);
-  assert (BTOR_IS_REGULAR_NODE (udiv));
+  assert (btor_node_is_regular (udiv));
   assert (bvudiv);
   assert (bve);
   assert (bve->width == bvudiv->width);
@@ -2059,7 +2059,7 @@ cons_urem_bv (Btor *btor,
 {
   assert (btor);
   assert (urem);
-  assert (BTOR_IS_REGULAR_NODE (urem));
+  assert (btor_node_is_regular (urem));
   assert (bvurem);
   assert (bve);
   assert (bve->width == bvurem->width);
@@ -2123,7 +2123,7 @@ cons_concat_bv (Btor *btor,
 {
   assert (btor);
   assert (concat);
-  assert (BTOR_IS_REGULAR_NODE (concat));
+  assert (btor_node_is_regular (concat));
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -2243,7 +2243,7 @@ inv_add_bv (Btor *btor,
 {
   assert (btor);
   assert (add);
-  assert (BTOR_IS_REGULAR_NODE (add));
+  assert (btor_node_is_regular (add));
   assert (bvadd);
   assert (bve);
   assert (bve->width == bvadd->width);
@@ -2281,7 +2281,7 @@ inv_and_bv (Btor *btor,
 {
   assert (btor);
   assert (and);
-  assert (BTOR_IS_REGULAR_NODE (and));
+  assert (btor_node_is_regular (and));
   assert (bvand);
   assert (bve);
   assert (bve->width == bvand->width);
@@ -2380,7 +2380,7 @@ inv_eq_bv (Btor *btor,
 {
   assert (btor);
   assert (eq);
-  assert (BTOR_IS_REGULAR_NODE (eq));
+  assert (btor_node_is_regular (eq));
   assert (bveq);
   assert (bveq->width == 1);
   assert (bve);
@@ -2445,7 +2445,7 @@ inv_ult_bv (Btor *btor,
 {
   assert (btor);
   assert (ult);
-  assert (BTOR_IS_REGULAR_NODE (ult));
+  assert (btor_node_is_regular (ult));
   assert (bvult);
   assert (bvult->width == 1);
   assert (bve);
@@ -2560,7 +2560,7 @@ inv_sll_bv (Btor *btor,
 {
   assert (btor);
   assert (sll);
-  assert (BTOR_IS_REGULAR_NODE (sll));
+  assert (btor_node_is_regular (sll));
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -2702,7 +2702,7 @@ inv_srl_bv (Btor *btor,
 {
   assert (btor);
   assert (srl);
-  assert (BTOR_IS_REGULAR_NODE (srl));
+  assert (btor_node_is_regular (srl));
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -2844,7 +2844,7 @@ inv_mul_bv (Btor *btor,
 {
   assert (btor);
   assert (mul);
-  assert (BTOR_IS_REGULAR_NODE (mul));
+  assert (btor_node_is_regular (mul));
   assert (bvmul);
   assert (bve);
   assert (bve->width == bvmul->width);
@@ -3037,7 +3037,7 @@ inv_udiv_bv (Btor *btor,
 {
   assert (btor);
   assert (udiv);
-  assert (BTOR_IS_REGULAR_NODE (udiv));
+  assert (btor_node_is_regular (udiv));
   assert (bvudiv);
   assert (bve);
   assert (bve->width == bvudiv->width);
@@ -3282,7 +3282,7 @@ inv_urem_bv (Btor *btor,
 {
   assert (btor);
   assert (urem);
-  assert (BTOR_IS_REGULAR_NODE (urem));
+  assert (btor_node_is_regular (urem));
   assert (bvurem);
   assert (bve);
   assert (bve->width == bvurem->width);
@@ -3605,7 +3605,7 @@ inv_concat_bv (Btor *btor,
 {
   assert (btor);
   assert (concat);
-  assert (BTOR_IS_REGULAR_NODE (concat));
+  assert (btor_node_is_regular (concat));
   assert (bvconcat);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
@@ -3694,7 +3694,7 @@ inv_slice_bv (Btor *btor,
 {
   assert (btor);
   assert (slice);
-  assert (BTOR_IS_REGULAR_NODE (slice));
+  assert (btor_node_is_regular (slice));
   assert (bvslice);
   assert (!btor_node_is_bv_const (slice->e[0]));
 
@@ -3833,12 +3833,12 @@ btor_propsls_select_move_prop (Btor *btor,
 
   for (;;)
   {
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     if (btor_node_is_bv_var (cur))
     {
       *input      = real_cur;
-      *assignment = BTOR_IS_INVERTED_NODE (cur)
+      *assignment = btor_node_is_inverted (cur)
                         ? btor_bv_not (btor->mm, bvcur)
                         : btor_bv_copy (btor->mm, bvcur);
       break;
@@ -3852,7 +3852,7 @@ btor_propsls_select_move_prop (Btor *btor,
       nprops += 1;
       assert (!btor_node_is_bv_const (cur));
 
-      if (BTOR_IS_INVERTED_NODE (cur))
+      if (btor_node_is_inverted (cur))
       {
         tmp   = bvcur;
         bvcur = btor_bv_not (btor->mm, tmp);

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -80,13 +80,13 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
 
-#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
+#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (uintptr_t) (aig)))
 
-#define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
+#define BTOR_IS_INVERTED_AIG(aig) (1ul & (uintptr_t) (aig))
 
-#define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
+#define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (uintptr_t) (aig)))
 
-#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (unsigned long int) (aig)))
+#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (uintptr_t) (aig)))
 
 /*------------------------------------------------------------------------*/
 

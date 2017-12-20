@@ -667,7 +667,7 @@ btor_mc_dump (BtorMC *mc, FILE *file)
     BtorMCstate *state = btor_iter_hashptr_next_data (&it)->as_ptr;
     assert (state);
     assert (state->node);
-    assert (BTOR_IS_REGULAR_NODE (state->node));
+    assert (btor_node_is_regular ((BtorNode *) state->node));
     btor_dumpbtor_add_state_to_dump_context (
         bdc, BTOR_IMPORT_BOOLECTOR_NODE (state->node));
     if (state->init)
@@ -707,7 +707,7 @@ timed_symbol (BtorMC *mc, BoolectorNode *node, int32_t time)
 {
   assert (mc);
   assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular ((BtorNode *) node));
   assert (time >= 0);
 
   char *res, suffix[20];
@@ -759,7 +759,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
 #endif
     src = (BoolectorNode *) btor_iter_hashptr_next (&it);
     assert (src);
-    assert (BTOR_IS_REGULAR_NODE (src));
+    assert (btor_node_is_regular ((BtorNode *) src));
 #ifndef NDEBUG
     assert (input->node == src);
     assert (input->id == i);
@@ -812,7 +812,7 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
     assert (state->id == i);
     src = (BoolectorNode *) btor_iter_hashptr_next (&it);
     assert (src);
-    assert (BTOR_IS_REGULAR_NODE (src));
+    assert (btor_node_is_regular ((BtorNode *) src));
     assert (state->node == src);
 
     if (!f->time && state->init)
@@ -1249,7 +1249,7 @@ mc_forward2const_mapper (Btor *btor, void *f2c_mc, BoolectorNode *node)
   assert (btor);
   assert (f2c_mc);
   assert (node);
-  assert (!BTOR_IS_INVERTED_NODE (node));
+  assert (btor_node_is_regular ((BtorNode *) node));
 
   const char *assignment;
   BtorMC *mc;
@@ -1278,7 +1278,7 @@ static BoolectorNode *
 mc_forward2const (BtorMC *mc, BoolectorNode *node)
 {
   BoolectorNodeMap *map;
-  assert (BTOR_REAL_ADDR_NODE (node)->btor == mc->forward);
+  assert (boolector_get_btor (node) == mc->forward);
   map = get_mc_forward2const (mc);
   return boolector_nodemap_non_recursive_extended_substitute_node (
       mc->btor, map, mc, mc_forward2const_mapper, boolector_release, node);
@@ -1287,7 +1287,7 @@ mc_forward2const (BtorMC *mc, BoolectorNode *node)
 static BoolectorNode *
 mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
 {
-  assert (!BTOR_IS_INVERTED_NODE (node));
+  assert (btor_node_is_regular ((BtorNode *) node));
   assert (m2cmapper);
   assert (node);
 
@@ -1323,7 +1323,7 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
     assert (input->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
+    assert (boolector_get_btor (node_at_time) == mc->forward);
     constbits = boolector_bv_assignment (mc->forward, node_at_time);
     bits      = btor_mem_strdup (mc->mm, constbits);
     boolector_free_bv_assignment (mc->forward, constbits);
@@ -1339,7 +1339,7 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
     assert (state);
     assert (state->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->states, state->id);
-    assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
+    assert (boolector_get_btor (node_at_time) == mc->forward);
     res = mc_forward2const (mc, node_at_time);
     res = boolector_copy (btor, res);
   }
@@ -1353,7 +1353,7 @@ mc_model2const (BtorMC *mc, BoolectorNode *node, int32_t time)
   BtorMCModel2ConstMapper mapper;
   BoolectorNodeMap *map;
   BtorMCFrame *f;
-  assert (BTOR_REAL_ADDR_NODE (node)->btor == mc->btor);
+  assert (boolector_get_btor (node) == mc->btor);
   assert (0 <= time && time < BTOR_COUNT_STACK (mc->frames));
   mapper.mc   = mc;
   mapper.time = time;

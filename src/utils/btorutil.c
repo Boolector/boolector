@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2015-2017 Aina Niemetz.
- *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2015-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -543,7 +543,7 @@ btor_util_node2string (BtorNode *exp)
 
   if (!exp) return "0";
 
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = btor_node_real_addr (exp);
   btor     = real_exp->btor;
   name     = g_btor_op2str[real_exp->kind];
 
@@ -551,15 +551,15 @@ btor_util_node2string (BtorNode *exp)
   cur_len   = 0;
   new_len   = btor_util_num_digits (real_exp->id);
 
-  if (BTOR_IS_INVERTED_NODE (exp)) new_len += 1;
+  if (btor_node_is_inverted (exp)) new_len += 1;
   new_len += 1 + strlen (name); /* space + name */
   BUFCONCAT (strbuf, cur_len, new_len, "%d %s", btor_node_get_id (exp), name);
 
   for (i = 0; i < real_exp->arity; i++)
   {
     new_len += 1; /* space */
-    new_len += btor_util_num_digits (BTOR_REAL_ADDR_NODE (real_exp->e[i])->id);
-    if (BTOR_IS_INVERTED_NODE (real_exp->e[i])) new_len += 1;
+    new_len += btor_util_num_digits (btor_node_real_addr (real_exp->e[i])->id);
+    if (btor_node_is_inverted (real_exp->e[i])) new_len += 1;
     BUFCONCAT (
         strbuf, cur_len, new_len, " %d", btor_node_get_id (real_exp->e[i]));
   }

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -98,12 +98,12 @@ btor_model_add_to_bv (Btor *btor,
   assert (btor);
   assert (bv_model);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (assignment);
 
-  assert (!btor_hashint_map_contains (bv_model, BTOR_REAL_ADDR_NODE (exp)->id));
+  assert (!btor_hashint_map_contains (bv_model, btor_node_real_addr (exp)->id));
   btor_node_copy (btor, exp);
-  btor_hashint_map_add (bv_model, BTOR_REAL_ADDR_NODE (exp)->id)->as_ptr =
+  btor_hashint_map_add (bv_model, btor_node_real_addr (exp)->id)->as_ptr =
       btor_bv_copy (btor->mm, assignment);
 }
 
@@ -172,8 +172,8 @@ btor_model_get_bv_aux (Btor *btor,
 
   /* If not, check if we already generated the assignment of non-inverted exp
    * (i.e., check if we generated it at all) */
-  if (BTOR_IS_INVERTED_NODE (exp))
-    d = btor_hashint_map_get (bv_model, BTOR_REAL_ADDR_NODE (exp)->id);
+  if (btor_node_is_inverted (exp))
+    d = btor_hashint_map_get (bv_model, btor_node_real_addr (exp)->id);
 
   /* If exp has no assignment, regenerate model in case that it is an exp
    * that previously existed but was simplified (i.e. the original exp is
@@ -184,14 +184,14 @@ btor_model_get_bv_aux (Btor *btor,
     result = btor_model_recursively_compute_assignment (
         btor, bv_model, fun_model, exp);
     btor_bv_free (btor->mm, result);
-    d = btor_hashint_map_get (bv_model, BTOR_REAL_ADDR_NODE (exp)->id);
+    d = btor_hashint_map_get (bv_model, btor_node_real_addr (exp)->id);
   }
   if (!d) return 0;
 
   result = (BtorBitVector *) d->as_ptr;
 
   /* Cache assignments of inverted expressions on demand */
-  if (BTOR_IS_INVERTED_NODE (exp))
+  if (btor_node_is_inverted (exp))
   {
     /* we don't use add_to_bv_model in order to avoid redundant
      * hash table queries and copying/freeing of the resulting bv */
@@ -300,7 +300,7 @@ add_to_fun_model (Btor *btor,
   assert (btor);
   assert (fun_model);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (t);
   assert (value);
 
@@ -337,7 +337,7 @@ get_value_from_fun_model (Btor *btor,
   assert (fun_model);
   assert (exp);
   assert (t);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (btor_node_is_fun (exp));
 
   BtorPtrHashTable *model;
@@ -402,8 +402,8 @@ add_rho_to_model (Btor *btor,
   {
     value = (BtorNode *) it.bucket->data.as_ptr;
     args  = btor_iter_hashptr_next (&it);
-    assert (!BTOR_REAL_ADDR_NODE (value)->parameterized);
-    assert (BTOR_IS_REGULAR_NODE (args));
+    assert (!btor_node_real_addr (value)->parameterized);
+    assert (btor_node_is_regular (args));
     assert (btor_node_is_args (args));
     assert (!args->parameterized);
 
@@ -426,7 +426,7 @@ recursively_compute_function_model (Btor *btor,
   assert (btor);
   assert (fun_model);
   assert (fun);
-  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (btor_node_is_regular (fun));
   assert (btor_node_is_fun (fun));
 
   int32_t i;
@@ -459,7 +459,7 @@ recursively_compute_function_model (Btor *btor,
         cur_fun = 0;
         while (!BTOR_EMPTY_STACK (stack))
         {
-          cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+          cur = btor_node_real_addr (BTOR_POP_STACK (stack));
 
           if (btor_node_is_fun (cur))
           {
@@ -499,7 +499,7 @@ recursively_compute_function_model (Btor *btor,
       }
       else
       {
-        assert (!BTOR_REAL_ADDR_NODE (cur_fun->e[0])->parameterized);
+        assert (!btor_node_real_addr (cur_fun->e[0])->parameterized);
         value    = cur_fun->e[0];
         bv_value = btor_model_recursively_compute_assignment (
             btor, bv_model, fun_model, value);
@@ -530,7 +530,7 @@ btor_model_get_fun_aux (Btor *btor,
 {
   assert (btor);
   assert (fun_model);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
 
   BtorHashTableData *d;
 
@@ -595,7 +595,7 @@ get_apply_value (Btor *btor,
   while (btor_iter_args_has_next (&it))
   {
     arg      = btor_iter_args_next (&it);
-    real_arg = BTOR_REAL_ADDR_NODE (arg);
+    real_arg = btor_node_real_addr (arg);
 
     if (btor_node_is_param (real_arg))
     {
@@ -610,7 +610,7 @@ get_apply_value (Btor *btor,
 
     assert (d);
     bv = d->as_ptr;
-    if (BTOR_IS_INVERTED_NODE (arg))
+    if (btor_node_is_inverted (arg))
     {
       bv_inv = btor_bv_not (mm, bv);
       btor_bv_add_to_tuple (mm, t, bv_inv, i);
@@ -675,7 +675,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
   {
     cur_parent = BTOR_POP_STACK (work_stack);
     cur        = BTOR_POP_STACK (work_stack);
-    real_cur   = BTOR_REAL_ADDR_NODE (cur);
+    real_cur   = btor_node_real_addr (cur);
     assert (!real_cur->simplified);
 
     if (btor_hashint_map_contains (bv_model, real_cur->id)
@@ -724,7 +724,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
       {
         next = btor_node_param_get_assigned_exp (real_cur);
         assert (next);
-        next = BTOR_COND_INVERT_NODE (cur, next);
+        next = btor_node_cond_invert (cur, next);
         BTOR_PUSH_STACK (work_stack, next);
         BTOR_PUSH_STACK (work_stack, cur_parent);
         continue;
@@ -914,7 +914,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
             while (BTOR_COUNT_STACK (reset) > pos)
             {
               next = BTOR_POP_STACK (reset);
-              assert (BTOR_IS_REGULAR_NODE (next));
+              assert (btor_node_is_regular (next));
               assert (next->parameterized);
               btor_hashint_map_remove (mark, next->id, 0);
               btor_hashint_map_remove (param_model_cache, next->id, &dd);
@@ -1008,7 +1008,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
       }
 
     PUSH_RESULT:
-      if (BTOR_IS_INVERTED_NODE (cur))
+      if (btor_node_is_inverted (cur))
       {
         inv_result = btor_bv_not (mm, result);
         btor_bv_free (mm, result);
@@ -1064,7 +1064,7 @@ collect_nodes (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cache, cur->id)) continue;
 
@@ -1135,7 +1135,7 @@ btor_model_generate (Btor *btor,
 
   for (i = 0; i < BTOR_COUNT_STACK (nodes); i++)
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (nodes, i));
+    cur = btor_node_real_addr (BTOR_PEEK_STACK (nodes, i));
     assert (!cur->parameterized);
     BTORLOG (3, "generate model for %s", btor_util_node2string (cur));
     if (btor_node_is_fun (cur))

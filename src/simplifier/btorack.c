@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2016 Mathias Preiner.
+ *  Copyright (C) 2015-2017 Mathias Preiner.
  *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -45,7 +45,7 @@ btor_add_ackermann_constraints (Btor *btor)
   /* mark reachable nodes */
   while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cache, cur->id)) continue;
     btor_hashint_table_add (cache, cur->id);

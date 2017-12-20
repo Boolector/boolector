@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2012-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -65,7 +65,7 @@ assert_parameterized (int32_t argc, ...)
   for (i = 0; i < argc; i++)
   {
     e = va_arg (ap, BtorNode *);
-    assert (BTOR_REAL_ADDR_NODE (e)->parameterized);
+    assert (btor_node_real_addr (e)->parameterized);
   }
   va_end (ap);
 }
@@ -81,7 +81,7 @@ assert_not_parameterized (int32_t argc, ...)
   for (i = 0; i < argc; i++)
   {
     e = va_arg (ap, BtorNode *);
-    assert (!BTOR_REAL_ADDR_NODE (e)->parameterized);
+    assert (!btor_node_real_addr (e)->parameterized);
   }
   va_end (ap);
 }
@@ -106,11 +106,11 @@ apply_and_reduce (Btor *btor, BtorNode *args[], int32_t argc, BtorNode *lambda)
   cur = lambda;
   for (i = 0; i < argc; i++)
   {
-    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (btor_node_is_regular (cur));
     assert (btor_node_is_lambda (cur));
     btor_beta_assign_param (btor, cur, args[i]);
     BTOR_PUSH_STACK (unassign, cur);
-    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
+    cur = btor_node_real_addr (cur->e[1]);
   }
 
   result = btor_beta_reduce_full (btor, lambda, 0);
@@ -1249,7 +1249,7 @@ test_lambda_reduce_nested_writes (void)
   w2 = btor_exp_lambda_write (g_btor, a, i, e2);
   /* w1 = write (w1, not i, e1) */
   e1     = btor_exp_var (g_btor, g_elem_sort, "e1");
-  w1     = btor_exp_lambda_write (g_btor, w2, BTOR_INVERT_NODE (i), e1);
+  w1     = btor_exp_lambda_write (g_btor, w2, btor_node_invert (i), e1);
   result = apply_and_reduce (g_btor, &i, 1, w1);
 
   assert (result == e2);
@@ -1479,7 +1479,7 @@ test_lambda_hashing_2 (void)
   assert (ite0 == ite1);
 
   btor_node_release (g_btor, ite1);
-  ite1 = btor_exp_cond (g_btor, BTOR_INVERT_NODE (eq), a1, a0);
+  ite1 = btor_exp_cond (g_btor, btor_node_invert (eq), a1, a0);
   assert (ite0 == ite1);
 
   btor_sort_release (g_btor, array_sort);
@@ -1740,9 +1740,9 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   assert (btor_node_is_lambda (result));
   assert (result != fun->e[1]);
   assert (result->e[0] != fun->e[1]->e[0]);
-  assert (BTOR_REAL_ADDR_NODE (result->e[1])->kind == BTOR_ADD_NODE);
-  assert (BTOR_REAL_ADDR_NODE (result->e[1])->e[0] == a);
-  assert (BTOR_REAL_ADDR_NODE (result->e[1])->e[1] == result->e[0]);
+  assert (btor_node_real_addr (result->e[1])->kind == BTOR_ADD_NODE);
+  assert (btor_node_real_addr (result->e[1])->e[0] == a);
+  assert (btor_node_real_addr (result->e[1])->e[1] == result->e[0]);
 
   btor_node_release (g_btor, result);
   btor_node_release (g_btor, fun);

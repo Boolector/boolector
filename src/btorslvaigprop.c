@@ -81,7 +81,7 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
 {
   assert (mm);
   assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (btor_node_is_regular (exp));
   assert (aprop);
 
   int32_t bit;
@@ -141,7 +141,7 @@ generate_model_from_aig_model (Btor *btor)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     if (btor_hashint_table_contains (cache, real_cur->id)) continue;
     btor_hashint_table_add (cache, real_cur->id);
     if (btor_node_is_bv_const (real_cur))
@@ -229,7 +229,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
 #ifndef NDEBUG
   btor_iter_hashptr_init (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
-    assert (!BTOR_REAL_ADDR_NODE (((BtorNode *) btor_iter_hashptr_next (&it)))
+    assert (!btor_node_real_addr (((BtorNode *) btor_iter_hashptr_next (&it)))
                  ->simplified);
 #endif
 
@@ -253,10 +253,10 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   {
     root = btor_iter_hashptr_next (&it);
 
-    if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
-    assert (BTOR_REAL_ADDR_NODE (root)->av->width == 1);
-    aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
-    if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
+    if (!btor_node_real_addr (root)->av) btor_synthesize_exp (btor, root, 0);
+    assert (btor_node_real_addr (root)->av->width == 1);
+    aig = btor_node_real_addr (root)->av->aigs[0];
+    if (btor_node_is_inverted (root)) aig = BTOR_INVERT_AIG (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
     if (!btor_hashint_table_contains (roots, btor_aig_get_id (aig)))

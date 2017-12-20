@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2012-2014 Armin Biere.
  *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -27,21 +28,21 @@
   do                                                                  \
   {                                                                   \
     BTOR_ABORT_ARG_NULL (NODE);                                       \
-    BTOR_ABORT (BTOR_REAL_ADDR_NODE (NODE)->btor != mc->btor,         \
+    BTOR_ABORT (boolector_get_btor (NODE) != mc->btor,                \
                 "node '" #NODE                                        \
                 "' does not belong to 'Btor' of this model checker"); \
   } while (0)
 
 /*------------------------------------------------------------------------*/
 
-BtorMC*
+BtorMC *
 boolector_mc_new (void)
 {
   return btor_mc_new ();
 }
 
 void
-boolector_mc_delete (BtorMC* mc)
+boolector_mc_delete (BtorMC *mc)
 {
   BTOR_ABORT_ARG_NULL (mc);
   btor_mc_delete (mc);
@@ -50,7 +51,7 @@ boolector_mc_delete (BtorMC* mc)
 /*------------------------------------------------------------------------*/
 
 void
-boolector_mc_set_opt (BtorMC* mc, BtorMCOption opt, uint32_t val)
+boolector_mc_set_opt (BtorMC *mc, BtorMCOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
@@ -67,7 +68,7 @@ boolector_mc_set_opt (BtorMC* mc, BtorMCOption opt, uint32_t val)
 }
 
 uint32_t
-boolector_mc_get_opt (BtorMC* mc, BtorMCOption opt)
+boolector_mc_get_opt (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
@@ -75,7 +76,7 @@ boolector_mc_get_opt (BtorMC* mc, BtorMCOption opt)
 }
 
 uint32_t
-boolector_mc_get_opt_min (BtorMC* mc, BtorMCOption opt)
+boolector_mc_get_opt_min (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
@@ -83,7 +84,7 @@ boolector_mc_get_opt_min (BtorMC* mc, BtorMCOption opt)
 }
 
 uint32_t
-boolector_mc_get_opt_max (BtorMC* mc, BtorMCOption opt)
+boolector_mc_get_opt_max (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
@@ -91,31 +92,31 @@ boolector_mc_get_opt_max (BtorMC* mc, BtorMCOption opt)
 }
 
 uint32_t
-boolector_mc_get_opt_dflt (BtorMC* mc, BtorMCOption opt)
+boolector_mc_get_opt_dflt (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
   return btor_mc_get_opt_dflt (mc, opt);
 }
 
-const char*
-boolector_mc_get_opt_lng (BtorMC* mc, BtorMCOption opt)
+const char *
+boolector_mc_get_opt_lng (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
   return btor_mc_get_opt_lng (mc, opt);
 }
 
-const char*
-boolector_mc_get_opt_shrt (BtorMC* mc, BtorMCOption opt)
+const char *
+boolector_mc_get_opt_shrt (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
   return btor_mc_get_opt_shrt (mc, opt);
 }
 
-const char*
-boolector_mc_get_opt_desc (BtorMC* mc, BtorMCOption opt)
+const char *
+boolector_mc_get_opt_desc (BtorMC *mc, BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (!btor_mc_is_valid_opt (mc, opt), "invalid option");
@@ -123,7 +124,7 @@ boolector_mc_get_opt_desc (BtorMC* mc, BtorMCOption opt)
 }
 
 bool
-boolector_mc_is_valid_opt (BtorMC* mc, const BtorMCOption opt)
+boolector_mc_is_valid_opt (BtorMC *mc, const BtorMCOption opt)
 {
   BTOR_ABORT_ARG_NULL (mc);
   return btor_mc_is_valid_opt (mc, opt);
@@ -131,8 +132,8 @@ boolector_mc_is_valid_opt (BtorMC* mc, const BtorMCOption opt)
 
 /*------------------------------------------------------------------------*/
 
-Btor*
-boolector_mc_get_btor (BtorMC* mc)
+Btor *
+boolector_mc_get_btor (BtorMC *mc)
 {
   BTOR_ABORT_ARG_NULL (mc);
   return btor_mc_get_btor (mc);
@@ -140,8 +141,8 @@ boolector_mc_get_btor (BtorMC* mc)
 
 /*------------------------------------------------------------------------*/
 
-BoolectorNode*
-boolector_mc_state (BtorMC* mc, BoolectorSort sort, const char* symbol)
+BoolectorNode *
+boolector_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_ARG_NULL (sort);
@@ -150,8 +151,8 @@ boolector_mc_state (BtorMC* mc, BoolectorSort sort, const char* symbol)
   return btor_mc_state (mc, sort, symbol);
 }
 
-BoolectorNode*
-boolector_mc_input (BtorMC* mc, BoolectorSort sort, const char* symbol)
+BoolectorNode *
+boolector_mc_input (BtorMC *mc, BoolectorSort sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_ARG_NULL (sort);
@@ -163,7 +164,7 @@ boolector_mc_input (BtorMC* mc, BoolectorSort sort, const char* symbol)
 /*------------------------------------------------------------------------*/
 
 void
-boolector_mc_init (BtorMC* mc, BoolectorNode* state, BoolectorNode* init)
+boolector_mc_init (BtorMC *mc, BoolectorNode *state, BoolectorNode *init)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_MC_ABORT_IF_STATE (mc);
@@ -173,7 +174,7 @@ boolector_mc_init (BtorMC* mc, BoolectorNode* state, BoolectorNode* init)
 }
 
 void
-boolector_mc_next (BtorMC* mc, BoolectorNode* state, BoolectorNode* next)
+boolector_mc_next (BtorMC *mc, BoolectorNode *state, BoolectorNode *next)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_MC_ABORT_IF_STATE (mc);
@@ -185,7 +186,7 @@ boolector_mc_next (BtorMC* mc, BoolectorNode* state, BoolectorNode* next)
 /*------------------------------------------------------------------------*/
 
 int32_t
-boolector_mc_bad (BtorMC* mc, BoolectorNode* bad)
+boolector_mc_bad (BtorMC *mc, BoolectorNode *bad)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_MC_ABORT_IF_STATE (mc);
@@ -194,7 +195,7 @@ boolector_mc_bad (BtorMC* mc, BoolectorNode* bad)
 }
 
 int32_t
-boolector_mc_constraint (BtorMC* mc, BoolectorNode* constraint)
+boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_MC_ABORT_IF_STATE (mc);
@@ -205,7 +206,7 @@ boolector_mc_constraint (BtorMC* mc, BoolectorNode* constraint)
 /*------------------------------------------------------------------------*/
 
 void
-boolector_mc_dump (BtorMC* mc, FILE* file)
+boolector_mc_dump (BtorMC *mc, FILE *file)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_ARG_NULL (file);
@@ -215,7 +216,7 @@ boolector_mc_dump (BtorMC* mc, FILE* file)
 /*------------------------------------------------------------------------*/
 
 int32_t
-boolector_mc_bmc (BtorMC* mc, int32_t mink, int32_t maxk)
+boolector_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
 {
   BTOR_ABORT_ARG_NULL (mc);
   return btor_mc_bmc (mc, mink, maxk);
@@ -223,8 +224,8 @@ boolector_mc_bmc (BtorMC* mc, int32_t mink, int32_t maxk)
 
 /*------------------------------------------------------------------------*/
 
-char*
-boolector_mc_assignment (BtorMC* mc, BoolectorNode* node, int32_t time)
+char *
+boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (mc->state == BTOR_NO_MC_STATE,
@@ -234,7 +235,7 @@ boolector_mc_assignment (BtorMC* mc, BoolectorNode* node, int32_t time)
   BTOR_ABORT (!btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN),
               "'btor_mc_enable_trace_gen' was not called before");
   BTOR_ABORT_ARG_NULL (node);
-  BTOR_ABORT_REFS_NOT_POS (node);
+  BTOR_ABORT_REFS_NOT_POS ((BtorNode *) node);
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
   BTOR_ABORT (0 > time, "negative 'time' argument");
   BTOR_ABORT (time >= BTOR_COUNT_STACK (mc->frames),
@@ -244,7 +245,7 @@ boolector_mc_assignment (BtorMC* mc, BoolectorNode* node, int32_t time)
 }
 
 void
-boolector_mc_free_assignment (BtorMC* mc, char* assignment)
+boolector_mc_free_assignment (BtorMC *mc, char *assignment)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_ARG_NULL (assignment);
@@ -254,7 +255,7 @@ boolector_mc_free_assignment (BtorMC* mc, char* assignment)
 /*------------------------------------------------------------------------*/
 
 int32_t
-boolector_mc_reached_bad_at_bound (BtorMC* mc, int32_t badidx)
+boolector_mc_reached_bad_at_bound (BtorMC *mc, int32_t badidx)
 {
   BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT (mc->state == BTOR_NO_MC_STATE,
@@ -268,8 +269,8 @@ boolector_mc_reached_bad_at_bound (BtorMC* mc, int32_t badidx)
 }
 
 void
-boolector_mc_set_reached_at_bound_call_back (BtorMC* mc,
-                                             void* state,
+boolector_mc_set_reached_at_bound_call_back (BtorMC *mc,
+                                             void *state,
                                              BtorMCReachedAtBound fun)
 {
   BTOR_ABORT_ARG_NULL (mc);
@@ -281,8 +282,8 @@ boolector_mc_set_reached_at_bound_call_back (BtorMC* mc,
 /*------------------------------------------------------------------------*/
 
 void
-boolector_mc_set_starting_bound_call_back (BtorMC* mc,
-                                           void* state,
+boolector_mc_set_starting_bound_call_back (BtorMC *mc,
+                                           void *state,
                                            BtorMCStartingBound fun)
 {
   BTOR_ABORT_ARG_NULL (mc);

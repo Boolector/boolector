@@ -133,7 +133,7 @@ delete_synth_result (BtorMemMgr *mm, SynthResult *res)
 
   if (res->value)
   {
-    cur = BTOR_REAL_ADDR_NODE (res->value);
+    cur = btor_node_real_addr (res->value);
     btor_node_release (cur->btor, cur);
   }
   BTOR_DELETE (mm, res);
@@ -392,7 +392,7 @@ compute_var_deps (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (map, real_cur->id);
     if (!d)
@@ -418,7 +418,7 @@ compute_var_deps (Btor *btor,
           for (i = 0; i < BTOR_COUNT_STACK (fquants); i++)
           {
             q = BTOR_PEEK_STACK (fquants, i);
-            BTOR_PUSH_STACK (vars, BTOR_REAL_ADDR_NODE (q)->e[0]);
+            BTOR_PUSH_STACK (vars, btor_node_real_addr (q)->e[0]);
           }
           args = btor_exp_args (btor, vars.start, BTOR_COUNT_STACK (vars));
           btor_nodemap_map (edeps, real_cur->e[0], args);
@@ -437,7 +437,7 @@ compute_var_deps (Btor *btor,
           for (i = 0; i < BTOR_COUNT_STACK (equants); i++)
           {
             q = BTOR_PEEK_STACK (equants, i);
-            BTOR_PUSH_STACK (vars, BTOR_REAL_ADDR_NODE (q)->e[0]);
+            BTOR_PUSH_STACK (vars, btor_node_real_addr (q)->e[0]);
           }
           args = btor_exp_args (btor, vars.start, BTOR_COUNT_STACK (vars));
           btor_nodemap_map (udeps, real_cur->e[0], args);
@@ -478,7 +478,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     d        = btor_hashint_map_get (map, real_cur->id);
 
     if (!d)
@@ -542,7 +542,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
 
       for (i = 0; i < real_cur->arity; i++) btor_node_release (dual_btor, e[i]);
     PUSH_RESULT:
-      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
+      BTOR_PUSH_STACK (args, btor_node_cond_invert (cur, result));
     }
     else
     {
@@ -563,7 +563,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
     btor_node_release (dual_btor, map->data[j].as_ptr);
   }
   btor_hashint_map_delete (map);
-  return BTOR_INVERT_NODE (result);
+  return btor_node_invert (result);
 }
 
 static void
@@ -583,7 +583,7 @@ collect_consts (Btor *btor, BtorNode *root, BtorNodePtrStack *consts)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     id = btor_node_is_bv_const (real_cur) ? btor_node_get_id (cur)
                                           : real_cur->id;
@@ -638,7 +638,7 @@ setup_solvers (BtorQuantSolver *slv,
   if (setup_dual)
   {
     root =
-        mk_dual_formula (BTOR_REAL_ADDR_NODE (root)->btor, res->forall, root);
+        mk_dual_formula (btor_node_real_addr (root)->btor, res->forall, root);
   }
   else
   {
@@ -842,7 +842,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
     assert (!btor_node_is_proxy (real_cur));
 
     if ((result = btor_nodemap_mapped (map, real_cur)))
@@ -904,7 +904,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
       d->as_ptr = btor_node_copy (btor, result);
 
     PUSH_RESULT:
-      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
+      BTOR_PUSH_STACK (args, btor_node_cond_invert (cur, result));
     }
     else
     {
@@ -1113,7 +1113,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
     args = btor_exp_args (btor, params.start, BTOR_COUNT_STACK (params));
     assert (args->sort_id == btor_sort_fun_get_domain (btor, uf->sort_id));
     e_else = btor_exp_apply (btor, uf, args);
-    assert (BTOR_REAL_ADDR_NODE (e_else)->sort_id
+    assert (btor_node_real_addr (e_else)->sort_id
             == btor_sort_fun_get_codomain (btor, uf->sort_id));
     btor_node_release (btor, args);
     btor_node_release (btor, uf);
@@ -1134,7 +1134,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
     for (i = 0; i < args_tuple->arity; i++)
     {
       c = btor_exp_const (btor, args_tuple->bv[i]);
-      assert (BTOR_REAL_ADDR_NODE (c)->sort_id
+      assert (btor_node_real_addr (c)->sort_id
               == BTOR_PEEK_STACK (params, i)->sort_id);
       BTOR_PUSH_STACK (consts, c);
     }
@@ -1245,7 +1245,7 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
     uf       = btor_exp_uf (btor, ufsortid, 0);
     btor_sort_release (btor, ufsortid);
     e_else = btor_exp_apply (btor, uf, args);
-    assert (BTOR_REAL_ADDR_NODE (e_else)->sort_id
+    assert (btor_node_real_addr (e_else)->sort_id
             == btor_sort_fun_get_codomain (btor, uf->sort_id));
     btor_node_release (btor, uf);
   }
@@ -1389,7 +1389,7 @@ eval_exp (Btor *btor,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (cache, real_cur->id);
     if (!d)
@@ -1470,7 +1470,7 @@ eval_exp (Btor *btor,
       d->as_ptr = btor_bv_copy (mm, result);
 
     EVAL_EXP_PUSH_RESULT:
-      if (BTOR_IS_INVERTED_NODE (cur))
+      if (btor_node_is_inverted (cur))
       {
         inv_result = btor_bv_not (mm, result);
         btor_bv_free (mm, result);
@@ -1638,7 +1638,7 @@ synthesize (BtorEFGroundSolvers *gslv,
     BTOR_PUSH_STACK (visit, gslv->forall_formula);
     while (!BTOR_EMPTY_STACK (visit))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+      cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
       if (btor_hashint_table_contains (reachable, cur->id)) continue;
 
@@ -1652,7 +1652,7 @@ synthesize (BtorEFGroundSolvers *gslv,
     BTOR_PUSH_STACK (visit, evar);
     while (!BTOR_EMPTY_STACK (visit))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+      cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
       if (!btor_hashint_table_contains (reachable, cur->id)
           || btor_hashint_table_contains (cache, cur->id))
@@ -1881,7 +1881,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (mark, real_cur->id);
     if (!d)
@@ -1892,7 +1892,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
       {
         synth_res = b->data.as_ptr;
         assert (synth_res->value);
-        BTOR_PUSH_STACK (visit, BTOR_COND_INVERT_NODE (cur, synth_res->value));
+        BTOR_PUSH_STACK (visit, btor_node_cond_invert (cur, synth_res->value));
         continue;
       }
       btor_hashint_map_add (mark, real_cur->id);
@@ -1967,7 +1967,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
 
       d->as_ptr = btor_node_copy (btor, result);
     PUSH_RESULT:
-      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
+      BTOR_PUSH_STACK (args, btor_node_cond_invert (cur, result));
     }
     else
     {
@@ -1993,9 +1993,9 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
       cur       = btor_iter_hashptr_next (&it);
 
       a = synth_res->value;
-      d = btor_hashint_map_get (mark, BTOR_REAL_ADDR_NODE (a)->id);
+      d = btor_hashint_map_get (mark, btor_node_real_addr (a)->id);
       assert (d);
-      btor_nodemap_map (evar_map, cur, BTOR_COND_INVERT_NODE (a, d->as_ptr));
+      btor_nodemap_map (evar_map, cur, btor_node_cond_invert (a, d->as_ptr));
     }
   }
 
@@ -2007,8 +2007,8 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
   }
   btor_hashint_map_delete (mark);
 
-  assert (!BTOR_REAL_ADDR_NODE (result)->quantifier_below);
-  assert (!BTOR_REAL_ADDR_NODE (result)->parameterized);
+  assert (!btor_node_real_addr (result)->quantifier_below);
+  assert (!btor_node_real_addr (result)->parameterized);
   return result;
 }
 
@@ -2086,7 +2086,7 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    real_cur = btor_node_real_addr (cur);
 
     d = btor_hashint_map_get (mark, real_cur->id);
     if (!d)
@@ -2097,7 +2097,7 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
         {
           result = btor_nodemap_mapped (map, real_cur);
           assert (result);
-          BTOR_PUSH_STACK (visit, BTOR_COND_INVERT_NODE (cur, result));
+          BTOR_PUSH_STACK (visit, btor_node_cond_invert (cur, result));
           continue;
         }
       }
@@ -2181,7 +2181,7 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
       d->as_ptr = btor_node_copy (btor, result);
 
     PUSH_RESULT:
-      BTOR_PUSH_STACK (args, BTOR_COND_INVERT_NODE (cur, result));
+      BTOR_PUSH_STACK (args, btor_node_cond_invert (cur, result));
     }
     else
     {
@@ -2237,7 +2237,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
   BTOR_INIT_STACK (mm, inputs);
   BTOR_INIT_STACK (mm, consts);
   BTOR_INIT_STACK (mm, constraints);
-  BTOR_PUSH_STACK (constraints, BTOR_INVERT_NODE (gslv->forall_formula));
+  BTOR_PUSH_STACK (constraints, btor_node_invert (gslv->forall_formula));
 
   prev_qi             = gslv->exists_cur_qi;
   gslv->exists_cur_qi = btor_nodemap_new (e_solver);
@@ -2268,7 +2268,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
       while (btor_iter_args_has_next (&ait))
       {
         cur = btor_iter_args_next (&ait);
-        assert (BTOR_IS_REGULAR_NODE (cur));
+        assert (btor_node_is_regular (cur));
         assert (!btor_hashint_table_contains (input_cache, cur->id));
         btor_hashint_table_add (input_cache, cur->id);
         BTOR_PUSH_STACK (inputs, cur);
@@ -2441,7 +2441,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
     goto DONE;
   }
 
-  btor_assume_exp (gslv->forall, BTOR_INVERT_NODE (g));
+  btor_assume_exp (gslv->forall, btor_node_invert (g));
 
   /* query forall solver */
   start = time_stamp ();

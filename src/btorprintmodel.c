@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -112,7 +112,7 @@ btor_print_node_model (Btor *btor,
   else
   {
     assert (btor_node_is_bv_const (value));
-    BtorBitVector *bv_value = BTOR_IS_INVERTED_NODE (value)
+    BtorBitVector *bv_value = btor_node_is_inverted (value)
                                   ? btor_node_const_get_invbits (value)
                                   : btor_node_const_get_bits (value);
     if (!strcmp (format, "btor"))
@@ -150,7 +150,7 @@ btor_print_bv_model (
   assert (btor);
   assert (format);
   assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
 
   int32_t id;
   char *symbol;
@@ -208,7 +208,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, uint32_t base, FILE *file)
 {
   assert (btor);
   assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
   assert (file);
 
   char *s, *symbol;
@@ -241,7 +241,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, uint32_t base, FILE *file)
 
   /* fun param sorts */
   node = btor_simplify_exp (btor, node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
   assert (btor_node_is_fun (node));
   btor_iter_tuple_sort_init (
       &iit,
@@ -314,7 +314,7 @@ print_fun_model_btor (Btor *btor, BtorNode *node, uint32_t base, FILE *file)
 {
   assert (btor);
   assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
   assert (file);
 
   char *symbol;
@@ -354,7 +354,7 @@ btor_print_fun_model (
   assert (node);
   assert (format);
   assert (file);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
 
   if (!strcmp (format, "btor"))
     print_fun_model_btor (btor, node, base, file);
@@ -423,9 +423,9 @@ print_bv_value_smt2 (
     fprintf (file, "(%s ", symbol);
   else
   {
-    id = btor_node_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+    id = btor_node_get_btor_id (btor_node_real_addr (node));
     fprintf (
-        file, "(v%d ", id ? id : btor_node_get_id (BTOR_REAL_ADDR_NODE (node)));
+        file, "(v%d ", id ? id : btor_node_get_id (btor_node_real_addr (node)));
   }
 
   btor_dumpsmt_dump_const_value (btor, ass, base, file);
@@ -440,7 +440,7 @@ print_fun_value_smt2 (
 {
   assert (btor);
   assert (node);
-  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (btor_node_is_regular (node));
   assert (file);
 
   uint32_t i, n;
@@ -466,11 +466,11 @@ print_fun_value_smt2 (
       fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
     else
     {
-      id = btor_node_get_btor_id (BTOR_REAL_ADDR_NODE (node));
+      id = btor_node_get_btor_id (btor_node_real_addr (node));
       fprintf (file,
                "(%s%d ",
                btor_node_is_array (node) ? "a" : "uf",
-               id ? id : btor_node_get_id (BTOR_REAL_ADDR_NODE (node)));
+               id ? id : btor_node_get_id (btor_node_real_addr (node)));
     }
     assignment = it.bucket->data.as_ptr;
     args       = btor_iter_hashptr_next (&it);

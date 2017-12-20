@@ -18,8 +18,8 @@
 #define SORT_FMT "s%d@%p "
 
 #define BTOR_TRAPI_NODE_ID(exp)                                             \
-  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id), \
-      BTOR_REAL_ADDR_NODE (exp)->btor
+  (btor_node_is_inverted (exp) ? -btor_node_real_addr (exp)->id : exp->id), \
+      btor_node_real_addr (exp)->btor
 
 #define BTOR_TRAPI(args...)                  \
   do                                         \

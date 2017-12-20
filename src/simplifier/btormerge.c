@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2016-2017 Aina Niemetz.
  *
  *  All rights reserved.
@@ -112,10 +112,10 @@ btor_merge_lambdas (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     lambda = btor_iter_hashptr_next (&it);
-    assert (BTOR_IS_REGULAR_NODE (lambda));
+    assert (btor_node_is_regular (lambda));
 
     /* found top lambda */
-    parent = BTOR_REAL_ADDR_NODE (lambda->first_parent);
+    parent = btor_node_real_addr (lambda->first_parent);
     if (lambda->parents > 1
         || lambda->parents == 0
         /* case lambda->parents == 1 */
@@ -130,7 +130,7 @@ btor_merge_lambdas (Btor *btor)
   while (!BTOR_EMPTY_STACK (stack))
   {
     lambda = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_NODE (lambda));
+    assert (btor_node_is_regular (lambda));
 
     if (btor_hashint_table_contains (mark_lambda, lambda->id)) continue;
 
@@ -145,7 +145,7 @@ btor_merge_lambdas (Btor *btor)
     btor_hashptr_table_add (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
     {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+      cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
       if (btor_hashint_table_contains (mark, cur->id)
           || (!btor_node_is_lambda (cur) && !cur->parameterized)

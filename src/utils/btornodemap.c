@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2013-2016 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -43,10 +43,10 @@ btor_nodemap_delete (BtorNodeMap *map)
   while (btor_iter_hashptr_has_next (&it))
   {
     btor_node_release (
-        BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.as_ptr)->btor,
+        btor_node_real_addr ((BtorNode *) it.bucket->data.as_ptr)->btor,
         it.bucket->data.as_ptr);
     cur = btor_iter_hashptr_next (&it);
-    btor_node_release (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
+    btor_node_release (btor_node_real_addr (cur)->btor, cur);
   }
   btor_hashptr_table_delete (map->table);
   BTOR_DELETE (map->btor->mm, map);
@@ -59,12 +59,12 @@ btor_nodemap_mapped (BtorNodeMap *map, const BtorNode *node)
   BtorNode *real_node;
   BtorNode *res;
 
-  real_node = BTOR_REAL_ADDR_NODE (node);
+  real_node = btor_node_real_addr (node);
   bucket    = btor_hashptr_table_get (map->table, real_node);
   if (!bucket) return 0;
   assert (bucket->key == real_node);
   res = bucket->data.as_ptr;
-  if (BTOR_IS_INVERTED_NODE (node)) res = BTOR_INVERT_NODE (res);
+  if (btor_node_is_inverted (node)) res = btor_node_invert (res);
   return res;
 }
 
@@ -77,18 +77,18 @@ btor_nodemap_map (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   assert (src);
   assert (dst);
 
-  if (BTOR_IS_INVERTED_NODE (src))
+  if (btor_node_is_inverted (src))
   {
-    src = BTOR_INVERT_NODE (src);
-    dst = BTOR_INVERT_NODE (dst);
+    src = btor_node_invert (src);
+    dst = btor_node_invert (dst);
   }
   assert (!btor_hashptr_table_get (map->table, src));
   bucket = btor_hashptr_table_add (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
-  bucket->key = btor_node_copy (BTOR_REAL_ADDR_NODE (src)->btor, src);
+  bucket->key = btor_node_copy (btor_node_real_addr (src)->btor, src);
   assert (!bucket->data.as_ptr);
-  bucket->data.as_ptr = btor_node_copy (BTOR_REAL_ADDR_NODE (dst)->btor, dst);
+  bucket->data.as_ptr = btor_node_copy (btor_node_real_addr (dst)->btor, dst);
 }
 
 /*------------------------------------------------------------------------*/
