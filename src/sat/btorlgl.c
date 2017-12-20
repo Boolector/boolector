@@ -72,7 +72,8 @@ sat (BtorSATMgr *smgr, int32_t limit)
   LGL *lgl      = blgl->lgl, *clone;
   const char *str;
   int32_t res, bfres;
-  char name[80];
+  size_t len;
+  char *name;
 
   assert (smgr->satcalls >= 1);
 
@@ -83,7 +84,8 @@ sat (BtorSATMgr *smgr, int32_t limit)
     static int32_t count = 0;
     char name[80];
     FILE *file;
-    sprintf (name, "/tmp/btor_lingeling_sat_%05d_%08d.cnf", getpid (), count++);
+    snprintf (
+        name, 80, "/tmp/btor_lingeling_sat_%05d_%08d.cnf", getpid (), count++);
     file = fopen (name, "w");
     lglprint (lgl, file);
     fclose (file);
@@ -132,9 +134,16 @@ sat (BtorSATMgr *smgr, int32_t limit)
       lglsetopt (clone, "clim", limit);
       /* callbacks are not cloned in Lingeling */
       if (smgr->term.fun) lglseterm (clone, smgr->term.fun, smgr->term.state);
-      sprintf (
-          name, "[%s lgl%s%d] ", smgr->btor->msg->prefix, str, blgl->nforked);
+      len = strlen (smgr->btor->msg->prefix) + strlen (str) + 8 + 8;
+      BTOR_NEWN (smgr->btor->mm, name, len);
+      snprintf (name,
+                len,
+                "[%s lgl%s%d] ",
+                smgr->btor->msg->prefix,
+                str,
+                blgl->nforked);
       lglsetprefix (clone, name);
+      BTOR_DELETEN (smgr->btor->mm, name, len);
       lglsetout (clone, smgr->output);
 
 #ifndef NDEBUG
