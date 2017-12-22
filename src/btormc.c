@@ -143,16 +143,6 @@ static void
 mc_release_assignments (BtorMC *mc)
 {
   BtorMCFrame *f;
-  if (mc->forward2const)
-  {
-    BTOR_MSG (boolector_get_btor_msg (mc->btor),
-              1,
-              "releasing forward to constant mapping of size %d",
-              boolector_nodemap_count (mc->forward2const));
-    boolector_nodemap_delete (mc->forward2const);
-    mc->forward2const = 0;
-  }
-
   for (f = mc->frames.start; f < mc->frames.top; f++)
     if (f->model2const)
     {
@@ -230,7 +220,6 @@ btor_mc_new (void)
                                         (BtorHashPtr) btor_node_hash_by_id,
                                         (BtorCmpPtr) btor_node_compare_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
-  assert (!res->forward2const);
   BTOR_INIT_STACK (mm, res->frames);
   BTOR_INIT_STACK (mm, res->bad);
   BTOR_INIT_STACK (mm, res->constraints);
@@ -1219,13 +1208,6 @@ btor_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
 /*------------------------------------------------------------------------*/
 
 static BoolectorNodeMap *
-get_mc_forward2const (BtorMC *mc)
-{
-  if (!mc->forward2const) mc->forward2const = boolector_nodemap_new (mc->btor);
-  return mc->forward2const;
-}
-
-static BoolectorNodeMap *
 get_mc_model2const_map (BtorMC *mc, BtorMCFrame *frame)
 {
   if (!frame->model2const)
@@ -1241,47 +1223,6 @@ zero_normalize_assignment (char *assignment)
   {
     if (*p == 'x') *p = '0';
   }
-}
-
-static BoolectorNode *
-mc_forward2const_mapper (Btor *btor, void *f2c_mc, BoolectorNode *node)
-{
-  assert (btor);
-  assert (f2c_mc);
-  assert (node);
-  assert (btor_node_is_regular ((BtorNode *) node));
-
-  const char *assignment;
-  BtorMC *mc;
-  BoolectorNode *res;
-  char *normalized;
-
-  mc = f2c_mc;
-  assert (mc->btor == btor);
-  assert (mc->forward == boolector_get_btor (node));
-
-  if (!boolector_is_var (mc->forward, node)) return 0;
-
-  res = 0;
-
-  assignment = boolector_bv_assignment (mc->forward, node);
-  normalized = btor_mem_strdup (mc->mm, assignment);
-  zero_normalize_assignment (normalized);
-  res = boolector_const (btor, normalized);
-  btor_mem_freestr (mc->mm, normalized);
-  boolector_free_bv_assignment (mc->forward, assignment);
-
-  return res;
-}
-
-static BoolectorNode *
-mc_forward2const (BtorMC *mc, BoolectorNode *node)
-{
-  BoolectorNodeMap *map;
-  assert (boolector_get_btor (node) == mc->forward);
-  map = get_mc_forward2const (mc);
-  return boolector_nodemap_non_recursive_extended_substitute_node (
-      mc->btor, map, mc, mc_forward2const_mapper, boolector_release, node);
 }
 
 static BoolectorNode *
@@ -1322,14 +1263,6 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
     assert (input);
     assert (input->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
-    assert (node_at_time);
-    assert (boolector_get_btor (node_at_time) == mc->forward);
-    constbits = boolector_bv_assignment (mc->forward, node_at_time);
-    bits      = btor_mem_strdup (mc->mm, constbits);
-    boolector_free_bv_assignment (mc->forward, constbits);
-    zero_normalize_assignment (bits);
-    res = boolector_const (btor, bits);
-    btor_mem_freestr (mc->mm, bits);
   }
   else
   {
@@ -1339,11 +1272,15 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
     assert (state);
     assert (state->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->states, state->id);
-    assert (boolector_get_btor (node_at_time) == mc->forward);
-    res = mc_forward2const (mc, node_at_time);
-    res = boolector_copy (btor, res);
   }
-
+  assert (node_at_time);
+  assert (boolector_get_btor (node_at_time) == mc->forward);
+  constbits = boolector_bv_assignment (mc->forward, node_at_time);
+  bits      = btor_mem_strdup (mc->mm, constbits);
+  boolector_free_bv_assignment (mc->forward, constbits);
+  zero_normalize_assignment (bits);
+  res = boolector_const (btor, bits);
+  btor_mem_freestr (mc->mm, bits);
   return res;
 }
 

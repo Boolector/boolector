@@ -88,7 +88,6 @@ struct BtorMC
   BtorPtrHashTable *states;
   BoolectorNodePtrStack bad;
   BoolectorNodePtrStack constraints;
-  BoolectorNodeMap *forward2const;
   BtorIntStack reached;
   int32_t num_reached;
   struct
