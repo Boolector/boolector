@@ -1,12 +1,12 @@
-all: $(BINDIR)/boolectormc
+all: $(BINDIR)/btormc
 
-$(BINDIR)/boolectormc: $(BUILDIR)/btormcmain.o $(LDEPS)
+$(BINDIR)/btormc: $(BUILDIR)/btormcmain.o $(LDEPS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormcmain.o -L$(BUILDIR) -lboolector $(LIBS)
 
 
-clean: boolectormc.clean
+clean: btormc.clean
 
-boolectormc.clean:
-	rm -f $(BUILDIR)/boolectormc $(BUILDIR)/boolectormc.o $(BUILDIR)/btormcmain.o
+btormc.clean:
+	rm -f $(BUILDIR)/btormc $(BUILDIR)/btormc.o $(BUILDIR)/btormcmain.o
 
