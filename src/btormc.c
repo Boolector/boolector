@@ -427,7 +427,8 @@ btor_mc_input (BtorMC *mc, BoolectorSort sort, const char *symbol)
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
   assert (sort);
-  assert (boolector_is_bitvec_sort (mc->btor, sort));
+  assert (boolector_is_bitvec_sort (mc->btor, sort)
+          || boolector_is_array_sort (mc->btor, sort));
 
   BtorPtrHashBucket *bucket;
   BtorMCInput *input;
@@ -435,7 +436,10 @@ btor_mc_input (BtorMC *mc, BoolectorSort sort, const char *symbol)
   Btor *btor;
 
   btor = mc->btor;
-  res  = boolector_var (btor, sort, symbol);
+  if (boolector_is_bitvec_sort (mc->btor, sort))
+    res = boolector_var (btor, sort, symbol);
+  else
+    res = boolector_array (btor, sort, symbol);
   BTOR_NEW (mc->mm, input);
   assert (input);
   input->id   = (int32_t) mc->inputs->count;
@@ -466,7 +470,8 @@ btor_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
   assert (sort);
-  assert (boolector_is_bitvec_sort (mc->btor, sort));
+  assert (boolector_is_bitvec_sort (mc->btor, sort)
+          || boolector_is_array_sort (mc->btor, sort));
 
   BtorPtrHashBucket *bucket;
   BtorMCstate *state;
@@ -474,7 +479,10 @@ btor_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
   Btor *btor;
 
   btor = mc->btor;
-  res  = boolector_var (btor, sort, symbol);
+  if (boolector_is_bitvec_sort (mc->btor, sort))
+    res = boolector_var (btor, sort, symbol);
+  else
+    res = boolector_array (btor, sort, symbol);
   BTOR_NEW (mc->mm, state);
   assert (state);
   state->id   = (int32_t) mc->states->count;
@@ -558,8 +566,6 @@ btor_mc_next (BtorMC *mc, BoolectorNode *node, BoolectorNode *next)
 
   assert (boolector_get_btor (node) == btor);
   assert (boolector_get_btor (next) == btor);
-  assert (!boolector_is_array (btor, node));
-  assert (!boolector_is_array (btor, next));
   assert (boolector_get_sort (btor, node) == boolector_get_sort (btor, next));
 
   state = find_mc_state (mc, node);
@@ -714,15 +720,45 @@ timed_symbol (BtorMC *mc, BoolectorNode *node, int32_t time)
   return res;
 }
 
+static BoolectorNode *
+new_var_or_array (BtorMC *mc, BoolectorNode *src, const char *symbol)
+{
+  uint32_t w;
+  BoolectorNode *dst;
+  BoolectorSort s, se, si;
+  Btor *btor = mc->btor;
+  Btor *fwd  = mc->forward;
+
+  if (boolector_is_var (btor, src))
+  {
+    w   = boolector_get_width (btor, src);
+    s   = boolector_bitvec_sort (fwd, w);
+    dst = boolector_var (fwd, s, symbol);
+    boolector_release_sort (fwd, s);
+  }
+  else
+  {
+    assert (boolector_is_array (btor, src));
+    w   = boolector_get_index_width (btor, src);
+    si  = boolector_bitvec_sort (fwd, w);
+    w   = boolector_get_width (btor, src);
+    se  = boolector_bitvec_sort (fwd, w);
+    s   = boolector_array_sort (fwd, si, se);
+    dst = boolector_array (fwd, s, symbol);
+    boolector_release_sort (fwd, si);
+    boolector_release_sort (fwd, se);
+    boolector_release_sort (fwd, s);
+  }
+  return dst;
+}
+
 static void
 initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
 {
   Btor *btor;
   BoolectorNode *src, *dst;
-  BoolectorSort s;
   BtorPtrHashTableIterator it;
   char *sym;
-  uint32_t w;
 
 #ifndef NDEBUG
   int32_t i = 0;
@@ -754,10 +790,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
     assert (input->id == i);
 #endif
     sym = timed_symbol (mc, src, f->time);
-    w   = boolector_get_width (btor, src);
-    s   = boolector_bitvec_sort (mc->forward, w);
-    dst = boolector_var (mc->forward, s, sym);
-    boolector_release_sort (mc->forward, s);
+    dst = new_var_or_array (mc, src, sym);
     btor_mem_freestr (mc->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
     BTOR_PUSH_STACK (f->inputs, dst);
@@ -769,14 +802,12 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
 {
   Btor *btor;
   BoolectorNode *src, *dst;
-  BoolectorSort s;
   BtorPtrHashTableIterator it;
   BtorMCstate *state;
   const char *bits;
   BtorMCFrame *p;
   char *sym;
   int32_t i;
-  uint32_t w;
 
   assert (mc);
   assert (f);
@@ -806,6 +837,8 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
 
     if (!f->time && state->init)
     {
+      // TODO: const init arrays
+      assert (boolector_is_var (btor, src));
       bits = boolector_get_bits (btor, state->init);
       dst  = boolector_const (mc->forward, bits);
       boolector_free_bits (btor, bits);
@@ -819,10 +852,7 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
     else
     {
       sym = timed_symbol (mc, src, f->time);
-      w   = boolector_get_width (btor, src);
-      s   = boolector_bitvec_sort (mc->forward, w);
-      dst = boolector_var (mc->forward, s, sym);
-      boolector_release_sort (mc->forward, s);
+      dst = new_var_or_array (mc, src, sym);
       btor_mem_freestr (mc->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->states) == i);
@@ -952,6 +982,7 @@ initialize_constraints_of_frame (BtorMC *mc,
     src = BTOR_PEEK_STACK (mc->constraints, i);
     assert (src);
     dst = boolector_nodemap_substitute_node (mc->forward, map, src);
+    // TODO: boolector_assert (mc->foward, dst);
     if (constraint)
     {
       BoolectorNode *tmp = boolector_and (mc->forward, constraint, dst);
@@ -1068,7 +1099,7 @@ check_last_forward_frame (BtorMC *mc)
 
   k = BTOR_COUNT_STACK (mc->frames) - 1;
   assert (k >= 0);
-  f = mc->frames.top - 1;
+  f = mc->frames.top - 1;  // TODO: use BTOR_TOP_STACK
   assert (f->time == k);
 
   BTOR_MSG (boolector_get_btor_msg (btor),

@@ -148,6 +148,9 @@ boolector_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
   BTOR_ABORT_ARG_NULL (sort);
   BTOR_ABORT (mc->state != BTOR_NO_MC_STATE,
               "may not be called after checking");
+  BTOR_ABORT (!boolector_is_bitvec_sort (mc->btor, sort)
+                  && !boolector_is_array_sort (mc->btor, sort),
+              "invalid state sort");
   return btor_mc_state (mc, sort, symbol);
 }
 

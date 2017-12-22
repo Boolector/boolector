@@ -139,86 +139,89 @@ boolector_nodemap_map (BoolectorNodeMap *map,
 /*------------------------------------------------------------------------*/
 
 static BoolectorNode *
-boolector_map_node_internal (Btor *btor,
-                             BoolectorNodeMap *map,
-                             BoolectorNode *n)
+map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
 {
   assert (btor);
   assert (n);
 
-  BtorNode *src, *dst, *e, *tmp;
-  BoolectorNode *m[3];
+  BtorNode *src, *dst, *e[3], *node, *res = 0;
   uint32_t i;
 
-  e = BTOR_IMPORT_BOOLECTOR_NODE (n);
-  assert (btor_node_is_regular (e));
+  node = BTOR_IMPORT_BOOLECTOR_NODE (n);
+  assert (btor_node_is_regular (node));
+  assert (!btor_node_is_proxy (node));
 
-  m[0] = m[1] = m[2] = 0;
-
-  for (i = 0; i < e->arity; i++)
+  for (i = 0; i < node->arity; i++)
   {
-    src = e->e[i];
+    src = node->e[i];
     dst = BTOR_IMPORT_BOOLECTOR_NODE (
         boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (src)));
-    tmp  = dst ? dst : src;
-    m[i] = BTOR_EXPORT_BOOLECTOR_NODE (tmp);
-    assert (btor_node_real_addr (tmp)->btor == btor);
+    e[i] = dst ? dst : src;
+    assert (btor_node_real_addr (e[i])->btor == btor);
   }
 
-  assert (!btor_node_is_proxy (e));
-
-  switch (e->kind)
+  switch (node->kind)
   {
+    case BTOR_BV_VAR_NODE: res = btor_node_copy (btor, node); break;
     case BTOR_BV_CONST_NODE:
-
-      assert (btor_node_real_addr (e) == e);
-      if (e->btor != btor)
-      {
-        tmp = btor_exp_const (btor, btor_node_const_get_bits (e));
-        btor_node_inc_ext_ref_counter (btor, tmp);
-        return BTOR_EXPORT_BOOLECTOR_NODE (tmp);
-      }
-
-      // ELSE FALL THROUGH!!!
-
-    case BTOR_BV_VAR_NODE:
-    case BTOR_UF_NODE:      // FIXME
-    case BTOR_LAMBDA_NODE:  // FIXME
-      return boolector_copy (btor, n);
-
+      res = btor_exp_const (btor, btor_node_const_get_bits (node));
+      break;
     case BTOR_SLICE_NODE:
-      return boolector_slice (btor,
-                              m[0],
-                              btor_node_slice_get_upper (e),
-                              btor_node_slice_get_lower (e));
-    case BTOR_AND_NODE: return boolector_and (btor, m[0], m[1]);
+      res = btor_exp_slice (btor,
+                            e[0],
+                            btor_node_slice_get_upper (node),
+                            btor_node_slice_get_lower (node));
+      break;
+    case BTOR_AND_NODE: res = btor_exp_and (btor, e[0], e[1]); break;
     case BTOR_BV_EQ_NODE:
-    case BTOR_FUN_EQ_NODE: return boolector_eq (btor, m[0], m[1]);
-    case BTOR_ADD_NODE: return boolector_add (btor, m[0], m[1]);
-    case BTOR_MUL_NODE: return boolector_mul (btor, m[0], m[1]);
-    case BTOR_ULT_NODE: return boolector_ult (btor, m[0], m[1]);
-    case BTOR_SLL_NODE: return boolector_sll (btor, m[0], m[1]);
-    case BTOR_SRL_NODE: return boolector_srl (btor, m[0], m[1]);
-    case BTOR_UDIV_NODE: return boolector_udiv (btor, m[0], m[1]);
-    case BTOR_UREM_NODE: return boolector_urem (btor, m[0], m[1]);
-    case BTOR_CONCAT_NODE: return boolector_concat (btor, m[0], m[1]);
+    case BTOR_FUN_EQ_NODE: res = btor_exp_eq (btor, e[0], e[1]); break;
+    case BTOR_ADD_NODE: res = btor_exp_add (btor, e[0], e[1]); break;
+    case BTOR_MUL_NODE: res = btor_exp_mul (btor, e[0], e[1]); break;
+    case BTOR_ULT_NODE: res = btor_exp_ult (btor, e[0], e[1]); break;
+    case BTOR_SLL_NODE: res = btor_exp_sll (btor, e[0], e[1]); break;
+    case BTOR_SRL_NODE: res = btor_exp_srl (btor, e[0], e[1]); break;
+    case BTOR_UDIV_NODE: res = btor_exp_udiv (btor, e[0], e[1]); break;
+    case BTOR_UREM_NODE: res = btor_exp_urem (btor, e[0], e[1]); break;
+    case BTOR_CONCAT_NODE: res = btor_exp_concat (btor, e[0], e[1]); break;
+    case BTOR_ARGS_NODE: res = btor_exp_args (btor, e, node->arity); break;
+    case BTOR_UPDATE_NODE:
+      res = btor_exp_update (btor, e[0], e[1], e[2]);
+      break;
+    case BTOR_APPLY_NODE:
+      assert (btor_node_is_array (e[0]));
+      assert (btor_node_is_args (e[1]));
+      assert (e[1]->arity == 1);
+      res = btor_exp_read (btor, e[0], e[1]->e[0]);
+      break;
+    case BTOR_PARAM_NODE:
+    case BTOR_LAMBDA_NODE:  // FIXME
+    case BTOR_UF_NODE:      // FIXME
+      abort ();
+      break;
     default:
-      assert (btor_node_is_bv_cond (e));
-      return boolector_cond (btor, m[0], m[1], m[2]);
+      assert (btor_node_is_cond (node));
+      res = btor_exp_cond (btor, e[0], e[1], e[2]);
   }
+  assert (res);
+
+  btor_node_inc_ext_ref_counter (btor, res);
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
-BoolectorNode *
-boolector_nodemap_extended_substitute_node (Btor *btor,
-                                            BoolectorNodeMap *map,
-                                            void *state,
-                                            BoolectorNodeMapper mapper,
-                                            BoolectorNodeReleaser release,
-                                            BoolectorNode *nroot)
+static BoolectorNode *
+extended_substitute_node (Btor *btor,
+                          BoolectorNodeMap *map,
+                          void *state,
+                          BoolectorNodeMapper mapper,
+                          BoolectorNodeReleaser release,
+                          BoolectorNode *nroot)
 {
+  assert (!mapper || release);
+  assert (!release || mapper);
+
   BtorNodePtrStack working_stack;
-  BtorNode *node, *mapped;
-  BoolectorNode *res;
+  BtorNode *node;
+  BoolectorNode *res, *nnode, *mapped;
   BtorNode *eroot;
   BtorMemMgr *mm;
   BtorIntHashTable *mark;
@@ -233,25 +236,26 @@ boolector_nodemap_extended_substitute_node (Btor *btor,
 
   BTOR_INIT_STACK (mm, working_stack);
   BTOR_PUSH_STACK (working_stack, eroot);
-
-  while (!BTOR_EMPTY_STACK (working_stack))
+  do
   {
-    node = BTOR_POP_STACK (working_stack);
-    node = btor_node_real_addr (node);
-    btor_node_inc_ext_ref_counter (node->btor, node);
+    node = btor_node_real_addr (BTOR_POP_STACK (working_stack));
     assert (!btor_node_is_proxy (node));
-    if (boolector_nodemap_mapped (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
-      goto DEC_EXT_REFS_AND_CONTINUE;
+    nnode = BTOR_EXPORT_BOOLECTOR_NODE (node);
+
+    if (boolector_nodemap_mapped (map, nnode)) continue;
+
     d = btor_hashint_map_get (mark, node->id);
-    if (d && d->as_int == 1) goto DEC_EXT_REFS_AND_CONTINUE;
-    mapped = BTOR_IMPORT_BOOLECTOR_NODE (
-        mapper (btor, state, BTOR_EXPORT_BOOLECTOR_NODE (node)));
-    if (mapped)
+    if (d && d->as_int == 1) continue;
+
+    /* we are iterating over internal nodes, but 'mapper' can call
+     * boolector_* function on 'nnode'.thus, we have to make sure that nnode
+     * has at least one external reference. */
+    btor_node_inc_ext_ref_counter (btor, node);
+    if (mapper && (mapped = mapper (btor, state, nnode)))
     {
-      boolector_nodemap_map (map,
-                             BTOR_EXPORT_BOOLECTOR_NODE (node),
-                             BTOR_EXPORT_BOOLECTOR_NODE (mapped));
-      release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
+      assert (release);
+      boolector_nodemap_map (map, nnode, mapped);
+      release (btor, mapped);
     }
     else if (!d)
     {
@@ -260,21 +264,16 @@ boolector_nodemap_extended_substitute_node (Btor *btor,
       for (i = 1; i <= node->arity; i++)
         BTOR_PUSH_STACK (working_stack, node->e[node->arity - i]);
     }
-    else
+    else if (!d->as_int)
     {
-      mapped = BTOR_IMPORT_BOOLECTOR_NODE (boolector_map_node_internal (
-          btor, map, BTOR_EXPORT_BOOLECTOR_NODE (node)));
-      boolector_nodemap_map (map,
-                             BTOR_EXPORT_BOOLECTOR_NODE (node),
-                             BTOR_EXPORT_BOOLECTOR_NODE (mapped));
-      boolector_release (btor, BTOR_EXPORT_BOOLECTOR_NODE (mapped));
+      mapped = map_node_internal (btor, map, nnode);
+      boolector_nodemap_map (map, nnode, mapped);
+      boolector_release (btor, mapped);
       assert (d->as_int == 0);
       d->as_int = 1;
     }
-  DEC_EXT_REFS_AND_CONTINUE:
-    assert (!btor_node_is_inverted (node));
-    btor_node_dec_ext_ref_counter (node->btor, node);
-  }
+    btor_node_dec_ext_ref_counter (btor, node);
+  } while (!BTOR_EMPTY_STACK (working_stack));
   BTOR_RELEASE_STACK (working_stack);
   btor_hashint_map_delete (mark);
   res = boolector_nodemap_mapped (map, nroot);
@@ -282,13 +281,15 @@ boolector_nodemap_extended_substitute_node (Btor *btor,
   return res;
 }
 
-static BoolectorNode *
-boolector_never_map_mapper (Btor *btor, void *state, BoolectorNode *node)
+BoolectorNode *
+boolector_nodemap_extended_substitute_node (Btor *btor,
+                                            BoolectorNodeMap *map,
+                                            void *state,
+                                            BoolectorNodeMapper mapper,
+                                            BoolectorNodeReleaser release,
+                                            BoolectorNode *nroot)
 {
-  (void) btor;
-  (void) state;
-  (void) node;
-  return 0;
+  return extended_substitute_node (btor, map, state, mapper, release, nroot);
 }
 
 BoolectorNode *
@@ -296,6 +297,5 @@ boolector_nodemap_substitute_node (Btor *btor,
                                    BoolectorNodeMap *map,
                                    BoolectorNode *root)
 {
-  return boolector_nodemap_extended_substitute_node (
-      btor, map, 0, boolector_never_map_mapper, 0, root);
+  return extended_substitute_node (btor, map, 0, 0, 0, root);
 }
