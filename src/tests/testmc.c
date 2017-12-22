@@ -134,6 +134,7 @@ test_mctoggle ()
       free (fname);
     }
 
+    boolector_release (g_btor, bit);
     boolector_release_sort (g_btor, s);
     finish_mc_test ();
   }
@@ -210,6 +211,8 @@ test_mccount2enable ()
       free (fname);
     }
 
+    boolector_release (g_btor, counter);
+    boolector_release (g_btor, enable);
     boolector_release_sort (g_btor, s1);
     boolector_release_sort (g_btor, s2);
     finish_mc_test ();
@@ -284,6 +287,9 @@ test_mccount2resetenable ()
   fclose (file);
   free (fname);
 
+  boolector_release (g_btor, counter);
+  boolector_release (g_btor, enable);
+  boolector_release (g_btor, reset);
   finish_mc_test ();
 }
 
@@ -490,6 +496,7 @@ test_mccount2multi ()
   assert (boolector_mc_reached_bad_at_bound (g_mc, 1) == 5);
   assert (boolector_mc_reached_bad_at_bound (g_mc, 2) == 2);
   assert (boolector_mc_reached_bad_at_bound (g_mc, 3) == 3);
+  boolector_release (g_btor, count);
   finish_mc_test ();
 }
 
