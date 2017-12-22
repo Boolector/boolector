@@ -64,7 +64,7 @@ test_boolectornodemap0 ()
   BoolectorNode *d;
   boolector_nodemap_map (map, a, t);
   boolector_nodemap_map (map, b, o);
-  d = boolector_nodemap_non_recursive_substitute_node (g_btor, map, s);
+  d = boolector_nodemap_substitute_node (g_btor, map, s);
   (void) d;
   assert (d == o);
   boolector_nodemap_delete (map);
@@ -110,7 +110,7 @@ test_boolectornodemap1 ()
 
   BoolectorNodeMap *map = boolector_nodemap_new (g_btor);
   BoolectorNode *d, *g;
-  d = boolector_nodemap_non_recursive_extended_substitute_node (
+  d = boolector_nodemap_extended_substitute_node (
       g_btor, map, 0, test_boolectornodemap1_mapper, boolector_release, s);
   (void) d;
   g = boolector_int (g_btor, 66, sort);

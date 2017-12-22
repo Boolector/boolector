@@ -11,6 +11,8 @@
  */
 
 #include "utils/boolectornodemap.h"
+
+#include "boolector.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "utils/btorhashint.h"
@@ -207,13 +209,12 @@ boolector_map_node_internal (Btor *btor,
 }
 
 BoolectorNode *
-boolector_nodemap_non_recursive_extended_substitute_node (
-    Btor *btor,
-    BoolectorNodeMap *map,
-    void *state,
-    BoolectorNodeMapper mapper,
-    BoolectorNodeReleaser release,
-    BoolectorNode *nroot)
+boolector_nodemap_extended_substitute_node (Btor *btor,
+                                            BoolectorNodeMap *map,
+                                            void *state,
+                                            BoolectorNodeMapper mapper,
+                                            BoolectorNodeReleaser release,
+                                            BoolectorNode *nroot)
 {
   BtorNodePtrStack working_stack;
   BtorNode *node, *mapped;
@@ -291,10 +292,10 @@ boolector_never_map_mapper (Btor *btor, void *state, BoolectorNode *node)
 }
 
 BoolectorNode *
-boolector_nodemap_non_recursive_substitute_node (Btor *btor,
-                                                 BoolectorNodeMap *map,
-                                                 BoolectorNode *root)
+boolector_nodemap_substitute_node (Btor *btor,
+                                   BoolectorNodeMap *map,
+                                   BoolectorNode *root)
 {
-  return boolector_nodemap_non_recursive_extended_substitute_node (
+  return boolector_nodemap_extended_substitute_node (
       btor, map, 0, boolector_never_map_mapper, 0, root);
 }

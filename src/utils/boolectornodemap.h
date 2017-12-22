@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,7 +14,7 @@
 
 /*------------------------------------------------------------------------*/
 
-#include "boolector.h"
+#include "btortypes.h"
 #include "utils/btorhashptr.h"
 
 /*------------------------------------------------------------------------*/
@@ -50,8 +50,9 @@ uint32_t boolector_nodemap_count (const BoolectorNodeMap *map);
 
 /*------------------------------------------------------------------------*/
 
-BoolectorNode *boolector_nodemap_non_recursive_substitute_node (
-    Btor *btor, BoolectorNodeMap *map, BoolectorNode *n);
+BoolectorNode *boolector_nodemap_substitute_node (Btor *btor,
+                                                  BoolectorNodeMap *map,
+                                                  BoolectorNode *n);
 
 /*------------------------------------------------------------------------*/
 /* Extended mapping.  A 'BoolectorNodeMapper' function should return a NEW
@@ -71,7 +72,7 @@ typedef BoolectorNode *(*BoolectorNodeMapper) (Btor *btor,
  */
 typedef void (*BoolectorNodeReleaser) (Btor *btor, BoolectorNode *n);
 
-BoolectorNode *boolector_nodemap_non_recursive_extended_substitute_node (
+BoolectorNode *boolector_nodemap_extended_substitute_node (
     Btor *btor,
     BoolectorNodeMap *map,  // share/cache substitution results
     void *state,            // for the mapper
