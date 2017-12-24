@@ -542,6 +542,30 @@ void boolector_release_all (Btor *btor);
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
 /*!
+  Create bit vector constant representing the decimal number ``str``.
+
+  :param btor: Boolector instance.
+  :param sort: Bit-vector sort of 'str'.
+  :param str: Non-empty and terminated string representing a negative or postive decimal number.
+  :return: Bit vector constant with sort ``sort``.
+ */
+BoolectorNode *boolector_constd (Btor *btor,
+                                 BoolectorSort sort,
+                                 const char *str);
+
+/*!
+  Create bit vector constant representing the hexadecimal number ``str``.
+
+  :param btor: Boolector instance.
+  :param sort: Bit-vector sort of 'str'.
+  :param str: Non-empty and terminated string representing a hexadecimal number.
+  :return: Bit vector constant with sort ``sort``.
+ */
+BoolectorNode *boolector_consth (Btor *btor,
+                                 BoolectorSort sort,
+                                 const char *str);
+
+/*!
   Create bit vector constant zero of sort ``sort``.
 
   :param btor: Boolector instance.

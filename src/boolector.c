@@ -1136,6 +1136,119 @@ boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
 }
 
 BoolectorNode *
+boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
+{
+  char *bits;
+  bool is_neg, is_min_val = false;
+  uint32_t w, size_bits;
+  BtorNode *res;
+  BtorBitVector *bv, *tmp, *zero;
+  BtorMemMgr *mm;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI ("%s", str);
+  BTOR_ABORT_ARG_NULL (str);
+  BTOR_ABORT (*str == '\0', "'str' must not be empty");
+
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
+              "'sort' is not a bit vector sort");
+
+  mm        = btor->mm;
+  is_neg    = (str[0] == '-');
+  w         = btor_sort_bitvec_get_width (btor, s);
+  bits      = btor_util_dec_to_bin_str (mm, is_neg ? str + 1 : str);
+  size_bits = strlen (bits);
+  if (is_neg)
+  {
+    is_min_val = (bits[0] == '1');
+    for (size_t i = 1; is_min_val && i < size_bits; i++)
+      is_min_val = (bits[i] == '0');
+  }
+  BTOR_ABORT (((!is_neg || is_min_val) && size_bits > w)
+                  || (is_neg && !is_min_val && size_bits + 1 > w),
+              "'%s' does not fit into a bit-vector of size %u",
+              str,
+              w);
+
+  bv = btor_bv_char_to_bv (mm, bits);
+  btor_mem_freestr (mm, bits);
+  assert (bv->width == size_bits);
+  /* zero-extend to w */
+  if (size_bits < w)
+  {
+    tmp = btor_bv_uext (mm, bv, w - size_bits);
+    btor_bv_free (mm, bv);
+    bv = tmp;
+  }
+  if (is_neg)
+  {
+    tmp = btor_bv_neg (mm, bv);
+    btor_bv_free (mm, bv);
+    bv = tmp;
+  }
+  res = btor_exp_const (btor, bv);
+  assert (btor_node_get_sort_id (res) == s);
+  btor_bv_free (btor->mm, bv);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, constd, sort, str);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
+{
+  char *bits;
+  uint32_t w, size_bits;
+  BtorNode *res;
+  BtorBitVector *bv, *tmp, *zero;
+  BtorMemMgr *mm;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI ("%s", str);
+  BTOR_ABORT_ARG_NULL (str);
+  BTOR_ABORT (*str == '\0', "'str' must not be empty");
+
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
+              "'sort' is not a bit vector sort");
+
+  mm        = btor->mm;
+  w         = btor_sort_bitvec_get_width (btor, s);
+  bits      = btor_util_hex_to_bin_str (mm, str);
+  size_bits = strlen (bits);
+  BTOR_ABORT (
+      size_bits > w, "'%s' does not fit into a bit-vector of size %u", str, w);
+
+  bv = btor_bv_char_to_bv (mm, bits);
+  btor_mem_freestr (mm, bits);
+  assert (bv->width == size_bits);
+  /* zero-extend to w */
+  if (size_bits < w)
+  {
+    tmp = btor_bv_uext (mm, bv, w - size_bits);
+    btor_bv_free (mm, bv);
+    bv = tmp;
+  }
+  res = btor_exp_const (btor, bv);
+  assert (btor_node_get_sort_id (res) == s);
+  btor_bv_free (btor->mm, bv);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, consth, sort, str);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL (btor);

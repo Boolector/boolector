@@ -280,8 +280,9 @@ btor_util_dec_to_bin_str_n (BtorMemMgr *mm, const char *str, uint32_t len)
   }
 
   assert (strip_zeroes (res) == res);
-
-  return res;
+  if (strlen (res)) return res;
+  btor_mem_freestr (mm, res);
+  return btor_mem_strdup (mm, "0");
 }
 
 char *
@@ -422,7 +423,9 @@ btor_util_hex_to_bin_str_n (BtorMemMgr *mm, const char *str, uint32_t len)
   res = btor_mem_strdup (mm, strip_zeroes (tmp));
   btor_mem_freestr (mm, tmp);
 
-  return res;
+  if (strlen (res)) return res;
+  btor_mem_freestr (mm, res);
+  return btor_mem_strdup (mm, "0");
 }
 
 char *
