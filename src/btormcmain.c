@@ -1,3 +1,14 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2017 Aina Niemetz.
+ *  Copyright (C) 2017 Mathias Preiner.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #include "boolectormc.h"
 #include "btormc.h"
 
@@ -263,6 +274,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
       case BTOR_FORMAT_TAG_bad:
         assert (l->nargs == 1);
         boolector_mc_bad (mc, e[0]);
+        if (l->symbol) boolector_set_symbol (btor, e[0], l->symbol);
         break;
 
       case BTOR_FORMAT_TAG_concat:
@@ -271,11 +283,21 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
         break;
 
       case BTOR_FORMAT_TAG_const:
-      case BTOR_FORMAT_TAG_constd:
-      case BTOR_FORMAT_TAG_consth:
         assert (l->nargs == 0);
         assert (l->constant);
         n = boolector_const (btor, l->constant);
+        break;
+
+      case BTOR_FORMAT_TAG_constd:
+        assert (l->nargs == 0);
+        assert (l->constant);
+        n = boolector_constd (btor, s, l->constant);
+        break;
+
+      case BTOR_FORMAT_TAG_consth:
+        assert (l->nargs == 0);
+        assert (l->constant);
+        n = boolector_consth (btor, s, l->constant);
         break;
 
       case BTOR_FORMAT_TAG_constraint:
@@ -294,6 +316,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
         break;
 
       case BTOR_FORMAT_TAG_fair:
+        fprintf (stderr, "warning: unsupported tag '%s'\n", l->name);
         // TODO
         // assert (l->nargs == 1);
         // boolector_mc_fair (mc, e[0]);
@@ -332,6 +355,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
         break;
 
       case BTOR_FORMAT_TAG_justice:
+        fprintf (stderr, "warning: unsupported tag '%s'\n", l->name);
         // TODO
         // assert (l->nargs == 1);
         // boolector_mc_justice (mc, e[0]);
@@ -390,6 +414,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
         break;
 
       case BTOR_FORMAT_TAG_output:
+        fprintf (stderr, "warning: unsupported tag '%s'\n", l->name);
         // TODO
         break;
 
