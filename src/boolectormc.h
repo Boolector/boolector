@@ -47,6 +47,9 @@ enum BtorMCOption
    * In order to be able to obtain the trace after model checking you
    * need to enable this option before calling 'boolector_mc_bmc'. */
   BTOR_MC_OPT_TRACE_GEN,
+  /* Enable (val: 1) or disable (val: 0) to print states in every step if
+   * BTOR_MC_OPT_TRACE_GEN is enabled. */
+  BTOR_MC_OPT_TRACE_GEN_FULL,
   /* Set the level of verbosity. */
   BTOR_MC_OPT_VERBOSITY,
   /* This MUST be the last entry! */
@@ -123,6 +126,8 @@ char *boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time);
  * assignment with this 'boolector_mc_free_assignment' again.
  */
 void boolector_mc_free_assignment (BtorMC *mc, char *assignment);
+
+// TODO: api for array models
 
 /*------------------------------------------------------------------------*/
 /* Return the 'k' at which a previous model checking run proved that the bad

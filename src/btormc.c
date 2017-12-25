@@ -131,10 +131,19 @@ init_options (BtorMC *mc)
             true,
             "trace-gen",
             0,
-            0,
+            1,
             0,
             1,
             "enable/disable trace generation");
+  init_opt (mc,
+            BTOR_MC_OPT_TRACE_GEN_FULL,
+            true,
+            "trace-gen-full",
+            0,
+            0,
+            0,
+            1,
+            "always print states in trace");
 }
 
 /*------------------------------------------------------------------------*/
@@ -155,49 +164,6 @@ mc_release_assignments (BtorMC *mc)
       f->model2const = 0;
     }
 }
-
-/*------------------------------------------------------------------------*/
-
-#if 0
-
-static void
-print_trace (BtorMC * mc, int32_t p, int32_t k)
-{
-  const char * symbol;
-  BoolectorNode * node;
-  BtorMCFrame * f;
-  char buffer[30];
-  const char * a;
-  int32_t i, j;
-
-  printf ("bad state property %d at bound k = %d satisfiable:\n", p, k);
-
-  for (i = 0; i <= k; i++)
-    {
-      printf ("\n");
-      printf ("[ state %d ]\n", i);
-      printf ("\n");
-
-      f = mc->frames.start + i;
-      for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
-        {
-          node = BTOR_PEEK_STACK (f->inputs, j);
-          a = boolector_bv_assignment (f->btor, node);
-          if (node->symbol)
-            symbol = node->symbol;
-          else
-            {
-              sprintf (buffer, "input%d@%d", j, i);
-              symbol = buffer;
-            }
-          printf ("%s = %s\n", symbol, a);
-          boolector_free_bv_assignment (btor, a);
-        }
-    }
-  fflush (stdout);
-}
-
-#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -492,6 +458,7 @@ btor_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
   assert (bucket);
   assert (!bucket->data.as_ptr);
   bucket->data.as_ptr = state;
+  // TODO: array
   if (symbol)
     BTOR_MSG (boolector_get_btor_msg (btor),
               2,
@@ -1085,6 +1052,124 @@ initialize_new_forward_frame (BtorMC *mc)
             time);
 }
 
+static void
+print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
+{
+  bool is_bv;
+  const char *default_sym, *sym, *value;
+  char **indices = 0, **values = 0;
+  uint32_t i, size, id;
+  BtorPtrHashBucket *b;
+  BtorMCInput *input;
+  BtorMCstate *state;
+  BoolectorNode *node_at_time;
+  BtorMCFrame *frame;
+  Btor *btor, *fwd;
+
+  btor  = mc->btor;
+  fwd   = mc->forward;
+  is_bv = boolector_is_bitvec_sort (btor, boolector_get_sort (btor, node));
+  frame = mc->frames.start + time;
+  b     = btor_hashptr_table_get (mc->states, node);
+  if (b)
+  {
+    state        = b->data.as_ptr;
+    id           = state->id;
+    node_at_time = BTOR_PEEK_STACK (frame->states, id);
+    default_sym  = "state";
+  }
+  else
+  {
+    b = btor_hashptr_table_get (mc->inputs, node);
+    assert (b);
+    input        = b->data.as_ptr;
+    id           = input->id;
+    node_at_time = BTOR_PEEK_STACK (frame->inputs, id);
+    default_sym  = "input";
+  }
+
+  if (is_bv)
+    value = boolector_bv_assignment (fwd, node_at_time);
+  else
+    boolector_array_assignment (fwd, node_at_time, &indices, &values, &size);
+
+  sym = boolector_get_symbol (mc->btor, node);
+  if (is_bv)
+  {
+    assert (value);
+    printf ("%d %s", id, value);
+    if (sym)
+      printf (" %s", sym);
+    else
+      printf (" %s%d", default_sym, id);
+    printf ("@%d\n", time);
+    boolector_free_bv_assignment (fwd, value);
+  }
+  else
+  {
+    assert (indices);
+    assert (values);
+    for (i = 0; i < size; i++)
+    {
+      printf ("%d [%s] %s", id, indices[i], values[i]);
+      if (sym)
+        printf (" %s", sym);
+      else
+        printf (" %s%d", default_sym, id);
+      printf ("@%d\n", time);
+    }
+    boolector_free_array_assignment (fwd, indices, values, size);
+  }
+}
+
+static void
+print_witness (BtorMC *mc, int32_t bad_id, int32_t time)
+{
+  const char *sym;
+  int32_t i;
+  BtorMCstate *state;
+  BoolectorNode *bad, *src;
+  BtorPtrHashTableIterator it;
+  Btor *btor;
+  bool full_trace;
+
+  btor       = mc->btor;
+  full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
+
+  bad = BTOR_PEEK_STACK (mc->bad, bad_id);
+  sym = boolector_get_symbol (btor, bad);
+  printf ("bad state property %d at bound k = %d SATISFIABLE\n", bad_id, time);
+  printf ("sat\n");
+  printf ("b%d", bad_id);
+  if (sym) printf (" %s", sym);
+  printf ("\n");
+
+  for (i = 0; i <= time; i++)
+  {
+    printf ("@%d\n", i);
+    if (i == 0 || full_trace)
+    {
+      btor_iter_hashptr_init (&it, mc->states);
+      while (btor_iter_hashptr_has_next (&it))
+      {
+        state = it.bucket->data.as_ptr;
+        assert (state);
+        src = (BoolectorNode *) btor_iter_hashptr_next (&it);
+        if (!full_trace && state->init) continue;
+        print_witness_at_time (mc, src, i);
+      }
+    }
+
+    btor_iter_hashptr_init (&it, mc->inputs);
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      src = (BoolectorNode *) btor_iter_hashptr_next (&it);
+      print_witness_at_time (mc, src, i);
+    }
+  }
+  fflush (stdout);
+}
+
 static int32_t
 check_last_forward_frame (BtorMC *mc)
 {
@@ -1150,6 +1235,10 @@ check_last_forward_frame (BtorMC *mc)
         {
           mc->call_backs.reached_at_bound.fun (
               mc->call_backs.reached_at_bound.state, i, k);
+        }
+        if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
+        {
+          print_witness (mc, i, k);
         }
       }
     }
@@ -1344,6 +1433,7 @@ btor_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
   const char *bits_owned_by_forward, *bits;
   BtorPtrHashBucket *bucket;
   BtorMCInput *input;
+  BtorMCstate *state;
   BtorMCFrame *frame;
   char *res;
   Btor *btor;
@@ -1362,6 +1452,18 @@ btor_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
     bits_owned_by_forward = boolector_bv_assignment (mc->forward, node_at_time);
     res                   = btor_mem_strdup (mc->mm, bits_owned_by_forward);
     zero_normalize_assignment (res);
+    boolector_free_bv_assignment (mc->forward, bits_owned_by_forward);
+  }
+  else if ((bucket = btor_hashptr_table_get (mc->states, node)))
+  {
+    state = bucket->data.as_ptr;
+    assert (state);
+    assert (state->node == node);
+    frame        = mc->frames.start + time;
+    node_at_time = BTOR_PEEK_STACK (frame->states, state->id);
+    assert (node_at_time);
+    bits_owned_by_forward = boolector_bv_assignment (mc->forward, node_at_time);
+    res                   = btor_mem_strdup (mc->mm, bits_owned_by_forward);
     boolector_free_bv_assignment (mc->forward, bits_owned_by_forward);
   }
   else
