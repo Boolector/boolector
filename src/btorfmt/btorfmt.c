@@ -503,6 +503,20 @@ check_sorts_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
       break;
 
     case BTOR_FORMAT_TAG_init:
+      if (l->sort.tag == BTOR_FORMAT_TAG_SORT_array)
+      {
+        if (cmp_sorts (bfr, l, args[0]))
+          return perr_bfr (bfr, "sort of first argument does not match");
+        if (args[1]->sort.tag != BTOR_FORMAT_TAG_SORT_bitvec)
+          return perr_bfr (bfr, "bit-vector sort expected for second argument");
+        if (cmp_sort_ids (bfr, l->sort.array.element, args[1]->sort.id))
+          return perr_bfr (bfr,
+                           "sort of init value does not match element "
+                           "sort of state '%ld'",
+                           args[0]->id);
+        break;
+      }
+      // else fall through
     case BTOR_FORMAT_TAG_next:
       assert (l->nargs == 2);
       if (cmp_sorts (bfr, l, args[0]))
@@ -978,7 +992,6 @@ parse_init_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   if (!parse_args (bfr, l, 2)) return 0;
   if (l->args[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
   state = id2line_bfr (bfr, l->args[0]);
-  // TODO: allow initialization of arrays?
   if (state->tag != BTOR_FORMAT_TAG_state)
     return perr_bfr (bfr, "expected state as first argument");
   if (!is_constant_bfr (bfr, l->args[1]))
