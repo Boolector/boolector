@@ -340,7 +340,11 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
       case BTOR_FORMAT_TAG_init:
         assert (l->nargs == 2);
         assert (boolector_get_sort (btor, e[0]) == s);
-        assert (boolector_get_sort (btor, e[1]) == s);
+        assert (!boolector_is_bitvec_sort (btor, s)
+                || boolector_get_sort (btor, e[1]) == s);
+        assert (!boolector_is_array_sort (btor, s)
+                || boolector_get_width (btor, e[0])
+                       == boolector_get_width (btor, e[1]));
         boolector_mc_init (mc, e[0], e[1]);
         break;
 
@@ -641,7 +645,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
       default:
         assert (l->tag == BTOR_FORMAT_TAG_zero);
         assert (l->nargs == 0);
-        boolector_zero (btor, s);
+        n = boolector_zero (btor, s);
     }
     assert (!s || !n || boolector_get_sort (btor, n) == s);
     if (n)

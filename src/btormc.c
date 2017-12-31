@@ -508,7 +508,8 @@ btor_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   assert (boolector_get_btor (node) == btor);
   assert (boolector_get_btor (init) == btor);
   assert (boolector_is_const (btor, init));
-  assert (boolector_get_sort (btor, node) == boolector_get_sort (btor, init));
+  /* Note: We allow constants to initialize arrays */
+  assert (boolector_get_width (btor, node) == boolector_get_width (btor, init));
 
   state = find_mc_state (mc, node);
   assert (state);
@@ -767,7 +768,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
 static void
 initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
 {
-  Btor *btor;
+  Btor *btor, *fwd;
   BoolectorNode *src, *dst;
   BtorPtrHashTableIterator it;
   BtorMCstate *state;
@@ -781,6 +782,7 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
   assert (f->time >= 0);
 
   btor = mc->btor;
+  fwd  = mc->forward;
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             2,
@@ -804,17 +806,28 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
 
     if (!f->time && state->init)
     {
-      // TODO: const init arrays
-      assert (boolector_is_var (btor, src));
       bits = boolector_get_bits (btor, state->init);
-      dst  = boolector_const (mc->forward, bits);
+      dst  = boolector_const (fwd, bits);
       boolector_free_bits (btor, bits);
+      if (boolector_is_array (btor, src))
+      {
+        BoolectorSort si =
+            boolector_bitvec_sort (fwd, boolector_get_index_width (btor, src));
+        BoolectorNode *param = boolector_param (fwd, si, 0);
+        BoolectorNode *tmp   = boolector_fun (fwd, &param, 1, dst);
+        // FIXME: this is a workaround to explicitly mark tmp as array
+        ((BtorNode *) tmp)->is_array = 1;
+        boolector_release_sort (fwd, si);
+        boolector_release (fwd, dst);
+        boolector_release (fwd, param);
+        dst = tmp;
+      }
     }
     else if (f->time > 0 && state->next)
     {
       p   = f - 1;
       dst = BTOR_PEEK_STACK (p->next, i);
-      dst = boolector_copy (mc->forward, dst);
+      dst = boolector_copy (fwd, dst);
     }
     else
     {
