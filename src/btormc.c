@@ -458,20 +458,14 @@ btor_mc_state (BtorMC *mc, BoolectorSort sort, const char *symbol)
   assert (bucket);
   assert (!bucket->data.as_ptr);
   bucket->data.as_ptr = state;
-  // TODO: array
   if (symbol)
     BTOR_MSG (boolector_get_btor_msg (btor),
               2,
-              "declared state %d '%s' of width %d",
+              "declared state %d '%s'",
               state->id,
-              symbol,
-              boolector_get_width (btor, res));
+              symbol);
   else
-    BTOR_MSG (boolector_get_btor_msg (btor),
-              2,
-              "declared state %d of width %d",
-              state->id,
-              boolector_get_width (btor, res));
+    BTOR_MSG (boolector_get_btor_msg (btor), 2, "declared state %d", state->id);
   return res;
 }
 
@@ -962,21 +956,8 @@ initialize_constraints_of_frame (BtorMC *mc,
     src = BTOR_PEEK_STACK (mc->constraints, i);
     assert (src);
     dst = boolector_nodemap_substitute_node (mc->forward, map, src);
-    // TODO: boolector_assert (mc->foward, dst);
-    if (constraint)
-    {
-      BoolectorNode *tmp = boolector_and (mc->forward, constraint, dst);
-      boolector_release (mc->forward, constraint);
-      constraint = tmp;
-    }
-    else
-      constraint = boolector_copy (mc->forward, dst);
-  }
-
-  if (constraint)
-  {
-    boolector_assert (mc->forward, constraint);
-    boolector_release (mc->forward, constraint);
+    boolector_assert (mc->forward, dst);
+    boolector_release (mc->forward, dst);
   }
 }
 
@@ -1197,7 +1178,7 @@ check_last_forward_frame (BtorMC *mc)
 
   k = BTOR_COUNT_STACK (mc->frames) - 1;
   assert (k >= 0);
-  f = mc->frames.top - 1;  // TODO: use BTOR_TOP_STACK
+  f = mc->frames.top - 1;
   assert (f->time == k);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
