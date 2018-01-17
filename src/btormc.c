@@ -107,7 +107,7 @@ init_options (BtorMC *mc)
             20,
             0,
             UINT32_MAX,
-            "max bound for bmc");
+            "max bound for bmc (inclusive)");
   init_opt (mc,
             BTOR_MC_OPT_VERBOSITY,
             true,
