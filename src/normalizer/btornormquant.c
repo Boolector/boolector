@@ -182,8 +182,6 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
       else if (btor_node_is_bv_cond (real_cur)
                && btor_node_real_addr (real_cur->e[0])->quantifier_below)
       {
-        // TODO (ma): sanity check if a new UF is sufficient to express
-        //            the same as a new existential variable
         result = create_skolem_ite (btor, real_cur, map);
 
         tmp    = btor_exp_eq (btor, result, e[1]);
@@ -279,7 +277,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
   uint32_t j;
   BtorNode *cur, *real_cur, *result, **e;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, args;
+  BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *map;
   BtorIntStack polarity, reset;
   BtorHashTableData *d, data;
@@ -292,6 +290,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
   BTOR_INIT_STACK (mm, polarity);
   BTOR_INIT_STACK (mm, args);
   BTOR_INIT_STACK (mm, reset);
+  BTOR_INIT_STACK (mm, cleanup);
 
   BTOR_PUSH_STACK (visit, root);
   BTOR_PUSH_STACK (polarity, get_polarity (root));
@@ -307,7 +306,9 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
     assert (!btor_node_is_bv_var (real_cur));
 
     /* polarities are only pushed along the boolean skeleton */
-    if (!btor_node_is_and (real_cur) && !btor_node_is_quantifier (real_cur))
+    if (!btor_node_is_and (real_cur) && !btor_node_is_quantifier (real_cur)
+        && !(btor_node_is_bv_eq (real_cur) && real_cur->quantifier_below
+             && btor_node_get_width (btor, real_cur) == 1))
       cur_pol = 1;
 
     id = real_cur->id * cur_pol;
@@ -328,6 +329,30 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
                          get_polarity (btor_node_invert (real_cur->e[1])));
         BTOR_PUSH_STACK (visit, real_cur->e[0]);
         BTOR_PUSH_STACK (polarity, 1);
+      }
+      /* represent boolean equality as with and/not */
+      else if (btor_node_is_bv_eq (real_cur) && real_cur->quantifier_below
+               && btor_node_get_width (btor, real_cur->e[0]) == 1)
+      {
+        /* Explicitely disable rewriting here, since we *never* want the
+         * created 'iff' to be rewritten to an actual boolean equality.
+         * The created node is only used for traversing and getting the
+         * polarities right.  With the current set of rewriting rules the
+         * generated 'iff' is not rewritten to an equality, however, if
+         * additional rules are introduced later we want to make sure that
+         * this does not break normalization. */
+        unsigned rwl = btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL);
+        btor_opt_set (btor, BTOR_OPT_REWRITE_LEVEL, 0);
+        BtorNode *i1  = btor_exp_implies (btor, real_cur->e[0], real_cur->e[1]);
+        BtorNode *i2  = btor_exp_implies (btor, real_cur->e[1], real_cur->e[0]);
+        BtorNode *iff = btor_exp_and (btor, i1, i2);
+        btor_node_release (btor, i1);
+        btor_node_release (btor, i2);
+        iff = btor_node_cond_invert (cur, iff);
+        BTOR_PUSH_STACK (visit, iff);
+        BTOR_PUSH_STACK (polarity, cur_pol);
+        BTOR_PUSH_STACK (cleanup, iff);
+        btor_opt_set (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
       }
       else
       {
@@ -421,6 +446,10 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
   BTOR_RELEASE_STACK (polarity);
   BTOR_RELEASE_STACK (args);
   BTOR_RELEASE_STACK (reset);
+
+  while (!BTOR_EMPTY_STACK (cleanup))
+    btor_node_release (btor, BTOR_POP_STACK (cleanup));
+  BTOR_RELEASE_STACK (cleanup);
 
   for (j = 0; j < map->size; j++)
   {
