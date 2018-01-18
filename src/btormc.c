@@ -90,6 +90,15 @@ init_options (BtorMC *mc)
   assert (mc);
   BTOR_CNEWN (mc->mm, mc->options, BTOR_MC_OPT_NUM_OPTS);
   init_opt (mc,
+            BTOR_MC_OPT_BTOR_STATS,
+            true,
+            "btor-stats",
+            0,
+            0,
+            0,
+            1,
+            "print boolector stats at each k");
+  init_opt (mc,
             BTOR_MC_OPT_MIN_K,
             false,
             "bound-min",
@@ -936,7 +945,7 @@ initialize_constraints_of_frame (BtorMC *mc,
                                  BoolectorNodeMap *map,
                                  BtorMCFrame *f)
 {
-  BoolectorNode *src, *dst, *constraint;
+  BoolectorNode *src, *dst;
   uint32_t i;
 
   assert (mc);
@@ -948,8 +957,6 @@ initialize_constraints_of_frame (BtorMC *mc,
             "initializing %u environment constraints of frame %d",
             BTOR_COUNT_STACK (mc->constraints),
             f->time);
-
-  constraint = 0;
 
   for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
   {
@@ -1245,6 +1252,8 @@ check_last_forward_frame (BtorMC *mc)
                 i,
                 k);
     }
+    if (btor_mc_get_opt (mc, BTOR_MC_OPT_BTOR_STATS))
+      boolector_print_stats (mc->forward);
   }
 
   BTOR_MSG (boolector_get_btor_msg (btor),

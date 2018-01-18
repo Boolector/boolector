@@ -34,6 +34,8 @@ void boolector_mc_delete (BtorMC *mc);
 
 enum BtorMCOption
 {
+  /* Print statistics for frame Boolector instance. */
+  BTOR_MC_OPT_BTOR_STATS,
   /* Set the minimum bound for BMC */
   BTOR_MC_OPT_MIN_K,
   /* Set the maximum bound for BMC */
