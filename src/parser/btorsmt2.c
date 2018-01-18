@@ -2237,10 +2237,10 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser, "only one argument to '='");
         }
         if (!check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
-        exp = boolector_true (parser->btor);
-        for (i = 1; i < nargs; i++)
+        exp = boolector_eq (parser->btor, p[1].exp, p[2].exp);
+        for (i = 3; i < nargs; i++)
         {
-          tmp = boolector_eq (parser->btor, p[i].exp, p[i + 1].exp);
+          tmp = boolector_eq (parser->btor, p[i - 1].exp, p[i].exp);
           old = exp;
           exp = boolector_and (parser->btor, old, tmp);
           boolector_release (parser->btor, old);
@@ -2261,10 +2261,10 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser, "only one argument to 'distinct'");
         }
         if (!check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
-        exp = boolector_true (parser->btor);
+        exp = boolector_ne (parser->btor, p[1].exp, p[2].exp);
         for (i = 1; i < nargs; i++)
         {
-          for (j = i + 1; j <= nargs; j++)
+          for (j = i + 2; j <= nargs; j++)
           {
             tmp = boolector_ne (parser->btor, p[i].exp, p[j].exp);
             old = exp;
@@ -3504,7 +3504,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
   BoolectorNode *eq, *tmp, *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
-  BtorSMT2Node *fun, *arg;
+  BtorSMT2Node *fun, *arg, *new_arg;
   BoolectorNodePtrStack args;
   char *psym, *symbol;
   BoolectorSort sort, s;
@@ -3545,14 +3545,15 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       if (tag != BTOR_LPAR_TAG_SMT2) return !perr_smt2 (parser, "expected '('");
       if (!read_symbol (parser, " after '('", &arg)) return 0;
       assert (arg && arg->tag == BTOR_SYMBOL_TAG_SMT2);
-      // TODO: todo allow existing symbols that already occur in outer
-      // scopes
+
       if (arg->coo.x)
-        return !perr_smt2 (parser,
-                           "symbol '%s' already defined at line %d column %d",
-                           arg->name,
-                           arg->coo.x,
-                           arg->coo.y);
+      {
+        new_arg       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+        new_arg->name = btor_mem_strdup (parser->mem, arg->name);
+        /* symbol may already be in symbol table */
+        insert_symbol_smt2 (parser, new_arg);
+        arg = new_arg;
+      }
       arg->coo = parser->coo;
 
       tag = read_token_smt2 (parser);
@@ -4289,6 +4290,13 @@ parse_smt2_parser (BtorSMT2Parser *parser,
               1,
               "found functions thus using 'QF_AUFBV' logic");
     parser->res->logic = BTOR_LOGIC_QF_AUFBV;
+  }
+  else if (parser->need_functions && parser->res->logic == BTOR_LOGIC_BV)
+  {
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "found functions thus using 'UFBV' logic");
+    parser->res->logic = BTOR_LOGIC_UFBV;
   }
   else if (parser->commands.set_logic)
   {
