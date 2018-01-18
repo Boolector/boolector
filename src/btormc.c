@@ -957,7 +957,6 @@ initialize_constraints_of_frame (BtorMC *mc,
     assert (src);
     dst = boolector_nodemap_substitute_node (mc->forward, map, src);
     boolector_assert (mc->forward, dst);
-    boolector_release (mc->forward, dst);
   }
 }
 
