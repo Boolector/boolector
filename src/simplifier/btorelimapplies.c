@@ -77,7 +77,8 @@ btor_eliminate_applies (Btor *btor)
       {
         app = btor_iter_apply_parent_next (&it);
 
-        if (app->parameterized) continue;
+        /* If we have quantifiers, we always want to eliminate lambdas. */
+        if (btor->quantifiers->count == 0 && app->parameterized) continue;
 
         num_applies++;
         subst = btor_beta_reduce_full (btor, app, cache);

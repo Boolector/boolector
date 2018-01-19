@@ -3898,8 +3898,12 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   /* disabling slice elimination is better on QF_ABV and BV */
   if (btor->ufs->count > 0 || btor->quantifiers->count > 0)
     btor_opt_set (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
-  /* disable unconstrained optimization in case of quantifiers */
-  if (btor->quantifiers->count > 0) btor_opt_set (btor, BTOR_OPT_UCOPT, 0);
+  /* set options for quantifiers */
+  if (btor->quantifiers->count > 0)
+  {
+    btor_opt_set (btor, BTOR_OPT_UCOPT, 0);
+    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+  }
 
   res = btor_simplify (btor);
 
@@ -3934,8 +3938,16 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
                || btor->quantifiers->count > 0)
       {
-        BTOR_ABORT (btor->ufs->count > 0 || btor->lambdas->count > 0,
-                    "quantifiers with functions not supported yet");
+        BtorPtrHashTableIterator it;
+        BtorNode *cur;
+        btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+        btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+        while (btor_iter_hashptr_has_next (&it))
+        {
+          cur = btor_iter_hashptr_next (&it);
+          BTOR_ABORT (cur->lambda_below || cur->apply_below,
+                      "quantifiers with functions not supported yet");
+        }
         btor->slv = btor_new_quantifier_solver (btor);
       }
       else
