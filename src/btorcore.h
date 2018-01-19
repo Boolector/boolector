@@ -316,14 +316,20 @@ BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 
-/* Create a new term with 'substs' substituted in root. */
-BtorNode *btor_substitute_terms (Btor *btor,
+/* Create a new node with 'node' substituted by 'subst' in root. */
+BtorNode *btor_substitute_node (Btor *btor,
+                                BtorNode *root,
+                                BtorNode *node,
+                                BtorNode *subst);
+
+/* Create a new node with 'substs' substituted in root. */
+BtorNode *btor_substitute_nodes (Btor *btor,
                                  BtorNode *root,
                                  BtorNodeMap *substs);
 
 /* Create a new term with 'substs' substituted in root. If 'node_map' is given
  * it creates an id map from old nodes to new nodes. */
-BtorNode *btor_substitute_terms_node_map (Btor *btor,
+BtorNode *btor_substitute_nodes_node_map (Btor *btor,
                                           BtorNode *root,
                                           BtorNodeMap *substs,
                                           BtorIntHashTable *node_map);

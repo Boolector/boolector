@@ -2770,7 +2770,7 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp, BtorIntHashTable *mark)
 }
 
 BtorNode *
-btor_substitute_terms_node_map (Btor *btor,
+btor_substitute_nodes_node_map (Btor *btor,
                                 BtorNode *root,
                                 BtorNodeMap *substs,
                                 BtorIntHashTable *node_map)
@@ -2783,12 +2783,13 @@ btor_substitute_terms_node_map (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *subst, *result, **e;
   BtorNodePtrStack visit, args, cleanup;
-  BtorIntHashTable *mark;
+  BtorIntHashTable *mark, *mark_subst;
   BtorHashTableData *d;
   BtorNodeMapIterator it;
 
-  mm   = btor->mm;
-  mark = btor_hashint_map_new (mm);
+  mm         = btor->mm;
+  mark       = btor_hashint_map_new (mm);
+  mark_subst = btor_hashint_map_new (mm);
   BTOR_INIT_STACK (mm, visit);
   BTOR_INIT_STACK (mm, args);
   BTOR_INIT_STACK (mm, cleanup);
@@ -2809,6 +2810,7 @@ btor_substitute_terms_node_map (Btor *btor,
                 || btor_hashint_map_get (mark, btor_node_real_addr (subst)->id)
                        ->as_ptr);
         BTOR_PUSH_STACK (visit, btor_node_cond_invert (cur, subst));
+        btor_hashint_table_add (mark_subst, btor_node_real_addr (subst)->id);
         continue;
       }
 
@@ -2824,9 +2826,14 @@ btor_substitute_terms_node_map (Btor *btor,
 
       if (real_cur->arity == 0)
       {
-        if (btor_node_is_param (real_cur))
-          result =
-              btor_exp_param (btor, btor_node_get_width (btor, real_cur), 0);
+        if (btor_node_is_param (real_cur)
+            /* Do not create new param if 'real_cur' is already a
+             * substitution */
+            && !btor_hashint_table_contains (mark_subst, real_cur->id))
+        {
+          // TODO: make unique symbol !<num>++
+          result = btor_exp_param (btor, real_cur->sort_id, 0);
+        }
         else
           result = btor_node_copy (btor, real_cur);
       }
@@ -2892,13 +2899,27 @@ btor_substitute_terms_node_map (Btor *btor,
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (args);
   btor_hashint_map_delete (mark);
+  btor_hashint_map_delete (mark_subst);
   return result;
 }
 
 BtorNode *
-btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
+btor_substitute_nodes (Btor *btor, BtorNode *root, BtorNodeMap *substs)
 {
-  return btor_substitute_terms_node_map (btor, root, substs, 0);
+  return btor_substitute_nodes_node_map (btor, root, substs, 0);
+}
+
+BtorNode *
+btor_substitute_node (Btor *btor,
+                      BtorNode *root,
+                      BtorNode *node,
+                      BtorNode *subst)
+{
+  BtorNodeMap *map = btor_nodemap_new (btor);
+  btor_nodemap_map (map, node, subst);
+  BtorNode *result = btor_substitute_nodes_node_map (btor, root, map, 0);
+  btor_nodemap_delete (map);
+  return result;
 }
 
 static void
@@ -3163,81 +3184,6 @@ update_assumptions (Btor *btor)
   btor->assumptions = ass;
 }
 
-// TODO: move to btorextract
-// TODO: for extensional benchmarks (with real extensionality) we can only
-//       support one init pattern for now
-//       for all non-extensional benchmark very array can be initialized with
-//       \forall patterns
-void
-extract_quantified_array_initialization (Btor *btor)
-{
-  BtorPtrHashTableIterator it;
-  BtorNode *cur, *eq, *app, *val, *var, *lambda, *param;
-  uint32_t num_extracted = 0;
-
-  if (btor->forall_vars->count == 0) return;
-
-  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    cur = btor_iter_hashptr_next (&it);
-
-    if (btor_node_is_inverted (cur) || !btor_node_is_forall (cur)) continue;
-
-    app = 0;
-    if (btor_sort_is_bool (btor, btor_node_real_addr (cur->e[1])->sort_id)
-        && btor_node_is_apply (cur->e[1]))
-    {
-      app = btor_node_real_addr (cur->e[1]);
-      val = btor_node_cond_invert (cur->e[1], btor->true_exp);
-    }
-    else if (!btor_node_is_inverted (cur->e[1])
-             && btor_node_is_bv_eq (cur->e[1]))
-    {
-      eq = cur->e[1];
-      if (!btor_node_is_inverted (eq->e[0]) && btor_node_is_apply (eq->e[0])
-          && btor_node_is_bv_const (eq->e[1]))
-      {
-        app = eq->e[0];
-        val = eq->e[1];
-      }
-      else if (!btor_node_is_inverted (eq->e[1])
-               && btor_node_is_apply (eq->e[1])
-               && btor_node_is_bv_const (eq->e[0]))
-      {
-        app = eq->e[1];
-        val = eq->e[0];
-      }
-    }
-
-    if (!app) continue;
-
-    if (btor_sort_fun_get_arity (btor, app->e[0]->sort_id) != 1) continue;
-
-    if (!btor_node_is_param (app->e[1]->e[0])) continue;
-
-    var = app->e[1]->e[0];
-
-    if (!btor_node_param_is_forall_var (var) || var != cur->e[0]) continue;
-
-    // TODO: for now we can only extract exactly one initilization pattern
-    //       since we do not support extensionality over constant lambdas
-    //       yet
-    BTOR_ABORT (num_extracted, "multiple array initializations not supported");
-    num_extracted++;
-    param            = btor_exp_param (btor, var->sort_id, 0);
-    lambda           = btor_exp_lambda (btor, param, val);
-    lambda->is_array = app->e[0]->is_array;
-    eq               = btor_exp_eq (btor, app->e[0], lambda);
-    btor_assert_exp (btor, eq);
-    btor_node_release (btor, eq);
-    btor_node_release (btor, param);
-    btor_node_release (btor, lambda);
-    btor_hashptr_table_remove (btor->unsynthesized_constraints, cur, 0, 0);
-    btor_node_release (btor, cur);
-  }
-}
-
 int32_t
 btor_simplify (Btor *btor)
 {
@@ -3346,10 +3292,6 @@ btor_simplify (Btor *btor)
       assert (btor_dbg_check_unique_table_children_proxy_free (btor));
       if (btor->inconsistent) break;
     }
-
-    if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-        && btor_opt_get (btor, BTOR_OPT_EXTRACT_LAMBDAS))
-      extract_quantified_array_initialization (btor);
 
     if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
       continue;

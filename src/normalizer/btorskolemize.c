@@ -311,10 +311,10 @@ btor_skolemize (Btor *btor)
 
     if (btor_node_is_forall (cur)) continue;
 
-    /* exists quanftifier in most outer scope */
+    /* exists quantifier in most outer scope */
     if (!btor_nodemap_mapped (map, cur->e[0])) continue;
 
-    subst = btor_substitute_terms (btor, btor_node_binder_get_body (cur), map);
+    subst = btor_substitute_nodes (btor, btor_node_binder_get_body (cur), map);
     btor_nodemap_map (map, cur, subst);
     assert (!btor_hashptr_table_get (btor->substitutions, cur));
     btor_insert_substitution (btor, cur, subst, 0);

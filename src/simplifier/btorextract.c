@@ -1494,6 +1494,82 @@ extract_lambdas (Btor *btor,
   return num_total;
 }
 
+/* NOTE: Macro extraction may introduce extensional lambdas, which can not be
+ * handled right now. If that happens Boolector aborts with an error message
+ * about extensional lambdas. However, this is not a problem since we would
+ * abort anyways since we only support pure quantified BV right now. */
+void
+extract_macros (Btor *btor)
+{
+  double start;
+  BtorPtrHashTableIterator it;
+  BtorNode *cur, *eq, *app, *var, *lambda, *param;
+  BtorNode *body, *fun_body, *lambda_body;
+  uint32_t num_extracted = 0;
+
+  if (btor->forall_vars->count == 0) return;
+
+  start = btor_util_time_stamp ();
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = btor_iter_hashptr_next (&it);
+
+    if (btor_node_is_inverted (cur) || !btor_node_is_forall (cur)) continue;
+
+    body = cur->e[1];
+    if (!btor_node_is_bv_eq (body)) continue;
+
+    if (btor_node_is_apply (body->e[0]))
+    {
+      app      = body->e[0];
+      fun_body = body->e[1];
+    }
+    else if (btor_node_is_apply (body->e[1]))
+    {
+      app      = body->e[1];
+      fun_body = body->e[0];
+    }
+    else
+      continue;
+
+    if (btor_node_is_inverted (app))
+    {
+      app      = btor_node_invert (app);
+      fun_body = btor_node_invert (fun_body);
+    }
+
+    if (btor_node_is_lambda (app->e[0])) continue;
+    assert (btor_node_is_uf (app->e[0]));
+
+    if (btor_sort_fun_get_arity (btor, app->e[0]->sort_id) != 1) continue;
+
+    var = app->e[1]->e[0];
+
+    if (!btor_node_param_is_forall_var (var) || var != cur->e[0]) continue;
+
+    num_extracted++;
+    param       = btor_exp_param (btor, var->sort_id, 0);
+    lambda_body = btor_substitute_node (btor, fun_body, var, param);
+    lambda      = btor_exp_lambda (btor, param, lambda_body);
+    assert (!lambda->parameterized);
+    lambda->is_array = app->e[0]->is_array;
+    eq               = btor_exp_eq (btor, app->e[0], lambda);
+    btor_assert_exp (btor, eq);
+    btor_node_release (btor, eq);
+    btor_node_release (btor, param);
+    btor_node_release (btor, lambda_body);
+    btor_node_release (btor, lambda);
+    btor_hashptr_table_remove (btor->unsynthesized_constraints, cur, 0, 0);
+    btor_node_release (btor, cur);
+  }
+  BTOR_MSG (btor->msg,
+            1,
+            "extracted %u macros in %.3f seconds",
+            num_extracted,
+            btor_util_time_stamp () - start);
+}
+
 void
 btor_extract_lambdas (Btor *btor)
 {
@@ -1536,4 +1612,6 @@ btor_extract_lambdas (Btor *btor)
   BTOR_MSG (
       btor->msg, 1, "extracted %u lambdas in %.3f seconds", num_lambdas, delta);
   btor->time.extract += delta;
+
+  extract_macros (btor);
 }
