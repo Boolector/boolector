@@ -467,6 +467,10 @@ btor_print_stats (Btor *btor)
             1,
             "%5d embedded constraint substitutions",
             btor->stats.ec_substitutions);
+  BTOR_MSG (btor->msg,
+            1,
+            "%5d synthesized nodes rewritten",
+            btor->stats.rewrite_synth);
 
   BTOR_MSG (btor->msg,
             1,
@@ -2065,6 +2069,11 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
           || !btor_node_real_addr (simplified)->parameterized);
   assert (!btor_node_real_addr (simplified)->parameterized
           || exp->parameterized);
+
+  /* FIXME: indicator for slow-down in incremental mode, when too many
+   * synthesized nodes are rewritten, it can significantly slow-down the
+   * solver. */
+  if (btor_node_is_synth (exp)) btor->stats.rewrite_synth++;
 
   if (exp->simplified) btor_node_release (btor, exp->simplified);
 

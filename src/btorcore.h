@@ -196,6 +196,7 @@ struct Btor
 #ifndef NDEBUG
     BtorPtrHashTable *rw_rules_applied;
 #endif
+    uint_least64_t rewrite_synth;
   } stats;
 
   struct
