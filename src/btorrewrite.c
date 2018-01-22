@@ -813,6 +813,8 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         result = btor_node_copy (btor, e1);
       else if (kind == BTOR_ULT_NODE) /* UNSIGNED_MAX < x */
         result = btor_exp_false (btor);
+      else if (kind == BTOR_MUL_NODE)
+        result = btor_exp_neg (btor, e1);
       break;
     default:
       assert (sc == BTOR_SPECIAL_CONST_BV_NONE);
@@ -1080,6 +1082,8 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         result = btor_node_copy (btor, e0);
       else if (kind == BTOR_ULT_NODE)
         result = btor_node_invert (rewrite_eq_exp (btor, e0, e1));
+      else if (kind == BTOR_MUL_NODE)
+        result = btor_exp_neg (btor, e0);
       break;
     default:
       assert (sc == BTOR_SPECIAL_CONST_BV_NONE);
