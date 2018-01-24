@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2017 Aina Niemetz.
  *  Copyright (C) 2017 Mathias Preiner.
+ *  Copyright (C) 2018 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -133,7 +134,7 @@ print_help (FILE *out, BtorMC *mc)
   int32_t i;
   BtorMCOpt *o;
 
-  fprintf (out, "usage: boolectormc [<option>...][<input>]\n");
+  fprintf (out, "usage: btormc [<option>...][<input>]\n");
   fprintf (out, "\n");
   fprintf (out, "where <option> is one of the following:\n");
   fprintf (out, "\n");
@@ -145,7 +146,7 @@ print_help (FILE *out, BtorMC *mc)
 
   fprintf (out, "\n");
 
-  // print_opt (out, mc->mm, "dump", "d", true, 0, "dump formula", false);
+  print_opt (out, mc->mm, "dump", "d", true, 0, "dump formula", false);
 
   for (i = 0; i < BTOR_MC_OPT_NUM_OPTS; i++)
   {
@@ -404,12 +405,12 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
 
       case BTOR_FORMAT_TAG_one:
         assert (l->nargs == 0);
-        boolector_one (btor, s);
+        n = boolector_one (btor, s);
         break;
 
       case BTOR_FORMAT_TAG_ones:
         assert (l->nargs == 0);
-        boolector_ones (btor, s);
+        n = boolector_ones (btor, s);
         break;
 
       case BTOR_FORMAT_TAG_or:
@@ -683,7 +684,7 @@ main (int32_t argc, char **argv)
   int32_t i;
   int32_t len, close_infile;
   int32_t res;
-  // bool dump;
+  bool dump;
   uint32_t kmin, kmax;
   char *infile_name, *cmd;
   FILE *infile, *out;
@@ -703,7 +704,7 @@ main (int32_t argc, char **argv)
 
   res = BTOR_MC_SUCC_EXIT;
 
-  // dump = false;
+  dump = false;
 
   mm = btor_mem_mgr_new ();
   mc = boolector_mc_new ();
@@ -780,11 +781,11 @@ main (int32_t argc, char **argv)
     {
       fprintf (out, "%s\n", boolector_version (mc->btor));
     }
-    //      else if (strcmp (po->name.start, "d") == 0
-    //               || strcmp (po->name.start, "dump") == 0)
-    //        {
-    //          dump = true;
-    //        }
+    else if (strcmp (po->name.start, "d") == 0
+             || strcmp (po->name.start, "dump") == 0)
+    {
+      dump = true;
+    }
     else
     {
       for (opt = 0; opt < BTOR_MC_OPT_NUM_OPTS; opt++)
@@ -850,11 +851,11 @@ main (int32_t argc, char **argv)
   res = parse (mc, infile, infile_name);
   if (res == BTOR_MC_SUCC_EXIT)
   {
-    //  if (dump)
-    //    {
-    //      boolector_mc_dump (mc, out);
-    //    }
-    //  else
+    if (dump)
+    {
+      boolector_mc_dump (mc, out);
+    }
+    else
     {
       kmin = boolector_mc_get_opt (mc, BTOR_MC_OPT_MIN_K);
       kmax = boolector_mc_get_opt (mc, BTOR_MC_OPT_MAX_K);

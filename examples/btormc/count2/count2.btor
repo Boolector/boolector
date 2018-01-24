@@ -1,0 +1,11 @@
+1 sort bitvec 2
+2 state 1
+3 zero 1
+4 init 1 2 3
+5 one 1
+6 add 1 2 5
+7 next 1 2 6
+8 ones 1
+9 sort bitvec 1
+10 eq 9 2 8
+11 bad 10
