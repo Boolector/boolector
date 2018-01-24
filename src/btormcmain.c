@@ -255,8 +255,17 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
     /* args */
     for (i = 0; i < l->nargs; i++)
     {
-      assert (btor_hashint_map_contains (nodemap, l->args[i]));
-      e[i] = btor_hashint_map_get (nodemap, l->args[i])->as_ptr;
+      long signed_arg   = l->args[i];
+      long unsigned_arg = signed_arg < 0 ? -signed_arg : signed_arg;
+      assert (btor_hashint_map_contains (nodemap, unsigned_arg));
+      BoolectorNode *tmp = btor_hashint_map_get (nodemap, unsigned_arg)->as_ptr;
+      if (signed_arg < 0)
+      {
+        e[i] = boolector_not (btor, tmp);
+        boolector_release (btor, tmp);
+      }
+      else
+        e[i] = tmp;
       assert (e[i]);
     }
 
