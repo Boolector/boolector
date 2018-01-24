@@ -1147,7 +1147,7 @@ print_witness (BtorMC *mc, int32_t bad_id, int32_t time)
   for (i = 0; i <= time; i++)
   {
     printf ("@%d\n", i);
-    if (i == 0 || i == time || full_trace)
+    if (i == 0 || full_trace)
     {
       btor_iter_hashptr_init (&it, mc->states);
       while (btor_iter_hashptr_has_next (&it))
@@ -1155,7 +1155,7 @@ print_witness (BtorMC *mc, int32_t bad_id, int32_t time)
         state = it.bucket->data.as_ptr;
         assert (state);
         src = (BoolectorNode *) btor_iter_hashptr_next (&it);
-        if (i < time && !full_trace && state->init) continue;
+        if (!full_trace && state->init) continue;
         print_witness_at_time (mc, src, i);
       }
     }
