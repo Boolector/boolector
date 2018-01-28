@@ -150,8 +150,8 @@ print_help (FILE *out, BtorMC *mc)
   print_opt (
       out,
       mc->mm,
-      "bador",
-      "bo",
+      "checkall",
+      "ca",
       true,
       0,
       "check the disjunction of given properties rather than checking each "
@@ -193,7 +193,7 @@ msg (char *m, ...)
 #define BTOR_MC_BOOLECTOR_FUN(name) (n =)
 
 static int32_t
-parse (BtorMC *mc, FILE *infile, const char *infile_name, bool bador)
+parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
 {
   assert (mc);
   assert (infile);
@@ -298,7 +298,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool bador)
 
       case BTOR_FORMAT_TAG_bad:
         assert (l->nargs == 1);
-        if (bador)
+        if (checkall)
           BTOR_PUSH_STACK (bad, boolector_copy (btor, e[0]));
         else
           boolector_mc_bad (mc, e[0]);
@@ -682,7 +682,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool bador)
       btor_hashint_map_add (nodemap, l->id)->as_ptr = n;
     }
   }
-  if (bador && BTOR_COUNT_STACK (bad))
+  if (checkall && BTOR_COUNT_STACK (bad))
   {
     BoolectorNode *tmp;
     BoolectorNode *b = boolector_copy (btor, BTOR_PEEK_STACK (bad, 0));
@@ -727,7 +727,7 @@ main (int32_t argc, char **argv)
   int32_t i;
   int32_t len, close_infile;
   int32_t res;
-  bool dump, bador;
+  bool dump, checkall;
   uint32_t kmin, kmax;
   char *infile_name, *cmd;
   FILE *infile, *out;
@@ -747,8 +747,8 @@ main (int32_t argc, char **argv)
 
   res = BTOR_MC_SUCC_EXIT;
 
-  dump  = false;
-  bador = false;
+  dump     = false;
+  checkall = false;
 
   mm = btor_mem_mgr_new ();
   mc = boolector_mc_new ();
@@ -832,10 +832,10 @@ main (int32_t argc, char **argv)
     {
       dump = true;
     }
-    else if (strcmp (po->name.start, "bo") == 0
-             || strcmp (po->name.start, "bador") == 0)
+    else if (strcmp (po->name.start, "ca") == 0
+             || strcmp (po->name.start, "checkall") == 0)
     {
-      bador = true;
+      checkall = true;
     }
     /* mc options */
     else
@@ -900,7 +900,7 @@ main (int32_t argc, char **argv)
 
   /* parse and execute ================================================ */
 
-  res = parse (mc, infile, infile_name, bador);
+  res = parse (mc, infile, infile_name, checkall);
 
   if (res == BTOR_MC_SUCC_EXIT)
   {
