@@ -18,6 +18,8 @@
 #include <string.h>
 
 #include "btorfmt/btorfmt.h"
+
+#include "btorbv.h"
 #include "utils/btorrng.h"
 #include "utils/btorstack.h"
 
@@ -116,6 +118,9 @@ static long num_format_lines;
 static BtorFormatLine **inits;
 static BtorFormatLine **nexts;
 
+static BtorBitVector **current_state;
+static BtorBitVector **next_state;
+
 static void
 parse_model_line (BtorFormatLine *l)
 {
@@ -124,7 +129,7 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_bad:
     {
       long i = (long) BTOR_COUNT_STACK (bads);
-      msg (1, "bads %s at line %ld", i, l->lineno);
+      msg (1, "bad %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (bads, l);
     }
     break;
@@ -132,7 +137,7 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_constraint:
     {
       long i = (long) BTOR_COUNT_STACK (constraints);
-      msg (1, "constraint %s at line %ld", i, l->lineno);
+      msg (1, "constraint %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (constraints, l);
     }
     break;
@@ -182,16 +187,18 @@ parse_model_line (BtorFormatLine *l)
     }
     break;
 
+    case BTOR_FORMAT_TAG_add:
+    case BTOR_FORMAT_TAG_eq:
+    case BTOR_FORMAT_TAG_one:
+    case BTOR_FORMAT_TAG_ones:
     case BTOR_FORMAT_TAG_zero: break;
 
-    case BTOR_FORMAT_TAG_add:
     case BTOR_FORMAT_TAG_and:
     case BTOR_FORMAT_TAG_concat:
     case BTOR_FORMAT_TAG_const:
     case BTOR_FORMAT_TAG_constd:
     case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_dec:
-    case BTOR_FORMAT_TAG_eq:
     case BTOR_FORMAT_TAG_fair:
     case BTOR_FORMAT_TAG_iff:
     case BTOR_FORMAT_TAG_implies:
@@ -204,8 +211,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_neg:
     case BTOR_FORMAT_TAG_nor:
     case BTOR_FORMAT_TAG_not:
-    case BTOR_FORMAT_TAG_one:
-    case BTOR_FORMAT_TAG_ones:
     case BTOR_FORMAT_TAG_or:
     case BTOR_FORMAT_TAG_output:
     case BTOR_FORMAT_TAG_read:
@@ -264,7 +269,7 @@ parse_model ()
   BTOR_INIT_STACK (mem, bads);
   BTOR_INIT_STACK (mem, constraints);
   assert (model_file);
-  BtorFormatReader *model = btorfmt_new ();
+  model = btorfmt_new ();
   if (!btorfmt_read_lines (model, model_file))
     die ("parse error in '%s' at %s", model_path, btorfmt_error (model));
   num_format_lines = btorfmt_max_id (model);
@@ -278,6 +283,12 @@ parse_model ()
 static int print_trace = 1;
 
 static BtorRNG rng;
+
+static void
+random_simulation (long k)
+{
+  msg (0, "simulating %ld steps", k);
+}
 
 int
 main (int argc, char **argv)
@@ -374,10 +385,13 @@ main (int argc, char **argv)
     s = 0;
   else if (!random_mode)
     die ("specifying a random seed in checking mode does not make sense");
+  BTOR_CNEWN (mem, current_state, num_format_lines);
+  BTOR_CNEWN (mem, next_state, num_format_lines);
   if (random_mode)
   {
     msg (0, "using random seed %d", s);
     btor_rng_init (&rng, (uint32_t) s);
+    random_simulation (r);
   }
   if (witness_path) msg (0, "reading BTOR witness from '%s'", witness_path);
   if (close_model_file && fclose (model_file))
@@ -392,6 +406,12 @@ main (int argc, char **argv)
   btorfmt_delete (model);
   BTOR_DELETEN (mem, inits, num_format_lines);
   BTOR_DELETEN (mem, nexts, num_format_lines);
+  for (long i = 0; i < num_format_lines; i++)
+    if (current_state[i]) btor_bv_free (mem, current_state[i]);
+  for (long i = 0; i < num_format_lines; i++)
+    if (next_state[i]) btor_bv_free (mem, next_state[i]);
+  BTOR_DELETEN (mem, current_state, num_format_lines);
+  BTOR_DELETEN (mem, next_state, num_format_lines);
   btor_mem_mgr_delete (mem);
 
   return res;
