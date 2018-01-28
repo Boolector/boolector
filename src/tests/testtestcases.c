@@ -36,7 +36,7 @@ test_testcase (void)
   for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
     len += strlen (BTOR_PEEK_STACK (g_args, i));
   syscall_string = (char *) malloc (sizeof (char *) * len);
-  sprintf (syscall_string, "%sboolector ", BTOR_BIN_DIR);
+  sprintf (syscall_string, "%sboolector ", btor_bin_dir);
   len = strlen (syscall_string);
   for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
   {
@@ -61,8 +61,8 @@ run_testcases_tests (int32_t argc, char **argv)
   FILE *file;
   int32_t ch;
 
-  s = (char *) malloc (sizeof (char *) * (strlen (BTOR_TEST_DIR) + 20));
-  sprintf (s, "%stestcases", BTOR_TEST_DIR);
+  s = (char *) malloc (sizeof (char *) * (strlen (btor_test_dir) + 20));
+  sprintf (s, "%stestcases", btor_test_dir);
   assert ((file = fopen (s, "r")));
   free (s);
 

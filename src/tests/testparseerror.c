@@ -64,24 +64,24 @@ run_smt_parse_error_test (void)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + suff_len + 1 + len + 4 + strlen ("boolector  ")
-         + strlen (BTOR_BIN_DIR) + strlen (smt_opt) + strlen (" > ")
-         + strlen (BTOR_LOG_DIR) * 2 + strlen (" 2>&1") + 1));
+         + strlen (btor_bin_dir) + strlen (smt_opt) + strlen (" > ")
+         + strlen (btor_log_dir) * 2 + strlen (" 2>&1") + 1));
 
   sprintf (syscall_string,
            "%sboolector %s %s%s > %s%s 2>&1",
-           BTOR_BIN_DIR,
+           btor_bin_dir,
            smt_opt,
-           BTOR_LOG_DIR,
+           btor_log_dir,
            smt_fname,
-           BTOR_LOG_DIR,
+           btor_log_dir,
            log_fname);
 
   if ((res = WEXITSTATUS (system (syscall_string))) != 1)
   {
     FILE *file;
 
-    log_path = malloc (len + strlen (BTOR_LOG_DIR) + 4 + 1);
-    sprintf (log_path, "%s%s.log", BTOR_LOG_DIR, log_fname);
+    log_path = malloc (len + strlen (btor_log_dir) + 4 + 1);
+    sprintf (log_path, "%s%s.log", btor_log_dir, log_fname);
     assert (file_exists (log_path));
     file = fopen (log_path, "a");
     fprintf (
@@ -112,7 +112,7 @@ hassuffix (const char *str, const char *suffix)
 void
 run_parseerror_tests (int32_t argc, char **argv)
 {
-  DIR *dir = opendir (BTOR_LOG_DIR);
+  DIR *dir = opendir (btor_log_dir);
   struct dirent *de;
   char *base = NULL;
   while ((de = readdir (dir)))

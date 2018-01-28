@@ -49,16 +49,16 @@ modelgensmt2_test (const char *fname, int32_t rwl)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + 5 + len + 4 + strlen ("boolector -rwl 3 -m --smt2-model ")
-         + strlen (" -o ") + strlen (BTOR_BIN_DIR) + strlen (BTOR_LOG_DIR) * 2
+         + strlen (" -o ") + strlen (btor_bin_dir) + strlen (btor_log_dir) * 2
          + 1));
 
   sprintf (syscall_string,
            "%sboolector -rwl %d -m --smt2-model %s%s -o %s%s",
-           BTOR_BIN_DIR,
+           btor_bin_dir,
            rwl,
-           BTOR_LOG_DIR,
+           btor_log_dir,
            btor_fname,
-           BTOR_LOG_DIR,
+           btor_log_dir,
            log_fname);
 
   ret_val = system (syscall_string); /* save to avoid warning */
@@ -68,14 +68,14 @@ modelgensmt2_test (const char *fname, int32_t rwl)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + 5 + len + 4 + strlen ("btorcheckmodelsmt2   > /dev/null")
-         + strlen (BTOR_CONTRIB_DIR) + strlen (BTOR_LOG_DIR) * 2 + 1));
+         + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1));
 
   sprintf (syscall_string,
            "%sbtorcheckmodelsmt2 %s%s %s%s > /dev/null",
-           BTOR_CONTRIB_DIR,
-           BTOR_LOG_DIR,
+           btor_contrib_dir,
+           btor_log_dir,
            btor_fname,
-           BTOR_LOG_DIR,
+           btor_log_dir,
            log_fname);
 
   ret_val = system (syscall_string);

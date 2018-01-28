@@ -52,8 +52,8 @@ init_misc_tests (void)
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
-  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (BTOR_BIN_DIR) + 20));
-  sprintf (g_btor_str, "%sboolector", BTOR_BIN_DIR);
+  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (btor_bin_dir) + 20));
+  sprintf (g_btor_str, "%sboolector", btor_bin_dir);
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 

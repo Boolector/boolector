@@ -68,8 +68,8 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
       (char *) malloc (sizeof (char) * (strlen (prefix) + strlen (p) + 10 + 1));
   sprintf (name, "smtaxiom%s%d", p, i);
 
-  buffer = (char *) malloc (strlen (BTOR_LOG_DIR) + strlen (name) + 4 + 1);
-  sprintf (buffer, "%s%s.smt", BTOR_LOG_DIR, name);
+  buffer = (char *) malloc (strlen (btor_log_dir) + strlen (name) + 4 + 1);
+  sprintf (buffer, "%s%s.smt", btor_log_dir, name);
   BTOR_PUSH_STACK (g_args, buffer);
 
   run_test_case (argc, argv, test_g_args_unsat, name, 0);

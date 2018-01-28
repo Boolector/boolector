@@ -404,10 +404,10 @@ run_test_case (int32_t argc,
       len = 0;
       /* "log/" + name + ".log" or ".out" + \0 */
       len          = 4 + strlen (name) + 4 + 1;
-      logfile_name = (char *) malloc (len + 4 + strlen (BTOR_LOG_DIR));
-      outfile_name = (char *) malloc (len + 4 + strlen (BTOR_LOG_DIR));
-      sprintf (logfile_name, "%s%s.log", BTOR_LOG_DIR, name);
-      sprintf (outfile_name, "%s%s.out", BTOR_LOG_DIR, name);
+      logfile_name = (char *) malloc (len + 4 + strlen (btor_log_dir));
+      outfile_name = (char *) malloc (len + 4 + strlen (btor_log_dir));
+      sprintf (logfile_name, "%s%s.log", btor_log_dir, name);
+      sprintf (outfile_name, "%s%s.out", btor_log_dir, name);
 
       g_logfile = fopen (logfile_name, "w");
       assert (g_logfile);

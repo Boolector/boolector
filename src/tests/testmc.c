@@ -119,8 +119,8 @@ test_mctoggle ()
     if (mode)
     {
       fname = (char *) malloc (sizeof (char)
-                               * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
-      sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+                               * (strlen (btor_log_dir) + strlen (suffix) + 1));
+      sprintf (fname, "%s%s", btor_log_dir, suffix);
       file = fopen (fname, "w");
       assert (file);
       fprintf (file, "Bad state property satisfied at k = %d:\n", k);
@@ -191,8 +191,8 @@ test_mccount2enable ()
     if (mode)
     {
       fname = (char *) malloc (sizeof (char)
-                               * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
-      sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+                               * (strlen (btor_log_dir) + strlen (suffix) + 1));
+      sprintf (fname, "%s%s", btor_log_dir, suffix);
       file = fopen (fname, "w");
       assert (file);
       boolector_mc_dump (g_mc, file);
@@ -270,8 +270,8 @@ test_mccount2resetenable ()
   assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
   fname = (char *) malloc (sizeof (char)
-                           * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
-  sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+                           * (strlen (btor_log_dir) + strlen (suffix) + 1));
+  sprintf (fname, "%s%s", btor_log_dir, suffix);
   file = fopen (fname, "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);
@@ -349,8 +349,8 @@ test_mctwostepsmodel ()
   assert (k == 2);			// can reach bad within k=2 steps
 
   fname = (char *) malloc (
-      sizeof (char) * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
-  sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+      sizeof (char) * (strlen (btor_log_dir) + strlen (suffix) + 1));
+  sprintf (fname, "%s%s", btor_log_dir, suffix);
   file = fopen (fname, "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);

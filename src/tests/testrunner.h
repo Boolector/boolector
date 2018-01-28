@@ -17,8 +17,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "btorconfig.h"  // TODO REMOVE!
-
 extern int32_t g_rwreads;
 extern FILE *g_logfile;
 

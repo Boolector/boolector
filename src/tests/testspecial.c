@@ -37,8 +37,8 @@ init_special_tests (void)
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
-  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (BTOR_BIN_DIR) + 20));
-  sprintf (g_btor_str, "%sboolector", BTOR_BIN_DIR);
+  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (btor_bin_dir) + 20));
+  sprintf (g_btor_str, "%sboolector", btor_bin_dir);
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
@@ -55,8 +55,8 @@ run_test (char *name, int32_t expected)
   char *full_name;
 
   full_name = (char *) malloc (sizeof (char)
-                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
-  strcpy (full_name, BTOR_LOG_DIR);
+                               * (strlen (btor_log_dir) + strlen (name) + 1));
+  strcpy (full_name, btor_log_dir);
   strcat (full_name, name);
   g_argv[g_argc - 1] = full_name;
   assert (boolector_main (g_argc, g_argv) == expected);
@@ -1286,14 +1286,14 @@ run_verbose_test (char *name, int32_t verbosity)
   int32_t res;
 
   full_name = (char *) malloc (sizeof (char)
-                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
+                               * (strlen (btor_log_dir) + strlen (name) + 1));
 
   redirect_str = "> /dev/null";
   v1_str       = "-v";
   v2_str       = "-v -v";
   v3_str       = "-v -v -v";
 
-  strcpy (full_name, BTOR_LOG_DIR);
+  strcpy (full_name, btor_log_dir);
   strcat (full_name, name);
 
   switch (verbosity)
