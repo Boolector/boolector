@@ -101,6 +101,8 @@ parse_model ()
 {
   assert (model_file);
   BtorFormatReader *reader = btorfmt_new ();
+  if (!btorfmt_read_lines (reader, model_file))
+    die ("parse error in '%s' at %s", model_path, btorfmt_error (reader));
   btorfmt_delete (reader);
 }
 
