@@ -77,13 +77,32 @@ parse_positive_number (const char *str, int *res_ptr)
 {
   const char *p = str;
   if (!*p) return 0;
-  int res  = 0;
+  if (*p == '0' && p[1]) return 0;
+  int res = 0;
+  while (*p)
+  {
+    const int ch = *p++;
+    if (!isdigit (ch)) return 0;
+    if (INT_MAX / 10 < res) return 0;
+    res *= 10;
+    const int digit = ch - '0';
+    if (INT_MAX - digit < res) return 0;
+    res += digit;
+  }
   *res_ptr = res;
   return 1;
 }
 
 static int checking_mode = 0;
 static int random_mode   = 0;
+
+static void
+parse_model ()
+{
+  assert (model_file);
+  BtorFormatReader *reader = btorfmt_new ();
+  btorfmt_delete (reader);
+}
 
 int
 main (int argc, char **argv)
@@ -98,14 +117,14 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-r"))
     {
       if (++i == argc) die ("argument to '-r' missing");
-      if ((r = atoi (argv[i])) < 1)
-        die ("invalid argument '%s' to '-r'", argv[i]);
+      if (!parse_positive_number (argv[i], &r))
+        die ("invalid number in '-r %s'", argv[i]);
     }
     else if (!strcmp (argv[i], "-s"))
     {
       if (++i == argc) die ("argument to '-s' missing");
-      if ((s = atoi (argv[i])) < 1)
-        die ("invalid argument '%s' to '-s'", argv[i]);
+      if (!parse_positive_number (argv[i], &s))
+        die ("invalid number in '-s %s'", argv[i]);
     }
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s' (try '-h')", argv[i]);
@@ -122,7 +141,7 @@ main (int argc, char **argv)
   if (model_path)
   {
     if (!(model_file = fopen (model_path, "r")))
-      die ("failed to open btor model file '%s' for reading", model_path);
+      die ("failed to open BTOR model file '%s' for reading", model_path);
     close_model_file = 1;
   }
   else
@@ -151,7 +170,7 @@ main (int argc, char **argv)
       checking_mode = 0;
       msg (
           "random mode: "
-          "model and '-r %s' specified, but no witness",
+          "model and '-r %d' specified, but no witness",
           r);
     }
     else
@@ -172,13 +191,21 @@ main (int argc, char **argv)
     random_mode   = 1;
     checking_mode = 0;
   }
-  if (s < 0) s = 0;
-  msg ("random seed %d", s);
   if (model_path) msg ("reading BTOR model from '%s'", model_path);
+  parse_model ();
+  if (s < 0)
+    s = 0;
+  else if (!random_mode)
+    die ("specifying a random seed in checking mode does not make sense");
+  if (random_mode)
+  {
+    msg ("using random seed %d", s);
+    srand (s);
+  }
   if (witness_path) msg ("reading BTOR witness from '%s'", witness_path);
-  if (close_model_file && !fclose (model_file))
+  if (close_model_file && fclose (model_file))
     die ("can not close model file '%s'", model_path);
-  if (close_witness_file && !fclose (witness_file))
+  if (close_witness_file && fclose (witness_file))
     die ("can not close witness file '%s'", witness_path);
   return res;
 }
