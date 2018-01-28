@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "btorfmt/btorfmt.h"
+#include "utils/btorrng.h"
 #include "utils/btorstack.h"
 
 static void
@@ -102,34 +103,91 @@ static int checking_mode = 0;
 static int random_mode   = 0;
 static BtorFormatReader *model;
 
+static BtorMemMgr *mem;
+
 BTOR_DECLARE_STACK (BtorFormatLinePtr, BtorFormatLine *);
 
 static BtorFormatLinePtrStack inputs;
 static BtorFormatLinePtrStack states;
-static BtorFormatLinePtrStack bad;
+static BtorFormatLinePtrStack bads;
+static BtorFormatLinePtrStack constraints;
+
+static long num_format_lines;
+static BtorFormatLine **inits;
+static BtorFormatLine **nexts;
 
 static void
 parse_model_line (BtorFormatLine *l)
 {
   switch (l->tag)
   {
+    case BTOR_FORMAT_TAG_bad:
+    {
+      long i = (long) BTOR_COUNT_STACK (bads);
+      msg (1, "bads %s at line %ld", i, l->lineno);
+      BTOR_PUSH_STACK (bads, l);
+    }
+    break;
+
+    case BTOR_FORMAT_TAG_constraint:
+    {
+      long i = (long) BTOR_COUNT_STACK (constraints);
+      msg (1, "constraint %s at line %ld", i, l->lineno);
+      BTOR_PUSH_STACK (constraints, l);
+    }
+    break;
+
+    case BTOR_FORMAT_TAG_init: inits[l->args[0]] = l; break;
+
     case BTOR_FORMAT_TAG_input:
     {
       long i = (long) BTOR_COUNT_STACK (inputs);
       if (l->symbol)
-        msg (1, "input %ld %s", i, l->symbol);
+        msg (1, "input %ld %s at line %ld", i, l->symbol, l->lineno);
       else
-        msg (1, "input %s", i);
+        msg (1, "input %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (inputs, l);
     }
     break;
 
+    case BTOR_FORMAT_TAG_next: nexts[l->args[0]] = l; break;
+
+    case BTOR_FORMAT_TAG_sort:
+    {
+      switch (l->sort.tag)
+      {
+        case BTOR_FORMAT_TAG_SORT_bitvec:
+          msg (
+              1, "sort bitvec %u at line %ld", l->sort.bitvec.width, l->lineno);
+          break;
+        case BTOR_FORMAT_TAG_SORT_array:
+        default:
+          die ("parse error in '%s' at line %ld: unsupported sort '%s'",
+               model_path,
+               l->lineno,
+               l->sort.name);
+          break;
+      }
+    }
+    break;
+
+    case BTOR_FORMAT_TAG_state:
+    {
+      long i = (long) BTOR_COUNT_STACK (states);
+      if (l->symbol)
+        msg (1, "state %ld %s at line %ld", i, l->symbol, l->lineno);
+      else
+        msg (1, "state %ld at line %ld", i, l->lineno);
+      BTOR_PUSH_STACK (states, l);
+    }
+    break;
+
+    case BTOR_FORMAT_TAG_zero: break;
+
     case BTOR_FORMAT_TAG_add:
     case BTOR_FORMAT_TAG_and:
-    case BTOR_FORMAT_TAG_bad:
     case BTOR_FORMAT_TAG_concat:
     case BTOR_FORMAT_TAG_const:
-    case BTOR_FORMAT_TAG_constraint:
     case BTOR_FORMAT_TAG_constd:
     case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_dec:
@@ -138,14 +196,12 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_iff:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_inc:
-    case BTOR_FORMAT_TAG_init:
     case BTOR_FORMAT_TAG_ite:
     case BTOR_FORMAT_TAG_justice:
     case BTOR_FORMAT_TAG_mul:
     case BTOR_FORMAT_TAG_nand:
     case BTOR_FORMAT_TAG_ne:
     case BTOR_FORMAT_TAG_neg:
-    case BTOR_FORMAT_TAG_next:
     case BTOR_FORMAT_TAG_nor:
     case BTOR_FORMAT_TAG_not:
     case BTOR_FORMAT_TAG_one:
@@ -168,14 +224,12 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_sll:
     case BTOR_FORMAT_TAG_slt:
     case BTOR_FORMAT_TAG_slte:
-    case BTOR_FORMAT_TAG_sort:
     case BTOR_FORMAT_TAG_smod:
     case BTOR_FORMAT_TAG_smulo:
     case BTOR_FORMAT_TAG_sra:
     case BTOR_FORMAT_TAG_srem:
     case BTOR_FORMAT_TAG_srl:
     case BTOR_FORMAT_TAG_ssubo:
-    case BTOR_FORMAT_TAG_state:
     case BTOR_FORMAT_TAG_sub:
     case BTOR_FORMAT_TAG_uaddo:
     case BTOR_FORMAT_TAG_udiv:
@@ -190,8 +244,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_write:
     case BTOR_FORMAT_TAG_xnor:
     case BTOR_FORMAT_TAG_xor:
-    case BTOR_FORMAT_TAG_zero:
-
     default:
       die ("parse error in '%s' at line %ld: unsupported '%ld %s%s'",
            model_path,
@@ -201,25 +253,31 @@ parse_model_line (BtorFormatLine *l)
            l->nargs ? " ..." : "");
       break;
   }
-  /*
-  BTOR_FORMAT_TAG_SORT_array,
-  BTOR_FORMAT_TAG_SORT_bitvec,
-  */
 }
 
 static void
 parse_model ()
 {
+  mem = btor_mem_mgr_new ();
+  BTOR_INIT_STACK (mem, inputs);
+  BTOR_INIT_STACK (mem, states);
+  BTOR_INIT_STACK (mem, bads);
+  BTOR_INIT_STACK (mem, constraints);
   assert (model_file);
   BtorFormatReader *model = btorfmt_new ();
   if (!btorfmt_read_lines (model, model_file))
     die ("parse error in '%s' at %s", model_path, btorfmt_error (model));
+  num_format_lines = btorfmt_max_id (model);
+  BTOR_CNEWN (mem, inits, num_format_lines);
+  BTOR_CNEWN (mem, nexts, num_format_lines);
   BtorFormatLineIterator it = btorfmt_iter_init (model);
   BtorFormatLine *line;
   while ((line = btorfmt_iter_next (&it))) parse_model_line (line);
 }
 
 static int print_trace = 1;
+
+static BtorRNG rng;
 
 int
 main (int argc, char **argv)
@@ -319,7 +377,7 @@ main (int argc, char **argv)
   if (random_mode)
   {
     msg (0, "using random seed %d", s);
-    srand (s);
+    btor_rng_init (&rng, (uint32_t) s);
   }
   if (witness_path) msg (0, "reading BTOR witness from '%s'", witness_path);
   if (close_model_file && fclose (model_file))
@@ -329,8 +387,12 @@ main (int argc, char **argv)
 
   BTOR_RELEASE_STACK (inputs);
   BTOR_RELEASE_STACK (states);
-  BTOR_RELEASE_STACK (bad);
+  BTOR_RELEASE_STACK (bads);
+  BTOR_RELEASE_STACK (constraints);
   btorfmt_delete (model);
+  BTOR_DELETEN (mem, inits, num_format_lines);
+  BTOR_DELETEN (mem, nexts, num_format_lines);
+  btor_mem_mgr_delete (mem);
 
   return res;
 }
