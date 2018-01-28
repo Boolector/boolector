@@ -871,10 +871,6 @@ main (int32_t argc, char **argv)
       kmin = boolector_mc_get_opt (mc, BTOR_MC_OPT_MIN_K);
       kmax = boolector_mc_get_opt (mc, BTOR_MC_OPT_MAX_K);
       (void) boolector_mc_bmc (mc, kmin, kmax);
-      // TODO (armin)
-      // print result?
-      // reached at bound?
-      // trace generation
     }
   }
 
