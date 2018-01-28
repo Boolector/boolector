@@ -1,4 +1,4 @@
-all: $(BINDIR)/btormc
+all: $(BINDIR)/btormc $(BINDIR)/btorsim
 
 $(BINDIR)/btormc: $(BUILDIR)/btormcmain.o $(LDEPS)
 	@mkdir -p $(@D)
