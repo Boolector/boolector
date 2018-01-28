@@ -41,7 +41,7 @@ static int verbosity;
 static void
 msg (int level, char *m, ...)
 {
-  if (level < verbosity) return;
+  if (level > verbosity) return;
   assert (m);
   printf ("[btorsim] ");
   va_list ap;
@@ -67,11 +67,8 @@ static const char *usage =
     "\n"
     "The simulator either checks a given witness (checking mode) or\n"
     "randomly generates inputs (random mode). If no BTOR model path is\n"
-    "specified then it is read from '<stdin>' and the simulator switches\n"
-    "to random mode.  If a model but no witness is specified then by\n"
-    "default the simulator reads the witness from '<stdin>' and switches\n"
-    "to checking mode unless a '-r ...' option is given in which case\n"
-    "it uses random mode and does not read a witness.\n";
+    "specified then it is read from '<stdin>'.  The simulator only uses\n"
+    "checking mode if both the BTOR model and a witness file are specified.\n";
 
 static const char *model_path;
 static const char *witness_path;
@@ -103,6 +100,7 @@ parse_positive_number (const char *str, int *res_ptr)
 
 static int checking_mode = 0;
 static int random_mode   = 0;
+
 static BtorFormatReader *model;
 
 static BtorMemMgr *mem;
@@ -148,7 +146,7 @@ parse_model_line (BtorFormatLine *l)
     {
       long i = (long) BTOR_COUNT_STACK (inputs);
       if (l->symbol)
-        msg (1, "input %ld %s at line %ld", i, l->symbol, l->lineno);
+        msg (1, "input %ld '%s' at line %ld", i, l->symbol, l->lineno);
       else
         msg (1, "input %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (inputs, l);
@@ -180,7 +178,7 @@ parse_model_line (BtorFormatLine *l)
     {
       long i = (long) BTOR_COUNT_STACK (states);
       if (l->symbol)
-        msg (1, "state %ld %s at line %ld", i, l->symbol, l->lineno);
+        msg (1, "state %ld '%s' at line %ld", i, l->symbol, l->lineno);
       else
         msg (1, "state %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (states, l);
@@ -189,6 +187,7 @@ parse_model_line (BtorFormatLine *l)
 
     case BTOR_FORMAT_TAG_add:
     case BTOR_FORMAT_TAG_eq:
+    case BTOR_FORMAT_TAG_ite:
     case BTOR_FORMAT_TAG_one:
     case BTOR_FORMAT_TAG_ones:
     case BTOR_FORMAT_TAG_zero: break;
@@ -203,7 +202,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_iff:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_inc:
-    case BTOR_FORMAT_TAG_ite:
     case BTOR_FORMAT_TAG_justice:
     case BTOR_FORMAT_TAG_mul:
     case BTOR_FORMAT_TAG_nand:
@@ -285,15 +283,81 @@ static int print_trace = 1;
 static BtorRNG rng;
 
 static void
-random_simulation (long k)
+update_current_state (long id, BtorBitVector *bv)
 {
-  msg (0, "simulating %ld steps", k);
+  assert (0 <= id), assert (id < num_format_lines);
+  if (current_state[id]) btor_bv_free (mem, current_state[id]);
+  current_state[id] = bv;
+}
+
+static BtorBitVector *
+randomly_simulate (long id)
+{
+  int sign = id < 0 ? -1 : 1;
+  if (sign < 0) id = -id;
+  assert (0 <= id), assert (id < num_format_lines);
+  BtorFormatLine *l = btorfmt_get_line_by_id (model, id);
+  if (!l) die ("internal error: unexpected empty ID %ld", id);
+  BtorBitVector *res = 0;
+  switch (l->tag)
+  {
+    case BTOR_FORMAT_TAG_zero:
+      res = btor_bv_new (mem, l->sort.bitvec.width);
+      break;
+    default:
+      die ("can not randomly simulate operator '%s' at line %ld",
+           l->name,
+           l->lineno);
+      break;
+  }
+  if (sign < 0)
+  {
+    BtorBitVector *tmp = btor_bv_neg (mem, res);
+    btor_bv_free (mem, res);
+    res = tmp;
+  }
+  return res;
+}
+
+static void
+random_initialization ()
+{
+  msg (0, "random initialization");
+  for (long i = 0; i < BTOR_COUNT_STACK (states); i++)
+  {
+    BtorFormatLine *state = BTOR_PEEK_STACK (states, i);
+    BtorFormatLine *init  = inits[state->id];
+    if (init)
+    {
+      assert (init->nargs == 2);
+      assert (init->args[0] == state->id);
+      BtorBitVector *update = randomly_simulate (init->args[1]);
+      update_current_state (state->id, update);
+    }
+    else
+    {
+      // TODO random initialization
+    }
+  }
+}
+
+static void
+random_step (long k)
+{
+  msg (0, "random step %ld", k);
+}
+
+static void
+random_simulations (long k)
+{
+  random_initialization ();
+  for (long i = 0; i <= k; i++) random_step (i);
 }
 
 int
 main (int argc, char **argv)
 {
-  int res = 0, r = -1, s = -1;
+  int r = -1, s = -1;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
@@ -334,71 +398,56 @@ main (int argc, char **argv)
   }
   else
   {
-    model_path       = "<stdin>";
-    model_file       = stdin;
-    close_model_file = 0;
+    model_path = "<stdin>";
+    model_file = stdin;
   }
   if (witness_path)
   {
     if (!(witness_file = fopen (witness_path, "r")))
       die ("failed to open witness file '%s' for reading", witness_path);
     close_witness_file = 1;
-    if (r >= 0)
-      die ("unexpected '-r %d' since witness '%s' specified", r, witness_path);
-    msg (0, "checking mode: model and witness specified");
-    random_mode   = 0;
-    checking_mode = 1;
   }
-  else if (close_model_file)
+  if (model_path && witness_path)
   {
-    close_witness_file = 0;
-    if (r >= 0)
-    {
-      random_mode   = 1;
-      checking_mode = 0;
-      msg (0,
-           "random mode: "
-           "model and '-r %d' specified, but no witness",
-           r);
-    }
-    else
-    {
-      msg (0,
-           "checking mode: "
-           "model, but no witness nor '-r ...' option specified");
-      witness_path  = "<stdin>";
-      witness_file  = stdin;
-      checking_mode = 1;
-      random_mode   = 0;
-    }
+    msg (0, "checking mode: both model and witness specified");
+    checking_mode = 1;
+    random_mode   = 0;
   }
   else
   {
-    close_witness_file = 0;
-    msg (0, "random mode: no model nor witness specified");
-    random_mode   = 1;
+    msg (0, "random mode: witness not specified");
     checking_mode = 0;
+    random_mode   = 1;
   }
-  if (model_path) msg (0, "reading BTOR model from '%s'", model_path);
+  if (checking_mode)
+  {
+    if (r >= 0)
+      die ("number of random test vectors specified in checking mode");
+    if (s >= 0) die ("random seed specified in checking mode");
+  }
+  assert (model_path);
+  msg (0, "reading BTOR model from '%s'", model_path);
   parse_model ();
-  if (s < 0)
-    s = 0;
-  else if (!random_mode)
-    die ("specifying a random seed in checking mode does not make sense");
+  if (close_model_file && fclose (model_file))
+    die ("can not close model file '%s'", model_path);
   BTOR_CNEWN (mem, current_state, num_format_lines);
   BTOR_CNEWN (mem, next_state, num_format_lines);
   if (random_mode)
   {
+    if (r < 0) r = 20;
+    if (s < 0) s = 0;
     msg (0, "using random seed %d", s);
     btor_rng_init (&rng, (uint32_t) s);
-    random_simulation (r);
+    random_simulations (r);
   }
-  if (witness_path) msg (0, "reading BTOR witness from '%s'", witness_path);
-  if (close_model_file && fclose (model_file))
-    die ("can not close model file '%s'", model_path);
-  if (close_witness_file && fclose (witness_file))
-    die ("can not close witness file '%s'", witness_path);
-
+  else
+  {
+    assert (witness_path);
+    msg (0, "reading BTOR witness from '%s'", witness_path);
+    // TODO
+    if (close_witness_file && fclose (witness_file))
+      die ("can not close witness file '%s'", witness_path);
+  }
   BTOR_RELEASE_STACK (inputs);
   BTOR_RELEASE_STACK (states);
   BTOR_RELEASE_STACK (bads);
@@ -413,6 +462,5 @@ main (int argc, char **argv)
   BTOR_DELETEN (mem, current_state, num_format_lines);
   BTOR_DELETEN (mem, next_state, num_format_lines);
   btor_mem_mgr_delete (mem);
-
-  return res;
+  return 0;
 }
