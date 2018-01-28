@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2018 Armin Biere.
  *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
@@ -22,6 +22,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "btorconfig.h"
+
+const char *btor_bin_dir     = BTOR_BIN_DIR;
+const char *btor_log_dir     = BTOR_LOG_DIR;
+const char *btor_contrib_dir = BTOR_CONTRIB_DIR;
+const char *btor_test_dir    = BTOR_TEST_DIR;
 
 int32_t g_rwreads;
 

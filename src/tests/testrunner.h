@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2018 Armin Biere.
  *  Copyright (C) 2012-2017 Aina Niemetz
  *
  *  All rights reserved.
@@ -16,7 +16,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "btorconfig.h"
+
+#include "btorconfig.h"  // TODO REMOVE!
 
 extern int32_t g_rwreads;
 extern FILE *g_logfile;
@@ -33,6 +34,13 @@ enum BtorTestCaseSpeed
   BTOR_NORMAL_TEST_CASE = 1,
   BTOR_SLOW_TEST_CASE   = 2,
 };
+
+// Break dependencies on 'btorconfig.h' header in 'testrunner.h'.
+
+extern const char *btor_bin_dir;
+extern const char *btor_log_dir;
+extern const char *btor_contrib_dir;
+extern const char *btor_test_dir;
 
 typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
 
