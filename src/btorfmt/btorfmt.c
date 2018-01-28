@@ -2,7 +2,7 @@
 The BtorFMT software provides a generic parser for the BTOR format.
 In contrast to Boolector it falls under the following MIT style license:
 
-Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
+Copyright (c) 2012-2018, Armin Biere, Johannes Kepler University, Linz
 Copyright (c) 2017, Mathias Preiner
 Copyright (c) 2017, Aina Niemetz
 
@@ -35,11 +35,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 struct BtorFormatReader
 {
-  char *error, *prefix;
+  char *error;
   BtorFormatLine **table, *new_line;
   BtorFormatSort **stable;
   long sztable, ntable, szstable, nstable, szbuf, nbuf, lineno;
-  int verbosity, saved;
+  int saved;
   char *buf;
   FILE *file;
 };
@@ -50,37 +50,8 @@ btorfmt_new ()
   BtorFormatReader *res = malloc (sizeof *res);
   if (!res) return 0;
   memset (res, 0, sizeof *res);
-  res->prefix = strdup ("");
   return res;
 }
-
-void
-btorfmt_set_verbosity (BtorFormatReader *bfr, int verbosity)
-{
-  bfr->verbosity = verbosity;
-}
-
-void
-btorfmt_set_prefix (BtorFormatReader *bfr, const char *prefix)
-{
-  free (bfr->prefix);
-  bfr->prefix = strdup (prefix ? prefix : "");
-}
-
-#if 0
-static void msg_bfr (BtorFormatReader * bfr, int level,
-                     const char * fmt, ...) {
-  va_list ap;
-  if (bfr->verbosity < level) return;
-  va_start (ap, fmt);
-  fflush (stdout);
-  fputs (bfr->prefix, stderr);
-  vfprintf (stderr, fmt, ap);
-  va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
-}
-#endif
 
 static void
 reset_bfr (BtorFormatReader *bfr)
@@ -112,11 +83,6 @@ reset_bfr (BtorFormatReader *bfr)
     free (bfr->buf);
     bfr->buf  = 0;
     bfr->nbuf = bfr->szbuf = 0;
-  }
-  if (bfr->prefix)
-  {
-    free (bfr->prefix);
-    bfr->prefix = 0;
   }
 }
 

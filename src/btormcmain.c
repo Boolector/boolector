@@ -214,11 +214,9 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
   Btor *btor;
   BoolectorNodePtrStack bad;
 
-  verb = btor_mc_get_opt (mc, BTOR_MC_OPT_VERBOSITY);
-  res  = BTOR_MC_SUCC_EXIT;
-  bfr  = btorfmt_new ();
-  btorfmt_set_prefix (bfr, "[btormc] ");
-  btorfmt_set_verbosity (bfr, verb);
+  verb    = btor_mc_get_opt (mc, BTOR_MC_OPT_VERBOSITY);
+  res     = BTOR_MC_SUCC_EXIT;
+  bfr     = btorfmt_new ();
   nodemap = 0;
   sortmap = 0;
 
