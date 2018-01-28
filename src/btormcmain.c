@@ -265,7 +265,9 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
         boolector_release (btor, tmp);
       }
       else
+      {
         e[i] = tmp;
+      }
       assert (e[i]);
     }
 
