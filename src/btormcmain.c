@@ -147,6 +147,16 @@ print_help (FILE *out, BtorMC *mc)
   fprintf (out, "\n");
 
   print_opt (out, mc->mm, "dump", "d", true, 0, "dump formula", false);
+  print_opt (
+      out,
+      mc->mm,
+      "bador",
+      "bo",
+      true,
+      0,
+      "check the disjunction of given properties rather than checking each "
+      "property individually",
+      false);
 
   for (i = 0; i < BTOR_MC_OPT_NUM_OPTS; i++)
   {
@@ -183,7 +193,7 @@ msg (char *m, ...)
 #define BTOR_MC_BOOLECTOR_FUN(name) (n =)
 
 static int32_t
-parse (BtorMC *mc, FILE *infile, const char *infile_name)
+parse (BtorMC *mc, FILE *infile, const char *infile_name, bool bador)
 {
   assert (mc);
   assert (infile);
@@ -202,6 +212,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
   BoolectorNode *e[3], *n;
   BoolectorSort s, si, se;
   Btor *btor;
+  BoolectorNodePtrStack bad;
 
   verb = btor_mc_get_opt (mc, BTOR_MC_OPT_VERBOSITY);
   res  = BTOR_MC_SUCC_EXIT;
@@ -210,6 +221,8 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
   btorfmt_set_verbosity (bfr, verb);
   nodemap = 0;
   sortmap = 0;
+
+  BTOR_INIT_STACK (mc->mm, bad);
 
   if (verb) msg ("parsing input file...");
 
@@ -285,7 +298,10 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
 
       case BTOR_FORMAT_TAG_bad:
         assert (l->nargs == 1);
-        boolector_mc_bad (mc, e[0]);
+        if (bador)
+          BTOR_PUSH_STACK (bad, boolector_copy (btor, e[0]));
+        else
+          boolector_mc_bad (mc, e[0]);
         if (l->symbol) boolector_set_symbol (btor, e[0], l->symbol);
         break;
 
@@ -666,7 +682,23 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name)
       btor_hashint_map_add (nodemap, l->id)->as_ptr = n;
     }
   }
+  if (bador && BTOR_COUNT_STACK (bad))
+  {
+    BoolectorNode *tmp;
+    BoolectorNode *b = boolector_copy (btor, BTOR_PEEK_STACK (bad, 0));
+    for (i = 1; i < BTOR_COUNT_STACK (bad); i++)
+    {
+      tmp = boolector_or (btor, b, BTOR_PEEK_STACK (bad, i));
+      boolector_release (btor, b);
+      b = tmp;
+    }
+    boolector_mc_bad (mc, b);
+    boolector_release (btor, b);
+  }
 DONE:
+  while (!BTOR_EMPTY_STACK (bad))
+    boolector_release (btor, BTOR_POP_STACK (bad));
+  BTOR_RELEASE_STACK (bad);
   if (nodemap)
   {
     btor_iter_hashint_init (&it, nodemap);
@@ -695,7 +727,7 @@ main (int32_t argc, char **argv)
   int32_t i;
   int32_t len, close_infile;
   int32_t res;
-  bool dump;
+  bool dump, bador;
   uint32_t kmin, kmax;
   char *infile_name, *cmd;
   FILE *infile, *out;
@@ -715,7 +747,8 @@ main (int32_t argc, char **argv)
 
   res = BTOR_MC_SUCC_EXIT;
 
-  dump = false;
+  dump  = false;
+  bador = false;
 
   mm = btor_mem_mgr_new ();
   mc = boolector_mc_new ();
@@ -777,6 +810,8 @@ main (int32_t argc, char **argv)
   {
     po = BTOR_PEEK_STACK (opts, i);
 
+    /* main-only options */
+
     if (strcmp (po->name.start, "h") == 0
         || strcmp (po->name.start, "help") == 0)
     {
@@ -797,6 +832,12 @@ main (int32_t argc, char **argv)
     {
       dump = true;
     }
+    else if (strcmp (po->name.start, "bo") == 0
+             || strcmp (po->name.start, "bador") == 0)
+    {
+      bador = true;
+    }
+    /* mc options */
     else
     {
       for (opt = 0; opt < BTOR_MC_OPT_NUM_OPTS; opt++)
@@ -859,7 +900,8 @@ main (int32_t argc, char **argv)
 
   /* parse and execute ================================================ */
 
-  res = parse (mc, infile, infile_name);
+  res = parse (mc, infile, infile_name, bador);
+
   if (res == BTOR_MC_SUCC_EXIT)
   {
     if (dump)
