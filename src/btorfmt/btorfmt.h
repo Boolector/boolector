@@ -2,7 +2,7 @@
 The BtorFMT software provides a generic parser for the BTOR format.
 In contrast to Boolector it falls under the following MIT style license:
 
-Copyright (c) 2012-2015, Armin Biere, Johannes Kepler University, Linz
+Copyright (c) 2012-2018, Armin Biere, Johannes Kepler University, Linz
 Copyright (c) 2017, Mathias Preiner
 Copyright (c) 2017, Aina Niemetz
 
@@ -171,6 +171,7 @@ struct BtorFormatSort
 struct BtorFormatLine
 {
   long id;           /* positive id (non zero)                 */
+  long lineno;       /* line number in original file           */
   const char *name;  /* name in ASCII: "and", "add", ...       */
   BtorFormatTag tag; /* same as name but encoded as integer    */
   BtorFormatSort sort;
@@ -220,6 +221,7 @@ BtorFormatLine *btorfmt_iter_next (BtorFormatLineIterator *);
  * can be retrieved with the following function.  Note, however, that
  * ids might be negative and denote the negation of the actual node.
  */
+long btorfmt_max_id (BtorFormatReader *);
 BtorFormatLine *btorfmt_get_line_by_id (BtorFormatReader *, long id);
 
 /*------------------------------------------------------------------------*/

@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "btorfmt/btorfmt.h"
+#include "utils/btorstack.h"
 
 static void
 die (char *m, ...)
@@ -32,9 +33,12 @@ die (char *m, ...)
   exit (1);
 }
 
+static int verbosity;
+
 static void
-msg (char *m, ...)
+msg (int level, char *m, ...)
 {
+  if (level < verbosity) return;
   assert (m);
   printf ("[btorsim] ");
   va_list ap;
@@ -51,6 +55,7 @@ static const char *usage =
     "\n"
     "  -h       print this command line option summary\n"
     "  -c       check only <witness> and do not print trace\n"
+    "  -v       increase verbosity level (multiple times if necessary)\n"
     "  -r <n>   generate <n> random transitions (default 20)\n"
     "  -s <s>   random seed (default '0')\n"
     "\n"
@@ -95,27 +100,139 @@ parse_positive_number (const char *str, int *res_ptr)
 
 static int checking_mode = 0;
 static int random_mode   = 0;
+static BtorFormatReader *model;
+
+BTOR_DECLARE_STACK (BtorFormatLinePtr, BtorFormatLine *);
+
+static BtorFormatLinePtrStack inputs;
+static BtorFormatLinePtrStack states;
+static BtorFormatLinePtrStack bad;
+
+static void
+parse_model_line (BtorFormatLine *l)
+{
+  switch (l->tag)
+  {
+    case BTOR_FORMAT_TAG_input:
+    {
+      long i = (long) BTOR_COUNT_STACK (inputs);
+      if (l->symbol)
+        msg (1, "input %ld %s", i, l->symbol);
+      else
+        msg (1, "input %s", i);
+      BTOR_PUSH_STACK (inputs, l);
+    }
+    break;
+
+    case BTOR_FORMAT_TAG_add:
+    case BTOR_FORMAT_TAG_and:
+    case BTOR_FORMAT_TAG_bad:
+    case BTOR_FORMAT_TAG_concat:
+    case BTOR_FORMAT_TAG_const:
+    case BTOR_FORMAT_TAG_constraint:
+    case BTOR_FORMAT_TAG_constd:
+    case BTOR_FORMAT_TAG_consth:
+    case BTOR_FORMAT_TAG_dec:
+    case BTOR_FORMAT_TAG_eq:
+    case BTOR_FORMAT_TAG_fair:
+    case BTOR_FORMAT_TAG_iff:
+    case BTOR_FORMAT_TAG_implies:
+    case BTOR_FORMAT_TAG_inc:
+    case BTOR_FORMAT_TAG_init:
+    case BTOR_FORMAT_TAG_ite:
+    case BTOR_FORMAT_TAG_justice:
+    case BTOR_FORMAT_TAG_mul:
+    case BTOR_FORMAT_TAG_nand:
+    case BTOR_FORMAT_TAG_ne:
+    case BTOR_FORMAT_TAG_neg:
+    case BTOR_FORMAT_TAG_next:
+    case BTOR_FORMAT_TAG_nor:
+    case BTOR_FORMAT_TAG_not:
+    case BTOR_FORMAT_TAG_one:
+    case BTOR_FORMAT_TAG_ones:
+    case BTOR_FORMAT_TAG_or:
+    case BTOR_FORMAT_TAG_output:
+    case BTOR_FORMAT_TAG_read:
+    case BTOR_FORMAT_TAG_redand:
+    case BTOR_FORMAT_TAG_redor:
+    case BTOR_FORMAT_TAG_redxor:
+    case BTOR_FORMAT_TAG_rol:
+    case BTOR_FORMAT_TAG_ror:
+    case BTOR_FORMAT_TAG_saddo:
+    case BTOR_FORMAT_TAG_sdiv:
+    case BTOR_FORMAT_TAG_sdivo:
+    case BTOR_FORMAT_TAG_sext:
+    case BTOR_FORMAT_TAG_sgt:
+    case BTOR_FORMAT_TAG_sgte:
+    case BTOR_FORMAT_TAG_slice:
+    case BTOR_FORMAT_TAG_sll:
+    case BTOR_FORMAT_TAG_slt:
+    case BTOR_FORMAT_TAG_slte:
+    case BTOR_FORMAT_TAG_sort:
+    case BTOR_FORMAT_TAG_smod:
+    case BTOR_FORMAT_TAG_smulo:
+    case BTOR_FORMAT_TAG_sra:
+    case BTOR_FORMAT_TAG_srem:
+    case BTOR_FORMAT_TAG_srl:
+    case BTOR_FORMAT_TAG_ssubo:
+    case BTOR_FORMAT_TAG_state:
+    case BTOR_FORMAT_TAG_sub:
+    case BTOR_FORMAT_TAG_uaddo:
+    case BTOR_FORMAT_TAG_udiv:
+    case BTOR_FORMAT_TAG_uext:
+    case BTOR_FORMAT_TAG_ugt:
+    case BTOR_FORMAT_TAG_ugte:
+    case BTOR_FORMAT_TAG_ult:
+    case BTOR_FORMAT_TAG_ulte:
+    case BTOR_FORMAT_TAG_umulo:
+    case BTOR_FORMAT_TAG_urem:
+    case BTOR_FORMAT_TAG_usubo:
+    case BTOR_FORMAT_TAG_write:
+    case BTOR_FORMAT_TAG_xnor:
+    case BTOR_FORMAT_TAG_xor:
+    case BTOR_FORMAT_TAG_zero:
+
+    default:
+      die ("parse error in '%s' at line %ld: unsupported '%ld %s%s'",
+           model_path,
+           l->lineno,
+           l->id,
+           l->name,
+           l->nargs ? " ..." : "");
+      break;
+  }
+  /*
+  BTOR_FORMAT_TAG_SORT_array,
+  BTOR_FORMAT_TAG_SORT_bitvec,
+  */
+}
 
 static void
 parse_model ()
 {
   assert (model_file);
-  BtorFormatReader *reader = btorfmt_new ();
-  if (!btorfmt_read_lines (reader, model_file))
-    die ("parse error in '%s' at %s", model_path, btorfmt_error (reader));
-  btorfmt_delete (reader);
+  BtorFormatReader *model = btorfmt_new ();
+  if (!btorfmt_read_lines (model, model_file))
+    die ("parse error in '%s' at %s", model_path, btorfmt_error (model));
+  BtorFormatLineIterator it = btorfmt_iter_init (model);
+  BtorFormatLine *line;
+  while ((line = btorfmt_iter_next (&it))) parse_model_line (line);
 }
+
+static int print_trace = 1;
 
 int
 main (int argc, char **argv)
 {
-  int res = 0, r = -1, s = -1, print_trace = 1;
+  int res = 0, r = -1, s = -1;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
       fputs (usage, stdout), exit (0);
     else if (!strcmp (argv[i], "-c"))
       print_trace = 0;
+    else if (!strcmp (argv[i], "-v"))
+      verbosity++;
     else if (!strcmp (argv[i], "-r"))
     {
       if (++i == argc) die ("argument to '-r' missing");
@@ -159,7 +276,7 @@ main (int argc, char **argv)
     close_witness_file = 1;
     if (r >= 0)
       die ("unexpected '-r %d' since witness '%s' specified", r, witness_path);
-    msg ("checking mode: model and witness specified");
+    msg (0, "checking mode: model and witness specified");
     random_mode   = 0;
     checking_mode = 1;
   }
@@ -170,16 +287,16 @@ main (int argc, char **argv)
     {
       random_mode   = 1;
       checking_mode = 0;
-      msg (
-          "random mode: "
-          "model and '-r %d' specified, but no witness",
-          r);
+      msg (0,
+           "random mode: "
+           "model and '-r %d' specified, but no witness",
+           r);
     }
     else
     {
-      msg (
-          "checking mode: "
-          "model, but no witness nor '-r ...' option specified");
+      msg (0,
+           "checking mode: "
+           "model, but no witness nor '-r ...' option specified");
       witness_path  = "<stdin>";
       witness_file  = stdin;
       checking_mode = 1;
@@ -189,11 +306,11 @@ main (int argc, char **argv)
   else
   {
     close_witness_file = 0;
-    msg ("random mode: no model nor witness specified");
+    msg (0, "random mode: no model nor witness specified");
     random_mode   = 1;
     checking_mode = 0;
   }
-  if (model_path) msg ("reading BTOR model from '%s'", model_path);
+  if (model_path) msg (0, "reading BTOR model from '%s'", model_path);
   parse_model ();
   if (s < 0)
     s = 0;
@@ -201,13 +318,19 @@ main (int argc, char **argv)
     die ("specifying a random seed in checking mode does not make sense");
   if (random_mode)
   {
-    msg ("using random seed %d", s);
+    msg (0, "using random seed %d", s);
     srand (s);
   }
-  if (witness_path) msg ("reading BTOR witness from '%s'", witness_path);
+  if (witness_path) msg (0, "reading BTOR witness from '%s'", witness_path);
   if (close_model_file && fclose (model_file))
     die ("can not close model file '%s'", model_path);
   if (close_witness_file && fclose (witness_file))
     die ("can not close witness file '%s'", witness_path);
+
+  BTOR_RELEASE_STACK (inputs);
+  BTOR_RELEASE_STACK (states);
+  BTOR_RELEASE_STACK (bad);
+  btorfmt_delete (model);
+
   return res;
 }

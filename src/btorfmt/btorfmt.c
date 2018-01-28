@@ -351,6 +351,7 @@ parse_opt_symbol_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 static BtorFormatLine *
 new_line_bfr (BtorFormatReader *bfr,
               long id,
+              long lineno,
               const char *name,
               BtorFormatTag tag)
 {
@@ -359,10 +360,11 @@ new_line_bfr (BtorFormatReader *bfr,
   assert (bfr->ntable <= id);
   res = malloc (sizeof *res);
   memset (res, 0, sizeof (*res));
-  res->id   = id;
-  res->tag  = tag;
-  res->name = name;
-  res->args = malloc (sizeof (long) * 3);
+  res->id     = id;
+  res->lineno = lineno;
+  res->tag    = tag;
+  res->name   = name;
+  res->args   = malloc (sizeof (long) * 3);
   memset (res->args, 0, sizeof (long) * 3);
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
@@ -1013,7 +1015,7 @@ parse_justice_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
     if (!strcmp (tag, #NAME))                                                  \
     {                                                                          \
       BtorFormatLine *LINE =                                                   \
-          new_line_bfr (bfr, id, #NAME, BTOR_FORMAT_TAG_##NAME);               \
+          new_line_bfr (bfr, id, lineno, #NAME, BTOR_FORMAT_TAG_##NAME);       \
       if (parse_##GENERIC##_bfr (bfr, LINE))                                   \
       {                                                                        \
         pusht_bfr (bfr, LINE);                                                 \
@@ -1039,6 +1041,7 @@ static int
 readl_bfr (BtorFormatReader *bfr)
 {
   const char *tag;
+  long lineno;
   long id;
   int ch;
 START:
@@ -1062,7 +1065,8 @@ START:
     if (id2line_bfr (bfr, id) != 0) return perr_bfr (bfr, "id already defined");
     return perr_bfr (bfr, "id out-of-order");
   }
-  tag = parse_tag (bfr);
+  lineno = bfr->lineno;
+  tag    = parse_tag (bfr);
   if (!tag) return 0;
   switch (tag[0])
   {
@@ -1212,4 +1216,10 @@ BtorFormatLine *
 btorfmt_get_line_by_id (BtorFormatReader *bfr, long id)
 {
   return id2line_bfr (bfr, id);
+}
+
+long
+btorfmt_max_id (BtorFormatReader *bfr)
+{
+  return bfr->ntable - 1;
 }
