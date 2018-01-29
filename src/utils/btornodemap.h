@@ -17,10 +17,10 @@
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
- * zero 'src' and 'dst' nodes added in 'btor_nodemap_map'.  Succesful look-up
+ * zero 'src' and 'dst' nodes added in 'btor_nodemap_map'.  Succesfull look-up
  * through 'btor_nodemap_mapped' does not add a reference.  The destructor
  * releases all the owned references.  Mapping is signed, e.g. if you map
- * 'a' to 'b', then '~a' is implicitely mapped to '~b', too.
+ * 'a' to 'b', then '~a' is implicitly mapped to '~b', too.
  */
 struct BtorNodeMap
 {

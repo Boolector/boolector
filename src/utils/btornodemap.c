@@ -37,16 +37,16 @@ btor_nodemap_delete (BtorNodeMap *map)
   assert (map);
 
   BtorPtrHashTableIterator it;
-  BtorNode *cur;
+  BtorNode *src;
+  BtorNode *dst;
 
   btor_iter_hashptr_init (&it, map->table);
   while (btor_iter_hashptr_has_next (&it))
   {
-    btor_node_release (
-        btor_node_real_addr ((BtorNode *) it.bucket->data.as_ptr)->btor,
-        it.bucket->data.as_ptr);
-    cur = btor_iter_hashptr_next (&it);
-    btor_node_release (btor_node_real_addr (cur)->btor, cur);
+    dst = (BtorNode *) it.bucket->data.as_ptr;
+    btor_node_release (btor_node_real_addr (dst)->btor, dst);
+    src = btor_iter_hashptr_next (&it);
+    btor_node_release (btor_node_real_addr (src)->btor, src);
   }
   btor_hashptr_table_delete (map->table);
   BTOR_DELETE (map->btor->mm, map);
