@@ -847,6 +847,19 @@ btor_release_all_ext_refs (Btor *btor)
   release_all_ext_sort_refs (btor);
 }
 
+static void
+delete_varsubst_constraints (Btor *btor)
+{
+  BtorPtrHashTableIterator it;
+  btor_iter_hashptr_init (&it, btor->varsubst_constraints);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    btor_node_release (btor, it.bucket->data.as_ptr);
+    btor_node_release (btor, btor_iter_hashptr_next (&it));
+  }
+  btor_hashptr_table_delete (btor->varsubst_constraints);
+}
+
 void
 btor_delete (Btor *btor)
 {
@@ -873,14 +886,7 @@ btor_delete (Btor *btor)
       btor_opt_get (btor, BTOR_OPT_AUTO_CLEANUP)
           || btor_opt_get (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL));
 
-  btor_iter_hashptr_init (&it, btor->varsubst_constraints);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    btor_node_release (btor, it.bucket->data.as_ptr);
-    exp = btor_iter_hashptr_next (&it);
-    btor_node_release (btor, exp);
-  }
-  btor_hashptr_table_delete (btor->varsubst_constraints);
+  delete_varsubst_constraints (btor);
 
   btor_iter_hashptr_init (&it, btor->inputs);
   btor_iter_hashptr_queue (&it, btor->embedded_constraints);
@@ -3217,7 +3223,7 @@ btor_simplify (Btor *btor)
   if (btor_opt_get (btor, BTOR_OPT_VAR_SUBST) == 0
       && btor->varsubst_constraints->count > 0)
   {
-    btor_hashptr_table_delete (btor->varsubst_constraints);
+    delete_varsubst_constraints (btor);
     btor->varsubst_constraints =
         btor_hashptr_table_new (btor->mm,
                                 (BtorHashPtr) btor_node_hash_by_id,
