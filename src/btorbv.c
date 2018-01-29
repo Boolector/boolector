@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2018 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -356,13 +357,19 @@ btor_bv_hash (const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 void
-btor_bv_print (const BtorBitVector *bv)
+btor_bv_print_without_new_line (const BtorBitVector *bv)
 {
   assert (bv);
 
   int64_t i;
 
   for (i = bv->width - 1; i >= 0; i--) printf ("%d", btor_bv_get_bit (bv, i));
+}
+
+void
+btor_bv_print (const BtorBitVector *bv)
+{
+  btor_bv_print_without_new_line (bv);
   printf ("\n");
 }
 
@@ -883,6 +890,25 @@ btor_bv_and (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_implies (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  uint32_t i;
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, a->width);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~a->bits[i] | b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
 btor_bv_or (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
@@ -891,11 +917,11 @@ btor_bv_or (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (a->len == b->len);
   assert (a->width == b->width);
 
-  int i;
+  uint32_t i;
   BtorBitVector *res;
 
   res = btor_bv_new (mm, a->width);
-  for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] | b->bits[i];
+  for (i = 0; i < a->len; i++) res->bits[i] = a->bits[i] | b->bits[i];
 
   assert (rem_bits_zero_dbg (res));
   return res;
@@ -1301,6 +1327,35 @@ btor_bv_uext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
   memcpy (
       res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
 
+  return res;
+}
+
+BtorBitVector *
+btor_bv_ite (BtorMemMgr *mm,
+             const BtorBitVector *c,
+             const BtorBitVector *t,
+             const BtorBitVector *e)
+{
+  assert (c);
+  assert (c->len == 1);
+  assert (t);
+  assert (t->len > 0);
+  assert (e);
+  assert (t->len == e->len);
+  assert (t->width == e->width);
+
+  BtorBitVector *res;
+  BTOR_BV_TYPE cc, nn;
+  uint32_t i;
+
+  cc = btor_bv_get_bit (c, 0) ? (~(BTOR_BV_TYPE) 0) : 0;
+  nn = ~cc;
+
+  res = btor_bv_new (mm, t->width);
+  for (i = 0; i < t->len; i++)
+    res->bits[i] = (cc & t->bits[i]) | (nn & e->bits[i]);
+
+  assert (rem_bits_zero_dbg (res));
   return res;
 }
 

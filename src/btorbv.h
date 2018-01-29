@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013-2016 Mathias Preiner.
  *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2018 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -78,6 +79,7 @@ uint32_t btor_bv_hash (const BtorBitVector *bv);
 
 void btor_bv_print (const BtorBitVector *bv);
 void btor_bv_print_all (const BtorBitVector *bv);
+void btor_bv_print_without_new_line (const BtorBitVector *bv);
 
 char *btor_bv_to_char (BtorMemMgr *mm, const BtorBitVector *bv);
 char *btor_bv_to_hex_char (BtorMemMgr *mm, const BtorBitVector *bv);
@@ -136,6 +138,10 @@ BtorBitVector *btor_bv_and (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+BtorBitVector *btor_bv_implies (BtorMemMgr *mm,
+                                const BtorBitVector *a,
+                                const BtorBitVector *b);
+
 BtorBitVector *btor_bv_or (BtorMemMgr *mm,
                            const BtorBitVector *a,
                            const BtorBitVector *b);
@@ -171,6 +177,11 @@ BtorBitVector *btor_bv_udiv (BtorMemMgr *mm,
 BtorBitVector *btor_bv_urem (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
+
+BtorBitVector *btor_bv_ite (BtorMemMgr *mm,
+                            const BtorBitVector *c,
+                            const BtorBitVector *t,
+                            const BtorBitVector *e);
 
 BtorBitVector *btor_bv_concat (BtorMemMgr *mm,
                                const BtorBitVector *a,
