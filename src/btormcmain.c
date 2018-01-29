@@ -228,7 +228,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
   {
     err = btorfmt_error (bfr);
     assert (err);
-    res = error ("parse error in '%s' %s\n", infile_name, err);
+    res = error ("parse error in '%s' %s", infile_name, err);
     goto DONE;
   }
 
