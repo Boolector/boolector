@@ -199,7 +199,16 @@ parse_pos_number_bfr (BtorFormatReader *bfr, unsigned *res)
   long num;
   int ch;
   ch = getc_bfr (bfr);
-  if (!isdigit (ch)) return perr_bfr (bfr, "expected number but got '%c'", ch);
+  if (!isdigit (ch))
+  {
+    if (isprint (ch))
+      return perr_bfr (bfr, "expected number but got '%c'", ch);
+    else if (ch == '\n')
+      return perr_bfr (bfr, "expected number but got new line");
+    else
+      return perr_bfr (
+          bfr, "expected number but got character code 0x%02x", ch);
+  }
   num = ch - '0';
   ch  = getc_bfr (bfr);
   /* number with leading zero */
@@ -740,8 +749,7 @@ parse_sort_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   {
     tmp.tag  = BTOR_FORMAT_TAG_SORT_bitvec;
     tmp.name = "bitvec";
-    if (!parse_pos_number_bfr (bfr, &tmp.bitvec.width))
-      return perr_bfr (bfr, "invalid width for sort bitvec");
+    if (!parse_pos_number_bfr (bfr, &tmp.bitvec.width)) return 0;
     if (tmp.bitvec.width == 0)
       return perr_bfr (bfr, "bit width must be greater than 0");
   }
@@ -749,15 +757,10 @@ parse_sort_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   {
     tmp.tag  = BTOR_FORMAT_TAG_SORT_array;
     tmp.name = "array";
-    if (!parse_sort_id_bfr (bfr, &s))
-      return perr_bfr (bfr, "invalid index sort for array");
+    if (!parse_sort_id_bfr (bfr, &s)) return 0;
     if (getc_bfr (bfr) != ' ') return perr_bfr (bfr, "expected space");
     tmp.array.index = s.id;
-    if (!parse_sort_id_bfr (bfr, &s))
-    {
-      printf ("id: %ld\n", s.id);
-      return perr_bfr (bfr, "invalid element sort for array");
-    }
+    if (!parse_sort_id_bfr (bfr, &s)) return 0;
     tmp.array.element = s.id;
   }
   else
