@@ -1123,12 +1123,11 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
 }
 
 static void
-print_witness (BtorMC *mc, int32_t bad_id, int32_t time)
+print_witness (BtorMC *mc, int32_t time)
 {
-  const char *sym;
   int32_t i;
   BtorMCstate *state;
-  BoolectorNode *bad, *src;
+  BoolectorNode *src;
   BtorPtrHashTableIterator it;
   Btor *btor;
   bool full_trace;
@@ -1136,12 +1135,11 @@ print_witness (BtorMC *mc, int32_t bad_id, int32_t time)
   btor       = mc->btor;
   full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
 
-  bad = BTOR_PEEK_STACK (mc->bad, bad_id);
-  sym = boolector_get_symbol (btor, bad);
-  printf ("bad state property %d at bound k = %d SATISFIABLE\n", bad_id, time);
   printf ("sat\n");
-  printf ("b%d", bad_id);
-  if (sym) printf (" %s", sym);
+  for (i = 0; i < BTOR_COUNT_STACK (mc->reached); i++)
+  {
+    if (BTOR_PEEK_STACK (mc->reached, i) == time) printf ("b%d ", i);
+  }
   printf ("\n");
 
   for (i = 0; i <= time; i++)
@@ -1236,10 +1234,6 @@ check_last_forward_frame (BtorMC *mc)
           mc->call_backs.reached_at_bound.fun (
               mc->call_backs.reached_at_bound.state, i, k);
         }
-        if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
-        {
-          print_witness (mc, i, k);
-        }
       }
     }
     else
@@ -1255,6 +1249,9 @@ check_last_forward_frame (BtorMC *mc)
     if (btor_mc_get_opt (mc, BTOR_MC_OPT_BTOR_STATS))
       boolector_print_stats (mc->forward);
   }
+
+  if (satisfied && btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
+    print_witness (mc, k);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             1,
