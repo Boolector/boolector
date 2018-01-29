@@ -358,7 +358,7 @@ randomly_simulate (long id)
   res = btor_bv_copy (mem, res);
   if (sign < 0)
   {
-    BtorBitVector *tmp = btor_bv_neg (mem, res);
+    BtorBitVector *tmp = btor_bv_not (mem, res);
     btor_bv_free (mem, res);
     res = tmp;
   }
