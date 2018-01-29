@@ -904,6 +904,7 @@ btor_bv_implies (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   res = btor_bv_new (mm, a->width);
   for (i = 0; i < a->len; i++) res->bits[i] = ~a->bits[i] | b->bits[i];
 
+  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }
