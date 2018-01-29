@@ -293,6 +293,14 @@ update_current_state (long id, BtorBitVector *bv)
   current_state[id] = bv;
 }
 
+static void
+delete_current_state (long id)
+{
+  assert (0 <= id), assert (id < num_format_lines);
+  if (current_state[id]) btor_bv_free (mem, current_state[id]);
+  current_state[id] = 0;
+}
+
 static BtorBitVector *
 randomly_simulate (long id)
 {
@@ -428,7 +436,7 @@ random_step (long k)
       continue;
 
     BtorBitVector *bv = randomly_simulate (i);
-#if 1
+#if 0
     printf ("[btorim] %ld %s ", l->id, l->name);
     btor_bv_print (bv);
     fflush (stdout);
@@ -464,6 +472,7 @@ static void
 random_transition (long k)
 {
   msg (1, "random step %ld", k);
+  for (long i = 0; i < num_format_lines; i++) delete_current_state (i);
   if (print_trace && print_states) printf ("#%ld\n", k);
   for (long i = 0; i < BTOR_COUNT_STACK (states); i++)
   {
@@ -490,7 +499,7 @@ random_simulations (long k)
   random_initialization ();
   random_inputs (0);
   random_step (0);
-  for (long i = 0; i <= k; i++)
+  for (long i = 1; i <= k; i++)
   {
     random_transition (i);
     random_inputs (i);
