@@ -7,10 +7,11 @@
 7 next 1 3 5
 8 next 1 4 6
 9 eq 1 3 4
-10 state 1 initialized
-11 zero 1
+10 state 1 initially
+11 one 1
 12 init 1 10 11
-13 one 1
+13 zero 1
 14 next 1 10 13
-15 implies 1 -10 -9
-16 bad 9
+15 implies 1 10 -9
+16 constraint 15
+17 bad 9
