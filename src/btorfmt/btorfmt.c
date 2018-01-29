@@ -728,9 +728,10 @@ parse_arg_bfr (BtorFormatReader *bfr)
     return perr_bfr (bfr, "argument id too large (undefined)");
   l = bfr->table[absres];
   if (!l) return perr_bfr (bfr, "undefined argument id");
-  if (l->tag == BTOR_FORMAT_TAG_init || l->tag == BTOR_FORMAT_TAG_next
-      || l->tag == BTOR_FORMAT_TAG_bad || l->tag == BTOR_FORMAT_TAG_constraint
-      || l->tag == BTOR_FORMAT_TAG_fair || l->tag == BTOR_FORMAT_TAG_justice)
+  if (l->tag == BTOR_FORMAT_TAG_sort || l->tag == BTOR_FORMAT_TAG_init
+      || l->tag == BTOR_FORMAT_TAG_next || l->tag == BTOR_FORMAT_TAG_bad
+      || l->tag == BTOR_FORMAT_TAG_constraint || l->tag == BTOR_FORMAT_TAG_fair
+      || l->tag == BTOR_FORMAT_TAG_justice)
   {
     return perr_bfr (bfr, "'%s' cannot be used as argument", l->name);
   }
