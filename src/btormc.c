@@ -669,7 +669,7 @@ btor_mc_dump (BtorMC *mc, FILE *file)
 /*------------------------------------------------------------------------*/
 
 static char *
-timed_symbol (BtorMC *mc, BoolectorNode *node, int32_t time)
+timed_symbol (BtorMC *mc, char ch, BoolectorNode *node, int32_t time)
 {
   assert (mc);
   assert (node);
@@ -682,7 +682,7 @@ timed_symbol (BtorMC *mc, BoolectorNode *node, int32_t time)
 
   symbol = boolector_get_symbol (mc->btor, node);
   if (!symbol) return 0;
-  sprintf (suffix, "@%d", time);
+  sprintf (suffix, "%c%d", ch, time);
   symlen = strlen (symbol);
   reslen = symlen + strlen (suffix) + 1;
   res    = btor_mem_malloc (mc->mm, reslen);
@@ -760,7 +760,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
     assert (input->node == src);
     assert (input->id == i);
 #endif
-    sym = timed_symbol (mc, src, f->time);
+    sym = timed_symbol (mc, '@', src, f->time);
     dst = new_var_or_array (mc, src, sym);
     btor_mem_freestr (mc->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
@@ -834,7 +834,7 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
     }
     else
     {
-      sym = timed_symbol (mc, src, f->time);
+      sym = timed_symbol (mc, '#', src, f->time);
       dst = new_var_or_array (mc, src, sym);
       btor_mem_freestr (mc->mm, sym);
     }
@@ -1144,9 +1144,9 @@ print_witness (BtorMC *mc, int32_t time)
 
   for (i = 0; i <= time; i++)
   {
-    printf ("@%d\n", i);
     if (i == 0 || full_trace)
     {
+      printf ("#%d\n", i);
       btor_iter_hashptr_init (&it, mc->states);
       while (btor_iter_hashptr_has_next (&it))
       {
@@ -1158,6 +1158,7 @@ print_witness (BtorMC *mc, int32_t time)
       }
     }
 
+    printf ("@%d\n", i);
     btor_iter_hashptr_init (&it, mc->inputs);
     while (btor_iter_hashptr_has_next (&it))
     {
