@@ -538,23 +538,38 @@ static void
 random_simulations (long k)
 {
   assert (k >= 0);
+
   unreached_bads = BTOR_COUNT_STACK (bads);
   random_initialization ();
   random_inputs (0);
   random_step (0);
-  for (long i = 1; unreached_bads > 0 && i <= k; i++)
+
+  for (long i = 1; i <= k; i++)
   {
+    if (constraints_violated >= 0) break;
+    if (!unreached_bads) break;
     random_transition (i);
     random_inputs (i);
     random_step (i);
   }
-  printf ("[btorsim] reached bad state properties {");
-  for (long i = 0; i < BTOR_COUNT_STACK (bads); i++)
+
+  if (unreached_bads < BTOR_COUNT_STACK (bads))
   {
-    long r = BTOR_PEEK_STACK (reached, i);
-    if (r >= 0) printf (" b%ld@%ld", i, r);
+    printf ("[btorsim] reached bad state properties {");
+    for (long i = 0; i < BTOR_COUNT_STACK (bads); i++)
+    {
+      long r = BTOR_PEEK_STACK (reached, i);
+      if (r >= 0) printf (" b%ld@%ld", i, r);
+    }
+    printf (" }\n");
   }
-  printf (" }\n");
+  else if (!BTOR_EMPTY_STACK (bads))
+    msg (0, "no bad state property reached");
+
+  if (constraints_violated >= 0)
+    msg (0, "constraints violated at time %ld", constraints_violated);
+  else if (!BTOR_EMPTY_STACK (constraints))
+    msg (0, "constraints always satisfied");
 }
 
 int
