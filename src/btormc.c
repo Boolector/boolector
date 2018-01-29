@@ -1071,6 +1071,7 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
   is_bv = boolector_is_bitvec_sort (btor, boolector_get_sort (btor, node));
   frame = mc->frames.start + time;
   b     = btor_hashptr_table_get (mc->states, node);
+  const int is_state = (b != 0);
   if (b)
   {
     state        = b->data.as_ptr;
@@ -1102,7 +1103,7 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
       printf (" %s", sym);
     else
       printf (" %s%d", default_sym, id);
-    printf ("@%d\n", time);
+    printf ("%c%d\n", is_state ? '#' : '@', time);
     boolector_free_bv_assignment (fwd, value);
   }
   else
