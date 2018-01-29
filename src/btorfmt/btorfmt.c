@@ -319,7 +319,12 @@ parse_symbol_bfr (BtorFormatReader *bfr)
     }
     pushc_bfr (bfr, ch);
   }
-  if (!bfr->nbuf) return perr_bfr (bfr, "empty symbol");
+  if (!bfr->nbuf)
+  {
+    assert (bfr->lineno > 1);
+    bfr->lineno--;
+    return perr_bfr (bfr, "empty symbol");
+  }
   pushc_bfr (bfr, 0);
   return 1;
 }
