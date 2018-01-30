@@ -1,12 +1,12 @@
-1 sort bitvec 1
-2 sort bitvec 32
-3 input 1 turn
-4 state 2 a
-5 state 2 b
-6 zero 2
-7 init 2 4 6
-8 init 2 5 6
-9 one 2
+ 1 sort bitvec 1
+ 2 sort bitvec 32
+ 3 input 1 turn
+ 4 state 2 a
+ 5 state 2 b
+ 6 zero 2
+ 7 init 2 4 6
+ 8 init 2 5 6
+ 9 one 2
 10 add 2 4 9
 11 add 2 5 9
 12 ite 2 3 4 10
