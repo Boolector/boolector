@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-
 using namespace std;
 static bool
 read_input_bit ()

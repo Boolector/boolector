@@ -15,7 +15,7 @@ main ()
 {
   unsigned a = 0, b = 0;  // states
   bool turn;              // input
-  for (unsigned k = 0;; k++)
+  for (;;)
   {
     turn = read_bool ();
     assert (!(a == 3 && b == 3));
