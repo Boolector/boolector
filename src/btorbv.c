@@ -822,17 +822,24 @@ btor_bv_redand (BtorMemMgr *mm, const BtorBitVector *bv)
 
   uint32_t i;
   uint32_t bit;
+  uint32_t mask0;
   BtorBitVector *res;
 
   res = btor_bv_new (mm, 1);
   assert (rem_bits_zero_dbg (res));
-  bit = 1;
-  for (i = 0; !bit && i < bv->len; i++)
-    if (!bv->bits[i]) bit = 0;
+
+  if (bv->width == BTOR_BV_TYPE_BW * bv->len)
+    mask0 = ~(BTOR_BV_TYPE) 0;
+  else
+    mask0 = BTOR_MASK_REM_BITS (bv);
+
+  bit = (bv->bits[0] == mask0);
+
+  for (i = 1; bit && i < bv->len; i++)
+    if (bv->bits[i] != ~(BTOR_BV_TYPE) 0) bit = 0;
 
   btor_bv_set_bit (res, 0, bit);
 
-  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }
@@ -855,7 +862,6 @@ btor_bv_redor (BtorMemMgr *mm, const BtorBitVector *bv)
 
   btor_bv_set_bit (res, 0, bit);
 
-  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }
