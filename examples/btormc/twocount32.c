@@ -2,17 +2,14 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 static bool
 read_bool ()
 {
   int ch = getc (stdin);
-  if (ch == EOF) exit (0);
   if (ch == '0') return false;
   if (ch == '1') return true;
   exit (0);
 }
-
 int
 main ()
 {
@@ -27,5 +24,4 @@ main ()
     else
       b = b + 1;
   }
-  return 0;
 }
