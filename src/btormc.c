@@ -1130,10 +1130,8 @@ print_witness (BtorMC *mc, int32_t time)
   BtorMCstate *state;
   BoolectorNode *src;
   BtorPtrHashTableIterator it;
-  Btor *btor;
   bool full_trace;
 
-  btor       = mc->btor;
   full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
 
   printf ("sat\n");

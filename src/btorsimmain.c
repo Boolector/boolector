@@ -198,15 +198,27 @@ parse_model_line (BtorFormatLine *l)
 
     case BTOR_FORMAT_TAG_add:
     case BTOR_FORMAT_TAG_and:
+    case BTOR_FORMAT_TAG_concat:
+    case BTOR_FORMAT_TAG_const:
     case BTOR_FORMAT_TAG_eq:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_ite:
+    case BTOR_FORMAT_TAG_ne:
+    case BTOR_FORMAT_TAG_not:
     case BTOR_FORMAT_TAG_one:
     case BTOR_FORMAT_TAG_ones:
+    case BTOR_FORMAT_TAG_or:
+    case BTOR_FORMAT_TAG_redand:
+    case BTOR_FORMAT_TAG_redor:
+    case BTOR_FORMAT_TAG_slice:
+    case BTOR_FORMAT_TAG_sub:
+    case BTOR_FORMAT_TAG_uext:
+    case BTOR_FORMAT_TAG_ult:
+    case BTOR_FORMAT_TAG_ulte:
+    case BTOR_FORMAT_TAG_xnor:
+    case BTOR_FORMAT_TAG_xor:
     case BTOR_FORMAT_TAG_zero: break;
 
-    case BTOR_FORMAT_TAG_concat:
-    case BTOR_FORMAT_TAG_const:
     case BTOR_FORMAT_TAG_constd:
     case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_dec:
@@ -216,15 +228,10 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_justice:
     case BTOR_FORMAT_TAG_mul:
     case BTOR_FORMAT_TAG_nand:
-    case BTOR_FORMAT_TAG_ne:
     case BTOR_FORMAT_TAG_neg:
     case BTOR_FORMAT_TAG_nor:
-    case BTOR_FORMAT_TAG_not:
-    case BTOR_FORMAT_TAG_or:
     case BTOR_FORMAT_TAG_output:
     case BTOR_FORMAT_TAG_read:
-    case BTOR_FORMAT_TAG_redand:
-    case BTOR_FORMAT_TAG_redor:
     case BTOR_FORMAT_TAG_redxor:
     case BTOR_FORMAT_TAG_rol:
     case BTOR_FORMAT_TAG_ror:
@@ -234,7 +241,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_sext:
     case BTOR_FORMAT_TAG_sgt:
     case BTOR_FORMAT_TAG_sgte:
-    case BTOR_FORMAT_TAG_slice:
     case BTOR_FORMAT_TAG_sll:
     case BTOR_FORMAT_TAG_slt:
     case BTOR_FORMAT_TAG_slte:
@@ -244,20 +250,14 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_srem:
     case BTOR_FORMAT_TAG_srl:
     case BTOR_FORMAT_TAG_ssubo:
-    case BTOR_FORMAT_TAG_sub:
     case BTOR_FORMAT_TAG_uaddo:
     case BTOR_FORMAT_TAG_udiv:
-    case BTOR_FORMAT_TAG_uext:
     case BTOR_FORMAT_TAG_ugt:
     case BTOR_FORMAT_TAG_ugte:
-    case BTOR_FORMAT_TAG_ult:
-    case BTOR_FORMAT_TAG_ulte:
     case BTOR_FORMAT_TAG_umulo:
     case BTOR_FORMAT_TAG_urem:
     case BTOR_FORMAT_TAG_usubo:
     case BTOR_FORMAT_TAG_write:
-    case BTOR_FORMAT_TAG_xnor:
-    case BTOR_FORMAT_TAG_xor:
     default:
       die ("parse error in '%s' at line %ld: unsupported '%ld %s%s'",
            model_path,
@@ -334,6 +334,14 @@ randomly_simulate (long id)
         assert (l->nargs == 2);
         res = btor_bv_and (mem, args[0], args[1]);
         break;
+      case BTOR_FORMAT_TAG_concat:
+        assert (l->nargs == 2);
+        res = btor_bv_concat (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_const:
+        assert (l->nargs == 1);
+        res = btor_bv_char_to_bv (mem, l->constant);
+        break;
       case BTOR_FORMAT_TAG_eq:
         assert (l->nargs == 2);
         res = btor_bv_eq (mem, args[0], args[1]);
@@ -346,14 +354,63 @@ randomly_simulate (long id)
         assert (l->nargs == 3);
         res = btor_bv_ite (mem, args[0], args[1], args[2]);
         break;
+      case BTOR_FORMAT_TAG_ne:
+        assert (l->nargs == 2);
+        res = btor_bv_ne (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_not:
+        assert (l->nargs == 1);
+        res = btor_bv_not (mem, args[0]);
+        break;
       case BTOR_FORMAT_TAG_one:
         res = btor_bv_one (mem, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_ones:
         res = btor_bv_ones (mem, l->sort.bitvec.width);
         break;
+      case BTOR_FORMAT_TAG_or:
+        assert (l->nargs == 2);
+        res = btor_bv_or (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_redand:
+        assert (l->nargs == 1);
+        res = btor_bv_redand (mem, args[0]);
+        break;
+      case BTOR_FORMAT_TAG_redor:
+        assert (l->nargs == 1);
+        res = btor_bv_redor (mem, args[0]);
+        break;
+      case BTOR_FORMAT_TAG_slice:
+        assert (l->nargs == 1);
+        res = btor_bv_slice (mem, args[0], l->args[1], l->args[2]);
+        break;
+      case BTOR_FORMAT_TAG_sub:
+        assert (l->nargs == 2);
+        res = btor_bv_sub (mem, args[0], args[1]);
+        break;
+        break;
+      case BTOR_FORMAT_TAG_uext:
+        assert (l->nargs == 1);
+        res = btor_bv_uext (mem, args[0], l->sort.bitvec.width);
+        break;
+      case BTOR_FORMAT_TAG_ult:
+        assert (l->nargs == 2);
+        res = btor_bv_ult (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_ulte:
+        assert (l->nargs == 2);
+        res = btor_bv_ulte (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_xnor:
+        assert (l->nargs == 2);
+        res = btor_bv_xnor (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_xor:
+        assert (l->nargs == 2);
+        res = btor_bv_xor (mem, args[0], args[1]);
+        break;
       case BTOR_FORMAT_TAG_zero:
-        res = btor_bv_new (mem, l->sort.bitvec.width);
+        res = btor_bv_zero (mem, l->sort.bitvec.width);
         break;
       default:
         die ("can not randomly simulate operator '%s' at line %ld",
