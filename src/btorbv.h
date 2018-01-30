@@ -58,6 +58,11 @@ BtorBitVector *btor_bv_new_random_bit_range (
     BtorMemMgr *mm, BtorRNG *rng, uint32_t bw, uint32_t up, uint32_t lo);
 
 BtorBitVector *btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment);
+
+BtorBitVector *btor_bv_dec_to_bv (BtorMemMgr *mm,
+                                  const char *decimal_string,
+                                  uint32_t bw);
+
 BtorBitVector *btor_bv_uint64_to_bv (BtorMemMgr *mm,
                                      uint64_t value,
                                      uint32_t bw);

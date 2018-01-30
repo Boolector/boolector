@@ -200,6 +200,7 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_and:
     case BTOR_FORMAT_TAG_concat:
     case BTOR_FORMAT_TAG_const:
+    case BTOR_FORMAT_TAG_constd:
     case BTOR_FORMAT_TAG_eq:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_ite:
@@ -219,7 +220,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_xor:
     case BTOR_FORMAT_TAG_zero: break;
 
-    case BTOR_FORMAT_TAG_constd:
     case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_dec:
     case BTOR_FORMAT_TAG_fair:
@@ -341,6 +341,10 @@ randomly_simulate (long id)
       case BTOR_FORMAT_TAG_const:
         assert (l->nargs == 1);
         res = btor_bv_char_to_bv (mem, l->constant);
+        break;
+      case BTOR_FORMAT_TAG_constd:
+        assert (l->nargs == 1);
+        res = btor_bv_dec_to_bv (mem, l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_eq:
         assert (l->nargs == 2);
