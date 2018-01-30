@@ -14,8 +14,8 @@ read_input_bit ()
 int
 main ()
 {
+  bool turn;              // input
   unsigned a = 0, b = 0;  // states
-  bool turn;              // inputs
   cout << "sat" << endl;
   cout << "b0" << endl;
   cout << "#0" << endl;

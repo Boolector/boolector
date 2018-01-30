@@ -13,8 +13,8 @@ read_bool ()
 int
 main ()
 {
-  unsigned a = 0, b = 0;  // states
   bool turn;              // input
+  unsigned a = 0, b = 0;  // states
   for (;;)
   {
     turn = read_bool ();
