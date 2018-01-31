@@ -644,8 +644,7 @@ next_char ()
   assert (witness_file);
   int ch = getc_unlocked (witness_file);
   if (ch == '\n') lineno++, columnno = 0;
-  columnno++;
-  charno++;
+  if (ch != EOF) columnno++, charno++;
   return ch;
 }
 
@@ -676,6 +675,7 @@ parse_witness ()
   for (;;)
   {
     int ch = next_char ();
+    if (ch == EOF) break;
     if (ch == 's')
     {
       if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
@@ -688,6 +688,7 @@ parse_witness ()
              witness_path,
              count_sat,
              lineno - 1);
+        continue;
       }
     }
     else if (ch == 'u')
@@ -703,7 +704,13 @@ parse_witness ()
              witness_path,
              count_unsat,
              lineno - 1);
+        continue;
       }
+    }
+    while (ch != '\n')
+    {
+      ch = next_char ();
+      if (ch == EOF) parse_error ("unexpected end-of-file before new-line");
     }
   }
   BTOR_RELEASE_STACK (buffer);
