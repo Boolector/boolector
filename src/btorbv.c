@@ -1050,6 +1050,46 @@ btor_bv_or (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_nand (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  uint32_t i;
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, a->width);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~(a->bits[i] & b->bits[i]);
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
+btor_bv_nor (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  uint32_t i;
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, a->width);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~(a->bits[i] | b->bits[i]);
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
 btor_bv_xnor (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);

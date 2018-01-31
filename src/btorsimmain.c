@@ -232,7 +232,10 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_eq:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_ite:
+    case BTOR_FORMAT_TAG_mul:
+    case BTOR_FORMAT_TAG_nand:
     case BTOR_FORMAT_TAG_ne:
+    case BTOR_FORMAT_TAG_nor:
     case BTOR_FORMAT_TAG_not:
     case BTOR_FORMAT_TAG_one:
     case BTOR_FORMAT_TAG_ones:
@@ -242,6 +245,8 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_slice:
     case BTOR_FORMAT_TAG_sub:
     case BTOR_FORMAT_TAG_uext:
+    case BTOR_FORMAT_TAG_ugt:
+    case BTOR_FORMAT_TAG_ugte:
     case BTOR_FORMAT_TAG_ult:
     case BTOR_FORMAT_TAG_ulte:
     case BTOR_FORMAT_TAG_xnor:
@@ -253,10 +258,7 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_iff:
     case BTOR_FORMAT_TAG_inc:
     case BTOR_FORMAT_TAG_justice:
-    case BTOR_FORMAT_TAG_mul:
-    case BTOR_FORMAT_TAG_nand:
     case BTOR_FORMAT_TAG_neg:
-    case BTOR_FORMAT_TAG_nor:
     case BTOR_FORMAT_TAG_output:
     case BTOR_FORMAT_TAG_read:
     case BTOR_FORMAT_TAG_redxor:
@@ -279,8 +281,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_ssubo:
     case BTOR_FORMAT_TAG_uaddo:
     case BTOR_FORMAT_TAG_udiv:
-    case BTOR_FORMAT_TAG_ugt:
-    case BTOR_FORMAT_TAG_ugte:
     case BTOR_FORMAT_TAG_umulo:
     case BTOR_FORMAT_TAG_urem:
     case BTOR_FORMAT_TAG_usubo:
@@ -385,9 +385,21 @@ simulate (long id)
         assert (l->nargs == 3);
         res = btor_bv_ite (mem, args[0], args[1], args[2]);
         break;
+      case BTOR_FORMAT_TAG_mul:
+        assert (l->nargs == 2);
+        res = btor_bv_mul (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_nand:
+        assert (l->nargs == 2);
+        res = btor_bv_nand (mem, args[0], args[1]);
+        break;
       case BTOR_FORMAT_TAG_ne:
         assert (l->nargs == 2);
         res = btor_bv_ne (mem, args[0], args[1]);
+        break;
+      case BTOR_FORMAT_TAG_nor:
+        assert (l->nargs == 2);
+        res = btor_bv_nor (mem, args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_not:
         assert (l->nargs == 1);
@@ -431,6 +443,14 @@ simulate (long id)
           else
             res = btor_bv_copy (mem, args[0]);
         }
+        break;
+      case BTOR_FORMAT_TAG_ugt:
+        assert (l->nargs == 2);
+        res = btor_bv_ult (mem, args[1], args[0]);
+        break;
+      case BTOR_FORMAT_TAG_ugte:
+        assert (l->nargs == 2);
+        res = btor_bv_ulte (mem, args[1], args[0]);
         break;
       case BTOR_FORMAT_TAG_ult:
         assert (l->nargs == 2);

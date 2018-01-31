@@ -156,6 +156,14 @@ BtorBitVector *btor_bv_implies (BtorMemMgr *mm,
                                 const BtorBitVector *a,
                                 const BtorBitVector *b);
 
+BtorBitVector *btor_bv_nand (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+BtorBitVector *btor_bv_nor (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
 BtorBitVector *btor_bv_or (BtorMemMgr *mm,
                            const BtorBitVector *a,
                            const BtorBitVector *b);
