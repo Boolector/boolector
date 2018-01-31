@@ -400,7 +400,15 @@ randomly_simulate (long id)
         break;
       case BTOR_FORMAT_TAG_uext:
         assert (l->nargs == 1);
-        res = btor_bv_uext (mem, args[0], l->sort.bitvec.width);
+        {
+          uint32_t width = args[0]->width;
+          assert (width <= l->sort.bitvec.width);
+          uint32_t padding = l->sort.bitvec.width - width;
+          if (padding)
+            res = btor_bv_uext (mem, args[0], padding);
+          else
+            res = btor_bv_copy (mem, args[0]);
+        }
         break;
       case BTOR_FORMAT_TAG_ult:
         assert (l->nargs == 2);
