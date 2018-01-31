@@ -758,6 +758,8 @@ parse_unsigned_number (int *ch_ptr)
   return res;
 }
 
+static long constant_columno;
+
 static long
 parse_assignment ()
 {
@@ -772,10 +774,14 @@ parse_assignment ()
   long res = parse_unsigned_number (&ch);
   if (ch != ' ') parse_error ("space missing after '%ld'", res);
   BTOR_RESET_STACK (constant);
+  constant_columno = columno + 1;
   while ((ch = next_char ()) == '0' || ch == '1')
     BTOR_PUSH_STACK (constant, ch);
-  if (ch != ' ' && ch != '\n')
-    parse_error ("expected space or new-line after assignment");
+  if (ch == '[') parse_error ("can not handle array assignments yet");
+  if (BTOR_EMPTY_STACK (constant)) parse_error ("empty constant");
+  if (BTOR_EMPTY_STACK (constant))
+    if (ch != ' ' && ch != '\n')
+      parse_error ("expected space or new-line after assignment");
   BTOR_PUSH_STACK (constant, 0);
   BTOR_RESET_STACK (symbol);
   while (ch != '\n')
@@ -800,8 +806,12 @@ parse_frame (long k)
     long state_pos;
     while ((state_pos = parse_assignment ()) >= 0)
     {
+      long saved_charno = charno;
+      charno            = 1;
+      assert (lineno > 1);
+      lineno--;
       if (state_pos >= BTOR_COUNT_STACK (states))
-        parse_error ("state %ld undefined", state_pos);
+        parse_error ("less than %ld states defined", state_pos);
       if (BTOR_EMPTY_STACK (symbol))
         msg (4,
              "state assignment '%ld %s' at time frame %ld",
@@ -815,16 +825,47 @@ parse_frame (long k)
              constant.start,
              symbol.start,
              k);
+      BtorFormatLine *state = BTOR_PEEK_STACK (states, state_pos);
+      assert (state);
+      if (strlen (constant.start) != state->sort.bitvec.width)
+        charno = constant_columno,
+        parse_error ("expected constant of width '%u'",
+                     state->sort.bitvec.width);
+      assert (0 <= state->id), assert (state->id < num_format_lines);
+      if (current_state[state->id])
+        parse_error ("state %ld id %ld assigned twice in frame %ld",
+                     state_pos,
+                     state->id,
+                     k);
+      BtorBitVector *val   = btor_bv_char_to_bv (mem, constant.start);
+      BtorFormatLine *init = inits[state->id];
+      if (init)
+      {
+        assert (init->nargs == 2);
+        assert (init->args[0] == state->id);
+        BtorBitVector *tmp = randomly_simulate (init->args[1]);
+        if (btor_bv_compare (val, tmp))
+          parse_error ("incompatible initialized state %ld id %ld",
+                       state_pos,
+                       state->id);
+        btor_bv_free (mem, tmp);
+      }
+      lineno++;
+      charno = saved_charno;
+      update_current_state (state->id, val);
     }
     ch = next_char ();
   }
+  if (ch == '#')
+    parse_error (
+        "state assignments only supported in first frame at this point");
   if (ch != '@' || parse_unsigned_number (&ch) != k || ch != '\n')
     parse_assignment ("missing '@%ld' input part in frame %ld", k, k);
   long input_pos;
   while ((input_pos = parse_assignment ()) >= 0)
   {
     if (input_pos >= BTOR_COUNT_STACK (inputs))
-      parse_error ("input %ld undefined", input_pos);
+      parse_error ("less than %ld defined", input_pos);
     if (BTOR_EMPTY_STACK (symbol))
       msg (4,
            "input assignment '%ld %s' at time frame %ld",
@@ -838,6 +879,10 @@ parse_frame (long k)
            constant.start,
            symbol.start,
            k);
+    BtorFormatLine *l = BTOR_PEEK_STACK (inputs, input_pos);
+    assert (l);
+    if (strlen (constant.start) != l->sort.bitvec.width)
+      parse_error ("expected constant of width '%u'", l->sort.bitvec.width);
   }
   return 1;
 }
