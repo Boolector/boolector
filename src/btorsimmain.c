@@ -829,6 +829,7 @@ parse_unsigned_number (int *ch_ptr)
 
 static long constant_columno;
 static int found_end_of_witness;
+static int found_initial_frame;
 
 static long
 parse_assignment ()
@@ -942,6 +943,7 @@ parse_state_part (long k)
     charno = saved_charno;
     update_current_state (state->id, val);
   }
+  if (!k) found_initial_frame = 1;
 }
 
 static void
@@ -1038,7 +1040,9 @@ parse_sat_witness ()
     {
       if (bad >= BTOR_COUNT_STACK (bads))
         parse_error ("invalid bad state property number %ld", bad);
-      msg (3, "... claims to be witness of bad state property number %ld", bad);
+      msg (3,
+           "... claims to be witness of bad state property number 'b%ld'",
+           bad);
       BTOR_PUSH_STACK (claimed_bad_witnesses, bad);
     }
     else
@@ -1049,7 +1053,7 @@ parse_sat_witness ()
   long k = 0;
   while (parse_frame (k)) k++;
 
-  if (!k) parse_error ("initial frame 0 missing");
+  if (!found_initial_frame) parse_error ("initial frame missing");
   msg (1, "finished parsing k = %ld frames", k);
 
   report ();
@@ -1078,7 +1082,7 @@ parse_unknown_witness ()
 
   while (parse_frame (k)) k++;
 
-  if (!k) parse_error ("initial frame 0 missing");
+  if (!found_initial_frame) parse_error ("initial frame missing");
 
   report ();
   if (print_trace) printf (".\n"), fflush (stdout);
@@ -1100,6 +1104,7 @@ parse_and_check_witness ()
   if (ch == EOF) return 0;
 
   found_end_of_witness = 0;
+  found_initial_frame  = 0;
 
   if (ch == '#')
   {
