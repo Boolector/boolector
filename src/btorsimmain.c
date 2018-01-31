@@ -1017,7 +1017,7 @@ parse_witness ()
   {
     if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
         && (ch = next_char ()) == '\n')
-    {  // TODO '\r'
+    {
       count_witnesses++;
       count_sat_witnesses++;
       msg (0,
@@ -1037,7 +1037,7 @@ parse_witness ()
     if ((ch = next_char ()) == 'n' && (ch = next_char ()) == 's'
         && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
         && (ch = next_char ()) == '\n')
-    {  // TODO '\r'
+    {
       count_witnesses++;
       count_unsat_witnesses++;
       msg (0,
