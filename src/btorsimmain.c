@@ -896,6 +896,9 @@ parse_sat_witness ()
   for (;;)
   {
     int type = next_char ();
+    if (type == ' ') continue;
+    if (type == '\n') break;
+    ;
     if (type != 'b' && type != 'j') parse_error ("expected 'b' or 'j'");
     int ch;
     long bad = parse_unsigned_number (&ch);
@@ -913,8 +916,8 @@ parse_sat_witness ()
     if (type == 'b')
     {
       if (bad >= BTOR_COUNT_STACK (bads))
-        parse_error ("invalid 'b%ld' bad state property", bad);
-      msg (3, "... claims to be witness of bad state property %ld", bad);
+        parse_error ("invalid bad state property number %ld", bad);
+      msg (3, "... claims to be witness of bad state property number %ld", bad);
       BTOR_PUSH_STACK (bad_witnesses, bad);
     }
     else
