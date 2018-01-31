@@ -1165,6 +1165,7 @@ print_witness (BtorMC *mc, int32_t time)
       print_witness_at_time (mc, src, i);
     }
   }
+  printf (".\n");
   fflush (stdout);
 }
 
