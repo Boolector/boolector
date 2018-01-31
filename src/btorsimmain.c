@@ -560,7 +560,7 @@ initialize_states (int randomly)
 static void
 simulate_step (long k, int randomize_states_that_are_inputs)
 {
-  msg (1, "simulate step %ld", k);
+  msg (1, "simulating step %ld", k);
   for (long i = 0; i < num_format_lines; i++)
   {
     BtorFormatLine *l = btorfmt_get_line_by_id (model, i);
@@ -572,7 +572,7 @@ simulate_step (long k, int randomize_states_that_are_inputs)
       continue;
 
     BtorBitVector *bv = simulate (i);
-#if 0
+#if 1
     printf ("[btorim] %ld %s ", l->id, l->name);
     btor_bv_print (bv);
     fflush (stdout);
@@ -953,6 +953,10 @@ parse_input_part (long k)
   long input_pos;
   while ((input_pos = parse_assignment ()) >= 0)
   {
+    long saved_charno = charno;
+    charno            = 1;
+    assert (lineno > 1);
+    lineno--;
     if (input_pos >= BTOR_COUNT_STACK (inputs))
       parse_error ("less than %ld defined", input_pos);
     if (BTOR_EMPTY_STACK (symbol))
@@ -968,10 +972,21 @@ parse_input_part (long k)
            constant.start,
            symbol.start,
            k);
-    BtorFormatLine *l = BTOR_PEEK_STACK (inputs, input_pos);
-    assert (l);
-    if (strlen (constant.start) != l->sort.bitvec.width)
-      parse_error ("expected constant of width '%u'", l->sort.bitvec.width);
+    BtorFormatLine *input = BTOR_PEEK_STACK (inputs, input_pos);
+    assert (input);
+    if (strlen (constant.start) != input->sort.bitvec.width)
+      charno = constant_columno,
+      parse_error ("expected constant of width '%u'", input->sort.bitvec.width);
+    assert (0 <= input->id), assert (input->id < num_format_lines);
+    if (current_state[input->id])
+      parse_error ("input %ld id %ld assigned twice in frame %ld",
+                   input_pos,
+                   input->id,
+                   k);
+    BtorBitVector *val = btor_bv_char_to_bv (mem, constant.start);
+    lineno++;
+    charno = saved_charno;
+    update_current_state (input->id, val);
   }
 }
 
