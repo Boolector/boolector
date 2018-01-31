@@ -612,7 +612,7 @@ simulate_step (long k, int randomize_states_that_are_inputs)
       BtorBitVector *bv          = current_state[constraint->args[0]];
       if (!btor_bv_is_zero (bv)) continue;
       msg (1,
-           "constraint(%ld) '%ld constraint %ld' violdated at time %ld",
+           "constraint(%ld) '%ld constraint %ld' violated at time %ld",
            i,
            constraint->id,
            constraint->args[0],
