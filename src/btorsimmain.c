@@ -344,11 +344,11 @@ randomly_simulate (long id)
         res = btor_bv_char_to_bv (mem, l->constant);
         break;
       case BTOR_FORMAT_TAG_constd:
-        assert (l->nargs == 1);
+        assert (l->nargs == 0);
         res = btor_bv_constd (mem, l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_consth:
-        assert (l->nargs == 1);
+        assert (l->nargs == 0);
         res = btor_bv_consth (mem, l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_eq:
