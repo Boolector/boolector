@@ -876,8 +876,8 @@ parse_witnesses ()
         count_sat_witnesses++;
         msg (0,
              "found witness %ld header 'sat' in '%s' at line %ld",
-             witness_path,
              count_sat_witnesses,
+             witness_path,
              lineno - 1);
         if (count_sat_witnesses > 1)
           die ("more than one 'sat' witness not supported yet");
