@@ -42,3 +42,4 @@ src/api/python/*.so
 python.mk
 setup.py
 testibv
+bin/
