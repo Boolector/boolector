@@ -633,6 +633,12 @@ random_simulations (long k)
     msg (0, "constraints always satisfied");
 }
 
+static void
+parse_witness ()
+{
+  assert (witness_file);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -725,7 +731,7 @@ main (int argc, char **argv)
   {
     assert (witness_path);
     msg (1, "reading BTOR witness from '%s'", witness_path);
-    // TODO
+    parse_witness ();
     if (close_witness_file && fclose (witness_file))
       die ("can not close witness file '%s'", witness_path);
   }
