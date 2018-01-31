@@ -64,6 +64,9 @@ static const char *usage =
     "  -r <n>    generate <n> random transitions (default 20)\n"
     "  -s <s>    random seed (default '0')\n"
     "\n"
+    "  -b <n>    fake simulation to satisfy bad state property 'b<n>'\n"
+    "  -j <n>    fake simulation to satisfy justice property 'j<n>'\n"
+    "\n"
     "  --states  print all states\n"
     "\n"
     "and '<btor>' is sequential model in 'BTOR' format\n"
@@ -81,8 +84,29 @@ static FILE *witness_file;
 static int close_model_file;
 static int close_witness_file;
 
-static long
-parse_positive_number (const char *str, int *res_ptr)
+static int
+parse_int (const char *str, int *res_ptr)
+{
+  const char *p = str;
+  if (!*p) return 0;
+  if (*p == '0' && p[1]) return 0;
+  int res = 0;
+  while (*p)
+  {
+    const int ch = *p++;
+    if (!isdigit (ch)) return 0;
+    if (INT_MAX / 10 < res) return 0;
+    res *= 10;
+    const int digit = ch - '0';
+    if (INT_MAX - digit < res) return 0;
+    res += digit;
+  }
+  *res_ptr = res;
+  return 1;
+}
+
+static int
+parse_long (const char *str, long *res_ptr)
 {
   const char *p = str;
   if (!*p) return 0;
@@ -92,10 +116,10 @@ parse_positive_number (const char *str, int *res_ptr)
   {
     const int ch = *p++;
     if (!isdigit (ch)) return 0;
-    if (INT_MAX / 10 < res) return 0;
+    if (LONG_MAX / 10 < res) return 0;
     res *= 10;
     const int digit = ch - '0';
-    if (INT_MAX - digit < res) return 0;
+    if (LONG_MAX - digit < res) return 0;
     res += digit;
   }
   *res_ptr = res;
@@ -115,6 +139,7 @@ static BtorFormatLinePtrStack inputs;
 static BtorFormatLinePtrStack states;
 static BtorFormatLinePtrStack bads;
 static BtorFormatLinePtrStack constraints;
+static BtorFormatLinePtrStack justices;
 
 BTOR_DECLARE_STACK (BtorLong, long);
 
@@ -278,6 +303,7 @@ parse_model ()
   BTOR_INIT_STACK (mem, inputs);
   BTOR_INIT_STACK (mem, states);
   BTOR_INIT_STACK (mem, bads);
+  BTOR_INIT_STACK (mem, justices);
   BTOR_INIT_STACK (mem, reached_bads);
   BTOR_INIT_STACK (mem, constraints);
   assert (model_file);
@@ -1117,6 +1143,7 @@ parse_and_check_all_witnesses ()
 int
 main (int argc, char **argv)
 {
+  long fake_bad = -1, fake_justice = -1;
   int r = -1, s = -1;
   for (int i = 1; i < argc; i++)
   {
@@ -1129,14 +1156,24 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-r"))
     {
       if (++i == argc) die ("argument to '-r' missing");
-      if (!parse_positive_number (argv[i], &r))
-        die ("invalid number in '-r %s'", argv[i]);
+      if (!parse_int (argv[i], &r)) die ("invalid number in '-r %s'", argv[i]);
     }
     else if (!strcmp (argv[i], "-s"))
     {
       if (++i == argc) die ("argument to '-s' missing");
-      if (!parse_positive_number (argv[i], &s))
-        die ("invalid number in '-s %s'", argv[i]);
+      if (!parse_int (argv[i], &s)) die ("invalid number in '-s %s'", argv[i]);
+    }
+    else if (!strcmp (argv[i], "-b"))
+    {
+      if (++i == argc) die ("argument to '-b' missing");
+      if (!parse_long (argv[i], &fake_bad))
+        die ("invalid number in '-b %s'", argv[i]);
+    }
+    else if (!strcmp (argv[i], "-j"))
+    {
+      if (++i == argc) die ("argument to '-j' missing");
+      if (!parse_long (argv[i], &fake_justice))
+        die ("invalid number in '-j %s'", argv[i]);
     }
     else if (!strcmp (argv[i], "--states"))
       print_states = 1;
@@ -1186,10 +1223,17 @@ main (int argc, char **argv)
     if (r >= 0)
       die ("number of random test vectors specified in checking mode");
     if (s >= 0) die ("random seed specified in checking mode");
+    if (fake_bad >= 0) die ("can not fake bad state property in checking mode");
+    if (fake_justice >= 0)
+      die ("can not fake justice property in checking mode");
   }
   assert (model_path);
   msg (1, "reading BTOR model from '%s'", model_path);
   parse_model ();
+  if (fake_bad >= BTOR_COUNT_STACK (bads))
+    die ("invalid faked bad state property number %ld", fake_bad);
+  if (fake_justice >= BTOR_COUNT_STACK (justices))
+    die ("invalid faked justice property number %ld", fake_justice);
   if (close_model_file && fclose (model_file))
     die ("can not close model file '%s'", model_path);
   BTOR_CNEWN (mem, current_state, num_format_lines);
@@ -1200,6 +1244,15 @@ main (int argc, char **argv)
     if (s < 0) s = 0;
     msg (1, "using random seed %d", s);
     btor_rng_init (&rng, (uint32_t) s);
+    if (print_trace)
+    {
+      if (fake_bad >= 0 && fake_justice >= 0)
+        printf ("sat\nb%ld j%ld\n", fake_bad, fake_justice);
+      else if (fake_bad >= 0)
+        printf ("sat\nb%ld\n", fake_bad);
+      else if (fake_justice >= 0)
+        printf ("sat\nj%ld\n", fake_justice);
+    }
     random_simulation (r);
   }
   else
@@ -1213,6 +1266,7 @@ main (int argc, char **argv)
   BTOR_RELEASE_STACK (inputs);
   BTOR_RELEASE_STACK (states);
   BTOR_RELEASE_STACK (bads);
+  BTOR_RELEASE_STACK (justices);
   BTOR_RELEASE_STACK (reached_bads);
   BTOR_RELEASE_STACK (constraints);
   btorfmt_delete (model);
