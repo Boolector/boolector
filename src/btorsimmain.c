@@ -291,10 +291,6 @@ parse_model ()
   while ((line = btorfmt_iter_next (&it))) parse_model_line (line);
 }
 
-static int print_trace = 1;
-
-static BtorRNG rng;
-
 static void
 update_current_state (long id, BtorBitVector *bv)
 {
@@ -312,7 +308,7 @@ delete_current_state (long id)
 }
 
 static BtorBitVector *
-randomly_simulate (long id)
+simulate (long id)
 {
   int sign = id < 0 ? -1 : 1;
   if (sign < 0) id = -id;
@@ -323,8 +319,7 @@ randomly_simulate (long id)
     BtorFormatLine *l = btorfmt_get_line_by_id (model, id);
     if (!l) die ("internal error: unexpected empty ID %ld", id);
     BtorBitVector *args[3] = {0, 0, 0};
-    for (uint32_t i = 0; i < l->nargs; i++)
-      args[i] = randomly_simulate (l->args[i]);
+    for (uint32_t i = 0; i < l->nargs; i++) args[i] = simulate (l->args[i]);
     switch (l->tag)
     {
       case BTOR_FORMAT_TAG_add:
@@ -448,16 +443,24 @@ randomly_simulate (long id)
   return res;
 }
 
+static int print_trace = 1;
+static BtorRNG rng;
+
 static void
-random_inputs (long k)
+initialize_inputs (long k, int randomize)
 {
-  msg (1, "random inputs %ld", k);
+  msg (1, "initializing inputs @%ld", k);
   if (print_trace) printf ("@%ld\n", k);
   for (long i = 0; i < BTOR_COUNT_STACK (inputs); i++)
   {
     BtorFormatLine *input = BTOR_PEEK_STACK (inputs, i);
     uint32_t width        = input->sort.bitvec.width;
-    BtorBitVector *update = btor_bv_new_random (mem, &rng, width);
+    if (current_state[input->id]) continue;
+    BtorBitVector *update;
+    if (randomize)
+      update = btor_bv_new_random (mem, &rng, width);
+    else
+      update = btor_bv_new (mem, width);
     update_current_state (input->id, update);
     if (print_trace)
     {
@@ -470,28 +473,31 @@ random_inputs (long k)
 }
 
 static void
-random_initialization ()
+initialize_states (int randomly)
 {
-  msg (1, "random initialization");
+  msg (1, "initializing states at #0");
   if (print_trace) printf ("#0\n");
   for (long i = 0; i < BTOR_COUNT_STACK (states); i++)
   {
     BtorFormatLine *state = BTOR_PEEK_STACK (states, i);
     assert (0 <= state->id), assert (state->id < num_format_lines);
-    assert (!current_state[state->id]);
+    if (current_state[state->id]) continue;
     BtorFormatLine *init = inits[state->id];
     BtorBitVector *update;
     if (init)
     {
       assert (init->nargs == 2);
       assert (init->args[0] == state->id);
-      update = randomly_simulate (init->args[1]);
+      update = simulate (init->args[1]);
     }
     else
     {
       assert (state->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec);
       uint32_t width = state->sort.bitvec.width;
-      update         = btor_bv_new_random (mem, &rng, width);
+      if (randomly)
+        update = btor_bv_new_random (mem, &rng, width);
+      else
+        update = btor_bv_new (mem, width);
     }
     update_current_state (state->id, update);
     if (print_trace && !init)
@@ -505,9 +511,9 @@ random_initialization ()
 }
 
 static void
-random_step (long k)
+simulate_step (long k, int randomize_states_that_are_inputs)
 {
-  msg (1, "random step %ld", k);
+  msg (1, "simulate step %ld", k);
   for (long i = 0; i < num_format_lines; i++)
   {
     BtorFormatLine *l = btorfmt_get_line_by_id (model, i);
@@ -518,7 +524,7 @@ random_step (long k)
         || l->tag == BTOR_FORMAT_TAG_fair || l->tag == BTOR_FORMAT_TAG_justice)
       continue;
 
-    BtorBitVector *bv = randomly_simulate (i);
+    BtorBitVector *bv = simulate (i);
 #if 0
     printf ("[btorim] %ld %s ", l->id, l->name);
     btor_bv_print (bv);
@@ -536,13 +542,16 @@ random_step (long k)
     {
       assert (next->nargs == 2);
       assert (next->args[0] == state->id);
-      update = randomly_simulate (next->args[1]);
+      update = simulate (next->args[1]);
     }
     else
     {
       assert (state->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec);
       uint32_t width = state->sort.bitvec.width;
-      update         = btor_bv_new_random (mem, &rng, width);
+      if (randomize_states_that_are_inputs)
+        update = btor_bv_new_random (mem, &rng, width);
+      else
+        update = btor_bv_new (mem, width);
     }
     assert (!next_state[state->id]);
     next_state[state->id] = update;
@@ -585,9 +594,9 @@ random_step (long k)
 }
 
 static void
-random_transition (long k)
+transition (long k)
 {
-  msg (1, "random step %ld", k);
+  msg (1, "transition %ld", k);
   for (long i = 0; i < num_format_lines; i++) delete_current_state (i);
   if (print_trace && print_states) printf ("#%ld\n", k);
   for (long i = 0; i < BTOR_COUNT_STACK (states); i++)
@@ -609,22 +618,25 @@ random_transition (long k)
 }
 
 static void
-random_simulations (long k)
+random_simulation (long k)
 {
+  msg (1, "starting random simulation up to bound %ld", k);
   assert (k >= 0);
 
+  const int randomize = 1;
+
   unreached_bads = BTOR_COUNT_STACK (bads);
-  random_initialization ();
-  random_inputs (0);
-  random_step (0);
+  initialize_states (randomize);
+  initialize_inputs (0, randomize);
+  simulate_step (0, randomize);
 
   for (long i = 1; i <= k; i++)
   {
     if (constraints_violated >= 0) break;
     if (!unreached_bads) break;
-    random_transition (i);
-    random_inputs (i);
-    random_step (i);
+    transition (i);
+    initialize_inputs (i, randomize);
+    simulate_step (i, randomize);
   }
 
   if (print_trace) printf (".\n"), fflush (stdout);
@@ -680,8 +692,8 @@ next_char ()
   else if (res != EOF)
   {
     columno++;
-    charno++;
   }
+  if (res != EOF) charno++;
   return res;
 }
 
@@ -814,71 +826,75 @@ parse_assignment ()
   return res;
 }
 
-static int
-parse_frame (long k)
+static void
+parse_state_part (long k)
 {
-  msg (2, "parsing frame %ld", k);
   int ch = next_char ();
-  if (!k)
+  if (k > 0)
   {
-    if (ch != '#' || (ch = next_char ()) != '0' || (ch = next_char ()) != '\n')
-      parse_error ("missing '#0' state part header of frame 0");
-    long state_pos;
-    while ((state_pos = parse_assignment ()) >= 0)
-    {
-      long saved_charno = charno;
-      charno            = 1;
-      assert (lineno > 1);
-      lineno--;
-      if (state_pos >= BTOR_COUNT_STACK (states))
-        parse_error ("less than %ld states defined", state_pos);
-      if (BTOR_EMPTY_STACK (symbol))
-        msg (4,
-             "state assignment '%ld %s' at time frame %ld",
-             state_pos,
-             constant.start,
-             k);
-      else
-        msg (4,
-             "state assignment '%ld %s %s' at time frame %ld",
-             state_pos,
-             constant.start,
-             symbol.start,
-             k);
-      BtorFormatLine *state = BTOR_PEEK_STACK (states, state_pos);
-      assert (state);
-      if (strlen (constant.start) != state->sort.bitvec.width)
-        charno = constant_columno,
-        parse_error ("expected constant of width '%u'",
-                     state->sort.bitvec.width);
-      assert (0 <= state->id), assert (state->id < num_format_lines);
-      if (current_state[state->id])
-        parse_error ("state %ld id %ld assigned twice in frame %ld",
-                     state_pos,
-                     state->id,
-                     k);
-      BtorBitVector *val   = btor_bv_char_to_bv (mem, constant.start);
-      BtorFormatLine *init = inits[state->id];
-      if (init)
-      {
-        assert (init->nargs == 2);
-        assert (init->args[0] == state->id);
-        BtorBitVector *tmp = randomly_simulate (init->args[1]);
-        if (btor_bv_compare (val, tmp))
-          parse_error ("incompatible initialized state %ld id %ld",
-                       state_pos,
-                       state->id);
-        btor_bv_free (mem, tmp);
-      }
-      lineno++;
-      charno = saved_charno;
-      update_current_state (state->id, val);
-    }
-    ch = next_char ();
+    if (ch == '#')
+      parse_error (
+          "state assignments only supported in first frame at this point");
+    prev_char (ch);
+    return;
   }
-  if (ch == '#')
-    parse_error (
-        "state assignments only supported in first frame at this point");
+  if (ch != '#' || (ch = next_char ()) != '0' || (ch = next_char ()) != '\n')
+    parse_error ("missing '#0' state part header of frame 0");
+  long state_pos;
+  while ((state_pos = parse_assignment ()) >= 0)
+  {
+    long saved_charno = charno;
+    charno            = 1;
+    assert (lineno > 1);
+    lineno--;
+    if (state_pos >= BTOR_COUNT_STACK (states))
+      parse_error ("less than %ld states defined", state_pos);
+    if (BTOR_EMPTY_STACK (symbol))
+      msg (4,
+           "state assignment '%ld %s' at time frame %ld",
+           state_pos,
+           constant.start,
+           k);
+    else
+      msg (4,
+           "state assignment '%ld %s %s' at time frame %ld",
+           state_pos,
+           constant.start,
+           symbol.start,
+           k);
+    BtorFormatLine *state = BTOR_PEEK_STACK (states, state_pos);
+    assert (state);
+    if (strlen (constant.start) != state->sort.bitvec.width)
+      charno = constant_columno,
+      parse_error ("expected constant of width '%u'", state->sort.bitvec.width);
+    assert (0 <= state->id), assert (state->id < num_format_lines);
+    if (current_state[state->id])
+      parse_error ("state %ld id %ld assigned twice in frame %ld",
+                   state_pos,
+                   state->id,
+                   k);
+    BtorBitVector *val   = btor_bv_char_to_bv (mem, constant.start);
+    BtorFormatLine *init = inits[state->id];
+    if (init)
+    {
+      assert (init->nargs == 2);
+      assert (init->args[0] == state->id);
+      BtorBitVector *tmp = simulate (init->args[1]);
+      if (btor_bv_compare (val, tmp))
+        parse_error (
+            "incompatible initialized state %ld id %ld", state_pos, state->id);
+      btor_bv_free (mem, tmp);
+    }
+    lineno++;
+    charno = saved_charno;
+    update_current_state (state->id, val);
+  }
+}
+
+static void
+parse_input_part (long k)
+{
+  int ch = next_char ();
   if (ch != '@' || parse_unsigned_number (&ch) != k || ch != '\n')
     parse_assignment ("missing '@%ld' input part in frame %ld", k, k);
   long input_pos;
@@ -904,6 +920,14 @@ parse_frame (long k)
     if (strlen (constant.start) != l->sort.bitvec.width)
       parse_error ("expected constant of width '%u'", l->sort.bitvec.width);
   }
+}
+
+static int
+parse_frame (long k)
+{
+  msg (2, "parsing frame %ld", k);
+  parse_state_part (k);
+  parse_input_part (k);
   return !found_end_of_witness;
 }
 
@@ -1035,7 +1059,7 @@ parse_witnesses ()
   BTOR_RELEASE_STACK (constant);
   BTOR_RELEASE_STACK (symbol);
   msg (1,
-       "finished parsing %ld witnesses after reading %ld (%.1f MB)",
+       "finished parsing %ld witnesses after reading %ld bytes (%.1f MB)",
        count_witnesses,
        charno,
        charno / (double) (1l << 20));
@@ -1127,7 +1151,7 @@ main (int argc, char **argv)
     if (s < 0) s = 0;
     msg (1, "using random seed %d", s);
     btor_rng_init (&rng, (uint32_t) s);
-    random_simulations (r);
+    random_simulation (r);
   }
   else
   {
