@@ -627,6 +627,8 @@ random_simulations (long k)
     random_step (i);
   }
 
+  if (print_trace) printf (".\n"), fflush (stdout);
+
   if (unreached_bads < BTOR_COUNT_STACK (bads))
   {
     printf ("[btorsim] reached bad state properties {");
@@ -722,8 +724,10 @@ parse_error (const char *msg, ...)
   exit (1);
 }
 
-static long count_sat_witnesses   = 0;
-static long count_unsat_witnesses = 0;
+static long count_sat_witnesses;
+static long count_unsat_witnesses;
+static long count_unknown_witnesses;
+static long count_witnesses;
 
 static BtorLongStack bad_witnesses;
 static BtorLongStack justice_witnesses;
@@ -759,12 +763,29 @@ parse_unsigned_number (int *ch_ptr)
 }
 
 static long constant_columno;
+static int found_end_of_witness;
 
 static long
 parse_assignment ()
 {
   int ch = next_char ();
-  if (ch == EOF) return -1;
+  if (ch == EOF) parse_error ("unexpected end-of-file (without '.')");
+  if (ch == '.')
+  {
+    while ((ch = next_char ()) == ' ')
+      ;
+    if (ch == EOF) parse_error ("end-of-file after '.' instead of new-line");
+    if (ch != '\n')
+    {
+      if (isprint (ch))
+        parse_error ("unexpected character '%c' after '.'", ch);
+      else
+        parse_error ("unexpected character code 0x%02x after '.'", ch);
+    }
+    msg (4, "read terminating '.'");
+    found_end_of_witness = 1;
+    return -1;
+  }
   if (ch == '@')
   {
     prev_char (ch);
@@ -798,11 +819,10 @@ parse_frame (long k)
 {
   msg (2, "parsing frame %ld", k);
   int ch = next_char ();
-  if (ch == EOF) return 0;
   if (!k)
   {
     if (ch != '#' || (ch = next_char ()) != '0' || (ch = next_char ()) != '\n')
-      parse_error ("missing '#0' state part header in frame 0");
+      parse_error ("missing '#0' state part header of frame 0");
     long state_pos;
     while ((state_pos = parse_assignment ()) >= 0)
     {
@@ -884,12 +904,13 @@ parse_frame (long k)
     if (strlen (constant.start) != l->sort.bitvec.width)
       parse_error ("expected constant of width '%u'", l->sort.bitvec.width);
   }
-  return 1;
+  return !found_end_of_witness;
 }
 
 static void
 parse_sat_witness ()
 {
+  assert (count_witnesses == 1);
   msg (1, "parsing 'sat' witness %ld", count_sat_witnesses);
   BTOR_INIT_STACK (mem, bad_witnesses);
   BTOR_INIT_STACK (mem, justice_witnesses);
@@ -933,6 +954,16 @@ parse_sat_witness ()
 }
 
 static void
+parse_unknown_witness ()
+{
+  msg (1, "parsing unknown witness %ld", count_unknown_witnesses);
+  long k = 0;
+  while (parse_frame (k)) k++;
+  if (!k) parse_error ("initial frame 0 missing");
+  msg (1, "finished parsing k = %ld frames", k);
+}
+
+static void
 parse_unsat_witness ()
 {
   msg (1, "parsing 'unsat' witness %ld", count_unsat_witnesses);
@@ -949,19 +980,31 @@ parse_witnesses ()
   {
     int ch = next_char ();
     if (ch == EOF) break;
-    if (ch == 's')
+    found_end_of_witness = 0;
+    if (ch == '#')
+    {
+      count_witnesses++;
+      count_unknown_witnesses++;
+      if (count_sat_witnesses + count_unknown_witnesses > 1)
+        die ("more than one actual witness not supported yet");
+      prev_char (ch);
+      parse_unknown_witness ();
+      continue;
+    }
+    else if (ch == 's')
     {
       if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
           && (ch = next_char ()) == '\n')
       {  // TODO '\r'
+        count_witnesses++;
         count_sat_witnesses++;
         msg (0,
              "found witness %ld header 'sat' in '%s' at line %ld",
              count_sat_witnesses,
              witness_path,
              lineno - 1);
-        if (count_sat_witnesses > 1)
-          die ("more than one 'sat' witness not supported yet");
+        if (count_witnesses > 1)
+          die ("more than one actual witness not supported yet");
         parse_sat_witness ();
         continue;
       }
@@ -972,6 +1015,7 @@ parse_witnesses ()
           && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
           && (ch = next_char ()) == '\n')
       {  // TODO '\r'
+        count_witnesses++;
         count_unsat_witnesses++;
         msg (0,
              "found witness %ld header 'unsat' in '%s' at line %ld",
@@ -991,7 +1035,8 @@ parse_witnesses ()
   BTOR_RELEASE_STACK (constant);
   BTOR_RELEASE_STACK (symbol);
   msg (1,
-       "finished parsing witness after reading %ld (%.1f MB)",
+       "finished parsing %ld witnesses after reading %ld (%.1f MB)",
+       count_witnesses,
        charno,
        charno / (double) (1l << 20));
 }
