@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1138,13 +1138,12 @@ boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
 BoolectorNode *
 boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
 {
-  char *bits;
-  bool is_neg, is_min_val = false;
   uint32_t w, size_bits;
+  char *bits;
   BtorNode *res;
-  BtorBitVector *bv, *tmp, *zero;
-  BtorMemMgr *mm;
+  BtorBitVector *bv;
   BtorSortId s;
+  bool is_min_val, is_neg;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s", str);
@@ -1156,10 +1155,9 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
 
-  mm        = btor->mm;
-  is_neg    = (str[0] == '-');
   w         = btor_sort_bitvec_get_width (btor, s);
-  bits      = btor_util_dec_to_bin_str (mm, is_neg ? str + 1 : str);
+  is_neg    = (str[0] == '-');
+  bits      = btor_util_dec_to_bin_str (btor->mm, is_neg ? str + 1 : str);
   size_bits = strlen (bits);
   if (is_neg)
   {
@@ -1173,22 +1171,7 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
               str,
               w);
 
-  bv = btor_bv_char_to_bv (mm, bits);
-  btor_mem_freestr (mm, bits);
-  assert (bv->width == size_bits);
-  /* zero-extend to w */
-  if (size_bits < w)
-  {
-    tmp = btor_bv_uext (mm, bv, w - size_bits);
-    btor_bv_free (mm, bv);
-    bv = tmp;
-  }
-  if (is_neg)
-  {
-    tmp = btor_bv_neg (mm, bv);
-    btor_bv_free (mm, bv);
-    bv = tmp;
-  }
+  bv  = btor_bv_constd (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
   btor_bv_free (btor->mm, bv);
@@ -1203,11 +1186,10 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
 BoolectorNode *
 boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
 {
-  char *bits;
   uint32_t w, size_bits;
+  char *bits;
   BtorNode *res;
-  BtorBitVector *bv, *tmp, *zero;
-  BtorMemMgr *mm;
+  BtorBitVector *bv;
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
@@ -1220,23 +1202,12 @@ boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
 
-  mm        = btor->mm;
   w         = btor_sort_bitvec_get_width (btor, s);
-  bits      = btor_util_hex_to_bin_str (mm, str);
+  bits      = btor_util_hex_to_bin_str (btor->mm, str);
   size_bits = strlen (bits);
   BTOR_ABORT (
       size_bits > w, "'%s' does not fit into a bit-vector of size %u", str, w);
-
-  bv = btor_bv_char_to_bv (mm, bits);
-  btor_mem_freestr (mm, bits);
-  assert (bv->width == size_bits);
-  /* zero-extend to w */
-  if (size_bits < w)
-  {
-    tmp = btor_bv_uext (mm, bv, w - size_bits);
-    btor_bv_free (mm, bv);
-    bv = tmp;
-  }
+  bv  = btor_bv_consth (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
   btor_bv_free (btor->mm, bv);

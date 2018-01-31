@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2017 Mathias Preiner.
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *  Copyright (C) 2018 Armin Biere.
  *
  *  All rights reserved.
@@ -184,14 +184,6 @@ btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment)
 }
 
 BtorBitVector *
-btor_bv_dec_to_bv (BtorMemMgr *mm, const char *decimal_string, uint32_t bw)
-{
-  int TODO;
-  assert (!"implemented");
-  return 0;
-}
-
-BtorBitVector *
 btor_bv_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
 {
   assert (mm);
@@ -235,6 +227,70 @@ btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
 
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BtorBitVector *
+btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  bool is_neg, is_min_val;
+  ;
+  BtorBitVector *res, *tmp, *zero;
+  char *bits;
+  uint32_t size_bits;
+
+  is_min_val = false;
+  is_neg     = (str[0] == '-');
+  bits       = btor_util_dec_to_bin_str (mm, is_neg ? str + 1 : str);
+  size_bits  = strlen (bits);
+  if (is_neg)
+  {
+    is_min_val = (bits[0] == '1');
+    for (size_t i = 1; is_min_val && i < size_bits; i++)
+      is_min_val = (bits[i] == '0');
+  }
+  assert (((is_neg && !is_min_val) || size_bits <= bw)
+          && (!is_neg || is_min_val || size_bits + 1 <= bw));
+
+  res = btor_bv_char_to_bv (mm, bits);
+  btor_mem_freestr (mm, bits);
+  assert (res->width == size_bits);
+  /* zero-extend to bw */
+  if (size_bits < bw)
+  {
+    tmp = btor_bv_uext (mm, res, bw - size_bits);
+    btor_bv_free (mm, res);
+    res = tmp;
+  }
+  if (is_neg)
+  {
+    tmp = btor_bv_neg (mm, res);
+    btor_bv_free (mm, res);
+    res = tmp;
+  }
+  return res;
+}
+
+BtorBitVector *
+btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  BtorBitVector *res, *tmp;
+  char *bits;
+  uint32_t size_bits;
+
+  bits      = btor_util_hex_to_bin_str (mm, str);
+  size_bits = strlen (bits);
+  assert (size_bits <= bw);
+  res = btor_bv_char_to_bv (mm, bits);
+  btor_mem_freestr (mm, bits);
+  assert (res->width == size_bits);
+  /* zero-extend to bw */
+  if (size_bits < bw)
+  {
+    tmp = btor_bv_uext (mm, res, bw - size_bits);
+    btor_bv_free (mm, res);
+    res = tmp;
+  }
   return res;
 }
 
