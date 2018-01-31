@@ -666,12 +666,78 @@ parse_error (const char *msg, ...)
   exit (1);
 }
 
+static long count_sat_witnesses = 0, count_unsat_witnesses = 0;
+
+static BtorLongStack bad_witnesses;
+
+static long
+parse_unsigned_number (char *ch_ptr)
+{
+  int ch = next_char ();
+  long res;
+  if (ch == '0')
+  {
+    ch = next_char ();
+    if (isdigit (ch)) parse_error ("unexpected digit '%c' after '0'", ch);
+    res = 0;
+  }
+  else if (!isdigit (ch))
+    parse_error ("expected digit");
+  else
+  {
+    res = ch - '0';
+    while (isdigit (ch = next_char ()))
+    {
+      if (LONG_MAX / 10 < res)
+        parse_error ("number too large (too many digits)");
+      res *= 10;
+      const int digit = ch - '0';
+      if (LONG_MAX - digit < res) parse_error ("number too large");
+      res += digit;
+    }
+  }
+  *ch_ptr = ch;
+  return res;
+}
+
 static void
-parse_witness ()
+parse_sat_witness ()
+{
+  msg (1, "parsing 'sat' witness %ld", count_sat_witnesses);
+  BTOR_INIT_STACK (mem, bad_witnesses);
+  for (;;)
+  {
+    int type = next_char ();
+    if (type != 'b' && type != 'j') parse_error ("expected 'b' or 'j'");
+    char ch;
+    long bad = parse_unsigned_number (&ch);
+    if (ch != ' ' && ch != '\n')
+    {
+      if (isprint (ch))
+        parse_error (
+            "unexpected '%c' after number (expected space or new-line)", ch);
+      else
+        parse_error (
+            "unexpected character 0x%02x after number"
+            " (expected space or new-line)",
+            ch);
+    }
+  }
+  BTOR_RELEASE_STACK (bad_witnesses);
+}
+
+static void
+parse_unsat_witness ()
+{
+  msg (1, "parsing 'unsat' witness %ld", count_unsat_witnesses);
+  die ("'unsat' witnesses not supported yet");
+}
+
+static void
+parse_witnesses ()
 {
   BTOR_INIT_STACK (mem, buffer);
   assert (witness_file);
-  long count_sat = 0, count_unsat = 0;
   for (;;)
   {
     int ch = next_char ();
@@ -679,15 +745,17 @@ parse_witness ()
     if (ch == 's')
     {
       if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
-          && (((ch = next_char ()) == '\n')
-              || (ch == '\r' && (ch = next_char ()) == '\n')))
-      {
-        count_sat++;
+          && (ch = next_char ()) == '\n')
+      {  // TODO '\r'
+        count_sat_witnesses++;
         msg (0,
              "found witness %ld header 'sat' in '%s' at line %ld",
              witness_path,
-             count_sat,
+             count_sat_witnesses,
              lineno - 1);
+        if (count_sat_witnesses > 1)
+          die ("more than one 'sat' witness not supported yet");
+        parse_sat_witness ();
         continue;
       }
     }
@@ -695,15 +763,15 @@ parse_witness ()
     {
       if ((ch = next_char ()) == 'n' && (ch = next_char ()) == 's'
           && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
-          && (((ch = next_char ()) == '\n')
-              || (ch == '\r' && (ch = next_char ()) == '\n')))
-      {
-        count_unsat++;
+          && (ch = next_char ()) == '\n')
+      {  // TODO '\r'
+        count_unsat_witnesses++;
         msg (0,
              "found witness %ld header 'unsat' in '%s' at line %ld",
              witness_path,
-             count_unsat,
+             count_unsat_witnesses,
              lineno - 1);
+        parse_unsat_witness ();
         continue;
       }
     }
@@ -812,7 +880,7 @@ main (int argc, char **argv)
   {
     assert (witness_path);
     msg (1, "reading BTOR witness from '%s'", witness_path);
-    parse_witness ();
+    parse_witnesses ();
     if (close_witness_file && fclose (witness_file))
       die ("can not close witness file '%s'", witness_path);
   }
