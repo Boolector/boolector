@@ -650,13 +650,65 @@ next_char ()
 }
 
 static void
+parse_error (const char *msg, ...)
+{
+  fflush (stdout);
+  assert (witness_path);
+  fprintf (stderr,
+           "btorsim: parse error in '%s' at line %ld column %ld: ",
+           witness_path,
+           lineno,
+           columnno);
+  va_list ap;
+  va_start (ap, msg);
+  vfprintf (stderr, msg, ap);
+  va_end (ap);
+  fprintf (stderr, "\n");
+  exit (1);
+}
+
+static void
 parse_witness ()
 {
   BTOR_INIT_STACK (mem, buffer);
   assert (witness_file);
+  long count_sat = 0, count_unsat = 0;
+  for (;;)
+  {
+    int ch = next_char ();
+    if (ch == 's')
+    {
+      if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
+          && (((ch = next_char ()) == '\n')
+              || (ch == '\r' && (ch = next_char ()) == '\n')))
+      {
+        count_sat++;
+        msg (0,
+             "found witness %ld header 'sat' in '%s' at line %ld",
+             witness_path,
+             count_sat,
+             lineno - 1);
+      }
+    }
+    else if (ch == 'u')
+    {
+      if ((ch = next_char ()) == 'n' && (ch = next_char ()) == 's'
+          && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
+          && (((ch = next_char ()) == '\n')
+              || (ch == '\r' && (ch = next_char ()) == '\n')))
+      {
+        count_unsat++;
+        msg (0,
+             "found witness %ld header 'unsat' in '%s' at line %ld",
+             witness_path,
+             count_unsat,
+             lineno - 1);
+      }
+    }
+  }
   BTOR_RELEASE_STACK (buffer);
   msg (1,
-       "finished parsing witness after %ld (%.1f MB)",
+       "finished parsing witness after reading %ld (%.1f MB)",
        charno,
        charno / (double) (1l << 20));
 }
