@@ -652,7 +652,9 @@ static long lineno = 1;
 static int saved_char;
 static int char_saved;
 static uint64_t last_line_length;
-static BtorCharStack buffer;
+
+static BtorCharStack constant;
+static BtorCharStack symbol;
 
 static int
 next_char ()
@@ -760,18 +762,28 @@ static long
 parse_assignment ()
 {
   int ch = next_char ();
-  if (ch == EOF) return 0;
+  if (ch == EOF) return -1;
+  if (ch == '@')
+  {
+    prev_char (ch);
+    return -1;
+  }
   prev_char (ch);
   long res = parse_unsigned_number (&ch);
   if (ch != ' ') parse_error ("space missing after '%ld'", res);
-  BTOR_RESET_STACK (buffer);
-  while ((ch = next_char ()) == '0' || ch == '1') BTOR_PUSH_STACK (buffer, ch);
-  if (ch != ' ' || ch != '\n')
+  BTOR_RESET_STACK (constant);
+  while ((ch = next_char ()) == '0' || ch == '1')
+    BTOR_PUSH_STACK (constant, ch);
+  if (ch != ' ' && ch != '\n')
     parse_error ("expected space or new-line after assignment");
-  BTOR_PUSH_STACK (buffer, 0);
+  BTOR_PUSH_STACK (constant, 0);
+  BTOR_RESET_STACK (symbol);
   while (ch != '\n')
     if ((ch = next_char ()) == EOF)
       parse_error ("unexpected end-of-file in assignment");
+    else if (ch != '\n')
+      BTOR_PUSH_STACK (symbol, ch);
+  if (!BTOR_EMPTY_STACK (symbol)) BTOR_PUSH_STACK (symbol, 0);
   return res;
 }
 
@@ -788,11 +800,19 @@ parse_frame (long k)
     long state_pos;
     while ((state_pos = parse_assignment ()) >= 0)
     {
-      msg (4,
-           "state assignment '%ld %s' at time frame %ld",
-           state_pos,
-           buffer.start,
-           k);
+      if (BTOR_EMPTY_STACK (symbol))
+        msg (4,
+             "state assignment '%ld %s' at time frame %ld",
+             state_pos,
+             constant.start,
+             k);
+      else
+        msg (4,
+             "state assignment '%ld %s %s' at time frame %ld",
+             state_pos,
+             constant.start,
+             symbol.start,
+             k);
     }
     ch = next_char ();
   }
@@ -801,11 +821,19 @@ parse_frame (long k)
   long input_pos;
   while ((input_pos = parse_assignment ()) >= 0)
   {
-    msg (4,
-         "input assignment '%ld %s' at time frame %ld",
-         input_pos,
-         buffer.start,
-         k);
+    if (BTOR_EMPTY_STACK (symbol))
+      msg (4,
+           "input assignment '%ld %s' at time frame %ld",
+           input_pos,
+           constant.start,
+           k);
+    else
+      msg (4,
+           "input assignment '%ld %s %s' at time frame %ld",
+           input_pos,
+           constant.start,
+           symbol.start,
+           k);
   }
   return 1;
 }
@@ -862,7 +890,8 @@ parse_unsat_witness ()
 static void
 parse_witnesses ()
 {
-  BTOR_INIT_STACK (mem, buffer);
+  BTOR_INIT_STACK (mem, constant);
+  BTOR_INIT_STACK (mem, symbol);
   assert (witness_file);
   for (;;)
   {
@@ -907,7 +936,8 @@ parse_witnesses ()
       if (ch == EOF) parse_error ("unexpected end-of-file before new-line");
     }
   }
-  BTOR_RELEASE_STACK (buffer);
+  BTOR_RELEASE_STACK (constant);
+  BTOR_RELEASE_STACK (symbol);
   msg (1,
        "finished parsing witness after reading %ld (%.1f MB)",
        charno,
