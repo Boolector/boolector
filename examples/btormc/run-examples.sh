@@ -27,15 +27,15 @@ set -x
  $btorsim -b 0 -r 20  twocount32.btor              > twocount32.witnesssim
 #$btorsim -b 0 -r 231 ponylink-slaveTXlen-sat.btor > ponylink-slaveTXlen.witnesssim
            
- $btorsim      -c     count2.btor                    count2.witnesssim
- $btorsim      -c     count4.btor                    count4.witnesssim
- $btorsim      -c     factorial4even.btor            factorial4even.witnesssim
- $btorsim      -c     noninitstate.btor              noninitstate.witnesssim
- $btorsim      -c     recount4.btor                  recount4.witnesssim
- $btorsim      -c     twocount2.btor                 twocount2.witnesssim
- $btorsim      -c     twocount2c.btor                twocount2c.witnesssim
- $btorsim      -c     twocount32.btor                twocount32.witnesssim
-#$btorsim      -c     ponylink-slaveTXlen-sat.btor   ponylink-slaveTXlen.witnesssim
+ $btorsim      -c     count2.btor                    count2.witnessmc
+ $btorsim      -c     count4.btor                    count4.witnessmc
+ $btorsim      -c     factorial4even.btor            factorial4even.witnessmc
+ $btorsim      -c     noninitstate.btor              noninitstate.witnessmc
+ $btorsim      -c     recount4.btor                  recount4.witnessmc
+ $btorsim      -c     twocount2.btor                 twocount2.witnessmc
+ $btorsim      -c     twocount2c.btor                twocount2c.witnessmc
+ $btorsim      -c     twocount32.btor                twocount32.witnessmc
+#$btorsim      -c     ponylink-slaveTXlen-sat.btor   ponylink-slaveTXlen.witnessmc
            
  $btorsim      -c     count2.btor                    count2.witnesssim
  $btorsim      -c     count4.btor                    count4.witnesssim
