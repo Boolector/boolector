@@ -647,18 +647,59 @@ random_simulations (long k)
 }
 
 static long charno;
-static long columnno;
+static long columno;
 static long lineno = 1;
+static int saved_char;
+static int char_saved;
+static uint64_t last_line_length;
 static BtorCharStack buffer;
 
 static int
 next_char ()
 {
-  assert (witness_file);
-  int ch = getc_unlocked (witness_file);
-  if (ch == '\n') lineno++, columnno = 0;
-  if (ch != EOF) columnno++, charno++;
-  return ch;
+  int res;
+  if (char_saved)
+  {
+    res        = saved_char;
+    char_saved = 0;
+  }
+  else
+  {
+    res = getc_unlocked (witness_file);
+  }
+  if (res == '\n')
+  {
+    last_line_length = columno;
+    columno          = 0;
+    lineno++;
+  }
+  else if (res != EOF)
+  {
+    columno++;
+    charno++;
+  }
+  return res;
+}
+
+static void
+prev_char (int ch)
+{
+  assert (!char_saved);
+  if (ch == '\n')
+  {
+    columno = last_line_length;
+    assert (lineno > 0);
+    lineno--;
+  }
+  else if (ch != EOF)
+  {
+    assert (charno > 0);
+    charno--;
+    assert (columno > 0);
+    columno--;
+  }
+  saved_char = ch;
+  char_saved = 1;
 }
 
 static void
@@ -670,7 +711,7 @@ parse_error (const char *msg, ...)
            "btorsim: parse error in '%s' at line %ld column %ld: ",
            witness_path,
            lineno,
-           columnno);
+           columno);
   va_list ap;
   va_start (ap, msg);
   vfprintf (stderr, msg, ap);
@@ -679,12 +720,14 @@ parse_error (const char *msg, ...)
   exit (1);
 }
 
-static long count_sat_witnesses = 0, count_unsat_witnesses = 0;
+static long count_sat_witnesses   = 0;
+static long count_unsat_witnesses = 0;
 
 static BtorLongStack bad_witnesses;
+static BtorLongStack justice_witnesses;
 
 static long
-parse_unsigned_number (char *ch_ptr)
+parse_unsigned_number (int *ch_ptr)
 {
   int ch = next_char ();
   long res;
@@ -713,16 +756,71 @@ parse_unsigned_number (char *ch_ptr)
   return res;
 }
 
+static long
+parse_assignment ()
+{
+  int ch = next_char ();
+  if (ch == EOF) return 0;
+  prev_char (ch);
+  long res = parse_unsigned_number (&ch);
+  if (ch != ' ') parse_error ("space missing after '%ld'", res);
+  BTOR_RESET_STACK (buffer);
+  while ((ch = next_char ()) == '0' || ch == '1') BTOR_PUSH_STACK (buffer, ch);
+  if (ch != ' ' || ch != '\n')
+    parse_error ("expected space or new-line after assignment");
+  BTOR_PUSH_STACK (buffer, 0);
+  while (ch != '\n')
+    if ((ch = next_char ()) == EOF)
+      parse_error ("unexpected end-of-file in assignment");
+  return res;
+}
+
+static int
+parse_frame (long k)
+{
+  msg (2, "parsing frame %ld", k);
+  int ch = next_char ();
+  if (ch == EOF) return 0;
+  if (!k)
+  {
+    if (ch != '#' || (ch = next_char ()) != '0' || (ch = next_char ()) != '\n')
+      parse_error ("missing '#0' state part header in frame 0");
+    long state_pos;
+    while ((state_pos = parse_assignment ()) >= 0)
+    {
+      msg (4,
+           "state assignment '%ld %s' at time frame %ld",
+           state_pos,
+           buffer.start,
+           k);
+    }
+    ch = next_char ();
+  }
+  if (ch != '@' || parse_unsigned_number (&ch) != k || ch != '\n')
+    parse_assignment ("missing '@%ld' input part in frame %ld", k, k);
+  long input_pos;
+  while ((input_pos = parse_assignment ()) >= 0)
+  {
+    msg (4,
+         "input assignment '%ld %s' at time frame %ld",
+         input_pos,
+         buffer.start,
+         k);
+  }
+  return 1;
+}
+
 static void
 parse_sat_witness ()
 {
   msg (1, "parsing 'sat' witness %ld", count_sat_witnesses);
   BTOR_INIT_STACK (mem, bad_witnesses);
+  BTOR_INIT_STACK (mem, justice_witnesses);
   for (;;)
   {
     int type = next_char ();
     if (type != 'b' && type != 'j') parse_error ("expected 'b' or 'j'");
-    char ch;
+    int ch;
     long bad = parse_unsigned_number (&ch);
     if (ch != ' ' && ch != '\n')
     {
@@ -735,8 +833,23 @@ parse_sat_witness ()
             " (expected space or new-line)",
             ch);
     }
+    if (type == 'b')
+    {
+      if (bad >= BTOR_COUNT_STACK (bads))
+        parse_error ("invalid 'b%ld' bad state property", bad);
+      msg (3, "... claims to be witness of bad state property %ld", bad);
+      BTOR_PUSH_STACK (bad_witnesses, bad);
+    }
+    else
+      parse_error ("can not handle justice properties yet");
+    if (ch == '\n') break;
   }
+  long k = 0;
+  while (parse_frame (k)) k++;
+  if (!k) parse_error ("initial frame 0 missing");
+  msg (1, "finished parsing k = %ld frames", k);
   BTOR_RELEASE_STACK (bad_witnesses);
+  BTOR_RELEASE_STACK (justice_witnesses);
 }
 
 static void
