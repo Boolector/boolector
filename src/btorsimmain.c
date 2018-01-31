@@ -80,13 +80,13 @@ static FILE *witness_file;
 static int close_model_file;
 static int close_witness_file;
 
-static int
+static long
 parse_positive_number (const char *str, int *res_ptr)
 {
   const char *p = str;
   if (!*p) return 0;
   if (*p == '0' && p[1]) return 0;
-  int res = 0;
+  long res = 0;
   while (*p)
   {
     const int ch = *p++;
