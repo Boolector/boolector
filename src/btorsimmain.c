@@ -494,7 +494,7 @@ random_initialization ()
       update         = btor_bv_new_random (mem, &rng, width);
     }
     update_current_state (state->id, update);
-    if (print_trace)
+    if (print_trace && !init)
     {
       printf ("%ld ", i);
       btor_bv_print_without_new_line (update);
