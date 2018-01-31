@@ -572,7 +572,7 @@ simulate_step (long k, int randomize_states_that_are_inputs)
       continue;
 
     BtorBitVector *bv = simulate (i);
-#if 1
+#if 0
     printf ("[btorim] %ld %s ", l->id, l->name);
     btor_bv_print (bv);
     fflush (stdout);
