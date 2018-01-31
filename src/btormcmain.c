@@ -317,6 +317,18 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
       case BTOR_FORMAT_TAG_constd:
         assert (l->nargs == 0);
         assert (l->constant);
+        {
+          BtorBitVector *bv =
+              btor_bv_constd (mc->mm, l->constant, l->sort.bitvec.width);
+          if (!bv)
+          {
+            res = error ("parse error: invalid 'constd %u %s'",
+                         l->sort.bitvec.width,
+                         l->constant);
+            goto DONE;
+          }
+          btor_bv_free (mc->mm, bv);
+        }
         n = boolector_constd (btor, s, l->constant);
         break;
 
