@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *  Copyright (C) 2018 Armin Biere.
  *
  *  All rights reserved.
@@ -68,6 +68,10 @@ BtorBitVector *btor_bv_uint64_to_bv (BtorMemMgr *mm,
                                      uint32_t bw);
 
 BtorBitVector *btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw);
+
+BtorBitVector *btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw);
+
+BtorBitVector *btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw);
 
 BtorBitVector *btor_bv_get_assignment (BtorMemMgr *mm,
                                        BtorNode *exp,

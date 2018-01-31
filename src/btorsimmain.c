@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2018 Armin Biere.
+ *  Copyright (C) 2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -201,6 +202,7 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_concat:
     case BTOR_FORMAT_TAG_const:
     case BTOR_FORMAT_TAG_constd:
+    case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_eq:
     case BTOR_FORMAT_TAG_implies:
     case BTOR_FORMAT_TAG_ite:
@@ -220,7 +222,6 @@ parse_model_line (BtorFormatLine *l)
     case BTOR_FORMAT_TAG_xor:
     case BTOR_FORMAT_TAG_zero: break;
 
-    case BTOR_FORMAT_TAG_consth:
     case BTOR_FORMAT_TAG_dec:
     case BTOR_FORMAT_TAG_fair:
     case BTOR_FORMAT_TAG_iff:
@@ -344,7 +345,11 @@ randomly_simulate (long id)
         break;
       case BTOR_FORMAT_TAG_constd:
         assert (l->nargs == 1);
-        res = btor_bv_dec_to_bv (mem, l->constant, l->sort.bitvec.width);
+        res = btor_bv_constd (mem, l->constant, l->sort.bitvec.width);
+        break;
+      case BTOR_FORMAT_TAG_consth:
+        assert (l->nargs == 1);
+        res = btor_bv_consth (mem, l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_eq:
         assert (l->nargs == 2);
