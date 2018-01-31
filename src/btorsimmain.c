@@ -729,8 +729,8 @@ static long count_unsat_witnesses;
 static long count_unknown_witnesses;
 static long count_witnesses;
 
-static BtorLongStack bad_witnesses;
-static BtorLongStack justice_witnesses;
+static BtorLongStack claimed_bad_witnesses;
+static BtorLongStack claimed_justice_witnesses;
 
 static long
 parse_unsigned_number (int *ch_ptr)
@@ -912,8 +912,8 @@ parse_sat_witness ()
 {
   assert (count_witnesses == 1);
   msg (1, "parsing 'sat' witness %ld", count_sat_witnesses);
-  BTOR_INIT_STACK (mem, bad_witnesses);
-  BTOR_INIT_STACK (mem, justice_witnesses);
+  BTOR_INIT_STACK (mem, claimed_bad_witnesses);
+  BTOR_INIT_STACK (mem, claimed_justice_witnesses);
   for (;;)
   {
     int type = next_char ();
@@ -939,7 +939,7 @@ parse_sat_witness ()
       if (bad >= BTOR_COUNT_STACK (bads))
         parse_error ("invalid bad state property number %ld", bad);
       msg (3, "... claims to be witness of bad state property number %ld", bad);
-      BTOR_PUSH_STACK (bad_witnesses, bad);
+      BTOR_PUSH_STACK (claimed_bad_witnesses, bad);
     }
     else
       parse_error ("can not handle justice properties yet");
@@ -949,8 +949,8 @@ parse_sat_witness ()
   while (parse_frame (k)) k++;
   if (!k) parse_error ("initial frame 0 missing");
   msg (1, "finished parsing k = %ld frames", k);
-  BTOR_RELEASE_STACK (bad_witnesses);
-  BTOR_RELEASE_STACK (justice_witnesses);
+  BTOR_RELEASE_STACK (claimed_bad_witnesses);
+  BTOR_RELEASE_STACK (claimed_justice_witnesses);
 }
 
 static void
