@@ -800,6 +800,8 @@ parse_frame (long k)
     long state_pos;
     while ((state_pos = parse_assignment ()) >= 0)
     {
+      if (state_pos >= BTOR_COUNT_STACK (states))
+        parse_error ("state %ld undefined", state_pos);
       if (BTOR_EMPTY_STACK (symbol))
         msg (4,
              "state assignment '%ld %s' at time frame %ld",
@@ -821,6 +823,8 @@ parse_frame (long k)
   long input_pos;
   while ((input_pos = parse_assignment ()) >= 0)
   {
+    if (input_pos >= BTOR_COUNT_STACK (inputs))
+      parse_error ("input %ld undefined", input_pos);
     if (BTOR_EMPTY_STACK (symbol))
       msg (4,
            "input assignment '%ld %s' at time frame %ld",
