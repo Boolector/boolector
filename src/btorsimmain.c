@@ -141,6 +141,7 @@ parse_model_line (BtorFormatLine *l)
       msg (2, "bad %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (bads, l);
       BTOR_PUSH_STACK (reached, -1);
+      unreached_bads++;
     }
     break;
 
@@ -583,6 +584,8 @@ simulate_step (long k, int randomize_states_that_are_inputs)
       BtorFormatLine *bad = BTOR_PEEK_STACK (bads, i);
       BtorBitVector *bv   = current_state[bad->args[0]];
       if (btor_bv_is_zero (bv)) continue;
+      long previous = BTOR_PEEK_STACK (reached, i);
+      if (previous >= 0) continue;
       BTOR_POKE_STACK (reached, i, k);
       assert (unreached_bads > 0);
       if (!--unreached_bads)
@@ -618,29 +621,8 @@ transition (long k)
 }
 
 static void
-random_simulation (long k)
+report ()
 {
-  msg (1, "starting random simulation up to bound %ld", k);
-  assert (k >= 0);
-
-  const int randomize = 1;
-
-  unreached_bads = BTOR_COUNT_STACK (bads);
-  initialize_states (randomize);
-  initialize_inputs (0, randomize);
-  simulate_step (0, randomize);
-
-  for (long i = 1; i <= k; i++)
-  {
-    if (constraints_violated >= 0) break;
-    if (!unreached_bads) break;
-    transition (i);
-    initialize_inputs (i, randomize);
-    simulate_step (i, randomize);
-  }
-
-  if (print_trace) printf (".\n"), fflush (stdout);
-
   if (unreached_bads < BTOR_COUNT_STACK (bads))
   {
     printf ("[btorsim] reached bad state properties {");
@@ -658,6 +640,31 @@ random_simulation (long k)
     msg (0, "constraints violated at time %ld", constraints_violated);
   else if (!BTOR_EMPTY_STACK (constraints))
     msg (0, "constraints always satisfied");
+}
+
+static void
+random_simulation (long k)
+{
+  msg (1, "starting random simulation up to bound %ld", k);
+  assert (k >= 0);
+
+  const int randomize = 1;
+
+  initialize_states (randomize);
+  initialize_inputs (0, randomize);
+  simulate_step (0, randomize);
+
+  for (long i = 1; i <= k; i++)
+  {
+    if (constraints_violated >= 0) break;
+    if (!unreached_bads) break;
+    transition (i);
+    initialize_inputs (i, randomize);
+    simulate_step (i, randomize);
+  }
+
+  if (print_trace) printf (".\n"), fflush (stdout);
+  report ();
 }
 
 static long charno;
@@ -925,9 +932,14 @@ parse_input_part (long k)
 static int
 parse_frame (long k)
 {
+  if (k > 0) transition (k);
   msg (2, "parsing frame %ld", k);
   parse_state_part (k);
   parse_input_part (k);
+  const int randomize = 0;
+  if (!k) initialize_states (randomize);
+  initialize_inputs (k, randomize);
+  simulate_step (k, randomize);
   return !found_end_of_witness;
 }
 
@@ -935,9 +947,12 @@ static void
 parse_sat_witness ()
 {
   assert (count_witnesses == 1);
+
   msg (1, "parsing 'sat' witness %ld", count_sat_witnesses);
+
   BTOR_INIT_STACK (mem, claimed_bad_witnesses);
   BTOR_INIT_STACK (mem, claimed_justice_witnesses);
+
   for (;;)
   {
     int type = next_char ();
@@ -969,10 +984,16 @@ parse_sat_witness ()
       parse_error ("can not handle justice properties yet");
     if (ch == '\n') break;
   }
+
   long k = 0;
   while (parse_frame (k)) k++;
+
   if (!k) parse_error ("initial frame 0 missing");
   msg (1, "finished parsing k = %ld frames", k);
+
+  report ();
+  if (print_trace) printf (".\n"), fflush (stdout);
+
   BTOR_RELEASE_STACK (claimed_bad_witnesses);
   BTOR_RELEASE_STACK (claimed_justice_witnesses);
 }
@@ -982,8 +1003,14 @@ parse_unknown_witness ()
 {
   msg (1, "parsing unknown witness %ld", count_unknown_witnesses);
   long k = 0;
+
   while (parse_frame (k)) k++;
+
   if (!k) parse_error ("initial frame 0 missing");
+
+  report ();
+  if (print_trace) printf (".\n"), fflush (stdout);
+
   msg (1, "finished parsing k = %ld frames", k);
 }
 
@@ -995,7 +1022,7 @@ parse_unsat_witness ()
 }
 
 static int
-parse_witness ()
+parse_and_check_witness ()
 {
   int ch = next_char ();
   if (ch == EOF) return 0;
@@ -1060,12 +1087,12 @@ parse_witness ()
 }
 
 static void
-parse_witnesses ()
+parse_and_check_all_witnesses ()
 {
   BTOR_INIT_STACK (mem, constant);
   BTOR_INIT_STACK (mem, symbol);
   assert (witness_file);
-  while (parse_witness ())
+  while (parse_and_check_witness ())
     ;
   BTOR_RELEASE_STACK (constant);
   BTOR_RELEASE_STACK (symbol);
@@ -1168,7 +1195,7 @@ main (int argc, char **argv)
   {
     assert (witness_path);
     msg (1, "reading BTOR witness from '%s'", witness_path);
-    parse_witnesses ();
+    parse_and_check_all_witnesses ();
     if (close_witness_file && fclose (witness_file))
       die ("can not close witness file '%s'", witness_path);
   }
