@@ -994,68 +994,79 @@ parse_unsat_witness ()
   die ("'unsat' witnesses not supported yet");
 }
 
+static int
+parse_witness ()
+{
+  int ch = next_char ();
+  if (ch == EOF) return 0;
+
+  found_end_of_witness = 0;
+
+  if (ch == '#')
+  {
+    count_witnesses++;
+    count_unknown_witnesses++;
+    if (count_sat_witnesses + count_unknown_witnesses > 1)
+      die ("more than one actual witness not supported yet");
+    prev_char (ch);
+    parse_unknown_witness ();
+    return 1;
+  }
+
+  if (ch == 's')
+  {
+    if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
+        && (ch = next_char ()) == '\n')
+    {  // TODO '\r'
+      count_witnesses++;
+      count_sat_witnesses++;
+      msg (0,
+           "found witness %ld header 'sat' in '%s' at line %ld",
+           count_sat_witnesses,
+           witness_path,
+           lineno - 1);
+      if (count_witnesses > 1)
+        die ("more than one actual witness not supported yet");
+      parse_sat_witness ();
+      return 1;
+    }
+  }
+
+  if (ch == 'u')
+  {
+    if ((ch = next_char ()) == 'n' && (ch = next_char ()) == 's'
+        && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
+        && (ch = next_char ()) == '\n')
+    {  // TODO '\r'
+      count_witnesses++;
+      count_unsat_witnesses++;
+      msg (0,
+           "found witness %ld header 'unsat' in '%s' at line %ld",
+           witness_path,
+           count_unsat_witnesses,
+           lineno - 1);
+      parse_unsat_witness ();
+      return 1;
+    }
+  }
+
+  while (ch != '\n')
+  {
+    ch = next_char ();
+    if (ch == EOF) parse_error ("unexpected end-of-file before new-line");
+  }
+
+  return 1;
+}
+
 static void
 parse_witnesses ()
 {
   BTOR_INIT_STACK (mem, constant);
   BTOR_INIT_STACK (mem, symbol);
   assert (witness_file);
-  for (;;)
-  {
-    int ch = next_char ();
-    if (ch == EOF) break;
-    found_end_of_witness = 0;
-    if (ch == '#')
-    {
-      count_witnesses++;
-      count_unknown_witnesses++;
-      if (count_sat_witnesses + count_unknown_witnesses > 1)
-        die ("more than one actual witness not supported yet");
-      prev_char (ch);
-      parse_unknown_witness ();
-      continue;
-    }
-    else if (ch == 's')
-    {
-      if ((ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
-          && (ch = next_char ()) == '\n')
-      {  // TODO '\r'
-        count_witnesses++;
-        count_sat_witnesses++;
-        msg (0,
-             "found witness %ld header 'sat' in '%s' at line %ld",
-             count_sat_witnesses,
-             witness_path,
-             lineno - 1);
-        if (count_witnesses > 1)
-          die ("more than one actual witness not supported yet");
-        parse_sat_witness ();
-        continue;
-      }
-    }
-    else if (ch == 'u')
-    {
-      if ((ch = next_char ()) == 'n' && (ch = next_char ()) == 's'
-          && (ch = next_char ()) == 'a' && (ch = next_char ()) == 't'
-          && (ch = next_char ()) == '\n')
-      {  // TODO '\r'
-        count_witnesses++;
-        count_unsat_witnesses++;
-        msg (0,
-             "found witness %ld header 'unsat' in '%s' at line %ld",
-             witness_path,
-             count_unsat_witnesses,
-             lineno - 1);
-        parse_unsat_witness ();
-        continue;
-      }
-    }
-    while (ch != '\n')
-    {
-      ch = next_char ();
-      if (ch == EOF) parse_error ("unexpected end-of-file before new-line");
-    }
-  }
+  while (parse_witness ())
+    ;
   BTOR_RELEASE_STACK (constant);
   BTOR_RELEASE_STACK (symbol);
   msg (1,
