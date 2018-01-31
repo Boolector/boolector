@@ -340,7 +340,7 @@ randomly_simulate (long id)
         res = btor_bv_concat (mem, args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_const:
-        assert (l->nargs == 1);
+        assert (l->nargs == 0);
         res = btor_bv_char_to_bv (mem, l->constant);
         break;
       case BTOR_FORMAT_TAG_constd:

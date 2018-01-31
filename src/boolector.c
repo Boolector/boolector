@@ -1142,7 +1142,6 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BtorNode *res;
   BtorBitVector *bv;
   BtorSortId s;
-  bool is_neg;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s", str);
@@ -1154,9 +1153,8 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
 
-  w      = btor_sort_bitvec_get_width (btor, s);
-  is_neg = (str[0] == '-');
-  bv     = btor_bv_constd (btor->mm, str, w);
+  w  = btor_sort_bitvec_get_width (btor, s);
+  bv = btor_bv_constd (btor->mm, str, w);
   BTOR_ABORT (!bv, "'%s' does not fit into a bit-vector of size %u", str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
