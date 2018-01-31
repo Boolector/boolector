@@ -669,7 +669,7 @@ transition (long k)
 static void
 report ()
 {
-  if (num_unreached_bads < BTOR_COUNT_STACK (bads))
+  if (verbosity && num_unreached_bads < BTOR_COUNT_STACK (bads))
   {
     printf ("[btorsim] reached bad state properties {");
     for (long i = 0; i < BTOR_COUNT_STACK (bads); i++)
@@ -680,12 +680,12 @@ report ()
     printf (" }\n");
   }
   else if (!BTOR_EMPTY_STACK (bads))
-    msg (0, "no bad state property reached");
+    msg (1, "no bad state property reached");
 
   if (constraints_violated >= 0)
-    msg (0, "constraints violated at time %ld", constraints_violated);
+    msg (1, "constraints violated at time %ld", constraints_violated);
   else if (!BTOR_EMPTY_STACK (constraints))
-    msg (0, "constraints always satisfied");
+    msg (1, "constraints always satisfied");
 }
 
 static void
@@ -1104,7 +1104,7 @@ parse_and_check_witness ()
     {
       count_witnesses++;
       count_sat_witnesses++;
-      msg (0,
+      msg (1,
            "found witness %ld header 'sat' in '%s' at line %ld",
            count_sat_witnesses,
            witness_path,
@@ -1124,7 +1124,7 @@ parse_and_check_witness ()
     {
       count_witnesses++;
       count_unsat_witnesses++;
-      msg (0,
+      msg (1,
            "found witness %ld header 'unsat' in '%s' at line %ld",
            witness_path,
            count_unsat_witnesses,
