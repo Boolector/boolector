@@ -28,7 +28,7 @@ static void
 die (char *m, ...)
 {
   fflush (stdout);
-  fputs ("btorsim: ", stderr);
+  fputs ("*** 'btorsim' error: ", stderr);
   va_list ap;
   va_start (ap, m);
   vfprintf (stderr, m, ap);
@@ -118,10 +118,10 @@ static BtorFormatLinePtrStack constraints;
 
 BTOR_DECLARE_STACK (BtorLong, long);
 
-static BtorLongStack reached;
+static BtorLongStack reached_bads;
 
 static long constraints_violated = -1;
-static long unreached_bads;
+static long num_unreached_bads;
 
 static long num_format_lines;
 static BtorFormatLine **inits;
@@ -140,8 +140,8 @@ parse_model_line (BtorFormatLine *l)
       long i = (long) BTOR_COUNT_STACK (bads);
       msg (2, "bad %ld at line %ld", i, l->lineno);
       BTOR_PUSH_STACK (bads, l);
-      BTOR_PUSH_STACK (reached, -1);
-      unreached_bads++;
+      BTOR_PUSH_STACK (reached_bads, -1);
+      num_unreached_bads++;
     }
     break;
 
@@ -278,7 +278,7 @@ parse_model ()
   BTOR_INIT_STACK (mem, inputs);
   BTOR_INIT_STACK (mem, states);
   BTOR_INIT_STACK (mem, bads);
-  BTOR_INIT_STACK (mem, reached);
+  BTOR_INIT_STACK (mem, reached_bads);
   BTOR_INIT_STACK (mem, constraints);
   assert (model_file);
   model = btorfmt_new ();
@@ -579,16 +579,16 @@ simulate_step (long k, int randomize_states_that_are_inputs)
   {
     for (long i = 0; i < BTOR_COUNT_STACK (bads); i++)
     {
-      long r = BTOR_PEEK_STACK (reached, i);
+      long r = BTOR_PEEK_STACK (reached_bads, i);
       if (r >= 0) continue;
       BtorFormatLine *bad = BTOR_PEEK_STACK (bads, i);
       BtorBitVector *bv   = current_state[bad->args[0]];
       if (btor_bv_is_zero (bv)) continue;
-      long previous = BTOR_PEEK_STACK (reached, i);
-      if (previous >= 0) continue;
-      BTOR_POKE_STACK (reached, i, k);
-      assert (unreached_bads > 0);
-      if (!--unreached_bads)
+      long bound = BTOR_PEEK_STACK (reached_bads, i);
+      if (bound >= 0) continue;
+      BTOR_POKE_STACK (reached_bads, i, k);
+      assert (num_unreached_bads > 0);
+      if (!--num_unreached_bads)
         msg (1,
              "all %ld bad state properties reached",
              (long) BTOR_COUNT_STACK (bads));
@@ -623,12 +623,12 @@ transition (long k)
 static void
 report ()
 {
-  if (unreached_bads < BTOR_COUNT_STACK (bads))
+  if (num_unreached_bads < BTOR_COUNT_STACK (bads))
   {
     printf ("[btorsim] reached bad state properties {");
     for (long i = 0; i < BTOR_COUNT_STACK (bads); i++)
     {
-      long r = BTOR_PEEK_STACK (reached, i);
+      long r = BTOR_PEEK_STACK (reached_bads, i);
       if (r >= 0) printf (" b%ld@%ld", i, r);
     }
     printf (" }\n");
@@ -657,7 +657,7 @@ random_simulation (long k)
   for (long i = 1; i <= k; i++)
   {
     if (constraints_violated >= 0) break;
-    if (!unreached_bads) break;
+    if (!num_unreached_bads) break;
     transition (i);
     initialize_inputs (i, randomize);
     simulate_step (i, randomize);
@@ -731,7 +731,7 @@ parse_error (const char *msg, ...)
   fflush (stdout);
   assert (witness_path);
   fprintf (stderr,
-           "btorsim: parse error in '%s' at line %ld column %ld: ",
+           "*** 'btorsim' parse error in '%s' at line %ld column %ld: ",
            witness_path,
            lineno,
            columno);
@@ -994,6 +994,17 @@ parse_sat_witness ()
   report ();
   if (print_trace) printf (".\n"), fflush (stdout);
 
+  for (long i = 0; i < BTOR_COUNT_STACK (claimed_bad_witnesses); i++)
+  {
+    long bad_pos      = BTOR_PEEK_STACK (claimed_bad_witnesses, i);
+    long bound        = BTOR_PEEK_STACK (reached_bads, bad_pos);
+    BtorFormatLine *l = BTOR_PEEK_STACK (bads, bad_pos);
+    if (bound < 0)
+      die ("claimed bad state property 'b%ld' id %ld not reached",
+           bad_pos,
+           l->id);
+  }
+
   BTOR_RELEASE_STACK (claimed_bad_witnesses);
   BTOR_RELEASE_STACK (claimed_justice_witnesses);
 }
@@ -1202,7 +1213,7 @@ main (int argc, char **argv)
   BTOR_RELEASE_STACK (inputs);
   BTOR_RELEASE_STACK (states);
   BTOR_RELEASE_STACK (bads);
-  BTOR_RELEASE_STACK (reached);
+  BTOR_RELEASE_STACK (reached_bads);
   BTOR_RELEASE_STACK (constraints);
   btorfmt_delete (model);
   BTOR_DELETEN (mem, inits, num_format_lines);
