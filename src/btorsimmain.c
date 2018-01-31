@@ -633,10 +633,32 @@ random_simulations (long k)
     msg (0, "constraints always satisfied");
 }
 
+static long charno;
+static long columnno;
+static long lineno = 1;
+static BtorCharStack buffer;
+
+static int
+next_char ()
+{
+  assert (witness_file);
+  int ch = getc_unlocked (witness_file);
+  if (ch == '\n') lineno++, columnno = 0;
+  columnno++;
+  charno++;
+  return ch;
+}
+
 static void
 parse_witness ()
 {
+  BTOR_INIT_STACK (mem, buffer);
   assert (witness_file);
+  BTOR_RELEASE_STACK (buffer);
+  msg (1,
+       "finished parsing witness after %ld (%.1f MB)",
+       charno,
+       charno / (double) (1l << 20));
 }
 
 int
