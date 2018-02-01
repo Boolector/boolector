@@ -111,6 +111,7 @@ cp -p \
   makefile.in \
   ibv.mk \
   mbt.mk \
+  mc.mk \
 $dir/
 
 date=`date`
