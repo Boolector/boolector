@@ -78,8 +78,8 @@ do
 done
 
 cp -p \
-  BitVector.h \
-  btoribv.h \
+  BitVector.hh \
+  btoribv.hh \
   btoribv.cc \
   btorimc.cc \
 $dir/src/
