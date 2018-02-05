@@ -235,7 +235,7 @@ btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw)
 {
   bool is_neg, is_min_val;
   ;
-  BtorBitVector *res, *tmp;
+  BtorBitVector *res, *tmp, *zero;
   char *bits;
   uint32_t size_bits;
 
@@ -249,13 +249,8 @@ btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw)
     for (size_t i = 1; is_min_val && i < size_bits; i++)
       is_min_val = (bits[i] == '0');
   }
-
-  if (((!is_neg || is_min_val) && size_bits > bw)
-      || (is_neg && !is_min_val && size_bits + 1 > bw))
-  {
-    btor_mem_freestr (mm, bits);
-    return 0;
-  }
+  assert (((is_neg && !is_min_val) || size_bits <= bw)
+          && (!is_neg || is_min_val || size_bits + 1 <= bw));
 
   res = btor_bv_char_to_bv (mm, bits);
   btor_mem_freestr (mm, bits);
