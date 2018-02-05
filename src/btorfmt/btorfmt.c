@@ -44,11 +44,34 @@ struct BtorFormatReader
   FILE *file;
 };
 
+static void *
+btorfmt_malloc (size_t size)
+{
+  assert (size);
+
+  void *res = malloc (size);
+  if (!res)
+  {
+    fprintf (stderr, "[btorfmt] memory allocation failed\n");
+    abort ();
+  }
+  return res;
+}
+
+static char *
+btorfmt_strdup (const char *str)
+{
+  assert (str);
+
+  char *res = btorfmt_malloc (strlen (str) + 1);
+  strcpy (res, str);
+  return res;
+}
+
 BtorFormatReader *
 btorfmt_new ()
 {
-  BtorFormatReader *res = malloc (sizeof *res);
-  if (!res) return 0;
+  BtorFormatReader *res = btorfmt_malloc (sizeof *res);
   memset (res, 0, sizeof *res);
   return res;
 }
@@ -130,7 +153,7 @@ perr_bfr (BtorFormatReader *bfr, const char *fmt, ...)
   va_end (ap);
   buf[1023] = '\0';
 
-  bfr->error = malloc (strlen (buf) + 28);
+  bfr->error = btorfmt_malloc (strlen (buf) + 28);
   sprintf (bfr->error, "line %ld: %s", bfr->lineno, buf);
   return 0;
 }
@@ -353,7 +376,7 @@ parse_opt_symbol_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
     {
       ungetc_bfr (bfr, ch);
       if (!parse_symbol_bfr (bfr)) return 0;
-      l->symbol = strdup (bfr->buf);
+      l->symbol = btorfmt_strdup (bfr->buf);
     }
   }
   else if (ch != '\n')
@@ -372,13 +395,13 @@ new_line_bfr (BtorFormatReader *bfr,
   BtorFormatLine *res;
   assert (0 < id);
   assert (bfr->ntable <= id);
-  res = malloc (sizeof *res);
+  res = btorfmt_malloc (sizeof *res);
   memset (res, 0, sizeof (*res));
   res->id     = id;
   res->lineno = lineno;
   res->tag    = tag;
   res->name   = name;
-  res->args   = malloc (sizeof (long) * 3);
+  res->args   = btorfmt_malloc (sizeof (long) * 3);
   memset (res->args, 0, sizeof (long) * 3);
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
@@ -932,18 +955,17 @@ mult_unbounded_bin_str (const char *a, const char *b)
   const char *p;
 
   a = strip_zeroes (a);
-  if (!*a) return strdup ("");
-  if (a[0] == '1' && !a[1]) return strdup (b);
+  if (!*a) return btorfmt_strdup ("");
+  if (a[0] == '1' && !a[1]) return btorfmt_strdup (b);
 
   b = strip_zeroes (b);
-  if (!*b) return strdup ("");
-  if (b[0] == '1' && !b[1]) return strdup (a);
+  if (!*b) return btorfmt_strdup ("");
+  if (b[0] == '1' && !b[1]) return btorfmt_strdup (a);
 
-  alen = strlen (a);
-  blen = strlen (b);
-  rlen = alen + blen;
-  res  = malloc (rlen + 1);
-  if (!res) return 0;
+  alen      = strlen (a);
+  blen      = strlen (b);
+  rlen      = alen + blen;
+  res       = btorfmt_malloc (rlen + 1);
   res[rlen] = 0;
 
   for (r = res; r < res + blen; r++) *r = '0';
@@ -993,16 +1015,15 @@ add_unbounded_bin_str (const char *a, const char *b)
   a = strip_zeroes (a);
   b = strip_zeroes (b);
 
-  if (!*a) return strdup (b);
-  if (!*b) return strdup (a);
+  if (!*a) return btorfmt_strdup (b);
+  if (!*b) return btorfmt_strdup (a);
 
   alen = strlen (a);
   blen = strlen (b);
   rlen = (alen < blen) ? blen : alen;
   rlen++;
 
-  res = malloc (rlen + 1);
-  if (!res) return 0;
+  res = btorfmt_malloc (rlen + 1);
 
   p = a + alen;
   q = b + blen;
@@ -1024,7 +1045,7 @@ add_unbounded_bin_str (const char *a, const char *b)
   p = strip_zeroes (res);
   if ((p != res))
   {
-    tmp = strdup (p);
+    tmp = btorfmt_strdup (p);
     if (!tmp)
     {
       free (res);
@@ -1045,7 +1066,7 @@ dec_to_bin_str (const char *str, unsigned len)
   const char *end, *p;
   char *res, *tmp;
 
-  res = strdup ("");
+  res = btorfmt_strdup ("");
   if (!res) return 0;
 
   end = str + len;
@@ -1073,7 +1094,7 @@ dec_to_bin_str (const char *str, unsigned len)
   assert (strip_zeroes (res) == res);
   if (strlen (res)) return res;
   free (res);
-  return strdup ("0");
+  return btorfmt_strdup ("0");
 }
 
 int
@@ -1172,7 +1193,7 @@ parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
                      bfr->buf,
                      l->sort.bitvec.width);
   }
-  l->constant = strdup (bfr->buf);
+  l->constant = btorfmt_strdup (bfr->buf);
   return 1;
 }
 
