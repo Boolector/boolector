@@ -167,20 +167,7 @@ btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment)
   assert (assignment);
   assert (strlen (assignment) > 0);
 
-  uint32_t i, j, bit;
-  BtorBitVector *res;
-
-  res = btor_bv_new (mm, strlen (assignment));
-
-  for (i = 0; i < res->width; i++)
-  {
-    j = res->width - 1 - i;
-    assert (assignment[j] == '0' || assignment[j] == '1');
-    bit = assignment[j] == '0' ? 0 : 1;
-    btor_bv_set_bit (res, i, bit);
-  }
-
-  return res;
+  return btor_bv_const (mm, assignment, strlen (assignment));
 }
 
 BtorBitVector *
@@ -231,11 +218,32 @@ btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw)
 }
 
 BtorBitVector *
+btor_bv_const (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  assert (btor_util_check_bin_to_bv (mm, str, bw));
+
+  uint32_t i, j, bit;
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, bw);
+  for (i = 0; i < bw; i++)
+  {
+    j = bw - 1 - i;
+    assert (str[j] == '0' || str[j] == '1');
+    bit = str[j] == '0' ? 0 : 1;
+    btor_bv_set_bit (res, i, bit);
+  }
+  return res;
+}
+
+BtorBitVector *
 btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw)
 {
+  assert (btor_util_check_dec_to_bv (mm, str, bw));
+
   bool is_neg, is_min_val;
   ;
-  BtorBitVector *res, *tmp, *zero;
+  BtorBitVector *res, *tmp;
   char *bits;
   uint32_t size_bits;
 
@@ -274,6 +282,8 @@ btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw)
 BtorBitVector *
 btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw)
 {
+  assert (btor_util_check_hex_to_bv (mm, str, bw));
+
   BtorBitVector *res, *tmp;
   char *bits;
   uint32_t size_bits;

@@ -199,7 +199,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
   assert (infile);
   assert (infile_name);
 
-  uint32_t i, verb;
+  uint32_t i, verb, bw;
   long j;
   int32_t res;
   const char *err;
@@ -311,23 +311,25 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
       case BTOR_FORMAT_TAG_const:
         assert (l->nargs == 0);
         assert (l->constant);
+        ;
+        if (!btor_util_check_bin_to_bv (mc->mm, l->constant, bw))
+        {
+          res = error (
+              "parse error: invalid 'const' %s of bw %u", l->constant, bw);
+          goto DONE;
+        }
         n = boolector_const (btor, l->constant);
         break;
 
       case BTOR_FORMAT_TAG_constd:
         assert (l->nargs == 0);
         assert (l->constant);
+        bw = l->sort.bitvec.width;
+        if (!btor_util_check_dec_to_bv (mc->mm, l->constant, bw))
         {
-          BtorBitVector *bv =
-              btor_bv_constd (mc->mm, l->constant, l->sort.bitvec.width);
-          if (!bv)
-          {
-            res = error ("parse error: invalid 'constd %u %s'",
-                         l->sort.bitvec.width,
-                         l->constant);
-            goto DONE;
-          }
-          btor_bv_free (mc->mm, bv);
+          res = error (
+              "parse error: invalid 'constd' %s of bw %u", l->constant, bw);
+          goto DONE;
         }
         n = boolector_constd (btor, s, l->constant);
         break;
@@ -335,6 +337,13 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
       case BTOR_FORMAT_TAG_consth:
         assert (l->nargs == 0);
         assert (l->constant);
+        bw = l->sort.bitvec.width;
+        if (!btor_util_check_hex_to_bv (mc->mm, l->constant, bw))
+        {
+          res = error (
+              "parse error: invalid 'consth' %s of bw %u", l->constant, bw);
+          goto DONE;
+        }
         n = boolector_consth (btor, s, l->constant);
         break;
 

@@ -1138,12 +1138,10 @@ boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
 BoolectorNode *
 boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
 {
-  uint32_t w, size_bits;
-  char *bits;
+  uint32_t w;
   BtorNode *res;
   BtorBitVector *bv;
   BtorSortId s;
-  bool is_min_val, is_neg;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s", str);
@@ -1154,23 +1152,11 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-
-  w         = btor_sort_bitvec_get_width (btor, s);
-  is_neg    = (str[0] == '-');
-  bits      = btor_util_dec_to_bin_str (btor->mm, is_neg ? str + 1 : str);
-  size_bits = strlen (bits);
-  if (is_neg)
-  {
-    is_min_val = (bits[0] == '1');
-    for (size_t i = 1; is_min_val && i < size_bits; i++)
-      is_min_val = (bits[i] == '0');
-  }
-  BTOR_ABORT (((!is_neg || is_min_val) && size_bits > w)
-                  || (is_neg && !is_min_val && size_bits + 1 > w),
+  w = btor_sort_bitvec_get_width (btor, s);
+  BTOR_ABORT (!btor_util_check_dec_to_bv (btor->mm, str, w),
               "'%s' does not fit into a bit-vector of size %u",
               str,
               w);
-
   bv  = btor_bv_constd (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
@@ -1186,8 +1172,7 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
 BoolectorNode *
 boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
 {
-  uint32_t w, size_bits;
-  char *bits;
+  uint32_t w;
   BtorNode *res;
   BtorBitVector *bv;
   BtorSortId s;
@@ -1201,12 +1186,11 @@ boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-
-  w         = btor_sort_bitvec_get_width (btor, s);
-  bits      = btor_util_hex_to_bin_str (btor->mm, str);
-  size_bits = strlen (bits);
-  BTOR_ABORT (
-      size_bits > w, "'%s' does not fit into a bit-vector of size %u", str, w);
+  w = btor_sort_bitvec_get_width (btor, s);
+  BTOR_ABORT (!btor_util_check_hex_to_bv (btor->mm, str, w),
+              "'%s' does not fit into a bit-vector of size %u",
+              str,
+              w);
   bv  = btor_bv_consth (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
