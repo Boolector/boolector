@@ -1103,7 +1103,7 @@ check_constd (const char *str, unsigned width)
   assert (str);
   assert (width);
 
-  int is_neg, is_min_val, res;
+  int is_neg, is_min_val = 0, res;
   char *bits;
   size_t size_bits, len;
 

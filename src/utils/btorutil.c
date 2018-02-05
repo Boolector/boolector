@@ -447,6 +447,7 @@ btor_util_check_bin_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
   assert (str);
   assert (bw);
 
+  (void) mm;
   return strlen (str) <= bw;
 }
 
@@ -457,7 +458,7 @@ btor_util_check_dec_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
   assert (str);
   assert (bw);
 
-  bool is_neg, is_min_val, res;
+  bool is_neg, is_min_val = false, res;
   char *bits;
   size_t size_bits;
 

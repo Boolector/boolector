@@ -311,7 +311,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
       case BTOR_FORMAT_TAG_const:
         assert (l->nargs == 0);
         assert (l->constant);
-        ;
+        bw = l->sort.bitvec.width;
         if (!btor_util_check_bin_to_bv (mc->mm, l->constant, bw))
         {
           res = error (
