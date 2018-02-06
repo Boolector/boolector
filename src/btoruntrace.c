@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
@@ -37,7 +37,10 @@
   "  -s, --skip-getters         skip 'getter' functions\n"                 \
   "  -i, --ignore-sat-result    do not exit on mismatching sat result\n"   \
   "  -b <btoropt> <val>         set boolector option <btoropt> to <val>\n" \
-  "                             (Note: overrides trace opt settings!)\n"
+  "                             (Note: overrides trace opt settings!)\n"   \
+  " -d, --dump-stdout           dump to stdout "                           \
+  "(default: dump to temp file at\n"                                       \
+  "                             /tmp/<trace-basename>.(btor|smt2)\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -65,10 +68,11 @@ struct BtorUNT
   BtorMemMgr *mm;
   BtorUNTBtorOptPtrStack btor_opts;
   uint32_t verbosity;
-  uint32_t exit_on_abort;
+  bool exit_on_abort;
+  bool skip;
+  bool ignore_sat;
+  bool dump_stdout;
   uint32_t line;
-  uint32_t skip;
-  uint32_t ignore_sat;
   char *filename;
 };
 
@@ -1630,44 +1634,55 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
 
-      basename = strrchr (g_btorunt->filename, '/');
-      if (basename)
-        basename += 1; /* skip '/' character */
-      else
-        basename = g_btorunt->filename;
-      flen = 40 + strlen ("/tmp/") + strlen (basename);
-      BTOR_NEWN (g_btorunt->mm, outfilename, flen);
-
-      if (!strcmp (tok, "dump_btor"))
+      if (g_btorunt->dump_stdout)
       {
-        sprintf (outfilename, "/tmp/%s.%s", basename, "btor");
-        outfile = fopen (outfilename, "w");
-        assert (outfile);
-        boolector_dump_btor (btor, outfile);
+        if (!strcmp (tok, "dump_btor"))
+          boolector_dump_btor (btor, stdout);
+        else
+          boolector_dump_smt2 (btor, stdout);
       }
       else
       {
-        sprintf (outfilename, "/tmp/%s.%s", basename, "smt2");
-        outfile = fopen (outfilename, "w");
-        assert (outfile);
-        boolector_dump_smt2 (btor, outfile);
-      }
+        basename = strrchr (g_btorunt->filename, '/');
+        if (basename)
+          basename += 1; /* skip '/' character */
+        else
+          basename = g_btorunt->filename;
+        flen = 40 + strlen ("/tmp/") + strlen (basename);
+        BTOR_NEWN (g_btorunt->mm, outfilename, flen);
 
-      BTORUNT_LOG ("dump formula to %s", outfilename);
-      fclose (outfile);
-      outfile = fopen (outfilename, "r");
-      tmpbtor = boolector_new ();
-      boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-      pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
-      (void) pres;
-      if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
-      assert (pres != BOOLECTOR_PARSE_ERROR);
-      (void) pstat;
-      boolector_delete (tmpbtor);
-      fclose (outfile);
-      unlink (outfilename);
-      BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
+        if (!strcmp (tok, "dump_btor"))
+        {
+          sprintf (outfilename, "/tmp/%s.%s", basename, "btor");
+          outfile = fopen (outfilename, "w");
+          assert (outfile);
+          boolector_dump_btor (btor, outfile);
+        }
+        else
+        {
+          sprintf (outfilename, "/tmp/%s.%s", basename, "smt2");
+          outfile = fopen (outfilename, "w");
+          assert (outfile);
+          boolector_dump_smt2 (btor, outfile);
+        }
+
+        BTORUNT_LOG ("dump formula to %s", outfilename);
+        fclose (outfile);
+        outfile = fopen (outfilename, "r");
+        tmpbtor = boolector_new ();
+        boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+        pres = boolector_parse (
+            tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+        (void) pres;
+        if (emsg)
+          fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
+        assert (pres != BOOLECTOR_PARSE_ERROR);
+        (void) pstat;
+        boolector_delete (tmpbtor);
+        fclose (outfile);
+        unlink (outfilename);
+        BTOR_DELETEN (g_btorunt->mm, outfilename, flen);
+      }
     }
     else if (!strcmp (tok, "dump_aiger_ascii"))
     {
@@ -1728,12 +1743,12 @@ main (int32_t argc, char **argv)
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
       g_btorunt->verbosity = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--exit-on-abort"))
-      g_btorunt->exit_on_abort = 1;
+      g_btorunt->exit_on_abort = true;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--skip-getters"))
-      g_btorunt->skip = 1;
+      g_btorunt->skip = true;
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
-      g_btorunt->ignore_sat = 1;
+      g_btorunt->ignore_sat = true;
     else if (!strcmp (argv[i], "-b"))
     {
       if (++i == argc) btorunt_error ("argument to '-b' missing (try '-h')");
@@ -1755,6 +1770,8 @@ main (int32_t argc, char **argv)
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
     }
+    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--dump-stdout"))
+      g_btorunt->dump_stdout = true;
     else if (argv[i][0] == '-')
       btorunt_error ("invalid command line option '%s' (try '-h')", argv[i]);
     else if (g_btorunt->filename)
