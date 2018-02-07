@@ -38,7 +38,7 @@
   "  -i, --ignore-sat-result    do not exit on mismatching sat result\n"   \
   "  -b <btoropt> <val>         set boolector option <btoropt> to <val>\n" \
   "                             (Note: overrides trace opt settings!)\n"   \
-  " -d, --dump-stdout           dump to stdout "                           \
+  "  -d, --dump-stdout          dump to stdout "                           \
   "(default: dump to temp file at\n"                                       \
   "                             /tmp/<trace-basename>.(btor|smt2)\n"
 
