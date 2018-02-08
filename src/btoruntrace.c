@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include "boolector.h"
 #include "btoropt.h"
+#include "utils/btorhash.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -66,7 +67,8 @@ BTOR_DECLARE_STACK (BtorUNTBtorOptPtr, BtorUNTBtorOpt *);
 struct BtorUNT
 {
   BtorMemMgr *mm;
-  BtorUNTBtorOptPtrStack btor_opts;
+  BtorUNTBtorOptPtrStack cl_btor_opts;
+  BtorPtrHashTable *btor_opts;
   uint32_t verbosity;
   bool exit_on_abort;
   bool skip;
@@ -83,11 +85,30 @@ btorunt_new (void)
 {
   BtorUNT *res;
   BtorMemMgr *mm;
+  BtorUNTBtorOpt *opt;
+  BtorOption o;
+  Btor *tmpbtor;
+  char *lng;
+  uint32_t dflt;
 
   mm = btor_mem_mgr_new ();
   BTOR_CNEW (mm, res);
   res->mm = mm;
-  BTOR_INIT_STACK (mm, res->btor_opts);
+  BTOR_INIT_STACK (mm, res->cl_btor_opts);
+  res->btor_opts = btor_hashptr_table_new (mm, btor_hash_str, btor_compare_str);
+  tmpbtor        = boolector_new ();
+  for (o = boolector_first_opt (tmpbtor), lng = 0;
+       boolector_has_opt (tmpbtor, o);
+       o = boolector_next_opt (tmpbtor, o))
+  {
+    lng  = (char *) boolector_get_opt_lng (tmpbtor, o);
+    dflt = boolector_get_opt_dflt (tmpbtor, o);
+    BTOR_NEW (res->mm, opt);
+    opt->kind = o;
+    opt->name = btor_mem_strdup (res->mm, lng);
+    opt->val  = dflt;
+    btor_hashptr_table_add (res->btor_opts, lng)->data.as_ptr = opt;
+  }
   res->line = 1;
   return res;
 }
@@ -97,35 +118,32 @@ btorunt_delete (BtorUNT *unt)
 {
   uint32_t i;
   BtorUNTBtorOpt *o;
+  BtorPtrHashTableIterator it;
   BtorMemMgr *mm;
 
   mm = unt->mm;
-  for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
+
+  for (i = 0; i < BTOR_COUNT_STACK (unt->cl_btor_opts); i++)
   {
-    o = BTOR_PEEK_STACK (unt->btor_opts, i);
+    o = BTOR_PEEK_STACK (unt->cl_btor_opts, i);
     assert (o);
     btor_mem_freestr (mm, o->name);
     BTOR_DELETE (mm, o);
   }
-  BTOR_RELEASE_STACK (unt->btor_opts);
+  BTOR_RELEASE_STACK (unt->cl_btor_opts);
+
+  btor_iter_hashptr_init (&it, unt->btor_opts);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    o = btor_iter_hashptr_next_data (&it)->as_ptr;
+    assert (o);
+    btor_mem_freestr (mm, o->name);
+    BTOR_DELETE (mm, o);
+  }
+  btor_hashptr_table_delete (unt->btor_opts);
+
   BTOR_DELETE (mm, unt);
   btor_mem_mgr_delete (mm);
-}
-
-static bool
-btorunt_has_btor_opt (BtorUNT *unt, BtorOption opt)
-{
-  assert (unt);
-
-  uint32_t i;
-  BtorUNTBtorOpt *o;
-
-  for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
-  {
-    o = BTOR_PEEK_STACK (unt->btor_opts, i);
-    if (o->kind == opt) return true;
-  }
-  return false;
 }
 
 /*------------------------------------------------------------------------*/
@@ -175,6 +193,33 @@ btorunt_parse_error (const char *msg, ...)
   } while (0)
 
 /*------------------------------------------------------------------------*/
+
+static bool
+btorunt_has_cl_btor_opt (BtorUNT *unt, BtorOption opt)
+{
+  assert (unt);
+
+  uint32_t i;
+  BtorUNTBtorOpt *o;
+
+  for (i = 0; i < BTOR_COUNT_STACK (unt->cl_btor_opts); i++)
+  {
+    o = BTOR_PEEK_STACK (unt->cl_btor_opts, i);
+    if (o->kind == opt) return true;
+  }
+  return false;
+}
+
+static BtorUNTBtorOpt *
+btorunt_get_btor_opt (BtorUNT *unt, const char *opt)
+{
+  assert (unt);
+  assert (opt);
+  BtorPtrHashBucket *b;
+  b = btor_hashptr_table_get (unt->btor_opts, (void *) opt);
+  if (!b) btorunt_error ("Invalid Boolector option %s", opt);
+  return b->data.as_ptr;
+}
 
 static bool
 is_num_str (const char *str)
@@ -338,11 +383,11 @@ parse (FILE *file)
 {
   int32_t i, ch;
   bool delete;
-  uint32_t j, len, buffer_len;
+  uint32_t j, len, buffer_len, val;
   char *buffer, *tok, *basename;
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
-
+  BtorOption opt;
   Btor *btor;
 
   int32_t exp_ret;               /* expected return value */
@@ -504,16 +549,15 @@ NEXT:
       btor = boolector_new ();
       /* set btor options given via CL
        * (Note: overrules opt values set via trace file!) */
-      for (i = 0; i < BTOR_COUNT_STACK (g_btorunt->btor_opts); i++)
+      for (i = 0; i < BTOR_COUNT_STACK (g_btorunt->cl_btor_opts); i++)
       {
         boolector_set_opt (btor,
-                           BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->kind,
-                           BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
-        BTORUNT_LOG ("     set boolector option '%s' to '%u' (via CL)",
-                     BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->name,
-                     BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
+                           BTOR_PEEK_STACK (g_btorunt->cl_btor_opts, i)->kind,
+                           BTOR_PEEK_STACK (g_btorunt->cl_btor_opts, i)->val);
+        BTORUNT_LOG (" *** set boolector option '%s' to '%u' (via CL)",
+                     BTOR_PEEK_STACK (g_btorunt->cl_btor_opts, i)->name,
+                     BTOR_PEEK_STACK (g_btorunt->cl_btor_opts, i)->val);
       }
-
       exp_ret = RET_VOIDPTR;
       ret_ptr = btor;
     }
@@ -648,23 +692,24 @@ NEXT:
 #endif
     else if (!strcmp (tok, "set_opt"))
     {
-      PARSE_ARGS3 (tok, int, str, int);
-      assert (!boolector_get_opt_lng (btor, arg1_int)
-              || !strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
-      if (!btorunt_has_btor_opt (g_btorunt, arg1_int))
+      PARSE_ARGS2 (tok, str, int);
+      opt = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+      val = arg2_int;
+      if (!btorunt_has_cl_btor_opt (g_btorunt, opt))
       {
-        boolector_set_opt (btor, arg1_int, arg3_int);
+        boolector_set_opt (btor, opt, val);
         BTORUNT_LOG ("     set boolector option '%s' to '%u' (via trace)",
-                     arg2_str,
-                     arg3_int);
+                     arg1_str,
+                     val);
       }
     }
     else if (!strcmp (tok, "get_opt"))
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_int = boolector_get_opt (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_get_opt (btor, opt);
         exp_ret = RET_INT;
       }
       else
@@ -674,8 +719,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_int = boolector_get_opt_min (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_get_opt_min (btor, opt);
         exp_ret = RET_INT;
       }
       else
@@ -685,8 +731,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_int = boolector_get_opt_max (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_get_opt_max (btor, opt);
         exp_ret = RET_INT;
       }
       else
@@ -696,8 +743,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_int = boolector_get_opt_dflt (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_get_opt_dflt (btor, opt);
         exp_ret = RET_INT;
       }
       else
@@ -707,8 +755,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_str = (void *) boolector_get_opt_shrt (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_str = (void *) boolector_get_opt_shrt (btor, opt);
         exp_ret = RET_CHARPTR;
       }
       else
@@ -718,8 +767,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_str = (void *) boolector_get_opt_lng (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_str = (void *) boolector_get_opt_lng (btor, opt);
         exp_ret = RET_CHARPTR;
       }
       else
@@ -729,8 +779,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_str = (void *) boolector_get_opt_desc (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_str = (void *) boolector_get_opt_desc (btor, opt);
         exp_ret = RET_CHARPTR;
       }
       else
@@ -740,9 +791,10 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_bool = boolector_has_opt (btor, arg1_int);
-        exp_ret  = RET_BOOL;
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_has_opt (btor, opt);
+        exp_ret = RET_BOOL;
       }
       else
         exp_ret = RET_SKIP;
@@ -762,8 +814,9 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        PARSE_ARGS1 (tok, int);
-        ret_int = boolector_next_opt (btor, arg1_int);
+        PARSE_ARGS1 (tok, str);
+        opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
+        ret_int = boolector_next_opt (btor, opt);
         exp_ret = RET_INT;
       }
       else
@@ -1768,7 +1821,7 @@ main (int32_t argc, char **argv)
       btoropt->kind = o;
       btoropt->name = btor_mem_strdup (g_btorunt->mm, lng);
       btoropt->val  = val;
-      BTOR_PUSH_STACK (g_btorunt->btor_opts, btoropt);
+      BTOR_PUSH_STACK (g_btorunt->cl_btor_opts, btoropt);
     }
     else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--dump-stdout"))
       g_btorunt->dump_stdout = true;
