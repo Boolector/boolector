@@ -3903,7 +3903,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
                 || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL));
         btor->slv = btor_new_aigprop_solver (btor);
       }
-      else if ((engine == BTOR_ENGINE_EF && btor->quantifiers->count > 0)
+      else if ((engine == BTOR_ENGINE_QUANT && btor->quantifiers->count > 0)
                || btor->quantifiers->count > 0)
       {
         BtorPtrHashTableIterator it;

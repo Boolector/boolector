@@ -64,7 +64,7 @@ struct BtorQuantStats
 
 typedef struct BtorQuantStats BtorQuantStats;
 
-struct BtorEFGroundSolvers
+struct BtorGroundSolvers
 {
   Btor *forall; /* solver for checking the model */
   BtorNode *forall_formula;
@@ -93,14 +93,14 @@ struct BtorEFGroundSolvers
   BtorQuantStats statistics;
 };
 
-typedef struct BtorEFGroundSolvers BtorEFGroundSolvers;
+typedef struct BtorGroundSolvers BtorGroundSolvers;
 
 struct BtorQuantSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorEFGroundSolvers *gslv;  /* two ground solver instances */
-  BtorEFGroundSolvers *dgslv; /* two ground solver instances for dual */
+  BtorGroundSolvers *gslv;  /* two ground solver instances */
+  BtorGroundSolvers *dgslv; /* two ground solver instances for dual */
 };
 
 typedef struct BtorQuantSolver BtorQuantSolver;
@@ -202,7 +202,7 @@ flat_model_get_value (FlatModel *flat_model,
 }
 
 static FlatModel *
-flat_model_generate (BtorEFGroundSolvers *gslv)
+flat_model_generate (BtorGroundSolvers *gslv)
 {
   bool free_bv;
   uint32_t i, j, pos, nevars;
@@ -342,7 +342,7 @@ time_stamp (void)
 /*------------------------------------------------------------------------*/
 
 static void
-delete_model (BtorEFGroundSolvers *gslv)
+delete_model (BtorGroundSolvers *gslv)
 {
   BtorNode *cur;
   BtorPtrHashTableIterator it;
@@ -600,7 +600,7 @@ collect_consts (Btor *btor, BtorNode *root, BtorNodePtrStack *consts)
   btor_hashint_table_delete (cache);
 }
 
-static BtorEFGroundSolvers *
+static BtorGroundSolvers *
 setup_solvers (BtorQuantSolver *slv,
                BtorNode *root,
                bool setup_dual,
@@ -609,7 +609,7 @@ setup_solvers (BtorQuantSolver *slv,
 {
   uint32_t width;
   char *sym;
-  BtorEFGroundSolvers *res;
+  BtorGroundSolvers *res;
   BtorNode *cur, *var, *tmp;
   BtorPtrHashTableIterator it;
   BtorFunSolver *fslv;
@@ -782,7 +782,7 @@ setup_solvers (BtorQuantSolver *slv,
 }
 
 static void
-delete_efg_solvers (BtorQuantSolver *slv, BtorEFGroundSolvers *gslv)
+delete_ground_solvers (BtorQuantSolver *slv, BtorGroundSolvers *gslv)
 {
   BtorPtrHashTableIterator it;
   BtorBitVectorTuple *ce;
@@ -958,7 +958,7 @@ instantiate_args (Btor *btor, BtorNode *args, BtorNodeMap *map)
 }
 
 static void
-refine_exists_solver (BtorEFGroundSolvers *gslv, BtorNodeMap *evar_map)
+refine_exists_solver (BtorGroundSolvers *gslv, BtorNodeMap *evar_map)
 {
   assert (gslv->forall_uvars->table->count > 0);
 
@@ -1084,7 +1084,8 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   BTOR_INIT_STACK (mm, params);
   BTOR_INIT_STACK (mm, consts);
   BTOR_INIT_STACK (mm, tup_sorts);
-  opt_synth_complete = btor_opt_get (btor, BTOR_OPT_EF_SYNTH_ITE_COMPLETE) == 1;
+  opt_synth_complete =
+      btor_opt_get (btor, BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE) == 1;
 
   args_tuple = model->first->key;
   value      = model->first->data.as_ptr;
@@ -1204,7 +1205,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
 }
 
 BtorNode *
-mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
+mk_concrete_ite_model (BtorGroundSolvers *gslv,
                        BtorNode *evar,
                        FlatModel *model)
 
@@ -1227,7 +1228,8 @@ mk_concrete_ite_model (BtorEFGroundSolvers *gslv,
   btor = gslv->forall;
   mm   = btor->mm;
   BTOR_INIT_STACK (mm, params);
-  opt_synth_complete = btor_opt_get (btor, BTOR_OPT_EF_SYNTH_ITE_COMPLETE) == 1;
+  opt_synth_complete =
+      btor_opt_get (btor, BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE) == 1;
 
   args = btor_nodemap_mapped (gslv->forall_evar_deps, evar);
   assert (args);
@@ -1316,8 +1318,8 @@ delete_quant_solver (BtorQuantSolver *slv)
 
   Btor *btor;
   btor = slv->btor;
-  delete_efg_solvers (slv, slv->gslv);
-  if (slv->dgslv) delete_efg_solvers (slv, slv->dgslv);
+  delete_ground_solvers (slv, slv->gslv);
+  if (slv->dgslv) delete_ground_solvers (slv, slv->dgslv);
   BTOR_DELETE (btor->mm, slv);
   btor->slv = 0;
 }
@@ -1325,7 +1327,7 @@ delete_quant_solver (BtorQuantSolver *slv)
 /*------------------------------------------------------------------------*/
 
 static void
-build_input_output_values (BtorEFGroundSolvers *gslv,
+build_input_output_values (BtorGroundSolvers *gslv,
                            BtorNode *evar,
                            FlatModel *flat_model,
                            BtorBitVectorTuplePtrStack *value_in,
@@ -1502,7 +1504,7 @@ eval_exp (Btor *btor,
 }
 
 static void
-update_flat_model (BtorEFGroundSolvers *gslv,
+update_flat_model (BtorGroundSolvers *gslv,
                    FlatModel *flat_model,
                    BtorNode *evar,
                    BtorNode *result)
@@ -1533,9 +1535,7 @@ update_flat_model (BtorEFGroundSolvers *gslv,
 }
 
 static void
-select_inputs (BtorEFGroundSolvers *gslv,
-               BtorNode *var,
-               BtorNodePtrStack *inputs)
+select_inputs (BtorGroundSolvers *gslv, BtorNode *var, BtorNodePtrStack *inputs)
 {
   BtorNodeMapIterator nit;
   BtorArgsIterator it;
@@ -1564,7 +1564,7 @@ select_inputs (BtorEFGroundSolvers *gslv,
 }
 
 static BtorNode *
-synthesize (BtorEFGroundSolvers *gslv,
+synthesize (BtorGroundSolvers *gslv,
             BtorNode *evar,
             FlatModel *flat_model,
             uint32_t limit,
@@ -1585,7 +1585,7 @@ synthesize (BtorEFGroundSolvers *gslv,
   reachable      = btor_hashint_table_new (mm);
   cache          = btor_hashint_table_new (mm);
   value_in_map   = btor_hashint_map_new (mm);
-  opt_synth_mode = btor_opt_get (gslv->forall, BTOR_OPT_EF_SYNTH);
+  opt_synth_mode = btor_opt_get (gslv->forall, BTOR_OPT_QUANT_SYNTH);
 
   BTOR_INIT_STACK (mm, value_in);
   BTOR_INIT_STACK (mm, value_out);
@@ -1698,7 +1698,7 @@ synthesize (BtorEFGroundSolvers *gslv,
                                    0);
   }
 
-  if (result && btor_opt_get (gslv->forall, BTOR_OPT_EF_FIXSYNTH))
+  if (result && btor_opt_get (gslv->forall, BTOR_OPT_QUANT_FIXSYNTH))
     update_flat_model (gslv, flat_model, evar, result);
 
   while (!BTOR_EMPTY_STACK (value_in))
@@ -1719,7 +1719,7 @@ synthesize (BtorEFGroundSolvers *gslv,
 }
 
 static BtorPtrHashTable *
-synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
+synthesize_model (BtorGroundSolvers *gslv, FlatModel *flat_model)
 {
   uint32_t limit;
   uint32_t opt_synth_limit, opt_synth_mode;
@@ -1736,8 +1736,8 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
   mm               = f_solver->mm;
   prev_synth_model = gslv->forall_synth_model;
   synth_model      = btor_hashptr_table_new (mm, 0, 0);
-  opt_synth_mode   = btor_opt_get (f_solver, BTOR_OPT_EF_SYNTH);
-  opt_synth_limit  = btor_opt_get (f_solver, BTOR_OPT_EF_SYNTH_LIMIT);
+  opt_synth_mode   = btor_opt_get (f_solver, BTOR_OPT_QUANT_SYNTH);
+  opt_synth_limit  = btor_opt_get (f_solver, BTOR_OPT_QUANT_SYNTH_LIMIT);
 
   /* reset stats for currently synthesized model */
   gslv->statistics.stats.synthesize_model_const = 0;
@@ -1827,7 +1827,7 @@ synthesize_model (BtorEFGroundSolvers *gslv, FlatModel *flat_model)
 }
 
 static void
-update_formula (BtorEFGroundSolvers *gslv)
+update_formula (BtorGroundSolvers *gslv)
 {
   Btor *forall;
   BtorNode *f, *g;
@@ -1847,7 +1847,7 @@ update_formula (BtorEFGroundSolvers *gslv)
  * and replace existential variables with the synthesized model.
  * 'model' maps existential variables to synthesized function models. */
 static BtorNode *
-instantiate_formula (BtorEFGroundSolvers *gslv,
+instantiate_formula (BtorGroundSolvers *gslv,
                      BtorPtrHashTable *model,
                      BtorNodeMap *evar_map)
 {
@@ -2013,7 +2013,7 @@ instantiate_formula (BtorEFGroundSolvers *gslv,
 }
 
 static void
-build_input_output_values_quant_inst (BtorEFGroundSolvers *gslv,
+build_input_output_values_quant_inst (BtorGroundSolvers *gslv,
                                       BtorNode *uvar,
                                       BtorBitVectorTuplePtrStack *value_in,
                                       BtorBitVectorPtrStack *value_out)
@@ -2059,7 +2059,7 @@ build_input_output_values_quant_inst (BtorEFGroundSolvers *gslv,
 }
 
 static BtorNode *
-build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
+build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
 {
   uint32_t j, arity;
   int32_t i;
@@ -2209,7 +2209,7 @@ build_quant_inst_refinement (BtorEFGroundSolvers *gslv, BtorNodeMap *map)
 }
 
 static void
-synthesize_quant_inst (BtorEFGroundSolvers *gslv)
+synthesize_quant_inst (BtorGroundSolvers *gslv)
 {
   uint32_t pos, num_synth = 0;
   BtorNode *cur, *uvar, *result = 0, *uconst, *c;
@@ -2372,7 +2372,7 @@ synthesize_quant_inst (BtorEFGroundSolvers *gslv)
 }
 
 static BtorSolverResult
-find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
+find_model (BtorGroundSolvers *gslv, bool skip_exists)
 {
   bool opt_synth_qi;
   double start;
@@ -2383,7 +2383,7 @@ find_model (BtorEFGroundSolvers *gslv, bool skip_exists)
   FlatModel *flat_model         = 0;
 
   evar_map     = btor_nodemap_new (gslv->forall);
-  opt_synth_qi = btor_opt_get (gslv->forall, BTOR_OPT_EF_SYNTH_QI) == 1;
+  opt_synth_qi = btor_opt_get (gslv->forall, BTOR_OPT_QUANT_SYNTH_QI) == 1;
 
   /* exists solver does not have any constraints, so it does not make much
    * sense to initialize every variable by zero and ask if the model
@@ -2488,7 +2488,7 @@ void *
 thread_work (void *state)
 {
   BtorSolverResult res = BTOR_RESULT_UNKNOWN;
-  BtorEFGroundSolvers *gslv;
+  BtorGroundSolvers *gslv;
   bool skip_exists = true;
 
   gslv = state;
@@ -2521,7 +2521,7 @@ thread_terminate (void *state)
 }
 
 static BtorSolverResult
-run_parallel (BtorEFGroundSolvers *gslv, BtorEFGroundSolvers *dgslv)
+run_parallel (BtorGroundSolvers *gslv, BtorGroundSolvers *dgslv)
 {
   BtorSolverResult res;
   pthread_t thread_orig, thread_dual;
@@ -2567,19 +2567,19 @@ simplify (Btor *btor, BtorNode *g)
 {
   BtorNode *tmp;
 
-  if (btor_opt_get (btor, BTOR_OPT_EF_MINISCOPE))
+  if (btor_opt_get (btor, BTOR_OPT_QUANT_MINISCOPE))
   {
     tmp = btor_miniscope_node (btor, g);
     btor_node_release (btor, g);
     g = tmp;
   }
-  if (btor_opt_get (btor, BTOR_OPT_EF_DER))
+  if (btor_opt_get (btor, BTOR_OPT_QUANT_DER))
   {
     tmp = btor_der_node (btor, g);
     btor_node_release (btor, g);
     g = tmp;
   }
-  if (btor_opt_get (btor, BTOR_OPT_EF_CER))
+  if (btor_opt_get (btor, BTOR_OPT_QUANT_CER))
   {
     tmp = btor_cer_node (btor, g);
     btor_node_release (btor, g);
@@ -2603,7 +2603,7 @@ sat_quant_solver (BtorQuantSolver *slv)
   BTOR_ABORT (btor_opt_get (slv->btor, BTOR_OPT_INCREMENTAL),
               "incremental mode not supported for BV");
 
-  opt_dual_solver = btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1;
+  opt_dual_solver = btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER) == 1;
 
   /* make sure that all quantifiers occur in the correct phase */
   g = btor_normalize_quantifiers (slv->btor);
@@ -2691,7 +2691,7 @@ print_stats_quant_solver (BtorQuantSolver *slv)
               slv->gslv->statistics.stats.synthesize_model_none,
               slv->gslv->statistics.stats.synthesize_none);
   }
-  if (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
+  if (btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER))
   {
     assert (slv->dgslv);
     BTOR_MSG (slv->btor->msg,
@@ -2756,7 +2756,7 @@ print_time_stats_quant_solver (BtorQuantSolver *slv)
             1,
             "%.2f seconds check instantiation",
             slv->gslv->statistics.time.checkinst);
-  if (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER))
+  if (btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER))
   {
     assert (slv->dgslv);
     BTOR_MSG (slv->btor->msg,
@@ -2823,8 +2823,8 @@ print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
   {
     assert (slv->dgslv);
     assert (slv->dgslv->result == BTOR_RESULT_UNSAT);
-    assert (btor_opt_get (slv->btor, BTOR_OPT_EF_DUAL_SOLVER));
-    fprintf (file, "cannot generate model, disable --ef:dual\n");
+    assert (btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER));
+    fprintf (file, "cannot generate model, disable --quant:dual\n");
   }
 }
 
@@ -2849,7 +2849,7 @@ btor_new_quantifier_solver (Btor *btor)
       (BtorSolverPrintTimeStats) print_time_stats_quant_solver;
   slv->api.print_model = (BtorSolverPrintModel) print_model_quant_solver;
 
-  BTOR_MSG (btor->msg, 1, "enabled ef engine");
+  BTOR_MSG (btor->msg, 1, "enabled quant engine");
 
   return (BtorSolver *) slv;
 }

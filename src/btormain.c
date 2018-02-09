@@ -992,7 +992,7 @@ boolector_main (int32_t argc, char **argv)
           else if (!strcasecmp (po->valstr, "aigprop"))
             boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_AIGPROP);
           else if (!strcasecmp (po->valstr, "ef"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_EF);
+            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_QUANT);
           else
           {
             btormain_error (g_app,
@@ -1295,8 +1295,9 @@ boolector_main (int32_t argc, char **argv)
   /* verbosity may have been increased via input (set-option) */
   g_verbosity = boolector_get_opt (btor, BTOR_OPT_VERBOSITY);
 
-  g_dual_threads = boolector_get_opt (g_app->btor, BTOR_OPT_EF_DUAL_SOLVER) == 1
-                   && g_app->btor->quantifiers->count > 0;
+  g_dual_threads =
+      boolector_get_opt (g_app->btor, BTOR_OPT_QUANT_DUAL_SOLVER) == 1
+      && g_app->btor->quantifiers->count > 0;
 
   if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
