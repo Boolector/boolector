@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2018 Armin Biere.
+ *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *  Copyright (C) 2013-2018 Aina Niemetz.
  *
@@ -709,7 +709,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d %s %d", opt, btor_opt_get_lng (btor, opt), val);
+  BTOR_TRAPI ("%s %d", btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   BTOR_ABORT (
       val < btor_opt_get_min (btor, opt) || val > btor_opt_get_max (btor, opt),
@@ -779,7 +779,7 @@ boolector_get_opt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -794,7 +794,7 @@ boolector_get_opt_min (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_min (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -809,7 +809,7 @@ boolector_get_opt_max (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_max (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -824,7 +824,7 @@ boolector_get_opt_dflt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_dflt (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -839,7 +839,7 @@ boolector_get_opt_lng (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_lng (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -854,7 +854,7 @@ boolector_get_opt_shrt (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_shrt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -869,7 +869,7 @@ boolector_get_opt_desc (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_desc (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -884,7 +884,7 @@ boolector_has_opt (Btor *btor, BtorOption opt)
 {
   bool res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   res = btor_opt_is_valid (btor, opt);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
@@ -912,7 +912,7 @@ boolector_next_opt (Btor *btor, BtorOption opt)
 {
   BtorOption res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", opt);
+  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_next (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
@@ -1152,10 +1152,12 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-
-  w  = btor_sort_bitvec_get_width (btor, s);
-  bv = btor_bv_constd (btor->mm, str, w);
-  BTOR_ABORT (!bv, "'%s' does not fit into a bit-vector of size %u", str, w);
+  w = btor_sort_bitvec_get_width (btor, s);
+  BTOR_ABORT (!btor_util_check_dec_to_bv (btor->mm, str, w),
+              "'%s' does not fit into a bit-vector of size %u",
+              str,
+              w);
+  bv  = btor_bv_constd (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);
   btor_bv_free (btor->mm, bv);
@@ -1170,8 +1172,7 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
 BoolectorNode *
 boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
 {
-  uint32_t w, size_bits;
-  char *bits;
+  uint32_t w;
   BtorNode *res;
   BtorBitVector *bv;
   BtorSortId s;
@@ -1185,12 +1186,11 @@ boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bitvec (btor, s),
               "'sort' is not a bit vector sort");
-
-  w         = btor_sort_bitvec_get_width (btor, s);
-  bits      = btor_util_hex_to_bin_str (btor->mm, str);
-  size_bits = strlen (bits);
-  BTOR_ABORT (
-      size_bits > w, "'%s' does not fit into a bit-vector of size %u", str, w);
+  w = btor_sort_bitvec_get_width (btor, s);
+  BTOR_ABORT (!btor_util_check_hex_to_bv (btor->mm, str, w),
+              "'%s' does not fit into a bit-vector of size %u",
+              str,
+              w);
   bv  = btor_bv_consth (btor->mm, str, w);
   res = btor_exp_const (btor, bv);
   assert (btor_node_get_sort_id (res) == s);

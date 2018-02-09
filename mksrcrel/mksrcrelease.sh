@@ -55,19 +55,25 @@ $dir/
 
 cd src
 
-cp -p \
+cp -p --parents \
   boolector.[ch] \
   boolectormain.[ch] \
+  boolectormc.[ch] \
   aigprop.[ch] \
   `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
+  btorfmt/LICENSE \
+  btorfmt/btorfmt.[ch] \
+  btorfmt/configure.sh \
+  btorfmt/makefile.in \
 $dir/src
 
-for subdir in dumper mcapi parser simplifier utils
+for subdir in dumper mcapi normalizer parser sat simplifier utils
 do
   mkdir $dir/src/$subdir/
   cp -p $subdir/*.[ch] $dir/src/$subdir/
 done
+cp -p sat/*.cc $dir/src/sat/
 
 mkdir $dir/src/api/
 mkdir $dir/src/api/python
@@ -78,8 +84,8 @@ do
 done
 
 cp -p \
-  BitVector.h \
-  btoribv.h \
+  BitVector.hh \
+  btoribv.hh \
   btoribv.cc \
   btorimc.cc \
 $dir/src/
@@ -94,6 +100,7 @@ $dir/doc/
 tar cf - \
   examples/array/*.c \
   examples/array/makefile \
+  examples/btormc \
   examples/bv/*.c \
   examples/bv/makefile \
   examples/Makefile \
@@ -111,6 +118,7 @@ cp -p \
   makefile.in \
   ibv.mk \
   mbt.mk \
+  mc.mk \
 $dir/
 
 date=`date`

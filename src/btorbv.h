@@ -69,6 +69,8 @@ BtorBitVector *btor_bv_uint64_to_bv (BtorMemMgr *mm,
 
 BtorBitVector *btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw);
 
+BtorBitVector *btor_bv_const (BtorMemMgr *mm, const char *str, uint32_t bw);
+
 BtorBitVector *btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw);
 
 BtorBitVector *btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw);

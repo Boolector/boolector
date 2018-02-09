@@ -4,7 +4,7 @@ In contrast to Boolector it falls under the following MIT style license:
 
 Copyright (c) 2012-2018, Armin Biere, Johannes Kepler University, Linz
 Copyright (c) 2017, Mathias Preiner
-Copyright (c) 2017, Aina Niemetz
+Copyright (c) 2017-2018, Aina Niemetz
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -44,11 +44,34 @@ struct BtorFormatReader
   FILE *file;
 };
 
+static void *
+btorfmt_malloc (size_t size)
+{
+  assert (size);
+
+  void *res = malloc (size);
+  if (!res)
+  {
+    fprintf (stderr, "[btorfmt] memory allocation failed\n");
+    abort ();
+  }
+  return res;
+}
+
+static char *
+btorfmt_strdup (const char *str)
+{
+  assert (str);
+
+  char *res = btorfmt_malloc (strlen (str) + 1);
+  strcpy (res, str);
+  return res;
+}
+
 BtorFormatReader *
 btorfmt_new ()
 {
-  BtorFormatReader *res = malloc (sizeof *res);
-  if (!res) return 0;
+  BtorFormatReader *res = btorfmt_malloc (sizeof *res);
   memset (res, 0, sizeof *res);
   return res;
 }
@@ -130,7 +153,7 @@ perr_bfr (BtorFormatReader *bfr, const char *fmt, ...)
   va_end (ap);
   buf[1023] = '\0';
 
-  bfr->error = malloc (strlen (buf) + 28);
+  bfr->error = btorfmt_malloc (strlen (buf) + 28);
   sprintf (bfr->error, "line %ld: %s", bfr->lineno, buf);
   return 0;
 }
@@ -353,7 +376,7 @@ parse_opt_symbol_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
     {
       ungetc_bfr (bfr, ch);
       if (!parse_symbol_bfr (bfr)) return 0;
-      l->symbol = strdup (bfr->buf);
+      l->symbol = btorfmt_strdup (bfr->buf);
     }
   }
   else if (ch != '\n')
@@ -372,13 +395,13 @@ new_line_bfr (BtorFormatReader *bfr,
   BtorFormatLine *res;
   assert (0 < id);
   assert (bfr->ntable <= id);
-  res = malloc (sizeof *res);
+  res = btorfmt_malloc (sizeof *res);
   memset (res, 0, sizeof (*res));
   res->id     = id;
   res->lineno = lineno;
   res->tag    = tag;
   res->name   = name;
-  res->args   = malloc (sizeof (long) * 3);
+  res->args   = btorfmt_malloc (sizeof (long) * 3);
   memset (res->args, 0, sizeof (long) * 3);
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
@@ -874,6 +897,232 @@ check_consth (const char *consth, unsigned width)
   return 1;
 }
 
+#ifndef NDEBUG
+static int
+is_bin_str (const char *c)
+{
+  const char *p;
+  char ch;
+
+  assert (c != NULL);
+
+  for (p = c; (ch = *p); p++)
+    if (ch != '0' && ch != '1') return 0;
+  return 1;
+}
+#endif
+
+static const char *digit2const_table[10] = {
+    "",
+    "1",
+    "10",
+    "11",
+    "100",
+    "101",
+    "110",
+    "111",
+    "1000",
+    "1001",
+};
+
+static const char *
+digit2const (char ch)
+{
+  assert ('0' <= ch);
+  assert (ch <= '9');
+
+  return digit2const_table[ch - '0'];
+}
+
+static const char *
+strip_zeroes (const char *a)
+{
+  assert (a);
+  while (*a == '0') a++;
+  return a;
+}
+
+static char *
+mult_unbounded_bin_str (const char *a, const char *b)
+{
+  assert (a);
+  assert (b);
+  assert (is_bin_str (a));
+  assert (is_bin_str (b));
+
+  char *res, *r, c, x, y, s, m;
+  unsigned alen, blen, rlen, i;
+  const char *p;
+
+  a = strip_zeroes (a);
+  if (!*a) return btorfmt_strdup ("");
+  if (a[0] == '1' && !a[1]) return btorfmt_strdup (b);
+
+  b = strip_zeroes (b);
+  if (!*b) return btorfmt_strdup ("");
+  if (b[0] == '1' && !b[1]) return btorfmt_strdup (a);
+
+  alen      = strlen (a);
+  blen      = strlen (b);
+  rlen      = alen + blen;
+  res       = btorfmt_malloc (rlen + 1);
+  res[rlen] = 0;
+
+  for (r = res; r < res + blen; r++) *r = '0';
+  for (p = a; p < a + alen; p++) *r++ = *p;
+  assert (r == res + rlen);
+
+  for (i = 0; i < alen; i++)
+  {
+    m = res[rlen - 1];
+    c = '0';
+
+    if (m == '1')
+    {
+      p = b + blen;
+      r = res + blen;
+
+      while (res < r && b < p)
+      {
+        assert (b < p);
+        x  = *--p;
+        y  = *--r;
+        s  = x ^ y ^ c;
+        c  = (x & y) | (x & c) | (y & c);
+        *r = s;
+      }
+    }
+
+    memmove (res + 1, res, rlen - 1);
+    res[0] = c;
+  }
+
+  return res;
+}
+
+static char *
+add_unbounded_bin_str (const char *a, const char *b)
+{
+  assert (a);
+  assert (b);
+  assert (is_bin_str (a));
+  assert (is_bin_str (b));
+
+  char *res, *r, c, x, y, s, *tmp;
+  unsigned alen, blen, rlen;
+  const char *p, *q;
+
+  a = strip_zeroes (a);
+  b = strip_zeroes (b);
+
+  if (!*a) return btorfmt_strdup (b);
+  if (!*b) return btorfmt_strdup (a);
+
+  alen = strlen (a);
+  blen = strlen (b);
+  rlen = (alen < blen) ? blen : alen;
+  rlen++;
+
+  res = btorfmt_malloc (rlen + 1);
+
+  p = a + alen;
+  q = b + blen;
+
+  c = '0';
+
+  r  = res + rlen;
+  *r = 0;
+
+  while (res < r)
+  {
+    x    = (a < p) ? *--p : '0';
+    y    = (b < q) ? *--q : '0';
+    s    = x ^ y ^ c;
+    c    = (x & y) | (x & c) | (y & c);
+    *--r = s;
+  }
+
+  p = strip_zeroes (res);
+  if ((p != res))
+  {
+    tmp = btorfmt_strdup (p);
+    if (!tmp)
+    {
+      free (res);
+      return 0;
+    }
+    free (res);
+    res = tmp;
+  }
+
+  return res;
+}
+
+static char *
+dec_to_bin_str (const char *str, unsigned len)
+{
+  assert (str);
+
+  const char *end, *p;
+  char *res, *tmp;
+
+  res = btorfmt_strdup ("");
+  if (!res) return 0;
+
+  end = str + len;
+  for (p = str; p < end; p++)
+  {
+    tmp = mult_unbounded_bin_str (res, "1010"); /* *10 */
+    if (!tmp)
+    {
+      free (res);
+      return 0;
+    }
+    free (res);
+    res = tmp;
+
+    tmp = add_unbounded_bin_str (res, digit2const (*p));
+    if (!tmp)
+    {
+      free (res);
+      return 0;
+    }
+    free (res);
+    res = tmp;
+  }
+
+  assert (strip_zeroes (res) == res);
+  if (strlen (res)) return res;
+  free (res);
+  return btorfmt_strdup ("0");
+}
+
+int
+check_constd (const char *str, unsigned width)
+{
+  assert (str);
+  assert (width);
+
+  int is_neg, is_min_val = 0, res;
+  char *bits;
+  size_t size_bits, len;
+
+  is_neg    = (str[0] == '-');
+  len       = is_neg ? strlen (str) - 1 : strlen (str);
+  bits      = dec_to_bin_str (is_neg ? str + 1 : str, len);
+  size_bits = strlen (bits);
+  if (is_neg)
+  {
+    is_min_val = (bits[0] == '1');
+    for (size_t i = 1; is_min_val && i < size_bits; i++)
+      is_min_val = (bits[i] == '0');
+  }
+  res = ((is_neg && !is_min_val) || size_bits <= width)
+        && (!is_neg || is_min_val || size_bits + 1 <= width);
+  free (bits);
+  return res;
+}
+
 static int
 parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
@@ -928,9 +1177,13 @@ parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
                      bfr->buf,
                      l->sort.bitvec.width);
   }
-  else if (l->tag == BTOR_FORMAT_TAG_constd)
+  else if (l->tag == BTOR_FORMAT_TAG_constd
+           && check_constd (bfr->buf, l->sort.bitvec.width))
   {
-    // TODO: check if number fits into sort.bitvec.width bits
+    return perr_bfr (bfr,
+                     "constant '%s' does not match bit-vector sort size %u",
+                     bfr->buf,
+                     l->sort.bitvec.width);
   }
   else if (l->tag == BTOR_FORMAT_TAG_consth
            && check_consth (bfr->buf, l->sort.bitvec.width))
@@ -940,7 +1193,7 @@ parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
                      bfr->buf,
                      l->sort.bitvec.width);
   }
-  l->constant = strdup (bfr->buf);
+  l->constant = btorfmt_strdup (bfr->buf);
   return 1;
 }
 

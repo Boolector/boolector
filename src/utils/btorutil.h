@@ -69,6 +69,14 @@ char *btor_util_hex_to_bin_str_n (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
+bool btor_util_check_bin_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw);
+
+bool btor_util_check_dec_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw);
+
+bool btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw);
+
+/*------------------------------------------------------------------------*/
+
 #ifdef BTOR_HAVE_GETRUSAGE
 double btor_util_time_stamp (void);
 double btor_util_process_time_thread (void);

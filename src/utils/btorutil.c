@@ -191,6 +191,7 @@ add_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
 
   return res;
 }
+
 static char *
 mult_unbounded_bin_str (BtorMemMgr *mm, const char *a, const char *b)
 {
@@ -439,6 +440,60 @@ btor_util_hex_to_bin_str (BtorMemMgr *mm, const char *str)
 
 /*------------------------------------------------------------------------*/
 
+bool
+btor_util_check_bin_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  assert (mm);
+  assert (str);
+  assert (bw);
+
+  (void) mm;
+  return strlen (str) <= bw;
+}
+
+bool
+btor_util_check_dec_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  assert (mm);
+  assert (str);
+  assert (bw);
+
+  bool is_neg, is_min_val = false, res;
+  char *bits;
+  size_t size_bits;
+
+  is_neg    = (str[0] == '-');
+  bits      = btor_util_dec_to_bin_str (mm, is_neg ? str + 1 : str);
+  size_bits = strlen (bits);
+  if (is_neg)
+  {
+    is_min_val = (bits[0] == '1');
+    for (size_t i = 1; is_min_val && i < size_bits; i++)
+      is_min_val = (bits[i] == '0');
+  }
+  res = ((is_neg && !is_min_val) || size_bits <= bw)
+        && (!is_neg || is_min_val || size_bits + 1 <= bw);
+  btor_mem_freestr (mm, bits);
+  return res;
+}
+
+bool
+btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
+{
+  assert (mm);
+  assert (str);
+  assert (bw);
+
+  char *bits;
+  bool res;
+
+  bits = btor_util_hex_to_bin_str (mm, str);
+  res  = strlen (bits) <= bw;
+  btor_mem_freestr (mm, bits);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
 #ifdef BTOR_HAVE_GETRUSAGE
 
 #include <sys/resource.h>
