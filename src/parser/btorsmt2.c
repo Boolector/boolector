@@ -2223,7 +2223,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         binfun = boolector_xor;
         goto BIN_BOOL_LEFT_ASSOCIATIVE_CORE;
       }
-      // TODO (ma): merge with distinct
       else if (tag == BTOR_EQUAL_TAG_SMT2)
       {
         if (!nargs)
