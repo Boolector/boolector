@@ -876,6 +876,7 @@ clone_aux_btor (Btor *btor,
 #endif
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
+  BTOR_CLR (&clone->cbs);
   btor_opt_clone_opts (btor, clone);
 #ifndef NDEBUG
   allocated += BTOR_OPT_NUM_OPTS * sizeof (BtorOpt);
