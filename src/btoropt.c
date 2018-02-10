@@ -1180,11 +1180,26 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
   else if (opt == BTOR_OPT_MODEL_GEN)
   {
     if (!val && btor_opt_get (btor, opt)) btor_model_delete (btor);
+    if (val && btor_opt_get (btor, BTOR_OPT_UCOPT))
+    {
+      btor_opt_set (btor, BTOR_OPT_UCOPT, 0);
+      BTOR_MSG (btor->msg,
+                1,
+                "Disabling unconstrained optimization since model generation "
+                "is enabled");
+    }
     assert (!val || !btor_opt_get (btor, BTOR_OPT_UCOPT));
   }
   else if (opt == BTOR_OPT_UCOPT)
   {
-    assert (!val || !btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
+    if (val && btor_opt_get (btor, BTOR_OPT_MODEL_GEN))
+    {
+      BTOR_MSG (btor->msg,
+                1,
+                "Disabling unconstrained optimization since model generation "
+                "is enabled");
+      val = 0;
+    }
     assert (!val || !btor_opt_get (btor, BTOR_OPT_INCREMENTAL));
   }
 #ifndef NDEBUG
