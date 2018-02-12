@@ -646,6 +646,26 @@ btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
+btor_exp_repeat (Btor *btor, BtorNode *exp, uint32_t n)
+{
+  assert (btor == btor_node_real_addr (exp)->btor);
+  assert (((uint32_t) UINT_MAX / n) >= btor_node_get_width (btor, exp));
+
+  BtorNode *result, *tmp;
+  uint32_t i;
+
+  result = btor_node_copy (btor, exp);
+  for (i = 1; i < n; i++)
+  {
+    tmp    = result;
+    result = btor_exp_concat (btor, tmp, exp);
+    btor_node_release (btor, tmp);
+  }
+  assert (result);
+  return result;
+}
+
+BtorNode *
 btor_exp_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 {
   assert (btor == btor_node_real_addr (e_cond)->btor);

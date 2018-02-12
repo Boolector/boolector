@@ -1352,6 +1352,16 @@ BoolectorNode *boolector_concat (Btor *btor,
                                  BoolectorNode *n1);
 
 /*!
+   Create ``n`` concatenations of a given node ``node``.
+
+   :param btor: Boolector instance.
+   :param node: Bit vector operand.
+   :param n: Number of times to repeat the given node.
+   :return: A node representing ``n`` concatenations of node ``node``.
+ */
+BoolectorNode *boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n);
+
+/*!
   Create a read on array ``n_array`` at position ``n_index``.
 
   :param btor: Boolector instance.

@@ -2594,6 +2594,29 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 }
 
 BoolectorNode *
+boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
+{
+  BtorNode *exp, *res;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%d", n);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_ABORT_IS_NOT_BV (exp);
+  BTOR_ABORT (((uint32_t) (UINT_MAX / n)) < btor_node_get_width (btor, exp),
+              "resulting bit-width of 'repeat' too large");
+  res = btor_exp_repeat (btor, exp, n);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, repeat, node, n);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
 {
   BtorNode *e_array, *e_index, *res;

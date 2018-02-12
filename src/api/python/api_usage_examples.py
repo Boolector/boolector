@@ -220,6 +220,9 @@ if __name__ == "__main__":
 
     # Concatenation of bit vectors
     _concat   = b.Concat(_dec, _inc)
+    _repeat   = b.Repeat(_concat, 1)
+    _repeat   = b.Repeat(_repeat, 5)
+
 
     # Reads on arrays
     _read0    = b.Read(_array, _var) 

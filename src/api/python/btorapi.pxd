@@ -261,6 +261,9 @@ cdef extern from "boolector.h":
     BoolectorNode *boolector_concat (
         Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
+    BoolectorNode *boolector_repeat (
+        Btor * btor, BoolectorNode * node, uint32_t n)
+
     BoolectorNode *boolector_read (
         Btor * btor, BoolectorNode * n_array, BoolectorNode * n_index)
 

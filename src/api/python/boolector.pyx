@@ -2469,6 +2469,22 @@ cdef class Boolector:
             btorapi.boolector_concat(self._c_btor, _c_node(a), _c_node(b))
         return r
 
+    def Repeat(self, BoolectorBVNode a, uint32_t n):
+        """ Repeat(a,n)
+
+            Create ``n`` concatenations of bit vector ``a``.
+
+            :param a: Bit vector operand.
+            :type a:  :class:`~boolector.BoolectorNode`
+            :param n: The number of times node ``a`` should be repeated.
+            :type n:  uint32_t
+            :return:  A bit vector node with bitwidth ``n * bit width of a``.
+            :rtype: :class:`~boolector.BoolectorNode`
+        """
+        r = BoolectorBVNode(self)
+        r._c_node = btorapi.boolector_repeat(self._c_btor, _c_node(a), n)
+        return r
+
     def Read(self, BoolectorArrayNode a, b):
 
         """ Read(a,b)

@@ -2536,13 +2536,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser,
                              "resulting bit-width of 'repeat' too large");
         }
-        exp = boolector_copy (parser->btor, p[1].exp);
-        for (k = 1; k < p->num; k++)
-        {
-          old = exp;
-          exp = boolector_concat (parser->btor, old, p[1].exp);
-          boolector_release (parser->btor, old);
-        }
+        exp = boolector_repeat (parser->btor, p[1].exp, p->num);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
