@@ -251,6 +251,7 @@ typedef enum BtorMBTOperator
   /* unary funs */
   NOT,
   NEG,
+  REPEAT,
   SLICE,
   INC,
   DEC,
@@ -313,15 +314,15 @@ typedef enum BtorMBTOperator
 } BtorMBTOperator;
 
 const char *const g_op2str[] = {
-    "param",   "fun",   "uf",    "const", "zero",  "false",  "ones",   "true",
-    "one",     "uint",  "int",   "var",   "array", "not",    "neg",    "slice",
-    "inc",     "dec",   "uext",  "sext",  "redor", "redxor", "redand", "eq",
-    "ne",      "uaddo", "saddo", "usubo", "ssubo", "umulo",  "smulo",  "sdivo",
-    "ult",     "slt",   "ulte",  "slte",  "ugt",   "sgt",    "ugte",   "sgte",
-    "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",     "nor",
-    "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",   "smod",
-    "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",   "read",
-    "write",   "apply",
+    "param", "fun",     "uf",    "const", "zero",  "false", "ones",   "true",
+    "one",   "uint",    "int",   "var",   "array", "not",   "neg",    "repeat",
+    "slice", "inc",     "dec",   "uext",  "sext",  "redor", "redxor", "redand",
+    "eq",    "ne",      "uaddo", "saddo", "usubo", "ssubo", "umulo",  "smulo",
+    "sdivo", "ult",     "slt",   "ulte",  "slte",  "ugt",   "sgt",    "ugte",
+    "sgte",  "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",
+    "nor",   "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",
+    "smod",  "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",
+    "read",  "write",   "apply",
 };
 
 static bool
@@ -875,7 +876,7 @@ btormbt_new_btormbt (void)
         btoropt->engine = BTOR_ENGINE_AIGPROP;
       else if (strstr (btoropt->name, "prop:"))
         btoropt->engine = BTOR_ENGINE_PROP;
-      else if (strstr (btoropt->name, "ef:"))
+      else if (strstr (btoropt->name, "quant:"))
         btoropt->engine = BTOR_ENGINE_QUANT;
       else
       {
@@ -1634,11 +1635,11 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
-  uint32_t upper, lower, width;
+  uint32_t upper, lower, repeat, width;
   BoolectorNode *node;
 
-  upper = lower = 0;
-  width         = boolector_get_width (mbt->btor, e);
+  upper = lower = repeat = 0;
+  width                  = boolector_get_width (mbt->btor, e);
   assert (width <= mbt->max_bw);
 
   if (op == SLICE)
@@ -1647,13 +1648,21 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
     lower = btor_rng_pick_rand (&mbt->round.rng, 0, upper);
   }
   else if (op == UEXT || op == SEXT)
+  {
     upper = btor_rng_pick_rand (&mbt->round.rng, 0, mbt->max_bw - width);
+  }
+  else if (op == REPEAT)
+  {
+    repeat = btor_rng_pick_rand (
+        &mbt->round.rng, 1, ((uint32_t) MAX_BITWIDTH / width));
+  }
 
   node = 0;
   switch (op)
   {
     case NOT: node = boolector_not (mbt->btor, e); break;
     case NEG: node = boolector_neg (mbt->btor, e); break;
+    case REPEAT: node = boolector_repeat (mbt->btor, e, repeat); break;
     case SLICE: node = boolector_slice (mbt->btor, e, upper, lower); break;
     case INC: node = boolector_inc (mbt->btor, e); break;
     case DEC: node = boolector_dec (mbt->btor, e); break;
