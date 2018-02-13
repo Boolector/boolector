@@ -2611,7 +2611,7 @@ boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, repeat, node, n);
+  BTOR_CHKCLONE_RES_PTR (res, repeat, BTOR_CLONED_EXP (exp), n);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
