@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2018 Aina Niemetz.
  *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2015 Armin Biere.
  *
@@ -215,7 +215,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             BTOR_VERBOSITY_MAX,
             "increase verbosity");
-#ifndef NBTORLOG
   init_opt (btor,
             BTOR_OPT_LOGLEVEL,
             false,
@@ -226,7 +225,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             UINT32_MAX,
             "increase loglevel");
-#endif
 
   /* simplifier --------------------------------------------------------- */
   init_opt (btor,
@@ -963,7 +961,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             0);
-#ifndef NDEBUG
   init_opt (btor,
             BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
             true,
@@ -985,7 +982,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             0);
-#endif
   init_opt (btor,
             BTOR_OPT_PARSE_INTERACTIVE,
             true,
@@ -996,7 +992,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "interactive parse mode");
-#ifdef BTOR_USE_LINGELING
   init_opt (btor,
             BTOR_OPT_SAT_ENGINE_LGL_FORK,
             true,
@@ -1007,7 +1002,6 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "fork lingeling");
-#endif
 }
 
 void

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2018 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -1004,34 +1004,23 @@ boolector_main (int32_t argc, char **argv)
           break;
 
         case BTORMAIN_OPT_SAT_ENGINE:
-#ifdef BTOR_USE_LINGELING
           if (!strcasecmp (po->valstr, "lingeling"))
           {
             boolector_set_opt (
                 btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
           }
-          else
-#endif
-#ifdef BTOR_USE_PICOSAT
-              if (!strcasecmp (po->valstr, "picosat"))
+          else if (!strcasecmp (po->valstr, "picosat"))
           {
             boolector_set_opt (
                 btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
           }
-          else
-#endif
-#ifdef BTOR_USE_MINISAT
-              if (!strcasecmp (po->valstr, "minisat"))
+          else if (!strcasecmp (po->valstr, "minisat"))
             boolector_set_opt (
                 btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
-          else
-#endif
-#ifdef BTOR_USE_CADICAL
-              if (!strcasecmp (po->valstr, "cadical"))
+          else if (!strcasecmp (po->valstr, "cadical"))
             boolector_set_opt (
                 btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_CADICAL);
           else
-#endif
           {
             btormain_error (g_app,
                             "invalid sat solver '%s' for '%s'",
@@ -1041,11 +1030,9 @@ boolector_main (int32_t argc, char **argv)
           }
           break;
 
-#ifdef BTOR_USE_LINGELING
         case BTORMAIN_OPT_LGL_NOFORK:
           boolector_set_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
           break;
-#endif
 
         case BTORMAIN_OPT_HEX:
           format = BTOR_OUTPUT_BASE_HEX;
@@ -1165,12 +1152,8 @@ boolector_main (int32_t argc, char **argv)
                 pmodel = 1;
               }
               break;
-#ifndef NBTORLOG
             case BTOR_OPT_VERBOSITY:
             case BTOR_OPT_LOGLEVEL:
-#else
-            case BTOR_OPT_VERBOSITY:
-#endif
               if (BTOR_ARG_READ_IS_INT (po->readval))
                 boolector_set_opt (btor, bopt, po->val);
               else

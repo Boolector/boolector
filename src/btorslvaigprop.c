@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -237,9 +237,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (!slv->aprop->roots);
   assert (!slv->aprop->score);
   assert (!slv->aprop->model);
-#ifndef NBTORLOG
-  slv->aprop->loglevel = btor_opt_get (btor, BTOR_OPT_LOGLEVEL);
-#endif
+  slv->aprop->loglevel     = btor_opt_get (btor, BTOR_OPT_LOGLEVEL);
   slv->aprop->seed         = btor_opt_get (btor, BTOR_OPT_SEED);
   slv->aprop->use_restarts = btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS);
   slv->aprop->use_bandit   = btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT);
@@ -370,11 +368,7 @@ btor_new_aigprop_solver (Btor *btor)
 
   slv->aprop =
       aigprop_new_aigprop (btor_get_aig_mgr (btor),
-#ifndef NBTORLOG
                            btor_opt_get (btor, BTOR_OPT_LOGLEVEL),
-#else
-                           0,
-#endif
                            btor_opt_get (btor, BTOR_OPT_SEED),
                            btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
                            btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT));

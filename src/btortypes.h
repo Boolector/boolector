@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *  Copyright (C) 2016 Armin Biere.
  *
  *  All rights reserved.
@@ -160,14 +160,12 @@ enum BtorOption
   */
   BTOR_OPT_VERBOSITY,
 
-#ifndef NBTORLOG
   /*
     * **BTOR_OPT_LOGLEVEL**
 
       Set the log level.
   */
   BTOR_OPT_LOGLEVEL,
-#endif
 
   /* --------------------------------------------------------------------- */
   /*!
@@ -695,15 +693,11 @@ enum BtorOption
   BTOR_OPT_SORT_AIGVEC,
   BTOR_OPT_AUTO_CLEANUP_INTERNAL,
   BTOR_OPT_SIMPLIFY_CONSTRAINTS,
-#ifndef NDEBUG
   BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
   BTOR_OPT_CHK_MODEL,
   BTOR_OPT_CHK_UNCONSTRAINED,
-#endif
   BTOR_OPT_PARSE_INTERACTIVE,
-#ifdef BTOR_USE_LINGELING
   BTOR_OPT_SAT_ENGINE_LGL_FORK,
-#endif
   /* this MUST be the last entry! */
   BTOR_OPT_NUM_OPTS,
 };

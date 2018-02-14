@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -349,9 +349,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   btor_opt_set (clone, BTOR_OPT_MODEL_GEN, 0);
   btor_opt_set (clone, BTOR_OPT_INCREMENTAL, 1);
-#ifndef NBTORLOG
   btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
-#endif
   btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
