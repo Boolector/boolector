@@ -2725,52 +2725,18 @@ btormbt_state_opt (BtorMBT *mbt)
   {
     boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
   }
-  else
-  {
-    if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
-    {
-#ifdef BTOR_USE_LINGELING
-      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
-        boolector_set_sat_solver (mbt->btor, "lingeling");
-#endif
-#ifdef BTOR_USE_PICOSAT
-      if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
-        boolector_set_sat_solver (mbt->btor, "picosat");
-#endif
-#ifdef BTOR_USE_MINISAT
-      if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
-        boolector_set_sat_solver (mbt->btor, "minisat");
-#endif
-#ifdef BTOR_USE_CADICAL
-      if (btoropt->val == BTOR_SAT_ENGINE_CADICAL
-          // for now CaDiCaL only support non-incremental calls
-          && mbt->round.logic == BTORMBT_LOGIC_QF_BV
-          && !boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL))
-      {
-        boolector_set_sat_solver (mbt->btor, "cadical");
-        inc = false;
-      }
-#endif
-    }
-    else
-    {
-#ifdef BTOR_USE_LINGELING
-      if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
-        boolector_set_sat_solver_lingeling (
-            mbt->btor, btor_rng_pick_rand (&mbt->round.rng, 0, 1));
-#endif
-#ifdef BTOR_USE_PICOSAT
-      if (btoropt->val == BTOR_SAT_ENGINE_PICOSAT)
-        boolector_set_sat_solver_picosat (mbt->btor);
-#endif
-#ifdef BTOR_USE_MINISAT
-      if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
-        boolector_set_sat_solver_minisat (mbt->btor);
-#endif
-    }
-  }
+
   BTORMBT_LOG (
       1, "opt: set boolector option '%s' to '%d'", btoropt->name, btoropt->val);
+
+  // currently, CaDiCaL only support non-incremental calls
+  if (boolector_get_opt (mbt->btor, BTOR_OPT_SAT_ENGINE)
+      == BTOR_SAT_ENGINE_CADICAL)
+  {
+    mbt->round.logic = BTORMBT_LOGIC_QF_BV;
+    BTORMBT_LOG (1, "opt: force logic to '%s'", "QF_BV");
+    inc = false;
+  }
 
   if (mbt->optfuzz)
   {
@@ -2873,11 +2839,14 @@ btormbt_state_opt (BtorMBT *mbt)
      * btoropt->val */
 
     /* set boolector option */
-    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
-    BTORMBT_LOG (1,
-                 "opt: set boolector option '%s' to '%u'",
-                 btoropt->name,
-                 btoropt->val);
+    if (btoropt->kind != BTOR_OPT_INCREMENTAL || btoropt->val != 1 || inc)
+    {
+      boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+      BTORMBT_LOG (1,
+                   "opt: set boolector option '%s' to '%u'",
+                   btoropt->name,
+                   btoropt->val);
+    }
 
     /* set some mbt specific options */
     // NOTE: inc flag required since CaDiCaL does not yet support incremental
@@ -4027,7 +3996,14 @@ main (int32_t argc, char **argv)
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
       val = (uint32_t) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
-      btoropt->val          = val;
+      btoropt->val = val;
+#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT) \
+    && !defined(BTOR_USE_MINISAT)
+      if (btoropt->kind == BTOR_OPT_INCREMENTAL)
+      {
+        btormbt_error ("no SAT solver with incremental support compiled in");
+      }
+#endif
       btoropt->forced_by_cl = true;
     }
     else if (!is_num_str (argv[i]))
