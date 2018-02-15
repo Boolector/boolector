@@ -125,6 +125,8 @@ btor_delete_substitutions (Btor *btor)
 {
   assert (btor);
 
+  if (!btor->substitutions) return;
+
   BtorNode *cur;
   BtorPtrHashTableIterator it;
 
