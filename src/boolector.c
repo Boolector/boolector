@@ -708,6 +708,8 @@ boolector_set_sat_solver_minisat (Btor *btor)
 void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
+  uint32_t oldval;
+
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s %d", btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
@@ -716,6 +718,11 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
       "invalid option value '%u' for option '%s'",
       val,
       btor_opt_get_lng (btor, opt));
+
+#if !defined(BTOR_USE_LINGELING) || !defined(BTOR_USE_CADICAL) \
+    || !defined(BTOR_USE_MINISAT) || !defined(BTOR_USE_PICOSAT)
+  oldval = btor_opt_get (btor, opt);
+#endif
 
   if (val)
   {
@@ -760,6 +767,69 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
                   "if model generation is enabled");
     }
   }
+
+  if (opt == BTOR_OPT_SAT_ENGINE)
+  {
+#ifndef BTOR_USE_LINGELING
+    if (val == BTOR_SAT_ENGINE_LINGELING)
+    {
+      BTOR_WARN (
+          true,
+          "SAT solver Lingeling not compiled in, using %s",
+          oldval == BTOR_SAT_ENGINE_CADICAL
+              ? "Cadical"
+              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+      val = oldval;
+    }
+#endif
+#ifndef BTOR_USE_CADICAL
+    if (val == BTOR_SAT_ENGINE_CADICAL)
+    {
+      BTOR_WARN (
+          true,
+          "SAT solver Cadical not compiled in, using %s",
+          oldval == BTOR_SAT_ENGINE_LINGELING
+              ? "Lingeling"
+              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+      val = oldval;
+    }
+#endif
+#ifndef BTOR_USE_MINISAT
+    if (val == BTOR_SAT_ENGINE_MINISAT)
+    {
+      BTOR_WARN (val == BTOR_SAT_ENGINE_MINISAT,
+                 "SAT solver Minisat not compiled in, using %s",
+                 oldval == BTOR_SAT_ENGINE_CADICAL
+                     ? "Cadical"
+                     : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling"
+                                                            : "PicoSat"));
+      val = oldval;
+    }
+#endif
+#ifndef BTOR_USE_PICOSAT
+    if (val == BTOR_SAT_ENGINE_PICOSAT)
+    {
+      BTOR_WARN (val == BTOR_SAT_ENGINE_PICOSAT,
+                 "SAT solver Picosat not compiled in, using %s",
+                 oldval == BTOR_SAT_ENGINE_CADICAL
+                     ? "Cadical"
+                     : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling"
+                                                            : "MiniSat"));
+      val = oldval;
+    }
+#endif
+  }
+
+#ifndef BTOR_USE_LINGELING
+  if (opt == BTOR_OPT_SAT_ENGINE_LGL_FORK)
+  {
+    val = oldval;
+    BTOR_MSG (btor->msg,
+              1,
+              "SAT solver Lingeling not compiled in, will not set option "
+              "to clone/fork Lingeling");
+  }
+#endif
 
   if (opt == BTOR_OPT_REWRITE_LEVEL)
   {

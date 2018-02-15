@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz
+ *  Copyright (C) 2013-2018 Aina Niemetz
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  All rights reserved.
@@ -15,16 +15,16 @@
 
 #include "btortypes.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_WARN(cond, msg...)                                  \
-  if (cond)                                                      \
-  {                                                              \
-    fprintf (stderr, "[%s] warning: %s\n", __FUNCTION__, ##msg); \
-    fflush (stderr);                                             \
-  }
+#define BTOR_WARN(cond, msg...)                                       \
+  do                                                                  \
+  {                                                                   \
+    if (cond) btor_abort_warn (false, __FILE__, __FUNCTION__, ##msg); \
+  } while (0)
 
 #define BTOR_WARN_DEPRECATED(msg...)                              \
   do                                                              \
@@ -39,12 +39,13 @@
 
 /*------------------------------------------------------------------------*/
 
-void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
+void btor_abort_warn (
+    bool abort, const char* filename, const char* fun, const char* fmt, ...);
 
-#define BTOR_ABORT(cond, msg...)                          \
-  do                                                      \
-  {                                                       \
-    if (cond) btor_abort (__FILE__, __FUNCTION__, ##msg); \
+#define BTOR_ABORT(cond, msg...)                                     \
+  do                                                                 \
+  {                                                                  \
+    if (cond) btor_abort_warn (true, __FILE__, __FUNCTION__, ##msg); \
   } while (0)
 
 #define BTOR_ABORT_ARG_NULL(arg)                              \

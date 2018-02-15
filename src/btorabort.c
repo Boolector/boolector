@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2016 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -16,10 +16,11 @@
 #include <stdio.h>
 
 void
-btor_abort (const char *filename, const char *fun, const char *fmt, ...)
+btor_abort_warn (
+    bool abort, const char *filename, const char *fun, const char *fmt, ...)
 {
-  va_list list;
   char *s, *e, *p;
+  va_list list;
 
   e = strrchr (filename, '.');
   s = strrchr (filename, '/');
@@ -28,12 +29,11 @@ btor_abort (const char *filename, const char *fun, const char *fmt, ...)
   fputc ('[', stderr);
   for (p = s; p < e; p++) fputc (*p, stderr);
 
-  fprintf (stderr, "] %s: ", fun);
-
+  fprintf (stderr, "] %s: %s", fun, abort ? "" : "WARNING: ");
   va_start (list, fmt);
   vfprintf (stderr, fmt, list);
   va_end (list);
   fprintf (stderr, "\n");
   fflush (stderr);
-  exit (BTOR_ERR_EXIT);
+  if (abort) exit (BTOR_ERR_EXIT);
 }

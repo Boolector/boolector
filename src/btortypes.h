@@ -675,7 +675,7 @@ enum BtorOption
   */
   BTOR_OPT_AIGPROP_USE_BANDIT,
 
-  /* EF engine ---------------------------------------------------------- */
+  /* QUANT engine ------------------------------------------------------- */
   BTOR_OPT_QUANT_SYNTH,
   BTOR_OPT_QUANT_DUAL_SOLVER,
   BTOR_OPT_QUANT_SYNTH_LIMIT,
