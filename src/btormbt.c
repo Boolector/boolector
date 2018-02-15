@@ -605,6 +605,34 @@ typedef enum BtorMBTLogic BtorMBTLogic;
 
 /*------------------------------------------------------------------------*/
 
+struct BtorMBTConfig
+{
+  uint32_t min;
+  uint32_t max;
+};
+
+typedef struct BtorMBTConfig BtorMBTConfig;
+
+struct BtorMBTNodeConfig
+{
+  uint32_t min; /* min number (without initial layer) */
+  uint32_t max; /* max number (without initial layer) */
+  struct
+  {
+    uint32_t min; /* min number of initial layer */
+    uint32_t max; /* max number of initial layer */
+  } init;
+  struct
+  {
+    uint32_t min; /* min number in incremental step */
+    uint32_t max; /* max number in incremental step */
+  } inc;
+};
+
+typedef struct BtorMBTNodeConfig BtorMBTNodeConfig;
+
+/*------------------------------------------------------------------------*/
+
 struct BtorMBT
 {
   BtorMemMgr *mm;
@@ -638,108 +666,38 @@ struct BtorMBT
 
   uint32_t max_rounds;
 
-  uint32_t min_bw;
-  uint32_t max_bw;
-  uint32_t min_index_bw;
-  uint32_t max_index_bw;
-  uint32_t min_muldiv_bw;
-  uint32_t max_muldiv_bw;
+  BtorMBTConfig bw;
+  BtorMBTConfig bw_index;
+  BtorMBTConfig bw_muldiv;
 
-  uint32_t min_sort_fun_arity;
-  uint32_t max_sort_fun_arity;
+  BtorMBTConfig sort_fun_arity;
 
-  uint32_t min_inputs; /* min number of inputs in a round */
-  uint32_t max_inputs; /* max number of inputs in a round */
-
-  uint32_t min_vars_init; /* min number of variables (initial layer) */
-  uint32_t max_vars_init; /* max number of variables (initial layer) */
-  uint32_t min_vars;      /* min number of variables (after init. layer) */
-  uint32_t max_vars;      /* max number of variables (after init. layer) */
-  uint32_t min_vars_inc;  /* min number of variables (reinit inc step) */
-  uint32_t max_vars_inc;  /* max number of variables (reinit inc step) */
-
-  uint32_t min_consts_init; /* min number of constants (initial layer) */
-  uint32_t max_consts_init; /* max number of constants (initial layer) */
-  uint32_t min_consts;      /* min number of constants (after init. layer) */
-  uint32_t max_consts;      /* max number of constants (after init. layer) */
-  uint32_t min_consts_inc;  /* min number of constants (reinit inc step) */
-  uint32_t max_consts_inc;  /* max number of constants (reinit inc step) */
-
-  uint32_t min_arrays_init; /* min number of arrays (initial layer) */
-  uint32_t max_arrays_init; /* max number of arrays (initial layer) */
-  uint32_t min_arrays;      /* min number of arrays (after init. layer) */
-  uint32_t max_arrays;      /* max number of arrays (after init. layer) */
-  uint32_t min_arrays_inc;  /* min number of arrays (reinit inc step) */
-  uint32_t max_arrays_inc;  /* max number of arrays (reinit inc step) */
+  BtorMBTConfig inputs;
+  BtorMBTNodeConfig vars;
+  BtorMBTNodeConfig consts;
+  BtorMBTNodeConfig arrays;
 
   /* add/release phase options */
-  uint32_t min_add_funs_init; /* min funs (initial layer) */
-  uint32_t max_add_funs_init; /* max funs (initial layer) */
-  uint32_t min_add_funs;      /* min funs (after init. layer) */
-  uint32_t max_add_funs;      /* max funs (after init. layer) */
-  uint32_t min_add_funs_inc;  /* min funs (reinit inc step) */
-  uint32_t max_add_funs_inc;  /* max funs (reinit inc step) */
+  BtorMBTNodeConfig add_funs;
+  BtorMBTNodeConfig add_uf;
+  BtorMBTNodeConfig add_arrayops;
+  BtorMBTNodeConfig add_bvops;
+  BtorMBTNodeConfig add_inputs;
+  BtorMBTNodeConfig ops;
+  BtorMBTNodeConfig add_ops;
+  BtorMBTNodeConfig release_ops;
 
-  uint32_t min_add_uf_init; /* min ufs (initial layer) */
-  uint32_t max_add_uf_init; /* max ufs (initial layer) */
-  uint32_t min_add_uf;      /* min ufs (after init. layer) */
-  uint32_t max_add_uf;      /* max ufs (after init. layer) */
-  uint32_t min_add_uf_inc;  /* min ufs (reinit inc step) */
-  uint32_t max_add_uf_inc;  /* max ufs (reinit inc step) */
-
-  uint32_t min_add_arrayops_init; /* min array ops (initial layer) */
-  uint32_t max_add_arrayops_init; /* max array ops (initial layer) */
-  uint32_t min_add_arrayops;      /* min array ops (after init. layer) */
-  uint32_t max_add_arrayops;      /* max array ops (after init. layer) */
-  uint32_t min_add_arrayops_inc;  /* min array ops (reinit inc step) */
-  uint32_t max_add_arrayops_inc;  /* max array ops (reinit inc step) */
-
-  uint32_t min_add_bitvecops_init; /* min bv ops (initial layer) */
-  uint32_t max_add_bitvecops_init; /* max bv ops (initial layer) */
-  uint32_t min_add_bitvecops;      /* min bv ops (after init. layer) */
-  uint32_t max_add_bitvecops;      /* max bv ops (after init. layer) */
-  uint32_t min_add_bitvecops_inc;  /* min bv ops (reinit inc step) */
-  uint32_t max_add_bitvecops_inc;  /* max bv ops (reinit inc step) */
-
-  uint32_t min_add_inputs_init; /* min inputs (initial layer) */
-  uint32_t max_add_inputs_init; /* max inputs (initial layer) */
-  uint32_t min_add_inputs;      /* min inputs (after init. layer) */
-  uint32_t max_add_inputs;      /* max inputs (after init. layer) */
-  uint32_t min_add_inputs_inc;  /* min inputs (reinit inc step) */
-  uint32_t max_add_inputs_inc;  /* max inputs (reinit inc step) */
-
-  uint32_t min_ops_init; /* min operations (initial layer) */
-  uint32_t max_ops_init; /* max operations (initial layer) */
-  uint32_t min_ops;      /* min operations (after init. layer) */
-  uint32_t max_ops;      /* max operations (after init. layer) */
-  uint32_t min_ops_inc;  /* min operations (reinit inc step) */
-  uint32_t max_ops_inc;  /* max operations (reinit inc step) */
-
-  uint32_t min_add_ops_init; /* min add ops (initial layer) */
-  uint32_t max_add_ops_init; /* max add ops (initial layer) */
-  uint32_t min_add_ops;      /* min add ops (after init. layer) */
-  uint32_t max_add_ops;      /* max add ops (after init. layer) */
-  uint32_t min_add_ops_inc;  /* min add ops (reinit inc step) */
-  uint32_t max_add_ops_inc;  /* max add ops (reinit inc step) */
-
-  uint32_t min_release_ops_init; /* min release ops (initial layer) */
-  uint32_t max_release_ops_init; /* max release ops (initial layer) */
-  uint32_t min_release_ops;      /* min release ops (after init. layer) */
-  uint32_t max_release_ops;      /* max release ops (after init. layer) */
-  uint32_t min_release_ops_inc;  /* min release ops (reinit inc step) */
-  uint32_t max_release_ops_inc;  /* max release ops (reinit inc step) */
-
-  uint32_t max_ops_lower; /* lower bound for max_ops in current round
+  uint32_t max_ops_lower; /* lower bound for ops.max in current round
                              for determining round.max_ass */
 
   uint32_t min_asserts_lower; /* min number of assertions in a round
-                                 for round.max_ops < max_ops_lower */
+                                 for round.ops.max < max_ops_lower */
   uint32_t max_asserts_lower; /* max number of assertions in a round
-                                 for round.max_ops < max_ops_lower */
+                                 for round.ops.max < max_ops_lower */
   uint32_t min_asserts_upper; /* min number of assertions in a round
-                                 for round.max_ops >= max_ops_lower */
+                                 for round.ops.max >= max_ops_lower */
   uint32_t max_asserts_upper; /* max number of assertions in a round
-                                 for round.max_ops >= max_ops_lower */
+                                 for round.ops.max >= max_ops_lower */
 
   /* propability options */
 
@@ -890,109 +848,109 @@ btormbt_new_btormbt (void)
   }
   boolector_delete (tmpbtor);
 
-  mbt->optfuzz                = true;
-  mbt->max_rounds             = UINT_MAX;
-  mbt->seed                   = -1;
-  mbt->seeded                 = false;
-  mbt->terminal               = isatty (1) == 1;
-  mbt->ext                    = false;
-  mbt->create_funs            = true;
-  mbt->create_ufs             = true;
-  mbt->create_arrays          = true;
-  mbt->min_bw                 = MIN_BITWIDTH;
-  mbt->max_bw                 = MAX_BITWIDTH;
-  mbt->min_index_bw           = MIN_INDEXWIDTH;
-  mbt->max_index_bw           = MAX_INDEXWIDTH;
-  mbt->min_muldiv_bw          = MIN_MULDIVWIDTH;
-  mbt->max_muldiv_bw          = MAX_MULDIVWIDTH;
-  mbt->min_sort_fun_arity     = MIN_SORT_FUN_ARITY;
-  mbt->max_sort_fun_arity     = MAX_SORT_FUN_ARITY;
-  mbt->min_inputs             = MIN_NLITS;
-  mbt->max_inputs             = MAX_NLITS;
-  mbt->min_vars_init          = MIN_NVARS_INIT;
-  mbt->max_vars_init          = MAX_NVARS_INIT;
-  mbt->min_vars               = MIN_NVARS;
-  mbt->max_vars               = MAX_NVARS;
-  mbt->min_vars_inc           = MIN_NVARS_INC;
-  mbt->max_vars_inc           = MAX_NVARS_INC;
-  mbt->min_consts_init        = MIN_NCONSTS_INIT;
-  mbt->max_consts_init        = MAX_NCONSTS_INIT;
-  mbt->min_consts             = MIN_NCONSTS;
-  mbt->max_consts             = MAX_NCONSTS;
-  mbt->min_consts_inc         = MIN_NCONSTS_INC;
-  mbt->max_consts_inc         = MAX_NCONSTS_INC;
-  mbt->min_arrays_init        = MIN_NARRS_INIT;
-  mbt->max_arrays_init        = MAX_NARRS_INIT;
-  mbt->min_arrays             = MIN_NARRS;
-  mbt->max_arrays             = MAX_NARRS;
-  mbt->min_arrays_inc         = MIN_NARRS_INC;
-  mbt->max_arrays_inc         = MAX_NARRS_INC;
-  mbt->min_add_funs_init      = MIN_NADDOPFUNS_INIT;
-  mbt->max_add_funs_init      = MAX_NADDOPFUNS_INIT;
-  mbt->min_add_funs           = MIN_NADDOPFUNS;
-  mbt->max_add_funs           = MAX_NADDOPFUNS;
-  mbt->min_add_funs_inc       = MIN_NADDOPFUNS_INC;
-  mbt->max_add_funs_inc       = MAX_NADDOPFUNS_INC;
-  mbt->min_add_uf_init        = MIN_NADDOPUF_INIT;
-  mbt->max_add_uf_init        = MAX_NADDOPUF_INIT;
-  mbt->min_add_uf             = MIN_NADDOPUF;
-  mbt->max_add_uf             = MAX_NADDOPUF;
-  mbt->min_add_uf_inc         = MIN_NADDOPUF_INC;
-  mbt->max_add_uf_inc         = MAX_NADDOPUF_INC;
-  mbt->min_add_arrayops_init  = MIN_NADDOPAFUNS_INIT;
-  mbt->max_add_arrayops_init  = MAX_NADDOPAFUNS_INIT;
-  mbt->min_add_arrayops       = MIN_NADDOPAFUNS;
-  mbt->max_add_arrayops       = MAX_NADDOPAFUNS;
-  mbt->min_add_arrayops_inc   = MIN_NADDOPAFUNS_INC;
-  mbt->max_add_arrayops_inc   = MAX_NADDOPAFUNS_INC;
-  mbt->min_add_bitvecops_init = MIN_NADDOPBFUNS_INIT;
-  mbt->max_add_bitvecops_init = MAX_NADDOPBFUNS_INIT;
-  mbt->min_add_bitvecops      = MIN_NADDOPBFUNS;
-  mbt->max_add_bitvecops      = MAX_NADDOPBFUNS;
-  mbt->min_add_bitvecops_inc  = MIN_NADDOPBFUNS_INC;
-  mbt->max_add_bitvecops_inc  = MAX_NADDOPBFUNS_INC;
-  mbt->min_add_inputs_init    = MIN_NADDOPLITS_INIT;
-  mbt->max_add_inputs_init    = MAX_NADDOPLITS_INIT;
-  mbt->min_add_inputs         = MIN_NADDOPLITS;
-  mbt->max_add_inputs         = MAX_NADDOPLITS;
-  mbt->min_add_inputs_inc     = MIN_NADDOPLITS_INC;
-  mbt->max_add_inputs_inc     = MAX_NADDOPLITS_INC;
-  mbt->min_ops_init           = MIN_NOPS_INIT;
-  mbt->max_ops_init           = MAX_NOPS_INIT;
-  mbt->min_ops                = MIN_NOPS;
-  mbt->max_ops                = MAX_NOPS;
-  mbt->min_ops_inc            = MIN_NOPS_INC;
-  mbt->max_ops_inc            = MAX_NOPS_INC;
-  mbt->min_add_ops_init       = MIN_NADDOPS_INIT;
-  mbt->max_add_ops_init       = MAX_NADDOPS_INIT;
-  mbt->min_add_ops            = MIN_NADDOPS;
-  mbt->max_add_ops            = MAX_NADDOPS;
-  mbt->min_add_ops_inc        = MIN_NADDOPS_INC;
-  mbt->max_add_ops_inc        = MAX_NADDOPS_INC;
-  mbt->min_release_ops_init   = MIN_NRELOPS_INIT;
-  mbt->max_release_ops_init   = MAX_NRELOPS_INIT;
-  mbt->min_release_ops        = MIN_NRELOPS;
-  mbt->max_release_ops        = MAX_NRELOPS;
-  mbt->min_release_ops_inc    = MIN_NRELOPS_INC;
-  mbt->max_release_ops_inc    = MAX_NRELOPS_INC;
-  mbt->min_asserts_lower      = MIN_NASSERTS_LOWER;
-  mbt->max_asserts_lower      = MAX_NASSERTS_LOWER;
-  mbt->min_asserts_upper      = MIN_NASSERTS_UPPER;
-  mbt->max_asserts_upper      = MAX_NASSERTS_UPPER;
-  mbt->p_sort_bv              = P_SORT_BV;
-  mbt->p_sort_fun             = P_SORT_BV;
-  mbt->p_assume               = P_ASSUME;
-  mbt->p_param_exp            = P_PARAM_EXP;
-  mbt->p_param_arr_exp        = P_PARAM_ARR_EXP;
-  mbt->p_apply_fun            = P_APPLY_FUN;
-  mbt->p_apply_uf             = P_APPLY_UF;
-  mbt->p_rw                   = P_RW;
-  mbt->p_read                 = P_READ;
-  mbt->p_cond                 = P_COND;
-  mbt->p_eq                   = P_EQ;
-  mbt->p_dump                 = P_DUMP;
-  mbt->p_print_model          = P_PRINT_MODEL;
-  mbt->p_model_format         = P_MODEL_FORMAT;
+  mbt->optfuzz               = true;
+  mbt->max_rounds            = UINT_MAX;
+  mbt->seed                  = -1;
+  mbt->seeded                = false;
+  mbt->terminal              = isatty (1) == 1;
+  mbt->ext                   = false;
+  mbt->create_funs           = true;
+  mbt->create_ufs            = true;
+  mbt->create_arrays         = true;
+  mbt->bw.min                = MIN_BITWIDTH;
+  mbt->bw.max                = MAX_BITWIDTH;
+  mbt->bw_index.min          = MIN_INDEXWIDTH;
+  mbt->bw_index.max          = MAX_INDEXWIDTH;
+  mbt->bw_muldiv.min         = MIN_MULDIVWIDTH;
+  mbt->bw_muldiv.max         = MAX_MULDIVWIDTH;
+  mbt->sort_fun_arity.min    = MIN_SORT_FUN_ARITY;
+  mbt->sort_fun_arity.max    = MAX_SORT_FUN_ARITY;
+  mbt->inputs.min            = MIN_NLITS;
+  mbt->inputs.max            = MAX_NLITS;
+  mbt->vars.init.min         = MIN_NVARS_INIT;
+  mbt->vars.init.max         = MAX_NVARS_INIT;
+  mbt->vars.min              = MIN_NVARS;
+  mbt->vars.max              = MAX_NVARS;
+  mbt->vars.inc.min          = MIN_NVARS_INC;
+  mbt->vars.inc.max          = MAX_NVARS_INC;
+  mbt->consts.init.min       = MIN_NCONSTS_INIT;
+  mbt->consts.init.max       = MAX_NCONSTS_INIT;
+  mbt->consts.min            = MIN_NCONSTS;
+  mbt->consts.max            = MAX_NCONSTS;
+  mbt->consts.inc.min        = MIN_NCONSTS_INC;
+  mbt->consts.inc.max        = MAX_NCONSTS_INC;
+  mbt->arrays.init.min       = MIN_NARRS_INIT;
+  mbt->arrays.init.max       = MAX_NARRS_INIT;
+  mbt->arrays.min            = MIN_NARRS;
+  mbt->arrays.max            = MAX_NARRS;
+  mbt->arrays.inc.min        = MIN_NARRS_INC;
+  mbt->arrays.inc.max        = MAX_NARRS_INC;
+  mbt->add_funs.init.min     = MIN_NADDOPFUNS_INIT;
+  mbt->add_funs.init.max     = MAX_NADDOPFUNS_INIT;
+  mbt->add_funs.min          = MIN_NADDOPFUNS;
+  mbt->add_funs.max          = MAX_NADDOPFUNS;
+  mbt->add_funs.inc.min      = MIN_NADDOPFUNS_INC;
+  mbt->add_funs.inc.max      = MAX_NADDOPFUNS_INC;
+  mbt->add_uf.init.min       = MIN_NADDOPUF_INIT;
+  mbt->add_uf.init.max       = MAX_NADDOPUF_INIT;
+  mbt->add_uf.min            = MIN_NADDOPUF;
+  mbt->add_uf.max            = MAX_NADDOPUF;
+  mbt->add_uf.inc.min        = MIN_NADDOPUF_INC;
+  mbt->add_uf.inc.max        = MAX_NADDOPUF_INC;
+  mbt->add_arrayops.init.min = MIN_NADDOPAFUNS_INIT;
+  mbt->add_arrayops.init.max = MAX_NADDOPAFUNS_INIT;
+  mbt->add_arrayops.min      = MIN_NADDOPAFUNS;
+  mbt->add_arrayops.max      = MAX_NADDOPAFUNS;
+  mbt->add_arrayops.inc.min  = MIN_NADDOPAFUNS_INC;
+  mbt->add_arrayops.inc.max  = MAX_NADDOPAFUNS_INC;
+  mbt->add_bvops.init.min    = MIN_NADDOPBFUNS_INIT;
+  mbt->add_bvops.init.max    = MAX_NADDOPBFUNS_INIT;
+  mbt->add_bvops.min         = MIN_NADDOPBFUNS;
+  mbt->add_bvops.max         = MAX_NADDOPBFUNS;
+  mbt->add_bvops.inc.min     = MIN_NADDOPBFUNS_INC;
+  mbt->add_bvops.inc.max     = MAX_NADDOPBFUNS_INC;
+  mbt->add_inputs.init.min   = MIN_NADDOPLITS_INIT;
+  mbt->add_inputs.init.max   = MAX_NADDOPLITS_INIT;
+  mbt->add_inputs.min        = MIN_NADDOPLITS;
+  mbt->add_inputs.max        = MAX_NADDOPLITS;
+  mbt->add_inputs.inc.min    = MIN_NADDOPLITS_INC;
+  mbt->add_inputs.inc.max    = MAX_NADDOPLITS_INC;
+  mbt->ops.init.min          = MIN_NOPS_INIT;
+  mbt->ops.init.max          = MAX_NOPS_INIT;
+  mbt->ops.min               = MIN_NOPS;
+  mbt->ops.max               = MAX_NOPS;
+  mbt->ops.inc.min           = MIN_NOPS_INC;
+  mbt->ops.inc.max           = MAX_NOPS_INC;
+  mbt->add_ops.init.min      = MIN_NADDOPS_INIT;
+  mbt->add_ops.init.max      = MAX_NADDOPS_INIT;
+  mbt->add_ops.min           = MIN_NADDOPS;
+  mbt->add_ops.max           = MAX_NADDOPS;
+  mbt->add_ops.inc.min       = MIN_NADDOPS_INC;
+  mbt->add_ops.inc.max       = MAX_NADDOPS_INC;
+  mbt->release_ops.init.min  = MIN_NRELOPS_INIT;
+  mbt->release_ops.init.max  = MAX_NRELOPS_INIT;
+  mbt->release_ops.min       = MIN_NRELOPS;
+  mbt->release_ops.max       = MAX_NRELOPS;
+  mbt->release_ops.inc.min   = MIN_NRELOPS_INC;
+  mbt->release_ops.inc.max   = MAX_NRELOPS_INC;
+  mbt->min_asserts_lower     = MIN_NASSERTS_LOWER;
+  mbt->max_asserts_lower     = MAX_NASSERTS_LOWER;
+  mbt->min_asserts_upper     = MIN_NASSERTS_UPPER;
+  mbt->max_asserts_upper     = MAX_NASSERTS_UPPER;
+  mbt->p_sort_bv             = P_SORT_BV;
+  mbt->p_sort_fun            = P_SORT_BV;
+  mbt->p_assume              = P_ASSUME;
+  mbt->p_param_exp           = P_PARAM_EXP;
+  mbt->p_param_arr_exp       = P_PARAM_ARR_EXP;
+  mbt->p_apply_fun           = P_APPLY_FUN;
+  mbt->p_apply_uf            = P_APPLY_UF;
+  mbt->p_rw                  = P_RW;
+  mbt->p_read                = P_READ;
+  mbt->p_cond                = P_COND;
+  mbt->p_eq                  = P_EQ;
+  mbt->p_dump                = P_DUMP;
+  mbt->p_print_model         = P_PRINT_MODEL;
+  mbt->p_model_format        = P_MODEL_FORMAT;
   return mbt;
 }
 
@@ -1442,11 +1400,11 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
   if (type == BTORMBT_BO_T)
     width = 1;
   else if (type == BTORMBT_BV_T)
-    width = btor_rng_pick_rand (&mbt->round.rng, mbt->min_bw, mbt->max_bw);
+    width = btor_rng_pick_rand (&mbt->round.rng, mbt->bw.min, mbt->bw.max);
   else
   {
     assert (type == BTORMBT_BB_T);
-    width = btor_rng_pick_rand (&mbt->round.rng, 1, mbt->max_bw);
+    width = btor_rng_pick_rand (&mbt->round.rng, 1, mbt->bw.max);
   }
   s   = boolector_bitvec_sort (mbt->btor, width);
   var = boolector_var (mbt->btor, s, 0);
@@ -1477,7 +1435,7 @@ btormbt_const (BtorMBT *mbt)
   val   = 0;
 
   if (op != TRUE && op != FALSE)
-    width = btor_rng_pick_rand (&mbt->round.rng, 1, mbt->max_bw);
+    width = btor_rng_pick_rand (&mbt->round.rng, 1, mbt->bw.max);
 
   if (op == UINT || op == INT)
   {
@@ -1560,11 +1518,11 @@ btormbt_array (BtorMBT *mbt)
   BoolectorSort es, is, as;
   char *symbol;
 
-  // TODO (ma): remove ite here and use min_bw
+  // TODO (ma): remove ite here and use bw.min
   ew = btor_rng_pick_rand (
-      &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
+      &mbt->round.rng, mbt->bw.min > 2 ? mbt->bw.min : 1, mbt->bw.max);
   iw = btor_rng_pick_rand (
-      &mbt->round.rng, mbt->min_index_bw, mbt->max_index_bw);
+      &mbt->round.rng, mbt->bw_index.min, mbt->bw_index.max);
   es    = boolector_bitvec_sort (mbt->btor, ew);
   is    = boolector_bitvec_sort (mbt->btor, iw);
   as    = boolector_array_sort (mbt->btor, is, es);
@@ -1640,7 +1598,7 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 
   upper = lower = repeat = 0;
   width                  = boolector_get_width (mbt->btor, e);
-  assert (width <= mbt->max_bw);
+  assert (width <= mbt->bw.max);
 
   if (op == SLICE)
   {
@@ -1649,7 +1607,7 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
   }
   else if (op == UEXT || op == SEXT)
   {
-    upper = btor_rng_pick_rand (&mbt->round.rng, 0, mbt->max_bw - width);
+    upper = btor_rng_pick_rand (&mbt->round.rng, 0, mbt->bw.max - width);
   }
   else if (op == REPEAT)
   {
@@ -1689,24 +1647,24 @@ btormbt_binary_op (BtorMBT *mbt,
   BoolectorNode *node;
 
   e0_width = boolector_get_width (mbt->btor, e0);
-  assert (e0_width <= mbt->max_bw);
+  assert (e0_width <= mbt->bw.max);
   e1_width = boolector_get_width (mbt->btor, e1);
-  assert (e1_width <= mbt->max_bw);
+  assert (e1_width <= mbt->bw.max);
 
   if ((op >= XOR && op <= SMOD) || (op >= EQ && op <= SGTE))
   {
     /* modify e1_width equal to e0_width, guarded mul and div */
     if ((op >= UMULO && op <= SDIVO) || (op >= MUL && op <= SMOD))
     {
-      if (e0_width > mbt->max_muldiv_bw)
+      if (e0_width > mbt->bw_muldiv.max)
       {
-        e0       = modify_bv (mbt, e0, mbt->max_muldiv_bw);
-        e0_width = mbt->max_muldiv_bw;
+        e0       = modify_bv (mbt, e0, mbt->bw_muldiv.max);
+        e0_width = mbt->bw_muldiv.max;
       }
-      else if (e0_width < mbt->min_muldiv_bw)
+      else if (e0_width < mbt->bw_muldiv.min)
       {
-        e0       = modify_bv (mbt, e0, mbt->max_muldiv_bw);
-        e0_width = mbt->max_muldiv_bw;
+        e0       = modify_bv (mbt, e0, mbt->bw_muldiv.max);
+        e0_width = mbt->bw_muldiv.max;
       }
     }
     e1 = modify_bv (mbt, e1, e0_width);
@@ -1721,7 +1679,7 @@ btormbt_binary_op (BtorMBT *mbt,
   }
   else if (op == CONCAT)
   {
-    if (e0_width + e1_width > mbt->max_bw)
+    if (e0_width + e1_width > mbt->bw.max)
     {
       if (e0_width > 1)
       {
@@ -1798,8 +1756,8 @@ btormbt_ternary_op (BtorMBT *mbt,
   uint32_t e1w;
 
   e1w = boolector_get_width (mbt->btor, e1);
-  assert (e1w <= mbt->max_bw);
-  assert (boolector_get_width (mbt->btor, e2) <= mbt->max_bw);
+  assert (e1w <= mbt->bw.max);
+  assert (boolector_get_width (mbt->btor, e2) <= mbt->bw.max);
 
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, e2, e1w);
@@ -2090,7 +2048,7 @@ init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
   }
 
   arity = btor_rng_pick_rand (
-      &mbt->round.rng, mbt->min_sort_fun_arity, mbt->max_sort_fun_arity);
+      &mbt->round.rng, mbt->sort_fun_arity.min, mbt->sort_fun_arity.max);
 
   for (i = 0; i < arity; i++)
     btormbt_push_sort_stack (sortstack, btormbt_bv_sort (mbt));
@@ -2339,7 +2297,7 @@ btormbt_bv_fun (BtorMBT *mbt, int32_t nlevel)
     {
       // TODO (ma): remove ite here?
       width = btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
+          &mbt->round.rng, mbt->bw.min > 2 ? mbt->bw.min : 1, mbt->bw.max);
       s   = boolector_bitvec_sort (mbt->btor, width);
       tmp = boolector_param (mbt->btor, s, 0);
       assert (boolector_is_param (mbt->btor, tmp));
@@ -2366,7 +2324,7 @@ btormbt_bv_fun (BtorMBT *mbt, int32_t nlevel)
       modify_bv (
           mbt,
           tmp,
-          btor_rng_pick_rand (&mbt->round.rng, mbt->min_bw, mbt->max_bw));
+          btor_rng_pick_rand (&mbt->round.rng, mbt->bw.min, mbt->bw.max));
     }
     if (BTOR_EMPTY_STACK (mbt->parambo->exps))
     {
@@ -2560,46 +2518,45 @@ btormbt_state_new (BtorMBT *mbt)
 {
   /* number of initial inputs */
   mbt->round.max_inputs =
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_inputs, mbt->max_inputs);
+      btor_rng_pick_rand (&mbt->round.rng, mbt->inputs.min, mbt->inputs.max);
 
   /* number of initial operations */
   mbt->round.max_ops = btor_rng_pick_rand (
-      &mbt->round.rng, mbt->min_ops_init, mbt->max_ops_init);
+      &mbt->round.rng, mbt->ops.init.min, mbt->ops.init.max);
 
   // TODO (ma): UFs
   init_pd_inputs (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_vars_init, mbt->max_vars_init),
+          &mbt->round.rng, mbt->vars.init.min, mbt->vars.init.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_consts_init, mbt->max_consts_init),
+          &mbt->round.rng, mbt->consts.init.min, mbt->consts.init.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_arrays_init, mbt->max_arrays_init));
+          &mbt->round.rng, mbt->arrays.init.min, mbt->arrays.init.max));
 
   /* no delete operation at init */
   init_pd_ops (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_ops_init, mbt->max_add_ops_init),
+          &mbt->round.rng, mbt->add_ops.init.min, mbt->add_ops.init.max),
       btor_rng_pick_rand (&mbt->round.rng,
-                          mbt->min_release_ops_init,
-                          mbt->max_release_ops_init));
+                          mbt->release_ops.init.min,
+                          mbt->release_ops.init.max));
 
   /* no additional inputs at init */
   init_pd_add (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_funs_init, mbt->max_add_funs_init),
+          &mbt->round.rng, mbt->add_funs.init.min, mbt->add_funs.init.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_uf_init, mbt->max_add_uf_init),
+          &mbt->round.rng, mbt->add_uf.init.min, mbt->add_uf.init.max),
       btor_rng_pick_rand (&mbt->round.rng,
-                          mbt->min_add_arrayops_init,
-                          mbt->max_add_arrayops_init),
-      btor_rng_pick_rand (&mbt->round.rng,
-                          mbt->min_add_bitvecops_init,
-                          mbt->max_add_bitvecops_init),
+                          mbt->add_arrayops.init.min,
+                          mbt->add_arrayops.init.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_inputs_init, mbt->max_add_inputs_init));
+          &mbt->round.rng, mbt->add_bvops.init.min, mbt->add_bvops.init.max),
+      btor_rng_pick_rand (
+          &mbt->round.rng, mbt->add_inputs.init.min, mbt->add_inputs.init.max));
 
   BTORMBT_LOG (1,
                "new: pick %u ops (add:rel=%0.1f%%:%0.1f%%), %u inputs",
@@ -2938,9 +2895,9 @@ btormbt_state_init (BtorMBT *mbt)
   /* adapt paramters for main */
   mbt->round.ops = 0;
   mbt->round.max_ops =
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_ops, mbt->max_ops);
+      btor_rng_pick_rand (&mbt->round.rng, mbt->ops.min, mbt->ops.max);
   /* how many operations should be assertions?
-   * -> round.max_ops and nass should be in relation (the more ops, the more
+   * -> round.ops.max and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
   if (mbt->round.max_ops < mbt->max_ops_lower)
   {
@@ -2957,27 +2914,27 @@ btormbt_state_init (BtorMBT *mbt)
 
   init_pd_inputs (
       mbt,
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_vars, mbt->max_vars),
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_consts, mbt->max_consts),
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_arrays, mbt->max_arrays));
+      btor_rng_pick_rand (&mbt->round.rng, mbt->vars.min, mbt->vars.max),
+      btor_rng_pick_rand (&mbt->round.rng, mbt->consts.min, mbt->consts.max),
+      btor_rng_pick_rand (&mbt->round.rng, mbt->arrays.min, mbt->arrays.max));
 
   init_pd_ops (
       mbt,
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_add_ops, mbt->max_add_ops),
+      btor_rng_pick_rand (&mbt->round.rng, mbt->add_ops.min, mbt->add_ops.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_release_ops, mbt->max_release_ops));
+          &mbt->round.rng, mbt->release_ops.min, mbt->release_ops.max));
 
   init_pd_add (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_funs, mbt->max_add_funs),
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_add_uf, mbt->max_add_uf),
+          &mbt->round.rng, mbt->add_funs.min, mbt->add_funs.max),
+      btor_rng_pick_rand (&mbt->round.rng, mbt->add_uf.min, mbt->add_uf.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_arrayops, mbt->max_add_arrayops),
+          &mbt->round.rng, mbt->add_arrayops.min, mbt->add_arrayops.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_bitvecops, mbt->max_add_bitvecops),
+          &mbt->round.rng, mbt->add_bvops.min, mbt->add_bvops.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_inputs, mbt->max_add_inputs));
+          &mbt->round.rng, mbt->add_inputs.min, mbt->add_inputs.max));
 
   BTORMBT_LOG (
       1,
@@ -3713,38 +3670,37 @@ btormbt_state_inc (BtorMBT *mbt)
   mbt->round.asserts = 0;
 
   mbt->round.max_ops =
-      btor_rng_pick_rand (&mbt->round.rng, mbt->min_ops_inc, mbt->max_ops_inc);
+      btor_rng_pick_rand (&mbt->round.rng, mbt->ops.inc.min, mbt->ops.inc.max);
 
   init_pd_inputs (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_vars_inc, mbt->max_vars_inc),
+          &mbt->round.rng, mbt->vars.inc.min, mbt->vars.inc.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_consts_inc, mbt->max_consts_inc),
+          &mbt->round.rng, mbt->consts.inc.min, mbt->consts.inc.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
+          &mbt->round.rng, mbt->arrays.inc.min, mbt->arrays.inc.max));
 
   init_pd_ops (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
+          &mbt->round.rng, mbt->add_ops.inc.min, mbt->add_ops.inc.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
+          &mbt->round.rng, mbt->release_ops.inc.min, mbt->release_ops.inc.max));
 
   init_pd_add (
       mbt,
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
+          &mbt->round.rng, mbt->add_funs.inc.min, mbt->add_funs.inc.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
+          &mbt->round.rng, mbt->add_uf.inc.min, mbt->add_uf.inc.max),
       btor_rng_pick_rand (&mbt->round.rng,
-                          mbt->min_add_arrayops_inc,
-                          mbt->max_add_arrayops_inc),
-      btor_rng_pick_rand (&mbt->round.rng,
-                          mbt->min_add_bitvecops_inc,
-                          mbt->max_add_bitvecops_inc),
+                          mbt->add_arrayops.inc.min,
+                          mbt->add_arrayops.inc.max),
       btor_rng_pick_rand (
-          &mbt->round.rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
+          &mbt->round.rng, mbt->add_bvops.inc.min, mbt->add_bvops.inc.max),
+      btor_rng_pick_rand (
+          &mbt->round.rng, mbt->add_inputs.inc.min, mbt->add_inputs.inc.max));
 
   BTORMBT_LOG (1,
                "inc: pick %u ops (add:rel=%0.1f%%:%0.1f%%)",
