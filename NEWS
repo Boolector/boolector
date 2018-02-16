@@ -1,3 +1,8 @@
++ removed API calls
+  - boolector_set_sat_solver_lingeling
+  - boolector_set_sat_solver_minisat
+  - boolector_set_sat_solver_picosat
+
 news for release 2.4.1 since 2.4.0
 --------------------------------------
 + sequential portfolio combination of bit-blasting and SLS engine

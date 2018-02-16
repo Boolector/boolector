@@ -70,8 +70,6 @@ cdef extern from "boolector.h":
 
     void boolector_set_sat_solver (Btor * btor, const char * solver)
 
-    void boolector_set_sat_solver_lingeling (Btor * btor, int32_t nofork)
-
     void boolector_set_opt (Btor * btor, int32_t opt, uint32_t val)
 
     uint32_t boolector_get_opt (Btor * btor, int32_t opt)

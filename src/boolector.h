@@ -322,46 +322,6 @@ int32_t boolector_simplify (Btor *btor);
 */
 void boolector_set_sat_solver (Btor *btor, const char *solver);
 
-#ifdef BTOR_USE_LINGELING
-/*!
-  Use Lingeling as SAT solver.
-
-  This function is only available if Lingeling was enabled at compile time.
-  Call this function after boolector_new.
-
-  :param btor: Boolector instance.
-  :param nofork: Do not use fork/clone for Lingeling.
-  :return: Non-zero value if setting the SAT solver was successful.
-*/
-void boolector_set_sat_solver_lingeling (Btor *btor, int32_t nofork);
-#endif
-
-#ifdef BTOR_USE_PICOSAT
-/*!
-  Use PicoSAT as SAT solver.
-
-  This function is only available if PicoSAT was enabled at compile time.
-  Call this function after boolector_new.
-
-  :param btor: Boolector instance.
-  :return: Non-zero value if setting the SAT solver was successful.
-*/
-void boolector_set_sat_solver_picosat (Btor *btor);
-#endif
-
-#ifdef BTOR_USE_MINISAT
-/*!
-  Use MiniSAT as SAT solver.
-
-  This function is only available if MiniSAT was enabled at compile time.
-  Call this function after boolector_new.
-
-  :param btor: Boolector instance.
-  :return: Non-zero value if setting the SAT solver was successful.
-*/
-void boolector_set_sat_solver_minisat (Btor *btor);
-#endif
-
 /*------------------------------------------------------------------------*/
 
 /*!

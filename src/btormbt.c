@@ -2579,7 +2579,8 @@ btormbt_state_opt (BtorMBT *mbt)
   BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
 
-  /* enable / disable shadow clone testing */
+  /* enable / disable shadow clone testing ---------------------------------- */
+
   if (mbt->fshadow)
   {
     /* force (no) shadow clone testing */
@@ -2601,7 +2602,8 @@ btormbt_state_opt (BtorMBT *mbt)
     mbt->round.has_shadow = true;
   }
 
-  /* choose logic */
+  /* choose logic ----------------------------------------------------------- */
+
   if (mbt->is_flogic)
     mbt->round.logic = mbt->flogic;
   else
@@ -2620,7 +2622,8 @@ btormbt_state_opt (BtorMBT *mbt)
     BTOR_RELEASE_STACK (stack);
   }
 
-  /* set Boolector engine */
+  /* set Boolector engine --------------------------------------------------- */
+
   btoropt_engine = mbt->btor_opts.start[BTOR_OPT_ENGINE];
   if (btoropt_engine->forced_by_cl)
   {
@@ -2670,17 +2673,34 @@ btormbt_state_opt (BtorMBT *mbt)
                btoropt_engine->name,
                btoropt_engine->val);
 
-  /* Set SAT engine */
+  /* set SAT engine --------------------------------------------------------- */
+
   btoropt = mbt->btor_opts.start[BTOR_OPT_SAT_ENGINE];
+
   if (!btoropt->forced_by_cl)
   {
-    /* pick randomly */
+    /* pick SAT engine randomly */
     btoropt->val =
         btor_rng_pick_rand (&mbt->round.rng, btoropt->min, btoropt->max);
   }
+
   if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
   {
     boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+  }
+  else
+  {
+    if (btoropt->val == BTOR_SAT_ENGINE_CADICAL)
+      boolector_set_sat_solver (mbt->btor, "cadical");
+    else if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
+      boolector_set_sat_solver (mbt->btor, "lingeling");
+    else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
+      boolector_set_sat_solver (mbt->btor, "minisat");
+    else
+    {
+      assert (btoropt->val == BTOR_SAT_ENGINE_PICOSAT);
+      boolector_set_sat_solver (mbt->btor, "picosat");
+    }
   }
 
   BTORMBT_LOG (
