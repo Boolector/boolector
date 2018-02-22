@@ -106,6 +106,7 @@ typedef enum BtorSMT2Tag
   BTOR_EXIT_TAG_SMT2           = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_GET_MODEL_TAG_SMT2      = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_MODEL_TAG_SMT2          = 21 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_ECHO_TAG_SMT2           = 22 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
   BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -921,6 +922,7 @@ insert_commands_smt2 (BtorSMT2Parser *parser)
   INSERT ("declare-const", BTOR_DECLARE_CONST_TAG_SMT2);
   INSERT ("define-sort", BTOR_DEFINE_SORT_TAG_SMT2);
   INSERT ("define-fun", BTOR_DEFINE_FUN_TAG_SMT2);
+  INSERT ("echo", BTOR_ECHO_TAG_SMT2);
   INSERT ("exit", BTOR_EXIT_TAG_SMT2);
   INSERT ("get-model", BTOR_GET_MODEL_TAG_SMT2);
   INSERT ("get-assertions", BTOR_GET_ASSERTIONS_TAG_SMT2);
@@ -3740,6 +3742,28 @@ define_sort_smt2 (BtorSMT2Parser *parser)
 }
 
 static int32_t
+echo_smt2 (BtorSMT2Parser *parser)
+{
+  int32_t tag;
+
+  tag = read_token_smt2 (parser);
+
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+
+  if (tag == EOF)
+    return !perr_smt2 (parser, "unexpected end-of-file after 'echo'");
+
+  if (tag == BTOR_RPAR_TAG_SMT2)
+    return !perr_smt2 (parser, "string after 'echo' missing");
+
+  if (tag != BTOR_STRING_CONSTANT_TAG_SMT2)
+    return !perr_smt2 (parser, "expected string after 'echo'");
+
+  fprintf (parser->outfile, "%s", parser->token.start);
+  return skip_sexprs (parser, 1);
+}
+
+static int32_t
 set_info_smt2 (BtorSMT2Parser *parser)
 {
   int32_t tag = read_token_smt2 (parser);
@@ -4066,6 +4090,10 @@ read_command_smt2 (BtorSMT2Parser *parser)
       assert (!parser->error);
       parser->commands.asserts++;
       print_success (parser);
+      break;
+
+    case BTOR_ECHO_TAG_SMT2:
+      if (!echo_smt2 (parser)) return 0;
       break;
 
     case BTOR_EXIT_TAG_SMT2:
