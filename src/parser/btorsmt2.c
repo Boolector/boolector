@@ -84,29 +84,30 @@ typedef enum BtorSMT2Tag
   BTOR_FORALL_TAG_SMT2                = 8 + BTOR_RESERVED_TAG_CLASS_SMT2,
   BTOR_EXISTS_TAG_SMT2                = 9 + BTOR_RESERVED_TAG_CLASS_SMT2,
 
-  BTOR_SET_LOGIC_TAG_SMT2      = 0 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_SET_OPTION_TAG_SMT2     = 1 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_SET_INFO_TAG_SMT2       = 2 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_DECLARE_SORT_TAG_SMT2   = 3 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_DEFINE_SORT_TAG_SMT2    = 4 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_DECLARE_FUN_TAG_SMT2    = 5 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_DEFINE_FUN_TAG_SMT2     = 6 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_DECLARE_CONST_TAG_SMT2  = 7 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_PUSH_TAG_SMT2           = 8 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_POP_TAG_SMT2            = 9 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_ASSERT_TAG_SMT2         = 10 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_CHECK_SAT_TAG_SMT2      = 11 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_ASSERTIONS_TAG_SMT2 = 12 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_PROOF_TAG_SMT2      = 13 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_UNSAT_CORE_TAG_SMT2 = 14 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_VALUE_TAG_SMT2      = 15 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_ASSIGNMENT_TAG_SMT2 = 16 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_OPTION_TAG_SMT2     = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_INFO_TAG_SMT2       = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_EXIT_TAG_SMT2           = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_GET_MODEL_TAG_SMT2      = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_MODEL_TAG_SMT2          = 21 + BTOR_COMMAND_TAG_CLASS_SMT2,
-  BTOR_ECHO_TAG_SMT2           = 22 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_SET_LOGIC_TAG_SMT2          = 0 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_SET_OPTION_TAG_SMT2         = 1 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_SET_INFO_TAG_SMT2           = 2 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DECLARE_SORT_TAG_SMT2       = 3 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DEFINE_SORT_TAG_SMT2        = 4 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DECLARE_FUN_TAG_SMT2        = 5 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DEFINE_FUN_TAG_SMT2         = 6 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_DECLARE_CONST_TAG_SMT2      = 7 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_PUSH_TAG_SMT2               = 8 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_POP_TAG_SMT2                = 9 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_ASSERT_TAG_SMT2             = 10 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_CHECK_SAT_TAG_SMT2          = 11 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_CHECK_SAT_ASSUMING_TAG_SMT2 = 12 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_ASSERTIONS_TAG_SMT2     = 13 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_PROOF_TAG_SMT2          = 14 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_UNSAT_CORE_TAG_SMT2     = 15 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_VALUE_TAG_SMT2          = 16 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_ASSIGNMENT_TAG_SMT2     = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_OPTION_TAG_SMT2         = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_INFO_TAG_SMT2           = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_EXIT_TAG_SMT2               = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_MODEL_TAG_SMT2          = 21 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_MODEL_TAG_SMT2              = 22 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_ECHO_TAG_SMT2               = 23 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
   BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -917,6 +918,7 @@ insert_commands_smt2 (BtorSMT2Parser *parser)
 {
   INSERT ("assert", BTOR_ASSERT_TAG_SMT2);
   INSERT ("check-sat", BTOR_CHECK_SAT_TAG_SMT2);
+  INSERT ("check-sat-assuming", BTOR_CHECK_SAT_ASSUMING_TAG_SMT2);
   INSERT ("declare-sort", BTOR_DECLARE_SORT_TAG_SMT2);
   INSERT ("declare-fun", BTOR_DECLARE_FUN_TAG_SMT2);
   INSERT ("declare-const", BTOR_DECLARE_CONST_TAG_SMT2);
@@ -3888,6 +3890,86 @@ print_success (BtorSMT2Parser *parser)
   fflush (parser->outfile);
 }
 
+static void
+check_sat (BtorSMT2Parser *parser)
+{
+  assert (!parser->error);
+  if (parser->commands.check_sat++
+      && !boolector_get_opt (parser->btor, BTOR_OPT_INCREMENTAL))
+  {
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "WARNING additional 'check-sat' command");
+  }
+  if (boolector_get_opt (parser->btor, BTOR_OPT_PARSE_INTERACTIVE))
+  {
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "parsed %d commands in %.2f seconds",
+              parser->commands.all,
+              btor_util_time_stamp () - parser->parse_start);
+    parser->res->result = boolector_sat (parser->btor);
+    parser->res->nsatcalls += 1;
+    if (parser->res->result == BOOLECTOR_SAT)
+      fprintf (parser->outfile, "sat\n");
+    else if (parser->res->result == BOOLECTOR_UNSAT)
+      fprintf (parser->outfile, "unsat\n");
+    else
+      fprintf (parser->outfile, "unknown\n");
+    fflush (parser->outfile);
+  }
+  else
+  {
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "parser not interactive, aborted on first "
+              "'check-sat' command");
+    parser->done = true;
+  }
+}
+
+static int32_t
+read_exp_list (BtorSMT2Parser *parser,
+               BoolectorNodePtrStack *exps,
+               BtorSMT2Coo *coo)
+{
+  int32_t tag        = 0;
+  BoolectorNode *exp = 0;
+
+  /* parse list of symbols/terms */
+  BTOR_INIT_STACK (parser->mem, *exps);
+  parser->store_tokens = true;
+  if (!parse_term_aux_smt2 (parser, false, 0, &exp, coo))
+  {
+    while (!BTOR_EMPTY_STACK (*exps))
+      boolector_release (parser->btor, BTOR_POP_STACK (*exps));
+    BTOR_RELEASE_STACK (*exps);
+    return 0;
+  }
+  if (BTOR_TOP_STACK (parser->tokens) == ' ')
+    (void) BTOR_POP_STACK (parser->tokens);
+  BTOR_PUSH_STACK (parser->tokens, 0);
+  BTOR_PUSH_STACK (*exps, exp);
+  tag = read_token_smt2 (parser);
+  while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
+  {
+    if (!parse_term_aux_smt2 (parser, true, tag, &exp, coo))
+    {
+      while (!BTOR_EMPTY_STACK (*exps))
+        boolector_release (parser->btor, BTOR_POP_STACK (*exps));
+      BTOR_RELEASE_STACK (*exps);
+      return 0;
+    }
+    if (BTOR_TOP_STACK (parser->tokens) == ' ')
+      (void) BTOR_POP_STACK (parser->tokens);
+    BTOR_PUSH_STACK (parser->tokens, 0);
+    BTOR_PUSH_STACK (*exps, exp);
+    tag = read_token_smt2 (parser);
+  }
+  parser->store_tokens = false;
+  return 1;
+}
+
 static int32_t
 read_command_smt2 (BtorSMT2Parser *parser)
 {
@@ -3980,63 +4062,41 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
-      if (parser->commands.check_sat++
-          && !boolector_get_opt (parser->btor, BTOR_OPT_INCREMENTAL))
-        BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  1,
-                  "WARNING additional 'check-sat' command");
-      if (boolector_get_opt (parser->btor, BTOR_OPT_PARSE_INTERACTIVE))
-      {
-#if 1
-        for (i = 0; i < BTOR_COUNT_STACK (parser->assumptions); i++)
-          boolector_assume (parser->btor,
-                            BTOR_PEEK_STACK (parser->assumptions, i));
-#else
-        ratio = 0.0f;
-        if (!BTOR_EMPTY_STACK (parser->assumptions_trail))
-        {
-          for (i = 0; i < BTOR_COUNT_STACK (parser->assumptions); i++)
-            boolector_assume (parser->btor,
-                              BTOR_PEEK_STACK (parser->assumptions, i));
-          fsize = get_current_formula_size (parser);
-          ratio = (float) (fsize - parser->cur_scope_num_terms) / fsize;
-        }
+      check_sat (parser);
+      break;
 
-        /* 0.06f is the best factor right now for keeping the cloning
-         * overhead as low as possible */
-        if (!BTOR_EMPTY_STACK (parser->assumptions_trail) && ratio >= 0.06f)
-        {
-          Btor *c = boolector_clone (parser->btor);
-          boolector_fixate_assumptions (c);
-          parser->res->result = boolector_sat (c);
-          boolector_delete (c);
-          boolector_reset_assumptions (parser->btor);
-        }
-        else
-#endif
-        BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  1,
-                  "parsed %d commands in %.2f seconds",
-                  parser->commands.all,
-                  btor_util_time_stamp () - parser->parse_start);
-        parser->res->result = boolector_sat (parser->btor);
-        parser->res->nsatcalls += 1;
-        if (parser->res->result == BOOLECTOR_SAT)
-          fprintf (parser->outfile, "sat\n");
-        else if (parser->res->result == BOOLECTOR_UNSAT)
-          fprintf (parser->outfile, "unsat\n");
-        else
-          fprintf (parser->outfile, "unknown\n");
-        fflush (parser->outfile);
-      }
-      else
+    case BTOR_CHECK_SAT_ASSUMING_TAG_SMT2:
+      if (!read_lpar_smt2 (parser, " after 'check-sat-assuming'")) return 0;
+      if (!boolector_get_opt (parser->btor, BTOR_OPT_INCREMENTAL))
+        return !perr_smt2 (parser, "incremental solving is not enabled");
+      if (!read_exp_list (parser, &exps, &coo))
       {
-        BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  1,
-                  "parser not interactive, aborted on first "
-                  "'check-sat' command");
-        parser->done = true;
+        while (!BTOR_EMPTY_STACK (exps))
+          boolector_release (parser->btor, BTOR_POP_STACK (exps));
+        BTOR_RELEASE_STACK (exps);
+        return 0;
       }
+      for (i = 0; i < BTOR_COUNT_STACK (exps); i++)
+      {
+        exp = BTOR_PEEK_STACK (exps, i);
+        if (boolector_is_array (parser->btor, exp))
+        {
+          parser->perrcoo = coo;
+          boolector_release (parser->btor, exp);
+          return !perr_smt2 (
+              parser, "assumption argument is an array and not a formula");
+        }
+        boolector_assume (parser->btor, exp);
+        boolector_release (parser->btor, exp);
+      }
+      if (!read_rpar_smt2 (parser, " after 'check-sat-assuming'"))
+      {
+        BTOR_RELEASE_STACK (exps);
+        return 0;
+      }
+      BTOR_RELEASE_STACK (exps);
+      BTOR_RESET_STACK (parser->tokens);
+      check_sat (parser);
       break;
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
@@ -4118,49 +4178,20 @@ read_command_smt2 (BtorSMT2Parser *parser)
       if (!boolector_get_opt (parser->btor, BTOR_OPT_MODEL_GEN))
         return !perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
-
-      /* parse get-value command and all symbols */
-      tag = 0;
-      BTOR_INIT_STACK (parser->mem, exps);
-      parser->store_tokens = true;
-      if (!parse_term_aux_smt2 (parser, false, 0, &exp, &coo))
+      if (!read_exp_list (parser, &exps, &coo))
       {
+        while (!BTOR_EMPTY_STACK (exps))
+          boolector_release (parser->btor, BTOR_POP_STACK (exps));
         BTOR_RELEASE_STACK (exps);
         return 0;
-      }
-      if (BTOR_TOP_STACK (parser->tokens) == ' ')
-        (void) BTOR_POP_STACK (parser->tokens);
-      BTOR_PUSH_STACK (parser->tokens, 0);
-      BTOR_PUSH_STACK (exps, exp);
-
-      tag = read_token_smt2 (parser);
-      while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
-      {
-        if (!parse_term_aux_smt2 (parser, true, tag, &exp, &coo))
-        {
-          BTOR_RELEASE_STACK (exps);
-          return 0;
-        }
-        if (BTOR_TOP_STACK (parser->tokens) == ' ')
-          (void) BTOR_POP_STACK (parser->tokens);
-        BTOR_PUSH_STACK (parser->tokens, 0);
-        BTOR_PUSH_STACK (exps, exp);
-        tag = read_token_smt2 (parser);
-      }
-      parser->store_tokens = false;
-      if (tag != BTOR_RPAR_TAG_SMT2)
-      {
-        BTOR_RELEASE_STACK (exps);
-        return !perr_smt2 (parser,
-                           "expected ')' after 'get-value' at end-of-file");
       }
       if (!read_rpar_smt2 (parser, " after 'get-value'"))
       {
+        while (!BTOR_EMPTY_STACK (exps))
+          boolector_release (parser->btor, BTOR_POP_STACK (exps));
         BTOR_RELEASE_STACK (exps);
         return 0;
       }
-
-      /* parsing done, print result */
       print_success (parser);
       fputc ('(', parser->outfile);
       char *symbols = parser->tokens.start;
