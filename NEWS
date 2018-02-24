@@ -1,3 +1,12 @@
++ added support for Cadical
++ added SMT2 support for:
+  - echo
+  - declare-const
+  - check-sat-assuming
+  - get-unsat-assumptions
+  - :produce-unsat-assumptions
++ new API calls
+  - boolector_get_failed_assumptions
 + removed API calls
   - boolector_set_sat_solver_lingeling
   - boolector_set_sat_solver_minisat
