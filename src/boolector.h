@@ -231,6 +231,22 @@ void boolector_assume (Btor *btor, BoolectorNode *node);
 bool boolector_failed (Btor *btor, BoolectorNode *node);
 
 /*!
+  Get all failed assumptions (see boolector_failed).
+
+  Returns the list of failed assumptions in a zero-terminated array of
+  pointers to BoolectorNodes. The nodes in the list do not have to be
+  released. The array can be released with free().
+
+  :param btor: Boolector instance.
+  :returns: A pointer to an array of pointers to BoolectorNodes.
+
+  .. seealso::
+    boolector_assume
+    boolector_failed
+*/
+BoolectorNode **boolector_get_failed_assumptions (Btor *btor);
+
+/*!
   Add all assumptions as assertions.
 
   :param btor: Boolector instance.
@@ -2123,7 +2139,7 @@ void boolector_dump_btor (Btor *btor, FILE *file);
 #if 0
 /*!
   Dump formula to file in BTOR 2.0 format.
- 
+
   :param btor: Boolector instance.
   :param file: File to which the formula should be dumped. The file must be have been opened by the user before.
 */

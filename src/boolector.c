@@ -529,6 +529,43 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   return res;
 }
 
+BoolectorNode **
+boolector_get_failed_assumptions (Btor *btor)
+{
+  BoolectorNode **res;
+  BtorNodePtrStack failed;
+  BtorNode *fass;
+  uint32_t i, n;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_UNSAT,
+              "cannot check failed assumptions if input formula is not UNSAT");
+  btor_get_failed_assumptions (btor, &failed);
+  n   = BTOR_COUNT_STACK (failed);
+  res = calloc (n + 1, sizeof (BoolectorNode *));
+  for (i = 0; i < n; i++)
+  {
+    fass = BTOR_PEEK_STACK (failed, i);
+    assert (fass);
+    res[i] = BTOR_EXPORT_BOOLECTOR_NODE (fass);
+  }
+  BTOR_RELEASE_STACK (failed);
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    BoolectorNode **cloneres;
+    cloneres = boolector_get_failed_assumptions (btor->clone);
+    for (i = 0; i < n; i++)
+      btor_chkclone_exp (btor,
+                         btor->clone,
+                         BTOR_IMPORT_BOOLECTOR_NODE (res[i]),
+                         BTOR_IMPORT_BOOLECTOR_NODE (cloneres[i]));
+    btor_chkclone (btor, btor->clone);
+  }
+#endif
+  return res;
+}
+
 void
 boolector_fixate_assumptions (Btor *btor)
 {

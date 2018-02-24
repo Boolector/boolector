@@ -3509,7 +3509,7 @@ static void *
 btormbt_state_sat (BtorMBT *mbt)
 {
   int32_t i, res;
-  bool failed;
+  bool isfailed;
   BoolectorNode *ass;
 
   BTORMBT_LOG (1, "calling sat...");
@@ -3530,13 +3530,27 @@ btormbt_state_sat (BtorMBT *mbt)
   if (res == BOOLECTOR_UNSAT
       && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_FUN)
   {
-    /* log failed assumptions */
-    for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)
+    if (!btor_rng_pick_with_prob (&mbt->round.rng, 500))
     {
-      ass = BTOR_PEEK_STACK (mbt->assumptions->exps, i)->exp;
-      assert (ass);
-      failed = boolector_failed (mbt->btor, ass);
-      BTORMBT_LOG (1, "assumption %p failed: %d", ass, failed);
+      /* log failed assumptions */
+      for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)
+      {
+        ass = BTOR_PEEK_STACK (mbt->assumptions->exps, i)->exp;
+        assert (ass);
+        isfailed = boolector_failed (mbt->btor, ass);
+        BTORMBT_LOG (1, "assumption %p failed: %d", ass, isfailed);
+      }
+    }
+    else
+    {
+      BoolectorNode **failed = boolector_get_failed_assumptions (mbt->btor);
+      for (i = 0; failed[i] != 0; i++)
+      {
+        ass = failed[i];
+        assert (ass);
+        assert (boolector_failed (mbt->btor, ass));
+      }
+      free (failed);
     }
   }
 
