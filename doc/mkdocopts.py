@@ -5,8 +5,8 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise Exception("Invalid number of arguments")
 
+    lpad = 0
     opts = []
-
     with open(sys.argv[1], "r") as file:
         desc_open = False
         desc = []
@@ -32,19 +32,22 @@ if __name__ == "__main__":
                      desc = []
                      desc_open = False
             elif desc_open:  # collect opt desc
-                desc.append(line.strip())
+                if line[0] == ' ':
+                    pad = len(line) - len(line.lstrip(' '))
+                    if pad <= 3:
+                        print(
+                            "Wrong indent for '{}'. Expected at least 4".format(
+                                line.rstrip()))
+                    if lpad == 0 or pad < lpad:
+                        lpad = pad
+                desc.append(line.rstrip())
 
     opts_str = []
     for o in opts:
-        for l in o:
-            if not l:
-                opts_str.append("\n")
-                continue
-            if l[0:4] != "* **" and l[0:2] != "**":
-                  opts_str.append(' ' * 2) 
-            opts_str.append(l)
-            opts_str.append(" \n")
-        opts_str.append(" \n")
+        for line in o:
+            assert(line[:lpad].lstrip(' ') == '')
+            opts_str.append('{}\n'.format(line[lpad:]))
+        opts_str.append('\n')
 
     with open('cboolector_options.rst', 'w') as file:
         file.write(''.join(opts_str))

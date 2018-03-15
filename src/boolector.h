@@ -279,7 +279,8 @@ void boolector_reset_assumptions (Btor *btor);
   before. Otherwise, this function may only be called once.
 
   :param btor: Boolector instance.
-  :return: BOOLECTOR_SAT if the instance is satisfiable and BOOLECTOR_UNSAT if the instance is unsatisfiable.
+  :return: BOOLECTOR_SAT if the instance is satisfiable and BOOLECTOR_UNSAT if
+           the instance is unsatisfiable.
 
   .. seealso::
     boolector_bv_assignment, boolector_array_assignment
@@ -302,7 +303,10 @@ int32_t boolector_sat (Btor *btor);
   :param btor: Boolector instance.
   :param lod_limit: Limit for lemmas on demand (-1 unlimited).
   :param sat_limit: Conflict limit for SAT solver (-1 unlimited).
-  :return: BOOLECTOR_SAT if the input formula is satisfiable (under possibly given assumptions), BOOLECTOR_UNSAT if the instance is unsatisfiable, and  BOOLECTOR_UNKNOWN if the instance could not be solved within given limits.
+  :return: BOOLECTOR_SAT if the input formula is satisfiable (under possibly
+           given assumptions), BOOLECTOR_UNSAT if the instance is
+           unsatisfiable, and BOOLECTOR_UNKNOWN if the instance could not be
+           solved within given limits.
 
   .. seealso::
     boolector_bv_assignment, boolector_array_assignment
@@ -315,7 +319,9 @@ int32_t boolector_limited_sat (Btor *btor,
   Simplify current input formula.
 
   :param btor: Boolector instance.
-  :return: BOOLECTOR_SAT if the input formula was simplified to true, BOOLECTOR_UNSAT if it was simplified to false, and BOOLECTOR_UNKNOWN otherwise.
+  :return: BOOLECTOR_SAT if the input formula was simplified to true,
+           BOOLECTOR_UNSAT if it was simplified to false, and BOOLECTOR_UNKNOWN
+           otherwise.
 
   .. note::
     Each call to boolector_sat simplifies the input formula as a preprocessing
@@ -434,8 +440,10 @@ const char *boolector_get_opt_desc (Btor *btor, BtorOption opt);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
-  s); s = boolector_next_opt_noref (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor);
+         boolector_has_opt_noref (btor, s);
+         s = boolector_next_opt_noref (btor, s))
+      {...}
 
   :param btor: Btor instance.
   :param opt: Option opt.
@@ -452,8 +460,10 @@ bool boolector_has_opt (Btor *Btor, BtorOption opt);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
-  s); s = boolector_next_opt_noref (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor);
+         boolector_has_opt_noref (btor, s);
+         s = boolector_next_opt_noref (btor, s))
+      {...}
 
   :param btor: Btor instance.
   :return: opt of the first option in Boolector's option list.
@@ -470,12 +480,15 @@ BtorOption boolector_first_opt (Btor *btor);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
-  s); s = boolector_next_opt_noref (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor);
+         boolector_has_opt_noref (btor, s);
+         s = boolector_next_opt_noref (btor, s))
+      {...}
 
   :param btor: Btor instance.
   :param opt: Option opt.
-  :return: opt of the next option in Boolector's option list, or 0 if no such next option does exist.
+  :return: opt of the next option in Boolector's option list, or 0 if no such
+           next option does exist.
 */
 BtorOption boolector_next_opt (Btor *btor, BtorOption opt);
 
@@ -512,7 +525,8 @@ void boolector_release_all (Btor *btor);
   Create bit vector constant representing the bit vector ``bits``.
 
   :param btor: Boolector instance.
-  :param bits: Non-empty and terminated string consisting of zeroes and/or ones representing the bit vector constant specified by ``bits``.
+  :param bits: Non-empty and terminated string consisting of zeroes and/or ones
+               representing the bit vector constant specified by ``bits``.
   :return: Bit vector constant with bit width ``strlen (bits)``.
 */
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
@@ -522,7 +536,8 @@ BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
   :param btor: Boolector instance.
   :param sort: Bit-vector sort of 'str'.
-  :param str: Non-empty and terminated string representing a negative or postive decimal number.
+  :param str: Non-empty and terminated string representing a negative or
+              postive decimal number.
   :return: Bit vector constant with sort ``sort``.
  */
 BoolectorNode *boolector_constd (Btor *btor,
@@ -534,7 +549,8 @@ BoolectorNode *boolector_constd (Btor *btor,
 
   :param btor: Boolector instance.
   :param sort: Bit-vector sort of 'str'.
-  :param str: Non-empty and terminated string representing a hexadecimal number.
+  :param str: Non-empty and terminated string representing a hexadecimal
+              number.
   :return: Bit vector constant with sort ``sort``.
  */
 BoolectorNode *boolector_consth (Btor *btor,
@@ -628,7 +644,10 @@ BoolectorNode *boolector_int (Btor *btor, int32_t i, BoolectorSort sort);
   :param symbol: Name of variable.
   :return: Bit vector variable of sort ``sort`` and with symbol ``symbol``.
 
-  .. note:: In contrast to composite expressions, which are maintained uniquely w.r.t. to their kind, inputs (and consequently, bit width), variables are not. Hence, each call to this function returns a fresh bit vector variable.
+  .. note::
+    In contrast to composite expressions, which are maintained uniquely
+    w.r.t. to their kind, inputs (and consequently, bit width), variables are
+    not. Hence, each call to this function returns a fresh bit vector variable.
 */
 BoolectorNode *boolector_var (Btor *btor,
                               BoolectorSort sort,
@@ -691,7 +710,8 @@ BoolectorNode *boolector_uf (Btor *btor,
 
   :param btor: Boolector instance.
   :param node: Bit Vector node.
-  :return: Bit vector representing the one's complement of ``node`` with the same bit width as ``node``.
+  :return: Bit vector representing the one's complement of ``node`` with the
+           same bit width as ``node``.
 */
 BoolectorNode *boolector_not (Btor *btor, BoolectorNode *node);
 
@@ -700,7 +720,8 @@ BoolectorNode *boolector_not (Btor *btor, BoolectorNode *node);
 
   :param btor: Boolector instance.
   :param node: Bit vector node.
-  :return: Bit vector representing the two's complement of ``node`` with the same bit width as ``node``.
+  :return: Bit vector representing the two's complement of ``node`` with the
+           same bit width as ``node``.
 */
 BoolectorNode *boolector_neg (Btor *btor, BoolectorNode *node);
 
@@ -738,12 +759,15 @@ BoolectorNode *boolector_redxor (Btor *btor, BoolectorNode *node);
 BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
 
 /*!
-  Create a bit vector slice of ``node`` from index ``upper`` to index ``lower``.
+  Create a bit vector slice of ``node`` from index ``upper`` to index
+  ``lower``.
 
   :param btor: Boolector instance.
   :param node: Bit vector node.
-  :param upper: Upper index which must be greater than or equal to zero, and less than the bit width of ``node``.
-  :param lower: Lower index which must be greater than or equal to zero, and less than or equal to ``upper``.
+  :param upper: Upper index which must be greater than or equal to zero, and
+                less than the bit width of ``node``.
+  :param lower: Lower index which must be greater than or equal to zero, and
+                less than or equal to ``upper``.
   :return: Bit vector with bit width ``upper - lower + 1``.
 */
 BoolectorNode *boolector_slice (Btor *btor,
@@ -924,7 +948,9 @@ BoolectorNode *boolector_add (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the addition of ``n0`` and ``n1`` overflows in case both operands are treated unsigned.
+  :return: Bit vector with bit width one, which indicates if the addition of
+           ``n0`` and ``n1`` overflows in case both operands are treated
+           unsigned.
 */
 BoolectorNode *boolector_uaddo (Btor *btor,
                                 BoolectorNode *n0,
@@ -938,7 +964,9 @@ BoolectorNode *boolector_uaddo (Btor *btor,
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the addition of ``n0`` and ``n1`` overflows in case both operands are treated signed.
+  :return: Bit vector with bit width one, which indicates if the addition of
+           ``n0`` and ``n1`` overflows in case both operands are treated
+           signed.
 */
 BoolectorNode *boolector_saddo (Btor *btor,
                                 BoolectorNode *n0,
@@ -964,7 +992,9 @@ BoolectorNode *boolector_mul (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the multiplication of ``n0`` and ``n1`` overflows in case both operands are treated unsigned.
+  :return: Bit vector with bit width one, which indicates if the multiplication
+           of ``n0`` and ``n1`` overflows in case both operands are treated
+           unsigned.
 */
 BoolectorNode *boolector_umulo (Btor *btor,
                                 BoolectorNode *n0,
@@ -978,7 +1008,9 @@ BoolectorNode *boolector_umulo (Btor *btor,
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the multiplication of ``n0`` and ``n1`` overflows in case both operands are treated signed.
+  :return: Bit vector with bit width one, which indicates if the multiplication
+           of ``n0`` and ``n1`` overflows in case both operands are treated
+           signed.
 */
 BoolectorNode *boolector_smulo (Btor *btor,
                                 BoolectorNode *n0,
@@ -1095,8 +1127,10 @@ BoolectorNode *boolector_sgte (Btor *btor,
   into node ``n0`` from the right.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of ``n0``.
+  :param n0: First bit vector operand where the bit width is a power of two and
+             greater than 1.
+  :param n1: Second bit vector operand with bit width log2 of the bit width of
+             ``n0``.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1108,8 +1142,10 @@ BoolectorNode *boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   into node ``n0`` from the left.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of ``n0``.
+  :param n0: First bit vector operand where the bit width is a power of two and
+             greater than 1.
+  :param n1: Second bit vector operand with bit width log2 of the bit width of
+             ``n0``.
   :return: Bit vector with the same bit width as ``n0`` and ``n1``.
 */
 BoolectorNode *boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1122,8 +1158,10 @@ BoolectorNode *boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   of ``n0``.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of ``n0``.
+  :param n0: First bit vector operand where the bit width is a power of two and
+             greater than 1.
+  :param n1: Second bit vector operand with bit width log2 of the bit width of
+             ``n0``.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1135,8 +1173,10 @@ BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   by which node ``n0`` is rotated to the left.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of ``n0``.
+  :param n0: First bit vector operand where the bit width is a power of two and
+             greater than 1.
+  :param n1: Second bit vector operand with bit width log2 of the bit width of
+             ``n0``.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1148,8 +1188,10 @@ BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   which node ``n0`` is rotated to the right.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of ``n0``.
+  :param n0: First bit vector operand where the bit width is a power of two and
+             greater than 1.
+  :param n1: Second bit vector operand with bit width log2 of the bit width of
+             ``n0``.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1174,7 +1216,9 @@ BoolectorNode *boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the subtraction of ``n0`` and ``n1`` overflows in case both operands are treated unsigned.
+  :return: Bit vector with bit width one, which indicates if the subtraction of
+           ``n0`` and ``n1`` overflows in case both operands are treated
+           unsigned.
 */
 BoolectorNode *boolector_usubo (Btor *btor,
                                 BoolectorNode *n0,
@@ -1188,7 +1232,9 @@ BoolectorNode *boolector_usubo (Btor *btor,
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the subtraction of ``n0`` and ``n1`` overflows in case both operands are treated signed.
+  :return: Bit vector with bit width one, which indicates if the subtraction of
+           ``n0`` and ``n1`` overflows in case both operands are treated
+           signed.
 */
 BoolectorNode *boolector_ssubo (Btor *btor,
                                 BoolectorNode *n0,
@@ -1247,7 +1293,9 @@ BoolectorNode *boolector_sdiv (Btor *btor,
   :param btor: Boolector instance.
   :param n0: First bit vector operand.
   :param n1: Second bit vector operand.
-  :return: Bit vector with bit width one, which indicates if the division of ``n0`` and ``n1`` overflows in case both operands are treated signed.
+  :return: Bit vector with bit width one, which indicates if the division of
+           ``n0`` and ``n1`` overflows in case both operands are treated
+           signed.
 
   .. note::
     Unsigned division cannot overflow.
@@ -1342,7 +1390,8 @@ BoolectorNode *boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n);
 
   :param btor: Boolector instance.
   :param n_array: Array operand.
-  :param n_index: Bit vector index. The bit width of ``n_index`` must have the same bit width as the indices of ``n_array``.
+  :param n_index: Bit vector index. The bit width of ``n_index`` must have the
+                  same bit width as the indices of ``n_array``.
   :return: Bit vector with the same bit width as the elements of ``n_array``.
 */
 BoolectorNode *boolector_read (Btor *btor,
@@ -1362,7 +1411,8 @@ BoolectorNode *boolector_read (Btor *btor,
   :param n_array: Array operand.
   :param n_index: Bit vector index.
   :param n_value: Bit vector value.
-  :return: An array where the value at index ``n_index`` has been updated with ``n_value``.
+  :return: An array where the value at index ``n_index`` has been updated with
+           ``n_value``.
 */
 BoolectorNode *boolector_write (Btor *btor,
                                 BoolectorNode *n_array,
@@ -1438,7 +1488,8 @@ BoolectorNode *boolector_fun (Btor *btor,
   :param arg_nodes: Arguments to be applied.
   :param argc: Number of arguments to be applied.
   :param n_fun: Function expression.
-  :return: Function application on function ``n_fun`` with arguments ``arg_nodes``.
+  :return: Function application on function ``n_fun`` with arguments
+           ``arg_nodes``.
 
   .. seealso::
     boolector_fun, boolector_uf
@@ -1556,7 +1607,8 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
 
   :param btor: Boolector instance.
   :param id: Boolector node id.
-  :return: The Boolector node that matches given ``node`` in Boolector instance ``btor`` by id.
+  :return: The Boolector node that matches given ``node`` in Boolector instance
+           ``btor`` by id.
 
   .. note::
     Matching a node against another increases the reference
@@ -1571,7 +1623,8 @@ BoolectorNode *boolector_match_node_by_id (Btor *btor, int32_t id);
 
   :param btor: Boolector instance.
   :param symbol: The symbol of an expression.
-  :return: The Boolector node that matches given ``node`` in Boolector instance ``btor`` by symbol.
+  :return: The Boolector node that matches given ``node`` in Boolector instance
+           ``btor`` by symbol.
 
   .. note::
     Matching a node against another increases the reference
@@ -1587,7 +1640,8 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
 
   :param btor: Boolector instance.
   :param node: Boolector node.
-  :return: The Boolector node that matches given ``node`` in Boolector instance ``btor`` by id.
+  :return: The Boolector node that matches given ``node`` in Boolector instance
+           ``btor`` by id.
 
   .. note::
     Matching a node against another increases the reference
@@ -1624,10 +1678,10 @@ void boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol);
 /*!
   Get the bit width of an expression.
 
-  If the expression
-  is an array, it returns the bit width of the array elements.
-  If the expression
-  is a function, it returns the bit width of the function's return value.
+  If the expression is an array, it returns the bit width of the array
+  elements.
+  If the expression is a function, it returns the bit width of the function's
+  return value.
 
   :param btor: Boolector instance.
   :param node: Boolector node.
@@ -1752,7 +1806,8 @@ bool boolector_is_fun (Btor *btor, BoolectorNode *node);
   :param arg_nodes: Arguments to be checked.
   :param argc: Number of arguments to be checked.
   :param n_fun: Function expression.
-  :return: -1 if all sorts are correct, otherwise it returns the position of the incorrect argument.
+  :return: -1 if all sorts are correct, otherwise it returns the position of
+           the incorrect argument.
 */
 int32_t boolector_fun_sort_check (Btor *btor,
                                   BoolectorNode **arg_nodes,
@@ -1770,7 +1825,11 @@ int32_t boolector_fun_sort_check (Btor *btor,
 
   :param btor: Boolector instance.
   :param node: Bit vector expression.
-  :return: String representing a satisfying assignment to bit vector variables and a consistent assignment for arbitrary bit vector expressions. Each character of the string can be ``0``, ``1`` or ``x``. The latter represents that the corresponding bit can be assigned arbitrarily.
+  :return: String representing a satisfying assignment to bit vector variables
+           and a consistent assignment for arbitrary bit vector expressions.
+           Each character of the string can be ``0``, ``1`` or ``x``. The
+           latter represents that the corresponding bit can be assigned
+           arbitrarily.
 
   .. seealso::
     boolector_set_opt for enabling model generation.
@@ -2050,7 +2109,11 @@ bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: In the incremental case or in case of SMT-LIB v2 (which requires a 'check-sat' command), the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
+  :return: In the incremental case or in case of SMT-LIB v2 (which requires a
+           'check-sat' command), the function returns either BOOLECTOR_SAT,
+           BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns
+           BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the function
+           returns BOOLECTOR_PARSE_ERROR.
 */
 int32_t boolector_parse (Btor *btor,
                          FILE *infile,
@@ -2070,7 +2133,8 @@ int32_t boolector_parse (Btor *btor,
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error occurred.
+  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error
+           occurred.
 */
 int32_t boolector_parse_btor (Btor *btor,
                               FILE *infile,
@@ -2090,7 +2154,10 @@ int32_t boolector_parse_btor (Btor *btor,
   :param outfile: Input file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: In the incremental case (right now `SMT-LIB v1`_ only) the function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN, otherwise it always returns BOOLECTOR_UNKNOWN. If a parse error occurs the function returns BOOLECTOR_PARSE_ERROR.
+  :return: In the incremental case (right now `SMT-LIB v1`_ only) the function
+           returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN,
+           otherwise it always returns BOOLECTOR_UNKNOWN. If a parse error
+           occurs the function returns BOOLECTOR_PARSE_ERROR.
 */
 int32_t boolector_parse_smt1 (Btor *btor,
                               FILE *infile,
@@ -2108,7 +2175,8 @@ int32_t boolector_parse_smt1 (Btor *btor,
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error occurred.
+  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error
+           occurred.
 */
 int32_t boolector_parse_smt2 (Btor *btor,
                               FILE *infile,
@@ -2123,7 +2191,8 @@ int32_t boolector_parse_smt2 (Btor *btor,
   Recursively dump ``node`` to file in BTOR_ format.
 
   :param btor: Boolector instance.
-  :param file: File to which the expression should be dumped. The file must be have been opened by the user before.
+  :param file: File to which the expression should be dumped. The file must be
+               have been opened by the user before.
   :param node: The expression which should be dumped.
 */
 void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
@@ -2132,7 +2201,8 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
   Dump formula to file in BTOR_ format.
 
   :param btor: Boolector instance.
-  :param file: File to which the formula should be dumped. The file must be have been opened by the user before.
+  :param file: File to which the formula should be dumped. The file must be
+               have been opened by the user before.
 */
 void boolector_dump_btor (Btor *btor, FILE *file);
 
@@ -2141,7 +2211,8 @@ void boolector_dump_btor (Btor *btor, FILE *file);
   Dump formula to file in BTOR 2.0 format.
 
   :param btor: Boolector instance.
-  :param file: File to which the formula should be dumped. The file must be have been opened by the user before.
+  :param file: File to which the formula should be dumped. The file must be
+               have been opened by the user before.
 */
 void boolector_dump_btor2 (Btor * btor, FILE * file);
 #endif
@@ -2150,7 +2221,8 @@ void boolector_dump_btor2 (Btor * btor, FILE * file);
   Recursively dump ``node`` to file in `SMT-LIB v2`_ format.
 
   :param btor: Boolector instance.
-  :param file: File to which the expression should be dumped. The file must be have been opened by the user before.
+  :param file: File to which the expression should be dumped. The file must be
+               have been opened by the user before.
   :param node: The expression which should be dumped.
 */
 void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
