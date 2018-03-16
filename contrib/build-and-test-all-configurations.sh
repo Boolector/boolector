@@ -6,6 +6,10 @@ die () {
   echo "*** `basename $0`: $*" | tee -a $log | tee -a $err 1>&2
   exit 1
 }
+
+[ -f src/boolector.h ] || \
+  die "can not find 'boolector.h' (call from boolector base directory)"
+
 build () {
   CC=$1
   CXX=$2
@@ -17,7 +21,7 @@ build () {
   fi
   CC=$CC CXX=$CXX ./configure.sh $* 1>> $log 2>>$err || \
     die "'configure.sh' failed"
-  make 1>> $log 2>>$err || die "'make' failed"
+  make -j`nproc` 1>> $log 2>>$err || die "'make' failed"
   [ -f bin/test ] || die "'./bin/test' not found"
   ./bin/test 1>> $log 2>>$err || die "'./bin/test' failed"
   passed=`expr $passed + 1`

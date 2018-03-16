@@ -3,8 +3,11 @@ die () {
   echo "*** mksrcrelease-with-lingeling.sh: $*" 1>&2
   exit 1
 }
-[ -f src/boolector.h ] || die "need to be called from 'src'"
-cd mksrcrel/with-sat-solvers
+[ -f src/boolector.h ] || \
+  die "can not find 'boolector.h' (call from boolector base directory)"
+BASEDIR=$(pwd)
+
+cd contrib/mksrcrel/with-sat-solvers
 minisat=yes
 while [ $# -gt 0 ]
 do
@@ -19,8 +22,8 @@ do
   esac
   shift
 done
-btorversion=`cat ../../VERSION`
-lglversion=`cat ../../../lingeling/VERSION`
+btorversion=`cat $BASEDIR/VERSION`
+lglversion=`cat $BASEDIR/../lingeling/VERSION`
 name=boolector-${btorversion}-with-lingeling-${lglversion}
 tmp=/tmp/$name
 log=$tmp.log
@@ -33,8 +36,8 @@ sed -e 's,@VERSION@,'"$btorversion," \
     -e 's,@DATE@,'"$date," \
 README.lingeling > $tmp/README
 mkdir $tmp/archives || exit 1
-cd ../..
-./mksrcrel/mksrcrelease.sh >> $log || exit 1
+cd $BASEDIR
+./contrib/mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in lingeling

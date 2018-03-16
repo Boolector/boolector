@@ -33,9 +33,9 @@ sed \
 curpath=`pwd`
 BTOR_DEF_DATE=`date`
 BTOR_DEF_VERSION=`cat VERSION`
-BTOR_DEF_ID=`./getgitid.sh`
+BTOR_DEF_ID=`git rev-parse HEAD`
 
-echo "#define BTOR_OS \"`uname -srmn`\"" >> $config 
+echo "#define BTOR_OS \"`uname -srmn`\"" >> $config
 echo "#define BTOR_COMPILED \"`date`\"" >> $config
 echo "#define BTOR_SRC_DIR   \"$curpath/\"" >> $config
 echo "#define BTOR_BIN_DIR   \"$curpath/bin/\"" >> $config

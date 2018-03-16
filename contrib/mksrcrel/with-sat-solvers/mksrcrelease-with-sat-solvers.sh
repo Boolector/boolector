@@ -3,26 +3,30 @@ die () {
   echo "*** mksrcrelease-with-sat-solver.sh: $*" 1>&2
   exit 1
 }
+[ -f src/boolector.h ] || \
+  die "can not find 'boolector.h' (call from boolector base directory)"
+BASEDIR=$(pwd)
+
 minisat=yes
 while [ $# -gt 0 ]
 do
   case $1 in
-    -h|--help) 
+    -h|--help)
       echo "usage: mksrcrelease-with-sat-solvers.sh [-h][--no-minisat]"
       exit 0
       ;;
     --no-minisat)
       minisat=no
       ;;
-    *) 
+    *)
       die "invalid command line option"
       ;;
   esac
   shift
 done
-[ -f src/boolector.h ] || die "need to be called from 'src'"
-cd mksrcrel/with-sat-solvers
-version=`cat ../../VERSION`
+
+cd contrib/mksrcrel/with-sat-solvers
+version=`cat $BASEDIR/VERSION`
 name=boolector-${version}-with-sat-solvers
 tmp=/tmp/$name
 log=$tmp.log
@@ -35,18 +39,21 @@ sed -e 's,@VERSION@,'"$version," \
     -e 's,@DATE@,'"$date," \
 README > $tmp/README
 mkdir $tmp/archives || exit 1
-cd ../..
-./mksrcrel/mksrcrelease.sh >> $log || exit 1
+cd $BASEDIR
+./contrib/mksrcrel/mksrcrelease.sh >> $log || exit 1
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
-for solver in picosat lingeling
+for solver in picosat lingeling cadical
 do
-  cd ../$solver
+  cd $BASEDIR/../$solver
   if [ -f mkrelease ]
   then
     ./mkrelease >> $log
-  else
+  elif [ -f mkrelease.sh ]
+  then
     ./mkrelease.sh >> $log
+  else # CaDiCaL
+    ./scripts/make-src-release.sh >> $log
   fi
   archive=`grep ${solver}- $log|awk '{print $NF}'`
   mv $archive $tmp/archives

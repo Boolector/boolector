@@ -5,17 +5,16 @@ die () {
   exit 1
 }
 
-for component in boolector picosat precosat lingeling minisat
+for component in boolector cadical picosat precosat lingeling minisat
 do
-  archive="`ls archives/${component}-*.tar.gz 2>/dev/null`"
+  archive="`ls archives/${component}-*.tar.* 2>/dev/null`"
   case x$archive in
     xarchives/$component*) ;;
     *) continue;;
   esac
-  name=`basename $archive .tar.gz`
   tar xf $archive
   rm -rf $component
-  mv $name $component
+  mv $component-* $component
   echo "extracted $component"
 done
 
@@ -27,7 +26,7 @@ then
   cd ..
 fi
 
-for component in picosat precosat lingeling boolector
+for component in cadical picosat precosat lingeling boolector
 do
   [ -d $component ] || continue
   echo "building $component"

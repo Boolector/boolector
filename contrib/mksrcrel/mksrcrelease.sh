@@ -8,7 +8,7 @@ die () {
 }
 
 [ -f src/boolector.h ] || \
-die "can not find 'boolector.h' (call from boolector base directory)"
+  die "can not find 'boolector.h' (call from boolector base directory)"
 
 while [ $# -gt 0 ]
 do
@@ -29,9 +29,10 @@ export LC_TIME
 
 date=`date +%y%m%d`
 version=`cat VERSION`
-gitid=`./getgitid.sh|sed -e 's,^.*\.,,' -e 's,\",,' -e 's,^\(.......\).*,\1,'`
+gitid=`git rev-parse HEAD`
+gitid_short=`git rev-parse --short=7 HEAD`
 
-id="$version-$gitid-$date"
+id="$version-$gitid_short-$date"
 name=boolector-$id
 dir="/tmp/$name"
 
@@ -125,11 +126,11 @@ date=`date`
 version=`cat VERSION`
 sed -e 's,@VERSION@,'"$version," \
     -e 's,@DATE@,'"$date," \
-mksrcrel/README > $dir/README
+contrib/mksrcrel/README > $dir/README
 
 sed -e "s,^BTOR_DEF_DATE=.*,BTOR_DEF_DATE=\"$date\"," \
     -e "s,^BTOR_DEF_VERSION=.*,BTOR_DEF_VERSION=\"$version\"," \
-    -e "s,^BTOR_DEF_ID=.*,BTOR_DEF_ID=\"`./getgitid.sh`\"," \
+    -e "s,^BTOR_DEF_ID=.*,BTOR_DEF_ID=\"$gitid\"," \
     mkconfig.sh > $dir/mkconfig.sh
 
 chmod 755 $dir/mkconfig.sh
