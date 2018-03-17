@@ -53,6 +53,8 @@ where <option> is one of the following:
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
   -shared           shared library
+  -gcov             compile with -fprofile-arcs -ftest-coverage
+  -gprof            compile with -pg
   -python           compile python API
 
 By default all supported SAT solvers are used and linked into
