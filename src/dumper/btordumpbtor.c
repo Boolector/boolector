@@ -843,9 +843,6 @@ btor_dumpbtor_dump (Btor *btor, FILE *file, uint32_t version)
   assert (btor);
   assert (file);
   assert (version == 1 || version == 2);
-  // FIXME: why do we not allow these flags?
-  //        inc_enabled -> ok if no assumptions
-  //  assert (!btor->inc_enabled);
   (void) version;
 
   BtorNode *tmp;
@@ -862,7 +859,8 @@ btor_dumpbtor_dump (Btor *btor, FILE *file, uint32_t version)
     btor_node_release (btor, tmp);
   }
   else if (btor->unsynthesized_constraints->count == 0
-           && btor->synthesized_constraints->count == 0)
+           && btor->synthesized_constraints->count == 0
+           && btor->embedded_constraints->count == 0)
   {
     tmp = btor_exp_true (btor);
     btor_dumpbtor_add_root_to_dump_context (bdc, tmp);
@@ -872,6 +870,7 @@ btor_dumpbtor_dump (Btor *btor, FILE *file, uint32_t version)
   {
     btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->embedded_constraints);
     while (btor_iter_hashptr_has_next (&it))
       btor_dumpbtor_add_root_to_dump_context (bdc,
                                               btor_iter_hashptr_next (&it));
