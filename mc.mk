@@ -4,6 +4,10 @@ $(BINDIR)/btormc: $(BUILDIR)/btormcmain.o $(LDEPS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormcmain.o -L$(BUILDIR) -lboolector $(LIBS)
 
+$(BUILDIR)/btorsimmain.o: $(SRCDIR)/btorfmt/btorsim/btorsimmain.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+
 $(BINDIR)/btorsim: $(BUILDIR)/btorsimmain.o $(LDEPS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btorsimmain.o -L$(BUILDIR) -lboolector $(LIBS)
