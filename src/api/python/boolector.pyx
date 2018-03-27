@@ -1,6 +1,6 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
-# Copyright (C) 2013-2015 Mathias Preiner.
+# Copyright (C) 2013-2018 Mathias Preiner.
 # Copyright (C) 2014-2017 Aina Niemetz.
 #
 # All rights reserved.
@@ -17,7 +17,7 @@ from cpython cimport bool
 from cpython.ref cimport PyObject
 import math, os, sys
 
-include "boolector.pix"
+include "options.pxd"
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "beta_reduce_all", "probe_beta_reduce_all",
@@ -668,6 +668,40 @@ cdef class Boolector:
             cdef const char * c_str
             c_str = btorapi.boolector_version(self._c_btor)
             return _to_str(c_str)
+
+    def Push(self, uint32_t levels = 1):
+        """ Push(level)
+
+            Push new context levels.
+
+            :param level: Number of context levels to create.
+
+            .. note::
+              Assumptions added via boolector_assume are not affected by
+              context level changes and are only valid until the next
+              boolector_sat call no matter at what level they were assumed.
+
+            .. seealso::
+                :func:`~boolector.Boolector.Assume`
+        """
+        btorapi.boolector_push(self._c_btor, levels)
+
+    def Pop(self, uint32_t levels = 1):
+        """ Pop(level)
+
+            Pop context levels.
+
+            :param level: Number of levels to pop.
+
+            .. note::
+              Assumptions added via boolector_assume are not affected by
+              context level changes and are only valid until the next
+              boolector_sat call no matter at what level they were assumed.
+
+            .. seealso::
+                :func:`~boolector.Boolector.Assume`
+        """
+        btorapi.boolector_pop(self._c_btor, levels)
 
     def Assert(self, *assertions):
         """ Assert(a,...)

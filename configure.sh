@@ -573,21 +573,21 @@ then
 import os
 from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Distutils import build_ext
+from Cython.Build import cythonize
 cwd=os.getcwd()
-incdirs=["$SRCDIR"]
-incdirs.extend("$py_inc_dirs".split())
 ext_modules=[
     Extension("boolector",
-              sources=["$SRCDIR/api/python/boolector.pyx"],
-              include_dirs=incdirs,
-              library_dirs=[s for s in "$py_library_dirs".split()],
-              libraries="$py_libraries".split(),
-              extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-       extra_link_args=["-Wl,-rpath,"+":".join([s for s in "$py_library_dirs".split()])]
-    )
+        sources=["$SRCDIR/api/python/boolector.pyx"],
+        include_dirs="$SRCDIR $SRCDIR/api/python $py_inc_dirs".split(),
+        library_dirs="$py_library_dirs".split(),
+        libraries="$py_libraries".split(),
+        extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
+        extra_link_args=["-Wl,-rpath,"+":".join("$py_library_dirs".split())]
+    ),
 ]
-setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+setup(ext_modules=cythonize(ext_modules,
+                            build_dir="$BUILDIR",
+                            include_path=["$BUILDIR/api/python"]))
 EOF
 
 cat > python.mk <<EOF
@@ -595,25 +595,20 @@ cat > python.mk <<EOF
 all: python
 
 python: \$(BUILDIR)/api/python/boolector_py.o setup.py
-	$PYTHON setup.py build_ext -b $BUILDIR -t $BUILDIR/api/python/tmp
-	@echo "Compiled Boolector Python module. Please read $SRCDIR/api/python/README on how to use the module"
+	$PYTHON setup.py build_ext -b $BUILDIR
+	@echo "Compiled Boolector Python module."
+	@echo "Please read $SRCDIR/api/python/README on how to use the module"
 
 python-clean:
-	rm -rf build/api/python/boolector_py.o
-	rm -f \$(SRCDIR)/api/python/boolector.c boolector.cpython*.so
-	rm -f \$(SRCDIR)/api/python/boolector.pix
-
-python-clean-mk:
 	rm -f python.mk setup.py
 
-clean: python-clean python-clean-mk
+clean: python-clean
 
 EOF
 
 opts=`grep "BTOR_OPT.*," $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
-cat > $SRCDIR/api/python/boolector.pix << EOF
-$opts
-EOF
+mkdir -p $BUILDIR/api/python/
+echo "$opts" > $BUILDIR/api/python/options.pxd
 
 else
   touch python.mk

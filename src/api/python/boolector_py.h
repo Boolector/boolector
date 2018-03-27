@@ -11,7 +11,7 @@
 #define BOOLECTOR_PY_H_INCLUDED
 
 #include <Python.h>
-#include "btorcore.h"
+#include "boolector.h"
 
 /*!
    Set a Python termination callback.

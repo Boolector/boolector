@@ -8,8 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 #include "boolector_py.h"
-#include "boolector.h"
 #include "btorabort.h"
+#include "btorcore.h"
 
 static int
 py_terminate_btor (void *btor)
