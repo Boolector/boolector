@@ -893,8 +893,8 @@ check_consth (const char *consth, unsigned width)
       req_width -= 1;
     break;
   }
-  if (req_width <= width) return 0;
-  return 1;
+  if (req_width <= width) return 1;
+  return 0;
 }
 
 #ifndef NDEBUG
@@ -1178,7 +1178,7 @@ parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
                      l->sort.bitvec.width);
   }
   else if (l->tag == BTOR_FORMAT_TAG_constd
-           && check_constd (bfr->buf, l->sort.bitvec.width))
+           && !check_constd (bfr->buf, l->sort.bitvec.width))
   {
     return perr_bfr (bfr,
                      "constant '%s' does not match bit-vector sort size %u",
@@ -1186,7 +1186,7 @@ parse_constant_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
                      l->sort.bitvec.width);
   }
   else if (l->tag == BTOR_FORMAT_TAG_consth
-           && check_consth (bfr->buf, l->sort.bitvec.width))
+           && !check_consth (bfr->buf, l->sort.bitvec.width))
   {
     return perr_bfr (bfr,
                      "constant '%s' does not fit into bit-vector of size %u",
