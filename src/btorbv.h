@@ -10,8 +10,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORBITVEC_H_INCLUDED
-#define BTORBITVEC_H_INCLUDED
+#ifndef BTORBV_H_INCLUDED
+#define BTORBV_H_INCLUDED
 
 #include <stdbool.h>
 #include <stdint.h>
