@@ -162,7 +162,7 @@ main (int argc, char **argv)
   for (i = 0; i < num_elements; i++)
   {
     string = (char *) malloc (
-        sizeof (char) * (strlen ("start") + btor_num_digits_util (i + 1) + 1));
+        sizeof (char) * (strlen ("start") + btor_util_num_digits (i + 1) + 1));
     sprintf (string, "start%d", i + 1);
     start = boolector_var (btor, isort, string);
     mem1  = reverse_array_mem (btor, mem1, num_elements, start, isort);

@@ -58,10 +58,12 @@ main (void)
   /* We assert the formula and call Boolector */
   boolector_assert (btor, formula);
   result = boolector_sat (btor);
-  if (result == BOOLECTOR_UNSAT)
-    printf ("Formula is unsatisfiable\n");
-  else
-    abort ();
+  printf ("Expect: unsat\n");
+  printf ("Boolector: %s\n",
+          result == BOOLECTOR_SAT
+              ? "sat"
+              : (result == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
+  if (result != BOOLECTOR_UNSAT) abort ();
 
   /* cleanup */
   boolector_release (btor, x);

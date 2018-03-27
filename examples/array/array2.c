@@ -20,7 +20,8 @@ main (void)
   BoolectorNode *write1, *write2, *formula;
   BoolectorSort sort_index, sort_elem, sort_array;
   char **indices, **values;
-  int result, size, i;
+  int32_t result;
+  uint32_t i, size;
 
   btor       = boolector_new ();
   sort_index = boolector_bitvec_sort (btor, ARRAY2_EXAMPLE_INDEX_BW);
@@ -40,11 +41,14 @@ main (void)
   formula = boolector_eq (btor, write1, write2);
   boolector_assert (btor, formula);
   result = boolector_sat (btor);
-  if (result == BOOLECTOR_SAT)
-    printf ("Formula is satisfiable\n");
-  else
-    abort ();
+  printf ("Expect: sat\n");
+  printf ("Boolector: %s\n",
+          result == BOOLECTOR_SAT
+              ? "sat"
+              : (result == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
+  if (result != BOOLECTOR_SAT) abort ();
 
+  printf ("\nModel:\n");
   /* Formula is satisfiable, we can obtain array models: */
   boolector_array_assignment (btor, array1, &indices, &values, &size);
   if (size > 0)

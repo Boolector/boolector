@@ -23,6 +23,7 @@ btor_maxor (Btor *btor,
   BoolectorNode *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
   BoolectorNode *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result;
   BoolectorNode *and_break, *cond_3, *cond_4, *_break;
+  BoolectorSort sort_log, sort;
   int i;
 
   assert (btor != NULL);
@@ -32,7 +33,7 @@ btor_maxor (Btor *btor,
   assert (d_in != NULL);
   assert (m_in != NULL);
   assert (num_bits > 0);
-  assert (btor_is_power_of_2_util (num_bits));
+  assert (btor_util_is_power_of_2 (num_bits));
 
   a = boolector_copy (btor, a_in);
   b = boolector_copy (btor, b_in);
@@ -40,8 +41,11 @@ btor_maxor (Btor *btor,
   d = boolector_copy (btor, d_in);
   m = boolector_copy (btor, m_in);
 
-  one_log_bits = boolector_one (btor, btor_log_2_util (num_bits));
-  zero         = boolector_zero (btor, num_bits);
+  sort_log = boolector_bitvec_sort (btor, btor_util_log_2 (num_bits));
+  sort     = boolector_bitvec_sort (btor, num_bits);
+
+  one_log_bits = boolector_one (btor, sort_log);
+  zero         = boolector_zero (btor, sort);
 
   /* as soon _break becomes 1, we do not change the values
    * of b and d anymore */
@@ -122,6 +126,8 @@ btor_maxor (Btor *btor,
   boolector_release (btor, m);
   boolector_release (btor, zero);
   boolector_release (btor, one_log_bits);
+  boolector_release_sort (btor, sort_log);
+  boolector_release_sort (btor, sort);
 
   return result;
 }

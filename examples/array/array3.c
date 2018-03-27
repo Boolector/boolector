@@ -9,7 +9,7 @@
 int
 main ()
 {
-  int sat_result;
+  int result;
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
   BoolectorSort sort_index, sort_elem, sort_array;
   Btor *btor;
@@ -30,17 +30,27 @@ main ()
 
   /* we enforce that index1 is equal to index 2 */
   boolector_assert (btor, eq);
-  sat_result = boolector_sat (btor);
-  assert (sat_result == BOOLECTOR_SAT);
+  result = boolector_sat (btor);
+  printf ("Expect: sat\n");
+  printf ("Boolector: %s\n",
+          result == BOOLECTOR_SAT
+              ? "sat"
+              : (result == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
+  if (result != BOOLECTOR_SAT) abort ();
   /* now we additionally assume that the read values differ
    * the instance is now unsatasfiable as read congruence is violated */
   boolector_assume (btor, ne);
-  sat_result = boolector_sat (btor);
-  assert (sat_result == BOOLECTOR_UNSAT);
+  result = boolector_sat (btor);
+  assert (result == BOOLECTOR_UNSAT);
   /* after the SAT call the assumptions are gone
    * the instance is now satisfiable again */
-  sat_result = boolector_sat (btor);
-  assert (sat_result == BOOLECTOR_SAT);
+  result = boolector_sat (btor);
+  printf ("Expect: sat\n");
+  printf ("Boolector: %s\n",
+          result == BOOLECTOR_SAT
+              ? "sat"
+              : (result == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
+  if (result != BOOLECTOR_SAT) abort ();
   boolector_release (btor, array);
   boolector_release (btor, index1);
   boolector_release (btor, index2);

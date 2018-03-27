@@ -46,10 +46,12 @@ main (void)
   /* We assert the formula and call Boolector */
   boolector_assert (btor, formula);
   result = boolector_sat (btor);
-  if (result == BOOLECTOR_SAT)
-    printf ("Instance is satisfiable\n");
-  else
-    abort ();
+  printf ("Expect: sat\n");
+  printf ("Boolector: %s\n",
+          result == BOOLECTOR_SAT
+              ? "sat"
+              : (result == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
+  if (result != BOOLECTOR_SAT) abort ();
 
   /* The formula is not valid, we have found a counter-example.
    * Now, we are able to obtain assignments to arbitrary expressions */

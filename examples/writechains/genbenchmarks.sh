@@ -1,4 +1,7 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+wchains=$dir/writechains
 for ((a=0;a<=1;a+=1))
 do
   inc=1
@@ -20,27 +23,26 @@ do
       numbitsstring=$numbits
     fi
     if [[ $a -eq 1 ]]; then
-      filename=wchains$numbitsstring"ue.smt"
+      filename=wchains$numbitsstring"ue.smt2"
     else
-      filename=wchains$numbitsstring"se.smt"
+      filename=wchains$numbitsstring"se.smt2"
     fi
-    ./writechains $aarg $numbits | boolector -rwl 0 -ds | while read line
+    $wchains $aarg $numbits | $boolector -rwl 0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
-        echo "(benchmark $filename" > $filename
-        echo ":source {" >> $filename
+        echo "(set-info :source |" >> $filename
         echo "This benchmark generates write chain permutations and tries to show" >> $filename
         echo "via extensionality that they are equal." >> $filename
         echo "" >> $filename
         echo -n "Contributed by Armin Biere " >> $filename
         echo "(armin.biere@jku.at)." >> $filename
-        echo "}" >> $filename
+        echo "|)" >> $filename
         if [[ $a -eq 1 ]]; then
-          echo ":status unsat" >> $filename
+          echo "(set-info :status unsat)" >> $filename
         else
-          echo ":status sat" >> $filename
+          echo "(set-info :status sat)" >> $filename
         fi
-        echo ":category { crafted }" >> $filename
+        echo "(set-info :category crafted)" >> $filename
         header=0
       else
         echo $line >> $filename

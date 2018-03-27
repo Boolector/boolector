@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "btorbitvec.h"
+#include "btorbv.h"
 #include "btorexp.h"
 #include "btoropt.h"
 #include "utils/btormem.h"
@@ -260,7 +260,7 @@ main (int argc, char **argv)
 
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
-  mm    = btor_new_mem_mgr ();
+  mm    = btor_mem_mgr_new ();
   isort = boolector_bitvec_sort (btor, SUDOKU_NUM_BITS_INDEX);
   esort = boolector_bitvec_sort (btor, SUDOKU_NUM_BITS_VAL);
   asort = boolector_array_sort (btor, isort, esort);
@@ -360,9 +360,9 @@ main (int argc, char **argv)
       for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
       {
         assignment     = boolector_bv_assignment (btor, vars[i]);
-        bv             = btor_char_to_bv (mm, assignment);
-        assignment_dec = btor_bv_to_dec_char_bv (mm, bv);
-        btor_free_bv (mm, bv);
+        bv             = btor_bv_char_to_bv (mm, assignment);
+        assignment_dec = btor_bv_to_dec_char (mm, bv);
+        btor_bv_free (mm, bv);
         printf ("%s", assignment_dec);
         counter++;
         if (counter % SUDOKU_SIZE_SQRT == 0) printf (" ");
@@ -377,7 +377,7 @@ main (int argc, char **argv)
           printf ("\n");
           line_counter = 0;
         }
-        btor_freestr (mm, (char *) assignment_dec);
+        btor_mem_freestr (mm, (char *) assignment_dec);
         boolector_free_bv_assignment (btor, assignment);
       }
     }
@@ -400,7 +400,7 @@ BTOR_SUDOKU_CLEANUP:
   boolector_release_sort (btor, esort);
   boolector_release_sort (btor, asort);
   boolector_delete (btor);
-  btor_delete_mem_mgr (mm);
+  btor_mem_mgr_delete (mm);
   if (error) return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }

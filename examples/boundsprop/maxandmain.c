@@ -27,7 +27,7 @@ main (int argc, char **argv)
     printf ("Number of bits must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_bits))
+  if (!btor_util_is_power_of_2 (num_bits))
   {
     printf ("Number of bits must be a power of two\n");
     return 1;

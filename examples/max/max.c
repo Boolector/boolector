@@ -28,12 +28,12 @@ main (int argc, char **argv)
     printf ("Number of elements must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_elements))
+  if (!btor_util_is_power_of_2 (num_elements))
   {
     printf ("Number of elements must be a power of two\n");
     return 1;
   }
-  num_bits_index = btor_log_2_util (num_elements);
+  num_bits_index = btor_util_log_2 (num_elements);
   btor           = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);

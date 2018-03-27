@@ -34,7 +34,7 @@ btor_maxand (Btor *btor,
   assert (d_in != NULL);
   assert (m_in != NULL);
   assert (num_bits > 0);
-  assert (btor_is_power_of_2_util (num_bits));
+  assert (btor_util_is_power_of_2 (num_bits));
 
   a = boolector_copy (btor, a_in);
   b = boolector_copy (btor, b_in);
@@ -42,8 +42,9 @@ btor_maxand (Btor *btor,
   d = boolector_copy (btor, d_in);
   m = boolector_copy (btor, m_in);
 
-  sort          = boolector_bitvec_sort (btor, num_bits);
-  sort_log      = boolector_bitvec_sort (btor, btor_log_2_util (num_bits));
+  sort     = boolector_bitvec_sort (btor, num_bits);
+  sort_log = boolector_bitvec_sort (btor, btor_util_log_2 (num_bits));
+
   one_log_bits  = boolector_one (btor, sort_log);
   one_full_bits = boolector_one (btor, sort);
   zero          = boolector_zero (btor, sort);

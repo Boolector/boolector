@@ -22,8 +22,9 @@ btor_minand (Btor *btor,
   BoolectorNode *one_log_bits, *a_or_m, *c_or_m;
   BoolectorNode *temp_1_ulte_b, *temp_2_ulte_d, *not_a_and_not_c;
   BoolectorNode *not_a_and_not_c_and_m, *not_a_and_not_c_and_m_ne_zero;
-  BoolectorNode *cond_1, *cond_2, *result, *and_break, *cond_3, *cond_4,
-      *_break;
+  BoolectorNode *cond_1, *cond_2, *result, *and_break, *cond_3, *cond_4;
+  BoolectorNode *_break;
+  BoolectorSort sort, sort_log;
   int i;
 
   assert (btor != NULL);
@@ -33,7 +34,7 @@ btor_minand (Btor *btor,
   assert (d_in != NULL);
   assert (m_in != NULL);
   assert (num_bits > 0);
-  assert (btor_is_power_of_2_util (num_bits));
+  assert (btor_util_is_power_of_2 (num_bits));
 
   a = boolector_copy (btor, a_in);
   b = boolector_copy (btor, b_in);
@@ -41,8 +42,11 @@ btor_minand (Btor *btor,
   d = boolector_copy (btor, d_in);
   m = boolector_copy (btor, m_in);
 
-  one_log_bits = boolector_one (btor, btor_log_2_util (num_bits));
-  zero         = boolector_zero (btor, num_bits);
+  sort     = boolector_bitvec_sort (btor, num_bits);
+  sort_log = boolector_bitvec_sort (btor, btor_util_log_2 (num_bits));
+
+  one_log_bits = boolector_one (btor, sort_log);
+  zero         = boolector_zero (btor, sort);
 
   /* as soon _break becomes 1, we do not change the values
    * of a and c anymore */
@@ -130,6 +134,8 @@ btor_minand (Btor *btor,
   boolector_release (btor, m);
   boolector_release (btor, one_log_bits);
   boolector_release (btor, zero);
+  boolector_release_sort (btor, sort_log);
+  boolector_release_sort (btor, sort);
 
   return result;
 }

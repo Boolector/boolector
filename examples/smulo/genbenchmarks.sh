@@ -1,4 +1,10 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+smulov1=$dir/smulov1.sh
+smulov2=$dir/smulov2.sh
+smulov3=$dir/smulov3.sh
+smulov4=$dir/smulov4.sh
 inc=4
 for ((bits = 4; bits <= 64; bits += inc))
 do
@@ -8,12 +14,11 @@ do
   else 
     bitsstring=$bits
   fi
-  filename=smulov1bw$bitsstring".smt"
-  ./smulov1 $bits | boolector -rwl0 -ds1 | while read line
+  filename=smulov1bw$bitsstring".smt2"
+  $smulov1 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We verify the correctness of a signed multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -23,9 +28,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename
@@ -47,12 +52,11 @@ do
   else 
     bitsstring=$bits
   fi
-  filename=smulov2bw$bitsstring".smt"
-  ./smulov2 $bits | boolector -rwl 0 -ds | while read line
+  filename=smulov2bw$bitsstring".smt2"
+  $smulov2 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We verify a verification condition for a signed multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -67,9 +71,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename
@@ -93,12 +97,11 @@ do
   else
     bitsstring=$bits
   fi
-  filename=smulov3bw$bitsstring".smt"
-  ./smulov3 $bits | boolector -rwl 0 -ds | while read line
+  filename=smulov3bw$bitsstring".smt2"
+  $smulov3 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We verify a verification condition for a signed multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -112,9 +115,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename
@@ -138,12 +141,11 @@ do
   else
     bitsstring=$bits
   fi
-  filename=smulov4bw$bitsstring".smt"
-  ./smulov4 $bits | boolector -rwl 0 -ds | while read line
+  filename=smulov4bw$bitsstring".smt2"
+  $smulov4 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We try to verify a verification condition for a signed multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -161,9 +163,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status sat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status sat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename

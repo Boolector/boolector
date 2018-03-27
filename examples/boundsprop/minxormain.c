@@ -14,6 +14,7 @@ main (int argc, char **argv)
   BoolectorNode *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
   BoolectorNode *result, *one, *x_xor_y, *premisse;
   BoolectorNode *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y, *concl;
+  BoolectorSort sort_one, sort_nbits1, sort_nbits;
 
   if (argc != 2)
   {
@@ -26,7 +27,7 @@ main (int argc, char **argv)
     printf ("Number of bits must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_bits))
+  if (!btor_util_is_power_of_2 (num_bits))
   {
     printf ("Number of bits must be a power of two\n");
     return 1;
@@ -35,15 +36,19 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  one               = boolector_one (btor, 1);
-  zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
+  sort_one    = boolector_bitvec_sort (btor, 1);
+  sort_nbits1 = boolector_bitvec_sort (btor, num_bits - 1);
+  sort_nbits  = boolector_bitvec_sort (btor, num_bits);
+
+  one               = boolector_one (btor, sort_one);
+  zero_num_bits_m_1 = boolector_zero (btor, sort_nbits1);
   m                 = boolector_concat (btor, one, zero_num_bits_m_1);
-  a                 = boolector_var (btor, num_bits, "a");
-  b                 = boolector_var (btor, num_bits, "b");
-  c                 = boolector_var (btor, num_bits, "c");
-  d                 = boolector_var (btor, num_bits, "d");
-  x                 = boolector_var (btor, num_bits, "x");
-  y                 = boolector_var (btor, num_bits, "y");
+  a                 = boolector_var (btor, sort_nbits, "a");
+  b                 = boolector_var (btor, sort_nbits, "b");
+  c                 = boolector_var (btor, sort_nbits, "c");
+  d                 = boolector_var (btor, sort_nbits, "d");
+  x                 = boolector_var (btor, sort_nbits, "x");
+  y                 = boolector_var (btor, sort_nbits, "y");
 
   x_xor_y = boolector_xor (btor, x, y);
 
@@ -89,6 +94,9 @@ main (int argc, char **argv)
   boolector_release (btor, y);
   boolector_release (btor, zero_num_bits_m_1);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_one);
+  boolector_release_sort (btor, sort_nbits1);
+  boolector_release_sort (btor, sort_nbits);
   boolector_delete (btor);
   return 0;
 }

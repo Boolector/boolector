@@ -1,4 +1,7 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+swapmem=$dir/swapmem
 for ((overlap=0;overlap<=1;overlap+=1))
   do
   if [[ $overlap -eq 1 ]]; then
@@ -19,15 +22,14 @@ for ((overlap=0;overlap<=1;overlap+=1))
       sizestring="0"$size
     fi
     if [[ $overlap -eq 1 ]]; then
-      filename=swapmem$sizestring"se.smt"
+      filename=swapmem$sizestring"se.smt2"
     else
-      filename=swapmem$sizestring"ue.smt"
+      filename=swapmem$sizestring"ue.smt2"
     fi
-    ./swapmem $size $overlaparg | boolector -rwl 0 -ds | while read line
+    $swapmem $size $overlaparg | $boolector -rwl 0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
-        echo "(benchmark $filename" > $filename
-        echo ":source {" >> $filename
+        echo "(set-info :source |" >> $filename
         echo "We swap two byte sequences of length $size twice in memory." >> $filename
         if [[ $overlap -eq 1 ]]; then
           echo "The sequences can overlap, hence it is not always the case" >> $filename
@@ -43,13 +45,13 @@ for ((overlap=0;overlap<=1;overlap+=1))
         echo "" >> $filename
         echo -n "Contributed by Robert Brummayer " >> $filename
         echo "(robert.brummayer@gmail.com)." >> $filename
-        echo "}" >> $filename
+        echo "|)" >> $filename
         if [[ $overlap -eq 1 ]]; then
-          echo ":status sat" >> $filename
+          echo "(set-info :status sat)" >> $filename
         else
-          echo ":status unsat" >> $filename
+          echo "(set-info :status unsat)" >> $filename
         fi
-        echo ":category { crafted }" >> $filename
+        echo "(set-info :category crafted)" >> $filename
         header=0
       else
         echo $line >> $filename

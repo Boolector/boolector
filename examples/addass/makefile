@@ -1,4 +1,4 @@
 all:
 	./generate.sh
 clean:
-	rm -f *.smt *.aig *.cnf *.log
+	rm -f *.smt2 *.aig *.cnf *.log

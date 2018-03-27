@@ -15,28 +15,28 @@ LOOKUP_ENCODING = 3
 SHIFTER_ENCODING = 4
 
 def usage():
-  print "usage: queensbv [-h] [-s <size>] [-m <mode>] [-e <encoding>]"
-  print ""
-  print " available modes: "
-  print "   0:  regular queens mode (default)"
-  print "   1:  try to place n + 1 queens on an n x n board" 
-  print "   2:  try to place m queens on an n x n board with m > n" 
-  print "   3:  regular no-3-in-line mode" 
-  print "   4:  no-3-in-line mode with 2 * n + 1 queens on an n x n board" 
-  print "   5:  no-3-in-line mode with m queens on an n x n board with m > 2n" 
-  print ""
-  print " available encodings: "
-  print "   0:  simple adder encoding (default)"
-  print "   1:  parallel adder encoding"
-  print "   2:  if-then-else encoding"
-  print "   3:  lookup encoding"
-  print "   4:  shifter encoding"
-  print ""
+  print ("usage: queensbv [-h] [-s <size>] [-m <mode>] [-e <encoding>]")
+  print ("")
+  print (" available modes: ")
+  print ("   0:  regular queens mode (default)")
+  print ("   1:  try to place n + 1 queens on an n x n board")
+  print ("   2:  try to place m queens on an n x n board with m > n")
+  print ("   3:  regular no-3-in-line mode")
+  print ("   4:  no-3-in-line mode with 2 * n + 1 queens on an n x n board")
+  print ("   5:  no-3-in-line mode with m queens on an n x n board with m > 2n")
+  print ("")
+  print (" available encodings: ")
+  print ("   0:  simple adder encoding (default)")
+  print ("   1:  parallel adder encoding")
+  print ("   2:  if-then-else encoding")
+  print ("   3:  lookup encoding")
+  print ("   4:  shifter encoding")
+  print ("")
   sys.exit(0)
 
 def die(msg):
   assert msg != None
-  print msg
+  print (msg)
   sys.exit(1)
 
 def is_power_of_2 (x):
@@ -85,13 +85,13 @@ def add_seq (list, ext):
   assert len (list) >= 2
   assert ext >= 0
 
-  print "(let (?e" + str(id) + " (zero_extend[" + str(ext) + \
-        "] " + list[0] + "))"
+  print ("(let (?e" + str(id) + " (zero_extend[" + str(ext) + \
+         "] " + list[0] + "))")
   last = "?e" + str(id)
   id += 1
   for i in range(1, len(list)):
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(ext) + "] " + list[i] + ")))"
+    print ("(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+           str(ext) + "] " + list[i] + ")))")
     last = "?e" + str(id)
     id += 1
   return last, ext + 1
@@ -108,10 +108,10 @@ def add_par (list, bw):
     next = []
     while i < len(list):
       if i != len(list) - 1:
-        print "(let (?e" + str(id) + " (bvadd (zero_extend[1] " + \
-              list[i] + ") (zero_extend[1] " + list[i + 1] + ")))"
+        print ("(let (?e" + str(id) + " (bvadd (zero_extend[1] " + \
+               list[i] + ") (zero_extend[1] " + list[i + 1] + ")))")
       else:
-        print "(let (?e" + str(id) + " (zero_extend[1] " + list[i] + "))" 
+        print ("(let (?e" + str(id) + " (zero_extend[1] " + list[i] + "))")
       last = "?e" + str(id)
       next.append(last)
       id += 1
@@ -132,11 +132,11 @@ def or_par (list, bw):
     next = []
     while i < len(list):
       if i != len(list) - 1:
-        print "(let (?e" + str(id) + " (bvor " + list[i] + " " + list[i + 1] + \
-              "))"
+        print ("(let (?e" + str(id) + " (bvor " + list[i] + " " + list[i + 1] + \
+               "))")
       else:
-        print "(let (?e" + str(id) + " (bvor " + list[i] + " " + \
-              "bv0[" + str(bw) + "]))"
+        print ("(let (?e" + str(id) + " (bvor " + list[i] + " " + \
+               "bv0[" + str(bw) + "]))")
       last = "?e" + str(id)
       next.append(last)
       id += 1
@@ -159,11 +159,11 @@ def and_par (list, bw):
     next = []
     while i < len(list):
       if i != len(list) - 1:
-        print "(let (?e" + str(id) + " (bvand " + list[i] + " " + \
-              list[i + 1] + "))"
+        print ("(let (?e" + str(id) + " (bvand " + list[i] + " " + \
+               list[i + 1] + "))")
       else:
-        print "(let (?e" + str(id) + " (bvand " + list[i] + " " + \
-              "bv" + str(int(bits, 2)) + "[" + str(bw) + "]))"
+        print ("(let (?e" + str(id) + " (bvand " + list[i] + " " + \
+               "bv" + str(int(bits, 2)) + "[" + str(bw) + "]))")
       last = "?e" + str(id)
       next.append(last)
       id += 1
@@ -190,7 +190,7 @@ def add_lookup_8_4 (list):
       else:
         concatlist.append ("bv0[1]")
     last = concat_list (concatlist)
-    print "(let (?e" + str(id) + " (select " + lookup + " " + last + "))"
+    print ("(let (?e" + str(id) + " (select " + lookup + " " + last + "))")
     last = "?e" + str(id)
     id += 1
     addlist.append (last)
@@ -267,11 +267,11 @@ def concat_list (list):
     next = []
     while i < len(list):
       if i != len(list) - 1:
-        print "(let (?e" + str(id) + " (concat " + list[i] + " " + \
-                list[i + 1] + "))"
+        print ("(let (?e" + str(id) + " (concat " + list[i] + " " + \
+               list[i + 1] + "))")
       else:
         next.pop()
-        print "(let (?e" + str(id) + " (concat " + last + " " + list[i] + "))" 
+        print ("(let (?e" + str(id) + " (concat " + last + " " + list[i] + "))")
       last = "?e" + str(id)
       next.append(last)
       id += 1
@@ -289,13 +289,13 @@ def shift_encode_eq_1 (list, shiftvarlist):
   assert len(shiftvarlist) >= 1
   
   listlen = len(list)
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        "(zero_extend[" + str(listlen - logsize) + "] " + \
-        shiftvarlist.pop() + ")))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         "(zero_extend[" + str(listlen - logsize) + "] " + \
+         shiftvarlist.pop() + ")))")
   last = "?e" + str(id)
   id += 1
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + last + " " + vec + "))")
 
 def shift_encode_eq_2 (list, shiftvarlist):
   global id
@@ -307,27 +307,27 @@ def shift_encode_eq_2 (list, shiftvarlist):
   assert len(shiftvarlist) >= 1
   
   listlen = len(list)
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        "(zero_extend[" + str(listlen - logsize) + "] " + \
-        shiftvarlist.pop() + ")))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         "(zero_extend[" + str(listlen - logsize) + "] " + \
+         shiftvarlist.pop() + ")))")
   shift1 = "?e" + str(id)
   id += 1
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        "(zero_extend[" + str(listlen - logsize) + "] " + \
-        shiftvarlist.pop() + ")))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         "(zero_extend[" + str(listlen - logsize) + "] " + \
+         shiftvarlist.pop() + ")))")
   shift2 = "?e" + str(id)
   id += 1
-  print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
+  print ("(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))")
   orshift = "?e" + str(id)
   id += 1
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))")
   and1 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))"
+  print ("(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))")
   and2 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+  print ("(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))")
 
 def shift_encode_eq_k (list, shiftvarlist, k):
   global id
@@ -342,24 +342,24 @@ def shift_encode_eq_k (list, shiftvarlist, k):
   log2listlen = log2(listlen)
   orlist = []
   for i in range (k):
-    print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-          "(zero_extend[" + str(listlen - log2listlen) + "] " + \
-          shiftvarlist.pop() + ")))"
+    print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+           "(zero_extend[" + str(listlen - log2listlen) + "] " + \
+           shiftvarlist.pop() + ")))")
     last = "?e" + str(id)
     id += 1
     orlist.append (last)
   orshift = or_par (orlist, listlen)
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))")
   and1 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (distinct",
+  print ("(flet ($e" + str(id) + " (distinct")
   for i in range(len(orlist)):
-    print orlist[i],
-  print "))"
+    print (orlist[i])
+  print ("))")
   and2 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+  print ("(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))")
 
 def shift_encode_gt_k (list, shiftvarlist, shiftvarlistone, k):
   global id
@@ -379,21 +379,21 @@ def shift_encode_gt_k (list, shiftvarlist, shiftvarlistone, k):
   for i in range(2, listlen):
     bits += "1"
 
-  print "(let (?e" + str(id) + " (concat " + shiftvarlistone.pop() + " bv" + \
-        str(2 ** (listlen - 2)) + "[" + str(listlen - 1) + "]))"
+  print ("(let (?e" + str(id) + " (concat " + shiftvarlistone.pop() + " bv" + \
+         str(2 ** (listlen - 2)) + "[" + str(listlen - 1) + "]))")
   last = "?e" + str(id)
   id += 1
   andlist.append (last)
 
   for i in range (1, len(list) - k - 1):
-    print "(let (?e" + str(id) + " (bvashr bv" + str(int(bits, 2)) + "[" + \
-          str(listlen) + "] " + shiftvarlist.pop() + "))"
+    print ("(let (?e" + str(id) + " (bvashr bv" + str(int(bits, 2)) + "[" + \
+           str(listlen) + "] " + shiftvarlist.pop() + "))")
     last = "?e" + str(id)
     id += 1
     andlist.append (last)
   andshift = and_par (andlist, listlen)
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + andshift + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + andshift + " " + vec + "))")
 
 def shift_encode_le_1 (list, shiftvarlist):
   global id
@@ -404,12 +404,12 @@ def shift_encode_le_1 (list, shiftvarlist):
   assert len(shiftvarlist) >= 1
 
   listlen = len(list)
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        shiftvarlist.pop() + "))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         shiftvarlist.pop() + "))")
   last = "?e" + str(id)
   id += 1
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + last + " " + vec + "))")
 
 def shift_encode_le_2 (list, shiftvarlist):
   global id
@@ -420,31 +420,31 @@ def shift_encode_le_2 (list, shiftvarlist):
   assert len(shiftvarlist) >= 1
   
   listlen = len(list)
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        shiftvarlist.pop() + "))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         shiftvarlist.pop() + "))")
   shift1 = "?e" + str(id)
   id += 1
-  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
-        shiftvarlist.pop() + "))"
+  print ("(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+         shiftvarlist.pop() + "))")
   shift2 = "?e" + str(id)
   id += 1
-  print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
+  print ("(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" )
   orshift = "?e" + str(id)
   id += 1
   vec = concat_list (list)
-  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  print ("(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))")
   and1 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))"
+  print ("(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))")
   and2 = "$e" + str(id)
   id += 1
-  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+  print ("(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))")
 
 
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:e:")
-except getopt.GetoptError, err:
-  print str(err)
+except getopt.GetoptError as err:
+  print (str(err))
   usage()
 
 for o, a in opts:
@@ -494,57 +494,57 @@ num_bits_fields = log2 (next_power_of_2 (sizesqr + 1))
 
 if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
    mode == NO_THREE_IN_LINE_MODE_GT2N:
-  print "(benchmark queensNoThreeInLine" + str(size) + "x" + str(size) 
+  print ("(benchmark queensNoThreeInLine" + str(size) + "x" + str(size) )
 else:
-  print "(benchmark queens" + str(size) + "x" + str(size)
-print ":source {"
+  print ("(benchmark queens" + str(size) + "x" + str(size))
+print (":source {")
 if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
    mode == NO_THREE_IN_LINE_MODE_GT2N:
-  print "BV encoding of no three-in-line problem"
+  print ("BV encoding of no three-in-line problem")
 else:
-  print "BV encoding of n-queens problem"
+  print ("BV encoding of n-queens problem")
 if mode == QUEENS_MODE:
-  print "We try to place " + str(size) + \
-        " queens on a " + str(size) + " x " + str(size) + " board"
+  print ("We try to place " + str(size) + \
+         " queens on a " + str(size) + " x " + str(size) + " board")
 elif mode == QUEENS_MODE_NP1: 
-  print "We try to place n + 1 queens on an n x n board"
+  print ("We try to place n + 1 queens on an n x n board")
 elif mode == QUEENS_MODE_GTN:
-  print "We try to place m queens on an n x n board with m > n"
+  print ("We try to place m queens on an n x n board with m > n")
 elif mode == NO_THREE_IN_LINE_MODE:
-  print "We try to place " + str(2 * size) + \
-        " queens on a " + str(size) + " x " + str(size) + " board"
+  print ("We try to place " + str(2 * size) + \
+         " queens on a " + str(size) + " x " + str(size) + " board")
 elif mode == NO_THREE_IN_LINE_MODE_2NP1:
-  print "We try to place " + str(2 * size + 1) + \
-        " queens on a " + str(size) + " x " + str(size) + " board"
+  print ("We try to place " + str(2 * size + 1) + \
+         " queens on a " + str(size) + " x " + str(size) + " board")
 elif mode == NO_THREE_IN_LINE_MODE_GT2N:
-  print "We try to place m queens on an n x n board with m > 2n"
+  print ("We try to place m queens on an n x n board with m > 2n")
 if encoding == SEQ_ADDER_ENCODING:
-  print "Cardinality constraints are encoded by simple adder circuits"
+  print ("Cardinality constraints are encoded by simple adder circuits")
 elif encoding == PAR_ADDER_ENCODING:
-  print "Cardinality constraints are encoded by parallel adder circuits"
+  print ("Cardinality constraints are encoded by parallel adder circuits")
 elif encoding == ITE_ENCODING:
-  print "Cardinality constraints are encoded by ITEs"
+  print ("Cardinality constraints are encoded by ITEs")
 elif encoding == SHIFTER_ENCODING:
-  print "Cardinality constraints are encoded by shifters"
+  print ("Cardinality constraints are encoded by shifters")
 else:
   assert encoding == LOOKUP_ENCODING
-  print "Cardinality constraints are encoded by lookups and parallel adders"
-print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
-print "}"
+  print ("Cardinality constraints are encoded by lookups and parallel adders")
+print ("Contributed by Robert Brummayer (robert.brummayer@gmail.com)")
+print ("}")
 if mode == QUEENS_MODE:
-  print ":status sat"
+  print (":status sat")
 elif mode == NO_THREE_IN_LINE_MODE:
-  print ":status unknown"
+  print (":status unknown")
 else:
-  print ":status unsat"
+  print (":status unsat")
 if encoding == LOOKUP_ENCODING:
-  print ":logic QF_AUFBV"
-  print ":extrafuns ((lookup Array[8:4]))"
+  print (":logic QF_AUFBV")
+  print (":extrafuns ((lookup Array[8:4]))")
 else:
-  print ":logic QF_BV"
+  print (":logic QF_BV")
 for i in range(size):
   for j in range(size):
-    print ":extrafuns ((" + board_field(i, j) + " BitVec[1]))"
+    print (":extrafuns ((" + board_field(i, j) + " BitVec[1]))")
 
 #generate additional variables for shifters
 if encoding == SHIFTER_ENCODING:
@@ -555,7 +555,7 @@ if encoding == SHIFTER_ENCODING:
     #generate variables for rows and cols
     for i in range(2 * size):
       var = "v" + str(shiftvarscounter)
-      print ":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))"
+      print (":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))")
       shiftvarscounter += 1
       varlist.append(var)
     shiftvarslistmap[str(logsize)] = varlist
@@ -572,7 +572,7 @@ if encoding == SHIFTER_ENCODING:
         limit = 4
       for j in range(limit):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + istring + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + istring + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[istring] = varlist
@@ -585,7 +585,7 @@ if encoding == SHIFTER_ENCODING:
         varlist = []
       for i in range(size + 1):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + str(log2sizesqr) + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + str(log2sizesqr) + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[str(log2sizesqr)] = varlist
@@ -595,7 +595,7 @@ if encoding == SHIFTER_ENCODING:
       else:
         varlist = []
       var = "v" + str(shiftvarscounter)
-      print ":extrafuns ((" + var + " BitVec[1]))"
+      print (":extrafuns ((" + var + " BitVec[1]))")
       shiftvarscounter += 1
       varlist.append(var)
       shiftvarslistmap["1"] = varlist
@@ -606,7 +606,7 @@ if encoding == SHIFTER_ENCODING:
         varlist = []
       for i in range(1, sizesqr - size - 1):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + str(sizesqr) + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + str(sizesqr) + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[str(sizesqr)] = varlist
@@ -617,7 +617,7 @@ if encoding == SHIFTER_ENCODING:
     #generate variables for rows and cols
     for i in range(4 * size):
       var = "v" + str(shiftvarscounter)
-      print ":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))"
+      print (":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))")
       shiftvarscounter += 1
       varlist.append(var)
     shiftvarslistmap[str(logsize)] = varlist
@@ -634,7 +634,7 @@ if encoding == SHIFTER_ENCODING:
         limit = 8
       for j in range(limit):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + istring + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + istring + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[istring] = varlist
@@ -647,7 +647,7 @@ if encoding == SHIFTER_ENCODING:
         varlist = []
       for i in range(2 * size + 1):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + str(log2sizesqr) + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + str(log2sizesqr) + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[str(log2sizesqr)] = varlist
@@ -657,7 +657,7 @@ if encoding == SHIFTER_ENCODING:
       else:
         varlist = []
       var = "v" + str(shiftvarscounter)
-      print ":extrafuns ((" + var + " BitVec[1]))"
+      print (":extrafuns ((" + var + " BitVec[1]))")
       shiftvarscounter += 1
       varlist.append(var)
       shiftvarslistmap["1"] = varlist
@@ -668,13 +668,13 @@ if encoding == SHIFTER_ENCODING:
         varlist = []
       for i in range(1, sizesqr - 2 * size - 1):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + str(sizesqr) + "]))"
+        print (":extrafuns ((" + var + " BitVec[" + str(sizesqr) + "]))")
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[str(sizesqr)] = varlist
 
 
-print ":formula"
+print (":formula")
 
 #generate lookup table
 if encoding == LOOKUP_ENCODING:
@@ -727,11 +727,11 @@ for i in range(size):
       last, bw_adder = add_par (list, 1) 
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv2[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -762,11 +762,11 @@ for i in range(size):
       last, bw_adder = add_par (list, 1) 
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv2[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -806,11 +806,11 @@ for i in range(1, size):
       last, bw_adder = add_par (list, 1)
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -849,11 +849,11 @@ for i in range(1, size - 1):
       last, bw_adder = add_par (list, 1)
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -892,11 +892,11 @@ for i in range(1, size):
       last, bw_adder = add_par (list, 1)
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -935,11 +935,11 @@ for i in range(1, size - 1):
       last, bw_adder = add_par (list, 1)
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+             str(bw_adder) + "]))")
     else:
-      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-            str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+             str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -982,18 +982,18 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
       assert encoding == PAR_ADDER_ENCODING
       last, bw_adder = add_par (list, 1)
     if mode == QUEENS_MODE_NP1:
-      print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
-             "[" + str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
+              "[" + str(bw_adder) + "]))")
     elif mode == QUEENS_MODE_GTN:
-      print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
-             "[" + str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
+              "[" + str(bw_adder) + "]))")
     elif mode == NO_THREE_IN_LINE_MODE_2NP1:
-      print "(flet ($e" + str(id) + " (= " + last + " bv" + \
-            str(2 * size + 1) + "[" + str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (= " + last + " bv" + \
+             str(2 * size + 1) + "[" + str(bw_adder) + "]))")
     else:
       assert mode == NO_THREE_IN_LINE_MODE_GT2N
-      print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + \
-            str(2 * size) + "[" + str(bw_adder) + "]))"
+      print ("(flet ($e" + str(id) + " (bvugt " + last + " bv" + \
+             str(2 * size) + "[" + str(bw_adder) + "]))")
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -1001,14 +1001,14 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
 assert len(constraints) >= 2
 last = constraints[0]
 for i in range(1, len(constraints)):
-  print "(flet ($e" + str(id) + " (and " + last + " " + constraints[i] + "))" 
+  print ("(flet ($e" + str(id) + " (and " + last + " " + constraints[i] + "))")
   last = "$e" + str(id)
   id += 1
-print last
+print (last)
 pars = ""
 for i in range(id):
   pars = pars + ")"
-print pars
+print (pars)
 
 if encoding == SHIFTER_ENCODING:
   assert shiftvarslistmap != None

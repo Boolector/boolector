@@ -10,7 +10,7 @@ main (int argc, char** argv)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: pjex [-h][-s|--sat] <d>\n");
+      printf ("usage: pjex [-h][-s|--sat] <num-bits>\n");
       exit (0);
     }
     if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--sat"))
@@ -18,22 +18,26 @@ main (int argc, char** argv)
     else if (argv[i][0] == '-')
     {
       fprintf (stderr, "*** pjex: invalid option '%s'\n", argv[i]);
+      printf ("usage: pjex [-h][-s|--sat] <num-bits>\n");
       exit (1);
     }
     else if (d > 0)
     {
-      fprintf (stderr, "*** pjex: multiple '<d>' options\n");
+      fprintf (stderr, "*** pjex: multiple '<num-bits>' options\n");
+      printf ("usage: pjex [-h][-s|--sat] <num-bits>\n");
       exit (1);
     }
     else if ((d = atoi (argv[i])) <= 1)
     {
       fprintf (stderr, "*** pjex: argument '%s' invalid\n", argv[i]);
+      printf ("usage: pjex [-h][-s|--sat] <num-bits>\n");
       exit (1);
     }
   }
   if (d < 0)
   {
     fprintf (stderr, "*** pjex: argument missing\n");
+    printf ("usage: pjex [-h][-s|--sat] <num-bits>\n");
     exit (1);
   }
   printf ("; Pete Jeavons Example CSP example\n");

@@ -1,13 +1,26 @@
 #!/bin/sh
+type bc > /dev/null 2>&1
+if [ $# != 1 ]
+then
+  echo "[error] invalid number of arguments"
+  echo "usage: $(basename $0) <num-bits>"
+  exit 1
+fi
+if [ $? == 1 ]
+then
+  echo "[error] bc not installed"
+  echo "usage: $(basename $0) <num-bits>"
+  exit 1
+fi
 n=$1
 l=1
-while [ `echo "2 $l ^p" |dc` -le $n ]
+while [ `echo "2^$l" |bc` -le $n ]
 do
   l=`expr $l + 1`
 done
 m=`expr $l - 1`
-p1=`echo "2 $l ^ $n - p" | dc`
-p2=`echo "2 $l ^ $l - p" | dc`
+p1=`echo "2^$l-$n" | bc`
+p2=`echo "2^$l-$l" | bc`
 echo "(set-logic QF_BV)"
 
 echo "(declare-fun x () (_ BitVec $n))"

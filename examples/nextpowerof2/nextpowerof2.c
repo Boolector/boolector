@@ -39,13 +39,13 @@ main (int argc, char **argv)
     printf ("Number of bits must be greater than one\n");
     return EXIT_FAILURE;
   }
-  if (!btor_is_power_of_2_util (num_bits))
+  if (!btor_util_is_power_of_2 (num_bits))
   {
     printf ("Number of bits must be a power of 2\n");
     return EXIT_FAILURE;
   }
 
-  num_bits_log_2 = btor_log_2_util (num_bits);
+  num_bits_log_2 = btor_util_log_2 (num_bits);
 
   powers = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_bits);
   const_string           = (char *) malloc (sizeof (char) * (num_bits + 1));

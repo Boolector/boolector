@@ -1,4 +1,7 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+countbits=$dir/countbits
 limit=512
 for ((size=16;size<=$limit;size*=2))
 do
@@ -10,12 +13,11 @@ do
   else
     sizestring=$size
   fi
-  filename=countbits$sizestring".smt"
-  ./countbits $size | boolector -rwl 0 -ds | while read line
+  filename=countbits$sizestring".smt2"
+  $countbits $size | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "Verifies correcntess of Peter Wegner's algorithm:" >> $filename
       echo "P. Wegner." >> $filename
       echo "A technique for counting ones in a binary computer." >> $filename
@@ -24,9 +26,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Armin Biere " >> $filename
       echo "(armin.biere@jku.at)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { crafted }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category crafted)" >> $filename
       header=0
     else
       echo $line >> $filename

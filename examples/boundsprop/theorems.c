@@ -19,10 +19,11 @@ main (int argc, char **argv)
   BoolectorNode *one, *zero_num_bits_m_1, *a, *b, *c, *d, *m, *formula, *tmp;
   BoolectorNode *not_a, *not_b, *not_c, *not_d;
   BoolectorNode *min_and, *max_and, *min_or, *max_or;
-  BoolectorNode *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq,
-      *premisse;
-  BoolectorNode *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
+  BoolectorNode *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq;
+  BoolectorNode *premisse, *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
+  BoolectorSort sort_one, sort_nbits1, sort_nbits;
   int theorem_number, num_bits;
+
   if (argc != 3)
   {
     printf ("Usage: ./theorems <theorem-number> <num-bits>\n");
@@ -49,7 +50,7 @@ main (int argc, char **argv)
     printf ("Number of bits must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_bits))
+  if (!btor_util_is_power_of_2 (num_bits))
   {
     printf ("Number of bits must be a power of two\n");
     return 1;
@@ -57,13 +58,17 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  one               = boolector_one (btor, 1);
-  zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
+  sort_one    = boolector_bitvec_sort (btor, 1);
+  sort_nbits1 = boolector_bitvec_sort (btor, num_bits - 1);
+  sort_nbits  = boolector_bitvec_sort (btor, num_bits);
+
+  one               = boolector_one (btor, sort_one);
+  zero_num_bits_m_1 = boolector_zero (btor, sort_nbits1);
   m                 = boolector_concat (btor, one, zero_num_bits_m_1);
-  a                 = boolector_var (btor, num_bits, "a");
-  b                 = boolector_var (btor, num_bits, "b");
-  c                 = boolector_var (btor, num_bits, "c");
-  d                 = boolector_var (btor, num_bits, "d");
+  a                 = boolector_var (btor, sort_nbits, "a");
+  b                 = boolector_var (btor, sort_nbits, "b");
+  c                 = boolector_var (btor, sort_nbits, "c");
+  d                 = boolector_var (btor, sort_nbits, "d");
 
   switch (theorem_number)
   {
@@ -131,7 +136,7 @@ main (int argc, char **argv)
       not_d     = boolector_not (btor, d);
       max_and_1 = btor_maxand (btor, a, b, not_d, not_c, m, num_bits);
       max_and_2 = btor_maxand (btor, not_b, not_a, c, d, m, num_bits);
-      zero      = boolector_zero (btor, num_bits);
+      zero      = boolector_zero (btor, sort_nbits);
       max_or = btor_maxor (btor, zero, max_and_1, zero, max_and_2, m, num_bits);
       eq     = boolector_eq (btor, max_xor, max_or);
       boolector_release (btor, max_and_1);
@@ -167,6 +172,9 @@ main (int argc, char **argv)
   boolector_release (btor, m);
   boolector_release (btor, zero_num_bits_m_1);
   boolector_release (btor, one);
+  boolector_release_sort (btor, sort_one);
+  boolector_release_sort (btor, sort_nbits1);
+  boolector_release_sort (btor, sort_nbits);
   boolector_delete (btor);
   return 0;
 }

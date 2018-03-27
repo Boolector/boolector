@@ -40,7 +40,7 @@ main (int argc, char **argv)
     printf ("Number of bits must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_bits))
+  if (!btor_util_is_power_of_2 (num_bits))
   {
     printf ("Number of bits must be a power of two\n");
     return 1;
@@ -48,7 +48,7 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   s0        = boolector_bitvec_sort (btor, num_bits);
-  s1        = boolector_bitvec_sort (btor, btor_log_2_util (num_bits));
+  s1        = boolector_bitvec_sort (btor, btor_util_log_2 (num_bits));
   var       = boolector_var (btor, s0, "var");
   var_shift = boolector_copy (btor, var);
   zero      = boolector_zero (btor, s0);

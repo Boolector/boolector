@@ -1,4 +1,8 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+umulov1=$dir/umulov1.sh
+umulov2=$dir/umulov2.sh
 inc=16
 for ((bits=16; bits <= 256; bits+=inc))
 do
@@ -8,12 +12,11 @@ do
   else 
     bitsstring=$bits
   fi
-  filename=umulov1bw$bitsstring".smt"
-  ./umulov1 $bits | boolector -rwl 0 -ds | while read line
+  filename=umulov1bw$bitsstring".smt2"
+  $umulov1 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We verify the correctness of an unsigned multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -23,9 +26,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename
@@ -48,11 +51,10 @@ do
     bitsstring=$bits
   fi
   filename=umulov2bw$bitsstring".smt"
-  ./umulov2 $bits | boolector -rwl 0 -ds | while read line
+  $umulov2 $bits | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo "We verify a verification condition for an unsigned multiplication" >> $filename
       echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
@@ -66,9 +68,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status unsat" >> $filename
-      echo ":category { industrial }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status unsat)" >> $filename
+      echo "(set-info :category industrial)" >> $filename
       header=0
     else
       echo $line >> $filename

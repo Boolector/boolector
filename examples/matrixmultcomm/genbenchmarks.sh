@@ -1,4 +1,7 @@
 #!/bin/bash
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+boolector=$dir/../../bin/boolector
+mmcomm=$dir/matrixmultcomm
 numbits=32
 for ((size=2;size<=12;size+=1))
 do
@@ -8,12 +11,11 @@ do
   else
     sizestring=$size
   fi
-  filename=matrixmultcomm$sizestring".smt"
-  ./matrixmultcomm $numbits $size | boolector -rwl 0 -ds | while read line
+  filename=matrixmultcomm$sizestring".smt2"
+  $mmcomm $numbits $size | $boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
-      echo "(benchmark $filename" > $filename
-      echo ":source {" >> $filename
+      echo "(set-info :source |" >> $filename
       echo -n "This benchmark shows that matrix multiplication" >> $filename
       echo "is not commutative in general." >> $filename
       echo "We try to show that A x B = B x A, which is generally not the case". >> $filename
@@ -23,9 +25,9 @@ do
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
-      echo "}" >> $filename
-      echo ":status sat" >> $filename
-      echo ":category { crafted }" >> $filename
+      echo "|)" >> $filename
+      echo "(set-info :status sat)" >> $filename
+      echo "(set-info :category crafted)" >> $filename
       header=0
     else 
       echo $line >> $filename
