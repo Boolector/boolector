@@ -25,6 +25,7 @@ onlycadical=no
 gcov=no
 gprof=no
 python=no
+timestats=no
 
 #--------------------------------------------------------------------------#
 
@@ -56,6 +57,7 @@ where <option> is one of the following:
   -gcov             compile with -fprofile-arcs -ftest-coverage
   -gprof            compile with -pg
   -python           compile python API
+  --time-stats      compile with time statistics
 
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
@@ -119,6 +121,7 @@ do
     -gcov) gcov=yes;;
     -gprof) gprof=yes;;
     -python) python=yes;shared=yes;;
+    --time-stats) timestats=yes;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
@@ -140,6 +143,7 @@ addstcpp () {
 if [ $debug = yes ]
 then
   msg "compiling for debugging as specified"
+  timestats=yes
 else
   msg "optimized compilation (no '-g')"
 fi
@@ -191,6 +195,9 @@ elif [ $debug = no ]
 then
   die "CFLAGS environment variable defined and '-O' used"
 fi
+
+[ $timestats = yes ] && CFLAGS="$CFLAGS -DBTOR_TIME_STATISTICS"
+[ $timestats = no ] && msg "time statistics are disabled (no '--time-stats')"
 
 #--------------------------------------------------------------------------#
 

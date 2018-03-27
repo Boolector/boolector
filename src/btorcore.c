@@ -560,6 +560,7 @@ btor_print_stats (Btor *btor)
 
   if (btor->slv) btor->slv->api.print_stats (btor->slv);
 
+#ifdef BTOR_TIME_STATISTICS
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
   BTOR_MSG (btor->msg,
@@ -644,6 +645,7 @@ btor_print_stats (Btor *btor)
               percent (btor->time.ack, btor->time.simplify));
 
   if (btor->slv) btor->slv->api.print_time_stats (btor->slv);
+#endif
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (

@@ -699,6 +699,7 @@ static void
 print_static_stats (int32_t sat_res)
 {
   double real = btor_util_current_time () - g_start_time_real;
+#ifdef BTOR_TIME_STATISTICS
 #ifdef BTOR_HAVE_GETRUSAGE
   double process = btor_util_time_stamp ();
   if (g_dual_threads)
@@ -709,6 +710,7 @@ print_static_stats (int32_t sat_res)
     btormain_msg ("%.1f seconds process", process);
 #else
   btormain_msg ("can not determine run-time in seconds (no getrusage)");
+#endif
 #endif
   btormain_msg ("%.1f seconds real", real);
   btormain_msg ("%s",

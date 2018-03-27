@@ -494,7 +494,7 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 }
 
 /*------------------------------------------------------------------------*/
-#ifdef BTOR_HAVE_GETRUSAGE
+#if defined(BTOR_HAVE_GETRUSAGE) && defined(BTOR_TIME_STATISTICS)
 
 #include <sys/resource.h>
 #include <unistd.h>
@@ -510,6 +510,12 @@ btor_util_time_stamp (void)
     res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
   }
   return res;
+}
+#else
+double
+btor_util_time_stamp (void)
+{
+  return 0;
 }
 #endif
 
