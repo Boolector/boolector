@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2013-2018 Aina Niemetz.
  *
  *  All rights reserved.
@@ -98,6 +98,38 @@ Btor *boolector_clone (Btor *btor);
     boolector_set_opt in order to do the cleanup automatically.
 */
 void boolector_delete (Btor *btor);
+
+/*!
+  Push new context levels.
+
+  :param btor: Boolector instance.
+  :param level: Number of context levels to create (must be a least 1).
+
+  .. note::
+    Assumptions added via boolector_assume are not affected by context level
+    changes and are only valid until the next boolector_sat call no matter at
+    what level they were assumed.
+
+  .. seealso::
+    boolector_assume
+ */
+void boolector_push (Btor *btor, uint32_t level);
+
+/*!
+  Pop context levels.
+
+  :param btor: Boolector instance.
+  :param level: Number of context levels to pop (must be at least 1).
+
+  .. note::
+    Assumptions added via boolector_assume are not affected by context level
+    changes and are only valid until the next boolector_sat call no matter at
+    what level they were assumed.
+
+  .. seealso::
+    boolector_assume
+ */
+void boolector_pop (Btor *btor, uint32_t level);
 
 /*!
    Set a termination callback.

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2012-2018 Aina Niemetz.
  *
  *  All rights reserved.
@@ -146,6 +146,13 @@ struct Btor
   BtorPtrHashTable *var_rhs;
   BtorPtrHashTable *fun_rhs;
 
+  /* maintain assertions for different contexts push/pop */
+  BtorNodePtrStack assertions;
+  /* caches the assertions on stack 'assertions' */
+  BtorIntHashTable *assertions_cache;
+  /* saves the number of assertions on each push */
+  BtorUIntStack assertions_trail;
+
 #ifndef NDEBUG
   Btor *clone; /* shadow clone (debugging only) */
 #endif
@@ -280,6 +287,10 @@ BtorAIGMgr *btor_get_aig_mgr (const Btor *btor);
 
 /* Run rewriting engine */
 int32_t btor_simplify (Btor *btor);
+
+void btor_push (Btor *btor, uint32_t level);
+
+void btor_pop (Btor *btor, uint32_t level);
 
 /*------------------------------------------------------------------------*/
 

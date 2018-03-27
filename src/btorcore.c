@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2012-2018 Aina Niemetz.
  *
  *  All rights reserved.
@@ -745,6 +745,11 @@ btor_new (void)
   btor->fun_rhs = btor_hashptr_table_new (mm,
                                           (BtorHashPtr) btor_node_hash_by_id,
                                           (BtorCmpPtr) btor_node_compare_by_id);
+
+  BTOR_INIT_STACK (mm, btor->assertions);
+  BTOR_INIT_STACK (mm, btor->assertions_trail);
+  btor->assertions_cache = btor_hashint_table_new (mm);
+
 #ifndef NDEBUG
   btor->stats.rw_rules_applied = btor_hashptr_table_new (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
@@ -907,6 +912,12 @@ btor_delete (Btor *btor)
   btor_hashptr_table_delete (btor->assumptions);
   btor_hashptr_table_delete (btor->var_rhs);
   btor_hashptr_table_delete (btor->fun_rhs);
+
+  for (i = 0; i < BTOR_COUNT_STACK (btor->assertions); i++)
+    btor_node_release (btor, BTOR_PEEK_STACK (btor->assertions, i));
+  BTOR_RELEASE_STACK (btor->assertions);
+  BTOR_RELEASE_STACK (btor->assertions_trail);
+  btor_hashint_table_delete (btor->assertions_cache);
 
   btor_model_delete (btor);
   btor_node_release (btor, btor->true_exp);
@@ -3954,6 +3965,19 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
         BTOR_FUN_SOLVER (btor)->sat_limit = sat_limit;
       }
     }
+
+    /* 'btor->assertions' contains all assertions that were asserted in context
+     * levels > 0 (boolector_push). We assume all these assertions on every
+     * btor_check_sat call since these assumptions are valid until the
+     * corresponding context is popped. */
+    if (BTOR_COUNT_STACK (btor->assertions) > 0)
+    {
+      assert (BTOR_COUNT_STACK (btor->assertions_trail) > 0);
+      uint32_t i;
+      for (i = 0; i < BTOR_COUNT_STACK (btor->assertions); i++)
+        btor_assume_exp (btor, BTOR_PEEK_STACK (btor->assertions, i));
+    }
+
     assert (btor->slv);
     res = btor->slv->api.sat (btor->slv);
   }

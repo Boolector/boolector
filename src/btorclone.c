@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2014-2017 Mathias Preiner.
+ *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
  *  All rights reserved.
@@ -1147,6 +1147,26 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (fun_rhs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_rhs))
           == clone->mm->allocated);
+
+  clone->assertions_cache =
+      btor_hashint_table_clone (clone->mm, btor->assertions_cache);
+  assert ((allocated += MEM_INT_HASH_TABLE (btor->assertions_cache))
+          == clone->mm->allocated);
+
+  btor_clone_node_ptr_stack (mm, &btor->assertions, &clone->assertions, emap);
+  assert (
+      (allocated += BTOR_SIZE_STACK (btor->assertions) * sizeof (BtorNode *))
+      == clone->mm->allocated);
+
+  BTOR_INIT_STACK (clone->mm, clone->assertions_trail);
+  for (i = 0; i < BTOR_COUNT_STACK (btor->assertions_trail); i++)
+    BTOR_PUSH_STACK (clone->assertions_trail,
+                     BTOR_PEEK_STACK (btor->assertions_trail, i));
+  BTOR_ADJUST_STACK (btor->assertions_trail, clone->assertions_trail);
+  assert ((allocated +=
+           BTOR_SIZE_STACK (btor->assertions_trail) * sizeof (uint32_t))
+          == clone->mm->allocated);
+
   if (btor->bv_model)
   {
     clone->bv_model = btor_model_clone_bv (clone, btor->bv_model, false);

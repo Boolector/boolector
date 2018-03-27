@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2013-2018 Aina Niemetz.
  *
  *  All rights reserved.
@@ -353,6 +353,44 @@ boolector_delete (Btor *btor)
 }
 
 void
+boolector_push (Btor *btor, uint32_t level)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI ("%u", level);
+  BTOR_ABORT (level < 1, "context level must be greater than 0");
+
+  uint32_t i;
+  for (i = 0; i < level; i++)
+  {
+    BTOR_PUSH_STACK (btor->assertions_trail,
+                     BTOR_COUNT_STACK (btor->assertions));
+  }
+}
+
+void
+boolector_pop (Btor *btor, uint32_t level)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI ("%u", level);
+  BTOR_ABORT (level < 1, "context level must be greater than 0");
+  BTOR_ABORT (level > BTOR_COUNT_STACK (btor->assertions_trail),
+              "can not pop more levels (%u) than created via push (%u).",
+              level,
+              BTOR_COUNT_STACK (btor->assertions_trail));
+
+  uint32_t i, pos = 0;
+  for (i = 0; i < level; i++) pos = BTOR_POP_STACK (btor->assertions_trail);
+
+  BtorNode *cur;
+  while (BTOR_COUNT_STACK (btor->assertions) > pos)
+  {
+    cur = BTOR_POP_STACK (btor->assertions);
+    btor_hashint_table_remove (btor->assertions_cache, cur);
+    btor_node_release (btor, cur);
+  }
+}
+
+void
 boolector_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -470,7 +508,20 @@ boolector_assert (Btor *btor, BoolectorNode *node)
               "'exp' must have bit-width one");
   BTOR_ABORT (btor_node_real_addr (exp)->parameterized,
               "assertion must not be parameterized");
-  btor_assert_exp (btor, exp);
+
+  /* all assertions at a context level > 0 are internally handled as
+   * assumptions. */
+  if (BTOR_COUNT_STACK (btor->assertions_trail) > 0)
+  {
+    int32_t id = btor_node_get_id (exp);
+    if (!btor_hashint_table_contains (btor->assertions_cache, id))
+    {
+      BTOR_PUSH_STACK (btor->assertions, btor_node_copy (btor, exp));
+      btor_hashint_table_add (btor->assertions_cache, id);
+    }
+  }
+  else
+    btor_assert_exp (btor, exp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assert, BTOR_CLONED_EXP (exp));
 #endif
