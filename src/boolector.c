@@ -385,7 +385,7 @@ boolector_pop (Btor *btor, uint32_t level)
   while (BTOR_COUNT_STACK (btor->assertions) > pos)
   {
     cur = BTOR_POP_STACK (btor->assertions);
-    btor_hashint_table_remove (btor->assertions_cache, cur);
+    btor_hashint_table_remove (btor->assertions_cache, btor_node_get_id (cur));
     btor_node_release (btor, cur);
   }
 }
