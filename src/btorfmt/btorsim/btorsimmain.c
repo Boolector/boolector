@@ -1,12 +1,13 @@
-/*  Boolector: Satisfiability Modulo Theories (SMT) solver.
+/**
+ *  BtorFMT: A tool package for the BTOR format.
  *
- *  Copyright (C) 2018 Armin Biere.
- *  Copyright (C) 2018 Aina Niemetz.
+ *  Copyright (c) 2018 Armin Biere.
+ *  Copyright (c) 2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
- *  This file is part of Boolector.
- *  See COPYING for more information on using this software.
+ *  This file is part of the BtorFMT package.
+ *  See LICENSE.txt for more information on using this software.
  */
 
 #include <assert.h>
@@ -18,11 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "btorfmt/btorfmt.h"
-#include "btorstacksim.h"
-
-#include "btorbv.h"
-#include "utils/btorrng.h"
+#include "btorfmt.h"
+#include "btorsimbv.h"
+#include "btorsimmem.h"
+#include "btorsimrng.h"
+#include "btorsimstack.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -133,8 +134,6 @@ static int random_mode   = 0;
 
 static BtorFormatReader *model;
 
-static BtorMemMgr *mem;
-
 BTORSIM_DECLARE_STACK (BtorFormatLinePtr, BtorFormatLine *);
 
 static BtorFormatLinePtrStack inputs;
@@ -154,8 +153,8 @@ static long num_format_lines;
 static BtorFormatLine **inits;
 static BtorFormatLine **nexts;
 
-static BtorBitVector **current_state;
-static BtorBitVector **next_state;
+static BtorSimBitVector **current_state;
+static BtorSimBitVector **next_state;
 
 static void
 parse_model_line (BtorFormatLine *l)
@@ -301,7 +300,6 @@ parse_model_line (BtorFormatLine *l)
 static void
 parse_model ()
 {
-  mem = btor_mem_mgr_new ();
   BTORSIM_INIT_STACK (inputs);
   BTORSIM_INIT_STACK (states);
   BTORSIM_INIT_STACK (bads);
@@ -313,18 +311,18 @@ parse_model ()
   if (!btorfmt_read_lines (model, model_file))
     die ("parse error in '%s' at %s", model_path, btorfmt_error (model));
   num_format_lines = btorfmt_max_id (model);
-  BTOR_CNEWN (mem, inits, num_format_lines);
-  BTOR_CNEWN (mem, nexts, num_format_lines);
+  BTORSIM_CNEWN (inits, num_format_lines);
+  BTORSIM_CNEWN (nexts, num_format_lines);
   BtorFormatLineIterator it = btorfmt_iter_init (model);
   BtorFormatLine *line;
   while ((line = btorfmt_iter_next (&it))) parse_model_line (line);
 }
 
 static void
-update_current_state (long id, BtorBitVector *bv)
+update_current_state (long id, BtorSimBitVector *bv)
 {
   assert (0 <= id), assert (id < num_format_lines);
-  if (current_state[id]) btor_bv_free (mem, current_state[id]);
+  if (current_state[id]) btorsim_bv_free (current_state[id]);
   current_state[id] = bv;
 }
 
@@ -332,106 +330,106 @@ static void
 delete_current_state (long id)
 {
   assert (0 <= id), assert (id < num_format_lines);
-  if (current_state[id]) btor_bv_free (mem, current_state[id]);
+  if (current_state[id]) btorsim_bv_free (current_state[id]);
   current_state[id] = 0;
 }
 
-static BtorBitVector *
+static BtorSimBitVector *
 simulate (long id)
 {
   int sign = id < 0 ? -1 : 1;
   if (sign < 0) id = -id;
   assert (0 <= id), assert (id < num_format_lines);
-  BtorBitVector *res = current_state[id];
+  BtorSimBitVector *res = current_state[id];
   if (!res)
   {
     BtorFormatLine *l = btorfmt_get_line_by_id (model, id);
     if (!l) die ("internal error: unexpected empty ID %ld", id);
-    BtorBitVector *args[3] = {0, 0, 0};
+    BtorSimBitVector *args[3] = {0, 0, 0};
     for (uint32_t i = 0; i < l->nargs; i++) args[i] = simulate (l->args[i]);
     switch (l->tag)
     {
       case BTOR_FORMAT_TAG_add:
         assert (l->nargs == 2);
-        res = btor_bv_add (mem, args[0], args[1]);
+        res = btorsim_bv_add (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_and:
         assert (l->nargs == 2);
-        res = btor_bv_and (mem, args[0], args[1]);
+        res = btorsim_bv_and (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_concat:
         assert (l->nargs == 2);
-        res = btor_bv_concat (mem, args[0], args[1]);
+        res = btorsim_bv_concat (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_const:
         assert (l->nargs == 0);
-        res = btor_bv_char_to_bv (mem, l->constant);
+        res = btorsim_bv_char_to_bv (l->constant);
         break;
       case BTOR_FORMAT_TAG_constd:
         assert (l->nargs == 0);
-        res = btor_bv_constd (mem, l->constant, l->sort.bitvec.width);
+        res = btorsim_bv_constd (l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_consth:
         assert (l->nargs == 0);
-        res = btor_bv_consth (mem, l->constant, l->sort.bitvec.width);
+        res = btorsim_bv_consth (l->constant, l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_eq:
         assert (l->nargs == 2);
-        res = btor_bv_eq (mem, args[0], args[1]);
+        res = btorsim_bv_eq (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_implies:
         assert (l->nargs == 2);
-        res = btor_bv_implies (mem, args[0], args[1]);
+        res = btorsim_bv_implies (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_ite:
         assert (l->nargs == 3);
-        res = btor_bv_ite (mem, args[0], args[1], args[2]);
+        res = btorsim_bv_ite (args[0], args[1], args[2]);
         break;
       case BTOR_FORMAT_TAG_mul:
         assert (l->nargs == 2);
-        res = btor_bv_mul (mem, args[0], args[1]);
+        res = btorsim_bv_mul (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_nand:
         assert (l->nargs == 2);
-        res = btor_bv_nand (mem, args[0], args[1]);
+        res = btorsim_bv_nand (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_ne:
         assert (l->nargs == 2);
-        res = btor_bv_ne (mem, args[0], args[1]);
+        res = btorsim_bv_ne (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_nor:
         assert (l->nargs == 2);
-        res = btor_bv_nor (mem, args[0], args[1]);
+        res = btorsim_bv_nor (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_not:
         assert (l->nargs == 1);
-        res = btor_bv_not (mem, args[0]);
+        res = btorsim_bv_not (args[0]);
         break;
       case BTOR_FORMAT_TAG_one:
-        res = btor_bv_one (mem, l->sort.bitvec.width);
+        res = btorsim_bv_one (l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_ones:
-        res = btor_bv_ones (mem, l->sort.bitvec.width);
+        res = btorsim_bv_ones (l->sort.bitvec.width);
         break;
       case BTOR_FORMAT_TAG_or:
         assert (l->nargs == 2);
-        res = btor_bv_or (mem, args[0], args[1]);
+        res = btorsim_bv_or (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_redand:
         assert (l->nargs == 1);
-        res = btor_bv_redand (mem, args[0]);
+        res = btorsim_bv_redand (args[0]);
         break;
       case BTOR_FORMAT_TAG_redor:
         assert (l->nargs == 1);
-        res = btor_bv_redor (mem, args[0]);
+        res = btorsim_bv_redor (args[0]);
         break;
       case BTOR_FORMAT_TAG_slice:
         assert (l->nargs == 1);
-        res = btor_bv_slice (mem, args[0], l->args[1], l->args[2]);
+        res = btorsim_bv_slice (args[0], l->args[1], l->args[2]);
         break;
       case BTOR_FORMAT_TAG_sub:
         assert (l->nargs == 2);
-        res = btor_bv_sub (mem, args[0], args[1]);
+        res = btorsim_bv_sub (args[0], args[1]);
         break;
         break;
       case BTOR_FORMAT_TAG_uext:
@@ -441,37 +439,37 @@ simulate (long id)
           assert (width <= l->sort.bitvec.width);
           uint32_t padding = l->sort.bitvec.width - width;
           if (padding)
-            res = btor_bv_uext (mem, args[0], padding);
+            res = btorsim_bv_uext (args[0], padding);
           else
-            res = btor_bv_copy (mem, args[0]);
+            res = btorsim_bv_copy (args[0]);
         }
         break;
       case BTOR_FORMAT_TAG_ugt:
         assert (l->nargs == 2);
-        res = btor_bv_ult (mem, args[1], args[0]);
+        res = btorsim_bv_ult (args[1], args[0]);
         break;
       case BTOR_FORMAT_TAG_ugte:
         assert (l->nargs == 2);
-        res = btor_bv_ulte (mem, args[1], args[0]);
+        res = btorsim_bv_ulte (args[1], args[0]);
         break;
       case BTOR_FORMAT_TAG_ult:
         assert (l->nargs == 2);
-        res = btor_bv_ult (mem, args[0], args[1]);
+        res = btorsim_bv_ult (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_ulte:
         assert (l->nargs == 2);
-        res = btor_bv_ulte (mem, args[0], args[1]);
+        res = btorsim_bv_ulte (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_xnor:
         assert (l->nargs == 2);
-        res = btor_bv_xnor (mem, args[0], args[1]);
+        res = btorsim_bv_xnor (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_xor:
         assert (l->nargs == 2);
-        res = btor_bv_xor (mem, args[0], args[1]);
+        res = btorsim_bv_xor (args[0], args[1]);
         break;
       case BTOR_FORMAT_TAG_zero:
-        res = btor_bv_zero (mem, l->sort.bitvec.width);
+        res = btorsim_bv_zero (l->sort.bitvec.width);
         break;
       default:
         die ("can not randomly simulate operator '%s' at line %ld",
@@ -479,21 +477,21 @@ simulate (long id)
              l->lineno);
         break;
     }
-    for (uint32_t i = 0; i < l->nargs; i++) btor_bv_free (mem, args[i]);
+    for (uint32_t i = 0; i < l->nargs; i++) btorsim_bv_free (args[i]);
     update_current_state (id, res);
   }
-  res = btor_bv_copy (mem, res);
+  res = btorsim_bv_copy (res);
   if (sign < 0)
   {
-    BtorBitVector *tmp = btor_bv_not (mem, res);
-    btor_bv_free (mem, res);
+    BtorSimBitVector *tmp = btorsim_bv_not (res);
+    btorsim_bv_free (res);
     res = tmp;
   }
   return res;
 }
 
 static int print_trace = 1;
-static BtorRNG rng;
+static BtorSimRNG rng;
 
 static void
 initialize_inputs (long k, int randomize)
@@ -505,16 +503,16 @@ initialize_inputs (long k, int randomize)
     BtorFormatLine *input = BTORSIM_PEEK_STACK (inputs, i);
     uint32_t width        = input->sort.bitvec.width;
     if (current_state[input->id]) continue;
-    BtorBitVector *update;
+    BtorSimBitVector *update;
     if (randomize)
-      update = btor_bv_new_random (mem, &rng, width);
+      update = btorsim_bv_new_random (&rng, width);
     else
-      update = btor_bv_new (mem, width);
+      update = btorsim_bv_new (width);
     update_current_state (input->id, update);
     if (print_trace)
     {
       printf ("%ld ", i);
-      btor_bv_print_without_new_line (update);
+      btorsim_bv_print_without_new_line (update);
       if (input->symbol) printf (" %s@%ld", input->symbol, k);
       fputc ('\n', stdout);
     }
@@ -532,7 +530,7 @@ initialize_states (int randomly)
     assert (0 <= state->id), assert (state->id < num_format_lines);
     if (current_state[state->id]) continue;
     BtorFormatLine *init = inits[state->id];
-    BtorBitVector *update;
+    BtorSimBitVector *update;
     if (init)
     {
       assert (init->nargs == 2);
@@ -544,15 +542,15 @@ initialize_states (int randomly)
       assert (state->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec);
       uint32_t width = state->sort.bitvec.width;
       if (randomly)
-        update = btor_bv_new_random (mem, &rng, width);
+        update = btorsim_bv_new_random (&rng, width);
       else
-        update = btor_bv_new (mem, width);
+        update = btorsim_bv_new (width);
     }
     update_current_state (state->id, update);
     if (print_trace && !init)
     {
       printf ("%ld ", i);
-      btor_bv_print_without_new_line (update);
+      btorsim_bv_print_without_new_line (update);
       if (state->symbol) printf (" %s#0", state->symbol);
       fputc ('\n', stdout);
     }
@@ -573,20 +571,20 @@ simulate_step (long k, int randomize_states_that_are_inputs)
         || l->tag == BTOR_FORMAT_TAG_fair || l->tag == BTOR_FORMAT_TAG_justice)
       continue;
 
-    BtorBitVector *bv = simulate (i);
+    BtorSimBitVector *bv = simulate (i);
 #if 0
     printf ("[btorim] %ld %s ", l->id, l->name);
-    btor_bv_print (bv);
+    btorsim_bv_print (bv);
     fflush (stdout);
 #endif
-    btor_bv_free (mem, bv);
+    btorsim_bv_free (bv);
   }
   for (long i = 0; i < BTORSIM_COUNT_STACK (states); i++)
   {
     BtorFormatLine *state = BTORSIM_PEEK_STACK (states, i);
     assert (0 <= state->id), assert (state->id < num_format_lines);
     BtorFormatLine *next = nexts[state->id];
-    BtorBitVector *update;
+    BtorSimBitVector *update;
     if (next)
     {
       assert (next->nargs == 2);
@@ -598,9 +596,9 @@ simulate_step (long k, int randomize_states_that_are_inputs)
       assert (state->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec);
       uint32_t width = state->sort.bitvec.width;
       if (randomize_states_that_are_inputs)
-        update = btor_bv_new_random (mem, &rng, width);
+        update = btorsim_bv_new_random (&rng, width);
       else
-        update = btor_bv_new (mem, width);
+        update = btorsim_bv_new (width);
     }
     assert (!next_state[state->id]);
     next_state[state->id] = update;
@@ -611,8 +609,8 @@ simulate_step (long k, int randomize_states_that_are_inputs)
     for (long i = 0; i < BTORSIM_COUNT_STACK (constraints); i++)
     {
       BtorFormatLine *constraint = BTORSIM_PEEK_STACK (constraints, i);
-      BtorBitVector *bv          = current_state[constraint->args[0]];
-      if (!btor_bv_is_zero (bv)) continue;
+      BtorSimBitVector *bv       = current_state[constraint->args[0]];
+      if (!btorsim_bv_is_zero (bv)) continue;
       msg (1,
            "constraint(%ld) '%ld constraint %ld' violated at time %ld",
            i,
@@ -629,9 +627,9 @@ simulate_step (long k, int randomize_states_that_are_inputs)
     {
       long r = BTORSIM_PEEK_STACK (reached_bads, i);
       if (r >= 0) continue;
-      BtorFormatLine *bad = BTORSIM_PEEK_STACK (bads, i);
-      BtorBitVector *bv   = current_state[bad->args[0]];
-      if (btor_bv_is_zero (bv)) continue;
+      BtorFormatLine *bad  = BTORSIM_PEEK_STACK (bads, i);
+      BtorSimBitVector *bv = current_state[bad->args[0]];
+      if (btorsim_bv_is_zero (bv)) continue;
       long bound = BTORSIM_PEEK_STACK (reached_bads, i);
       if (bound >= 0) continue;
       BTORSIM_POKE_STACK (reached_bads, i, k);
@@ -654,14 +652,14 @@ transition (long k)
   {
     BtorFormatLine *state = BTORSIM_PEEK_STACK (states, i);
     assert (0 <= state->id), assert (state->id < num_format_lines);
-    BtorBitVector *update = next_state[state->id];
+    BtorSimBitVector *update = next_state[state->id];
     assert (update);
     update_current_state (state->id, update);
     next_state[state->id] = 0;
     if (print_trace && print_states)
     {
       printf ("%ld ", i);
-      btor_bv_print_without_new_line (update);
+      btorsim_bv_print_without_new_line (update);
       if (state->symbol) printf (" %s#%ld", state->symbol, k);
       fputc ('\n', stdout);
     }
@@ -929,17 +927,17 @@ parse_state_part (long k)
                    state_pos,
                    state->id,
                    k);
-    BtorBitVector *val   = btor_bv_char_to_bv (mem, constant.start);
-    BtorFormatLine *init = inits[state->id];
+    BtorSimBitVector *val = btorsim_bv_char_to_bv (constant.start);
+    BtorFormatLine *init  = inits[state->id];
     if (init)
     {
       assert (init->nargs == 2);
       assert (init->args[0] == state->id);
-      BtorBitVector *tmp = simulate (init->args[1]);
-      if (btor_bv_compare (val, tmp))
+      BtorSimBitVector *tmp = simulate (init->args[1]);
+      if (btorsim_bv_compare (val, tmp))
         parse_error (
             "incompatible initialized state %ld id %ld", state_pos, state->id);
-      btor_bv_free (mem, tmp);
+      btorsim_bv_free (tmp);
     }
     lineno++;
     charno = saved_charno;
@@ -987,7 +985,7 @@ parse_input_part (long k)
                    input_pos,
                    input->id,
                    k);
-    BtorBitVector *val = btor_bv_char_to_bv (mem, constant.start);
+    BtorSimBitVector *val = btorsim_bv_char_to_bv (constant.start);
     lineno++;
     charno = saved_charno;
     update_current_state (input->id, val);
@@ -1278,14 +1276,14 @@ main (int argc, char **argv)
     die ("invalid faked justice property number %ld", fake_justice);
   if (close_model_file && fclose (model_file))
     die ("can not close model file '%s'", model_path);
-  BTOR_CNEWN (mem, current_state, num_format_lines);
-  BTOR_CNEWN (mem, next_state, num_format_lines);
+  BTORSIM_CNEWN (current_state, num_format_lines);
+  BTORSIM_CNEWN (next_state, num_format_lines);
   if (random_mode)
   {
     if (r < 0) r = 20;
     if (s < 0) s = 0;
     msg (1, "using random seed %d", s);
-    btor_rng_init (&rng, (uint32_t) s);
+    btorsim_rng_init (&rng, (uint32_t) s);
     if (print_trace)
     {
       if (fake_bad >= 0 && fake_justice >= 0)
@@ -1312,14 +1310,13 @@ main (int argc, char **argv)
   BTORSIM_RELEASE_STACK (reached_bads);
   BTORSIM_RELEASE_STACK (constraints);
   btorfmt_delete (model);
-  BTOR_DELETEN (mem, inits, num_format_lines);
-  BTOR_DELETEN (mem, nexts, num_format_lines);
+  BTORSIM_DELETE (inits);
+  BTORSIM_DELETE (nexts);
   for (long i = 0; i < num_format_lines; i++)
-    if (current_state[i]) btor_bv_free (mem, current_state[i]);
+    if (current_state[i]) btorsim_bv_free (current_state[i]);
   for (long i = 0; i < num_format_lines; i++)
-    if (next_state[i]) btor_bv_free (mem, next_state[i]);
-  BTOR_DELETEN (mem, current_state, num_format_lines);
-  BTOR_DELETEN (mem, next_state, num_format_lines);
-  btor_mem_mgr_delete (mem);
+    if (next_state[i]) btorsim_bv_free (next_state[i]);
+  BTORSIM_DELETE (current_state);
+  BTORSIM_DELETE (next_state);
   return 0;
 }

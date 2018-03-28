@@ -1,15 +1,18 @@
-/*  Boolector: Satisfiability Modulo Theories (SMT) solver.
+/**
+ *  BtorFMT: A tool package for the BTOR format.
  *
- *  Copyright (C) 2018 Aina Niemetz.
+ *  Copyright (c) 2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
- *  This file is part of Boolector.
- *  See COPYING for more information on using this software.
+ *  This file is part of the BtorFMT package.
+ *  See LICENSE.txt for more information on using this software.
  */
 
-#ifndef BTORSTACKSIM_H_INCLUDED
-#define BTORSTACKSIM_H_INCLUDED
+#ifndef BTORSIMSTACK_H_INCLUDED
+#define BTORSIMSTACK_H_INCLUDED
+
+#include "btorsimmem.h"
 
 #define BTORSIM_DECLARE_STACK(name, type) \
   typedef struct name##Stack name##Stack; \
@@ -19,6 +22,12 @@
     type *top;                            \
     type *end;                            \
   }
+
+BTORSIM_DECLARE_STACK (BtorInt, int32_t);
+BTORSIM_DECLARE_STACK (BtorUInt, uint32_t);
+BTORSIM_DECLARE_STACK (BtorChar, char);
+BTORSIM_DECLARE_STACK (BtorCharPtr, char *);
+BTORSIM_DECLARE_STACK (BtorVoidPtr, void *);
 
 #define BTORSIM_INIT_STACK(stack) \
   do                              \
@@ -37,16 +46,16 @@
 #define BTORSIM_RELEASE_STACK(stack) \
   do                                 \
   {                                  \
-    free ((stack).start);            \
+    BTORSIM_DELETE ((stack).start);  \
     BTORSIM_INIT_STACK ((stack));    \
   } while (0)
 
-#define BTORSIM_ENLARGE(p, o, n)                                               \
-  do                                                                           \
-  {                                                                            \
-    size_t internaln = (o) ? 2 * (o) : 1;                                      \
-    (p)              = (typeof(p)) realloc ((p), ((internaln) * sizeof *(p))); \
-    (n)              = internaln;                                              \
+#define BTORSIM_ENLARGE(p, o, n)          \
+  do                                      \
+  {                                       \
+    size_t internaln = (o) ? 2 * (o) : 1; \
+    BTORSIM_REALLOC ((p), internaln);     \
+    (n) = internaln;                      \
   } while (0)
 
 #define BTORSIM_ENLARGE_STACK(stack)                         \

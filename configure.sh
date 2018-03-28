@@ -165,6 +165,7 @@ do
   [ -d src/$additional ] && SRCDIRS="$SRCDIRS src/$additional"
 done
 
+
 #--------------------------------------------------------------------------#
 
 TARGETS="$BINDIR/boolector"
@@ -224,7 +225,7 @@ fi
 
 LIBS="-L$BUILDIR -lpthread"
 OBJS=""
-INCS="-I$SRCDIR -I$BUILDIR "
+INCS="-I$SRCDIR -I$BUILDIR"
 LDEPS="$BUILDIR/libboolector.a"
 
 LIBZ=no

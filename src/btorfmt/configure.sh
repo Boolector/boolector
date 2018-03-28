@@ -21,4 +21,12 @@ fi
 [ $coverage = yes ] && CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
 echo "$CC $CFLAGS"
 rm -f makefile
-sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," makefile.in > makefile
+BINDIR="bin"
+BUILDIR="build"
+sed \
+  -e "s,@CC@,$CC," \
+  -e "s,@CFLAGS@,$CFLAGS," \
+  -e "s,@BUILDIR@,$BUILDIR," \
+  -e "s,@BINDIR@,$BINDIR," \
+  makefile.in > makefile
+echo "makefile generated"

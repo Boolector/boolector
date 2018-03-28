@@ -1,10 +1,9 @@
 #!/bin/sh
 
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-path=$dir/../../bin
 
-btormc=$path/btormc
-btorsim=$path/btorsim
+btormc=$dir/../../bin/btormc
+btorsim=$dir/../../src/btorfmt/bin/btorsim
 
 invalid () {
   echo invalid

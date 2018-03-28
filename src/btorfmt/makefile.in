@@ -1,16 +1,31 @@
 CC=@CC@
 CFLAGS=@CFLAGS@
-all: btorfmt.o libbtorfmt.a catbtor
-libbtorfmt.a: btorfmt.o makefile
-	ar rc $@ btorfmt.o
+BINDIR=@BINDIR@
+BUILDIR=@BUILDIR@
+all: $(BUILDIR)/btorfmt.o $(BUILDIR)/libbtorfmt.a $(BINDIR)/catbtor $(BINDIR)/btorsim
+dirs:
+	mkdir -p $(BUILDIR)
+	mkdir -p $(BINDIR)
+$(BUILDIR)/btorfmt.o: dirs makefile
+	$(CC) $(CFLAGS) -o $@ -c btorfmt.c
+$(BUILDIR)/libbtorfmt.a: $(BUILDIR)/btorfmt.o makefile
+	ar rc $@ $(BUILDIR)/btorfmt.o
 	ranlib $@
-catbtor.o: catbtor.c btorfmt.h makefile
-	$(CC) $(CFLAGS) -c catbtor.c
-btorfmt.o: btorfmt.c btorfmt.h makefile
-	$(CC) $(CFLAGS) -c btorfmt.c
-catbtor: catbtor.o libbtorfmt.a makefile
-	$(CC) $(CFLAGS) -o $@ catbtor.o -L. -lbtorfmt
+$(BUILDIR)/catbtor.o: $(BUILDIR)/btorfmt.o makefile
+	$(CC) $(CFLAGS) -o $@ -c catbtor.c
+$(BINDIR)/catbtor: dirs $(BUILDIR)/catbtor.o $(BUILDIR)/libbtorfmt.a makefile
+	$(CC) $(CFLAGS) -o $@ $(BUILDIR)/catbtor.o -L$(BUILDIR) -lbtorfmt
+$(BUILDIR)/btorsimrng.o: dirs makefile
+	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimrng.c -Ibtorsim
+$(BUILDIR)/btorsimbv.o: $(BUILDIR)/btorsimrng.o makefile
+	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimbv.c -Ibtorsim
+$(BUILDIR)/btorsim.o: $(BUILDIR)/btorsimbv.o $(BUILDIR)/libbtorfmt.a makefile
+	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimmain.c -Ibtorsim -I.
+$(BINDIR)/btorsim: dirs $(BUILDIR)/btorsim.o makefile
+	$(CC) $(CFLAGS) -o $@ $(BUILDIR)/btorsim.o $(BUILDIR)/btorsimbv.o $(BUILDIR)/btorsimrng.o -L$(BUILDIR) -lbtorfmt
 clean:
 	rm -f makefile
-	rm -f *.o *.a catbtor tests/*.log
+	rm -rf build
+	rm -rf bin
+	rm -f tests/*.log
 	rm -f *.gcno *.gcov *.gcda
