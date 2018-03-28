@@ -192,8 +192,6 @@ struct BtorFormatLineIterator
 /* Constructor, setting options and destructor:
  */
 BtorFormatReader *btorfmt_new ();
-void btorfmt_set_verbosity (BtorFormatReader *, int verbosity);
-void btorfmt_set_prefix (BtorFormatReader *, const char *prefix);
 void btorfmt_delete (BtorFormatReader *);
 
 /*------------------------------------------------------------------------*/

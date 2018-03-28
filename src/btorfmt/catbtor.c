@@ -93,8 +93,6 @@ main (int argc, char** argv)
     fflush (stderr);
   }
   reader = btorfmt_new ();
-  btorfmt_set_prefix (reader, "; [catbtor] ");
-  btorfmt_set_verbosity (reader, verbosity);
   if (!btorfmt_read_lines (reader, input_file))
   {
     err = btorfmt_error (reader);
