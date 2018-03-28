@@ -711,12 +711,16 @@ ult (uint64_t x, uint64_t y, uint32_t bw)
 static uint64_t
 sll (uint64_t x, uint64_t y, uint32_t bw)
 {
+  assert (bw <= 64);
+  if (y >= bw) return 0;
   return (x << y) % (uint64_t) pow (2, bw);
 }
 
 static uint64_t
 srl (uint64_t x, uint64_t y, uint32_t bw)
 {
+  assert (bw <= 64);
+  if (y >= bw) return 0;
   return (x >> y) % (uint64_t) pow (2, bw);
 }
 
@@ -756,11 +760,8 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
-    bv1 = random_bv (bit_width);
-    if (int_func == sll || int_func == srl)
-      bv2 = random_bv (btor_util_log_2 (bit_width));
-    else
-      bv2 = random_bv (bit_width);
+    bv1  = random_bv (bit_width);
+    bv2  = random_bv (bit_width);
     res  = bitvec_func (g_mm, bv1, bv2);
     a1   = btor_bv_to_uint64 (bv1);
     a2   = btor_bv_to_uint64 (bv2);

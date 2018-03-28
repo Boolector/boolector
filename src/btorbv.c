@@ -35,7 +35,7 @@ rem_bits_zero_dbg (BtorBitVector *bv)
 static bool
 check_bits_sll_dbg (const BtorBitVector *bv,
                     const BtorBitVector *res,
-                    int32_t shift)
+                    uint32_t shift)
 {
   assert (bv);
   assert (res);
@@ -43,8 +43,15 @@ check_bits_sll_dbg (const BtorBitVector *bv,
 
   uint32_t i;
 
-  for (i = 0; shift + i < bv->width; i++)
-    assert (btor_bv_get_bit (bv, i) == btor_bv_get_bit (res, shift + i));
+  if (shift >= bv->width)
+  {
+    for (i = 0; i < bv->width; i++) assert (btor_bv_get_bit (bv, i) == 0);
+  }
+  else
+  {
+    for (i = 0; shift + i < bv->width; i++)
+      assert (btor_bv_get_bit (bv, i) == btor_bv_get_bit (res, shift + i));
+  }
 
   return true;
 }
@@ -1255,7 +1262,9 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint32_t shift)
   BtorBitVector *res;
   BTOR_BV_TYPE v;
 
-  res  = btor_bv_new (mm, a->width);
+  res = btor_bv_new (mm, a->width);
+  if (shift >= a->width) return res;
+
   k    = shift % BTOR_BV_TYPE_BW;
   skip = shift / BTOR_BV_TYPE_BW;
 
@@ -1279,8 +1288,8 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (mm);
   assert (a);
   assert (b);
-  assert (btor_util_is_power_of_2 (a->width));
-  assert (btor_util_log_2 (a->width) == b->width);
+  assert (btor_util_is_power_of_2 (a->width) || a->len == b->len);
+  assert (btor_util_log_2 (a->width) == b->width || a->width == b->width);
 
   uint64_t shift;
   shift = btor_bv_to_uint64 (b);
@@ -1293,6 +1302,8 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (mm);
   assert (a);
   assert (b);
+  assert (btor_util_is_power_of_2 (a->width) || a->len == b->len);
+  assert (btor_util_log_2 (a->width) == b->width || a->width == b->width);
 
   uint32_t skip, i, j, k;
   uint64_t shift;
@@ -1301,8 +1312,10 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   res   = btor_bv_new (mm, a->width);
   shift = btor_bv_to_uint64 (b);
-  k     = shift % BTOR_BV_TYPE_BW;
-  skip  = shift / BTOR_BV_TYPE_BW;
+  if (shift >= a->width) return res;
+
+  k    = shift % BTOR_BV_TYPE_BW;
+  skip = shift / BTOR_BV_TYPE_BW;
 
   v = 0;
   for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)
