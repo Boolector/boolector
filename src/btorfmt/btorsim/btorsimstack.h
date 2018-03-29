@@ -1,7 +1,10 @@
 /**
  *  BtorFMT: A tool package for the BTOR format.
  *
- *  Copyright (c) 2018 Aina Niemetz.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
