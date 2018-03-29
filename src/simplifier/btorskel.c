@@ -113,11 +113,11 @@ process_skeleton_tseitin (Btor *btor,
         continue;
 
 #ifndef NDEBUG
+      BtorNode *child;
       for (i = 0; i < exp->arity; i++)
       {
-        BtorNode *child = exp->e[i];
-        child           = btor_node_real_addr (child);
-        d               = btor_hashint_map_get (mark, child->id);
+        child = btor_node_real_addr (exp->e[i]);
+        d     = btor_hashint_map_get (mark, child->id);
         assert (d->as_int == 1);
         if (!btor_node_is_fun (child) && !btor_node_is_args (child)
             && !child->parameterized && btor_node_get_width (btor, child) == 1)
