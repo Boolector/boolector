@@ -396,11 +396,13 @@ number_of_ops (Btor *btor)
   return result;
 }
 
+#ifdef BTOR_TIME_STATISTICS
 static double
 percent (double a, double b)
 {
   return b ? 100.0 * a / b : 0.0;
 }
+#endif
 
 void
 btor_print_stats (Btor *btor)
