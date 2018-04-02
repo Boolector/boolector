@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *  Copyright (C) 2014-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -3091,7 +3091,7 @@ parse_smt_parser (BtorSMTParser *parser,
   return parser->error;
 }
 
-static BtorParserAPI static_btor_parsesmt_parser_api = {
+static BtorParserAPI parsesmt_parser_api = {
     (BtorInitParser) new_smt_parser,
     (BtorResetParser) delete_smt_parser,
     (BtorParse) parse_smt_parser,
@@ -3100,5 +3100,5 @@ static BtorParserAPI static_btor_parsesmt_parser_api = {
 const BtorParserAPI *
 btor_parsesmt_parser_api ()
 {
-  return &static_btor_parsesmt_parser_api;
+  return &parsesmt_parser_api;
 }

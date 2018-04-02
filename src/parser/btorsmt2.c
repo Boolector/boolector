@@ -4264,7 +4264,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   return 0;
 }
 
-static BtorParserAPI static_btor_parsesmt2_parser_api = {
+static BtorParserAPI parsesmt2_parser_api = {
     (BtorInitParser) new_smt2_parser,
     (BtorResetParser) delete_smt2_parser,
     (BtorParse) parse_smt2_parser};
@@ -4272,5 +4272,5 @@ static BtorParserAPI static_btor_parsesmt2_parser_api = {
 const BtorParserAPI *
 btor_parsesmt2_parser_api ()
 {
-  return &static_btor_parsesmt2_parser_api;
+  return &parsesmt2_parser_api;
 }

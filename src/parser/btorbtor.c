@@ -1962,7 +1962,7 @@ SKIP:
   goto NEXT;
 }
 
-static BtorParserAPI static_btor_parsebtor_parser_api = {
+static BtorParserAPI parsebtor_parser_api = {
     (BtorInitParser) new_btor_parser,
     (BtorResetParser) delete_btor_parser,
     (BtorParse) parse_btor_parser,
@@ -1971,5 +1971,5 @@ static BtorParserAPI static_btor_parsebtor_parser_api = {
 const BtorParserAPI *
 btor_parsebtor_parser_api ()
 {
-  return &static_btor_parsebtor_parser_api;
+  return &parsebtor_parser_api;
 }
