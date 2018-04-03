@@ -971,7 +971,7 @@ btor_delete (Btor *btor)
   if (btor_opt_get (btor, BTOR_OPT_AUTO_CLEANUP) && btor->external_refs)
     release_all_ext_sort_refs (btor);
 
-  assert (btor->external_refs == 0);
+  assert (getenv ("BTORLEAK") || btor->external_refs == 0);
 
 #ifndef NDEBUG
   bool node_leak = false;
