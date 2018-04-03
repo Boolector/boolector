@@ -12,8 +12,8 @@
  *  See LICENSE.txt for more information on using this software.
  */
 
-#ifndef BTORSIMMEM_H_INCLUDED
-#define BTORSIMMEM_H_INCLUDED
+#ifndef BTORFMTMEM_H_INCLUDED
+#define BTORFMTMEM_H_INCLUDED
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,24 +21,24 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTORSIM_NEWN(ptr, nelems) \
+#define BTORFMT_NEWN(ptr, nelems) \
   ((ptr) = (typeof(ptr)) btorsim_malloc ((nelems) * sizeof *(ptr)))
 
-#define BTORSIM_CNEWN(ptr, nelems) \
+#define BTORFMT_CNEWN(ptr, nelems) \
   ((ptr) = (typeof(ptr)) btorsim_calloc ((nelems), sizeof *(ptr)))
 
-#define BTORSIM_CLRN(ptr, nelems) (memset ((ptr), 0, (nelems) * sizeof *(ptr)))
+#define BTORFMT_CLRN(ptr, nelems) (memset ((ptr), 0, (nelems) * sizeof *(ptr)))
 
-#define BTORSIM_REALLOC(p, n) \
+#define BTORFMT_REALLOC(p, n) \
   ((p) = (typeof(p)) btorsim_realloc ((p), ((n) * sizeof *(p))))
 
-#define BTORSIM_NEW(ptr) BTORSIM_NEWN ((ptr), 1)
+#define BTORFMT_NEW(ptr) BTORFMT_NEWN ((ptr), 1)
 
-#define BTORSIM_CNEW(ptr) BTORSIM_CNEWN ((ptr), 1)
+#define BTORFMT_CNEW(ptr) BTORFMT_CNEWN ((ptr), 1)
 
-#define BTORSIM_CLR(ptr) BTORSIM_CLRN ((ptr), 1)
+#define BTORFMT_CLR(ptr) BTORFMT_CLRN ((ptr), 1)
 
-#define BTORSIM_DELETE(ptr) (free (ptr))
+#define BTORFMT_DELETE(ptr) (free (ptr))
 
 static inline void *
 btorsim_malloc (size_t size)
@@ -86,7 +86,7 @@ btorsim_strdup (const char *str)
   char *res = 0;
   if (str)
   {
-    BTORSIM_NEWN (res, strlen (str) + 1);
+    BTORFMT_NEWN (res, strlen (str) + 1);
     strcpy (res, str);
   }
   return res;

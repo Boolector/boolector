@@ -510,9 +510,11 @@ btor_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
 
   assert (boolector_get_btor (node) == btor);
   assert (boolector_get_btor (init) == btor);
-  assert (boolector_is_const (btor, init));
   /* Note: We allow constants to initialize arrays */
   assert (boolector_get_width (btor, node) == boolector_get_width (btor, init));
+  assert (!boolector_is_array (btor, node)
+          || boolector_get_sort (btor, node)
+                 == boolector_get_sort (btor, init));
 
   state = find_mc_state (mc, node);
   assert (state);
@@ -724,7 +726,7 @@ new_var_or_array (BtorMC *mc, BoolectorNode *src, const char *symbol)
 }
 
 static void
-initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
+initialize_inputs_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
 {
   Btor *btor;
   BoolectorNode *src, *dst;
@@ -765,17 +767,17 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMCFrame *f)
     btor_mem_freestr (mc->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
     BTOR_PUSH_STACK (f->inputs, dst);
+    boolector_nodemap_map (map, src, dst);
   }
 }
 
 static void
-initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
+initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
 {
   Btor *btor, *fwd;
   BoolectorNode *src, *dst;
   BtorPtrHashTableIterator it;
   BtorMCstate *state;
-  const char *bits;
   BtorMCFrame *p;
   char *sym;
   int32_t i;
@@ -809,10 +811,10 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
 
     if (!f->time && state->init)
     {
-      bits = boolector_get_bits (btor, state->init);
-      dst  = boolector_const (fwd, bits);
-      boolector_free_bits (btor, bits);
-      if (boolector_is_array (btor, src))
+      dst = boolector_nodemap_substitute_node (mc->forward, map, state->init);
+      dst = boolector_copy (mc->forward, dst);
+      // special case: const initialization (constant array)
+      if (boolector_is_array (btor, src) && boolector_is_const (btor, src))
       {
         BoolectorSort si =
             boolector_bitvec_sort (fwd, boolector_get_index_width (btor, src));
@@ -841,53 +843,8 @@ initialize_states_of_frame (BtorMC *mc, BtorMCFrame *f)
     assert (BTOR_COUNT_STACK (f->states) == i);
     BTOR_PUSH_STACK (f->states, dst);
     i += 1;
+    boolector_nodemap_map (map, src, dst);
   }
-}
-
-static BoolectorNodeMap *
-map_inputs_and_states_of_frame (BtorMC *mc, BtorMCFrame *f)
-{
-  BoolectorNode *src, *dst;
-  BoolectorNodeMap *res;
-  BtorPtrHashTableIterator it;
-  uint32_t i;
-
-  assert (mc);
-  assert (f);
-  assert (BTOR_COUNT_STACK (f->inputs) == mc->inputs->count);
-  assert (BTOR_COUNT_STACK (f->states) == mc->states->count);
-
-  res = boolector_nodemap_new (mc->forward);
-
-  BTOR_MSG (boolector_get_btor_msg (mc->btor),
-            2,
-            "mapping inputs and states of frame %d",
-            f->time);
-
-  i = 0;
-  btor_iter_hashptr_init (&it, mc->inputs);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    src = (BoolectorNode *) btor_iter_hashptr_next (&it);
-    dst = BTOR_PEEK_STACK (f->inputs, i);
-    boolector_nodemap_map (res, src, dst);
-    i += 1;
-  }
-
-  i = 0;
-  btor_iter_hashptr_init (&it, mc->states);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    src = (BoolectorNode *) btor_iter_hashptr_next (&it);
-    dst = BTOR_PEEK_STACK (f->states, i);
-    boolector_nodemap_map (res, src, dst);
-    i += 1;
-  }
-
-  assert ((uint32_t) boolector_nodemap_count (res)
-          == mc->inputs->count + mc->states->count);
-
-  return res;
 }
 
 static void
@@ -1035,11 +992,10 @@ initialize_new_forward_frame (BtorMC *mc)
 
   BTOR_INIT_STACK (mc->mm, f->init);
 
-  initialize_inputs_of_frame (mc, f);
-  initialize_states_of_frame (mc, f);
+  map = boolector_nodemap_new (mc->forward);
 
-  map = map_inputs_and_states_of_frame (mc, f);
-
+  initialize_inputs_of_frame (mc, map, f);
+  initialize_states_of_frame (mc, map, f);
   initialize_next_state_functions_of_frame (mc, map, f);
   initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);

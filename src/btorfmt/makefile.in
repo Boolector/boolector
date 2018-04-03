@@ -18,7 +18,7 @@ $(BINDIR)/catbtor: dirs $(BUILDIR)/catbtor.o $(BUILDIR)/libbtorfmt.a makefile
 $(BUILDIR)/btorsimrng.o: dirs makefile
 	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimrng.c -Ibtorsim
 $(BUILDIR)/btorsimbv.o: $(BUILDIR)/btorsimrng.o makefile
-	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimbv.c -Ibtorsim
+	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimbv.c -I.
 $(BUILDIR)/btorsim.o: $(BUILDIR)/btorsimbv.o $(BUILDIR)/libbtorfmt.a makefile
 	$(CC) $(CFLAGS) -o $@ -c btorsim/btorsimmain.c -Ibtorsim -I.
 $(BINDIR)/btorsim: dirs $(BUILDIR)/btorsim.o makefile

@@ -11,13 +11,13 @@
  *  See LICENSE.txt for more information on using this software.
  */
 
-#ifndef BTORSIMBV_H_INCLUDED
-#define BTORSIMBV_H_INCLUDED
+#ifndef BTORFMTBV_H_INCLUDED
+#define BTORFMTBV_H_INCLUDED
 
 #include <stdbool.h>
 #include <stdint.h>
 #include "btorsimrng.h"
-#include "btorsimstack.h"
+#include "util/btorfmtstack.h"
 
 #define BTORSIM_BV_TYPE uint32_t
 #define BTORSIM_BV_TYPE_BW (sizeof (BTORSIM_BV_TYPE) * 8)
@@ -41,7 +41,7 @@ struct BtorSimBitVector
 
 typedef struct BtorSimBitVector BtorSimBitVector;
 
-BTORSIM_DECLARE_STACK (BtorSimBitVectorPtr, BtorSimBitVector *);
+BTORFMT_DECLARE_STACK (BtorSimBitVectorPtr, BtorSimBitVector *);
 
 BtorSimBitVector *btorsim_bv_new (uint32_t bw);
 

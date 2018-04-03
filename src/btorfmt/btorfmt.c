@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "util/btorfmtstack.h"
+
 struct BtorFormatReader
 {
   char *error;
@@ -415,6 +417,17 @@ check_sort_bitvec (BtorFormatReader *bfr,
 }
 
 static int
+is_constant_bfr (BtorFormatReader *bfr, long id)
+{
+  BtorFormatLine *l = id2line_bfr (bfr, id);
+  assert (l);
+  BtorFormatTag tag = l->tag;
+  return tag == BTOR_FORMAT_TAG_const || tag == BTOR_FORMAT_TAG_constd
+         || tag == BTOR_FORMAT_TAG_consth || tag == BTOR_FORMAT_TAG_one
+         || tag == BTOR_FORMAT_TAG_ones || tag == BTOR_FORMAT_TAG_zero;
+}
+
+static int
 check_sorts_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
   BtorFormatLine *arg;
@@ -498,13 +511,19 @@ check_sorts_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
       {
         if (cmp_sorts (bfr, l, args[0]))
           return perr_bfr (bfr, "sort of first argument does not match");
-        if (args[1]->sort.tag != BTOR_FORMAT_TAG_SORT_bitvec)
-          return perr_bfr (bfr, "bit-vector sort expected for second argument");
-        if (cmp_sort_ids (bfr, l->sort.array.element, args[1]->sort.id))
-          return perr_bfr (bfr,
-                           "sort of init value does not match element "
-                           "sort of state '%ld'",
-                           args[0]->id);
+
+        // special case for constant initialization for arrays
+        if (args[1]->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec)
+        {
+          if (!is_constant_bfr (bfr, args[1]->id))
+            return perr_bfr (bfr,
+                             "expected bit-vector constant as second argument");
+          if (cmp_sort_ids (bfr, l->sort.array.element, args[1]->sort.id))
+            return perr_bfr (bfr,
+                             "sort of init value does not match element "
+                             "sort of state '%ld'",
+                             args[0]->id);
+        }
         break;
       }
       // else fall through
@@ -1189,15 +1208,56 @@ parse_input_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   return parse_sort_id_bfr (bfr, &l->sort);
 }
 
+BTORFMT_DECLARE_STACK (BtorFmtLong, long);
+
 static int
-is_constant_bfr (BtorFormatReader *bfr, long id)
+check_state_init (BtorFormatReader *bfr, long state_id, long init_id)
 {
-  BtorFormatLine *l = id2line_bfr (bfr, id);
-  assert (l);
-  BtorFormatTag tag = l->tag;
-  return tag == BTOR_FORMAT_TAG_const || tag == BTOR_FORMAT_TAG_constd
-         || tag == BTOR_FORMAT_TAG_consth || tag == BTOR_FORMAT_TAG_one
-         || tag == BTOR_FORMAT_TAG_ones || tag == BTOR_FORMAT_TAG_zero;
+  assert (state_id > init_id);
+  (void) state_id;
+
+  int res = 1;
+  long id;
+  unsigned i;
+  BtorFormatLine *line;
+  BtorFmtLongStack stack;
+  char *cache;
+
+  line = id2line_bfr (bfr, init_id);
+
+  // 'init_id' is the highest id we will see when traversing down
+  size_t size = (init_id + 1) * sizeof (char);
+  cache       = btorfmt_malloc (size);
+  memset (cache, 0, size);
+
+  BTORFMT_INIT_STACK (stack);
+  BTORFMT_PUSH_STACK (stack, init_id);
+  do
+  {
+    id = BTORFMT_POP_STACK (stack);
+    assert (id);
+    if (id < 0) id = -id;
+
+    // no cycles possible since state_id > init_id
+    assert (id != state_id);
+    if (cache[id]) continue;
+
+    cache[id] = 1;
+    line      = id2line_bfr (bfr, id);
+
+    if (line->tag == BTOR_FORMAT_TAG_input)
+    {
+      res = perr_bfr (bfr,
+                      "inputs are not allowed in initialization expressions, "
+                      "use a state instead of input %ld.",
+                      id);
+      break;
+    }
+    for (i = 0; i < line->nargs; i++) BTORFMT_PUSH_STACK (stack, line->args[i]);
+  } while (!BTORFMT_EMPTY_STACK (stack));
+
+  free (cache);
+  return res;
 }
 
 static int
@@ -1210,8 +1270,9 @@ parse_init_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   state = id2line_bfr (bfr, l->args[0]);
   if (state->tag != BTOR_FORMAT_TAG_state)
     return perr_bfr (bfr, "expected state as first argument");
-  if (!is_constant_bfr (bfr, l->args[1]))
-    return perr_bfr (bfr, "expected id of constant as second argument");
+  if (l->args[0] < abs (l->args[1]))
+    return perr_bfr (bfr, "state id must be greater than id of second operand");
+  if (!check_state_init (bfr, l->args[0], l->args[1])) return 0;
   if (state->init)
     return perr_bfr (bfr, "state %ld initialized twice", state->id);
   state->init = l->args[1];

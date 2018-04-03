@@ -12,13 +12,13 @@
  */
 
 #include "btorsimbv.h"
-#include "btorsimmem.h"
+#include "util/btorfmtmem.h"
 
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 
-#define BTORSIM_MASK_REM_BITS(bv)                          \
+#define BTORFMT_MASK_REM_BITS(bv)                          \
   ((((BTORSIM_BV_TYPE) 1 << (BTORSIM_BV_TYPE_BW - 1)) - 1) \
    >> (BTORSIM_BV_TYPE_BW - 1 - (bv->width % BTORSIM_BV_TYPE_BW)))
 
@@ -62,7 +62,7 @@ static void
 set_rem_bits_to_zero (BtorSimBitVector *bv)
 {
   if (bv->width != BTORSIM_BV_TYPE_BW * bv->len)
-    bv->bits[0] &= BTORSIM_MASK_REM_BITS (bv);
+    bv->bits[0] &= BTORFMT_MASK_REM_BITS (bv);
 }
 
 /*------------------------------------------------------------------------*/
@@ -125,7 +125,7 @@ void
 btorsim_bv_free (BtorSimBitVector *bv)
 {
   assert (bv);
-  BTORSIM_DELETE (bv);
+  BTORFMT_DELETE (bv);
 }
 
 /*------------------------------------------------------------------------*/
@@ -249,7 +249,7 @@ mult_unbounded_bin_str (const char *a, const char *b)
   alen = strlen (a);
   blen = strlen (b);
   rlen = alen + blen;
-  BTORSIM_NEWN (res, rlen + 1);
+  BTORFMT_NEWN (res, rlen + 1);
   res[rlen] = 0;
 
   for (r = res; r < res + blen; r++) *r = '0';
@@ -307,7 +307,7 @@ add_unbounded_bin_str (const char *a, const char *b)
   rlen = (alen < blen) ? blen : alen;
   rlen++;
 
-  BTORSIM_NEWN (res, rlen + 1);
+  BTORFMT_NEWN (res, rlen + 1);
 
   p = a + alen;
   q = b + blen;
@@ -521,7 +521,7 @@ hex_to_bin_str (const char *str)
 
   len  = strlen (str);
   blen = 4 * len;
-  BTORSIM_NEWN (tmp, blen + 1);
+  BTORFMT_NEWN (tmp, blen + 1);
   q = tmp;
 
   end = str + len;
@@ -793,7 +793,7 @@ btorsim_bv_to_char (const BtorSimBitVector *bv)
   char *res;
 
   bw = bv->width;
-  BTORSIM_NEWN (res, bw + 1);
+  BTORFMT_NEWN (res, bw + 1);
   for (i = 0; i < bw; i++)
   {
     bit             = btorsim_bv_get_bit (bv, i);
@@ -813,7 +813,7 @@ btorsim_bv_to_hex_char (const BtorSimBitVector *bv)
   char *res, ch;
 
   len = (bv->width + 3) / 4;
-  BTORSIM_CNEWN (res, len + 1);
+  BTORFMT_CNEWN (res, len + 1);
   for (i = 0, j = len - 1; i < bv->width;)
   {
     tmp = btorsim_bv_get_bit (bv, i++);
@@ -853,12 +853,12 @@ btorsim_bv_to_dec_char (const BtorSimBitVector *bv)
 
   if (btorsim_bv_is_zero (bv))
   {
-    BTORSIM_CNEWN (res, 2);
+    BTORFMT_CNEWN (res, 2);
     res[0] = '0';
     return res;
   }
 
-  BTORSIM_INIT_STACK (stack);
+  BTORFMT_INIT_STACK (stack);
 
   if (bv->width < 4)
   {
@@ -882,22 +882,22 @@ btorsim_bv_to_dec_char (const BtorSimBitVector *bv)
     }
     assert (ch < 10);
     ch += '0';
-    BTORSIM_PUSH_STACK (stack, ch);
+    BTORFMT_PUSH_STACK (stack, ch);
     free (rem);
     free (tmp);
     tmp = div;
   }
   free (tmp);
   free (ten);
-  if (BTORSIM_EMPTY_STACK (stack)) BTORSIM_PUSH_STACK (stack, '0');
-  BTORSIM_NEWN (res, BTORSIM_COUNT_STACK (stack) + 1);
+  if (BTORFMT_EMPTY_STACK (stack)) BTORFMT_PUSH_STACK (stack, '0');
+  BTORFMT_NEWN (res, BTORFMT_COUNT_STACK (stack) + 1);
   q = res;
   p = stack.top;
   while (p > stack.start) *q++ = *--p;
-  assert (res + BTORSIM_COUNT_STACK (stack) == q);
+  assert (res + BTORFMT_COUNT_STACK (stack) == q);
   *q = 0;
-  assert ((uint32_t) BTORSIM_COUNT_STACK (stack) == strlen (res));
-  BTORSIM_RELEASE_STACK (stack);
+  assert ((uint32_t) BTORFMT_COUNT_STACK (stack) == strlen (res));
+  BTORFMT_RELEASE_STACK (stack);
   return res;
 }
 
@@ -1212,7 +1212,7 @@ btorsim_bv_redand (const BtorSimBitVector *bv)
   if (bv->width == BTORSIM_BV_TYPE_BW * bv->len)
     mask0 = ~(BTORSIM_BV_TYPE) 0;
   else
-    mask0 = BTORSIM_MASK_REM_BITS (bv);
+    mask0 = BTORFMT_MASK_REM_BITS (bv);
 
   bit = (bv->bits[0] == mask0);
 

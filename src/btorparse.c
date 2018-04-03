@@ -223,7 +223,7 @@ btor_parse (Btor *btor,
           sprintf (
               msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
         }
-        BTOR_POP_STACK (prefix);
+        (void) BTOR_POP_STACK (prefix);
       }
     }
   }

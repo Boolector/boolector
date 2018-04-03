@@ -9,8 +9,8 @@
  *  See LICENSE.txt for more information on using this software.
  */
 
-#ifndef BTORSIMRNG_H_INCLUDED
-#define BTORSIMRNG_H_INCLUDED
+#ifndef BTORFMTRNG_H_INCLUDED
+#define BTORFMTRNG_H_INCLUDED
 
 #include <stdbool.h>
 #include <stdint.h>
