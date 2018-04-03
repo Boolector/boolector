@@ -3544,13 +3544,12 @@ btormbt_state_sat (BtorMBT *mbt)
     else
     {
       BoolectorNode **failed = boolector_get_failed_assumptions (mbt->btor);
-      for (i = 0; failed[i] != 0; i++)
+      for (i = 0; failed[i] != NULL; i++)
       {
         ass = failed[i];
         assert (ass);
         assert (boolector_failed (mbt->btor, ass));
       }
-      free (failed);
     }
   }
 

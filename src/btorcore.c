@@ -739,6 +739,7 @@ btor_new (void)
       btor_hashptr_table_new (mm,
                               (BtorHashPtr) btor_node_hash_by_id,
                               (BtorCmpPtr) btor_node_compare_by_id);
+  BTOR_INIT_STACK (mm, btor->failed_assumptions);
   btor->parameterized =
       btor_hashptr_table_new (mm,
                               (BtorHashPtr) btor_node_hash_by_id,
@@ -914,6 +915,12 @@ btor_delete (Btor *btor)
   btor_hashptr_table_delete (btor->unsynthesized_constraints);
   btor_hashptr_table_delete (btor->synthesized_constraints);
   btor_hashptr_table_delete (btor->assumptions);
+  for (i = 0; i < BTOR_COUNT_STACK (btor->failed_assumptions); i++)
+  {
+    if (BTOR_PEEK_STACK (btor->failed_assumptions, i))
+      btor_node_release (btor, BTOR_PEEK_STACK (btor->failed_assumptions, i));
+  }
+  BTOR_RELEASE_STACK (btor->failed_assumptions);
   btor_hashptr_table_delete (btor->var_rhs);
   btor_hashptr_table_delete (btor->fun_rhs);
 
@@ -1626,6 +1633,7 @@ btor_reset_assumptions (Btor *btor)
   assert (btor);
 
   BtorPtrHashTableIterator it;
+  uint32_t i;
 
   btor_iter_hashptr_init (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
@@ -1635,6 +1643,13 @@ btor_reset_assumptions (Btor *btor)
       btor_hashptr_table_new (btor->mm,
                               (BtorHashPtr) btor_node_hash_by_id,
                               (BtorCmpPtr) btor_node_compare_by_id);
+
+  for (i = 0; i < BTOR_COUNT_STACK (btor->failed_assumptions); i++)
+  {
+    if (BTOR_PEEK_STACK (btor->failed_assumptions, i))
+      btor_node_release (btor, BTOR_PEEK_STACK (btor->failed_assumptions, i));
+  }
+  BTOR_RESET_STACK (btor->failed_assumptions);
 }
 
 static void
@@ -1805,8 +1820,9 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!btor_node_real_addr (exp)->parameterized);
 
-  /* Note: do not simplify constraint expression in order to prevent
-   *       constraint expressions from not being added to btor->assumptions. */
+  /* Note: do not simplify constraint expression with btor_exp_simplify in order
+   *       to prevent constraint expressions from not being added to
+   *       btor->assumptions. */
   exp = btor_pointer_chase_simplified_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
@@ -1970,27 +1986,6 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   btor->time.failed += btor_util_time_stamp () - start;
 
   return res;
-}
-
-void
-btor_get_failed_assumptions (Btor *btor, BtorNodePtrStack *res)
-{
-  assert (btor);
-  assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
-  assert (res);
-
-  BtorPtrHashTableIterator it;
-  BtorNode *ass;
-
-  BTOR_INIT_STACK (btor->mm, *res);
-
-  btor_iter_hashptr_init (&it, btor->assumptions);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    ass = btor_iter_hashptr_next (&it);
-    assert (ass);
-    if (btor_failed_exp (btor, ass)) BTOR_PUSH_STACK (*res, ass);
-  }
 }
 
 void
@@ -4378,8 +4373,7 @@ check_failed_assumptions (Btor *btor)
   Btor *clone;
   BtorNode *ass, *cass;
   BtorPtrHashTableIterator it;
-  BtorNodePtrStack failed, cfailed;
-  uint32_t i;
+  BtorNodePtrStack stack;
 
   clone = btor_clone_exp_layer (btor, 0);
   btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
@@ -4395,26 +4389,26 @@ check_failed_assumptions (Btor *btor)
   clone->slv->api.delet (clone->slv);
   clone->slv = 0;
 
-  btor_get_failed_assumptions (btor, &failed);
-
   /* assert failed assumptions */
-  BTOR_INIT_STACK (btor->mm, cfailed);
-  for (i = 0; i < BTOR_COUNT_STACK (failed); i++)
+  BTOR_INIT_STACK (btor->mm, stack);
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
   {
-    ass = BTOR_PEEK_STACK (failed, i);
-    assert (btor_failed_exp (btor, ass));
-    cass = btor_node_match (clone, ass);
-    assert (cass);
-    BTOR_PUSH_STACK (cfailed, cass);
+    ass = btor_iter_hashptr_next (&it);
+    if (btor_failed_exp (btor, ass))
+    {
+      cass = btor_node_match (clone, ass);
+      assert (cass);
+      BTOR_PUSH_STACK (stack, cass);
+    }
   }
-  while (!BTOR_EMPTY_STACK (cfailed))
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    cass = BTOR_POP_STACK (cfailed);
+    cass = BTOR_POP_STACK (stack);
     btor_assert_exp (clone, cass);
     btor_node_release (clone, cass);
   }
-  BTOR_RELEASE_STACK (cfailed);
-  BTOR_RELEASE_STACK (failed);
+  BTOR_RELEASE_STACK (stack);
 
   /* cleanup assumptions */
   btor_iter_hashptr_init (&it, clone->assumptions);

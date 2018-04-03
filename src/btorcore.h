@@ -141,7 +141,12 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
 
+  /* maintains simplified assumptions, these are the assumptions that are
+   * actually bit-blasted and assumed to the SAT solver */
   BtorPtrHashTable *assumptions;
+  /* maintains non-simplified assumptions as assumed via boolector_assume,
+   * this stack is needed for boolector_get_failed_assumptions only */
+  BtorNodePtrStack failed_assumptions;
 
   BtorPtrHashTable *var_rhs;
   BtorPtrHashTable *fun_rhs;
@@ -268,9 +273,6 @@ bool btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if assumption is a failed assumption. */
 bool btor_failed_exp (Btor *btor, BtorNode *exp);
-
-/* Get the set of failed assumptions. */
-void btor_get_failed_assumptions (Btor *btor, BtorNodePtrStack *res);
 
 /* Adds assumptions as assertions and resets the assumptions. */
 void btor_fixate_assumptions (Btor *btor);

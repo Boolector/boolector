@@ -545,6 +545,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
               "'exp' must have bit-width one");
   BTOR_ABORT (btor_node_real_addr (exp)->parameterized,
               "assumption must not be parameterized");
+  BTOR_PUSH_STACK (btor->failed_assumptions, btor_node_copy (btor, exp));
   btor_assume_exp (btor, exp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
@@ -586,27 +587,34 @@ boolector_get_failed_assumptions (Btor *btor)
   BoolectorNode **res;
   BtorNodePtrStack failed;
   BtorNode *fass;
-  uint32_t i, n;
+  uint32_t i;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_UNSAT,
               "cannot check failed assumptions if input formula is not UNSAT");
-  btor_get_failed_assumptions (btor, &failed);
-  n   = BTOR_COUNT_STACK (failed);
-  res = calloc (n + 1, sizeof (BoolectorNode *));
-  for (i = 0; i < n; i++)
+
+  BTOR_INIT_STACK (btor->mm, failed);
+  for (i = 0; i < BTOR_COUNT_STACK (btor->failed_assumptions); i++)
   {
-    fass = BTOR_PEEK_STACK (failed, i);
-    assert (fass);
-    res[i] = BTOR_EXPORT_BOOLECTOR_NODE (fass);
+    fass = BTOR_PEEK_STACK (btor->failed_assumptions, i);
+    if (!fass) continue;
+    assert (btor_hashptr_table_get (
+        btor->assumptions, btor_pointer_chase_simplified_exp (btor, fass)));
+    if (btor_failed_exp (btor, fass))
+      BTOR_PUSH_STACK (failed, fass);
+    else
+      btor_node_release (btor, fass);
   }
-  BTOR_RELEASE_STACK (failed);
+  BTOR_PUSH_STACK (failed, NULL);
+  BTOR_RELEASE_STACK (btor->failed_assumptions);
+  btor->failed_assumptions = failed;
+  res                      = (BoolectorNode **) btor->failed_assumptions.start;
 #ifndef NDEBUG
   if (btor->clone)
   {
     BoolectorNode **cloneres;
     cloneres = boolector_get_failed_assumptions (btor->clone);
-    for (i = 0; i < n; i++)
+    for (i = 0; res[i] != NULL; i++)
       btor_chkclone_exp (btor,
                          btor->clone,
                          BTOR_IMPORT_BOOLECTOR_NODE (res[i]),

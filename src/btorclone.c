@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -606,14 +606,16 @@ void
 btor_clone_node_ptr_stack (BtorMemMgr *mm,
                            BtorNodePtrStack *stack,
                            BtorNodePtrStack *res,
-                           BtorNodeMap *exp_map)
+                           BtorNodeMap *exp_map,
+                           bool is_zero_terminated)
 {
   assert (stack);
   assert (res);
   assert (exp_map);
 
-  uint32_t i;
+  uint32_t i, n;
   BtorNode *cloned_exp;
+  bool has_zero_terminated;
 
   BTOR_INIT_STACK (mm, *res);
   assert (BTOR_SIZE_STACK (*stack) || !BTOR_COUNT_STACK (*stack));
@@ -623,13 +625,19 @@ btor_clone_node_ptr_stack (BtorMemMgr *mm,
     res->top = res->start;
     res->end = res->start + BTOR_SIZE_STACK (*stack);
 
-    for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
+    n                   = BTOR_COUNT_STACK (*stack);
+    has_zero_terminated = n && !BTOR_PEEK_STACK (*stack, n - 1);
+    if (is_zero_terminated && has_zero_terminated) n -= 1;
+
+    for (i = 0; i < n; i++)
     {
       assert ((*stack).start[i]);
       cloned_exp = btor_nodemap_mapped (exp_map, (*stack).start[i]);
       assert (cloned_exp);
       BTOR_PUSH_STACK (*res, cloned_exp);
     }
+
+    if (is_zero_terminated && has_zero_terminated) BTOR_PUSH_STACK (*res, 0);
   }
   assert (BTOR_COUNT_STACK (*stack) == BTOR_COUNT_STACK (*res));
   assert (BTOR_SIZE_STACK (*stack) == BTOR_SIZE_STACK (*res));
@@ -1141,6 +1149,11 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (assumptions);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->assumptions))
           == clone->mm->allocated);
+  btor_clone_node_ptr_stack (
+      mm, &btor->failed_assumptions, &clone->failed_assumptions, emap, true);
+  assert ((allocated +=
+           BTOR_SIZE_STACK (btor->failed_assumptions) * sizeof (BtorNode *))
+          == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (var_rhs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->var_rhs))
           == clone->mm->allocated);
@@ -1153,7 +1166,8 @@ clone_aux_btor (Btor *btor,
   assert ((allocated += MEM_INT_HASH_TABLE (btor->assertions_cache))
           == clone->mm->allocated);
 
-  btor_clone_node_ptr_stack (mm, &btor->assertions, &clone->assertions, emap);
+  btor_clone_node_ptr_stack (
+      mm, &btor->assertions, &clone->assertions, emap, false);
   assert (
       (allocated += BTOR_SIZE_STACK (btor->assertions) * sizeof (BtorNode *))
       == clone->mm->allocated);
@@ -1260,8 +1274,11 @@ clone_aux_btor (Btor *btor,
   else
   {
     BTORLOG_TIMESTAMP (delta);
-    btor_clone_node_ptr_stack (
-        mm, &btor->functions_with_model, &clone->functions_with_model, emap);
+    btor_clone_node_ptr_stack (mm,
+                               &btor->functions_with_model,
+                               &clone->functions_with_model,
+                               emap,
+                               false);
     BTORLOG (1,
              "  clone functions_with_model: %.3f s",
              btor_util_time_stamp () - delta);

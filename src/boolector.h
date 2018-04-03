@@ -266,8 +266,9 @@ bool boolector_failed (Btor *btor, BoolectorNode *node);
   Get all failed assumptions (see boolector_failed).
 
   Returns the list of failed assumptions in a zero-terminated array of
-  pointers to BoolectorNodes. The nodes in the list do not have to be
-  released. The array can be released with free().
+  pointers to BoolectorNodes. The nodes in this array do not have to be
+  released. The memory allocated for this array is maintained by Boolector,
+  it does not have to be freed.
 
   :param btor: Boolector instance.
   :returns: A pointer to an array of pointers to BoolectorNodes.
