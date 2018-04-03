@@ -236,9 +236,6 @@ struct BtorSMTParser
   BtorSMTNode *first;
   BtorSMTNode *last;
 #endif
-
-  BoolectorNodePtrStack inputs;
-  BoolectorNodePtrStack outputs;
 };
 
 /*------------------------------------------------------------------------*/
@@ -556,20 +553,8 @@ release_smt_internals (BtorSMTParser *parser)
 }
 
 static void
-release_smt_vars (BtorSMTParser *parser)
-{
-  BoolectorNode **p;
-
-  for (p = parser->inputs.start; p < parser->inputs.top; p++)
-    boolector_release (parser->btor, *p);
-
-  BTOR_RELEASE_STACK (parser->inputs);
-}
-
-static void
 delete_smt_parser (BtorSMTParser *parser)
 {
-  BoolectorNode **p;
   BtorMemMgr *mm;
 
   mm = parser->mem;
@@ -577,11 +562,6 @@ delete_smt_parser (BtorSMTParser *parser)
   release_smt_internals (parser);
 
   btor_mem_freestr (mm, parser->error);
-  release_smt_vars (parser);
-
-  for (p = parser->outputs.start; p != parser->outputs.top; p++)
-    boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->outputs);
 
   BTOR_DELETE (mm, parser);
   btor_mem_mgr_delete (mm);
@@ -697,8 +677,6 @@ new_smt_parser (Btor *btor)
   BTOR_INIT_STACK (mem, res->delete);
   BTOR_INIT_STACK (mem, res->heads);
   BTOR_INIT_STACK (mem, res->buffer);
-  BTOR_INIT_STACK (mem, res->inputs);
-  BTOR_INIT_STACK (mem, res->outputs);
 
   res->required_logic = BTOR_LOGIC_QF_BV;
 
@@ -1216,13 +1194,6 @@ btorsmtpp (BtorSMTNode *node)
   fflush (stdout);
 }
 
-static void
-push_input (BtorSMTParser *parser, BoolectorNode *v)
-{
-  if (parser->modelgen)
-    BTOR_PUSH_STACK (parser->inputs, boolector_copy (parser->btor, v));
-}
-
 static const char *
 next_numeral (const char *str)
 {
@@ -1295,7 +1266,6 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     s           = boolector_bool_sort (parser->btor);
     symbol->exp = boolector_var (parser->btor, s, symbol->name);
     boolector_release_sort (parser->btor, s);
-    push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "BitVec"))
   {
@@ -1307,7 +1277,6 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     s           = boolector_bitvec_sort (parser->btor, datalen);
     symbol->exp = boolector_var (parser->btor, s, symbol->name);
     boolector_release_sort (parser->btor, s);
-    push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "Array"))
   {
@@ -1334,8 +1303,6 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
       smt_message (parser, 2, "requires QF_AUFBV");
       parser->required_logic = BTOR_LOGIC_QF_AUFBV;
     }
-
-    push_input (parser, symbol->exp);
 
     /* TODO what about 'symbol->name' back annotation? */
   }
@@ -1381,7 +1348,6 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
   s           = boolector_bool_sort (parser->btor);
   symbol->exp = boolector_var (parser->btor, s, symbol->name);
   boolector_release_sort (parser->btor, s);
-  push_input (parser, symbol->exp);
 
   return true;
 }
@@ -2808,13 +2774,9 @@ translate_benchmark (BtorSMTParser *parser,
                        3,
                        "adding ':assumption' %d",
                        parser->assumptions.handled);
-          boolector_assert (parser->btor, exp);
-          boolector_release (parser->btor, exp);
         }
-        else
-        {
-          BTOR_PUSH_STACK (parser->outputs, exp);
-        }
+        boolector_assert (parser->btor, exp);
+        boolector_release (parser->btor, exp);
 
         parser->assumptions.handled++;
 
@@ -2837,7 +2799,8 @@ translate_benchmark (BtorSMTParser *parser,
 
         if (!parser->incremental)
         {
-          BTOR_PUSH_STACK (parser->outputs, exp);
+          boolector_assert (parser->btor, exp);
+          boolector_release (parser->btor, exp);
         }
         else
           smt_parser_inc_add_release_sat (parser, res, exp);
@@ -3051,12 +3014,6 @@ NEXT_TOKEN:
     }
 
     smt_message (parser, 2, "found %u constants", parser->constants);
-
-    res->inputs  = parser->inputs.start;
-    res->ninputs = BTOR_COUNT_STACK (parser->inputs);
-
-    res->noutputs = BTOR_COUNT_STACK (parser->outputs);
-    res->outputs  = parser->outputs.start;
 
     return 0; /* DONE */
   }

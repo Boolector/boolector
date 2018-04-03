@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2018 Aina Niemetz.
  *  Copyright (C) 2012-2016 Mathias Preiner.
  *
  *  All rights reserved.
@@ -55,8 +55,6 @@ parse_aux (Btor *btor,
 
   BtorParser *parser;
   BtorParseResult parse_res;
-  BoolectorNode *root;
-  uint32_t i, root_len;
   int32_t res;
   char *emsg;
 
@@ -77,31 +75,6 @@ parse_aux (Btor *btor,
   {
     res = parse_res.nsatcalls ? parse_res.result : BOOLECTOR_PARSE_UNKNOWN;
 
-    if (!boolector_get_opt (btor, BTOR_OPT_INCREMENTAL))
-    {
-      // FIXME this is only used for non-incremental smt1 and btor
-      // maybe move root handling into respective parsers??
-      /* assert root(s) if not incremental
-       * Note: we have to do this via API calls for API tracing!!! */
-      for (i = 0; i < parse_res.noutputs; i++)
-      {
-        root     = parse_res.outputs[i];
-        root_len = boolector_get_width (btor, root);
-        assert (root_len >= 1);
-        if (root_len > 1)
-          root = boolector_redor (btor, root);
-        else
-          root = boolector_copy (btor, root);
-        boolector_assert (btor, root);
-        boolector_release (btor, root);
-      }
-    }
-
-    BTOR_MSG (btor->msg,
-              1,
-              "parsed %d inputs and %d outputs",
-              parse_res.ninputs,
-              parse_res.noutputs);
     if (parse_res.logic == BTOR_LOGIC_QF_BV)
       BTOR_MSG (btor->msg, 1, "logic QF_BV");
     else if (parse_res.logic == BTOR_LOGIC_BV)
@@ -125,8 +98,6 @@ parse_aux (Btor *btor,
       assert (parse_res.status == BOOLECTOR_UNKNOWN);
       BTOR_MSG (btor->msg, 1, "status unknown");
     }
-
-    BTOR_MSG (btor->msg, 2, "added %d outputs (100%)", parse_res.noutputs);
   }
 
   if (status) *status = parse_res.status;

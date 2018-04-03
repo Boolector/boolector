@@ -330,9 +330,7 @@ typedef struct BtorSMT2Parser
   double parse_start;
   bool store_tokens; /* needed for parsing terms in get-value */
   BtorCharStack *prefix, token, tokens;
-  BoolectorNodePtrStack outputs, inputs;
   BoolectorSortStack sorts;
-  BtorUIntStack outputs_trail, inputs_trail;
   BtorSMT2ItemStack work;
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
   BtorSMT2Node *last_node;
@@ -628,7 +626,6 @@ open_new_scope (BtorSMT2Parser *parser)
   start = btor_util_time_stamp ();
 
   parser->scope_level++;
-  BTOR_PUSH_STACK (parser->inputs_trail, BTOR_COUNT_STACK (parser->inputs));
   parser->cur_scope_num_terms = get_current_formula_size (parser);
 
   BTOR_MSG (parser->btor->msg,
@@ -642,7 +639,7 @@ static void
 close_current_scope (BtorSMT2Parser *parser)
 {
   double start;
-  uint32_t i, offset;
+  uint32_t i;
   BtorSMT2Node *node, *next;
 
   start = btor_util_time_stamp ();
@@ -659,12 +656,6 @@ close_current_scope (BtorSMT2Parser *parser)
       node = next;
     }
   }
-
-  /* delete inputs added in current scope */
-  offset = BTOR_POP_STACK (parser->inputs_trail);
-  assert (offset <= BTOR_COUNT_STACK (parser->inputs));
-  while (BTOR_COUNT_STACK (parser->inputs) > offset)
-    boolector_release (parser->btor, BTOR_POP_STACK (parser->inputs));
 
   BTOR_MSG (parser->btor->msg,
             2,
@@ -937,10 +928,6 @@ new_smt2_parser (Btor *btor)
   res->store_tokens  = false;
 
   BTOR_INIT_STACK (mem, res->work);
-  BTOR_INIT_STACK (mem, res->inputs);
-  BTOR_INIT_STACK (mem, res->outputs);
-  BTOR_INIT_STACK (mem, res->outputs_trail);
-  BTOR_INIT_STACK (mem, res->inputs_trail);
   BTOR_INIT_STACK (mem, res->sorts);
 
   BTOR_INIT_STACK (mem, res->sat_assuming_assumptions);
@@ -985,20 +972,10 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   if (parser->infile_name) btor_mem_freestr (mem, parser->infile_name);
   if (parser->error) btor_mem_freestr (mem, parser->error);
 
-  while (!BTOR_EMPTY_STACK (parser->inputs))
-    boolector_release (parser->btor, BTOR_POP_STACK (parser->inputs));
-  BTOR_RELEASE_STACK (parser->inputs);
-
-  while (!BTOR_EMPTY_STACK (parser->outputs))
-    boolector_release (parser->btor, BTOR_POP_STACK (parser->outputs));
-  BTOR_RELEASE_STACK (parser->outputs);
-
   while (!BTOR_EMPTY_STACK (parser->sorts))
     boolector_release_sort (parser->btor, BTOR_POP_STACK (parser->sorts));
   BTOR_RELEASE_STACK (parser->sorts);
 
-  BTOR_RELEASE_STACK (parser->outputs_trail);
-  BTOR_RELEASE_STACK (parser->inputs_trail);
   while (!BTOR_EMPTY_STACK (parser->sat_assuming_assumptions))
   {
     boolector_release (parser->btor,
@@ -3353,8 +3330,6 @@ declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
               fun->coo.y);
     parser->need_functions = true;
   }
-  (void) boolector_copy (parser->btor, fun->exp);
-  BTOR_PUSH_STACK (parser->inputs, fun->exp);
   BTOR_RELEASE_STACK (args);
   return read_rpar_smt2 (parser, " to close declaration");
 }
@@ -4221,11 +4196,6 @@ parse_smt2_parser (BtorSMT2Parser *parser,
                   parser->infile_name);
     }
   }
-  parser->res->inputs = parser->inputs.start;
-  // TODO (ma): this stack is not used anymore for SMT2
-  parser->res->outputs  = parser->outputs.start;
-  parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
-  parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
   delta                 = btor_util_time_stamp () - start;
   if (delta < 0) delta = 0;
   BTOR_MSG (boolector_get_btor_msg (parser->btor),

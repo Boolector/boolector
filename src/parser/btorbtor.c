@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -63,7 +63,6 @@ struct BtorBTORParser
   BtorCharStack *prefix;
   FILE *infile;
   const char *infile_name;
-  FILE *outfile;  // TODO not used at the moment, but will be with BTOR 2.0
   uint32_t lineno;
   bool saved;
   int32_t saved_char;
@@ -72,8 +71,6 @@ struct BtorBTORParser
   BoolectorNodePtrStack exps;
   BtorInfoStack info;
 
-  BoolectorNodePtrStack inputs;
-  BoolectorNodePtrStack outputs;
   BoolectorNodePtrStack regs;
   BoolectorNodePtrStack lambdas;
   BoolectorNodePtrStack params;
@@ -400,9 +397,7 @@ parse_var (BtorBTORParser *parser, uint32_t width)
       parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
   boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
-  BTOR_PUSH_STACK (parser->inputs, res);
   parser->info.start[parser->idx].var = 1;
-
   return res;
 }
 
@@ -461,11 +456,8 @@ parse_array (BtorBTORParser *parser, uint32_t width)
   boolector_release_sort (parser->btor, es);
   boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
-  BTOR_PUSH_STACK (parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
-
   parser->found_arrays = true;
-
   return res;
 }
 
@@ -737,14 +729,17 @@ parse_ones (BtorBTORParser *parser, uint32_t width)
 static BoolectorNode *
 parse_root (BtorBTORParser *parser, uint32_t width)
 {
-  BoolectorNode *res;
+  BoolectorNode *res, *tmp;
 
   if (parse_space (parser)) return 0;
-
   if (!(res = parse_exp (parser, width, false, true))) return 0;
-
-  BTOR_PUSH_STACK (parser->outputs, res);
-
+  if (width > 1)
+  {
+    tmp = res;
+    res = boolector_redor (parser->btor, tmp);
+    boolector_release (parser->btor, tmp);
+  }
+  boolector_assert (parser->btor, res);
   return res;
 }
 
@@ -1715,8 +1710,6 @@ new_btor_parser (Btor *btor)
 
   BTOR_INIT_STACK (mem, res->exps);
   BTOR_INIT_STACK (mem, res->info);
-  BTOR_INIT_STACK (mem, res->inputs);
-  BTOR_INIT_STACK (mem, res->outputs);
   BTOR_INIT_STACK (mem, res->regs);
   BTOR_INIT_STACK (mem, res->lambdas);
   BTOR_INIT_STACK (mem, res->params);
@@ -1809,8 +1802,6 @@ delete_btor_parser (BtorBTORParser *parser)
 
   BTOR_RELEASE_STACK (parser->exps);
   BTOR_RELEASE_STACK (parser->info);
-  BTOR_RELEASE_STACK (parser->inputs);
-  BTOR_RELEASE_STACK (parser->outputs);
   BTOR_RELEASE_STACK (parser->regs);
   BTOR_RELEASE_STACK (parser->lambdas);
   BTOR_RELEASE_STACK (parser->params);
@@ -1844,7 +1835,7 @@ parse_btor_parser (BtorBTORParser *parser,
 
   assert (infile);
   assert (infile_name);
-  assert (outfile);
+  (void) outfile;
 
   BTOR_MSG (
       boolector_get_btor_msg (parser->btor), 1, "parsing %s", infile_name);
@@ -1853,7 +1844,6 @@ parse_btor_parser (BtorBTORParser *parser,
   parser->prefix      = prefix;
   parser->infile      = infile;
   parser->infile_name = infile_name;
-  parser->outfile     = outfile;
   parser->lineno      = 1;
   parser->saved       = false;
 
@@ -1879,21 +1869,6 @@ NEXT:
       else
         res->logic = BTOR_LOGIC_QF_BV;
       res->status = BOOLECTOR_UNKNOWN;
-
-      res->ninputs = BTOR_COUNT_STACK (parser->inputs);
-      res->inputs  = parser->inputs.start;
-
-      res->noutputs = BTOR_COUNT_STACK (parser->outputs);
-      res->outputs  = parser->outputs.start;
-
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                1,
-                "parsed %d inputs",
-                res->ninputs);
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                1,
-                "parsed %d outputs",
-                res->noutputs);
     }
 
     return 0;
@@ -1948,7 +1923,13 @@ NEXT:
     return parser->error;
   }
 
-  assert (boolector_get_width (parser->btor, e) == width);
+#ifndef NDEBUG
+  uint32_t w = boolector_get_width (parser->btor, e);
+  if (!strcmp (parser->op.start, "root"))
+    assert (w == 1);
+  else
+    assert (w == width);
+#endif
   parser->exps.start[parser->idx] = e;
 
 SKIP:

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2015-2016 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -52,12 +52,6 @@ struct BtorParseResult
   int32_t status;
   int32_t result;
   uint32_t nsatcalls;
-
-  uint32_t ninputs;
-  BoolectorNode **inputs;
-
-  uint32_t noutputs;
-  BoolectorNode **outputs;
 };
 
 struct BtorParserAPI
