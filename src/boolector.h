@@ -2128,12 +2128,12 @@ bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
 /*!
   Parse input file.
 
-  Input file format may be either BTOR_, `SMT-LIB v1`_, or `SMT-LIB v2`_, the
-  file type is detected automatically.  If the parser encounters an error, an
-  explanation of that error is stored in ``error_msg``. If the input file
-  specifies a (known) status of the input formula (either sat or unsat), that
-  status is stored in ``status``. All output (from commands like e.g.
-  'check-sat' in `SMT-LIB v2`_) is printed to ``outfile``.
+  Input file format may be either BTOR_, BTOR2_, `SMT-LIB v1`_, or
+  `SMT-LIB v2`_, the file type is detected automatically.  If the parser
+  encounters an error, an explanation of that error is stored in ``error_msg``.
+  If the input file specifies a (known) status of the input formula (either sat
+  or unsat), that status is stored in ``status``. All output (from commands
+  like e.g.  'check-sat' in `SMT-LIB v2`_) is printed to ``outfile``.
 
   :param btor: Boolector instance.
   :param infile: Input file.
@@ -2174,6 +2174,27 @@ int32_t boolector_parse_btor (Btor *btor,
                               FILE *outfile,
                               char **error_msg,
                               int32_t *status);
+
+/*!
+  Parse input file in BTOR2 format.
+
+  See boolector_parse.
+
+  :param btor: Boolector instance.
+  :param infile: Input file.
+  :param infile_name: Input file name.
+  :param outfile: Output file.
+  :param error_msg: Error message.
+  :param status: Status of the input formula.
+  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error
+           occurred.
+*/
+int32_t boolector_parse_btor2 (Btor *btor,
+                               FILE *infile,
+                               const char *infile_name,
+                               FILE *outfile,
+                               char **error_msg,
+                               int32_t *status);
 
 /*!
   Parse input file in `SMT-LIB v1`_ format.

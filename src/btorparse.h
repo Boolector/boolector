@@ -75,6 +75,13 @@ int32_t btor_parse_btor (Btor *btor,
                          char **error_msg,
                          int32_t *status);
 
+int32_t btor_parse_btor2 (Btor *btor,
+                          FILE *infile,
+                          const char *infile_name,
+                          FILE *outfile,
+                          char **error_msg,
+                          int32_t *status);
+
 int32_t btor_parse_smt1 (Btor *btor,
                          FILE *infile,
                          const char *infile_name,

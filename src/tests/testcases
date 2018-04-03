@@ -113,6 +113,7 @@ rwpropindexpluszero8 -rwl 0 -o src/tests/log/rwpropindexpluszero8.log src/tests/
 arraycondconst -rwl 0 -o src/tests/log/arraycondconst.log src/tests/log/arraycondconst.btor
 arraycondconstaig -rwl 0 -o src/tests/log/arraycondconstaig.log src/tests/log/arraycondconstaig.btor
 random1 -o src/tests/log/random1.log src/tests/log/random1.btor
+random1btor2 -o src/tests/log/random1btor2.log src/tests/log/random1.btor2
 random2 -o src/tests/log/random2.log src/tests/log/random2.btor
 random3 -o src/tests/log/random3.log src/tests/log/random3.btor
 random4 -o src/tests/log/random4.log src/tests/log/random4.btor

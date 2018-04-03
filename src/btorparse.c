@@ -16,10 +16,13 @@
 #include "btorcore.h"
 #include "btoropt.h"
 #include "parser/btorbtor.h"
+#include "parser/btorbtor2.h"
 #include "parser/btorsmt.h"
 #include "parser/btorsmt2.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
+
+#include <ctype.h>
 
 static bool
 has_compressed_suffix (const char *str, const char *suffix)
@@ -124,7 +127,7 @@ btor_parse (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  int32_t first, second, res;
+  int32_t idx, first, second, res;
   uint32_t len;
   char ch, *msg;
   BtorCharStack prefix;
@@ -138,6 +141,11 @@ btor_parse (Btor *btor,
   if (has_compressed_suffix (infile_name, ".btor"))
   {
     parser_api = btor_parsebtor_parser_api ();
+    sprintf (msg, "parsing '%s'", infile_name);
+  }
+  if (has_compressed_suffix (infile_name, ".btor2"))
+  {
+    parser_api = btor_parsebtor2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
   }
   else if (has_compressed_suffix (infile_name, ".smt2"))
@@ -171,7 +179,10 @@ btor_parse (Btor *btor,
         if (ch == EOF) break;
       }
       else if (!first)
+      {
         first = ch;
+        idx = BTOR_COUNT_STACK (prefix) - 1;
+      }
       else
       {
         second = ch;
@@ -196,6 +207,23 @@ btor_parse (Btor *btor,
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
+      }
+      else
+      {
+        do
+        {
+          ch = getc (infile);
+          if (ch == EOF) break;
+          BTOR_PUSH_STACK (prefix, ch);
+        } while (ch != '\n');
+        BTOR_PUSH_STACK (prefix, 0);
+        if (strstr (prefix.start + idx, " sort ") != NULL)
+        {
+          parser_api = btor_parsebtor2_parser_api ();
+          sprintf (
+              msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
+        }
+        BTOR_POP_STACK (prefix);
       }
     }
   }
@@ -235,6 +263,27 @@ btor_parse_btor (Btor *btor,
 
   const BtorParserAPI *parser_api;
   parser_api = btor_parsebtor_parser_api ();
+  return parse_aux (
+      btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
+}
+
+int32_t
+btor_parse_btor2 (Btor *btor,
+                  FILE *infile,
+                  const char *infile_name,
+                  FILE *outfile,
+                  char **error_msg,
+                  int32_t *status)
+{
+  assert (btor);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
+  assert (error_msg);
+  assert (status);
+
+  const BtorParserAPI *parser_api;
+  parser_api = btor_parsebtor2_parser_api ();
   return parse_aux (
       btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }

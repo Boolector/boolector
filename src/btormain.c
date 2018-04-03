@@ -66,6 +66,7 @@ enum BtorMainOption
   BTORMAIN_OPT_DEC,
   BTORMAIN_OPT_BIN,
   BTORMAIN_OPT_BTOR,
+  BTORMAIN_OPT_BTOR2,
   BTORMAIN_OPT_SMT2,
   BTORMAIN_OPT_SMT1,
   BTORMAIN_OPT_DUMP_BTOR,
@@ -305,6 +306,19 @@ btormain_init_opts (BtorMainApp *app)
                      false,
                      BTOR_ARG_EXPECT_NONE,
                      "force BTOR input format");
+  btormain_init_opt (app,
+                     BTORMAIN_OPT_BTOR2,
+                     true,
+                     true,
+                     "btor2",
+                     0,
+                     0,
+                     0,
+                     1,
+                     false,
+                     BTOR_ARG_EXPECT_NONE,
+                     "force BTOR2 input format");
+
   btormain_init_opt (app,
                      BTORMAIN_OPT_SMT2,
                      true,
@@ -651,7 +665,8 @@ print_help (BtorMainApp *app)
   {
     if (!app->options[mo].general) continue;
     if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
-        || mo == BTORMAIN_OPT_HEX || mo == BTORMAIN_OPT_BTOR
+        || mo == BTORMAIN_OPT_HEX
+        || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_BTOR2
         || mo == BTORMAIN_OPT_DUMP_BTOR)
       fprintf (out, "\n");
     PRINT_MAIN_OPT (app, &app->options[mo]);
@@ -1056,6 +1071,10 @@ boolector_main (int32_t argc, char **argv)
           boolector_set_opt (btor, BTOR_OPT_INPUT_FORMAT, format);
           break;
 
+        case BTORMAIN_OPT_BTOR2:
+          format = BTOR_INPUT_FORMAT_BTOR2;
+          goto SET_INPUT_FORMAT;
+
         case BTORMAIN_OPT_SMT2:
           format = BTOR_INPUT_FORMAT_SMT2;
           goto SET_INPUT_FORMAT;
@@ -1246,6 +1265,16 @@ boolector_main (int32_t argc, char **argv)
                                         g_app->outfile,
                                         &parse_err_msg,
                                         &parse_status);
+      break;
+    case BTOR_INPUT_FORMAT_BTOR2:
+      if (g_verbosity)
+        btormain_msg ("BTOR2 input forced through cmd line options");
+      parse_res = boolector_parse_btor2 (btor,
+                                         g_app->infile,
+                                         g_app->infile_name,
+                                         g_app->outfile,
+                                         &parse_err_msg,
+                                         &parse_status);
       break;
     case BTOR_INPUT_FORMAT_SMT1:
       if (g_verbosity)

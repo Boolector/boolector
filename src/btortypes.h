@@ -79,12 +79,18 @@ enum BtorOption
 
       | Force input file format (``value``:
         `BTOR
-         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_: -1,
+         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_:
+         BTOR_INPUT_FORMAT_BTOR,
+        `BTOR2
+         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_:
+         BTOR_INPUT_FORMAT_BTOR2 ,
         `SMT-LIB v1
-         <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_: 1,
+         <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_:
+         BTOR_INPUT_FORMAT_SMT1,
         `SMT-LIB v2
          <http://smtlib.cs.uiowa.edu/papers/
-          smt-lib-reference-v2.0-r12.09.09.pdf>`_: 2)
+          smt-lib-reference-v2.0-r12.09.09.pdf>`_:
+          BTOR_INPUT_FORMAT_SMT2)
          when parsing an input file.
       | If unspecified, Boolector automatically detects the input file format
         while parsing.
