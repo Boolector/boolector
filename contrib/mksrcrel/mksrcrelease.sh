@@ -63,10 +63,15 @@ cp -p --parents \
   aigprop.[ch] \
   `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
-  btorfmt/LICENSE \
+  btorfmt/LICENSE.txt \
   btorfmt/btorfmt.[ch] \
   btorfmt/configure.sh \
   btorfmt/makefile.in \
+  btorfmt/util/btorfmtmem.h \
+  btorfmt/util/btorfmtstack.h \
+  btorfmt/btorsim/btorsimbv.[ch] \
+  btorfmt/btorsim/btorsimmain.c \
+  btorfmt/btorsim/btorsimrng.[ch] \
 $dir/src
 
 for subdir in dumper mcapi normalizer parser sat simplifier utils
