@@ -229,6 +229,7 @@ typedef enum BtorSMT2Tag
   BTOR_BV_TAG_SMT2        = 23 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_UFBV_TAG_SMT2      = 24 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_ABV_TAG_SMT2       = 25 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_ALL_SMT2           = 26 + BTOR_LOGIC_TAG_CLASS_SMT2,
 
 } BtorSMT2Tag;
 
@@ -313,7 +314,9 @@ typedef struct BtorSMT2Parser
   Btor *btor;
   BtorMemMgr *mem;
   bool done;
+  bool need_arrays;
   bool need_functions;
+  bool need_quantifiers;
   bool saved;
   int32_t savedch;
   int32_t last_end_of_line_ycoo;
@@ -912,6 +915,7 @@ insert_logics_smt2 (BtorSMT2Parser *parser)
   INSERT ("BV", BTOR_BV_TAG_SMT2);
   INSERT ("UFBV", BTOR_UFBV_TAG_SMT2);
   INSERT ("ABV", BTOR_ABV_TAG_SMT2);
+  INSERT ("ALL", BTOR_ALL_SMT2);
 }
 
 static BtorSMT2Parser *
@@ -2783,6 +2787,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             push_item_smt2 (parser, BTOR_SORTED_VARS_TAG_SMT2);
             assert (!parser->sorted_var);
             parser->sorted_var = 1;
+            parser->need_quantifiers = true;
           }
           else if (tag == BTOR_EXISTS_TAG_SMT2)
           {
@@ -3278,7 +3283,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
                 fun->name,
                 fun->coo.x,
                 fun->coo.y);
-      parser->need_functions = true;
+      parser->need_arrays = true;
     }
     else
     {
@@ -3431,7 +3436,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
                 fun->name,
                 fun->coo.x,
                 fun->coo.y);
-      parser->need_functions = true;
+      parser->need_arrays = true;
     }
     else
     {
@@ -3445,7 +3450,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
                 fun->name,
                 fun->coo.x,
                 fun->coo.y);
-      assert (parser->need_functions);
+      assert (parser->need_arrays);
     }
   }
   else
@@ -3899,6 +3904,9 @@ read_command_smt2 (BtorSMT2Parser *parser)
         case BTOR_ABV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_ABV; break;
         case BTOR_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
         case BTOR_UFBV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_UFBV; break;
+        case BTOR_ALL_SMT2:
+          parser->res->logic = BTOR_LOGIC_ALL;
+          break;
         default:
           return !perr_smt2 (
               parser, "unsupported logic '%s'", parser->token.start);
@@ -4196,7 +4204,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
                   parser->infile_name);
     }
   }
-  delta                 = btor_util_time_stamp () - start;
+  delta = btor_util_time_stamp () - start;
   if (delta < 0) delta = 0;
   BTOR_MSG (boolector_get_btor_msg (parser->btor),
             1,
@@ -4204,7 +4212,8 @@ parse_smt2_parser (BtorSMT2Parser *parser,
             parser->commands.all,
             delta);
 
-  if (parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_BV)
+  if (parser->need_functions && parser->need_arrays
+      && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               1,
@@ -4217,6 +4226,22 @@ parse_smt2_parser (BtorSMT2Parser *parser,
               1,
               "found functions thus using 'UFBV' logic");
     parser->res->logic = BTOR_LOGIC_UFBV;
+  }
+  /* determine logic to use */
+  else if (parser->res->logic == BTOR_LOGIC_ALL)
+  {
+    if (!parser->need_quantifiers)
+    {
+      if (parser->need_functions || parser->need_arrays)
+        parser->res->logic = BTOR_LOGIC_QF_AUFBV;
+      else
+        parser->res->logic = BTOR_LOGIC_QF_BV;
+    }
+    else
+    {
+      /* we only support quantifiers with pure bit-vectors for now */
+      parser->res->logic = BTOR_LOGIC_BV;
+    }
   }
   else if (parser->commands.set_logic)
   {
