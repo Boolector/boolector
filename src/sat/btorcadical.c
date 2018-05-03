@@ -52,6 +52,15 @@ reset (BtorSATMgr *smgr)
   smgr->solver = 0;
 }
 
+static void
+enable_verbosity (BtorSATMgr *smgr, int32_t level)
+{
+  if (level <= 1)
+    ccadical_set_option (smgr->solver, "quiet", 1);
+  else if (level >= 2)
+    ccadical_set_option (smgr->solver, "verbose", level - 2);
+}
+
 /*------------------------------------------------------------------------*/
 /* incremental API                                                        */
 /*------------------------------------------------------------------------*/
@@ -72,7 +81,7 @@ btor_sat_enable_cadical (BtorSATMgr *smgr)
   smgr->api.add              = add;
   smgr->api.assume           = 0;
   smgr->api.deref            = deref;
-  smgr->api.enable_verbosity = 0;
+  smgr->api.enable_verbosity = enable_verbosity;
   smgr->api.failed           = 0;
   smgr->api.fixed            = 0;
   smgr->api.inc_max_var      = 0;
