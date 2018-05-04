@@ -3,7 +3,7 @@
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 btormc=$dir/../../bin/btormc
-btorsim=$dir/../../src/btorfmt/bin/btorsim
+btorsim=$dir/../../../btor2tools/bin/btorsim
 
 invalid () {
   echo invalid
