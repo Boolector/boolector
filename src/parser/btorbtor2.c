@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorfmt/btorfmt.h"
+#include "btor2parser/btor2parser.h"
 #include "btormsg.h"
 #include "btorparse.h"
 #include "btortypes.h"
@@ -31,7 +31,7 @@ struct BtorBTOR2Parser
   Btor *btor;
   char *error;
   const char *infile_name;
-  BtorFormatReader *bfr;
+  Btor2Parser *bfr;
 };
 
 typedef struct BtorBTOR2Parser BtorBTOR2Parser;
@@ -70,7 +70,7 @@ new_btor2_parser (Btor *btor)
 
   res->mm   = mm;
   res->btor = btor;
-  res->bfr  = btorfmt_new ();
+  res->bfr  = btor2parser_new ();
 
   return res;
 }
@@ -81,7 +81,7 @@ delete_btor2_parser (BtorBTOR2Parser *parser)
   BtorMemMgr *mm;
 
   mm = parser->mm;
-  btorfmt_delete (parser->bfr);
+  btor2parser_delete (parser->bfr);
   btor_mem_freestr (mm, parser->error);
   BTOR_DELETE (mm, parser);
   btor_mem_mgr_delete (mm);
@@ -103,8 +103,8 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
   uint32_t i, bw;
   int64_t j, signed_arg, unsigned_arg;
-  BtorFormatLineIterator lit;
-  BtorFormatLine *line;
+  Btor2LineIterator lit;
+  Btor2Line *line;
   BtorIntHashTable *sortmap;
   BtorIntHashTable *nodemap;
   BtorIntHashTableIterator it;
@@ -132,7 +132,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
   parser->infile_name = infile_name;
 
-  /* btorfmt doesn't allow to pass the prefix, we have to rewind to the
+  /* btor2parser doesn't allow to pass the prefix, we have to rewind to the
    * beginning of the input file instead. */
   if (fseek (infile, 0L, SEEK_SET))
   {
@@ -140,9 +140,9 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
     goto DONE;
   }
 
-  if (!btorfmt_read_lines (parser->bfr, infile))
+  if (!btor2parser_read_lines (parser->bfr, infile))
   {
-    parser->error = btor_mem_strdup (mm, btorfmt_error (parser->bfr));
+    parser->error = btor_mem_strdup (mm, btor2parser_error (parser->bfr));
     assert (parser->error);
     goto DONE;
   }
@@ -150,8 +150,8 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
   sortmap = btor_hashint_map_new (mm);
   nodemap = btor_hashint_map_new (mm);
 
-  lit = btorfmt_iter_init (parser->bfr);
-  while ((line = btorfmt_iter_next (&lit)))
+  lit = btor2parser_iter_init (parser->bfr);
+  while ((line = btor2parser_iter_next (&lit)))
   {
     node = 0;
     sort = 0;
@@ -164,7 +164,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
     /* sort ----------------------------------------------------------------  */
 
-    if (line->tag != BTOR_FORMAT_TAG_sort && line->sort.id)
+    if (line->tag != BTOR2_TAG_sort && line->sort.id)
     {
       if (line->sort.id > INT_MAX)
       {
@@ -199,22 +199,22 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
     switch (line->tag)
     {
-      case BTOR_FORMAT_TAG_add:
+      case BTOR2_TAG_add:
         assert (line->nargs == 2);
         node = boolector_add (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_and:
+      case BTOR2_TAG_and:
         assert (line->nargs == 2);
         node = boolector_and (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_concat:
+      case BTOR2_TAG_concat:
         assert (line->nargs == 2);
         node = boolector_concat (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_const:
+      case BTOR2_TAG_const:
         assert (line->nargs == 0);
         assert (line->constant);
         bw = line->sort.bitvec.width;
@@ -230,7 +230,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         node = boolector_const (btor, line->constant);
         break;
 
-      case BTOR_FORMAT_TAG_constd:
+      case BTOR2_TAG_constd:
         assert (line->nargs == 0);
         assert (line->constant);
         bw = line->sort.bitvec.width;
@@ -246,7 +246,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         node = boolector_constd (btor, sort, line->constant);
         break;
 
-      case BTOR_FORMAT_TAG_consth:
+      case BTOR2_TAG_consth:
         assert (line->nargs == 0);
         assert (line->constant);
         bw = line->sort.bitvec.width;
@@ -262,37 +262,37 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         node = boolector_consth (btor, sort, line->constant);
         break;
 
-      case BTOR_FORMAT_TAG_constraint:
+      case BTOR2_TAG_constraint:
         assert (line->nargs == 1);
         boolector_assert (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_dec:
+      case BTOR2_TAG_dec:
         assert (line->nargs == 1);
         node = boolector_dec (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_eq:
+      case BTOR2_TAG_eq:
         assert (line->nargs == 2);
         node = boolector_eq (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_iff:
+      case BTOR2_TAG_iff:
         assert (line->nargs == 2);
         node = boolector_iff (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_implies:
+      case BTOR2_TAG_implies:
         assert (line->nargs == 2);
         node = boolector_implies (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_inc:
+      case BTOR2_TAG_inc:
         assert (line->nargs == 1);
         node = boolector_inc (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_input:
+      case BTOR2_TAG_input:
         assert (line->nargs == 0);
         if (boolector_is_bitvec_sort (btor, sort))
           node = boolector_var (btor, sort, line->symbol);
@@ -304,149 +304,149 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         boolector_set_btor_id (btor, node, line->id);
         break;
 
-      case BTOR_FORMAT_TAG_ite:
+      case BTOR2_TAG_ite:
         assert (line->nargs == 3);
         node = boolector_cond (btor, e[0], e[1], e[2]);
         break;
 
-      case BTOR_FORMAT_TAG_mul:
+      case BTOR2_TAG_mul:
         assert (line->nargs == 2);
         node = boolector_mul (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_nand:
+      case BTOR2_TAG_nand:
         assert (line->nargs == 2);
         node = boolector_nand (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ne:
+      case BTOR2_TAG_ne:
         assert (line->nargs == 2);
         node = boolector_ne (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_neg:
+      case BTOR2_TAG_neg:
         assert (line->nargs == 1);
         node = boolector_neg (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_nor:
+      case BTOR2_TAG_nor:
         assert (line->nargs == 2);
         node = boolector_nor (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_not:
+      case BTOR2_TAG_not:
         assert (line->nargs == 1);
         node = boolector_not (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_one:
+      case BTOR2_TAG_one:
         assert (line->nargs == 0);
         node = boolector_one (btor, sort);
         break;
 
-      case BTOR_FORMAT_TAG_ones:
+      case BTOR2_TAG_ones:
         assert (line->nargs == 0);
         node = boolector_ones (btor, sort);
         break;
 
-      case BTOR_FORMAT_TAG_or:
+      case BTOR2_TAG_or:
         assert (line->nargs == 2);
         node = boolector_or (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_output:
+      case BTOR2_TAG_output:
         fprintf (stderr, "warning: unsupported tag '%s'\n", line->name);
         break;
 
-      case BTOR_FORMAT_TAG_read:
+      case BTOR2_TAG_read:
         assert (line->nargs == 2);
         node = boolector_read (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_redand:
+      case BTOR2_TAG_redand:
         assert (line->nargs == 1);
         node = boolector_redand (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_redor:
+      case BTOR2_TAG_redor:
         assert (line->nargs == 1);
         node = boolector_redor (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_redxor:
+      case BTOR2_TAG_redxor:
         assert (line->nargs == 1);
         node = boolector_redxor (btor, e[0]);
         break;
 
-      case BTOR_FORMAT_TAG_rol:
+      case BTOR2_TAG_rol:
         assert (line->nargs == 2);
         node = boolector_rol (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ror:
+      case BTOR2_TAG_ror:
         assert (line->nargs == 2);
         node = boolector_ror (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_saddo:
+      case BTOR2_TAG_saddo:
         assert (line->nargs == 2);
         node = boolector_saddo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sdiv:
+      case BTOR2_TAG_sdiv:
         assert (line->nargs == 2);
         node = boolector_sdiv (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sdivo:
+      case BTOR2_TAG_sdivo:
         assert (line->nargs == 2);
         node = boolector_sdivo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sext:
+      case BTOR2_TAG_sext:
         assert (line->nargs == 1);
         node = boolector_sext (btor, e[0], line->args[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sgt:
+      case BTOR2_TAG_sgt:
         assert (line->nargs == 2);
         node = boolector_sgt (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sgte:
+      case BTOR2_TAG_sgte:
         assert (line->nargs == 2);
         node = boolector_sgte (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_slice:
+      case BTOR2_TAG_slice:
         assert (line->nargs == 1);
         node = boolector_slice (btor, e[0], line->args[1], line->args[2]);
         break;
 
-      case BTOR_FORMAT_TAG_sll:
+      case BTOR2_TAG_sll:
         assert (line->nargs == 2);
         node = boolector_sll (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_slt:
+      case BTOR2_TAG_slt:
         assert (line->nargs == 2);
         node = boolector_slt (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_slte:
+      case BTOR2_TAG_slte:
         assert (line->nargs == 2);
         node = boolector_slte (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sort:
-        if (line->sort.tag == BTOR_FORMAT_TAG_SORT_bitvec)
+      case BTOR2_TAG_sort:
+        if (line->sort.tag == BTOR2_TAG_SORT_bitvec)
         {
           assert (line->sort.bitvec.width);
           sort = boolector_bitvec_sort (btor, line->sort.bitvec.width);
         }
         else
         {
-          assert (line->sort.tag == BTOR_FORMAT_TAG_SORT_array);
+          assert (line->sort.tag == BTOR2_TAG_SORT_array);
           j = line->sort.array.index;
           assert (j);
           if (j > INT_MAX)
@@ -474,118 +474,118 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         btor_hashint_map_add (sortmap, line->id)->as_ptr = sort;
         break;
 
-      case BTOR_FORMAT_TAG_smod:
+      case BTOR2_TAG_smod:
         assert (line->nargs == 2);
         node = boolector_smod (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_smulo:
+      case BTOR2_TAG_smulo:
         assert (line->nargs == 2);
         node = boolector_smulo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sra:
+      case BTOR2_TAG_sra:
         assert (line->nargs == 2);
         node = boolector_sra (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_srem:
+      case BTOR2_TAG_srem:
         assert (line->nargs == 2);
         node = boolector_srem (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_srl:
+      case BTOR2_TAG_srl:
         assert (line->nargs == 2);
         node = boolector_srl (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ssubo:
+      case BTOR2_TAG_ssubo:
         assert (line->nargs == 2);
         node = boolector_ssubo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_sub:
+      case BTOR2_TAG_sub:
         assert (line->nargs == 2);
         node = boolector_sub (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_uaddo:
+      case BTOR2_TAG_uaddo:
         assert (line->nargs == 2);
         node = boolector_uaddo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_udiv:
+      case BTOR2_TAG_udiv:
         assert (line->nargs == 2);
         node = boolector_udiv (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_uext:
+      case BTOR2_TAG_uext:
         assert (line->nargs == 1);
         node = boolector_uext (btor, e[0], line->args[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ugt:
+      case BTOR2_TAG_ugt:
         assert (line->nargs == 2);
         node = boolector_ugt (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ugte:
+      case BTOR2_TAG_ugte:
         assert (line->nargs == 2);
         node = boolector_ugte (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ult:
+      case BTOR2_TAG_ult:
         assert (line->nargs == 2);
         node = boolector_ult (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_ulte:
+      case BTOR2_TAG_ulte:
         assert (line->nargs == 2);
         node = boolector_ulte (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_umulo:
+      case BTOR2_TAG_umulo:
         assert (line->nargs == 2);
         node = boolector_umulo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_urem:
+      case BTOR2_TAG_urem:
         assert (line->nargs == 2);
         node = boolector_urem (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_usubo:
+      case BTOR2_TAG_usubo:
         assert (line->nargs == 2);
         node = boolector_usubo (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_write:
+      case BTOR2_TAG_write:
         assert (line->nargs == 3);
         node = boolector_write (btor, e[0], e[1], e[2]);
         break;
 
-      case BTOR_FORMAT_TAG_xnor:
+      case BTOR2_TAG_xnor:
         assert (line->nargs == 2);
         node = boolector_xnor (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_xor:
+      case BTOR2_TAG_xor:
         assert (line->nargs == 2);
         node = boolector_xor (btor, e[0], e[1]);
         break;
 
-      case BTOR_FORMAT_TAG_zero:
+      case BTOR2_TAG_zero:
         assert (line->nargs == 0);
         node = boolector_zero (btor, sort);
         break;
 
       default:
-        assert (line->tag == BTOR_FORMAT_TAG_bad
-             || line->tag == BTOR_FORMAT_TAG_fair
-             || line->tag == BTOR_FORMAT_TAG_init
-             || line->tag == BTOR_FORMAT_TAG_justice
-             || line->tag == BTOR_FORMAT_TAG_next
-             || line->tag == BTOR_FORMAT_TAG_state);
+        assert (line->tag == BTOR2_TAG_bad
+             || line->tag == BTOR2_TAG_fair
+             || line->tag == BTOR2_TAG_init
+             || line->tag == BTOR2_TAG_justice
+             || line->tag == BTOR2_TAG_next
+             || line->tag == BTOR2_TAG_state);
         perr_btor2 (parser,
                     line->id,
                     "model checking extensions not supported by boolector, try "

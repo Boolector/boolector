@@ -160,7 +160,7 @@ if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS $SRCDIR/api/python"
 fi
-for additional in btorfmt tests
+for additional in tests
 do
   [ -d src/$additional ] && SRCDIRS="$SRCDIRS src/$additional"
 done
@@ -237,6 +237,22 @@ then
   LDEPS="$BUILDIR/libboolector.so"
   LIBSTDCPP=yes
 fi
+
+#--------------------------------------------------------------------------#
+
+if [ !-d $ROOT/../btor2tools ]
+then
+  die "btor2tools missing"
+fi
+if [ $shared = yes ]
+then
+  LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
+  LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.so"
+else
+  LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
+  LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.a"
+fi
+INCS="${INCS} -I$ROOT/../btor2tools/src"
 
 #--------------------------------------------------------------------------#
 
