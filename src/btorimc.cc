@@ -2,8 +2,6 @@
  *
  *  Copyright (C) 2012-2014 Armin Biere.
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

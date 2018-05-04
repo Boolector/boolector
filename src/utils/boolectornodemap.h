@@ -4,8 +4,6 @@
  *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

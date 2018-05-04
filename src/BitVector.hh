@@ -1,7 +1,13 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2012-2013 Armin Biere.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #ifndef BitVector_h_INCLUDED
 #define BitVector_h_INCLUDED
-
-// (C) 2012-2013, Armin Biere, Johannes Kepler University Linz, Austria.
 
 #include <cassert>
 #include <functional>

@@ -2,8 +2,6 @@
  *
  *  Copyright (C) 2015-2017 Aina Niemetz.
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

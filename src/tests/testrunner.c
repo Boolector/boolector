@@ -4,8 +4,6 @@
  *  Copyright (C) 2007-2018 Armin Biere.
  *  Copyright (C) 2012-2017 Aina Niemetz
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

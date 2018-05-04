@@ -4,8 +4,6 @@
  *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

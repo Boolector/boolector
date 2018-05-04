@@ -5,8 +5,6 @@
  *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2013-2018 Aina Niemetz.
  *
- *  All rights reserved.
- *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
@@ -4550,23 +4548,17 @@ boolector_copyright (Btor *btor)
   BTOR_ABORT_ARG_NULL (btor);
   return "This software is\n"
          "Copyright (c) 2007-2009 Robert Brummayer\n"
-         "Copyright (c) 2007-2016 Armin Biere\n"
-         "Copyright (c) 2012-2017 Aina Niemetz, Mathias Preiner\n"
-         "Institute for Formal Models and Verification\n"
-         "Johannes Kepler University, Linz, Austria\n"
+         "Copyright (c) 2007-2018 Armin Biere\n"
+         "Copyright (c) 2012-2018 Aina Niemetz, Mathias Preiner\n"
 #ifdef BTOR_USE_LINGELING
          "\n"
          "This software is linked against Lingeling\n"
-         "Copyright (c) 2010-2016 Armin Biere\n"
-         "Institute for Formal Models and Verification\n"
-         "Johannes Kepler University, Linz, Austria\n"
+         "Copyright (c) 2010-2018 Armin Biere\n"
 #endif
 #ifdef BTOR_USE_PICOSAT
          "\n"
          "This software is linked against PicoSAT\n"
          "Copyright (c) 2006-2016 Armin Biere\n"
-         "Institute for Formal Models and Verification\n"
-         "Johannes Kepler University, Linz, Austria\n"
 #endif
 #ifdef BTOR_USE_MINISAT
          "\n"
@@ -4576,9 +4568,7 @@ boolector_copyright (Btor *btor)
 #ifdef BTOR_USE_CADICAL
          "\n"
          "This software is linked against CaDiCaL\n"
-         "Copyright (c) 2016-2017 Armin Biere\n"
-         "Institute for Formal Models and Verification\n"
-         "Johannes Kepler University, Linz, Austria\n"
+         "Copyright (c) 2016-2018 Armin Biere\n"
 #endif
          "";
 }
