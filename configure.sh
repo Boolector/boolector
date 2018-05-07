@@ -240,7 +240,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-if [ !-d $ROOT/../btor2tools ]
+if [ ! -d $ROOT/../btor2tools ]
 then
   die "btor2tools missing"
 fi
