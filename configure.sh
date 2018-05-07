@@ -15,6 +15,7 @@ lingeling=yes
 minisat=unknown
 picosat=unknown
 cadical=unknown
+btor2tools=yes   # Note: required dependency, may change in the future
 arch=unknown
 
 onlylingeling=no
@@ -240,19 +241,31 @@ fi
 
 #--------------------------------------------------------------------------#
 
-if [ ! -d $ROOT/../btor2tools ]
+if [ $btor2tools = yes ]
 then
-  die "btor2tools missing"
-fi
-if [ $shared = yes ]
-then
-  LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
-  LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.so"
+  if [ ! -d $ROOT/../btor2tools ]
+  then
+    die "btor2tools missing"
+  fi
+  if [ $shared = yes -a ! -f $ROOT/../btor2tools/build/libbtor2parser.so ]
+  then
+    die "libbtor2parser.so not found. Compile btor2tools as shared library"
+  elif [ $shared = no -a ! -f $ROOT/../btor2tools/build/libbtor2parser.a ]
+  then
+    die "libbtor2parser.a library not found. Compile btor2tools first."
+  fi
+  if [ $shared = yes ]
+  then
+    LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
+    LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.so"
+  else
+    LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
+    LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.a"
+  fi
+  INCS="${INCS} -I$ROOT/../btor2tools/src"
 else
-  LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
-  LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.a"
+  msg "no using BTOR2Tools"
 fi
-INCS="${INCS} -I$ROOT/../btor2tools/src"
 
 #--------------------------------------------------------------------------#
 
@@ -507,7 +520,6 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_CADICAL"
-    OBJS="${OBJS}$BUILDIR/sat/btorcadical.o"
     RPATHS="${RPATHS}\,-rpath=$ROOT/../cadical/build/"
     if [ $shared = yes ]
     then
@@ -587,7 +599,12 @@ then
     py_library_dirs="$py_library_dirs $ROOT/../cadical/build"
     py_inc_dirs="$py_inc_dirs $ROOT/../cadical/build"
   fi
-  OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
+  if [ $btor2tools = yes ]; then
+    py_libraries="$py_libraries btor2parser"
+    py_library_dirs="$py_library_dirs $ROOT/../btor2tools/build"
+    py_inc_dirs="$py_inc_dirs $ROOT/../btor2tools/build"
+  fi
+  OBJS="$BUILDIR/api/python/boolector_py.o $OBJS"
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
   pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
   pyld=`basename $pyinc`
