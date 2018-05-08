@@ -3899,9 +3899,9 @@ read_command_smt2 (BtorSMT2Parser *parser)
         case BTOR_QF_ABV_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_QF_AUFBV;
           break;
-        case BTOR_ABV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_ABV; break;
+        case BTOR_ABV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_QF_ABV; break;
         case BTOR_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
-        case BTOR_UFBV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_UFBV; break;
+        case BTOR_UFBV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_QF_UFBV; break;
         case BTOR_ALL_SMT2:
           parser->res->logic = BTOR_LOGIC_ALL;
           break;
@@ -4218,12 +4218,12 @@ parse_smt2_parser (BtorSMT2Parser *parser,
               "found functions thus using 'QF_AUFBV' logic");
     parser->res->logic = BTOR_LOGIC_QF_AUFBV;
   }
-  else if (parser->need_functions && parser->res->logic == BTOR_LOGIC_BV)
+  else if (parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               1,
-              "found functions thus using 'UFBV' logic");
-    parser->res->logic = BTOR_LOGIC_UFBV;
+              "found functions thus using 'QF_UFBV' logic");
+    parser->res->logic = BTOR_LOGIC_QF_UFBV;
   }
   /* determine logic to use */
   else if (parser->res->logic == BTOR_LOGIC_ALL)
@@ -4244,8 +4244,8 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   else if (parser->commands.set_logic)
   {
     assert (!parser->need_functions || parser->res->logic == BTOR_LOGIC_QF_AUFBV
-            || parser->res->logic == BTOR_LOGIC_UFBV
-            || parser->res->logic == BTOR_LOGIC_ABV);
+            || parser->res->logic == BTOR_LOGIC_QF_UFBV
+            || parser->res->logic == BTOR_LOGIC_QF_ABV);
     if (!parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
