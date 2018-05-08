@@ -38,7 +38,7 @@ enum BtorOption
 {
   /* --------------------------------------------------------------------- */
   /*!
-   **General Options:**
+    **General Options:**
    */
   /* --------------------------------------------------------------------- */
   /*!
@@ -183,7 +183,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Simplifier Options:**
+    **Simplifier Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -278,7 +278,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Fun Engine Options:**
+    **Fun Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -363,7 +363,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **SLS Engine Options:**
+    **SLS Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -532,7 +532,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Prop Engine Options**:
+    **Prop Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 
@@ -667,17 +667,17 @@ enum BtorOption
   /*!
     * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
 
-    | Do not perform a propagation move when running into a conflict during
-      inverse computation.
-    | (This is the default behavior for the SLS engine when propagation moves
-      are enabled, where a conflict triggers a recovery by means of a regular
-    SLS move.)
+      | Do not perform a propagation move when running into a conflict during
+        inverse computation.
+      | (This is the default behavior for the SLS engine when propagation moves
+        are enabled, where a conflict triggers a recovery by means of a regular
+        SLS move.)
     */
   BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
 
   /* --------------------------------------------------------------------- */
   /*!
-   **AIGProp Engine Options**:
+    **AIGProp Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 
