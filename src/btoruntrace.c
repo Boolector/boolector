@@ -1208,6 +1208,12 @@ NEXT:
           btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "repeat"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      ret_ptr = boolector_repeat (btor, hmap_get (hmap, arg1_str), arg2_int);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "read"))
     {
       PARSE_ARGS2 (tok, str, str);
@@ -1369,13 +1375,8 @@ NEXT:
     else if (!strcmp (tok, "get_bits"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!g_btorunt->skip)
-      {
-        ret_ptr = (char *) boolector_get_bits (btor, hmap_get (hmap, arg1_str));
-        exp_ret = RET_VOIDPTR;
-      }
-      else
-        exp_ret = RET_SKIP;
+      ret_ptr = (char *) boolector_get_bits (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "free_bits"))
     {
