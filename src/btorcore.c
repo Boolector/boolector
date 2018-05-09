@@ -1163,6 +1163,15 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   }
 }
 
+static bool
+is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  return btor_node_get_width (btor, exp) == 1
+         && btor_node_real_addr (exp)->parents > 0;
+}
+
 static void
 insert_embedded_constraint (Btor *btor, BtorNode *exp)
 {
@@ -1178,6 +1187,53 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
                                    btor_node_copy (btor, exp));
     btor_node_real_addr (exp)->constraint = 1;
     btor->stats.constraints.embedded++;
+  }
+}
+
+static bool
+constraint_is_inconsistent (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  //  assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
+  assert (btor_node_get_width (btor, exp) == 1);
+
+  BtorNode *rep;
+
+  rep = btor_simplify_exp (btor, exp);
+
+  return rep == btor_node_invert (rep)
+         /* special case: top-level constraint applies are not simplified to
+          * true/false (in order to not break dual prop) */
+         || btor_hashptr_table_get (btor->synthesized_constraints,
+                                    btor_node_invert (rep))
+         || btor_hashptr_table_get (btor->unsynthesized_constraints,
+                                    btor_node_invert (rep))
+         || btor_hashptr_table_get (btor->embedded_constraints,
+                                    btor_node_invert (rep));
+}
+
+static void
+insert_into_constraint_tables (Btor *btor, BtorNode *exp)
+{
+  if (constraint_is_inconsistent (btor, exp))
+    btor->inconsistent = true;
+  else
+  {
+    if (!btor_node_real_addr (exp)->constraint)
+    {
+      if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1
+          && is_embedded_constraint_exp (btor, exp)
+          && !btor_node_is_bv_const (exp))
+        insert_embedded_constraint (btor, exp);
+      else
+        btor_insert_unsynthesized_constraint (btor, exp);
+    }
+    else
+    {
+      assert (btor_hashptr_table_get (btor->unsynthesized_constraints, exp)
+              || btor_hashptr_table_get (btor->embedded_constraints, exp));
+    }
   }
 }
 
@@ -1206,6 +1262,13 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
     /* do not set constraint flag, as they are gone after substitution
      * and treated differently */
     btor->stats.constraints.varsubst++;
+
+    /* Always add varsubst contraints into unsynthesized/embedded contraints.
+     * Otherwise, we get an inconsistent state if varsubst is disabled at
+     * some point and not all varsubst constraints have been processed. */
+    eq = btor_exp_eq (btor, left, right);
+    insert_into_constraint_tables (btor, eq);
+    btor_node_release (btor, eq);
   }
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
@@ -1214,8 +1277,7 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
     eq = btor_exp_eq (btor, left, right);
     /* only add if it is not in a constraint table: can be already in
      * embedded or unsythesized constraints */
-    if (!btor_node_real_addr (eq)->constraint)
-      btor_insert_unsynthesized_constraint (btor, eq);
+    insert_into_constraint_tables (btor, eq);
     btor_node_release (btor, eq);
   }
 }
@@ -1506,38 +1568,6 @@ BTOR_NORMALIZE_SUBST_RESULT:
   return true;
 }
 
-static bool
-constraint_is_inconsistent (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  //  assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
-  assert (btor_node_get_width (btor, exp) == 1);
-
-  BtorNode *rep;
-
-  rep = btor_simplify_exp (btor, exp);
-
-  return rep == btor_node_invert (rep)
-         /* special case: top-level constraint applies are not simplified to
-          * true/false (in order to not break dual prop) */
-         || btor_hashptr_table_get (btor->synthesized_constraints,
-                                    btor_node_invert (rep))
-         || btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                    btor_node_invert (rep))
-         || btor_hashptr_table_get (btor->embedded_constraints,
-                                    btor_node_invert (rep));
-}
-
-static bool
-is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  return btor_node_get_width (btor, exp) == 1
-         && btor_node_real_addr (exp)->parents > 0;
-}
-
 static void
 insert_new_constraint (Btor *btor, BtorNode *exp)
 {
@@ -1570,57 +1600,34 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 
   if (!btor_hashptr_table_get (btor->synthesized_constraints, exp))
   {
-    if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1)
+    if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1
+        && btor_opt_get (btor, BTOR_OPT_VAR_SUBST)
+        && normalize_substitution (btor, exp, &left, &right))
     {
-      if (btor_opt_get (btor, BTOR_OPT_VAR_SUBST)
-          && normalize_substitution (btor, exp, &left, &right))
-      {
-        insert_varsubst_constraint (btor, left, right);
-        btor_node_release (btor, left);
-        btor_node_release (btor, right);
-      }
-      /* NOTE: variable substitution constraints need to be added to either
-       * unsynthesized or embedded constraints, as otherwise the constraint
-       * flag won't be set, which might lead to an inconsistent state:
-       * E.g.:
-       *
-       * assume (a0)
-       *   -> a0->simplified = c0 (which is a constraint)
-       *   -> adds true/false as assumption, since a0 simplified to c0
-       * sat ()
-       *   -> c0 gets simplified to c1 (c0->simplified = c1)
-       *   -> c1 is a variable substitution constraint
-       *   -> c1 is added to varsubst_constraints (no constraint flag set)
-       *   -> simplify returns UNSAT before substituting all varsubst
-       *      constraints
-       *   -> sat returns UNSAT
-       * failed (a0)
-       *   -> a0->simplified = c1 (due to pointer chasing)
-       *   -> c1 is not an assumption and thus, failed () aborts
-       */
-      if (constraint_is_inconsistent (btor, exp))
-        btor->inconsistent = true;
-      else
-      {
-        if (!real_exp->constraint)
-        {
-          if (is_embedded_constraint_exp (btor, exp))
-            insert_embedded_constraint (btor, exp);
-          else
-            btor_insert_unsynthesized_constraint (btor, exp);
-        }
-        else
-        {
-          assert (btor_hashptr_table_get (btor->unsynthesized_constraints, exp)
-                  || btor_hashptr_table_get (btor->embedded_constraints, exp));
-        }
-      }
+      insert_varsubst_constraint (btor, left, right);
+      btor_node_release (btor, left);
+      btor_node_release (btor, right);
     }
-    else if (constraint_is_inconsistent (btor, exp))
-      btor->inconsistent = true;
-    else
-      btor_insert_unsynthesized_constraint (btor, exp);
-
+    /* NOTE: variable substitution constraints need to be added to either
+     * unsynthesized or embedded constraints, as otherwise the constraint
+     * flag won't be set, which might lead to an inconsistent state:
+     * E.g.:
+     *
+     * assume (a0)
+     *   -> a0->simplified = c0 (which is a constraint)
+     *   -> adds true/false as assumption, since a0 simplified to c0
+     * sat ()
+     *   -> c0 gets simplified to c1 (c0->simplified = c1)
+     *   -> c1 is a variable substitution constraint
+     *   -> c1 is added to varsubst_constraints (no constraint flag set)
+     *   -> simplify returns UNSAT before substituting all varsubst
+     *      constraints
+     *   -> sat returns UNSAT
+     * failed (a0)
+     *   -> a0->simplified = c1 (due to pointer chasing)
+     *   -> c1 is not an assumption and thus, failed () aborts
+     */
+    insert_into_constraint_tables (btor, exp);
     report_constraint_stats (btor, false);
   }
 }
