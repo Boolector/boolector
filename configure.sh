@@ -263,6 +263,7 @@ then
     LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.a"
   fi
   INCS="${INCS} -I$ROOT/../btor2tools/src"
+  RPATHS="${RPATHS}\,-rpath\,$ROOT/../btor2tools/build"
 else
   msg "no using BTOR2Tools"
 fi
