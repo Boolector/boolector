@@ -1,0 +1,4 @@
+CC=gcc
+CFLAGS=-g -Wall -W -Wextra
+LIBS=-L../../../build -lboolector $(shell sed -e '/^LIBS=/!d' -e 's,^LIBS=,,' ../../../makefile)
+INC=-I../../../src
