@@ -58,19 +58,19 @@ git clone https://github.com/boolector/boolector
 cd boolector && ./configure.sh && make && cd -
 ```
 
-All binaries are generated into directory `boolector/bin`,
+All binaries (boolector, btormc, btormbt, btoruntrace) are generated into
+directory `boolector/bin`,
 and all libraries (libboolector.a, libboolector.so) are generated into
 directory `boolector/build`.
 
-For more build configuration options of Boolector, see `./configure.sh -h`.
+For more build configuration options of Boolector, see `configure.sh -h`.
 
 To build Boolector with Python bindings, `btor2tools` and SAT solvers must
 be compiled with flag `-fPIC`
 (see build instructions of these tools for more details on how to build as
 shared library).  
-Then, configure and build Boolector as follows:
+Then, from Boolector's root directory configure and build Boolector as follows:
 ```
-cd boolector
 ./configure.sh -python
 make
 ```
@@ -79,10 +79,10 @@ To build the API documentation of Boolector, it is required to install
 [Sphinx](http://www.sphinx-doc.org) (>= version 1.2).  
 Then build Boolector and issue:
 ```
-cd boolector/doc
+cd doc
 make html
 ```
-The documentation is then generated into `boolector/doc/_build/html`.  
+The documentation is then generated into `doc/_build/html`.  
 Make sure to build Boolector with Python bindings, else the documentation of
 its Python API will not be included.
 
@@ -92,13 +92,17 @@ Usage
 For a list of command line options, refer to `boolector -h`.
 
 For examples and instructions on how to use Boolector's C API, refer to
-`boolector/examples` and the [API documentation]().
+`examples/api/c` and the [API documentation]().  
+To build all examples in `examples/api/c` issue:
+```
+cd examples/api/c
+make
+```
 
 For examples and instructions on how to use Boolector's Python API, refer to
-`boolector/src/api/python/api_usage_examples.py`
- and the [API documentation]().  
- To run `boolector/src/api/python/api_usage_examples.py`, issue:
- ```
- cd boolector
- PYTHONPATH="build" python examples/api/python/api_usage_examples.py 
- ```
+`src/api/python/api_usage_examples.py`
+and the [API documentation]().  
+To run `api_usage_examples.py`, from Boolector's root directory issue:
+```
+PYTHONPATH="build" python examples/api/python/api_usage_examples.py 
+```
