@@ -5430,6 +5430,9 @@ normalize_bin_comm_ass_exp (Btor *btor,
                                  (BtorCmpPtr) btor_node_compare_by_id);
   cache = btor_hashint_table_new (mm);
 
+  if (!btor_opt_get (btor, BTOR_OPT_NORMALIZE))
+    goto RETURN_NO_RESULT;
+
   BTOR_INIT_STACK (mm, stack);
   BTOR_PUSH_STACK (stack, e0);
   do

@@ -325,6 +325,16 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "normalize addition operators");
+  init_opt (btor,
+            BTOR_OPT_NORMALIZE,
+            false,
+            true,
+            "normalize",
+            "norm",
+            1,
+            0,
+            1,
+            "normalize add/mul/and operators");
 
   /* FUN engine ---------------------------------------------------------- */
   init_opt (btor,
