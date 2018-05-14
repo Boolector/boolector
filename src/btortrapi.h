@@ -19,6 +19,13 @@
   (btor_node_is_inverted (exp) ? -btor_node_real_addr (exp)->id : exp->id), \
       btor_node_real_addr (exp)->btor
 
+#define BTOR_TRAPI_PRINT(args...)    \
+  do                                 \
+  {                                  \
+    if (!btor->apitrace) break;      \
+    btor_trapi_print (btor, ##args); \
+  } while (0)
+
 #define BTOR_TRAPI(args...)                  \
   do                                         \
   {                                          \
@@ -70,6 +77,8 @@
   BTOR_TRAPI_RETURN ("%s", res ? "true" : "false")
 
 #define BTOR_TRAPI_RETURN_SORT(sort) BTOR_TRAPI_RETURN (SORT_FMT, sort, btor)
+
+void btor_trapi_print (Btor *btor, const char *msg, ...);
 
 void btor_trapi (Btor* btor, const char* fname, const char* msg, ...);
 

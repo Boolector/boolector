@@ -10,6 +10,19 @@
 #include "btortrapi.h"
 
 void
+btor_trapi_print (Btor *btor, const char *msg, ...)
+{
+  assert (btor);
+  assert (btor->apitrace);
+
+  va_list args;
+  va_start (args, msg);
+  vfprintf (btor->apitrace, msg, args);
+  va_end (args);
+  fflush (btor->apitrace);
+}
+
+void
 btor_trapi (Btor *btor, const char *fname, const char *msg, ...)
 {
   assert (btor);

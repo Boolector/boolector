@@ -2928,8 +2928,7 @@ boolector_fun (Btor *btor,
                uint32_t paramc,
                BoolectorNode *node)
 {
-  uint32_t i, len;
-  char *strtrapi;
+  uint32_t i;
   BtorNode **params, *exp, *res;
 
   params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
@@ -2942,22 +2941,18 @@ boolector_fun (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  len = 5 + 10 + paramc * 20 + 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d ", paramc);
-
+  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
                 "'params[%d]' is not a parameter",
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
-    sprintf (
-        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+    BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
-  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (exp));
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+  BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (exp));
+  BTOR_TRAPI_PRINT ("\n");
+
   BTOR_ABORT (btor_node_is_uf (btor_simplify_exp (btor, exp)),
               "expected bit vector term as function body");
   res = btor_exp_fun (btor, params, paramc, exp);
@@ -2978,9 +2973,8 @@ boolector_apply (Btor *btor,
                  uint32_t argc,
                  BoolectorNode *n_fun)
 {
-  uint32_t i, len;
+  uint32_t i;
   int32_t fcheck;
-  char *strtrapi;
   BtorNode **args, *e_fun, *res;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
@@ -2992,17 +2986,11 @@ boolector_apply (Btor *btor,
   BTOR_ABORT_REFS_NOT_POS (e_fun);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_fun);
 
-  len = 7 + 10 + argc * 20 + 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d ", argc);
-
+  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, argc);
   for (i = 0; i < argc; i++)
-    sprintf (
-        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
-  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
-
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+    BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
+  BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
+  BTOR_TRAPI_PRINT ("\n");
 
   BTOR_ABORT (!btor_sort_is_fun (btor, btor_node_get_sort_id (e_fun)),
               "'e_fun' must be a function");
@@ -3076,8 +3064,7 @@ boolector_forall (Btor *btor,
                   int paramc,
                   BoolectorNode *body_node)
 {
-  int i, len;
-  char *strtrapi;
+  int i;
   BtorNode **params, *body, *res;
 
   params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
@@ -3087,10 +3074,7 @@ boolector_forall (Btor *btor,
   BTOR_ABORT_ARG_NULL (body);
   BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  len = 5 + 10 + paramc * 20 + 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d ", paramc);
-
+  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
@@ -3098,12 +3082,10 @@ boolector_forall (Btor *btor,
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
-    sprintf (
-        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+    BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
-  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (body));
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+  BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (body));
+  BTOR_TRAPI_PRINT ("\n");
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
@@ -3131,8 +3113,7 @@ boolector_exists (Btor *btor,
                   int paramc,
                   BoolectorNode *body_node)
 {
-  int i, len;
-  char *strtrapi;
+  int i;
   BtorNode **params, *body, *res;
 
   params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
@@ -3142,10 +3123,7 @@ boolector_exists (Btor *btor,
   BTOR_ABORT_ARG_NULL (body);
   BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  len = 5 + 10 + paramc * 20 + 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d ", paramc);
-
+  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
@@ -3153,12 +3131,10 @@ boolector_exists (Btor *btor,
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
-    sprintf (
-        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+    BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
-  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (body));
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+  BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (body));
+  BTOR_TRAPI_PRINT ("\n");
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
@@ -3665,8 +3641,7 @@ boolector_fun_sort_check (Btor *btor,
                           BoolectorNode *n_fun)
 {
   BtorNode **args, *e_fun;
-  char *strtrapi;
-  uint32_t i, len;
+  uint32_t i;
   int32_t res;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
@@ -3676,21 +3651,17 @@ boolector_fun_sort_check (Btor *btor,
   BTOR_ABORT (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
 
-  len = 15 + 10 + argc * 20 + 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d ", argc);
-
+  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, argc);
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_ARG_NULL (args[i]);
     BTOR_ABORT_REFS_NOT_POS (args[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, args[i]);
-    sprintf (
-        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
+    BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
   }
-  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+  BTOR_TRAPI_PRINT (NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
+  BTOR_TRAPI_PRINT ("\n");
+
   res = btor_fun_sort_check (btor, args, argc, e_fun);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
@@ -4112,25 +4083,15 @@ boolector_fun_sort (Btor *btor,
   BTOR_ABORT_ARG_NULL (domain);
   BTOR_ABORT (arity <= 0, "'arity' must be > 0");
 
-  uint32_t i, len;
+  uint32_t i;
   BtorSortId res, tup, cos, s;
-  char *strtrapi;
 
-  len = 8 + 10 + (arity + 1) * 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-
-  sprintf (strtrapi, SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT ((domain[0])), btor);
+  BTOR_TRAPI_PRINT ("%s %p ", __FUNCTION__ + 10, btor);
+  BTOR_TRAPI_PRINT (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT ((domain[0])), btor);
   for (i = 1; i < arity; i++)
-    sprintf (strtrapi + strlen (strtrapi),
-             SORT_FMT,
-             BTOR_IMPORT_BOOLECTOR_SORT (domain[i]),
-             btor);
-  sprintf (strtrapi + strlen (strtrapi),
-           SORT_FMT,
-           BTOR_IMPORT_BOOLECTOR_SORT (codomain),
-           btor);
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
+    BTOR_TRAPI_PRINT (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (domain[i]), btor);
+  BTOR_TRAPI_PRINT (SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (codomain), btor);
+  BTOR_TRAPI_PRINT ("\n");
 
   for (i = 0; i < arity; i++)
   {
