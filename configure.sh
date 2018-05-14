@@ -28,6 +28,8 @@ gprof=no
 python=no
 timestats=no
 
+flags=none
+
 #--------------------------------------------------------------------------#
 
 die () {
@@ -59,6 +61,7 @@ where <option> is one of the following:
   -gprof            compile with -pg
   -python           compile python API
   --time-stats      compile with time statistics
+  -f...|-m...       add compiler options
 
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
@@ -123,6 +126,7 @@ do
     -gprof) gprof=yes;;
     -python) python=yes;shared=yes;;
     --time-stats) timestats=yes;;
+    -f*|-m*) if [ $flags = none ]; then flags=$1; else flags="$flags $1"; fi;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
@@ -190,6 +194,7 @@ then
     [ $check = no ] && CFLAGS="$CFLAGS -DNDEBUG"
     [ $flto = yes ] && CFLAGS="$CFLAGS -flto"
   fi
+  [ $flags = none ] || CFLAGS="$CFLAGS $flags"
 elif [ $debug = yes ]
 then
   die "CFLAGS environment variable defined and '-g' used"
