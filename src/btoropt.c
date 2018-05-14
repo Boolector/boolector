@@ -58,7 +58,7 @@ init_opt (Btor *btor,
 
   btor_hashptr_table_add (btor->str2opt, lng)->data.as_int = opt;
 
-  if ((valstr = btor_util_getenv_value (lng)))
+  if ((valstr = btor_util_getenv_value (btor->mm, lng)))
   {
     v = atoi (valstr);
     if (v < min)

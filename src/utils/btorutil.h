@@ -94,7 +94,7 @@ int32_t btor_util_vis_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
-char *btor_util_getenv_value (const char *name);
+char *btor_util_getenv_value (BtorMemMgr *mm, const char *name);
 
 /*------------------------------------------------------------------------*/
 

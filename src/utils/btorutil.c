@@ -13,6 +13,7 @@
 
 #include "btorcore.h"
 #include "dumper/btordumpbtor.h"
+#include "utils/btorstack.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -684,25 +685,26 @@ btor_util_vis_exp (Btor *btor, BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 char *
-btor_util_getenv_value (const char *lname)
+btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
 {
-  char uname[40];
-  size_t i, j;
+  char *res;
+  BtorCharStack uname;
+  size_t i;
 
-  assert (strlen (lname) + 4 + 1 < sizeof (uname));
-  uname[0] = 'B';
-  uname[1] = 'T';
-  uname[2] = 'O';
-  uname[3] = 'R';
-  for (i = 4, j = 0; i < sizeof (uname); i++, j++)
+  BTOR_INIT_STACK (mm, uname);
+  BTOR_PUSH_STACK (uname, 'B');
+  BTOR_PUSH_STACK (uname, 'T');
+  BTOR_PUSH_STACK (uname, 'O');
+  BTOR_PUSH_STACK (uname, 'R');
+
+  for (i = 0; lname[i] != 0; i++)
   {
-    if (lname[j] == '-' || lname[j] == '_' || lname[j] == ':')
-    {
-      i -= 1;
-      continue;
-    }
-    uname[i] = toupper ((int32_t) lname[j]);
+    if (lname[i] == '-' || lname[i] == '_' || lname[i] == ':') continue;
+    BTOR_PUSH_STACK (uname, toupper ((int32_t) lname[i]));
   }
+  BTOR_PUSH_STACK (uname, 0);
 
-  return getenv (uname);
+  res = getenv (uname.start);
+  BTOR_RELEASE_STACK (uname);
+  return res;
 }

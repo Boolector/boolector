@@ -70,7 +70,7 @@ init_opt (BtorMC *mc,
   mc->options[opt].max    = max;
   mc->options[opt].desc   = desc;
 
-  if ((valstr = btor_util_getenv_value (lng)))
+  if ((valstr = btor_util_getenv_value (mc->mm, lng)))
   {
     v = atoi (valstr);
     if (v < min)
