@@ -2,6 +2,7 @@
 
 cd `dirname $0`
 
+asan=no
 debug=unknown
 check=no
 log=unknown
@@ -57,6 +58,7 @@ where <option> is one of the following:
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
   -shared           shared library
+  -asan             compile with -fsanitize=address -fsanitize-recover=address
   -gcov             compile with -fprofile-arcs -ftest-coverage
   -gprof            compile with -pg
   -python           compile python API
@@ -122,6 +124,7 @@ do
     -cadical|--cadical) cadical=yes;;
     -no-cadical|--no-cadical) cadical=no;;
     -h|-help|--help) usage;;
+    -asan) asan=yes;;
     -gcov) gcov=yes;;
     -gprof) gprof=yes;;
     -python) python=yes;shared=yes;;
@@ -224,6 +227,7 @@ else
 fi
 
 [ $log = no ] && CFLAGS="$CFLAGS -DNBTORLOG"
+[ $asan = yes ] && CFLAGS="$CFLAGS -fsanitize=address -fsanitize-recover=address"
 [ $gcov = yes ] && CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
 [ $gprof = yes ] && CFLAGS="$CFLAGS -pg"
 
