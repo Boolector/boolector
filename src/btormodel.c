@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2017 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -599,9 +599,8 @@ get_apply_value (Btor *btor,
     {
       real_arg = btor_node_param_get_assigned_exp (real_arg);
       assert (real_arg);
-      d = btor_hashint_map_get (bv_model, real_arg->id);
     }
-    else if (real_arg->parameterized)
+    if (real_arg->parameterized)
       d = btor_hashint_map_get (bv_param_model, real_arg->id);
     else
       d = btor_hashint_map_get (bv_model, real_arg->id);
