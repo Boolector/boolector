@@ -10,6 +10,7 @@
 
 #include "btorsmt.h"
 #include "btorbv.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
@@ -149,20 +150,11 @@ enum BtorSMTToken
 
 typedef enum BtorSMTToken BtorSMTToken;
 
-/* Uncomment the following line to find leaking nodes during debugging
- * of the this SMTLIB1 parser.
- *
-#define BTOR_FIND_LEAKING_SMT_NODES
- */
-
 struct BtorSMTNode
 {
   void *head;
   void *tail;
   BoolectorNode *exp;  // TODO overlay with tail/head?
-#ifdef BTOR_FIND_LEAKING_SMT_NODES
-  struct BtorSMTNode *prev, *next;
-#endif
 };
 
 BTOR_DECLARE_STACK (BtorSMTNodePtr, BtorSMTNode *);
@@ -224,16 +216,11 @@ struct BtorSMTParser
   BtorSMTNode *bind;
   BtorSMTNode *translated;
 
+  BtorPtrHashTable *nodes;
   BtorSMTNodePtrStack stack;
   BtorSMTNodePtrStack work;
   BtorSMTNodePtrStack delete;
   BtorIntStack heads;
-
-  uint32_t nodes;
-#ifdef BTOR_FIND_LEAKING_SMT_NODES
-  BtorSMTNode *first;
-  BtorSMTNode *last;
-#endif
 };
 
 /*------------------------------------------------------------------------*/
@@ -267,24 +254,8 @@ cons (BtorSMTParser *parser, void *h, void *t)
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
 
-#ifdef BTOR_FIND_LEAKING_SMT_NODES
-  if (parser->last)
-  {
-    assert (parser->first);
-    parser->last->next = res;
-  }
-  else
-  {
-    assert (!parser->first);
-    parser->first = res;
-  }
-
-  res->prev    = parser->last;
-  parser->last = res;
-#endif
-
-  parser->nodes++;
-  assert (parser->nodes > 0);
+  btor_hashptr_table_add (parser->nodes, res);
+  assert (parser->nodes->count > 0);
 
   res->head = h;
   res->tail = t;
@@ -360,8 +331,9 @@ delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (!node) return;
 
-  assert (parser->nodes > 0);
-  parser->nodes--;
+  assert (parser->nodes->count > 0);
+  assert (btor_hashptr_table_get (parser->nodes, node));
+  btor_hashptr_table_remove (parser->nodes, node, 0, 0);
 
   if (node->exp) boolector_release (parser->btor, node->exp);
 
@@ -370,31 +342,6 @@ delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
     s = strip (car (node));
     if (s->last == node) remove_and_delete_symbol (parser, s);
   }
-
-#ifdef BTOR_FIND_LEAKING_SMT_NODES
-  assert (parser->first);
-  assert (parser->last);
-
-  if (node->next)
-  {
-    node->next->prev = node->prev;
-  }
-  else
-  {
-    assert (parser->last == node);
-    parser->last = node->prev;
-  }
-
-  if (node->prev)
-  {
-    node->prev->next = node->next;
-  }
-  else
-  {
-    assert (parser->first == node);
-    parser->first = node->next;
-  }
-#endif
 
   BTOR_DELETE (parser->mem, node);
 }
@@ -491,50 +438,8 @@ release_smt_symbols (BtorSMTParser *parser)
 static void
 release_smt_nodes (BtorSMTParser *parser)
 {
-  BtorSMTNode *node;
-
-  while (!BTOR_EMPTY_STACK (parser->stack))
-  {
-    node = BTOR_POP_STACK (parser->stack);
-    recursively_delete_smt_node (parser, node);
-  }
-
-  while (!BTOR_EMPTY_STACK (parser->work))
-  {
-    node = BTOR_POP_STACK (parser->work);
-
-    if (!node) continue;
-
-    if (isleaf (node)) continue;
-
-#if 1
-    if (car (node) == parser->bind) delete_smt_node (parser, node);
-#endif
-  }
-
-  assert (!parser->nodes);
-
-#ifdef BTOR_FIND_LEAKING_SMT_NODES
-  {
-    /* Became redundant, keep it for debugging BTOR_FIND_LEAKING_SMT_NODES.
-     */
-    BtorSMTNode *p, *prev;
-    BoolectorNode *e;
-
-    assert (!parser->last);
-
-    for (p = parser->last; p; p = prev)
-    {
-      assert (parser->nodes > 0);
-      parser->nodes--;
-      prev = p->prev;
-      if ((e = p->exp)) boolector_release (parser->btor, e);
-      BTOR_DELETE (parser->mem, p);
-    }
-    assert (!parser->nodes);
-    parser->first = parser->last = 0;
-  }
-#endif
+  while (parser->nodes && parser->nodes->count)
+    recursively_delete_smt_node (parser, parser->nodes->first->key);
 }
 
 static void
@@ -543,6 +448,11 @@ release_smt_internals (BtorSMTParser *parser)
   release_smt_nodes (parser);
   release_smt_symbols (parser);
 
+  if (parser->nodes)
+  {
+    btor_hashptr_table_delete (parser->nodes);
+    parser->nodes = 0;
+  }
   BTOR_RELEASE_STACK (parser->stack);
   BTOR_RELEASE_STACK (parser->work);
   BTOR_RELEASE_STACK (parser->delete);
@@ -670,6 +580,7 @@ new_smt_parser (Btor *btor)
   res->mem  = mem;
   res->btor = btor;
 
+  res->nodes = btor_hashptr_table_new (mem, 0, 0);
   BTOR_INIT_STACK (mem, res->stack);
   BTOR_INIT_STACK (mem, res->work);
   BTOR_INIT_STACK (mem, res->delete);
@@ -2406,8 +2317,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             assert (!symbol->exp);
             symbol->exp = boolector_copy (parser->btor, exp);
           }
-          /* Prevent leaking of 'bind' nodes.
-           */
+          /* Prevent leaking of 'bind' nodes.  */
           *s = 0;
           delete_smt_node (parser, node);
           break;
@@ -2992,7 +2902,7 @@ NEXT_TOKEN:
 
     smt_message (parser, 2, "read %llu bytes", parser->bytes);
     smt_message (parser, 2, "found %u symbols", parser->symbols);
-    smt_message (parser, 2, "generated %u nodes", parser->nodes);
+    smt_message (parser, 2, "generated %u nodes", parser->nodes->count);
 
     count_assumptions_and_formulas (parser, top);
 
