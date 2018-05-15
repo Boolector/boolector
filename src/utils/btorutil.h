@@ -90,7 +90,6 @@ bool btor_util_file_has_suffix (const char *path, const char *suffix);
 /*------------------------------------------------------------------------*/
 
 char *btor_util_node2string (BtorNode *);
-int32_t btor_util_vis_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 

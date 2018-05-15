@@ -665,25 +665,6 @@ btor_util_node2string (BtorNode *exp)
 
 /*------------------------------------------------------------------------*/
 
-int32_t
-btor_util_vis_exp (Btor *btor, BtorNode *exp)
-{
-  char cmd[100], *path;
-  FILE *file;
-  int32_t res;
-  sprintf (cmd, "btorvis ");
-  path = cmd + strlen (cmd);
-  sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
-  file = fopen (path, "w");
-  btor_dumpbtor_dump_node (btor, file, exp);
-  fclose (file);
-  strcat (cmd, "&");
-  res = system (cmd);
-  return res;
-}
-
-/*------------------------------------------------------------------------*/
-
 char *
 btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
 {
