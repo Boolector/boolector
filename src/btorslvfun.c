@@ -174,6 +174,7 @@ incremental_required (Btor *btor)
   }
 
   btor_iter_hashptr_init (&it, btor->var_rhs);
+  btor_iter_hashptr_queue(&it, btor->fun_rhs);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&it));
