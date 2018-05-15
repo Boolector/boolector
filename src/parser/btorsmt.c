@@ -2563,20 +2563,21 @@ smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                 BtorParseResult *res,
                                 BoolectorNode *exp)
 {
-  char formula[40], *prefix;
+  char *prefix;
   int32_t satres, nchecked, ndigits;
+  uint32_t formula;
   assert (parser->formulas.nchecked < parser->formulas.nparsed);
-  sprintf (formula, "%d", parser->formulas.nchecked);
+  formula = parser->formulas.nchecked;
   nchecked = 1;
 
   if (parser->formulas.nchecked + 1 == parser->formulas.nparsed)
   {
-    smt_message (parser, 3, "adding last ':formula' %s permanently", formula);
+    smt_message (parser, 3, "adding last ':formula' %d permanently", formula);
     boolector_assert (parser->btor, exp);
   }
   else
   {
-    smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
+    smt_message (parser, 3, "adding ':formula' %d as assumption", formula);
     boolector_assume (parser->btor, exp);
   }
   boolector_release (parser->btor, exp);
@@ -2585,14 +2586,14 @@ smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   res->nsatcalls += 1;
   if (satres == BOOLECTOR_SAT)
   {
-    smt_message (parser, 1, "':formula' %s SAT", formula);
+    smt_message (parser, 1, "':formula' %d SAT", formula);
     res->result = BOOLECTOR_SAT;
     fprintf (parser->outfile, "sat\n");
   }
   else
   {
     assert (satres == BOOLECTOR_UNSAT);
-    smt_message (parser, 1, "':formula' %s UNSAT", formula);
+    smt_message (parser, 1, "':formula' %d UNSAT", formula);
     if (res->result == BOOLECTOR_UNKNOWN) res->result = BOOLECTOR_UNSAT;
     fprintf (parser->outfile, "unsat\n");
   }
@@ -2600,11 +2601,11 @@ smt_parser_inc_add_release_sat (BtorSMTParser *parser,
 
   parser->formulas.nchecked += nchecked;
 
-  ndigits = btor_util_num_digits (parser->formulas.nchecked);
-  BTOR_NEWN (parser->mem, prefix, ndigits + 1);
+  ndigits = btor_util_num_digits (parser->formulas.nchecked) + 3;
+  BTOR_NEWN (parser->mem, prefix, ndigits);
   sprintf (prefix, "%d:", parser->formulas.nchecked);
   boolector_set_msg_prefix (parser->btor, prefix);
-  BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
+  BTOR_DELETEN (parser->mem, prefix, ndigits);
 
   if (parser->formulas.nchecked == parser->formulas.nparsed)
     boolector_set_msg_prefix (parser->btor, 0);
