@@ -4014,6 +4014,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
     assert (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN));
     BtorSolverResult ucres = btor_check_sat (uclone, -1, -1);
     assert (res == ucres);
+    btor_delete (uclone);
   }
 
   if (mclone)
