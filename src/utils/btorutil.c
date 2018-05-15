@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *  Copyright (C) 2015-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
