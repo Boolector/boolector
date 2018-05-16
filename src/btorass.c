@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -187,15 +187,19 @@ btor_ass_delete_fun_list (BtorFunAssList *list, bool auto_cleanup)
 {
   assert (list);
 
-  BtorFunAss *funass;
+  BtorFunAss *funass, *next;
   char **ind, **val;
 
   assert (auto_cleanup || list->count == 0);
 
-  for (funass = list->first; auto_cleanup && funass; funass = funass->next)
+  if (auto_cleanup)
   {
-    btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
-    btor_ass_release_fun (list, ind, val, funass->size);
+    for (funass = list->first, next = 0; funass; funass = next)
+    {
+      next = funass->next;
+      btor_ass_get_fun_indices_values (funass, &ind, &val, funass->size);
+      btor_ass_release_fun (list, ind, val, funass->size);
+    }
   }
   BTOR_DELETE (list->mm, list);
 }
