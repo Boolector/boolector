@@ -605,8 +605,17 @@ get_apply_value (Btor *btor,
     else
       d = btor_hashint_map_get (bv_model, real_arg->id);
 
-    assert (d);
-    bv = d->as_ptr;
+    if (btor_node_is_apply (real_arg) && !d)
+    {
+      bv = get_apply_value (
+          btor, real_arg, real_arg->e[0], bv_model, fun_model, bv_param_model);
+    }
+    else
+    {
+      assert (d);
+      bv = btor_bv_copy (mm, d->as_ptr);
+    }
+
     if (btor_node_is_inverted (arg))
     {
       bv_inv = btor_bv_not (mm, bv);
@@ -615,6 +624,7 @@ get_apply_value (Btor *btor,
     }
     else
       btor_bv_add_to_tuple (mm, t, bv, i);
+    btor_bv_free (mm, bv);
     i++;
   }
   /* check if there is already a value for given arguments */
