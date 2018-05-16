@@ -131,6 +131,7 @@ btor_parse (Btor *btor,
   BtorCharStack prefix;
   BtorMemMgr *mem;
 
+  idx = 0;
   len = 40 + strlen (infile_name);
   BTOR_NEWN (btor->mm, msg, len);
   mem = btor_mem_mgr_new ();
