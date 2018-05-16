@@ -1,31 +1,26 @@
 Boolector @VERSION@
-
 @DATE@
+-------------------------------------------------------------------------------
 
-Source code release of Boolector together with supported SAT solvers.  
+This is the source code release of the SMT solver Boolector, bundled with
+all required dependencies (Btor2Tools) and supported SAT solvers.
+For more information on Boolector, see README.md in 'archives/boolector'.
 
-The default license does not allow this software to be used in a commercial
-context nor as part of a submission to a competition or a similar event.
+The most recent version of Boolector can be found at
+  http://github.com/boolector/boolector
 
-For more details see COPYING respectively LICENSE in the individual
-archives in the 'archives' directory.
 
-Run 'make' or './build.sh' to build Boolector.
-
-This will extract and compile all SAT solvers and then
-compile and link Boolector against them.
-
-The 'boolector' binary can then be found in
-
-  ./boolector/boolector
+BUILD
+-------------------------------------------------------------------------------
+Run 'make' or './build.sh' to build Boolector and its dependencies.
+This will first extract and compile Btor2Tools and all SAT solvers and then
+compile Boolector and link against them.
 
 To clean-up the build process run 'make clean' or './clean.sh'.
 
-The most recent version of Boolector can be found at 
 
-  http://fmv.jku.at/boolector
-
-This site also contains papers and documentation related to Boolector.
-
-Institute for Formal Models and Verification
-Johannes Kepler University, Linz, Austria
+LICENSE
+-------------------------------------------------------------------------------
+For licensing information, see COPYING or LICENSE in the individual archives
+in directory 'archives'. After building Boolector, these archives are unpacked
+to corresponding tool directories, e.g., 'boolector'.
