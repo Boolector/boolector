@@ -4092,6 +4092,11 @@ read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_MODEL_TAG_SMT2:
+      // FIXME model parsing for arrays currently disabled
+      if (parser->need_arrays)
+        return !perr_smt2 (parser,
+                           "model parsing for arrays currently not supported");
+      ///////////
       if (parser->commands.model)
         return !perr_smt2 (parser, "nesting models is invalid");
       parser->commands.model = 1;
