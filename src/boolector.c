@@ -3271,6 +3271,7 @@ boolector_match_node_by_id (Btor *btor, int32_t id)
   BTOR_ABORT (id <= 0, "node id must be > 0");
   BTOR_TRAPI ("%d", id);
   res = btor_node_match_by_id (btor, id);
+  BTOR_ABORT (!res, "invalid node id '%d', node does not exist", id);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

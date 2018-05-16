@@ -914,7 +914,9 @@ btor_node_match_by_id (Btor *btor, int32_t id)
   assert (btor);
   assert (id > 0);
   if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
-  return btor_node_copy (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+  BtorNode *exp = BTOR_PEEK_STACK (btor->nodes_id_table, id);
+  if (!exp) return 0;
+  return btor_node_copy (btor, exp);
 }
 
 BtorNode *
