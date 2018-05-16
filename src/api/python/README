@@ -22,4 +22,4 @@ Using the module
 
 Ensure that the module can be found by the python interpreter, i.e., set path
 with PYTHONPATH="path/to/module". For examples on how to use the module see
-api/python/api_usage_examples.py.
+examples/api/python/api_usage_examples.py.

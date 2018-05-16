@@ -34,6 +34,11 @@ multiple SAT solvers. Script `configure.sh` searches automatically for the
 SAT solver directories and expects them to be named as `lingeling`, `cadical`,
 `picosat` and `minisat`, respectively.
 
+Note that using MiniSAT will force `libboolector.a` to depend not only on
+`libz.so` but also on `libstdc++.so`. Thus, if you want to link
+`libboolector.a` with MiniSAT backend against your own programs,
+you need to use `-lz -lstdc++` as linking options.
+
 Boolector has one other external dependency,
 the [BTOR2 format tools package](https://github.com/boolector/btor2tools).
 As with the SAT solvers, make sure to clone this repository into directory

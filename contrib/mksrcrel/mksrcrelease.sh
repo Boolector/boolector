@@ -50,7 +50,7 @@ cp -p \
   VERSION \
   COPYING \
   NEWS \
-  README \
+  README.md \
   configure.sh \
 $dir/
 
@@ -63,15 +63,6 @@ cp -p --parents \
   aigprop.[ch] \
   `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
-  btorfmt/LICENSE.txt \
-  btorfmt/btorfmt.[ch] \
-  btorfmt/configure.sh \
-  btorfmt/makefile.in \
-  btorfmt/util/btorfmtmem.h \
-  btorfmt/util/btorfmtstack.h \
-  btorfmt/btorsim/btorsimbv.[ch] \
-  btorfmt/btorsim/btorsimmain.c \
-  btorfmt/btorsim/btorsimrng.[ch] \
 $dir/src
 
 for subdir in dumper mcapi normalizer parser sat simplifier utils
@@ -83,8 +74,7 @@ cp -p sat/*.cc $dir/src/sat/
 
 mkdir $dir/src/api/
 mkdir $dir/src/api/python
-for file in boolector_py.h boolector_py.c boolector.pyx btorapi.pxd \
-	    api_usage_examples.py README
+for file in boolector_py.h boolector_py.c boolector.pyx btorapi.pxd README
 do
   cp -p api/python/$file $dir/src/api/python/
 done
@@ -104,13 +94,9 @@ cp -pr \
 $dir/doc/
 
 tar cf - \
-  examples/array/*.c \
-  examples/array/makefile \
-  examples/btormc \
-  examples/bv/*.c \
-  examples/bv/makefile \
-  examples/Makefile \
-  examples/makefile.common | \
+  examples/api/c \
+  examples/api/python \
+  examples/btormc | \
 ( cd $dir; tar xf -; )
 
 # remove tabs from source files and replace them with whitespaces
@@ -131,7 +117,7 @@ date=`date`
 version=`cat VERSION`
 sed -e 's,@VERSION@,'"$version," \
     -e 's,@DATE@,'"$date," \
-contrib/mksrcrel/README > $dir/README
+README.md > $dir/README.md
 
 sed -e "s,^BTOR_DEF_DATE=.*,BTOR_DEF_DATE=\"$date\"," \
     -e "s,^BTOR_DEF_VERSION=.*,BTOR_DEF_VERSION=\"$version\"," \
