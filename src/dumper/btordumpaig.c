@@ -75,30 +75,36 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   /* do not encode AIGs to SAT */
   lazy_synthesize = btor_opt_get (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE);
   btor_opt_set (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, 1);
-  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
-  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
-  merged = BTOR_AIG_TRUE;
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    av =
-        btor_exp_to_aigvec (btor, btor_iter_hashptr_next (&it), backannotation);
-    assert (av->width == 1);
-    if (merge_roots)
-    {
-      tmp = btor_aig_and (amgr, merged, av->aigs[0]);
-      btor_aig_release (amgr, merged);
-      merged = tmp;
-    }
-    else
-      BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[0]));
-    btor_aigvec_release_delete (avmgr, av);
-  }
-  btor_opt_set (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
-  if (merge_roots) BTOR_PUSH_STACK (roots, merged);
 
-  if (BTOR_EMPTY_STACK (roots))
-    BTOR_PUSH_STACK (roots,
-                     btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
+  if (btor->inconsistent)
+  {
+    BTOR_PUSH_STACK (roots, BTOR_AIG_FALSE);
+  }
+  else
+  {
+    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+    merged = BTOR_AIG_TRUE;
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      av = btor_exp_to_aigvec (
+          btor, btor_iter_hashptr_next (&it), backannotation);
+      assert (av->width == 1);
+      if (merge_roots)
+      {
+        tmp = btor_aig_and (amgr, merged, av->aigs[0]);
+        btor_aig_release (amgr, merged);
+        merged = tmp;
+      }
+      else
+        BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[0]));
+      btor_aigvec_release_delete (avmgr, av);
+    }
+    btor_opt_set (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
+    if (merge_roots) BTOR_PUSH_STACK (roots, merged);
+  }
+
+  BTOR_PUSH_STACK_IF (BTOR_EMPTY_STACK (roots), roots, BTOR_AIG_TRUE);
 
   btor_dumpaig_dump_seq (amgr,
                          is_binary,
