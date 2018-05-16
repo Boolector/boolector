@@ -3,7 +3,7 @@ Boolector @VERSION@
 -------------------------------------------------------------------------------
 
 This is the source code release of the SMT solver Boolector, bundled with
-all required dependencies (Btor2Tools) and supported SAT solvers.
+all required dependencies (Btor2Tools) and @SATSOLVERS@.
 For more information on Boolector, see README.md in 'archives/boolector'.
 
 The most recent version of Boolector can be found at

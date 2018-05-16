@@ -13,7 +13,7 @@ die () {
 while [ $# -gt 0 ]
 do
   case $1 in
-    -h) echo "usage: mksrcrelease.sh [-f][-h][-t]";exit 0;;
+    -h) echo "usage: mksrcrelease.sh [-f][-h]";exit 0;;
     -f) force=yes;;
     *) die "invalid command line option '$1'";;
   esac
@@ -47,6 +47,7 @@ mkdir $dir || exit 1
 mkdir $dir/src || exit 1
 
 cp -p \
+  AUTHORS \
   VERSION \
   COPYING \
   NEWS \
@@ -127,7 +128,7 @@ sed -e "s,^BTOR_DEF_DATE=.*,BTOR_DEF_DATE=\"$date\"," \
 chmod 755 $dir/mkconfig.sh
 
 cd /tmp/
-rm -f $name.tar.gz
-tar zcf $name.tar.gz $name
-ls -l /tmp/$name.tar.gz | awk '{print $5, $NF}'
+rm -f $name.tar.xz
+tar Jcf $name.tar.xz $name
+ls -l /tmp/$name.tar.xz | awk '{print $5, $NF}'
 rm -rf $dir

@@ -5,7 +5,7 @@ die () {
   exit 1
 }
 
-for component in boolector cadical picosat precosat lingeling minisat
+for component in boolector btor2tools cadical picosat precosat lingeling minisat
 do
   archive="`ls archives/${component}-*.tar.* 2>/dev/null`"
   case x$archive in
@@ -26,7 +26,7 @@ then
   cd ..
 fi
 
-for component in cadical picosat precosat lingeling boolector
+for component in btor2tools cadical picosat precosat lingeling boolector
 do
   [ -d $component ] || continue
   echo "building $component"
