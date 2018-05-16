@@ -710,7 +710,6 @@ void
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {
   uint32_t sat_engine;
-  uint32_t oldval;
 
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s", solver);
@@ -796,8 +795,6 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
-  uint32_t oldval;
-
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%s %d", btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");

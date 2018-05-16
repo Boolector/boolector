@@ -1151,6 +1151,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
 
   o      = &btor->options[opt];
   oldval = o->val;
+  (void) oldval;
 
   if (opt == BTOR_OPT_SEED)
   {
