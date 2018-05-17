@@ -733,7 +733,7 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 
 #if !defined(BTOR_USE_LINGELING) || !defined(BTOR_USE_CADICAL) \
     || !defined(BTOR_USE_MINISAT) || !defined(BTOR_USE_PICOSAT)
-  oldval = btor_opt_get (btor, BTOR_OPT_SAT_ENGINE);
+  uint32_t oldval = btor_opt_get (btor, BTOR_OPT_SAT_ENGINE);
 #endif
 #ifndef BTOR_USE_LINGELING
   if (sat_engine == BTOR_SAT_ENGINE_LINGELING)
@@ -850,7 +850,7 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 
 #if !defined(BTOR_USE_LINGELING) || !defined(BTOR_USE_CADICAL) \
     || !defined(BTOR_USE_MINISAT) || !defined(BTOR_USE_PICOSAT)
-  oldval = btor_opt_get (btor, opt);
+  uint32_t oldval = btor_opt_get (btor, opt);
 #endif
 
   if (opt == BTOR_OPT_SAT_ENGINE)
