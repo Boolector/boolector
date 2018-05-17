@@ -1,8 +1,8 @@
 #!/bin/bash
 
 contribdir=$(dirname "$(readlink -f $0)")
-boolector=$contribdir/../boolector
-btormbt=$contribdir/../btormbt
+boolector=$contribdir/../bin/boolector
+btormbt=$contribdir/../bin/btormbt
 
 tmpfile=/tmp/testprintmodelsmt2-$$.smt2
 infile=/tmp/testprintmodelsmt2-infile-$$.smt2

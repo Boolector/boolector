@@ -3,7 +3,7 @@
 readonly CONTRIBDIR=$(dirname "$(readlink -f $0)")
 readonly THREAD_TMP_FILE="/tmp/runparbtormbt$$_"
 readonly MAX_THREADS=$(grep -c processor /proc/cpuinfo)
-BTORMBTDIR=$CONTRIBDIR/../
+BTORMBTDIR=$CONTRIBDIR/../bin
 
 die ()
 {
