@@ -1,6 +1,0 @@
-#!/bin/sh
-tmp=/tmp/smtvis$$
-trap "rm -f $tmp" 2 10
-boolector -de -o $tmp $*
-btorvis $tmp
-rm -f $tmp

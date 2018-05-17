@@ -1,5 +1,0 @@
-#!/bin/sh
-tmp=/tmp/smt2cnf-$$
-trap "rm -f $tmp*" 2 10 15
-boolector $* -db|synthebtor -m|aigtocnf
-rm -f $tmp*

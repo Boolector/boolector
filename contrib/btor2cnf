@@ -1,5 +1,0 @@
-#!/bin/sh
-tmp=/tmp/btor2cnf-$$
-trap "rm -f $tmp*" 2 10 15
-synthebtor $*|aigtocnf
-rm -f $tmp*

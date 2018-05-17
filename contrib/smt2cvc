@@ -1,2 +1,0 @@
-#!/bin/sh
-exec cvc3 -lang smt +translate -output-lang p $*
