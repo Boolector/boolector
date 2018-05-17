@@ -16,6 +16,6 @@ fi
   exit 1 
 
 git whatchanged --author="$author" --since="$since" --until="$until" | \
-  grep "\.\.\." | \
+  grep "^:" | \
   grep btor.*\.[cch]$ | \
   awk '{print $6}' | sort | uniq
