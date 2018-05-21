@@ -310,7 +310,7 @@ parse_exp (BtorBTORParser *parser,
     if (expected_width != width_res)
     {
       (void) perr_btor (parser,
-                        "literal '%d' has widthgth '%d' but expected '%d'",
+                        "literal '%d' has width '%d' but expected '%d'",
                         lit,
                         width_res,
                         expected_width);
@@ -1224,7 +1224,7 @@ parse_shift (BtorBTORParser *parser, uint32_t width, Shift f)
 
   if (width != (1u << rwidth))
   {
-    (void) perr_btor (parser, "widthgth %d is not a power of two", width);
+    (void) perr_btor (parser, "width %d is not a power of two", width);
     return 0;
   }
 
@@ -1617,7 +1617,7 @@ parse_ext (BtorBTORParser *parser, uint32_t width, Extend f)
   if (awidth + ewidth != width)
   {
     (void) perr_btor (parser,
-                      "argument widthgth of %d plus %d does not match %d",
+                      "argument width of %d plus %d does not match %d",
                       awidth,
                       ewidth,
                       width);
