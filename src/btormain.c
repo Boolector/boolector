@@ -526,10 +526,14 @@ print_opt (BtorMainApp *app,
   assert (lng);
   assert (desc);
 
-  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
+  char paramstr[LEN_PARAMSTR];
   char *descstr, descstrline[LEN_HELPSTR], *word;
-  int32_t i, j, len;
+  int32_t i, j, len, len_paramstr;
+  BtorCharStack optstr;
   BtorCharPtrStack words;
+  BtorMemMgr *mm;
+
+  mm = app->mm;
 
   if (!strcmp (lng, "time"))
     sprintf (paramstr, "<seconds>");
@@ -545,48 +549,59 @@ print_opt (BtorMainApp *app,
     paramstr[0] = '\0';
 
   /* option string ------------------------------------------ */
-  memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
-  optstr[LEN_OPTSTR - 1] = '\0';
-  len                    = strlen (lng);
-  sprintf (optstr,
-           "  %s%s%s%s%s--%s%s%s",
-           shrt ? "-" : "",
-           shrt ? shrt : "",
-           shrt && strlen (paramstr) > 0 ? " " : "",
-           shrt ? paramstr : "",
-           shrt ? ", " : "",
-           lng,
-           strlen (paramstr) > 0 ? "=" : "",
-           paramstr);
-  len = strlen (optstr);
-  for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
-  optstr[LEN_OPTSTR - 1] = '\0';
+  BTOR_INIT_STACK (mm, optstr);
+  BTOR_PUSH_STACK (optstr, ' ');
+  BTOR_PUSH_STACK (optstr, ' ');
+  len_paramstr = strlen (paramstr);
+  if (shrt)
+  {
+    BTOR_PUSH_STACK (optstr, '-');
+    for (i = 0, len = strlen (shrt); i < len; i++)
+      BTOR_PUSH_STACK (optstr, shrt[i]);
+    if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, ' ');
+    for (i = 0; i < len_paramstr; i++)
+      BTOR_PUSH_STACK (optstr, paramstr[i]);
+    BTOR_PUSH_STACK (optstr, ',');
+    BTOR_PUSH_STACK (optstr, ' ');
+  }
+  BTOR_PUSH_STACK (optstr, '-');
+  BTOR_PUSH_STACK (optstr, '-');
+  for (i = 0, len = strlen (lng); i < len; i++)
+    BTOR_PUSH_STACK (optstr, lng[i]);
+  if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, '=');
+  for (i = 0; i < len_paramstr; i++)
+    BTOR_PUSH_STACK (optstr, paramstr[i]);
+
+  len = BTOR_COUNT_STACK (optstr);
+  for (i = len; i < LEN_OPTSTR - 1; i++) BTOR_PUSH_STACK (optstr, ' ');
+  BTOR_PUSH_STACK (optstr, '\0');
+  assert (strlen (optstr.start) <= LEN_OPTSTR);
 
   /* formatted description ---------------------------------- */
   /* append default value to description */
   if (print_dflt)
   {
     len = strlen (desc) + 3 + btor_util_num_digits (dflt);
-    BTOR_CNEWN (app->mm, descstr, len + 1);
+    BTOR_CNEWN (mm, descstr, len + 1);
     sprintf (descstr, "%s [%u]", desc, dflt);
   }
   else
   {
     len = strlen (desc);
-    BTOR_CNEWN (app->mm, descstr, len + 1);
+    BTOR_CNEWN (mm, descstr, len + 1);
     sprintf (descstr, "%s", desc);
   }
-  BTOR_INIT_STACK (app->mm, words);
+  BTOR_INIT_STACK (mm, words);
   word = strtok (descstr, " ");
   while (word)
   {
-    BTOR_PUSH_STACK (words, btor_mem_strdup (app->mm, word));
+    BTOR_PUSH_STACK (words, btor_mem_strdup (mm, word));
     word = strtok (0, " ");
   }
-  BTOR_DELETEN (app->mm, descstr, len + 1);
+  BTOR_DELETEN (mm, descstr, len + 1);
 
   BTOR_CLRN (descstrline, LEN_HELPSTR);
-  sprintf (descstrline, "%s ", optstr);
+  sprintf (descstrline, "%s ", optstr.start);
   i = 0;
   do
   {
@@ -610,8 +625,9 @@ print_opt (BtorMainApp *app,
   } while (i < BTOR_COUNT_STACK (words));
 
   /* cleanup */
+  BTOR_RELEASE_STACK (optstr);
   while (!BTOR_EMPTY_STACK (words))
-    btor_mem_freestr (app->mm, BTOR_POP_STACK (words));
+    btor_mem_freestr (mm, BTOR_POP_STACK (words));
   BTOR_RELEASE_STACK (words);
 }
 
