@@ -1914,6 +1914,45 @@ apply_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+/* match:  t = a - b   (t = a + ~b + 1)
+ * result: t + b = a
+ */
+static inline bool
+applies_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_regular (e1)
+         && btor_node_is_add (e1)
+         && ((btor_node_is_regular (e1->e[0]) && is_neg_exp (btor, e1->e[0], 0))
+             || (btor_node_is_regular (e1->e[1])
+                 && is_neg_exp (btor, e1->e[1], 0)));
+}
+
+static inline BtorNode *
+apply_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_sub_eq (btor, e0, e1));
+
+  BtorNode *result;
+  BtorNode *neg = 0, *other;
+
+  if (is_neg_exp (btor, e1->e[0], &neg))
+    other = e1->e[1];
+  else
+  {
+    is_neg_exp (btor, e1->e[1], &neg);
+    other = e1->e[0];
+  }
+  assert (neg);
+
+  BTOR_INC_REC_RW_CALL (btor);
+  BtorNode *lhs = rewrite_add_exp (btor, e0, neg);
+  result        = rewrite_eq_exp (btor, lhs, other);
+  BTOR_DEC_REC_RW_CALL (btor);
+  btor_node_release (btor, lhs);
+  return result;
+}
+
 #if 0
 /* match:  a & b = ~a & ~b
  * result: a = ~b
@@ -6106,6 +6145,7 @@ SWAP_OPERANDS:
   ADD_RW_RULE (add_add_2_eq, e0, e1);
   ADD_RW_RULE (add_add_3_eq, e0, e1);
   ADD_RW_RULE (add_add_4_eq, e0, e1);
+  ADD_RW_RULE (sub_eq, e0, e1);
   ADD_RW_RULE (bcond_uneq_if_eq, e0, e1);
   ADD_RW_RULE (bcond_uneq_else_eq, e0, e1);
   ADD_RW_RULE (bcond_if_eq, e0, e1);
