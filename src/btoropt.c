@@ -1000,6 +1000,17 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "fork lingeling");
+  init_opt (btor,
+            BTOR_OPT_INCREMENTAL_RW,
+            true,
+            true,
+            "incremental-rw",
+            0,
+            0,
+            0,
+            1,
+            "enable simplifications that rewrite already synthesized nodes "
+            "in incremental mode");
 }
 
 void

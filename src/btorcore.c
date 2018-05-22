@@ -3906,7 +3906,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   }
 
   /* FIXME: disable options that potentially slow down incremental mode */
-  if (btor_opt_get (btor, BTOR_OPT_INCREMENTAL))
+  if (btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
+      && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL_RW))
   {
     /* variable substitution and skeleton preprocessing can have the effect
      * that already bit-blased structures get rewritten, which have to
