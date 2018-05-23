@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2013-2017 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -121,28 +121,6 @@
 
 /* -------------------------------------------------------------------------- */
 /* util functions */
-
-static bool
-is_const_one_exp (Btor *btor, BtorNode *exp)
-{
-  bool result;
-  BtorNode *real_exp;
-  BtorBitVector *bits;
-
-  assert (btor);
-  assert (exp);
-  exp = btor_simplify_exp (btor, exp);
-
-  if (!btor_node_is_bv_const (exp)) return false;
-
-  real_exp = btor_node_real_addr (exp);
-  bits     = btor_node_const_get_bits (real_exp);
-  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
-  result = btor_bv_is_special_const (bits) == BTOR_SPECIAL_CONST_BV_ONE;
-  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
-
-  return result;
-}
 
 static bool
 is_const_zero_exp (Btor *btor, BtorNode *exp)
@@ -511,30 +489,6 @@ is_bit_mask (BtorNode * exp, uint32_t * upper, uint32_t * lower)
 #endif
 
 static bool
-is_neg_exp (Btor *btor, BtorNode *exp, BtorNode **res)
-{
-  BtorNode *real_exp;
-
-  real_exp = btor_node_real_addr (exp);
-
-  if (!btor_node_is_add (real_exp)) return false;
-
-  if (is_const_one_exp (btor, real_exp->e[0]))
-  {
-    if (res) *res = btor_node_invert (real_exp->e[1]);
-    return true;
-  }
-
-  if (is_const_one_exp (btor, real_exp->e[1]))
-  {
-    if (res) *res = btor_node_invert (real_exp->e[0]);
-    return true;
-  }
-
-  return false;
-}
-
-static bool
 is_urem_exp (Btor *btor,
              BtorNode *e0,
              BtorNode *e1,
@@ -543,9 +497,9 @@ is_urem_exp (Btor *btor,
 {
   BtorNode *mul, *udiv, *x, *y;
 
-  if (is_neg_exp (btor, e0, &mul))
+  if (btor_node_is_neg (btor, e0, &mul))
     x = e1;
-  else if (is_neg_exp (btor, e1, &mul))
+  else if (btor_node_is_neg (btor, e1, &mul))
     x = e0;
   else
     return false;
@@ -3305,9 +3259,9 @@ applies_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) btor;
   return !btor_node_is_inverted (e1) && btor_node_is_add (e1)
          && ((e0 == btor_node_invert (e1->e[0])
-              && is_const_one_exp (btor, e1->e[1]))
+              && btor_node_is_bv_const_one (btor, e1->e[1]))
              || (e0 == btor_node_invert (e1->e[1])
-                 && is_const_one_exp (btor, e1->e[0])));
+                 && btor_node_is_bv_const_one (btor, e1->e[0])));
 }
 
 static inline BtorNode *
@@ -5178,8 +5132,8 @@ applies_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && !btor_node_is_inverted (e1)
          && btor_node_is_add (e1)
-         && ((e1->e[0] == e2 && is_const_one_exp (btor, e1->e[1]))
-             || (e1->e[1] == e2 && is_const_one_exp (btor, e1->e[0])));
+         && ((e1->e[0] == e2 && btor_node_is_bv_const_one (btor, e1->e[1]))
+             || (e1->e[1] == e2 && btor_node_is_bv_const_one (btor, e1->e[0])));
 }
 
 static inline BtorNode *
@@ -5207,8 +5161,8 @@ applies_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && !btor_node_is_inverted (e2)
          && btor_node_is_add (e2)
-         && ((e2->e[0] == e1 && is_const_one_exp (btor, e2->e[1]))
-             || (e2->e[1] == e1 && is_const_one_exp (btor, e2->e[0])));
+         && ((e2->e[0] == e1 && btor_node_is_bv_const_one (btor, e2->e[1]))
+             || (e2->e[1] == e1 && btor_node_is_bv_const_one (btor, e2->e[0])));
 }
 
 static inline BtorNode *

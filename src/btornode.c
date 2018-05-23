@@ -120,6 +120,58 @@ set_kind (Btor *btor, BtorNode *exp, BtorNodeKind kind)
 
 /*------------------------------------------------------------------------*/
 
+bool
+btor_node_is_bv_const_one (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  bool result;
+  BtorNode *real_exp;
+  BtorBitVector *bits;
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_node_is_bv_const (exp)) return false;
+
+  real_exp = btor_node_real_addr (exp);
+  bits     = btor_node_const_get_bits (real_exp);
+  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
+  result = btor_bv_is_special_const (bits) == BTOR_SPECIAL_CONST_BV_ONE;
+  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
+
+  return result;
+}
+
+bool
+btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
+{
+  assert (btor);
+  assert (exp);
+
+  BtorNode *real_exp;
+
+  real_exp = btor_node_real_addr (exp);
+
+  if (!btor_node_is_add (real_exp)) return false;
+
+  if (btor_node_is_bv_const_one (btor, real_exp->e[0]))
+  {
+    if (res) *res = btor_node_invert (real_exp->e[1]);
+    return true;
+  }
+
+  if (btor_node_is_bv_const_one (btor, real_exp->e[1]))
+  {
+    if (res) *res = btor_node_invert (real_exp->e[0]);
+    return true;
+  }
+
+  return false;
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 {

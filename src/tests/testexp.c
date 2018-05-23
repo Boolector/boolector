@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -11,6 +11,7 @@
 #include "testexp.h"
 #include "btorcore.h"
 #include "btorexp.h"
+#include "btornode.h"
 #include "dumper/btordumpbtor.h"
 #include "testrunner.h"
 
@@ -94,6 +95,10 @@ test_zero_exp (void)
   assert (exp1 == exp2);
   assert (btor_node_get_width (g_btor, exp1) == 8);
   assert (btor_node_get_width (g_btor, exp2) == 8);
+  assert (!btor_node_is_bv_const_one (g_btor, exp1));
+  assert (!btor_node_is_bv_const_one (g_btor, exp2));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp1)));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp2)));
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
@@ -118,6 +123,10 @@ test_ones_exp (void)
   assert (exp1 == exp2);
   assert (btor_node_get_width (g_btor, exp1) == 8);
   assert (btor_node_get_width (g_btor, exp2) == 8);
+  assert (!btor_node_is_bv_const_one (g_btor, exp1));
+  assert (!btor_node_is_bv_const_one (g_btor, exp2));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp1)));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp2)));
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
@@ -128,8 +137,8 @@ test_ones_exp (void)
 static void
 test_one_exp (void)
 {
-  BtorNode *exp1, *exp2;
-  BtorBitVector *bv2;
+  BtorNode *exp1, *exp2, *exp3;
+  BtorBitVector *bv2, *bv3;
   BtorSortId sort;
 
   init_exp_test ();
@@ -142,10 +151,20 @@ test_one_exp (void)
   assert (exp1 == exp2);
   assert (btor_node_get_width (g_btor, exp1) == 8);
   assert (btor_node_get_width (g_btor, exp2) == 8);
+  assert (btor_node_is_bv_const_one (g_btor, exp1));
+  assert (btor_node_is_bv_const_one (g_btor, exp2));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp1)));
+  assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp2)));
+  bv3  = btor_bv_char_to_bv (g_btor->mm, "11111110");
+  exp3 = btor_exp_const (g_btor, bv3);
+  assert (!btor_node_is_bv_const_one (g_btor, exp3));
+  assert (btor_node_is_bv_const_one (g_btor, btor_node_invert (exp3)));
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
+  btor_node_release (g_btor, exp3);
   btor_bv_free (g_btor->mm, bv2);
+  btor_bv_free (g_btor->mm, bv3);
   finish_exp_test ();
 }
 
@@ -277,6 +296,16 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
   {
     assert (btor_node_get_width (g_btor, exp2) == len);
     assert (btor_node_get_width (g_btor, exp3) == len);
+    if (func == btor_exp_neg)
+    {
+      assert (btor_node_is_neg (g_btor, exp2, 0));
+      assert (btor_node_is_neg (g_btor, exp3, 0));
+    }
+    else
+    {
+      assert (!btor_node_is_neg (g_btor, exp2, 0));
+      assert (!btor_node_is_neg (g_btor, exp3, 0));
+    }
   }
   else
   {
