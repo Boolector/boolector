@@ -9,6 +9,7 @@ log=unknown
 flto=no
 shared=no
 static=no
+staticpy=no
 
 ROOT=`dirname "$(readlink -f $0)"|sed -e 's, ,\\ ,g'`
 
@@ -53,6 +54,7 @@ where <option> is one of the following:
   -O                optimized compilation (default)
   -flto             enable link time optimization
   -static           static compilation
+  -staticpy         link Python libraries statically
   -g                compile with debugging support
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
@@ -111,6 +113,7 @@ do
     -flto) flto=yes;;
     -shared) shared=yes;;
     -static) static=yes;;
+    -staticpy) staticpy=yes;;
     -picosat|--picosat) picosat=yes;;
     -no-picosat|--no-picosat) picosat=no;;
     -lingeling|--lingeling) lingeling=yes;;
@@ -615,11 +618,26 @@ then
     py_inc_dirs="$py_inc_dirs $ROOT/../btor2tools/build"
   fi
   OBJS="$BUILDIR/api/python/boolector_py.o $OBJS"
-  pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
-  pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
+  if [ X"$OVERRIDE_CONFINCLUDEPY" = X ];
+  then
+      pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`;
+  else
+      pyinc="${OVERRIDE_CONFINCLUDEPY}";
+  fi
+  if [ X"$OVERRIDE_BINLIBDEST" = X ];
+  then
+      pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`;
+  else
+      pylib="${OVERRIDE_BINLIBDEST}";
+  fi
   pyld=`basename $pyinc`
   INCS="${INCS} -I$pyinc"
-  LIBS="${LIBS} -L$pylib -l$pyld"
+  LIBS="${LIBS} -L$pylib"
+  if [ $staticpy = yes ]; then
+      LIBS="${LIBS} -Wl\,-Bstatic -l$pyld -Wl\,-Bdynamic"
+  else
+      LIBS="${LIBS} -l$pyld"
+  fi
   cat > setup.py <<EOF
 import os
 from distutils.core import setup
