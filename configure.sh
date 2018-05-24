@@ -17,7 +17,6 @@ minisat=unknown
 picosat=unknown
 cadical=unknown
 btor2tools=yes   # Note: required dependency, may change in the future
-arch=unknown
 
 onlylingeling=no
 onlyminisat=no
@@ -106,8 +105,6 @@ do
     -l) log=yes;;
     -O) debug=no;;
     -c) check=yes;;
-    -m32|--m32) arch=32;;
-    -m64|--m64) arch=64;;
     -flto) flto=yes;;
     -shared) shared=yes;;
     -static) static=yes;;
@@ -185,8 +182,6 @@ if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
   CFLAGS="-W -Wall -Wextra -Wredundant-decls"
-  [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
-  [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   [ $static = yes ] && CFLAGS="$CFLAGS -static"
   [ $shared = yes ] && CFLAGS="$CFLAGS -fPIC"
   if [ $debug = yes ]
