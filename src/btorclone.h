@@ -92,5 +92,6 @@ void btor_clone_data_as_int_htable (BtorMemMgr *mm,
 void btor_clone_node_ptr_stack (BtorMemMgr *mm,
                                 BtorNodePtrStack *stack,
                                 BtorNodePtrStack *res,
-                                BtorNodeMap *exp_map);
+                                BtorNodeMap *exp_map,
+                                bool is_zero_terminated);
 #endif

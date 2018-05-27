@@ -52,7 +52,7 @@ clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
       clone->mm, slv->lemmas, btor_clone_key_as_node, 0, exp_map, 0);
 
   btor_clone_node_ptr_stack (
-      clone->mm, &slv->cur_lemmas, &res->cur_lemmas, exp_map);
+      clone->mm, &slv->cur_lemmas, &res->cur_lemmas, exp_map, false);
 
   if (slv->score)
   {
