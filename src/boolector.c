@@ -355,6 +355,8 @@ boolector_push (Btor *btor, uint32_t level)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%u", level);
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
+              "incremental usage has not been enabled");
   BTOR_ABORT (level < 1, "context level must be greater than 0");
 
   uint32_t i;
@@ -371,6 +373,8 @@ boolector_pop (Btor *btor, uint32_t level)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%u", level);
   BTOR_ABORT (level < 1, "context level must be greater than 0");
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
+              "incremental usage has not been enabled");
   BTOR_ABORT (level > BTOR_COUNT_STACK (btor->assertions_trail),
               "can not pop more levels (%u) than created via push (%u).",
               level,
