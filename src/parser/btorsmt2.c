@@ -3592,6 +3592,44 @@ define_sort_smt2 (BtorSMT2Parser *parser)
 }
 
 static int32_t
+declare_sort_smt2 (BtorSMT2Parser *parser)
+{
+  uint32_t arity, opt_bit_width = 0;
+  BtorSMT2Node *sort_alias;
+  BoolectorSort sort;
+
+  opt_bit_width = boolector_get_opt(parser->btor, BTOR_OPT_DECLSORT_BV_WIDTH);
+  if (!opt_bit_width)
+    return !perr_smt2 (parser,
+                       "'declare-sort' not supported if it is not interpreted "
+                       " as a bit-vector");
+
+  sort_alias = 0;
+  if (!read_symbol (parser, " after 'declare-sort'", &sort_alias)) return 0;
+  assert (sort_alias);
+  assert (sort_alias->tag == BTOR_SYMBOL_TAG_SMT2);
+
+  if (sort_alias->coo.x)
+  {
+    return !perr_smt2 (parser,
+                       "sort '%s' already defined at line %d column %d",
+                       sort_alias->name,
+                       sort_alias->coo.x,
+                       sort_alias->coo.y);
+  }
+
+  if (!parse_uint32_smt2 (parser, false, &arity)) return 0;
+  if (arity != 0)
+    return !perr_smt2(parser, "sort arity other than 0 not supported");
+
+  sort = boolector_bitvec_sort (parser->btor, opt_bit_width);
+  sort_alias->sort       = 1;
+  sort_alias->sort_alias = sort;
+  BTOR_PUSH_STACK (parser->sorts, sort);
+  return read_rpar_smt2 (parser, " to close sort declaration");
+}
+
+static int32_t
 echo_smt2 (BtorSMT2Parser *parser)
 {
   int32_t tag;
@@ -3978,6 +4016,11 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_DEFINE_FUN_TAG_SMT2:
       if (!define_fun_smt2 (parser)) return 0;
+      print_success (parser);
+      break;
+
+    case BTOR_DECLARE_SORT_TAG_SMT2:
+      if (!declare_sort_smt2 (parser)) return 0;
       print_success (parser);
       break;
 

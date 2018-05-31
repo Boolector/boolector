@@ -1021,6 +1021,17 @@ btor_opt_init_opts (Btor *btor)
             1,
             "enable simplifications that rewrite already synthesized nodes "
             "in incremental mode");
+  init_opt (btor,
+            BTOR_OPT_DECLSORT_BV_WIDTH,
+            true,
+            false,
+            "declsort-bv-width",
+            0,
+            0,
+            0,
+            UINT_MAX,
+            "interpret sorts introduced with declare-sort as bit-vectors of "
+            "given width");
 }
 
 void
