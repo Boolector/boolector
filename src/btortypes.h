@@ -720,6 +720,7 @@ enum BtorOption
 
   /* internal options --------------------------------------------------- */
 
+  BTOR_OPT_DEFAULT_TO_CADICAL,
   BTOR_OPT_SORT_EXP,
   BTOR_OPT_SORT_AIG,
   BTOR_OPT_SORT_AIGVEC,
