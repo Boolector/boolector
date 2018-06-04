@@ -4251,7 +4251,10 @@ parse_smt2_parser (BtorSMT2Parser *parser,
     assert (!parser->need_functions || parser->res->logic == BTOR_LOGIC_QF_AUFBV
             || parser->res->logic == BTOR_LOGIC_QF_UFBV
             || parser->res->logic == BTOR_LOGIC_QF_ABV);
-    if (!parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
+    if (!parser->need_functions
+        && !parser->need_arrays
+        && !parser->need_quantifiers
+        && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
