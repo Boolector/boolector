@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -211,9 +211,9 @@ enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   BtorLGL *blgl = smgr->solver;
   if (level <= 0)
-    lglsetopt (blgl->lgl, "verb", -1);
+    lglsetopt (blgl->lgl, "verbose", -1);
   else if (level >= 2)
-    lglsetopt (blgl->lgl, "verb", level - 1);
+    lglsetopt (blgl->lgl, "verbose", level - 1);
 }
 
 static int32_t
