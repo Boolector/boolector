@@ -800,8 +800,7 @@ btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
   btor->cbs.term.state   = state;
 
   smgr = btor_get_sat_mgr (btor);
-  if (btor_sat_mgr_has_term_support (smgr))
-    btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
+  btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
 }
 
 static void

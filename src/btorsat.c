@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *  Copyright (C) 2013-2017 Aina Niemetz.
  *
  *  This file is part of Boolector.
@@ -179,13 +179,6 @@ btor_sat_mgr_has_clone_support (const BtorSATMgr *smgr)
 }
 
 bool
-btor_sat_mgr_has_term_support (const BtorSATMgr *smgr)
-{
-  if (!smgr || !smgr->initialized) return false;
-  return (!strcmp (smgr->name, "Lingeling"));
-}
-
-bool
 btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr)
 {
   if (!smgr) return false;
@@ -224,6 +217,7 @@ btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr)
   memcpy (&res->inc_required,
           &smgr->inc_required,
           (char *) smgr + sizeof (*smgr) - (char *) &smgr->inc_required);
+  BTOR_CLR (&res->term);
   return res;
 }
 
@@ -336,6 +330,12 @@ btor_sat_init (BtorSATMgr *smgr)
   smgr->initialized  = true;
   smgr->inc_required = true;
   smgr->sat_time     = 0;
+
+  /* Set terminate callbacks if SAT solver supports it */
+  if (smgr->term.fun && smgr->api.setterm)
+  {
+    setterm (smgr);
+  }
 
   smgr->true_lit = btor_sat_mgr_next_cnf_id (smgr);
   btor_sat_add (smgr, smgr->true_lit);

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -83,8 +83,6 @@ struct BtorSATMgr
 BtorSATMgr *btor_sat_mgr_new (Btor *btor);
 
 bool btor_sat_mgr_has_clone_support (const BtorSATMgr *smgr);
-
-bool btor_sat_mgr_has_term_support (const BtorSATMgr *smgr);
 
 bool btor_sat_mgr_has_incremental_support (const BtorSATMgr *smgr);
 

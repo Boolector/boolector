@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -85,8 +86,7 @@ boolector_py_set_term (Btor *btor, PyObject *fun, PyObject *state)
   }
 
   smgr = btor_get_sat_mgr (btor);
-  if (btor_sat_mgr_has_term_support (smgr))
-    btor_sat_mgr_set_term (smgr, py_terminate_btor, btor);
+  btor_sat_mgr_set_term (smgr, py_terminate_btor, btor);
 }
 
 void
