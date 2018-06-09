@@ -338,7 +338,7 @@ typedef struct BtorSMT2Parser
   BtorParseResult *res;
   BoolectorNodePtrStack sat_assuming_assumptions;
   uint32_t scope_level;
-  uint32_t cur_scope_num_terms;
+  uint32_t num_scopes;
   struct
   {
     uint32_t size, count;
@@ -553,6 +553,11 @@ insert_symbol_smt2 (BtorSMT2Parser *parser, BtorSMT2Node *symbol)
   symbol->next            = p;
   parser->symbol.count++;
   assert (parser->symbol.count > 0);
+  BTOR_MSG (parser->btor->msg,
+            2,
+            "insert symbol '%s' at scope level %u",
+            symbol->name,
+            parser->scope_level);
 }
 
 static BtorSMT2Node *
@@ -561,6 +566,7 @@ new_node_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
   BtorSMT2Node *res;
   BTOR_CNEW (parser->mem, res);
   res->tag = tag;
+  res->scope_level = parser->scope_level;
   return res;
 }
 
@@ -578,6 +584,12 @@ remove_symbol_smt2 (BtorSMT2Parser *parser, BtorSMT2Node *symbol)
 {
   BtorSMT2Node **p, *s;
   unsigned h;
+
+  BTOR_MSG (parser->btor->msg,
+            2,
+            "remove symbol '%s' at scope level %u",
+            symbol->name,
+            parser->scope_level);
 
   h = hash_name_smt2 (parser, symbol->name);
   for (p = parser->symbol.table + h;
@@ -613,27 +625,16 @@ release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
     btor_mem_freestr (parser->mem, item->str);
 }
 
-static uint32_t
-get_current_formula_size (BtorSMT2Parser *parser)
-{
-  return parser->btor->bv_vars->count + parser->btor->ufs->count
-         + parser->btor->nodes_unique_table.num_elements;
-}
-
 static void
 open_new_scope (BtorSMT2Parser *parser)
 {
-  double start;
-  start = btor_util_time_stamp ();
-
   parser->scope_level++;
-  parser->cur_scope_num_terms = get_current_formula_size (parser);
+  parser->num_scopes++;
 
   BTOR_MSG (parser->btor->msg,
             2,
-            "opened new scope at level %d in %.3f seconds",
-            parser->scope_level,
-            btor_util_time_stamp () - start);
+            "opened new scope at level %d",
+            parser->scope_level);
 }
 
 static void
@@ -675,9 +676,9 @@ create_symbol_current_scope (BtorSMT2Parser *parser, char *symbol)
   {
     len = strlen (symbol) + 1;
     len += strlen ("BTOR@");
-    len += btor_util_num_digits (parser->scope_level);
+    len += btor_util_num_digits (parser->num_scopes);
     BTOR_CNEWN (parser->mem, symb, len);
-    sprintf (symb, "BTOR@%u%s", parser->scope_level, symbol);
+    sprintf (symb, "BTOR@%u%s", parser->num_scopes, symbol);
   }
   else
     symb = btor_mem_strdup (parser->mem, symbol);
