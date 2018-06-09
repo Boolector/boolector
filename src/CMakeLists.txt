@@ -1,0 +1,81 @@
+set(boolector_src_files
+  aigprop.c
+  boolector.c
+  boolectormain.c
+  boolectormc.c
+  btorabort.c
+  btoraig.c
+  btoraigvec.c
+  btorass.c
+  btorbeta.c
+  btorbv.c
+  btorchkclone.c
+  btorclone.c
+  btorcore.c
+  btordbg.c
+  btordcr.c
+  btorexp.c
+  btormain.c
+  #btormbt.c
+  btormc.c
+  btormodel.c
+  btormsg.c
+  btornode.c
+  btoropt.c
+  btorparse.c
+  btorprintmodel.c
+  btorrewrite.c
+  btorsat.c
+  btorslvaigprop.c
+  btorslvfun.c
+  btorslvprop.c
+  btorslvpropsls.c
+  btorslvquant.c
+  btorslvsls.c
+  btorsort.c
+  btorsynth.c
+  btortrapi.c
+  #btoruntrace.c
+  dumper/btordumpaig.c
+  dumper/btordumpbtor.c
+  dumper/btordumpsmt.c
+  normalizer/btornormquant.c
+  normalizer/btorskolemize.c
+  parser/btorbtor.c
+  parser/btorbtor2.c
+  parser/btorsmt.c
+  parser/btorsmt2.c
+  sat/btorcadical.c
+  sat/btorlgl.c
+  sat/btorminisat.cc
+  sat/btorpicosat.c
+  simplifier/btorack.c
+  simplifier/btorder.c
+  simplifier/btorelimapplies.c
+  simplifier/btorelimslices.c
+  simplifier/btorextract.c
+  simplifier/btormerge.c
+  simplifier/btorminiscope.c
+  simplifier/btorskel.c
+  simplifier/btorunconstrained.c
+  utils/boolectornodemap.c
+  utils/btoraigmap.c
+  utils/btorhashint.c
+  utils/btorhashptr.c
+  utils/btormem.c
+  utils/btornodeiter.c
+  utils/btornodemap.c
+  utils/btoroptparse.c
+  utils/btorpartgen.c
+  utils/btorrng.c
+  utils/btorutil.c
+)
+
+#set(btormc_files
+#  btormcmain.c
+#)
+
+add_executable (boolector ${boolector_src_files})
+target_link_libraries(boolector ${LIBRARIES})
+
+#set_target_properties(boolector PROPERTIES LINKER_LANGUAGE CXX)
