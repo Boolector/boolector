@@ -9,8 +9,8 @@ else()
 endif()
 
 find_path(MINISAT_INCLUDE_DIR
-  NAMES SimpSolver.h
-  PATHS "${MINISAT_ROOT_DIR}/minisat/simp"
+  NAMES minisat/simp/SimpSolver.h
+  PATHS "${MINISAT_ROOT_DIR}"
   NO_DEFAULT_PATH
   )
 

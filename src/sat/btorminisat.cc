@@ -18,7 +18,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include "../minisat/minisat/simp/SimpSolver.h"
+#include "minisat/simp/SimpSolver.h"
 
 #include <cassert>
 #include <cstdio>

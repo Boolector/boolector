@@ -7,8 +7,8 @@ else()
 endif()
 
 find_path(BTOR2_INCLUDE_DIR
-  NAMES btor2parser.h
-  PATHS "${BTOR2_ROOT_DIR}/src/btor2parser"
+  NAMES btor2parser/btor2parser.h
+  PATHS "${BTOR2_ROOT_DIR}/src"
   NO_DEFAULT_PATH
   )
 
