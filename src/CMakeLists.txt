@@ -1,7 +1,6 @@
-set(boolector_src_files
+set(libboolector_src_files
   aigprop.c
   boolector.c
-  boolectormain.c
   boolectormc.c
   btorabort.c
   btoraig.c
@@ -15,8 +14,6 @@ set(boolector_src_files
   btordbg.c
   btordcr.c
   btorexp.c
-  btormain.c
-  #btormbt.c
   btormc.c
   btormodel.c
   btormsg.c
@@ -35,7 +32,6 @@ set(boolector_src_files
   btorsort.c
   btorsynth.c
   btortrapi.c
-  #btoruntrace.c
   dumper/btordumpaig.c
   dumper/btordumpbtor.c
   dumper/btordumpsmt.c
@@ -71,11 +67,37 @@ set(boolector_src_files
   utils/btorutil.c
 )
 
-#set(btormc_files
-#  btormcmain.c
-#)
+set(boolector_src_files
+  boolectormain.c
+  btormain.c
+)
+add_library(boolector STATIC ${LIBRARIES} ${libboolector_src_files})
+add_executable (boolector-bin ${boolector_src_files})
+target_link_libraries(boolector-bin boolector ${LIBRARIES})
+set_target_properties(boolector-bin PROPERTIES OUTPUT_NAME boolector)
 
-add_executable (boolector ${boolector_src_files})
-target_link_libraries(boolector ${LIBRARIES})
+set(btormc_src_files
+  btormcmain.c
+)
+add_executable (btormc ${btormc_src_files})
+target_link_libraries(btormc boolector ${LIBRARIES})
 
-#set_target_properties(boolector PROPERTIES LINKER_LANGUAGE CXX)
+set(btormbt_src_files
+  btormbt.c
+)
+add_executable (btormbt ${btormbt_src_files})
+target_link_libraries(btormbt boolector ${LIBRARIES})
+
+set(btoruntrace_src_files
+  btoruntrace.c
+)
+add_executable (btoruntrace ${btoruntrace_src_files})
+target_link_libraries(btoruntrace boolector ${LIBRARIES})
+
+set(btorimc_src_files
+  btoribv.cc
+  btorimc.cc
+)
+add_executable (btorimc ${btorimc_src_files})
+target_link_libraries(btorimc boolector ${LIBRARIES})
+

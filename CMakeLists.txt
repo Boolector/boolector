@@ -47,7 +47,7 @@ macro(add_check_c_cxx_flag flag)
 endmacro()
 
 add_check_c_flag("-std=gnu99")
-add_check_cxx_flag("-std=c++11")
+add_check_cxx_flag("-std=gnu++11")
 
 add_check_c_cxx_flag("-W")
 add_check_c_cxx_flag("-Wall")
