@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -15,8 +15,9 @@
 extern "C" {
 #include "boolectormc.h"
 #include "btorabort.h"
-#include "btorcore.h"
 #include "utils/btorstack.h"
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 };
 
 // We use classical C style data structures in order to be able to use the
@@ -73,7 +74,6 @@ enum BtorIBVTag
 struct BtorIBVRange
 {
   uint32_t id, msb, lsb;
-  BtorSort sort;
   BtorIBVRange (uint32_t i, uint32_t m, uint32_t l) : id (i), msb (m), lsb (l)
   {
   }

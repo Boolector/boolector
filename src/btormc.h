@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2013 Armin Biere.
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -12,11 +12,16 @@
 #ifndef btormc_h_INCLUDED
 #define btormc_h_INCLUDED
 
-#include "btornode.h"
 #include "utils/boolectornodemap.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
+
+#include <stdio.h>
+
+/*------------------------------------------------------------------------*/
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 

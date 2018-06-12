@@ -28,10 +28,6 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
-
-/*------------------------------------------------------------------------*/
-
 /* NOTE: DO NOT REORDER THE INDICES.
  * CERTAIN MACROS DEPEND ON ORDER.
  * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE

@@ -40,6 +40,7 @@
 
 BTOR_DECLARE_STACK (BtorConstCharPtr, const char *);
 BTOR_DECLARE_STACK (BtorCharPtrPtr, char **);
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
