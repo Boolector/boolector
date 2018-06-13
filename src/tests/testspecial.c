@@ -2,15 +2,14 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2018 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
 
-#include "btorexit.h"
-#include "btormain.h"
+#include "boolector.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -22,55 +21,57 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int32_t g_argc   = 4;
-static char **g_argv    = NULL;
+#define BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME "specialout.tmp"
+
 static char *g_btor_str = NULL;
+static FILE *g_fout     = NULL;
+static Btor *g_btor;
 
 void
 init_special_tests (void)
 {
-  int32_t pos_rwr;
-
-  pos_rwr = 0;
-
-  if (g_rwreads) pos_rwr = g_argc++ - 1;
-
   g_btor_str = (char *) malloc (sizeof (char *) * (strlen (btor_bin_dir) + 20));
   sprintf (g_btor_str, "%sboolector", btor_bin_dir);
-
-  g_argv = (char **) malloc (g_argc * sizeof (char *));
-
-  g_argv[0] = g_btor_str;
-  g_argv[1] = "-o";
-  g_argv[2] = "/dev/null";
-
-  if (g_rwreads) g_argv[pos_rwr] = "-bra";
 }
 
 static void
 run_test (char *name, int32_t expected)
 {
   char *full_name;
+  FILE *fin, *g_fout;
+  int32_t parse_res, parse_status;
+  char *parse_err;
 
+  g_btor = boolector_new ();
+  boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
   full_name = (char *) malloc (sizeof (char)
                                * (strlen (btor_log_dir) + strlen (name) + 1));
   strcpy (full_name, btor_log_dir);
   strcat (full_name, name);
-  g_argv[g_argc - 1] = full_name;
-  assert (boolector_main (g_argc, g_argv) == expected);
+  fin = fopen (full_name, "r");
+  assert (fin != NULL);
+  g_fout = fopen (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME, "w");
+  assert (g_fout != NULL);
+  parse_res = boolector_parse (
+      g_btor, fin, full_name, g_fout, &parse_err, &parse_status);
+  assert (parse_res != BOOLECTOR_PARSE_ERROR);
+  assert (boolector_sat (g_btor) == expected);
+  fclose (fin);
+  fclose (g_fout);
   free (full_name);
+  boolector_delete (g_btor);
 }
 
 static void
 run_sat_test (char *name)
 {
-  run_test (name, BTOR_SAT_EXIT);
+  run_test (name, BOOLECTOR_SAT);
 }
 
 static void
 run_unsat_test (char *name)
 {
-  run_test (name, BTOR_UNSAT_EXIT);
+  run_test (name, BOOLECTOR_UNSAT);
 }
 
 static void
@@ -1548,6 +1549,5 @@ run_special_tests (int32_t argc, char **argv)
 void
 finish_special_tests (void)
 {
-  free (g_btor_str);
-  free (g_argv);
+  assert (!g_fout || remove (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME) == 0);
 }
