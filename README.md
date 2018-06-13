@@ -70,8 +70,9 @@ directory `boolector/build`.
 
 For more build configuration options of Boolector, see `configure.sh -h`.
 
-To build Boolector with Python bindings, `btor2tools` and SAT solvers must
-be compiled with flag `-fPIC`
+To build Boolector with Python bindings you need to install
+[Cython](http://cython.org/),
+and `btor2tools` and SAT solvers must be compiled with flag `-fPIC`
 (see build instructions of these tools for more details on how to build as
 shared library).  
 Then, from Boolector's root directory configure and build Boolector as follows:
