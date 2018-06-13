@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz
+ *  Copyright (C) 2012-2018 Aina Niemetz
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -13,15 +13,17 @@
 #endif
 
 #include "testsmtaxioms.h"
-#include "btorexit.h"
-#include "btormain.h"
+#include "boolector.h"
 #include "testrunner.h"
 #include "utils/btorstack.h"
 
 #include <assert.h>
 #include <stdio.h>
 
-static BtorCharPtrStack g_args;
+#define BTOR_TEST_SMTAXIOM_TEMP_OUTFILE_NAME "smtaxiomout.tmp"
+
+static Btor *g_btor;
+static FILE *g_fout = NULL;
 
 static char *axioms[] = {
     "bvashr",
@@ -46,21 +48,19 @@ static char *axioms[] = {
 static void
 test_g_args_unsat (void)
 {
-  assert (boolector_main (BTOR_COUNT_STACK (g_args), g_args.start)
-          == BTOR_UNSAT_EXIT);
+  assert (boolector_sat (g_btor) == BOOLECTOR_UNSAT);
 }
 
 static void
 test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
 {
+  FILE *fin;
   char *buffer, *name, *prefix = "smtaxiom";
+  int32_t parse_res, parse_status;
+  char *parse_err;
 
-  BTOR_PUSH_STACK (g_args, p);
-
-  BTOR_PUSH_STACK (g_args, "-o");
-  BTOR_PUSH_STACK (g_args, "/dev/null");
-
-  if (g_rwreads) BTOR_PUSH_STACK (g_args, "-bra");
+  g_btor = boolector_new ();
+  if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
   name =
       (char *) malloc (sizeof (char) * (strlen (prefix) + strlen (p) + 10 + 1));
@@ -68,13 +68,22 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
 
   buffer = (char *) malloc (strlen (btor_log_dir) + strlen (name) + 4 + 1);
   sprintf (buffer, "%s%s.smt", btor_log_dir, name);
-  BTOR_PUSH_STACK (g_args, buffer);
+
+  fin = fopen (buffer, "r");
+  assert (fin != NULL);
+  g_fout = fopen (BTOR_TEST_SMTAXIOM_TEMP_OUTFILE_NAME, "w");
+  assert (g_fout != NULL);
+  parse_res =
+      boolector_parse (g_btor, fin, buffer, g_fout, &parse_err, &parse_status);
+  assert (parse_res != BOOLECTOR_PARSE_ERROR);
 
   run_test_case (argc, argv, test_g_args_unsat, name, 0);
 
-  BTOR_RESET_STACK (g_args);
+  fclose (fin);
+  fclose (g_fout);
   free (name);
   free (buffer);
+  boolector_delete (g_btor);
 }
 
 void
@@ -90,8 +99,6 @@ run_smtaxioms_tests (int32_t argc, char **argv)
   char **p;
 
   mem = btor_mem_mgr_new ();
-
-  BTOR_INIT_STACK (mem, g_args);
 
   for (first = 1, p = axioms; first || *p; p++)
   {
@@ -111,7 +118,6 @@ run_smtaxioms_tests (int32_t argc, char **argv)
     }
   }
 
-  BTOR_RELEASE_STACK (g_args);
   btor_mem_mgr_delete (mem);
 }
 
