@@ -13,7 +13,6 @@ set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #set(CMAKE_CXX_STANDARD 11)
 
 macro(add_c_flag flag)
-  message(STATUS "Configure with flag '${flag}'")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
 endmacro()
 
@@ -25,7 +24,6 @@ macro(add_check_c_flag flag)
 endmacro()
 
 macro(add_cxx_flag flag)
-  message(STATUS "Configure with flag '${flag}'")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
 endmacro()
 
@@ -39,12 +37,33 @@ endmacro()
 macro(add_c_cxx_flag flag)
   add_c_flag(${flag})
   add_cxx_flag(${flag})
+  message(STATUS "Configure with flag '${flag}'")
 endmacro()
 
 macro(add_check_c_cxx_flag flag)
   add_check_c_flag(${flag})
   add_check_cxx_flag(${flag})
+  message(STATUS "Configure with flag '${flag}'")
 endmacro()
+
+option(ASAN       "Compile with ASAN support" OFF)
+option(CHECK      "Enable assertions even for optimized compilation" OFF)
+option(GCOV       "Compile with coverage support" OFF)
+option(GPROF      "Compile with profiling support" OFF)
+option(LOG        "Compile with logging support (default for Debug builds)" OFF)
+option(PYTHON     "Build Python API" OFF)
+option(SHARED     "Shared Library" OFF)
+option(TIME_STATS "Compile with time statistics" OFF)
+
+option(CADICAL    "Use and link with CaDiCaL" ON)
+option(LINGELING  "Use and link with Lingeling (default)" ON)
+option(MINISAT    "Use and link with MiniSat" ON)
+option(PICOSAT    "Use and link with PicoSAT" ON)
+
+option(ONLY_CADICAL   "Only use CaDiCaL" OFF)
+option(ONLY_LINGELING "Only use Lingeling" OFF)
+option(ONLY_MINISAT   "Only use MiniSat" OFF)
+option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 
 add_check_c_flag("-std=gnu99")
 add_check_cxx_flag("-std=gnu++11")
@@ -53,6 +72,81 @@ add_check_c_cxx_flag("-W")
 add_check_c_cxx_flag("-Wall")
 add_check_c_cxx_flag("-Wextra")
 add_check_c_cxx_flag("-Wredundant-decls")
+
+if(FLAGS)
+  add_check_c_cxx_flag("${FLAGS}")
+endif()
+
+set(build_types Debug Release)
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type set, options are: ${build_types}")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Options are: ${build_types}" FORCE)
+    # Provide drop down menu options in cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${build_types})
+endif()
+message(STATUS "Building ${CMAKE_BUILD_TYPE} build")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_check_c_cxx_flag("-g3")
+  add_check_c_cxx_flag("-ggdb")
+  set(LOG ON)
+  set(TIME_STATS ON)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_check_c_cxx_flag("-O3")
+  if(NOT CHECK)
+    add_c_cxx_flag("-DNDEBUG")
+  endif()
+  set(LOG OFF)
+  set(TIME_STATS OFF)
+endif()
+
+if(ONLY_CADICAL)
+  set(ONLY_LINGELING OFF)
+  set(ONLY_MINISAT OFF)
+  set(ONLY_PICOSAT OFF)
+  set(CADICAL ON)
+elseif(ONLY_LINGELING)
+  set(ONLY_CADICAL OFF)
+  set(ONLY_MINISAT OFF)
+  set(ONLY_PICOSAT OFF)
+  set(LINGELING ON)
+elseif(ONLY_MINISAT)
+  set(ONLY_CADICAL OFF)
+  set(ONLY_LINGELING OFF)
+  set(ONLY_PICOSAT OFF)
+  set(MINISAT ON)
+elseif(ONLY_PICOSAT)
+  set(ONLY_CADICAL OFF)
+  set(ONLY_LINGELING OFF)
+  set(ONLY_MINISAT OFF)
+  set(PICOSAT ON)
+endif()
+
+if(ASAN)
+  add_check_c_cxx_flag("-fsanitize=addres")
+  add_check_c_cxx_flag("-fsanitize-recover=address")
+endif()
+
+if(GCOV)
+  add_check_c_cxx_flag("-fprofile-arcs")
+  add_check_c_cxx_flag("-ftest-coverage")
+endif()
+
+if(GPROF)
+  add_check_c_cxx_flag("-pg")
+endif()
+
+if(LOG)
+  add_c_cxx_flag("-DNBTORLOG")
+endif()
+
+if(PYTHON OR SHARED)
+  add_check_c_cxx_flag("-fPIC")
+endif()
+
+if(TIME_STATS)
+  add_c_cxx_flag("-DBTOR_TIME_STATISTICS")
+endif()
 
 find_package(BTOR2 REQUIRED)
 message(STATUS "Found Btor2Tools headers: ${BTOR2_INCLUDE_DIR}")
@@ -76,7 +170,7 @@ if (NOT LINGELING_FOUND
   message(SEND_ERROR "No SAT solver found")
 endif()
 
-if (LINGELING_FOUND)
+if (LINGELING_FOUND AND LINGELING)
   if (${LINGELING_INCLUDE_DIR} STREQUAL "LINGELING_INCLUDE_DIR-NOTFOUND")
     message(SEND_ERROR "Lingeling headers not found")
   else()
@@ -91,7 +185,7 @@ elseif(GIVEN_LINGELING_ROOT_DIR)
   message(SEND_ERROR "Lingeling not found")
 endif()
 
-if (CADICAL_FOUND)
+if (CADICAL_FOUND AND CADICAL)
   if (${CADICAL_INCLUDE_DIR} STREQUAL "CADICAL_INCLUDE_DIR-NOTFOUND")
     message(SEND_ERROR "CaDiCaL headers not found")
   else()
@@ -107,7 +201,7 @@ elseif(GIVEN_CADICAL_ROOT_DIR)
   message(SEND_ERROR "CaDiCaL not found")
 endif()
 
-if(PICOSAT_FOUND)
+if(PICOSAT_FOUND AND PICOSAT)
   if (${PICOSAT_INCLUDE_DIR} STREQUAL "PICOSAT_INCLUDE_DIR-NOTFOUND")
     message(SEND_ERROR "PicoSAT headers not found")
   else()
@@ -121,7 +215,7 @@ elseif(GIVEN_PICOSAT_ROOT_DIR)
   message(SEND_ERROR "PicoSAT not found")
 endif()
 
-if (MINISAT_FOUND)
+if (MINISAT_FOUND AND MINISAT)
   if (${MINISAT_INCLUDE_DIR} STREQUAL "MINISAT_INCLUDE_DIR-NOTFOUND")
     message(SEND_ERROR "MiniSAT headers not found")
   else()
@@ -145,50 +239,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in ${CMAKE_CURRENT_B
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(src)
 
-## option static
-#add_c_flag("-static")
-## option shared
-#add_c_flag("-fPIC")
-#
-## build debug
-#add_c_flag("-g3")
-#add_c_flag("-ggdb")
-## build release
-#add_c_flag("-O3")
-#
-## option individual compiler flags TODO
-#
-## option check TODO
-## add_c_flag("-DNDEBUG")
-## cryptominisat:
-##if (ENABLE_ASSERTIONS)
-##    # NDEBUG was already removed.
-##else()
-##    # Note this definition doesn't appear in the cache variables.
-##    add_definitions(-DNDEBUG)
-##    add_cxx_flag_if_supported("-fno-stack-protector")
-##    add_definitions(-D_FORTIFY_SOURCE=0)
-##endif()
-#
-## option flto
-#add_c_flag("-flto")
-#
-## option log TODO
-##add_c_flag("-DNBTORLOG")
-#
-## option asan
-#add_c_flag("-fsanitize=address")
-#add_c_flag("-fsanitize-recover=address")
-#
-## option gcov
-#add_c_flag("-fprofile-arcs")
-#add_c_flag("-ftest-coverage")
-#
-## option gprof
-#add_c_flag("-pg")
-#
-## option time stats
-#add_c_flag("-DBTOR_TIME_STATISTICS"
 ##message(STATUS "LIB directory is '${CMAKE_INSTALL_LIBDIR}'")
 ##message(STATUS "BIN directory is '${CMAKE_INSTALL_BINDIR}'")
 

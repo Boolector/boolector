@@ -71,7 +71,14 @@ set(boolector_src_files
   boolectormain.c
   btormain.c
 )
+
 add_library(boolector STATIC ${LIBRARIES} ${libboolector_src_files})
+
+if(SHARED)
+  add_library(boolector-shared SHARED ${LIBRARIES} ${libboolector_src_files})
+  set_target_properties(boolector-shared PROPERTIES OUTPUT_NAME boolector)
+endif()
+
 add_executable (boolector-bin ${boolector_src_files})
 target_link_libraries(boolector-bin boolector ${LIBRARIES})
 set_target_properties(boolector-bin PROPERTIES OUTPUT_NAME boolector)
