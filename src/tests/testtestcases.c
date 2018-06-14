@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz
+ *  Copyright (C) 2012-2018 Aina Niemetz
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -13,7 +13,8 @@
 #endif
 
 #include "testtestcases.h"
-#include "btormain.h"
+
+#include "btorconfig.h"
 #include "testrunner.h"
 #include "utils/btorstack.h"
 
@@ -55,7 +56,7 @@ run_testcases_tests (int32_t argc, char **argv)
 {
   BtorCharStack buffer;
   BtorMemMgr *mem;
-  char *s, *token;
+  char *s, *tmp, *token;
   FILE *file;
   int32_t ch;
 
@@ -98,7 +99,18 @@ run_testcases_tests (int32_t argc, char **argv)
     token = strtok (buffer.start, " \t");
     while (token)
     {
-      BTOR_PUSH_STACK (g_args, token);
+      if ((s = strchr (token, '.')))
+      {
+        tmp = (char *) malloc (sizeof (char *)
+                               * (strlen (btor_log_dir) + strlen (token) + 1));
+        sprintf (tmp, "%s%s", btor_log_dir, token);
+      }
+      else
+      {
+        tmp = (char *) malloc (sizeof (char *) * (strlen (token) + 1));
+        strcpy (tmp, token);
+      }
+      BTOR_PUSH_STACK (g_args, tmp);
       token = strtok (0, " \t");
     }
     if (g_rwreads) BTOR_PUSH_STACK (g_args, "-bra");
