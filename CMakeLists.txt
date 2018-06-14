@@ -238,6 +238,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in ${CMAKE_CURRENT_B
 
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(src)
+add_subdirectory(src/tests)
 
 ##message(STATUS "LIB directory is '${CMAKE_INSTALL_LIBDIR}'")
 ##message(STATUS "BIN directory is '${CMAKE_INSTALL_BINDIR}'")
