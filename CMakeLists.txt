@@ -192,7 +192,6 @@ elseif(LINGELING OR GIVEN_LINGELING_ROOT_DIR)
   message(SEND_ERROR "Lingeling not found")
 endif()
 
-message(STATUS "### ${CADICAL_FOUND}")
 if (CADICAL_FOUND AND CADICAL)
   if (${CADICAL_INCLUDE_DIR} STREQUAL "CADICAL_INCLUDE_DIR-NOTFOUND")
     message(SEND_ERROR "CaDiCaL headers not found")
