@@ -46,6 +46,12 @@ macro(add_check_c_cxx_flag flag)
   message(STATUS "Configure with flag '${flag}'")
 endmacro()
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+message(STATUS "LIB directory is '${CMAKE_BINARY_DIR}/lib'")
+message(STATUS "BIN directory is '${CMAKE_BINARY_DIR}/bin'")
+
 option(ASAN       "Compile with ASAN support" OFF)
 option(CHECK      "Enable assertions even for optimized compilation" OFF)
 option(GCOV       "Compile with coverage support" OFF)
@@ -239,8 +245,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in ${CMAKE_CURRENT_B
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(src)
 add_subdirectory(src/tests)
-
-##message(STATUS "LIB directory is '${CMAKE_INSTALL_LIBDIR}'")
-##message(STATUS "BIN directory is '${CMAKE_INSTALL_BINDIR}'")
 
 
