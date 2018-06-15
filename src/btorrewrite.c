@@ -1874,12 +1874,13 @@ apply_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline bool
 applies_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
+  (void) e0;
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_regular (e1)
          && btor_node_is_add (e1)
-         && ((btor_node_is_regular (e1->e[0]) && is_neg_exp (btor, e1->e[0], 0))
+         && ((btor_node_is_regular (e1->e[0]) && btor_node_is_neg (btor, e1->e[0], 0))
              || (btor_node_is_regular (e1->e[1])
-                 && is_neg_exp (btor, e1->e[1], 0)));
+                 && btor_node_is_neg (btor, e1->e[1], 0)));
 }
 
 static inline BtorNode *
@@ -1890,11 +1891,11 @@ apply_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result;
   BtorNode *neg = 0, *other;
 
-  if (is_neg_exp (btor, e1->e[0], &neg))
+  if (btor_node_is_neg (btor, e1->e[0], &neg))
     other = e1->e[1];
   else
   {
-    is_neg_exp (btor, e1->e[1], &neg);
+    btor_node_is_neg (btor, e1->e[1], &neg);
     other = e1->e[0];
   }
   assert (neg);
