@@ -17,11 +17,19 @@ find_path(LINGELING_INCLUDE_DIR
   NO_DEFAULT_PATH
   )
 
+# Prefer shared libraries if SHARED is enabled
+if(SHARED)
+  set(libsuffix "so")
+else()
+  set(libsuffix "a")
+endif()
+
 find_library(LINGELING_LIBRARIES
-  NAMES lgl liblgl
+  NAMES "liblgl.${libsuffix}" lgl
   PATHS "${LINGELING_ROOT_DIR}"
   NO_DEFAULT_PATH
   )
+
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LINGELING LINGELING_INCLUDE_DIR LINGELING_LIBRARIES)

@@ -623,7 +623,7 @@ from Cython.Build import cythonize
 cwd=os.getcwd()
 ext_modules=[
     Extension("boolector",
-        sources=["$SRCDIR/api/python/boolector.pyx"],
+        sources=["$SRCDIR/api/python/pyboolector.pyx"],
         include_dirs="$SRCDIR $SRCDIR/api/python $py_inc_dirs".split(),
         library_dirs="$py_library_dirs".split(),
         libraries="$py_libraries".split(),
@@ -654,7 +654,7 @@ EOF
 
 opts=`grep "BTOR_OPT.*," $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
 mkdir -p $BUILDIR/api/python/
-echo "$opts" > $BUILDIR/api/python/options.pxd
+echo "$opts" > $BUILDIR/api/python/pyboolector_options.pxd
 
 else
   touch python.mk

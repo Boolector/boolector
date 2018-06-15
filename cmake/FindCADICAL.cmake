@@ -17,8 +17,15 @@ find_path(CADICAL_INCLUDE_DIR
   NO_DEFAULT_PATH
   )
 
+# Prefer shared libraries if SHARED is enabled
+if(SHARED)
+  set(libsuffix "so")
+else()
+  set(libsuffix "a")
+endif()
+
 find_library(CADICAL_LIBRARIES
-  NAMES cadical libcadical
+  NAMES "libcadical.${libsuffix}" cadical
   PATHS "${CADICAL_ROOT_DIR}/build"
   NO_DEFAULT_PATH
   )

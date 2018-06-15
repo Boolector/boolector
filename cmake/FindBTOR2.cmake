@@ -15,8 +15,15 @@ find_path(BTOR2_INCLUDE_DIR
   NO_DEFAULT_PATH
   )
 
+# Prefer shared libraries if SHARED is enabled
+if(SHARED)
+  set(libsuffix "so")
+else()
+  set(libsuffix "a")
+endif()
+
 find_library(BTOR2_LIBRARIES
-  NAMES btor2parser libbtor2parser
+  NAMES "libbtor2parser.${libsuffix}" btor2parser
   PATHS "${BTOR2_ROOT_DIR}/build"
   NO_DEFAULT_PATH
   )

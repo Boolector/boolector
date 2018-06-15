@@ -17,8 +17,15 @@ find_path(PICOSAT_INCLUDE_DIR
   NO_DEFAULT_PATH
   )
 
+# Prefer shared libraries if SHARED is enabled
+if(SHARED)
+  set(libsuffix "so")
+else()
+  set(libsuffix "a")
+endif()
+
 find_library(PICOSAT_LIBRARIES
-  NAMES picosat version libpicosat
+  NAMES "libpicosat.${libsuffix}" picosat
   PATHS "${PICOSAT_ROOT_DIR}"
   NO_DEFAULT_PATH
   )

@@ -190,7 +190,6 @@ if(NOT LOG)
 endif()
 
 if(PYTHON OR SHARED)
-  set(SHARED ON)
   add_check_c_cxx_flag("-fPIC")
 endif()
 
@@ -295,5 +294,6 @@ configure_file(
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(src/tests)
-
-
+if(PYTHON)
+  add_subdirectory(src/api/python)
+endif()

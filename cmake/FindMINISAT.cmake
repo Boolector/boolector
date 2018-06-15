@@ -17,9 +17,15 @@ find_path(MINISAT_INCLUDE_DIR
   NO_DEFAULT_PATH
   )
 
+if(SHARED)
+  set(libdir "dynamic/lib")
+else()
+  set(libdir "release/lib")
+endif()
+
 find_library(MINISAT_LIBRARIES
   NAMES minisat libminisat
-  PATHS "${MINISAT_ROOT_DIR}/build/release/lib"
+  PATHS "${MINISAT_ROOT_DIR}/build/${libdir}"
   NO_DEFAULT_PATH
   )
 
