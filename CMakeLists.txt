@@ -1,8 +1,12 @@
 cmake_minimum_required (VERSION 3.3)
 
+#-----------------------------------------------------------------------------#
+
 project(boolector)
 set(VERSION "3.0.0-pre")
 string(TIMESTAMP TIME)
+
+#-----------------------------------------------------------------------------#
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
@@ -46,11 +50,15 @@ macro(add_check_c_cxx_flag flag)
   message(STATUS "Configure with flag '${flag}'")
 endmacro()
 
+#-----------------------------------------------------------------------------#
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 message(STATUS "LIB directory is '${CMAKE_BINARY_DIR}/lib'")
 message(STATUS "BIN directory is '${CMAKE_BINARY_DIR}/bin'")
+
+#-----------------------------------------------------------------------------#
 
 option(ASAN       "Compile with ASAN support" OFF)
 option(CHECK      "Enable assertions even for optimized compilation" OFF)
@@ -71,6 +79,8 @@ option(ONLY_LINGELING "Only use Lingeling" OFF)
 option(ONLY_MINISAT   "Only use MiniSat" OFF)
 option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 
+#-----------------------------------------------------------------------------#
+
 add_check_c_flag("-std=gnu99")
 add_check_cxx_flag("-std=gnu++11")
 
@@ -82,6 +92,8 @@ add_check_c_cxx_flag("-Wredundant-decls")
 if(FLAGS)
   add_check_c_cxx_flag("${FLAGS}")
 endif()
+
+#-----------------------------------------------------------------------------#
 
 set(build_types Debug Release)
 if(NOT CMAKE_BUILD_TYPE)
@@ -105,6 +117,8 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   set(LOG OFF)
   set(TIME_STATS OFF)
 endif()
+
+#-----------------------------------------------------------------------------#
 
 if(ONLY_CADICAL)
   set(LINGELING OFF)
@@ -183,6 +197,8 @@ endif()
 if(TIME_STATS)
   add_c_cxx_flag("-DBTOR_TIME_STATISTICS")
 endif()
+
+#-----------------------------------------------------------------------------#
 
 find_package(BTOR2 REQUIRED)
 message(STATUS "Found Btor2Tools headers: ${BTOR2_INCLUDE_DIR}")
@@ -266,6 +282,8 @@ if (MINISAT_FOUND AND MINISAT)
 elseif(USE_MINISAT OR GIVEN_MINISAT_ROOT_DIR)
   message(SEND_ERROR "MiniSAT not found")
 endif()
+
+#-----------------------------------------------------------------------------#
 
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
