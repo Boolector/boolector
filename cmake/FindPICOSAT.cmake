@@ -1,4 +1,7 @@
 # Find PicoSAT
+# PICOSAT_FOUND - found PicoSAT lib
+# PICOSAT_INCLUDE_DIR - the PicoSAT include directory
+# PICOSAT_LIBRARIES - Libraries needed to use PicoSAT
 
 if(PICOSAT_ROOT_DIR)
   message(STATUS "PicoSAT root directory: ${PICOSAT_ROOT_DIR}")

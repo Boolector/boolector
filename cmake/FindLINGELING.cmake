@@ -1,4 +1,7 @@
 # Find Lingeling
+# LINGELING_FOUND - found Lingeling lib
+# LINGELING_INCLUDE_DIR - the Lingeling include directory
+# LINGELING_LIBRARIES - Libraries needed to use Lingeling
 
 if(LINGELING_ROOT_DIR)
   message(STATUS "Lingeling root directory: ${LINGELING_ROOT_DIR}")

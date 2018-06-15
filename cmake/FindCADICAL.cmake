@@ -1,4 +1,7 @@
 # Find CaDiCaL
+# CADICAL_FOUND - found CaDiCaL lib
+# CADICAL_INCLUDE_DIR - the CaDiCaL include directory
+# CADICAL_LIBRARIES - Libraries needed to use CaDiCaL
 
 if(CADICAL_ROOT_DIR)
   message(STATUS "CaDiCaL root directory: ${CADICAL_ROOT_DIR}")

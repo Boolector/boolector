@@ -1,4 +1,7 @@
 # Find MiniSAT
+# MINISAT_FOUND - found MiniSat lib
+# MINISAT_INCLUDE_DIR - the MiniSat include directory
+# MINISAT_LIBRARIES - Libraries needed to use MiniSat
 
 if(MINISAT_ROOT_DIR)
   message(STATUS "MiniSAT root directory: ${MINISAT_ROOT_DIR}")

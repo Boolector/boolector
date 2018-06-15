@@ -1,4 +1,7 @@
 # Find Btor2Tools
+# BTOR2_FOUND - found Btor2Tools lib
+# BTOR2_INCLUDE_DIR - the Btor2Tools include directory
+# BTOR2_LIBRARIES - Libraries needed to use Btor2Tools
 
 if(BTOR2_ROOT_DIR)
   message(STATUS "Btor2Tools root directory: ${BTOR2_ROOT_DIR}")
