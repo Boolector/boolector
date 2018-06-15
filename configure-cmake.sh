@@ -12,10 +12,17 @@ check=no
 log=no
 shared=no
 
+btor2_dir=unknown
+
 lingeling=unknown
 minisat=unknown
 picosat=unknown
 cadical=unknown
+
+lingeling_dir=unknown
+minisat_dir=unknown
+picosat_dir=unknown
+cadical_dir=unknown
 
 gcov=no
 gprof=no
@@ -48,24 +55,36 @@ where <option> is one of the following:
   --python          compile python API
   --time-stats      compile with time statistics
 
+  --btor2tools-dir  the location of the btor2tools package (optional)
+                    default: <boolector_root_dir>/../btor2tools
+
 By default all supported SAT solvers available are used and linked.
 If explicitly enabled, configuration will fail if the SAT solver library 
 can not be found.
 
-  --cadical         use and link with CaDiCaL
-  --lingeling       use and link with Lingeling
-  --minisat         use and link with MiniSAT
-  --picosat         use and link with PicoSAT
+  --cadical              use and link with CaDiCaL
+  --lingeling            use and link with Lingeling
+  --minisat              use and link with MiniSAT
+  --picosat              use and link with PicoSAT
 
-  --no-cadical      do not use CaDiCaL
-  --no-lingeling    do not use Lingeling
-  --no-minisat      do not use MiniSAT
-  --no-picosat      do not use PicoSAT
+  --no-cadical           do not use CaDiCaL
+  --no-lingeling         do not use Lingeling
+  --no-minisat           do not use MiniSAT
+  --no-picosat           do not use PicoSAT
 
-  --only-cadical    only use CaDiCaL
-  --only-lingeling  only use Lingeling
-  --only-minisat    only use MiniSAT
-  --only-picosat    only use PicoSAT
+  --only-cadical         only use CaDiCaL
+  --only-lingeling       only use Lingeling
+  --only-minisat         only use MiniSAT
+  --only-picosat         only use PicoSAT
+
+  --cadical-dir <dir>    CaDiCaL root directory (optional)
+                         default: <boolector_root_dir>/../cadical
+  --lingeling-dir <dir>  Lingeling root directory (optional)
+                         default: <boolector_root_dir>/../lingeling
+  --minisat-dir <dir>    MiniSat root directory (optional)
+                         default: <boolector_root_dir>/../minisat
+  --picosat-dir <dir>    PicoSAT root directory (optional)
+                         default: <boolector_root_dir>/../picosat
 EOF
   exit 0
 }
@@ -93,29 +112,70 @@ do
 
     --shared) shared=yes;;
 
-    -l) log=yes;;
-    -c) check=yes;;
-    --asan) asan=yes;;
-    --gcov) gcov=yes;;
+    -l)      log=yes;;
+    -c)      check=yes;;
+    --asan)  asan=yes;;
+    --gcov)  gcov=yes;;
     --gprof) gprof=yes;;
 
-    --python) python=yes;;
+    --python)     python=yes;;
     --time-stats) timestats=yes;;
 
-    --cadical) cadical=yes;;
+    --btor2tools-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --btor2tools-dir"
+      fi
+      btor2_dir=$1
+      ;;
+    --cadical)   cadical=yes;;
     --lingeling) lingeling=yes;;
-    --minisat) minisat=yes;;
-    --picosat) picosat=yes;;
+    --minisat)   minisat=yes;;
+    --picosat)   picosat=yes;;
 
-    --no-cadical) cadical=no;;
+    --no-cadical)   cadical=no;;
     --no-lingeling) lingeling=no;;
-    --no-minisat) minisat=no;;
-    --no-picosat) picosat=no;;
+    --no-minisat)   minisat=no;;
+    --no-picosat)   picosat=no;;
 
-    --only-cadical) lingeling=no;minisat=no;picosat=no;cadical=yes;;
+    --only-cadical)   lingeling=no;minisat=no;picosat=no;cadical=yes;;
     --only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;;
-    --only-minisat) lingeling=no;minisat=yes;picosat=no;cadical=no;;
-    --only-picosat) lingeling=no;minisat=no;picosat=yes;cadical=no;;
+    --only-minisat)   lingeling=no;minisat=yes;picosat=no;cadical=no;;
+    --only-picosat)   lingeling=no;minisat=no;picosat=yes;cadical=no;;
+
+    --cadical-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --cadical-dir"
+      fi
+      cadical_dir=$1
+      ;;
+    --lingeling-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --cadical-dir"
+      fi
+      lingeling_dir=$1
+      ;;
+    --minisat-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --minisat-dir"
+      fi
+      minisat_dir=$1
+      ;;
+    --picosat-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --picosat-dir"
+      fi
+      picosat_dir=$1
+      ;;
 
     -*) die "invalid option '$1' (try '-h')";;
   esac
@@ -135,15 +195,17 @@ cmake_opts=""
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DSHARED=ON"
 
-[ $cadical = yes ] && cmake_opts="$cmake_opts -DCADICAL=ON"
-[ $lingeling = yes ] && cmake_opts="$cmake_opts -DLINGELING=ON"
-[ $minisat = yes ] && cmake_opts="$cmake_opts -DMINISAT=ON"
-[ $picosat = yes ] && cmake_opts="$cmake_opts -DPICOSAT=ON"
+[ $btor2_dir = unknown ] || cmake_opts="$cmake_opts -DBTOR2_ROOT_DIR=$btor2_dir"
 
-[ $cadical = no ] && cmake_opts="$cmake_opts -DCADICAL=OFF"
-[ $lingeling = no ] && cmake_opts="$cmake_opts -DLINGELING=OFF"
-[ $minisat = no ] && cmake_opts="$cmake_opts -DMINISAT=OFF"
-[ $picosat = no ] && cmake_opts="$cmake_opts -DPICOSAT=OFF"
+[ $cadical = yes ] && cmake_opts="$cmake_opts -DUSE_CADICAL=ON"
+[ $lingeling = yes ] && cmake_opts="$cmake_opts -DUSE_LINGELING=ON"
+[ $minisat = yes ] && cmake_opts="$cmake_opts -DUSE_MINISAT=ON"
+[ $picosat = yes ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=ON"
+
+[ $cadical = no ] && cmake_opts="$cmake_opts -DUSE_CADICAL=OFF"
+[ $lingeling = no ] && cmake_opts="$cmake_opts -DUSE_LINGELING=OFF"
+[ $minisat = no ] && cmake_opts="$cmake_opts -DUSE_MINISAT=OFF"
+[ $picosat = no ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=OFF"
 
 [ $gcov = yes ] && cmake_opts="$cmake_opts -DGCOV=ON"
 [ $gprof = yes ] && cmake_opts="$cmake_opts -DGPROF=ON"
@@ -152,6 +214,11 @@ cmake_opts=""
 [ $timestats = yes ] && cmake_opts="$cmake_opts -DTIME_STATS=ON"
 
 [ $flags = none ] || cmake_opts="$cmake_opts -DFLAGS=$flags"
+
+[ $cadical_dir = unknown ] || cmake_opts="$cmake_opts -DCADICAL_ROOT_DIR=$cadical_dir"
+[ $lingeling_dir = unknown ] || cmake_opts="$cmake_opts -DLINGELING_ROOT_DIR=$lingeling_dir"
+[ $minisat_dir = unknown ] || cmake_opts="$cmake_opts -DMINISAT_ROOT_DIR=$minisat_dir"
+[ $picosat_dir = unknown ] || cmake_opts="$cmake_opts -DPICOSAT_ROOT_DIR=$picosat_dir"
 
 cd $BUILDDIR
 cmake .. $cmake_opts
