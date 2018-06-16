@@ -288,9 +288,11 @@ endif()
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/btorconfig.h)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
-include_directories(src ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(src/tests)
 
