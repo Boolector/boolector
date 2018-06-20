@@ -36,5 +36,6 @@ set(test_src_files
   testutil.c
 )
 
-add_executable (test ${test_src_files})
-target_link_libraries(test boolector ${LIBRARIES})
+add_executable (testbtor ${test_src_files})
+target_link_libraries(testbtor boolector ${LIBRARIES})
+set_target_properties(testbtor PROPERTIES OUTPUT_NAME test)
