@@ -62,11 +62,6 @@ By default all supported SAT solvers available are used and linked.
 If explicitly enabled, configuration will fail if the SAT solver library 
 can not be found.
 
-  --cadical              use and link with CaDiCaL
-  --lingeling            use and link with Lingeling
-  --minisat              use and link with MiniSAT
-  --picosat              use and link with PicoSAT
-
   --no-cadical           do not use CaDiCaL
   --no-lingeling         do not use Lingeling
   --no-minisat           do not use MiniSAT
@@ -129,11 +124,6 @@ do
       fi
       btor2_dir=$1
       ;;
-    --cadical)   cadical=yes;;
-    --lingeling) lingeling=yes;;
-    --minisat)   minisat=yes;;
-    --picosat)   picosat=yes;;
-
     --no-cadical)   cadical=no;;
     --no-lingeling) lingeling=no;;
     --no-minisat)   minisat=no;;
@@ -221,4 +211,5 @@ cmake_opts=""
 [ $picosat_dir = unknown ] || cmake_opts="$cmake_opts -DPICOSAT_ROOT_DIR=$picosat_dir"
 
 cd $BUILDDIR
+[ -e CMakeCache.txt ] && rm CMakeCache.txt
 cmake .. $cmake_opts
