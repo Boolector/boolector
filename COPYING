@@ -1,8 +1,8 @@
 Boolector is a Satisfiability Modulo Theories (SMT) Solver for bit-vectors,
 arrays and uninterpreted functions.
 
-Copyright (c) 2007-2009 Robert Brummayer.
 Copyright (c) 2007-2018 Armin Biere.
+Copyright (c) 2007-2009 Robert Brummayer.
 Copyright (c) 2012-2018 Aina Niemetz.
 Copyright (c) 2012-2018 Mathias Preiner.
 
