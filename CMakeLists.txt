@@ -185,7 +185,7 @@ if(GPROF)
   add_check_c_cxx_flag("-pg")
 endif()
 
-if(LOG)
+if(NOT LOG)
   add_c_cxx_flag("-DNBTORLOG")
 endif()
 

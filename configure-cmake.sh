@@ -156,7 +156,7 @@ do
       shift
       if [ $# -eq 0 ]
       then
-        die "missing argument to --cadical-dir"
+        die "missing argument to --lingeling-dir"
       fi
       lingeling_dir=$1
       ;;
@@ -222,5 +222,3 @@ cmake_opts=""
 
 cd $BUILDDIR
 cmake .. $cmake_opts
-cd - > /dev/null
-
