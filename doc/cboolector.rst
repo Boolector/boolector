@@ -303,19 +303,19 @@ Examples
 
 Bit vector examples
 ^^^^^^^^^^^^^^^^^^^
-  .. literalinclude:: ../examples/bv/bv1.c
+  .. literalinclude:: ../examples/api/c/bv/bv1.c
      :language: c
 
-  .. literalinclude:: ../examples/bv/bv2.c
+  .. literalinclude:: ../examples/api/c/bv/bv2.c
      :language: c
 
 Array examples
 ^^^^^^^^^^^^^^
-  .. literalinclude:: ../examples/array/array1.c
+  .. literalinclude:: ../examples/api/c/array/array1.c
      :language: c
 
-  .. literalinclude:: ../examples/array/array2.c
+  .. literalinclude:: ../examples/api/c/array/array2.c
      :language: c
 
-  .. literalinclude:: ../examples/array/array3.c
+  .. literalinclude:: ../examples/api/c/array/array3.c
      :language: c

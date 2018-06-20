@@ -333,4 +333,4 @@ Rewriting
 Examples
 --------
 
-  .. literalinclude:: ../src/api/python/api_usage_examples.py
+  .. literalinclude:: ../examples/api/python/api_usage_examples.py
