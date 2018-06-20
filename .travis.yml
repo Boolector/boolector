@@ -1,0 +1,31 @@
+language: c
+
+cache: ccache
+
+compiler:
+  - gcc
+  - clang
+
+git:
+  depth: 1
+  quiet: true
+
+os:
+  - linux
+#  - osx
+
+before_script:
+  - ./contrib/setup-btor2tools.sh deps
+  - ./contrib/setup-cadical.sh deps
+  - ./contrib/setup-lingeling.sh deps
+  - ./contrib/setup-picosat.sh deps
+
+script:
+  - ./configure-cmake.sh
+      --btor2tools-dir deps/btor2tools
+      --cadical-dir deps/cadical
+      --lingeling-dir deps/lingeling
+      --picosat-dir deps/picosat
+  - cd cmake-build
+  - make -j2
+  - bin/test
