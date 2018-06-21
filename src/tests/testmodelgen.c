@@ -64,16 +64,18 @@ modelgen_test (const char *fname, int32_t rwl)
 
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (len + 5 + len + 4 + strlen ("btorcheckmodel   > /dev/null")
-         + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1));
+      * (len + 5 + len + 4 + strlen ("btorcheckmodel   boolector > /dev/null")
+         + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1
+         + strlen (btor_bin_dir)));
 
   sprintf (syscall_string,
-           "%sbtorcheckmodel %s%s %s%s > /dev/null",
+           "%sbtorcheckmodel %s%s %s%s %sboolector > /dev/null",
            btor_contrib_dir,
            btor_log_dir,
            btor_fname,
            btor_log_dir,
-           log_fname);
+           log_fname,
+           btor_bin_dir);
   ret_val = system (syscall_string);
   assert (ret_val == 0);
 

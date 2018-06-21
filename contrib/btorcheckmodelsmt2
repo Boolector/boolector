@@ -9,7 +9,6 @@ die ()
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
 CONTRIBDIR=$(dirname "$(readlink -f $0)")
-BOOLECTOR="$CONTRIBDIR/../bin/boolector"
 INFILE=""
 MODEL=""
 TMPFILE=/tmp/btorcheckmodelsmt2-$$.smt2
@@ -18,7 +17,7 @@ while [ $# -gt 0 ]
 do
   case $1 in
     -h|--help)
-      echo -n "usage: $(basename $0) [<option>] <infile> <model>"
+      echo -n "usage: $(basename $0) [<option>] <infile> <model> <boolector-binary>"
       echo
       echo "  options:"
       echo "    -h, --help    print this message and exit"
@@ -38,7 +37,11 @@ do
   shift
 done
 
-MODEL="$*"
+MODEL="$1"
+BOOLECTOR="$2"
+
+[ -z "$BOOLECTOR" ] && die "no Boolector binary specified"
+[ ! -e "$BOOLECTOR" ] && die "given Boolector binary does not exist"
 
 cat $INFILE | sed -r 's/\(check-sat\)|\(exit\)//' >> $TMPFILE
 cat $MODEL | sed 's/sat//' >> $TMPFILE

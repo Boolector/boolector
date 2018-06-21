@@ -7,11 +7,14 @@ def dec2bin(dec, len):
   evalstring= "%0" + str(len) + "d"
   return evalstring % int(binary)
 
+if len(sys.argv) != 4:
+  print "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file> <boolector-binary>"
+  sys.exit(2)
+
 pid = os.getpid();
 foutname = "/tmp/btorcheckmodel" + str(pid) +".btor"
 # get absolute path to boolector binary
-pathname = os.path.dirname(sys.argv[0])        
-boolector = (os.path.abspath(pathname + "/../bin/") + "/boolector").replace (" ", "\ ")
+boolector = sys.argv[3]
 
 
 def cleanup():
@@ -23,10 +26,6 @@ def cleanup():
 def signalhandler(signum, frame):
   cleanup()
   sys.exit(0)
-
-if len(sys.argv) != 3:
-  print "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
-  sys.exit(2)
 
 signal.signal(signal.SIGINT, signalhandler)
 signal.signal(signal.SIGTERM, signalhandler)
