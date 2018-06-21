@@ -12,7 +12,7 @@ git:
 
 os:
   - linux
-#  - osx
+  - osx
 
 before_script:
   - ./contrib/setup-btor2tools.sh deps
