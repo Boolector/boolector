@@ -8,7 +8,6 @@ die ()
 
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
-CONTRIBDIR=$(dirname "$(readlink -f $0)")
 INFILE=""
 MODEL=""
 TMPFILE=/tmp/btorcheckmodelsmt2-$$.smt2

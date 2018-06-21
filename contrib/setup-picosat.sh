@@ -10,13 +10,7 @@ SETUP_DIR=$1
 
 mkdir -p ${SETUP_DIR}
 
-SETUP_DIR=$(readlink -f ${SETUP_DIR})
 PICOSAT_DIR=${SETUP_DIR}/picosat
-
-NPROC=2
-if hash nproc; then
-  NPROC=$(nproc)
-fi
 
 # Download and build PicoSAT
 mkdir ${PICOSAT_DIR}
@@ -26,4 +20,4 @@ tar xzf picosat-965.tar.gz
 mv picosat-965/* .
 rmdir picosat-965
 ./configure.sh #--shared
-make -j${NPROC}
+make -j2
