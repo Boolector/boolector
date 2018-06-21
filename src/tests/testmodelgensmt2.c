@@ -66,12 +66,12 @@ modelgensmt2_test (const char *fname, int32_t rwl)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + 5 + len + 4
-         + strlen ("btorcheckmodelsmt2   boolector > /dev/null")
+         + strlen ("btorcheckmodelsmt2.sh   boolector > /dev/null")
          + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1
          + strlen (btor_bin_dir)));
 
   sprintf (syscall_string,
-           "%sbtorcheckmodelsmt2 %s%s %s%s %sboolector > /dev/null",
+           "%sbtorcheckmodelsmt2.sh %s%s %s%s %sboolector > /dev/null",
            btor_contrib_dir,
            btor_log_dir,
            btor_fname,

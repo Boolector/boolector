@@ -42,7 +42,7 @@ BOOLECTOR="$2"
 [ -z "$BOOLECTOR" ] && die "no Boolector binary specified"
 [ ! -e "$BOOLECTOR" ] && die "given Boolector binary does not exist"
 
-cat $INFILE | sed -r 's/\(check-sat\)|\(exit\)//' >> $TMPFILE
+cat $INFILE | sed 's/\(check-sat\)|\(exit\)//' >> $TMPFILE
 cat $MODEL | sed 's/sat//' >> $TMPFILE
 echo "(check-sat)" >> $TMPFILE
 echo "(exit)" >> $TMPFILE

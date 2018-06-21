@@ -64,12 +64,13 @@ modelgen_test (const char *fname, int32_t rwl)
 
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (len + 5 + len + 4 + strlen ("btorcheckmodel   boolector > /dev/null")
+      * (len + 5 + len + 4
+         + strlen ("btorcheckmodel.py   boolector > /dev/null")
          + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1
          + strlen (btor_bin_dir)));
 
   sprintf (syscall_string,
-           "%sbtorcheckmodel %s%s %s%s %sboolector > /dev/null",
+           "%sbtorcheckmodel.py %s%s %s%s %sboolector > /dev/null",
            btor_contrib_dir,
            btor_log_dir,
            btor_fname,

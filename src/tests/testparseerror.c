@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 char *g_name     = NULL;
@@ -74,7 +75,8 @@ run_smt_parse_error_test (void)
            btor_log_dir,
            log_fname);
 
-  if ((res = WEXITSTATUS (system (syscall_string))) != 1)
+  int32_t status = system (syscall_string);
+  if ((res = WEXITSTATUS (status)) != 1)
   {
     FILE *file;
 
