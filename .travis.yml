@@ -26,6 +26,14 @@ script:
       --cadical-dir deps/cadical
       --lingeling-dir deps/lingeling
       --picosat-dir deps/picosat
+      "${BTOR_CONFIG}"
   - cd cmake-build
   - make -j2
   - bin/test
+
+env:
+  - BTOR_CONFIG='-g'
+  - BTOR_CONFIG=''
+
+matrix:
+  fast_finish: true
