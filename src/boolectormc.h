@@ -15,10 +15,7 @@
 /*------------------------------------------------------------------------*/
 
 #include "boolector.h"
-
-/*------------------------------------------------------------------------*/
-
-typedef struct BtorMC BtorMC;
+#include "btormctypes.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -29,33 +26,6 @@ BtorMC *boolector_mc_new (void);
 void boolector_mc_delete (BtorMC *mc);
 
 /*------------------------------------------------------------------------*/
-
-enum BtorMCOption
-{
-  /* Print statistics for frame Boolector instance. */
-  BTOR_MC_OPT_BTOR_STATS,
-  /* Set the minimum bound for BMC */
-  BTOR_MC_OPT_MIN_K,
-  /* Set the maximum bound for BMC */
-  BTOR_MC_OPT_MAX_K,
-  /* Enable (val: 1) or disable (val: 0) stopping a the first reached bad
-   * state property (default: 1). Disabling this option will result in the
-   * model checker to run until all properties have been reached (or proven
-   * not to be reachable) or the maximum bound is reached.  */
-  BTOR_MC_OPT_STOP_FIRST,
-  /* Enable (val: 1) or disable (val: 0) trace generation.
-   * In order to be able to obtain the trace after model checking you
-   * need to enable this option before calling 'boolector_mc_bmc'. */
-  BTOR_MC_OPT_TRACE_GEN,
-  /* Enable (val: 1) or disable (val: 0) to print states in every step if
-   * BTOR_MC_OPT_TRACE_GEN is enabled. */
-  BTOR_MC_OPT_TRACE_GEN_FULL,
-  /* Set the level of verbosity. */
-  BTOR_MC_OPT_VERBOSITY,
-  /* This MUST be the last entry! */
-  BTOR_MC_OPT_NUM_OPTS,
-};
-typedef enum BtorMCOption BtorMCOption;
 
 /* Set model checker option. */
 void boolector_mc_set_opt (BtorMC *mc, BtorMCOption opt, uint32_t val);
@@ -139,21 +109,12 @@ void boolector_mc_free_assignment (BtorMC *mc, char *assignment);
  */
 int32_t boolector_mc_reached_bad_at_bound (BtorMC *mc, int32_t badidx);
 
-/* Alternatively the user can provide a call back function which is called
- * the first time a bad state property is reached.  The same comment as in
- * the previous function applies, e.g. the user might want to call
- * 'boolector_mc_set_opt (mc, BTOR_MC_OPT_STOP_FIRST, 0)' before
- * calling the model checker.
- */
-typedef void (*BtorMCReachedAtBound) (void *, int32_t badidx, int32_t k);
-
 void boolector_mc_set_reached_at_bound_call_back (BtorMC *mc,
                                                   void *state,
                                                   BtorMCReachedAtBound fun);
 
 /*------------------------------------------------------------------------*/
 
-typedef void (*BtorMCStartingBound) (void *, int32_t k);
 
 void boolector_mc_set_starting_bound_call_back (BtorMC *mc,
                                                 void *state,

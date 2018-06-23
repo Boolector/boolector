@@ -9,9 +9,10 @@
 
 /*------------------------------------------------------------------------*/
 
-#ifndef btormc_h_INCLUDED
-#define btormc_h_INCLUDED
+#ifndef BTORMC_H_INCLUDED
+#define BTORMC_H_INCLUDED
 
+#include "btormctypes.h"
 #include "utils/boolectornodemap.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
@@ -74,11 +75,6 @@ BTOR_DECLARE_STACK (BtorMCFrame, BtorMCFrame);
 
 /*------------------------------------------------------------------------*/
 
-typedef void (*BtorMCReachedAtBound) (void *, int32_t badidx, int32_t k);
-typedef void (*BtorMCStartingBound) (void *, int32_t k);
-
-/*------------------------------------------------------------------------*/
-
 struct BtorMC
 {
   BtorMemMgr *mm;
@@ -107,11 +103,6 @@ struct BtorMC
     } starting_bound;
   } call_backs;
 };
-typedef struct BtorMC BtorMC;
-
-/*------------------------------------------------------------------------*/
-
-typedef enum BtorMCOption BtorMCOption;
 
 /*------------------------------------------------------------------------*/
 
