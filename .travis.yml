@@ -15,18 +15,13 @@ os:
   - osx
 
 before_script:
-  - ./contrib/setup-btor2tools.sh deps
-  - ./contrib/setup-cadical.sh deps
-  - ./contrib/setup-lingeling.sh deps
-  - ./contrib/setup-picosat.sh deps
+  - ./contrib/setup-btor2tools.sh
+  - ./contrib/setup-cadical.sh
+  - ./contrib/setup-lingeling.sh
+  - ./contrib/setup-picosat.sh
 
 script:
-  - ./configure-cmake.sh
-      --btor2tools-dir deps/btor2tools
-      --cadical-dir deps/cadical
-      --lingeling-dir deps/lingeling
-      --picosat-dir deps/picosat
-      "${BTOR_CONFIG}"
+  - ./configure-cmake.sh "${BTOR_CONFIG}"
   - cd cmake-build
   - make -j2
   - bin/test
@@ -34,6 +29,11 @@ script:
 env:
   - BTOR_CONFIG='-g'
   - BTOR_CONFIG=''
+  - BTOR_CONFIG='--python'
 
 matrix:
   fast_finish: true
+
+#branches:
+#  only:
+#    - master

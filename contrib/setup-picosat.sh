@@ -1,12 +1,9 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-  echo "No setup directory specified"
-  echo "$(basename $0) <setup-dir>"
-  exit 1
-fi
-
 SETUP_DIR=$1
+if [ -z "$SETUP_DIR" ]; then
+  SETUP_DIR="./deps"
+fi
 
 mkdir -p ${SETUP_DIR}
 
@@ -19,5 +16,5 @@ wget http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
 mv picosat-965/* .
 rmdir picosat-965
-./configure.sh #--shared
+./configure.sh --shared
 make -j2

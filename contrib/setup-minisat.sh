@@ -1,12 +1,9 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-  echo "No setup directory specified"
-  echo "$(basename $0) <setup-dir>"
-  exit 1
-fi
-
 SETUP_DIR=$1
+if [ -z "$SETUP_DIR" ]; then
+  SETUP_DIR="./deps"
+fi
 
 mkdir -p ${SETUP_DIR}
 
