@@ -18,7 +18,6 @@ before_script:
   - ./contrib/setup-btor2tools.sh
   - ./contrib/setup-cadical.sh
   - ./contrib/setup-lingeling.sh
-  - ./contrib/setup-picosat.sh
 
 script:
   - ./configure-cmake.sh "${BTOR_CONFIG}"
