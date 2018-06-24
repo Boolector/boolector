@@ -138,9 +138,9 @@ function(add_cython_target _name)
 
   set(_embed_main FALSE)
 
-  if("C" IN_LIST languages)
+  if(";${languages};" MATCHES ";C;")
     set(_output_syntax "C")
-  elseif("CXX" IN_LIST languages)
+  elseif(";${languages};" MATCHES ";CXX;")
     set(_output_syntax "CXX")
   else()
     message(FATAL_ERROR "Either C or CXX must be enabled to use Cython")

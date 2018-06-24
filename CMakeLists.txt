@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 2.8)
 
 #-----------------------------------------------------------------------------#
 
@@ -214,7 +214,7 @@ include_directories(${BTOR2_INCLUDE_DIR})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-set(LIBRARIES ${LIBRARIES} Threads::Threads)
+set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 if(USE_LINGELING)
   find_package(LINGELING QUIET)
