@@ -15,9 +15,6 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
-#set(CMAKE_C_STANDARD 99)
-#set(CMAKE_CXX_STANDARD 11)
-
 macro(add_c_flag flag)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
   message(STATUS "Configuring with C flag '${flag}'")
@@ -108,6 +105,9 @@ option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 
 #-----------------------------------------------------------------------------#
 
+# Note: Do not set these flags the cmake way as we need them for generating
+#       btorconfig.h and they are else not yet added to CMAKE_C(XX)_FLAGS at
+#       file generation time (configure_file).
 add_required_c_flag("-std=gnu99")
 add_required_cxx_flag("-std=gnu++11")
 
@@ -116,9 +116,9 @@ add_check_c_cxx_flag("-Wall")
 add_check_c_cxx_flag("-Wextra")
 add_check_c_cxx_flag("-Wredundant-decls")
 
-if(FLAGS)
-  add_required_c_cxx_flag("${FLAGS}")
-endif()
+foreach(flag ${FLAGS})
+  add_required_c_cxx_flag("${flag}")
+endforeach()
 
 #-----------------------------------------------------------------------------#
 

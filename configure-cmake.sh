@@ -28,7 +28,7 @@ gprof=no
 python=no
 timestats=no
 
-flags=none
+flags=""
 
 #--------------------------------------------------------------------------#
 
@@ -96,13 +96,15 @@ msg () {
 
 #--------------------------------------------------------------------------#
 
+[ ! -e src/boolector.h ] && die "$0 not called from Boolector base directory"
+
 while [ $# -gt 0 ]
 do
   case $1 in
     -h|--help) usage;;
 
     -g) debug=yes;;
-    -f*|-m*) if [ $flags = none ]; then flags=$1; else flags="$flags $1"; fi;;
+    -f*|-m*) if [ -z "$flags" ]; then flags=$1; else flags="$flags;$1"; fi;;
 
     --shared) shared=yes;;
 
@@ -199,7 +201,7 @@ cmake_opts=""
 [ $python = yes ] && cmake_opts="$cmake_opts -DPYTHON=ON"
 [ $timestats = yes ] && cmake_opts="$cmake_opts -DTIME_STATS=ON"
 
-[ $flags = none ] || cmake_opts="$cmake_opts -DFLAGS=$flags"
+[ -n "$flags" ] && cmake_opts="$cmake_opts -DFLAGS=$flags"
 
 [ $cadical_dir = unknown ] || cmake_opts="$cmake_opts -DCADICAL_ROOT_DIR=$cadical_dir"
 [ $lingeling_dir = unknown ] || cmake_opts="$cmake_opts -DLINGELING_ROOT_DIR=$lingeling_dir"
