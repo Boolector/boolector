@@ -414,6 +414,6 @@ cdef extern from "boolector.h":
 
     void boolector_dump_aiger_binary (Btor * btor, FILE * file, bool merge_roots)
 
-    const char * boolector_copyright (Btor * btor);
+    const char * boolector_copyright (Btor * btor)
 
-    const char * boolector_version (Btor * btor);
+    const char * boolector_version (Btor * btor)
