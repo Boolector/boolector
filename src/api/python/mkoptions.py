@@ -1,11 +1,18 @@
 #
 # Generate pyboolector_options.pxd from btortypes.h
 #
+# Usage: mkoptions.py path/to/btortypes.h path/to/outputfile
+#
 import sys
 
-if len(sys.argv) != 3 or not sys.argv[1].endswith('btortypes.h'):
-    print('btortypes.h not specified', file=sys.stderr)
+def die(msg):
+    sys.stderr.write('{}\n'.format(msg))
     sys.exit(1)
+
+if len(sys.argv) != 3:
+    die('invalid number of arguments')
+if not sys.argv[1].endswith('btortypes.h'):
+    die('btortypes.h not specified')
 
 with open(sys.argv[1], 'r') as btortypes:
     with open(sys.argv[2], 'w') as outfile:
@@ -13,5 +20,5 @@ with open(sys.argv[1], 'r') as btortypes:
         for line in btortypes:
             line = line.strip()
             if line.startswith('BTOR_OPT_') and line.endswith(','):
-                print('{}={}'.format(line.strip(','), i),file=outfile)
+                outfile.write('{}={}\n'.format(line.strip(','), i))
                 i += 1
