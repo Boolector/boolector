@@ -14,6 +14,11 @@ os:
   - linux
   - osx
 
+addons:
+  apt:
+    packages:
+      - cython
+
 before_script:
   - ./contrib/setup-btor2tools.sh
   - ./contrib/setup-cadical.sh
