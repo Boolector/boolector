@@ -173,9 +173,6 @@ done
 
 #--------------------------------------------------------------------------#
 
-mkdir -p $BUILDDIR
-cd $BUILDDIR
-
 cmake_opts=""
 
 [ $asan = yes ] && cmake_opts="$cmake_opts -DASAN=ON"
@@ -209,6 +206,8 @@ cmake_opts=""
 [ $minisat_dir = unknown ] || cmake_opts="$cmake_opts -DMINISAT_ROOT_DIR=$minisat_dir"
 [ $picosat_dir = unknown ] || cmake_opts="$cmake_opts -DPICOSAT_ROOT_DIR=$picosat_dir"
 
+mkdir -p $BUILDDIR
 cd $BUILDDIR
+
 [ -e CMakeCache.txt ] && rm CMakeCache.txt
 cmake .. $cmake_opts
