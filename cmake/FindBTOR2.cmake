@@ -5,6 +5,8 @@
 
 if(BTOR2_ROOT_DIR)
   message(STATUS "Btor2Tools root directory: ${BTOR2_ROOT_DIR}")
+elseif(EXISTS ${PROJECT_SOURCE_DIR}/deps/btor2tools)
+  set(BTOR2_ROOT_DIR ${PROJECT_SOURCE_DIR}/deps/btor2tools)
 else()
   set(BTOR2_ROOT_DIR ${PROJECT_SOURCE_DIR}/../btor2tools)
 endif()
