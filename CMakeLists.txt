@@ -8,10 +8,12 @@ string(TIMESTAMP TIME)
 
 #-----------------------------------------------------------------------------#
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+#-----------------------------------------------------------------------------#
+
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
-
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 #set(CMAKE_C_STANDARD 99)
 #set(CMAKE_CXX_STANDARD 11)
@@ -310,3 +312,12 @@ add_subdirectory(src/tests)
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()
+
+#-----------------------------------------------------------------------------#
+
+set(ARCHIVE_NAME "boolector-${VERSION}")
+add_custom_target(dist
+    COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
+        | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
