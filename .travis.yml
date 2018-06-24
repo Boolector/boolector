@@ -19,6 +19,9 @@ addons:
     packages:
       - cython
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip2 install cython; fi
+
 before_script:
   - ./contrib/setup-btor2tools.sh
   - ./contrib/setup-cadical.sh
