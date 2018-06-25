@@ -26,9 +26,11 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
+#ifdef BTOR_HAVE_PTHREADS
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#endif
 
 struct BtorQuantStats
 {
@@ -2479,6 +2481,7 @@ DONE:
   return res;
 }
 
+#ifdef BTOR_HAVE_PTHREADS
 bool thread_found_result            = false;
 pthread_mutex_t thread_result_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -2559,6 +2562,7 @@ run_parallel (BtorGroundSolvers *gslv, BtorGroundSolvers *dgslv)
   }
   return res;
 }
+#endif
 
 static BtorNode *
 simplify (Btor *btor, BtorNode *g)
@@ -2594,14 +2598,12 @@ sat_quant_solver (BtorQuantSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  bool opt_dual_solver, skip_exists = true;
+  bool skip_exists = true;
   BtorSolverResult res;
   BtorNode *g;
 
   BTOR_ABORT (btor_opt_get (slv->btor, BTOR_OPT_INCREMENTAL),
               "incremental mode not supported for BV");
-
-  opt_dual_solver = btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER) == 1;
 
   /* make sure that all quantifiers occur in the correct phase */
   g = btor_normalize_quantifiers (slv->btor);
@@ -2609,6 +2611,10 @@ sat_quant_solver (BtorQuantSolver *slv)
 
   slv->gslv = setup_solvers (slv, g, false, "forall", "exists");
   btor_node_release (slv->btor, g);
+
+#ifdef BTOR_HAVE_PTHREADS
+  bool opt_dual_solver;
+  opt_dual_solver = btor_opt_get (slv->btor, BTOR_OPT_QUANT_DUAL_SOLVER) == 1;
 
   /* disable dual solver if UFs are present in the formula */
   if (slv->gslv->exists_ufs->table->count > 0) opt_dual_solver = false;
@@ -2620,6 +2626,7 @@ sat_quant_solver (BtorQuantSolver *slv)
     res = run_parallel (slv->gslv, slv->dgslv);
   }
   else
+#endif
   {
     while (true)
     {

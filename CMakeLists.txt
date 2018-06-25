@@ -213,8 +213,11 @@ set(LIBRARIES ${LIBRARIES} ${BTOR2_LIBRARIES})
 include_directories(${BTOR2_INCLUDE_DIR})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+find_package(Threads)
+if(Threads_FOUND)
+  set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
+endif()
 
 if(USE_LINGELING)
   find_package(LINGELING QUIET)
