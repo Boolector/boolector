@@ -2982,7 +2982,8 @@ btormbt_state_main (BtorMBT *mbt)
   Btor *clone;
   BoolectorNode *node, *cnode;
   const char *symbol, *csymbol;
-  int32_t i, j, id;
+  size_t i;
+  int32_t j, id;
   BtorMBTExpStack *exp_stack;
   BtorMBTExpStack *exp_stacks[5] = {
       mbt->bo, mbt->bv, mbt->arr, mbt->fun, mbt->uf};
@@ -3512,7 +3513,8 @@ btormbt_state_dump (BtorMBT *mbt)
 static void *
 btormbt_state_sat (BtorMBT *mbt)
 {
-  int32_t i, res;
+  size_t i;
+  int32_t res;
   bool isfailed;
   BoolectorNode *ass;
 
@@ -3575,7 +3577,8 @@ btormbt_state_sat (BtorMBT *mbt)
 static void *
 btormbt_state_query_model (BtorMBT *mbt)
 {
-  int32_t i, j, k;
+  size_t i;
+  int32_t j, k;
   uint32_t size   = 0;
   const char *ass = NULL;
   char **indices = NULL, **values = NULL, *symbol;
@@ -3876,7 +3879,8 @@ int32_t
 main (int32_t argc, char **argv)
 {
   int32_t exitcode;
-  int32_t i, j, mac, pid, prev, res, status;
+  int32_t i, mac, pid, prev, res, status;
+  size_t j;
   uint32_t val;
   char *name, *cmd, *tmp;
   int32_t namelen, cmdlen, tmppid, fd;

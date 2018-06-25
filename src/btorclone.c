@@ -654,7 +654,8 @@ clone_nodes_id_table (Btor *btor,
   assert (res);
   assert (exp_map);
 
-  int32_t i, tag;
+  size_t i;
+  int32_t tag;
   BtorNode **tmp, *exp, *cloned_exp;
   BtorMemMgr *mm;
   BtorNodePtrStack *id_table;
@@ -692,7 +693,8 @@ clone_nodes_id_table (Btor *btor,
                                        exp_map,
                                        exp_layer_only)
                           : 0;
-      assert (!exp || res->start[i]->id == i);
+      assert (!exp || res->start[i]->id > 0);
+      assert (!exp || (size_t) res->start[i]->id == i);
     }
   }
   assert (BTOR_COUNT_STACK (*res) == BTOR_COUNT_STACK (*id_table));

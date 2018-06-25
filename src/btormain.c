@@ -531,7 +531,7 @@ print_opt (BtorMainApp *app,
 
   char paramstr[LEN_PARAMSTR];
   char *descstr, descstrline[LEN_HELPSTR], *word;
-  int32_t i, j, len, len_paramstr;
+  size_t i, j, len, len_paramstr;
   BtorCharStack optstr;
   BtorCharPtrStack words;
   BtorMemMgr *mm;
@@ -850,7 +850,8 @@ set_alarm (void)
 int32_t
 boolector_main (int32_t argc, char **argv)
 {
-  int32_t i, len, format;
+  size_t i, len;
+  int32_t format;
   int32_t res;
   int32_t parse_res, parse_status;
   int32_t sat_res;

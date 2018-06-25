@@ -74,7 +74,8 @@ setup_aig_and_add_to_id_table (BtorAIGMgr *amgr, BtorAIG *aig)
   aig->refs = 1;
   aig->id   = id;
   BTOR_PUSH_STACK (amgr->id2aig, aig);
-  assert (BTOR_COUNT_STACK (amgr->id2aig) == aig->id + 1);
+  assert (aig->id >= 0);
+  assert (BTOR_COUNT_STACK (amgr->id2aig) == (size_t) aig->id + 1);
   assert (BTOR_PEEK_STACK (amgr->id2aig, aig->id) == aig);
 }
 
@@ -105,7 +106,7 @@ release_cnf_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (aig->cnf_id > 0);
-  assert (aig->cnf_id < BTOR_SIZE_STACK (amgr->cnfid2aig));
+  assert ((size_t) aig->cnf_id < BTOR_SIZE_STACK (amgr->cnfid2aig));
   assert (amgr->cnfid2aig.start[aig->cnf_id] == aig->id);
   amgr->cnfid2aig.start[aig->cnf_id] = 0;
   btor_sat_mgr_release_cnf_id (amgr->smgr, aig->cnf_id);
@@ -416,7 +417,8 @@ simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
   if (val) return (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
   repr = btor_sat_repr (amgr->smgr, lit);
   if ((sign = (repr < 0))) repr = -repr;
-  assert (repr < BTOR_SIZE_STACK (amgr->cnfid2aig));
+  assert (repr >= 0);
+  assert ((size_t) repr < BTOR_SIZE_STACK (amgr->cnfid2aig));
   res = btor_aig_get_by_id (amgr, amgr->cnfid2aig.start[repr]);
   if (!res) return aig;
   if (sign) res = BTOR_INVERT_AIG (res);

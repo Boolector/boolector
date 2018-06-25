@@ -551,13 +551,13 @@ btor_mc_next (BtorMC *mc, BoolectorNode *node, BoolectorNode *next)
 
 /*------------------------------------------------------------------------*/
 
-int32_t
+uint32_t
 btor_mc_bad (BtorMC *mc, BoolectorNode *bad)
 {
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
 
-  int32_t res;
+  uint32_t res;
   Btor *btor;
 
   btor = mc->btor;
@@ -575,13 +575,13 @@ btor_mc_bad (BtorMC *mc, BoolectorNode *bad)
   return res;
 }
 
-int32_t
+uint32_t
 btor_mc_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
   assert (mc);
   assert (mc->state == BTOR_NO_MC_STATE);
 
-  int32_t res;
+  uint32_t res;
   Btor *btor;
 
   btor = mc->btor;
@@ -732,7 +732,7 @@ initialize_inputs_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
   char *sym;
 
 #ifndef NDEBUG
-  int32_t i = 0;
+  size_t i = 0;
   BtorMCInput *input;
 #endif
 
@@ -758,7 +758,8 @@ initialize_inputs_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
     assert (btor_node_is_regular ((BtorNode *) src));
 #ifndef NDEBUG
     assert (input->node == src);
-    assert (input->id == i);
+    assert (input->id >= 0);
+    assert ((size_t) input->id == i);
 #endif
     sym = timed_symbol (mc, '@', src, f->time);
     dst = new_var_or_array (mc, src, sym);
@@ -778,7 +779,7 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
   BtorMCstate *state;
   BtorMCFrame *p;
   char *sym;
-  int32_t i;
+  size_t i;
 
   assert (mc);
   assert (f);
@@ -801,7 +802,8 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
   {
     state = it.bucket->data.as_ptr;
     assert (state);
-    assert (state->id == i);
+    assert (state->id >= 0);
+    assert ((size_t) state->id == i);
     src = (BoolectorNode *) btor_iter_hashptr_next (&it);
     assert (src);
     assert (btor_node_is_regular ((BtorNode *) src));
@@ -853,7 +855,8 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
   BoolectorNode *src, *dst, *node;
   BtorMCstate *state;
   BtorPtrHashTableIterator it;
-  int32_t nextstates, i;
+  int32_t nextstates;
+  size_t i;
   (void) node;
 
   assert (mc);
@@ -1080,7 +1083,9 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
 static void
 print_witness (BtorMC *mc, int32_t time)
 {
-  int32_t i;
+  assert (time >= 0);
+
+  size_t i;
   BtorMCstate *state;
   BoolectorNode *src;
   BtorPtrHashTableIterator it;
@@ -1091,15 +1096,15 @@ print_witness (BtorMC *mc, int32_t time)
   printf ("sat\n");
   for (i = 0; i < BTOR_COUNT_STACK (mc->reached); i++)
   {
-    if (BTOR_PEEK_STACK (mc->reached, i) == time) printf ("b%d ", i);
+    if (BTOR_PEEK_STACK (mc->reached, i) == time) printf ("b%zu ", i);
   }
   printf ("\n");
 
-  for (i = 0; i <= time; i++)
+  for (i = 0; i <= (size_t) time; i++)
   {
     if (i == 0 || full_trace)
     {
-      printf ("#%d\n", i);
+      printf ("#%zu\n", i);
       btor_iter_hashptr_init (&it, mc->states);
       while (btor_iter_hashptr_has_next (&it))
       {
@@ -1111,7 +1116,7 @@ print_witness (BtorMC *mc, int32_t time)
       }
     }
 
-    printf ("@%d\n", i);
+    printf ("@%zu\n", i);
     btor_iter_hashptr_init (&it, mc->inputs);
     while (btor_iter_hashptr_has_next (&it))
     {
@@ -1128,7 +1133,8 @@ check_last_forward_frame (BtorMC *mc)
 {
   assert (mc);
 
-  int32_t k, i, res, satisfied;
+  size_t i;
+  int32_t k, res, satisfied;
   BtorMCFrame *f;
   BoolectorNode *bad;
   Btor *btor;
@@ -1156,7 +1162,7 @@ check_last_forward_frame (BtorMC *mc)
       assert (reached >= 0);
       BTOR_MSG (boolector_get_btor_msg (btor),
                 1,
-                "skipping checking bad state property %d "
+                "skipping checking bad state property %zu "
                 "at bound %d reached before at %d",
                 i,
                 k,
@@ -1165,7 +1171,7 @@ check_last_forward_frame (BtorMC *mc)
     }
     BTOR_MSG (boolector_get_btor_msg (btor),
               1,
-              "checking forward frame bad state property %d at bound k = %d",
+              "checking forward frame bad state property %zu at bound k = %d",
               i,
               k);
     boolector_assume (mc->forward, bad);
@@ -1175,7 +1181,7 @@ check_last_forward_frame (BtorMC *mc)
       mc->state = BTOR_SAT_MC_STATE;
       BTOR_MSG (boolector_get_btor_msg (btor),
                 1,
-                "bad state property %d at bound k = %d SATISFIABLE",
+                "bad state property %zu at bound k = %d SATISFIABLE",
                 i,
                 k);
       satisfied++;
@@ -1197,7 +1203,7 @@ check_last_forward_frame (BtorMC *mc)
       mc->state = BTOR_UNSAT_MC_STATE;
       BTOR_MSG (boolector_get_btor_msg (btor),
                 1,
-                "bad state property %d at bound k = %d UNSATISFIABLE",
+                "bad state property %zu at bound k = %d UNSATISFIABLE",
                 i,
                 k);
     }
@@ -1323,7 +1329,7 @@ mc_model2const_mapper (Btor *btor, void *m2cmapper, BoolectorNode *node)
   assert (mc->btor == boolector_get_btor (node));
   time = mapper->time;
 
-  assert (0 <= time && time < BTOR_COUNT_STACK (mc->frames));
+  assert (0 <= time && (size_t) time < BTOR_COUNT_STACK (mc->frames));
   frame = mc->frames.start + time;
 
   bucket = btor_hashptr_table_get (mc->inputs, node);
@@ -1362,7 +1368,7 @@ mc_model2const (BtorMC *mc, BoolectorNode *node, int32_t time)
   BoolectorNodeMap *map;
   BtorMCFrame *f;
   assert (boolector_get_btor (node) == mc->btor);
-  assert (0 <= time && time < BTOR_COUNT_STACK (mc->frames));
+  assert (0 <= time && (size_t) time < BTOR_COUNT_STACK (mc->frames));
   mapper.mc   = mc;
   mapper.time = time;
   f           = mc->frames.start + time;
@@ -1381,7 +1387,7 @@ btor_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
   assert (BTOR_IMPORT_BOOLECTOR_NODE (node)->ext_refs);
   assert (boolector_get_btor (node) == mc->btor);
   assert (time >= 0);
-  assert (time < BTOR_COUNT_STACK (mc->frames));
+  assert ((size_t) time < BTOR_COUNT_STACK (mc->frames));
 
   BoolectorNode *node_at_time, *const_node;
   const char *bits_owned_by_forward, *bits;
@@ -1451,7 +1457,7 @@ btor_mc_reached_bad_at_bound (BtorMC *mc, int32_t badidx)
   assert (mc->state != BTOR_NO_MC_STATE);
   assert (!btor_mc_get_opt (mc, BTOR_MC_OPT_STOP_FIRST));
   assert (badidx >= 0);
-  assert (badidx < BTOR_COUNT_STACK (mc->bad));
+  assert ((size_t) badidx < BTOR_COUNT_STACK (mc->bad));
   return BTOR_PEEK_STACK (mc->reached, badidx);
 }
 

@@ -17,6 +17,8 @@
 #undef NDEBUG
 #endif
 
+BTOR_DECLARE_QUEUE (BtorUInt, uint32_t);
+
 #include <assert.h>
 
 static BtorMemMgr *g_mm;
@@ -30,7 +32,7 @@ init_queue_tests (void)
 static void
 test_init_release_queue (void)
 {
-  BtorIntQueue queue;
+  BtorUIntQueue queue;
   BTOR_INIT_QUEUE (g_mm, queue);
   BTOR_RELEASE_QUEUE (queue);
 }
@@ -38,7 +40,7 @@ test_init_release_queue (void)
 static void
 test_functionality_queue (void)
 {
-  BtorIntQueue queue;
+  BtorUIntQueue queue;
 
   BTOR_INIT_QUEUE (g_mm, queue);
 
@@ -91,8 +93,8 @@ test_functionality_queue (void)
 static void
 test_reset_queue (void)
 {
-  BtorIntQueue queue;
-  int32_t i, j, k;
+  BtorUIntQueue queue;
+  uint32_t i, j, k;
 
   BTOR_INIT_QUEUE (g_mm, queue);
 

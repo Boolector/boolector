@@ -1855,7 +1855,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                      BtorSMT2Coo *cooptr)
 {
   const char *msg;
-  int32_t k, tag, open = 0, work_cnt;
+  size_t work_cnt;
+  int32_t k, tag, open = 0;
   uint32_t width, width2, domain, nargs, i, j;
   BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
   BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);

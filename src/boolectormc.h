@@ -69,9 +69,9 @@ BoolectorNode *boolector_mc_state (BtorMC *mc,
 void boolector_mc_next (BtorMC *, BoolectorNode *state, BoolectorNode *next);
 
 /* Define safety property 'bad'. */
-int32_t boolector_mc_bad (BtorMC *mc, BoolectorNode *bad);
+uint32_t boolector_mc_bad (BtorMC *mc, BoolectorNode *bad);
 /* Define invariant 'constraint'. */
-int32_t boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint);
+uint32_t boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 

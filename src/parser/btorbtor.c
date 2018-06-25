@@ -265,7 +265,8 @@ parse_exp (BtorBTORParser *parser,
            bool can_be_array,
            bool can_be_inverted)
 {
-  int32_t lit, idx;
+  size_t idx;
+  int32_t lit;
   uint32_t width_res;
   BoolectorNode *res;
 

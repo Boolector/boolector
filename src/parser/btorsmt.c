@@ -2883,7 +2883,7 @@ NEXT_TOKEN:
 
     node = 0;
     head = BTOR_POP_STACK (parser->heads);
-    assert (head <= BTOR_COUNT_STACK (parser->stack));
+    assert ((size_t) head <= BTOR_COUNT_STACK (parser->stack));
     first = parser->stack.start + head;
     p     = parser->stack.top;
     while (first < p) node = cons (parser, *--p, node);

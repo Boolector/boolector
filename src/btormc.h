@@ -88,7 +88,7 @@ struct BtorMC
   BoolectorNodePtrStack bad;
   BoolectorNodePtrStack constraints;
   BtorIntStack reached;
-  int32_t num_reached;
+  uint32_t num_reached;
   struct
   {
     struct
@@ -156,10 +156,10 @@ void btor_mc_next (BtorMC *, BoolectorNode *node, BoolectorNode *next);
 /*------------------------------------------------------------------------*/
 
 /* Define safety property 'bad'. */
-int32_t btor_mc_bad (BtorMC *, BoolectorNode *bad);
+uint32_t btor_mc_bad (BtorMC *, BoolectorNode *bad);
 
 /* Define invariant 'constraint'. */
-int32_t btor_mc_constraint (BtorMC *, BoolectorNode *constraint);
+uint32_t btor_mc_constraint (BtorMC *, BoolectorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 

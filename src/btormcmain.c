@@ -45,7 +45,8 @@ print_opt (FILE *out,
 
   char paramstr[LEN_PARAMSTR];
   char *descstr, descstrline[LEN_HELPSTR], *word;
-  int32_t i, j, len, len_paramstr;
+  size_t i, len, len_paramstr;
+  int32_t j;
   BtorCharStack optstr;
   BtorCharPtrStack words;
 
@@ -754,8 +755,8 @@ DONE:
 int32_t
 main (int32_t argc, char **argv)
 {
-  int32_t i;
-  int32_t len, close_infile;
+  size_t i, len;
+  int32_t close_infile;
   int32_t res;
   bool dump, checkall;
   uint32_t kmin, kmax;

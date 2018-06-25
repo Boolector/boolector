@@ -37,7 +37,7 @@
   } while (0)
 
 #define BTOR_COUNT_QUEUE(queue) \
-  (assert ((queue).mm), (queue).tail - (queue).head)
+  (assert ((queue).mm), (size_t) ((queue).tail - (queue).head))
 #define BTOR_EMPTY_QUEUE(queue) \
   (assert ((queue).mm), (queue).tail == (queue).head)
 
@@ -49,7 +49,7 @@
   } while (0)
 
 #define BTOR_SIZE_QUEUE(queue) \
-  (assert ((queue).mm), (queue).end - (queue).start)
+  (assert ((queue).mm), (size_t) ((queue).end - (queue).start))
 #define BTOR_FULL_QUEUE(queue) \
   (assert ((queue).mm), (queue).tail == (queue).end)
 

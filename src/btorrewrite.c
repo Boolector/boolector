@@ -5401,7 +5401,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
           || btor_node_is_mul (e0));
   assert (e0->kind == e1->kind);
 
-  int32_t i;
+  size_t i;
   BtorNodeKind kind;
   BtorNode *cur, *result, *temp, *common;
   BtorNodePtrStack stack;
@@ -5538,7 +5538,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
   while (b)
   {
     cur = b->key;
-    for (i = 0; i < b->data.as_int; i++) BTOR_PUSH_STACK (stack, cur);
+    assert (b->data.as_int >= 0);
+    for (i = 0; i < (size_t) b->data.as_int; i++) BTOR_PUSH_STACK (stack, cur);
     b = b->next;
   }
 
@@ -5596,7 +5597,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
   {
     b   = it.bucket;
     cur = btor_iter_hashptr_next (&it);
-    for (i = 0; i < b->data.as_int; i++)
+    assert (b->data.as_int >= 0);
+    for (i = 0; i < (size_t) b->data.as_int; i++)
     {
       if (result)
       {
@@ -5626,7 +5628,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
   {
     b   = it.bucket;
     cur = btor_iter_hashptr_next (&it);
-    for (i = 0; i < b->data.as_int; i++)
+    assert (b->data.as_int >= 0);
+    for (i = 0; i < (size_t) b->data.as_int; i++)
     {
       if (result)
       {

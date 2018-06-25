@@ -37,7 +37,7 @@
   } while (0)
 
 #define BTOR_COUNT_STACK(stack) \
-  (assert ((stack).mm), (stack).top - (stack).start)
+  (assert ((stack).mm), (size_t) ((stack).top - (stack).start))
 
 #define BTOR_EMPTY_STACK(stack) \
   (assert ((stack).mm), (stack).top == (stack).start)
@@ -49,7 +49,7 @@
   } while (0)
 
 #define BTOR_SIZE_STACK(stack) \
-  (assert ((stack).mm), (stack).end - (stack).start)
+  (assert ((stack).mm), (size_t) ((stack).end - (stack).start))
 
 #define BTOR_FULL_STACK(stack) (assert ((stack).mm), (stack).top == (stack).end)
 
@@ -155,17 +155,17 @@
 #define BTOR_TOP_STACK(stack) \
   (assert ((stack).mm), assert (!BTOR_EMPTY_STACK (stack)), (stack).top[-1])
 
-#define BTOR_PEEK_STACK(stack, idx)           \
-  (assert ((stack).mm),                       \
-   assert ((idx) < BTOR_COUNT_STACK (stack)), \
+#define BTOR_PEEK_STACK(stack, idx)                    \
+  (assert ((stack).mm),                                \
+   assert ((size_t) (idx) < BTOR_COUNT_STACK (stack)), \
    (stack).start[idx])
 
-#define BTOR_POKE_STACK(stack, idx, elem)      \
-  do                                           \
-  {                                            \
-    assert ((stack).mm);                       \
-    assert ((idx) < BTOR_COUNT_STACK (stack)); \
-    (stack).start[idx] = (elem);               \
+#define BTOR_POKE_STACK(stack, idx, elem)               \
+  do                                                    \
+  {                                                     \
+    assert ((stack).mm);                                \
+    assert ((size_t) (idx) < BTOR_COUNT_STACK (stack)); \
+    (stack).start[idx] = (elem);                        \
   } while (0)
 
 BTOR_DECLARE_STACK (BtorInt, int32_t);

@@ -385,7 +385,7 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   BTOR_ABORT (id == INT_MAX, "expression id overflow");
   exp->id = id;
   BTOR_PUSH_STACK (btor->nodes_id_table, exp);
-  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == (size_t) exp->id + 1);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
   btor->stats.node_bytes_alloc += exp->bytes;
 
@@ -965,7 +965,7 @@ btor_node_match_by_id (Btor *btor, int32_t id)
 {
   assert (btor);
   assert (id > 0);
-  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  if ((size_t) id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
   BtorNode *exp = BTOR_PEEK_STACK (btor->nodes_id_table, id);
   if (!exp) return 0;
   return btor_node_copy (btor, exp);
@@ -977,7 +977,7 @@ btor_node_get_by_id (Btor *btor, int32_t id)
   assert (btor);
   bool is_inverted = id < 0;
   id               = abs (id);
-  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  if ((size_t) id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
   BtorNode *res = BTOR_PEEK_STACK (btor->nodes_id_table, id);
   return is_inverted ? btor_node_invert (res) : res;
 }

@@ -187,7 +187,7 @@ boolector_mc_next (BtorMC *mc, BoolectorNode *state, BoolectorNode *next)
 
 /*------------------------------------------------------------------------*/
 
-int32_t
+uint32_t
 boolector_mc_bad (BtorMC *mc, BoolectorNode *bad)
 {
   BTOR_ABORT_ARG_NULL (mc);
@@ -196,7 +196,7 @@ boolector_mc_bad (BtorMC *mc, BoolectorNode *bad)
   return btor_mc_bad (mc, bad);
 }
 
-int32_t
+uint32_t
 boolector_mc_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
   BTOR_ABORT_ARG_NULL (mc);
@@ -240,7 +240,7 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int32_t time)
   BTOR_ABORT_REFS_NOT_POS ((BtorNode *) node);
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
   BTOR_ABORT (0 > time, "negative 'time' argument");
-  BTOR_ABORT (time >= BTOR_COUNT_STACK (mc->frames),
+  BTOR_ABORT ((size_t) time >= BTOR_COUNT_STACK (mc->frames),
               "'time' exceeds previously returned bound");
 
   return btor_mc_assignment (mc, node, time);
@@ -265,7 +265,7 @@ boolector_mc_reached_bad_at_bound (BtorMC *mc, int32_t badidx)
   BTOR_ABORT (btor_mc_get_opt (mc, BTOR_MC_OPT_STOP_FIRST),
               "stopping at first reached property must be disabled");
   BTOR_ABORT (badidx < 0, "negative bad state property index");
-  BTOR_ABORT (badidx >= BTOR_COUNT_STACK (mc->bad),
+  BTOR_ABORT ((size_t) badidx >= BTOR_COUNT_STACK (mc->bad),
               "bad state property index too large");
   return btor_mc_reached_bad_at_bound (mc, badidx);
 }

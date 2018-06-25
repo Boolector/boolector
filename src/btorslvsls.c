@@ -427,7 +427,7 @@ select_inc_dec_not_move (Btor *btor,
                          BtorNodePtrStack *candidates,
                          int32_t gw)
 {
-  int32_t i;
+  size_t i;
   uint32_t sls_strat;
   bool done;
   double sc;
@@ -495,7 +495,7 @@ DONE:
 static inline bool
 select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
-  int32_t i, n_endpos;
+  size_t i, n_endpos;
   uint32_t pos, cpos, sls_strat;
   bool done = false;
   double sc;
@@ -560,7 +560,7 @@ DONE:
 static inline bool
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
-  int32_t i, n_endpos;
+  size_t i, n_endpos;
   uint32_t up, cup, clo, sls_strat;
   bool done = false;
   double sc;
@@ -638,7 +638,8 @@ DONE:
 static inline bool
 select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
-  int32_t i, ctmp, n_endpos;
+  size_t i, n_endpos;
+  int32_t ctmp;
   uint32_t lo, clo, up, cup, seg, sls_strat;
   bool done = false;
   double sc;
@@ -725,7 +726,7 @@ static inline bool
 select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   double sc, rand_max_score = -1.0;
-  int32_t i, n_endpos;
+  size_t i, n_endpos;
   uint32_t up, cup, clo, sls_strat;
   bool done;
   BtorSLSMove *m;
@@ -867,7 +868,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  int32_t i, r;
+  size_t i, r;
   bool randomizeall;
   bool done;
   double rd, sum;

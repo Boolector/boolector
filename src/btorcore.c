@@ -1998,7 +1998,7 @@ btor_fixate_assumptions (Btor *btor)
   BtorNode *exp;
   BtorNodePtrStack stack;
   BtorPtrHashTableIterator it;
-  int32_t i;
+  size_t i;
 
   BTOR_INIT_STACK (btor->mm, stack);
   btor_iter_hashptr_init (&it, btor->assumptions);

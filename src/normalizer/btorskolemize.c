@@ -21,9 +21,8 @@ btor_skolemize_node (Btor *btor,
                      BtorPtrHashTable *skolem_consts)
 {
   int32_t i;
-  uint32_t j;
   char *symbol, *buf;
-  size_t len;
+  size_t j, len;
   BtorNode *cur, *real_cur, *result, *quant, *param, *uf, **e;
   BtorNodePtrStack visit, quants, args, params;
   BtorMemMgr *mm;
@@ -85,9 +84,9 @@ btor_skolemize_node (Btor *btor,
             /* substitute param with skolem function */
             if (BTOR_COUNT_STACK (quants) > 0)
             {
-              for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
+              for (j = 0; j < BTOR_COUNT_STACK (quants); j++)
               {
-                quant = BTOR_PEEK_STACK (quants, i);
+                quant = BTOR_PEEK_STACK (quants, j);
                 d_p   = btor_hashint_map_get (map, quant->e[0]->id);
                 assert (d_p);
                 assert (d_p->as_ptr);
@@ -208,9 +207,8 @@ btor_skolemize (Btor *btor)
   assert (btor->embedded_constraints->count == 0);
   assert (btor->varsubst_constraints->count == 0);
 
-  int i;
   char *symbol, *buf;
-  size_t len;
+  size_t i, len;
   BtorNode *cur, *quant, *param, *uf, *app, *subst;
   BtorPtrHashTableIterator it;
   BtorNodePtrStack visit, quants, args;

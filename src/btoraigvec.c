@@ -682,7 +682,9 @@ btor_aigvec_clone (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
     else
     {
       aig = av->aigs[i];
-      assert (BTOR_REAL_ADDR_AIG (aig)->id < BTOR_COUNT_STACK (amgr->id2aig));
+      assert (BTOR_REAL_ADDR_AIG (aig)->id >= 0);
+      assert ((size_t) BTOR_REAL_ADDR_AIG (aig)->id
+              < BTOR_COUNT_STACK (amgr->id2aig));
       caig = BTOR_PEEK_STACK (amgr->id2aig, BTOR_REAL_ADDR_AIG (aig)->id);
       assert (caig);
       assert (!btor_aig_is_const (caig));
