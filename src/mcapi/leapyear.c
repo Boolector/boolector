@@ -2,6 +2,7 @@
 #include "boolectormc.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -298,7 +299,8 @@ main (int argc, char** argv)
           char* val_year      = boolector_mc_assignment (mc, year, i);
           char* val_days      = boolector_mc_assignment (mc, days, i);
           char* val_prev_days = boolector_mc_assignment (mc, prev_days, i);
-          printf ("time=%d year=%ld days=%ld prev(days)=%ld\n",
+          printf ("time=%d year=%" PRId64 " days=%" PRId64
+                  " prev(days)=%" PRId64 "\n",
                   i,
                   bv2dec (val_year),
                   bv2dec (val_days),

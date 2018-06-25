@@ -11,6 +11,7 @@
 #include "btoribv.hh"
 #include "btortypes.h"
 
+#include <cinttypes>
 #include <climits>
 #include <cstdarg>
 #include <cstdio>
@@ -348,7 +349,8 @@ BtorIBV::addConstant (uint32_t id, const string &str, uint32_t width)
   assert (0 < id);
   assert (0 < width);  // TODO really?
   BTOR_ABORT (str.size () != width,
-              "constant '%s' width %ld does not match width argument %u",
+              "constant '%s' width %" PRId64
+              " does not match width argument %u",
               str.c_str (),
               (long) str.size (),
               width);
@@ -2209,7 +2211,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom *b,
       b->current.exp = exp;
     warn (
         "forced cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d to zero "
-        "(pushed %ld)",
+        "(pushed %" PRId64 ")",
         r.id,
         r.msb,
         r.lsb,
@@ -2234,7 +2236,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom *b,
     if (pushed >= 2)
       warn (
           "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
-          "%ld)",
+          "%" PRId64 ")",
           r.id,
           r.msb,
           r.lsb,

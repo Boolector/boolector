@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -214,14 +215,15 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
     }                                \
   } while (0)
 
-#define BTORMBT_LOG_STATUS(l, prefix)                                        \
-  BTORMBT_LOG (l,                                                            \
-               prefix " (%d): bool %ld, bv %ld, array %ld, fun %ld, uf %ld", \
-               g_btormbt->round.ops,                                         \
-               BTOR_COUNT_STACK (g_btormbt->bo->exps),                       \
-               BTOR_COUNT_STACK (g_btormbt->bv->exps),                       \
-               BTOR_COUNT_STACK (g_btormbt->arr->exps),                      \
-               BTOR_COUNT_STACK (g_btormbt->fun->exps),                      \
+#define BTORMBT_LOG_STATUS(l, prefix)                                      \
+  BTORMBT_LOG (l,                                                          \
+               prefix " (%d): bool %" PRId64 ", bv %" PRId64               \
+                      ", array %" PRId64 ", fun %" PRId64 ", uf %" PRId64, \
+               g_btormbt->round.ops,                                       \
+               BTOR_COUNT_STACK (g_btormbt->bo->exps),                     \
+               BTOR_COUNT_STACK (g_btormbt->bv->exps),                     \
+               BTOR_COUNT_STACK (g_btormbt->arr->exps),                    \
+               BTOR_COUNT_STACK (g_btormbt->fun->exps),                    \
                BTOR_COUNT_STACK (g_btormbt->uf->exps));
 
 /*------------------------------------------------------------------------*/

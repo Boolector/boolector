@@ -19,6 +19,7 @@
 #include "utils/btorutil.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 
 #define LEN_OPTSTR 38
@@ -258,7 +259,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
 
     if (l->id > INT_MAX)
     {
-      res = error ("given id '%ld' exceeds INT_MAX", l->id);
+      res = error ("given id '%" PRId64 "' exceeds INT_MAX", l->id);
       goto DONE;
     }
 
@@ -267,7 +268,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
     {
       if (l->sort.id > INT_MAX)
       {
-        res = error ("given id '%ld' exceeds INT_MAX", l->sort.id);
+        res = error ("given id '%" PRId64 "' exceeds INT_MAX", l->sort.id);
         goto DONE;
       }
       assert (btor_hashint_map_contains (sortmap, l->sort.id));
@@ -574,7 +575,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
           assert (j);
           if (j > INT_MAX)
           {
-            res = error ("given id '%ld' exceeds INT_MAX", j);
+            res = error ("given id '%" PRId64 "' exceeds INT_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
@@ -584,7 +585,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
           assert (j);
           if (j > INT_MAX)
           {
-            res = error ("given id '%ld' exceeds INT_MAX", j);
+            res = error ("given id '%" PRId64 "' exceeds INT_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));

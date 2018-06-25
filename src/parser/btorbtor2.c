@@ -15,6 +15,7 @@
 #include "utils/btorutil.h"
 
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 
 /*------------------------------------------------------------------------*/
@@ -156,7 +157,8 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
     if (line->id > INT_MAX)
     {
-      perr_btor2 (parser, line->id, "given id '%ld' exceeds INT_MAX", line->id);
+      perr_btor2 (
+          parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", line->id);
       goto DONE;
     }
 
@@ -166,8 +168,10 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
     {
       if (line->sort.id > INT_MAX)
       {
-        perr_btor2 (
-            parser, line->id, "given id '%ld' exceeds INT_MAX", line->sort.id);
+        perr_btor2 (parser,
+                    line->id,
+                    "given id '%" PRId64 "' exceeds INT_MAX",
+                    line->sort.id);
         goto DONE;
       }
       assert (btor_hashint_map_contains (sortmap, line->sort.id));
@@ -449,7 +453,8 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
           assert (j);
           if (j > INT_MAX)
           {
-            perr_btor2 (parser, line->id, "given id '%ld' exceeds INT_MAX", j);
+            perr_btor2 (
+                parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
@@ -460,7 +465,8 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
           assert (j);
           if (j > INT_MAX)
           {
-            perr_btor2 (parser, line->id, "given id '%ld' exceeds INT_MAX", j);
+            perr_btor2 (
+                parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
