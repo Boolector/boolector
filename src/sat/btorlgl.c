@@ -111,7 +111,7 @@ sat (BtorSATMgr *smgr, int32_t limit)
 
   if (!smgr->fork || (0 <= limit && limit < blgl->blimit))
   {
-    if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
+    if (limit < INT32_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
   }
   else

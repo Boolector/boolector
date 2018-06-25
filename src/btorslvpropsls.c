@@ -2667,7 +2667,7 @@ inv_sll_bv (Btor *btor,
   else
   {
     /* using uint64_t here is no problem
-     * (max bit width currently handled by Boolector is INT_MAX) */
+     * (max bit width currently handled by Boolector is INT32_MAX) */
     shift = btor_bv_to_uint64 (bve);
 
     /* CONFLICT: the LSBs shifted must be zero -------------------------- */
@@ -2809,7 +2809,7 @@ inv_srl_bv (Btor *btor,
    *    set irrelevant LSBs (the ones that get shifted out) randomly */
   else
   {
-    /* cast is no problem (max bit width handled by Boolector is INT_MAX) */
+    /* cast is no problem (max bit width handled by Boolector is INT32_MAX) */
     shift = (int32_t) btor_bv_to_uint64 (bve);
 
     /* CONFLICT: the MSBs shifted must be zero -------------------------- */

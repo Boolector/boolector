@@ -608,7 +608,7 @@ btor_aigvec_concat (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av2);
   assert (av1->width > 0);
   assert (av2->width > 0);
-  assert (INT_MAX - av1->width >= av2->width);
+  assert (INT32_MAX - av1->width >= av2->width);
   pos     = 0;
   amgr    = avmgr->amgr;
   len_av1 = av1->width;

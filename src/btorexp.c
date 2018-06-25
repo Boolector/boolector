@@ -647,7 +647,7 @@ BtorNode *
 btor_exp_repeat (Btor *btor, BtorNode *exp, uint32_t n)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
-  assert (((uint32_t) UINT_MAX / n) >= btor_node_get_width (btor, exp));
+  assert (((uint32_t) UINT32_MAX / n) >= btor_node_get_width (btor, exp));
 
   BtorNode *result, *tmp;
   uint32_t i;
@@ -1384,7 +1384,7 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   width   = btor_node_get_width (btor, e0);
   uext_e1 = btor_exp_uext (btor, e0, 1);
   uext_e2 = btor_exp_uext (btor, btor_node_invert (e1), 1);
-  assert (width < INT_MAX);
+  assert (width < INT32_MAX);
   sort = btor_sort_bitvec (btor, width + 1);
   one  = btor_exp_one (btor, sort);
   btor_sort_release (btor, sort);

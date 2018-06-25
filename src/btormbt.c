@@ -851,7 +851,7 @@ btormbt_new_btormbt (void)
   boolector_delete (tmpbtor);
 
   mbt->optfuzz               = true;
-  mbt->max_rounds            = UINT_MAX;
+  mbt->max_rounds            = UINT32_MAX;
   mbt->seed                  = -1;
   mbt->seeded                = false;
   mbt->terminal              = isatty (1) == 1;
@@ -1448,7 +1448,7 @@ btormbt_const (BtorMBT *mbt)
     if (width < 32)
       val = (1 << width) - 1;
     else
-      val = UINT_MAX - 1; /* UINT_MAX leads to divison by 0 in pick */
+      val = UINT32_MAX - 1; /* UINT32_MAX leads to divison by 0 in pick */
     val = btor_rng_pick_rand (&mbt->round.rng, 0, val);
   }
 

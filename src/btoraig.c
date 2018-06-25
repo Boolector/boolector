@@ -70,7 +70,7 @@ setup_aig_and_add_to_id_table (BtorAIGMgr *amgr, BtorAIG *aig)
   int32_t id;
 
   id = BTOR_COUNT_STACK (amgr->id2aig);
-  BTOR_ABORT (id == INT_MAX, "AIG id overflow");
+  BTOR_ABORT (id == INT32_MAX, "AIG id overflow");
   aig->refs = 1;
   aig->id   = id;
   BTOR_PUSH_STACK (amgr->id2aig, aig);
@@ -187,7 +187,7 @@ inc_aig_ref_counter (BtorAIG *aig)
 {
   if (!btor_aig_is_const (aig))
   {
-    BTOR_ABORT (BTOR_REAL_ADDR_AIG (aig)->refs == UINT_MAX,
+    BTOR_ABORT (BTOR_REAL_ADDR_AIG (aig)->refs == UINT32_MAX,
                 "reference counter overflow");
     BTOR_REAL_ADDR_AIG (aig)->refs++;
   }
@@ -731,7 +731,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
     *lookup = res->id;
     inc_aig_ref_counter (left);
     inc_aig_ref_counter (right);
-    assert (amgr->table.num_elements < INT_MAX);
+    assert (amgr->table.num_elements < INT32_MAX);
     amgr->table.num_elements++;
   }
   else

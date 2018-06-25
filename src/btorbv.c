@@ -523,10 +523,10 @@ get_first_one_bit_idx (const BtorBitVector *bv)
 
   uint32_t i;
 
-  for (i = bv->width - 1; i < UINT_MAX; i--)
+  for (i = bv->width - 1; i < UINT32_MAX; i--)
   {
     if (btor_bv_get_bit (bv, i)) break;
-    if (i == 0) return UINT_MAX;
+    if (i == 0) return UINT32_MAX;
   }
   return i;
 }
@@ -566,7 +566,7 @@ btor_bv_to_dec_char (BtorMemMgr *mm, const BtorBitVector *bv)
     div = btor_bv_udiv (mm, tmp, ten);
     rem = btor_bv_urem (mm, tmp, ten);
     ch  = 0;
-    for (i = get_first_one_bit_idx (rem); i < UINT_MAX; i--)
+    for (i = get_first_one_bit_idx (rem); i < UINT32_MAX; i--)
     {
       ch <<= 1;
       if (btor_bv_get_bit (rem, i)) ch += 1;
@@ -694,14 +694,14 @@ btor_bv_is_ones (const BtorBitVector *bv)
 
   uint32_t i, n;
   for (i = bv->len - 1; i >= 1; i--)
-    if (bv->bits[i] != UINT_MAX) return false;
+    if (bv->bits[i] != UINT32_MAX) return false;
   if (bv->width == BTOR_BV_TYPE_BW)
-    return bv->bits[0] == UINT_MAX;
+    return bv->bits[0] == UINT32_MAX;
   else
   {
     n = BTOR_BV_TYPE_BW - bv->width % BTOR_BV_TYPE_BW;
     assert (n > 0);
-    if (bv->bits[0] != UINT_MAX >> n) return false;
+    if (bv->bits[0] != UINT32_MAX >> n) return false;
   }
   return true;
 }
@@ -776,7 +776,7 @@ btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
 
   uint32_t i, res;
 
-  for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
+  for (i = bv->width - 1, res = 0; i < UINT32_MAX; i--)
   {
     if (btor_bv_get_bit (bv, i)) break;
     res += 1;
@@ -792,7 +792,7 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
 
   uint32_t i, res;
 
-  for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
+  for (i = bv->width - 1, res = 0; i < UINT32_MAX; i--)
   {
     if (!btor_bv_get_bit (bv, i)) break;
     res += 1;
@@ -1562,7 +1562,7 @@ btor_bv_sext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
   {
     i = (bv->width % BTOR_BV_TYPE_BW);
     res->bits[res->len - bv->len] |= (((uint64_t) -1) >> i) << i;
-    for (i = 0; i < res->len - bv->len; i++) res->bits[i] = UINT_MAX;
+    for (i = 0; i < res->len - bv->len; i++) res->bits[i] = UINT32_MAX;
   }
 
   return res;

@@ -47,7 +47,7 @@ inc_sort_ext_ref_counter (Btor *btor, BtorSortId id)
   BtorSort *sort;
   sort = btor_sort_get_by_id (btor, id);
 
-  BTOR_ABORT (sort->ext_refs == INT_MAX, "Node reference counter overflow");
+  BTOR_ABORT (sort->ext_refs == INT32_MAX, "Node reference counter overflow");
   sort->ext_refs += 1;
   btor->external_refs += 1;
 }
@@ -2740,7 +2740,7 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT (
-      btor_node_get_width (btor, e0) > INT_MAX - btor_node_get_width (btor, e1),
+      btor_node_get_width (btor, e0) > INT32_MAX - btor_node_get_width (btor, e1),
       "bit-width of result is too large");
   res = btor_exp_concat (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -2764,7 +2764,7 @@ boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (((uint32_t) (UINT_MAX / n)) < btor_node_get_width (btor, exp),
+  BTOR_ABORT (((uint32_t) (UINT32_MAX / n)) < btor_node_get_width (btor, exp),
               "resulting bit-width of 'repeat' too large");
   res = btor_exp_repeat (btor, exp, n);
   btor_node_inc_ext_ref_counter (btor, res);

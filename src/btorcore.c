@@ -304,14 +304,14 @@ constraints_stats_changes (Btor *btor)
   uint32_t res;
 
   if (btor->stats.oldconstraints.varsubst && !btor->varsubst_constraints->count)
-    return UINT_MAX;
+    return UINT32_MAX;
 
   if (btor->stats.oldconstraints.embedded && !btor->embedded_constraints->count)
-    return UINT_MAX;
+    return UINT32_MAX;
 
   if (btor->stats.oldconstraints.unsynthesized
       && !btor->unsynthesized_constraints->count)
-    return UINT_MAX;
+    return UINT32_MAX;
 
   res = btor->stats.oldconstraints.varsubst >= btor->varsubst_constraints->count
             ? btor->stats.oldconstraints.varsubst

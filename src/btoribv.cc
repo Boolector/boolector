@@ -605,7 +605,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, uint32_t arg)
     default:
       assert (tag == BTOR_IBV_REPLICATE);
       assert (arg > 0);
-      assert (UINT_MAX / arg >= a.getWidth ());
+      assert (UINT32_MAX / arg >= a.getWidth ());
       assert (a.getWidth () * arg == o.getWidth ());
       break;
   }
@@ -733,7 +733,7 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
     BitRange d = *it;
     check_bit_range (d);
     assert (d.getWidth () == o.getWidth ());
-    assert (n < UINT_MAX / 2);
+    assert (n < UINT32_MAX / 2);
     n++;
   }
   assert (n > 0);

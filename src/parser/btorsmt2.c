@@ -1396,13 +1396,13 @@ str2int32_smt2 (BtorSMT2Parser *parser,
   assert (sizeof (int32_t) == 4);
   for (p = str; (ch = *p); p++)
   {
-    if (res > INT_MAX / 10 || ch < '0' || ch > '9')
+    if (res > INT32_MAX / 10 || ch < '0' || ch > '9')
     INVALID:
       return !perr_smt2 (parser, "invalid 32-bit integer '%s'", str);
     assert ('0' <= ch && ch <= '9');
     if (res) res *= 10;
     digit = ch - '0';
-    if (INT_MAX - digit < res) goto INVALID;
+    if (INT32_MAX - digit < res) goto INVALID;
     res += digit;
   }
   if (posonly && !res)
@@ -2389,7 +2389,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if (p->num && ((uint32_t) (INT_MAX / p->num) < width))
+        if (p->num && ((uint32_t) (INT32_MAX / p->num) < width))
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
@@ -2405,7 +2405,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if ((uint32_t) (INT_MAX - p->num) < width)
+        if ((uint32_t) (INT32_MAX - p->num) < width)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (

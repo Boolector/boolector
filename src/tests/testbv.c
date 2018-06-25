@@ -135,8 +135,8 @@ test_uint64_to_bitvec (void)
   assert (btor_bv_to_uint64 (bv) == 0);
   btor_bv_free (g_mm, bv);
 
-  bv = btor_bv_uint64_to_bv (g_mm, UINT_MAX, 32);
-  assert (btor_bv_to_uint64 (bv) == UINT_MAX);
+  bv = btor_bv_uint64_to_bv (g_mm, UINT32_MAX, 32);
+  assert (btor_bv_to_uint64 (bv) == UINT32_MAX);
   btor_bv_free (g_mm, bv);
 
   for (i = 0; i < 10; i++)
@@ -416,7 +416,7 @@ test_char_to_bitvec (void)
   btor_bv_free (g_mm, bv);
 
   bv = btor_bv_char_to_bv (g_mm, "11111111111111111111111111111111");
-  assert (btor_bv_to_uint64 (bv) == UINT_MAX);
+  assert (btor_bv_to_uint64 (bv) == UINT32_MAX);
   btor_bv_free (g_mm, bv);
 
   bv = btor_bv_char_to_bv (g_mm, "000000000000000000000000000000000");
@@ -475,7 +475,7 @@ test_bv_to_char_bitvec (void)
     }
   }
 
-  bv = btor_bv_uint64_to_bv (g_mm, UINT_MAX, 32);
+  bv = btor_bv_uint64_to_bv (g_mm, UINT32_MAX, 32);
   CHECK_CHAR_TO_BV (bv, 32);
 
   bv = btor_bv_uint64_to_bv (g_mm, 0, 32);
@@ -731,7 +731,7 @@ mul (uint64_t x, uint64_t y, uint32_t bw)
 static uint64_t
 udiv (uint64_t x, uint64_t y, uint32_t bw)
 {
-  if (y == 0) return UINT_MAX % (uint64_t) pow (2, bw);
+  if (y == 0) return UINT32_MAX % (uint64_t) pow (2, bw);
   return (x / y) % (uint64_t) pow (2, bw);
 }
 
@@ -1290,7 +1290,7 @@ test_is_ones_bitvec (void)
   for (i = 1; i < 32; i++)
   {
     bv1 = btor_bv_ones (g_mm, i);
-    bv2 = btor_bv_uint64_to_bv (g_mm, UINT_MAX, i);
+    bv2 = btor_bv_uint64_to_bv (g_mm, UINT32_MAX, i);
     BTOR_CNEWN (g_mm, s, i + 1);
     memset (s, '1', i);
     bv3 = btor_bv_char_to_bv (g_mm, s);

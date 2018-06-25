@@ -53,7 +53,7 @@ btor_util_pow_2 (int32_t x)
   assert (x >= 0);
   while (x > 0)
   {
-    assert (result <= INT_MAX / 2);
+    assert (result <= INT32_MAX / 2);
     result <<= 1;
     x--;
   }

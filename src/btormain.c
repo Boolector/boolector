@@ -135,7 +135,7 @@ btormain_init_opt (BtorMainApp *app,
   assert (app);
   assert (lng);
   assert (desc);
-  assert (max <= UINT_MAX);
+  assert (max <= UINT32_MAX);
   assert (min <= val);
   assert (val <= max);
 
@@ -203,7 +203,7 @@ btormain_init_opts (BtorMainApp *app)
                      "t",
                      0,
                      0,
-                     UINT_MAX,
+                     UINT32_MAX,
                      false,
                      BTOR_ARG_EXPECT_INT,
                      "set time limit");

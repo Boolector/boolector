@@ -3838,7 +3838,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 /* match: a / a
- * result: 1, if a != 0 and UINT_MAX otherwise
+ * result: 1, if a != 0 and UINT32_MAX otherwise
  */
 static inline bool
 applies_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)

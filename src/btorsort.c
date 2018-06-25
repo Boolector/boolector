@@ -29,7 +29,7 @@ static void
 inc_sort_ref_counter (BtorSort *sort)
 {
   assert (sort);
-  BTOR_ABORT (sort->refs == INT_MAX, "Sort reference counter overflow");
+  BTOR_ABORT (sort->refs == INT32_MAX, "Sort reference counter overflow");
   sort->refs++;
 }
 

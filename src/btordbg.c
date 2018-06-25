@@ -226,7 +226,7 @@ btor_dbg_precond_concat_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
   assert (btor_node_get_width (btor, e0)
-          <= INT_MAX - btor_node_get_width (btor, e1));
+          <= INT32_MAX - btor_node_get_width (btor, e1));
   assert (btor_node_real_addr (e0)->btor == btor);
   assert (btor_node_real_addr (e1)->btor == btor);
   return true;

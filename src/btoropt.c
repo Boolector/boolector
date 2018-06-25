@@ -885,7 +885,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             10000,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "number of checks for synthesizing terms");
   init_opt (btor,
             BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE,
@@ -1039,7 +1039,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             0,
             0,
-            UINT_MAX,
+            UINT32_MAX,
             "interpret sorts introduced with declare-sort as bit-vectors of "
             "given width");
 }

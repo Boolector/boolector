@@ -257,18 +257,18 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
     n = 0;
     s = 0;
 
-    if (l->id > INT_MAX)
+    if (l->id > INT32_MAX)
     {
-      res = error ("given id '%" PRId64 "' exceeds INT_MAX", l->id);
+      res = error ("given id '%" PRId64 "' exceeds INT32_MAX", l->id);
       goto DONE;
     }
 
     /* sort */
     if (l->tag != BTOR2_TAG_sort && l->sort.id)
     {
-      if (l->sort.id > INT_MAX)
+      if (l->sort.id > INT32_MAX)
       {
-        res = error ("given id '%" PRId64 "' exceeds INT_MAX", l->sort.id);
+        res = error ("given id '%" PRId64 "' exceeds INT32_MAX", l->sort.id);
         goto DONE;
       }
       assert (btor_hashint_map_contains (sortmap, l->sort.id));
@@ -573,9 +573,9 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
           assert (l->sort.tag == BTOR2_TAG_SORT_array);
           j = l->sort.array.index;
           assert (j);
-          if (j > INT_MAX)
+          if (j > INT32_MAX)
           {
-            res = error ("given id '%" PRId64 "' exceeds INT_MAX", j);
+            res = error ("given id '%" PRId64 "' exceeds INT32_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
@@ -583,9 +583,9 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
           assert (si);
           j = l->sort.array.element;
           assert (j);
-          if (j > INT_MAX)
+          if (j > INT32_MAX)
           {
-            res = error ("given id '%" PRId64 "' exceeds INT_MAX", j);
+            res = error ("given id '%" PRId64 "' exceeds INT32_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));

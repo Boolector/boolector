@@ -182,7 +182,7 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 
   (void) btor;
   real_exp = btor_node_real_addr (exp);
-  BTOR_ABORT (real_exp->refs == INT_MAX, "Node reference counter overflow");
+  BTOR_ABORT (real_exp->refs == INT32_MAX, "Node reference counter overflow");
   real_exp->refs++;
 }
 
@@ -193,7 +193,7 @@ btor_node_inc_ext_ref_counter (Btor *btor, BtorNode *exp)
   assert (exp);
 
   BtorNode *real_exp = btor_node_real_addr (exp);
-  BTOR_ABORT (real_exp->ext_refs == INT_MAX, "Node reference counter overflow");
+  BTOR_ABORT (real_exp->ext_refs == INT32_MAX, "Node reference counter overflow");
   real_exp->ext_refs += 1;
   btor->external_refs += 1;
 }
@@ -382,7 +382,7 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   exp->btor = btor;
   btor->stats.expressions++;
   id = BTOR_COUNT_STACK (btor->nodes_id_table);
-  BTOR_ABORT (id == INT_MAX, "expression id overflow");
+  BTOR_ABORT (id == INT32_MAX, "expression id overflow");
   exp->id = id;
   BTOR_PUSH_STACK (btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == (size_t) exp->id + 1);
@@ -2131,7 +2131,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
         btor_hashint_table_delete (params);
     }
 
-    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    assert (btor->nodes_unique_table.num_elements < INT32_MAX);
     btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
@@ -2177,7 +2177,7 @@ btor_node_create_const (Btor *btor, const BtorBitVector *bits)
       lookup = find_const_exp (btor, lookupbits);
     }
     *lookup = new_const_exp_node (btor, lookupbits);
-    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    assert (btor->nodes_unique_table.num_elements < INT32_MAX);
     btor->nodes_unique_table.num_elements += 1;
     (*lookup)->unique = 1;
   }
@@ -2289,7 +2289,7 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
       lookup = find_slice_exp (btor, exp, upper, lower);
     }
     *lookup = new_slice_exp_node (btor, exp, upper, lower);
-    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    assert (btor->nodes_unique_table.num_elements < INT32_MAX);
     btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }

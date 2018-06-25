@@ -155,10 +155,10 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
     node = 0;
     sort = 0;
 
-    if (line->id > INT_MAX)
+    if (line->id > INT32_MAX)
     {
       perr_btor2 (
-          parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", line->id);
+          parser, line->id, "given id '%" PRId64 "' exceeds INT32_MAX", line->id);
       goto DONE;
     }
 
@@ -166,11 +166,11 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
 
     if (line->tag != BTOR2_TAG_sort && line->sort.id)
     {
-      if (line->sort.id > INT_MAX)
+      if (line->sort.id > INT32_MAX)
       {
         perr_btor2 (parser,
                     line->id,
-                    "given id '%" PRId64 "' exceeds INT_MAX",
+                    "given id '%" PRId64 "' exceeds INT32_MAX",
                     line->sort.id);
         goto DONE;
       }
@@ -451,10 +451,10 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
           assert (line->sort.tag == BTOR2_TAG_SORT_array);
           j = line->sort.array.index;
           assert (j);
-          if (j > INT_MAX)
+          if (j > INT32_MAX)
           {
             perr_btor2 (
-                parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", j);
+                parser, line->id, "given id '%" PRId64 "' exceeds INT32_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));
@@ -463,10 +463,10 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
           assert (sort_index);
           j = line->sort.array.element;
           assert (j);
-          if (j > INT_MAX)
+          if (j > INT32_MAX)
           {
             perr_btor2 (
-                parser, line->id, "given id '%" PRId64 "' exceeds INT_MAX", j);
+                parser, line->id, "given id '%" PRId64 "' exceeds INT32_MAX", j);
             goto DONE;
           }
           assert (btor_hashint_map_contains (sortmap, j));

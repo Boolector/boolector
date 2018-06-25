@@ -229,7 +229,7 @@ concat (int32_t x, int32_t y, int32_t num_bits)
   assert (x >= 0);
   assert (y >= 0);
   assert (num_bits > 0);
-  assert (num_bits <= INT_MAX / 2);
+  assert (num_bits <= INT32_MAX / 2);
   x_string = int_to_str (x, num_bits);
   y_string = int_to_str (y, num_bits);
   result =

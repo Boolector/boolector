@@ -47,8 +47,8 @@ btor_rng_pick_rand (BtorRNG* rng, uint32_t from, uint32_t to)
 
   uint32_t res;
 
-  from = from == UINT_MAX ? UINT_MAX - 1 : from;
-  to   = to == UINT_MAX ? UINT_MAX - 1 : to;
+  from = from == UINT32_MAX ? UINT32_MAX - 1 : from;
+  to   = to == UINT32_MAX ? UINT32_MAX - 1 : to;
   res  = btor_rng_rand (rng);
   res %= to - from + 1;
   res += from;
@@ -63,7 +63,7 @@ btor_rng_pick_rand_dbl (BtorRNG* rng, double from, double to)
 
   double res;
 
-  res = (double) btor_rng_rand (rng) / UINT_MAX;
+  res = (double) btor_rng_rand (rng) / UINT32_MAX;
   res = from + res * (to - from);
   return res;
 }
