@@ -219,6 +219,32 @@ if(Threads_FOUND)
   add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
 endif()
 
+# Check if signals are available.
+include(CheckCSourceCompiles)
+CHECK_C_SOURCE_COMPILES(
+"
+#include <signal.h>
+#include <unistd.h>
+static void catchsig(int sig) { (void) sig; }
+int main ()
+{
+  alarm (0);
+  (void) signal (SIGALRM, catchsig);
+  (void) signal (SIGINT, catchsig);
+  (void) signal (SIGSEGV, catchsig);
+  (void) signal (SIGABRT, catchsig);
+  (void) signal (SIGTERM, catchsig);
+  (void) signal (SIGBUS, catchsig);
+  return 0;
+}
+"
+HAVE_SIGNALS
+)
+
+if(HAVE_SIGNALS)
+  add_c_cxx_flag("-DBTOR_HAVE_SIGNALS")
+endif()
+
 if(USE_LINGELING)
   find_package(LINGELING QUIET)
 endif()
@@ -323,4 +349,3 @@ add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
         | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-

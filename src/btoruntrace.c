@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2018 Aina Niemetz.
- *  Copyright (C) 2013-2017 Mathias Preiner.
+ *  Copyright (C) 2013-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -10,7 +10,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +22,10 @@
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
+
+#ifdef BTOR_HAVE_SIGNALS
+#include <signal.h>
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -1743,12 +1746,14 @@ DONE:
   if (delete) boolector_delete (btor);
 }
 
+#ifdef BTOR_HAVE_SIGNALS
 static void
 exit_on_signal (int32_t sig)
 {
   BTORUNT_LOG ("exit on signal %d", sig);
   raise (sig);
 }
+#endif
 
 int32_t
 main (int32_t argc, char **argv)
@@ -1821,6 +1826,7 @@ main (int32_t argc, char **argv)
   else
     g_btorunt->filename = "<stdin>", file = stdin;
 
+#ifdef BTOR_HAVE_SIGNALS
   if (g_btorunt->exit_on_abort)
   {
     BTORUNT_LOG ("setting signal handlers since '-e' specified");
@@ -1829,6 +1835,7 @@ main (int32_t argc, char **argv)
     signal (SIGABRT, exit_on_signal);
     signal (SIGTERM, exit_on_signal);
   }
+#endif
 
   parse (file);
   fclose (file);

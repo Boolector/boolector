@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2018 Aina Niemetz.
- *  Copyright (C) 2013-2017 Mathias Preiner.
+ *  Copyright (C) 2013-2018 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -1053,6 +1053,7 @@ static BtorMBT *g_btormbt;
 static BtorMBTStatistics *g_btormbtstats = 0;
 static char g_shmfilename[128];
 
+#ifdef BTOR_HAVE_SIGNALS
 static int32_t g_caught_sig;
 static void (*sig_int_handler) (int32_t);
 static void (*sig_segv_handler) (int32_t);
@@ -1062,6 +1063,7 @@ static void (*sig_bus_handler) (int32_t);
 
 static int32_t g_set_alarm;
 static void (*sig_alrm_handler) (int32_t);
+#endif
 
 void boolector_chkclone (Btor *);
 
@@ -1206,6 +1208,7 @@ btormbt_print_stats (BtorMBT *mbt)
 
 /*------------------------------------------------------------------------*/
 
+#ifdef BTOR_HAVE_SIGNALS
 static void
 reset_sig_handlers (void)
 {
@@ -1270,6 +1273,7 @@ set_alarm (void)
   assert (g_set_alarm > 0);
   alarm (g_set_alarm);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -3822,7 +3826,9 @@ run (BtorMBT *mbt)
   {
     mbt->forked++;
     fflush (stdout);
+#ifdef BTOR_HAVE_SIGNALS
     reset_alarm ();
+#endif
 #ifndef NDEBUG
     pid_t wid =
 #endif
@@ -3831,11 +3837,13 @@ run (BtorMBT *mbt)
   }
   else
   {
+#ifdef BTOR_HAVE_SIGNALS
     if (g_set_alarm)
     {
       set_alarm ();
       BTORMBT_LOG (1, "set time limit to %d second(s)", g_set_alarm);
     }
+#endif
 
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
@@ -3939,6 +3947,7 @@ main (int32_t argc, char **argv)
                        argv[i]);
       g_btormbt->max_rounds = atoi (argv[i]);
     }
+#ifdef BTOR_HAVE_SIGNALS
     else if (!strcmp (argv[i], "-t"))
     {
       if (++i == argc) btormbt_error ("argument to '-t' missing (try '-h')");
@@ -3947,6 +3956,7 @@ main (int32_t argc, char **argv)
                        argv[i]);
       g_set_alarm = atoi (argv[i]);
     }
+#endif
     else if (!strncmp (argv[i], "--logic", 7))
     {
       if (++i == argc)
@@ -4007,7 +4017,9 @@ main (int32_t argc, char **argv)
   }
 
   g_btormbt->ppid = getpid ();
+#ifdef BTOR_HAVE_SIGNALS
   set_sig_handlers ();
+#endif
 
   /* open shared memory file for statistics */
   sprintf (g_shmfilename, "/tmp/btormbt-shm-%d", getpid ());
@@ -4118,12 +4130,14 @@ main (int32_t argc, char **argv)
     {
       if (g_btormbt->verbosity) printf ("unknown");
     }
+#ifdef BTOR_HAVE_SIGNALS
     else if (res == EXIT_TIMEOUT)
     {
       BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_set_alarm);
       if (!g_btormbt->verbosity)
         printf ("timed out after %d second(s)\n", g_set_alarm);
     }
+#endif
     else if (res == EXIT_ERROR)
     {
       if (g_btormbt->quiet) printf ("%d ", g_btormbt->seed);

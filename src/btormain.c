@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2018 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -38,6 +38,8 @@ bool g_dual_threads;
 static double g_start_time_real;
 static uint32_t g_verbosity;
 static uint32_t g_set_alarm;
+
+#ifdef BTOR_HAVE_SIGNALS
 static bool g_caught_sig;
 
 static void (*sig_int_handler) (int32_t);
@@ -47,6 +49,7 @@ static void (*sig_term_handler) (int32_t);
 static void (*sig_bus_handler) (int32_t);
 
 static void (*sig_alrm_handler) (int32_t);
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -765,6 +768,7 @@ print_sat_result (BtorMainApp *app, int32_t sat_result)
 
 /*------------------------------------------------------------------------*/
 
+#ifdef BTOR_HAVE_SIGNALS
 static void
 reset_sig_handlers (void)
 {
@@ -839,6 +843,7 @@ set_alarm (void)
   assert (g_set_alarm > 0);
   alarm (g_set_alarm);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -1252,6 +1257,7 @@ boolector_main (int32_t argc, char **argv)
     if (*BTOR_CC) btormain_msg ("%s", BTOR_CC);
     btormain_msg ("setting signal handlers");
   }
+#ifdef BTOR_HAVE_SIGNALS
   set_sig_handlers ();
 
   /* set alarm */
@@ -1263,6 +1269,7 @@ boolector_main (int32_t argc, char **argv)
   }
   else if (g_verbosity)
     btormain_msg ("no time limit given");
+#endif
 
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
@@ -1484,7 +1491,9 @@ DONE:
   BTOR_RELEASE_STACK (infiles);
 
   btormain_delete_btormain (g_app);
+#ifdef BTOR_HAVE_SIGNALS
   reset_sig_handlers ();
+#endif
 
   return res;
 }
