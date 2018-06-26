@@ -1,1 +1,1 @@
-boolector: log/smt2perr025.smt2:1:3: unexpected carriage return '\r' after backslash '\\' in string
+log/smt2perr025.smt2:1:3: unexpected carriage return '\r' after backslash '\\' in string

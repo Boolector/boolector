@@ -1,1 +1,1 @@
-boolector: log/smt2perr151.smt2:1:9: unexpected 'Bool'
+log/smt2perr151.smt2:1:9: unexpected 'Bool'

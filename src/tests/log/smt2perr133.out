@@ -1,1 +1,1 @@
-boolector: log/smt2perr133.smt2:1:9: expected another '(' before '(_ repeat'
+log/smt2perr133.smt2:1:9: expected another '(' before '(_ repeat'

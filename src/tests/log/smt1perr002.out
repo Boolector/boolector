@@ -1,1 +1,1 @@
-boolector: log/smt1perr002.smt:9: invalid or unsupported sort in function declaration
+log/smt1perr002.smt:9: invalid or unsupported sort in function declaration

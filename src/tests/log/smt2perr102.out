@@ -1,1 +1,1 @@
-boolector: log/smt2perr102.smt2:2:16: first argument of 'store' is not an array
+log/smt2perr102.smt2:2:16: first argument of 'store' is not an array

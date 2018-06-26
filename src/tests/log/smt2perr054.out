@@ -1,1 +1,1 @@
-boolector: log/smt2perr054.smt2:1:10: keyword after 'set-info' missing
+log/smt2perr054.smt2:1:10: keyword after 'set-info' missing

@@ -1,1 +1,1 @@
-boolector: log/smt2perr038.smt2:1:54: expected ')' after element sort of Array at '('
+log/smt2perr038.smt2:1:54: expected ')' after element sort of Array at '('

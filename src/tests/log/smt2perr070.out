@@ -1,1 +1,1 @@
-boolector: log/smt2perr070.smt2:1:12: argument to '=>' missing
+log/smt2perr070.smt2:1:12: argument to '=>' missing
