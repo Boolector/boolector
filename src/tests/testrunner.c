@@ -354,58 +354,61 @@ run_boolector (int32_t argc, char **argv)
   FILE *outfile = stdout;
   BtorOpt *bo;
   BtorOption opt;
-  size_t prefix_len;
+  int32_t i, status = 0, res;
   uint32_t val;
-  int32_t i, status, res;
-  char *arg, *s, *arg_val, *err_msg;
+  size_t prefix_len, len, j;
+  char *arg_tmp, *arg, *arg_val, *err_msg = 0, *tmp;
   bool set_opt, is_shrt;
   bool dump_btor = false, dump_smt = false, print_model = false;
+  char *print_model_format = "btor";
 
   btor = boolector_new ();
 
   for (i = 1; i < argc; i++)
   {
-    arg     = argv[i];
+    arg = (char *) malloc (sizeof (char) * (strlen (argv[i]) + 1));
+    strcpy (arg, argv[i]);
+    arg_tmp = arg;
+
     is_shrt = true;
-    if (arg[0] != '-')
+    if (arg_tmp[0] != '-')
     {
-      infile_name = arg;
+      infile_name = (char *) malloc (sizeof (char) * (strlen (arg_tmp) + 1));
+      strcpy (infile_name, arg_tmp);
       infile      = fopen (infile_name, "r");
     }
     else
     {
-      arg += 1;
-      if (arg[0] == '-')
+      arg_tmp += 1;
+      if (arg_tmp[0] == '-')
       {
-        arg += 1;
+        arg_tmp += 1;
         is_shrt = false;
       }
-      s = strchr (arg, '=');
-      if (s)
+      arg_val = 0;
+      len     = strlen (arg_tmp);
+      for (j = 0, tmp = 0; j < len; j++)
       {
-        arg_val = arg + 1;
-        s[0]    = '\0';
-      }
-      else
-      {
-        arg_val = 0;
-        if (i + 1 < argc)
+        if (arg_tmp[j] == '=')
         {
-          s = argv[i + 1];
-          if (s[0] != '-')
-          {
-            i += 1;
-            arg_val = s;
-          }
+          tmp        = arg_tmp + j + 1;
+          arg_tmp[j] = '\0';
+          break;
         }
+      }
+      if (tmp) arg_val = tmp;
+      if (!arg_val && i + 1 < argc && argv[i + 1][0] != '-')
+      {
+        i += 1;
+        arg_val = argv[i];
       }
       for (opt = boolector_first_opt (btor), bo = 0, set_opt = false;
            boolector_has_opt (btor, opt);
            opt = btor_opt_next (btor, opt))
       {
         bo = &btor->options[opt];
-        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg))
-            || (!is_shrt && !strcmp (bo->lng, arg)))
+        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg_tmp))
+            || (!is_shrt && !strcmp (bo->lng, arg_tmp)))
         {
           /* Attention: no no-xxx options supported! supported */
           val = arg_val ? (uint32_t) atoi (arg_val) : 1;
@@ -420,26 +423,31 @@ run_boolector (int32_t argc, char **argv)
         /* Attention: currently only the options of btormain that are actually
          *            used in file testcases are handled here, extend if needed
          */
-        if (strcmp (arg, "o") == 0)
+        if ((is_shrt && !strcmp (arg_tmp, "o")) || !strcmp (arg_tmp, "outfile"))
         {
           outfile = fopen (arg_val, "w");
           assert (outfile);
         }
-        else if ((is_shrt && strcmp (arg, "db") == 0)
-                 || strcmp (arg, "dump-btor") == 0)
+        else if ((is_shrt && !strcmp (arg_tmp, "db"))
+                 || !strcmp (arg_tmp, "dump-btor"))
         {
           dump_btor = true;
         }
-        else if ((is_shrt && strcmp (arg, "ds") == 0)
-                 || strcmp (arg, "dump-smt") == 0)
+        else if ((is_shrt && !strcmp (arg_tmp, "ds"))
+                 || !strcmp (arg_tmp, "dump-smt"))
         {
           dump_smt = true;
         }
-        else if ((is_shrt && strcmp (arg, "d") == 0)
-                 || strcmp (arg, "dec") == 0)
+        else if ((is_shrt && !strcmp (arg_tmp, "d"))
+                 || !strcmp (arg_tmp, "dec"))
         {
           boolector_set_opt (
               btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, BTOR_OUTPUT_BASE_DEC);
+        }
+        else if (!strcmp (arg_tmp, "smt2-model"))
+        {
+          print_model        = true;
+          print_model_format = "smt2";
         }
         else
         {
@@ -448,8 +456,11 @@ run_boolector (int32_t argc, char **argv)
         }
       }
     }
+    free (arg);
   }
 
+  assert (infile);
+  assert (outfile);
   res = boolector_parse (btor, infile, infile_name, outfile, &err_msg, &status);
   if (err_msg)
   {
@@ -477,7 +488,8 @@ run_boolector (int32_t argc, char **argv)
         if (res == BOOLECTOR_SAT)
         {
           fprintf (outfile, "sat\n");
-          if (print_model) boolector_print_model (btor, "btor", outfile);
+          if (print_model)
+            boolector_print_model (btor, print_model_format, outfile);
         }
         else if (res == BOOLECTOR_UNSAT)
         {
@@ -494,6 +506,7 @@ run_boolector (int32_t argc, char **argv)
   boolector_delete (btor);
   fclose (outfile);
   fclose (infile);
+  free (infile_name);
 }
 
 void

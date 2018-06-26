@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -11,6 +11,7 @@
 #include "testmodelgen.h"
 
 #include "testrunner.h"
+#include "utils/btorstack.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -29,38 +30,41 @@ init_modelgen_tests (void)
 static void
 modelgen_test (const char *fname, int32_t rwl)
 {
+  assert (rwl >= 0);
+  assert (rwl <= 3);
+
   char *btor_fname, *log_fname, *syscall_string;
   size_t len;
   int32_t ret_val;
+  char *s_btor, *s_log;
+  BtorCharPtrStack args;
+  BtorMemMgr *mm;
 
-  assert (rwl >= 0);
-  assert (rwl <= 3);
+  mm = btor_mem_mgr_new ();
+  BTOR_INIT_STACK (mm, args);
+  BTOR_PUSH_STACK (args, (char *) fname);
 
   len = strlen (fname);
 
   btor_fname = (char *) malloc (sizeof (char) * (len + 6));
   sprintf (btor_fname, "%s.btor", fname);
+  s_btor = (char *) malloc (
+      sizeof (char *) * (strlen (btor_log_dir) + strlen (btor_fname) + 20));
+  sprintf (s_btor, "%s%s", btor_log_dir, btor_fname);
+  BTOR_PUSH_STACK (args, s_btor);
 
   log_fname = (char *) malloc (sizeof (char) * (len + 5));
   sprintf (log_fname, "%s.log", fname);
+  BTOR_PUSH_STACK (args, "-o");
+  s_log = (char *) malloc (sizeof (char *)
+                           * (strlen (btor_log_dir) + strlen (log_fname) + 20));
+  sprintf (s_log, "%s%s", btor_log_dir, log_fname);
+  BTOR_PUSH_STACK (args, s_log);
 
-  syscall_string = (char *) malloc (
-      sizeof (char)
-      * (len + 5 + len + 4 + strlen ("boolector -rwl 3 -m ") + +strlen (" -o ")
-         + strlen (btor_bin_dir) + strlen (btor_log_dir) * 2 + 1));
+  BTOR_PUSH_STACK (args, "-rwl=3");
+  BTOR_PUSH_STACK (args, "-m");
 
-  sprintf (syscall_string,
-           "%sboolector -rwl %d -m %s%s -o %s%s",
-           btor_bin_dir,
-           rwl,
-           btor_log_dir,
-           btor_fname,
-           btor_log_dir,
-           log_fname);
-
-  ret_val = system (syscall_string); /* save to avoid warning */
-  assert (ret_val);
-  free (syscall_string);
+  run_boolector (BTOR_COUNT_STACK (args), args.start);
 
   syscall_string = (char *) malloc (
       sizeof (char)
@@ -83,6 +87,10 @@ modelgen_test (const char *fname, int32_t rwl)
   free (syscall_string);
   free (log_fname);
   free (btor_fname);
+  free (s_btor);
+  free (s_log);
+  BTOR_RELEASE_STACK (args);
+  btor_mem_mgr_delete (mm);
 }
 
 static void
