@@ -31,7 +31,6 @@
 #define BTOR_TEST_MISC_LOW 1
 #define BTOR_TEST_MISC_HIGH 4
 
-static Btor *g_btor;
 static FILE *g_fin  = NULL;
 static FILE *g_fout = NULL;
 
@@ -85,13 +84,14 @@ slice_test_misc (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  int32_t i              = 0;
-  int32_t j              = 0;
-  char *result           = 0;
-  int32_t num_bits       = 0;
-  const int32_t x        = 11;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  char *result     = 0;
+  int32_t num_bits = 0;
+  const int32_t x  = 11;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -99,9 +99,9 @@ slice_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = i; j >= 0; j--)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = slice (x, i, j, num_bits);
         g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
@@ -116,17 +116,18 @@ slice_test_misc (int32_t low, int32_t high, uint32_t rwl)
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_MISC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
         btor_mem_freestr (g_mm, result);
+        boolector_delete (btor);
       }
     }
   }
@@ -172,13 +173,14 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
   assert (low <= high);
   assert (func == uext || func == sext);
 
+  Btor *btor;
+  int32_t parse_res, parse_status;
+  char *parse_err;
   int32_t i        = 0;
   int32_t j        = 0;
   int32_t max      = 0;
   char *result     = 0;
   int32_t num_bits = 0;
-  int32_t parse_res, parse_status;
-  char *parse_err;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -187,9 +189,9 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
     {
       for (j = 0; j < num_bits; j++)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = func (i, j, num_bits);
         g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
@@ -204,17 +206,18 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_MISC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
         btor_mem_freestr (g_mm, result);
+        boolector_delete (btor);
       }
     }
   }
@@ -223,13 +226,15 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
 static char *
 concat (int32_t x, int32_t y, int32_t num_bits)
 {
-  char *x_string = NULL;
-  char *y_string = NULL;
-  char *result   = NULL;
   assert (x >= 0);
   assert (y >= 0);
   assert (num_bits > 0);
   assert (num_bits <= INT32_MAX / 2);
+
+  char *x_string = NULL;
+  char *y_string = NULL;
+  char *result   = NULL;
+
   x_string = int_to_str (x, num_bits);
   y_string = int_to_str (y, num_bits);
   result =
@@ -247,13 +252,14 @@ concat_test_misc (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  int32_t i              = 0;
-  int32_t j              = 0;
-  int32_t max            = 0;
-  char *result           = 0;
-  int32_t num_bits       = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  int32_t max      = 0;
+  char *result     = 0;
+  int32_t num_bits = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -262,9 +268,9 @@ concat_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = 0; j < max; j++)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = concat (i, j, num_bits);
         g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
@@ -280,17 +286,18 @@ concat_test_misc (int32_t low, int32_t high, uint32_t rwl)
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_MISC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
         btor_mem_freestr (g_mm, result);
+        boolector_delete (btor);
       }
     }
   }
@@ -302,14 +309,15 @@ cond_test_misc (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  int32_t i              = 0;
-  int32_t j              = 0;
-  int32_t k              = 0;
-  int32_t max            = 0;
-  int32_t result         = 0;
-  int32_t num_bits       = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  int32_t k        = 0;
+  int32_t max      = 0;
+  int32_t result   = 0;
+  int32_t num_bits = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -320,10 +328,9 @@ cond_test_misc (int32_t low, int32_t high, uint32_t rwl)
       {
         for (k = 0; k <= 1; k++)
         {
-          g_btor = boolector_new ();
-          boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-          if (g_rwreads)
-            boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+          btor = boolector_new ();
+          boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+          if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
           result = k ? i : j;
           g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
@@ -340,16 +347,17 @@ cond_test_misc (int32_t low, int32_t high, uint32_t rwl)
           assert (g_fin != NULL);
           g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
           assert (g_fout != NULL);
-          parse_res = boolector_parse_btor (g_btor,
+          parse_res = boolector_parse_btor (btor,
                                             g_fin,
                                             BTOR_TEST_MISC_TEMP_INFILE_NAME,
                                             g_fout,
                                             &parse_err,
                                             &parse_status);
           assert (parse_res != BOOLECTOR_PARSE_ERROR);
-          assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+          assert (boolector_sat (btor) == BOOLECTOR_SAT);
           fclose (g_fin);
           fclose (g_fout);
+          boolector_delete (btor);
         }
       }
     }
@@ -362,12 +370,13 @@ read_test_misc (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  int32_t i              = 0;
-  int32_t j              = 0;
-  int32_t max            = 0;
-  int32_t num_bits       = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  int32_t i        = 0;
+  int32_t j        = 0;
+  int32_t max      = 0;
+  int32_t num_bits = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -376,9 +385,9 @@ read_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = 0; j < max; j++)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
         assert (g_fin != NULL);
@@ -398,16 +407,17 @@ read_test_misc (int32_t low, int32_t high, uint32_t rwl)
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_MISC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
+        boolector_delete (btor);
       }
     }
   }

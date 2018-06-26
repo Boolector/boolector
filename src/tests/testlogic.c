@@ -33,7 +33,6 @@
 #define BTOR_TEST_RED_LOGIC_LOW 2
 #define BTOR_TEST_RED_LOGIC_HIGH 4
 
-static Btor *g_btor;
 static FILE *g_fin  = NULL;
 static FILE *g_fout = NULL;
 
@@ -48,44 +47,46 @@ not_logic_test (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  uint32_t i             = 0;
-  uint32_t result        = 0;
-  int32_t num_bits       = 0;
-  int32_t max            = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  uint32_t i       = 0;
+  uint32_t result  = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (uint32_t) max; i++)
     {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+      btor = boolector_new ();
+      boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+      if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
       result = ~i & (max - 1);
-      g_fin      = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
+      g_fin  = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
       assert (g_fin != NULL);
       fprintf (g_fin, "1 constd %d %u\n", num_bits, i);
       fprintf (g_fin, "2 constd %d %u\n", num_bits, result);
       fprintf (g_fin, "3 eq 1 -1 2\n");
       fprintf (g_fin, "4 root 1 3\n");
       fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
-                                          g_fin,
-                                          BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
-        assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
-        fclose (g_fin);
-        fclose (g_fout);
+      g_fin = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "r");
+      assert (g_fin != NULL);
+      g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
+      assert (g_fout != NULL);
+      parse_res = boolector_parse_btor (btor,
+                                        g_fin,
+                                        BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
+                                        g_fout,
+                                        &parse_err,
+                                        &parse_status);
+      assert (parse_res != BOOLECTOR_PARSE_ERROR);
+      assert (boolector_sat (btor) == BOOLECTOR_SAT);
+      fclose (g_fin);
+      fclose (g_fout);
+      boolector_delete (btor);
     }
   }
 }
@@ -102,13 +103,14 @@ binary_logic_test (uint32_t (*func) (uint32_t, uint32_t),
   assert (low > 0);
   assert (low <= high);
 
-  uint32_t i             = 0;
-  uint32_t j             = 0;
-  uint32_t result        = 0;
-  int32_t num_bits       = 0;
-  int32_t max            = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  uint32_t i       = 0;
+  uint32_t j       = 0;
+  uint32_t result  = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -117,12 +119,12 @@ binary_logic_test (uint32_t (*func) (uint32_t, uint32_t),
     {
       for (j = 0; j < (uint32_t) max; j++)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = func (i, j);
-        g_fin      = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
+        g_fin  = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
         assert (g_fin != NULL);
         fprintf (g_fin, "1 constd %d %u\n", num_bits, i);
         fprintf (g_fin, "2 constd %d %u\n", num_bits, j);
@@ -135,16 +137,17 @@ binary_logic_test (uint32_t (*func) (uint32_t, uint32_t),
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
+        boolector_delete (btor);
       }
     }
   }
@@ -156,13 +159,14 @@ xnor_logic_test (int32_t low, int32_t high, uint32_t rwl)
   assert (low > 0);
   assert (low <= high);
 
-  uint32_t i             = 0;
-  uint32_t j             = 0;
-  uint32_t result        = 0;
-  int32_t num_bits       = 0;
-  int32_t max            = 0;
+  Btor *btor;
   int32_t parse_res, parse_status;
   char *parse_err;
+  uint32_t i       = 0;
+  uint32_t j       = 0;
+  uint32_t result  = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -171,12 +175,12 @@ xnor_logic_test (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = 0; j < (uint32_t) max; j++)
       {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+        btor = boolector_new ();
+        boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+        if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = ~(i ^ j) & (max - 1);
-        g_fin      = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
+        g_fin  = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
         assert (g_fin != NULL);
         fprintf (g_fin, "1 constd %d %u\n", num_bits, i);
         fprintf (g_fin, "2 constd %d %u\n", num_bits, j);
@@ -189,16 +193,17 @@ xnor_logic_test (int32_t low, int32_t high, uint32_t rwl)
         assert (g_fin != NULL);
         g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
         assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
+        parse_res = boolector_parse_btor (btor,
                                           g_fin,
                                           BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
                                           g_fout,
                                           &parse_err,
                                           &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
+        assert (boolector_sat (btor) == BOOLECTOR_SAT);
         fclose (g_fin);
         fclose (g_fout);
+        boolector_delete (btor);
       }
     }
   }
@@ -216,45 +221,48 @@ red_logic_test (uint32_t (*func) (uint32_t, uint32_t),
   assert (low > 0);
   assert (low <= high);
 
-  uint32_t i             = 0;
-  uint32_t result        = 0;
-  int32_t num_bits       = 0;
-  int32_t max            = 0;
+  Btor *btor;
   int32_t sat_res;
   int32_t parse_res, parse_status;
   char *parse_err;
+  uint32_t i       = 0;
+  uint32_t result  = 0;
+  int32_t num_bits = 0;
+  int32_t max      = 0;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_util_pow_2 (num_bits);
     for (i = 0; i < (uint32_t) max; i++)
     {
-        g_btor = boolector_new ();
-        boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-        if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+      btor = boolector_new ();
+      boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+      if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
       result = func (i, (uint32_t) num_bits);
-      g_fin      = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
+      g_fin  = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "w");
       assert (g_fin != NULL);
       fprintf (g_fin, "1 constd %d %u\n", num_bits, i);
       fprintf (g_fin, "2 %s 1 1\n", func_name);
       fprintf (g_fin, "3 root 1 2\n");
       fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
-                                          g_fin,
-                                          BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
-        assert (parse_res != BOOLECTOR_PARSE_ERROR);
-        sat_res = boolector_sat (g_btor);
-        assert ((result && sat_res == BOOLECTOR_SAT) || (!result && sat_res == BOOLECTOR_UNSAT));
-        fclose (g_fin);
-        fclose (g_fout);
+      g_fin = fopen (BTOR_TEST_LOGIC_TEMP_INFILE_NAME, "r");
+      assert (g_fin != NULL);
+      g_fout = fopen (BTOR_TEST_LOGIC_TEMP_OUTFILE_NAME, "w");
+      assert (g_fout != NULL);
+      parse_res = boolector_parse_btor (btor,
+                                        g_fin,
+                                        BTOR_TEST_LOGIC_TEMP_INFILE_NAME,
+                                        g_fout,
+                                        &parse_err,
+                                        &parse_status);
+      assert (parse_res != BOOLECTOR_PARSE_ERROR);
+      sat_res = boolector_sat (btor);
+      assert ((result && sat_res == BOOLECTOR_SAT)
+              || (!result && sat_res == BOOLECTOR_UNSAT));
+      fclose (g_fin);
+      fclose (g_fout);
+      boolector_delete (btor);
     }
   }
 }
