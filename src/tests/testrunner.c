@@ -25,6 +25,7 @@
 #include "btorconfig.h"
 #include "btorcore.h"
 #include "btoropt.h"
+#include "utils/btormem.h"
 
 const char *btor_bin_dir     = BTOR_BIN_DIR;
 const char *btor_log_dir     = BTOR_LOG_DIR;
@@ -42,6 +43,8 @@ static int32_t g_num_tests;
 static int32_t g_num_skipped_tests;
 static int32_t g_compared;
 static int32_t g_compared_succ;
+
+static BtorMemMgr *g_mm = NULL;
 
 static struct
 {
@@ -207,9 +210,10 @@ static int32_t
 cmp_file (const char *a, const char *b)
 {
   FILE *f, *g;
-  char *stack_a, *stack_b, *sa, *sb;
-  int32_t res, c, d, init_size = 100, size, nelems = 0;
+  char *sa, *sb;
+  int32_t res, c;
   bool isperr_a, isperr_b;
+  BtorCharStack stack_a, stack_b;
 
   assert (a);
   assert (b);
@@ -224,47 +228,29 @@ cmp_file (const char *a, const char *b)
     return 0;
   }
 
-  stack_a    = malloc (sizeof (char) * init_size);
-  stack_b    = malloc (sizeof (char) * init_size);
-  stack_a[0] = 0;
-  stack_b[0] = 0;
+  BTOR_INIT_STACK (g_mm, stack_a);
+  BTOR_INIT_STACK (g_mm, stack_b);
 
-  for (nelems = 0, size = init_size, c = getc (f); c != EOF; c = getc (f))
-  {
-    assert (nelems < size);
-    stack_a[nelems] = c;
-    nelems += 1;
-    if (nelems == size)
-    {
-      stack_a = realloc (stack_a, sizeof (char) * 2 * size);
-      size *= 2;
-    }
-  }
-  stack_a[nelems] = 0;
+  for (c = getc (f); c != EOF; c = getc (f)) BTOR_PUSH_STACK (stack_a, c);
+  BTOR_PUSH_STACK (stack_a, 0);
 
-  for (nelems = 0, size = init_size, d = getc (g); d != EOF; d = getc (g))
-  {
-    assert (nelems < size);
-    stack_b[nelems] = d;
-    nelems += 1;
-    if (nelems == size)
-    {
-      stack_b = realloc (stack_b, sizeof (char) * 2 * size);
-      size *= 2;
-    }
-  }
-  stack_b[nelems] = 0;
+  for (c = getc (g); c != EOF; c = getc (g)) BTOR_PUSH_STACK (stack_b, c);
+  BTOR_PUSH_STACK (stack_b, 0);
 
   /* trim path */
-  isperr_a = strncmp (stack_a, "boolector:", strlen ("boolector:")) == 0;
-  isperr_b = strncmp (stack_b, "boolector:", strlen ("boolector:")) == 0;
+  isperr_a = strncmp (stack_a.start, "boolector:", strlen ("boolector:")) == 0;
+  isperr_b = strncmp (stack_b.start, "boolector:", strlen ("boolector:")) == 0;
 
-  if (isperr_a != isperr_b) return 0;
+  if (isperr_a != isperr_b)
+  {
+    res = 0;
+    goto DONE;
+  }
 
   if (isperr_a)
   {
-    sa = strstr (stack_a, "log");
-    sb = strstr (stack_b, "log");
+    sa = strstr (stack_a.start, "log");
+    sb = strstr (stack_b.start, "log");
     if (!sa || !sb)
     {
       res = 0;
@@ -273,16 +259,15 @@ cmp_file (const char *a, const char *b)
   }
   else
   {
-    sa = stack_a;
-    sb = stack_b;
+    sa = stack_a.start;
+    sb = stack_b.start;
   }
 
   res = !strcmp (sa, sb);
 
 DONE:
-  free (stack_a);
-  free (stack_b);
-
+  BTOR_RELEASE_STACK (stack_a);
+  BTOR_RELEASE_STACK (stack_b);
   fclose (f);
   fclose (g);
 
@@ -348,55 +333,50 @@ find (const char *str, const char **testset, int32_t testset_size)
 void
 run_boolector (int32_t argc, char **argv)
 {
+  assert (g_mm);
+
   Btor *btor;
-  FILE *infile;
+  FILE *infile, *outfile = stdout;
   char *infile_name;
-  FILE *outfile = stdout;
   BtorOpt *bo;
   BtorOption opt;
   int32_t i, status = 0, res;
   uint32_t val;
   size_t prefix_len, len, j;
-  char *arg_tmp, *arg, *arg_val, *err_msg = 0, *tmp;
+  char *arg_val, *err_msg = 0;
   bool set_opt, is_shrt;
   bool dump_btor = false, dump_smt = false, print_model = false;
   char *print_model_format = "btor";
+  BtorCharStack arg;
 
   btor = boolector_new ();
+  BTOR_INIT_STACK (g_mm, arg);
 
   for (i = 1; i < argc; i++)
   {
-    arg = (char *) malloc (sizeof (char) * (strlen (argv[i]) + 1));
-    strcpy (arg, argv[i]);
-    arg_tmp = arg;
-
     is_shrt = true;
-    if (arg_tmp[0] != '-')
+    if (argv[i][0] != '-')
     {
-      infile_name = (char *) malloc (sizeof (char) * (strlen (arg_tmp) + 1));
-      strcpy (infile_name, arg_tmp);
+      infile_name = argv[i];
       infile      = fopen (infile_name, "r");
     }
     else
     {
-      arg_tmp += 1;
-      if (arg_tmp[0] == '-')
+      for (j = 0, arg_val = 0, len = strlen (argv[i]); j < len; j++)
       {
-        arg_tmp += 1;
-        is_shrt = false;
-      }
-      arg_val = 0;
-      len     = strlen (arg_tmp);
-      for (j = 0, tmp = 0; j < len; j++)
-      {
-        if (arg_tmp[j] == '=')
+        if (argv[i][j] == '-' && j < 2)
         {
-          tmp        = arg_tmp + j + 1;
-          arg_tmp[j] = '\0';
+          if (j) is_shrt = false;
+          continue;
+        }
+        if (argv[i][j] == '=')
+        {
+          arg_val = argv[i] + j + 1;
           break;
         }
+        BTOR_PUSH_STACK (arg, argv[i][j]);
       }
-      if (tmp) arg_val = tmp;
+      BTOR_PUSH_STACK (arg, 0);
       if (!arg_val && i + 1 < argc && argv[i + 1][0] != '-')
       {
         i += 1;
@@ -407,8 +387,8 @@ run_boolector (int32_t argc, char **argv)
            opt = btor_opt_next (btor, opt))
       {
         bo = &btor->options[opt];
-        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg_tmp))
-            || (!is_shrt && !strcmp (bo->lng, arg_tmp)))
+        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg.start))
+            || (!is_shrt && !strcmp (bo->lng, arg.start)))
         {
           /* Attention: no no-xxx options supported! supported */
           val = arg_val ? (uint32_t) atoi (arg_val) : 1;
@@ -423,28 +403,29 @@ run_boolector (int32_t argc, char **argv)
         /* Attention: currently only the options of btormain that are actually
          *            used in file testcases are handled here, extend if needed
          */
-        if ((is_shrt && !strcmp (arg_tmp, "o")) || !strcmp (arg_tmp, "outfile"))
+        if ((is_shrt && !strcmp (arg.start, "o"))
+            || !strcmp (arg.start, "outfile"))
         {
           outfile = fopen (arg_val, "w");
           assert (outfile);
         }
-        else if ((is_shrt && !strcmp (arg_tmp, "db"))
-                 || !strcmp (arg_tmp, "dump-btor"))
+        else if ((is_shrt && !strcmp (arg.start, "db"))
+                 || !strcmp (arg.start, "dump-btor"))
         {
           dump_btor = true;
         }
-        else if ((is_shrt && !strcmp (arg_tmp, "ds"))
-                 || !strcmp (arg_tmp, "dump-smt"))
+        else if ((is_shrt && !strcmp (arg.start, "ds"))
+                 || !strcmp (arg.start, "dump-smt"))
         {
           dump_smt = true;
         }
-        else if ((is_shrt && !strcmp (arg_tmp, "d"))
-                 || !strcmp (arg_tmp, "dec"))
+        else if ((is_shrt && !strcmp (arg.start, "d"))
+                 || !strcmp (arg.start, "dec"))
         {
           boolector_set_opt (
               btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, BTOR_OUTPUT_BASE_DEC);
         }
-        else if (!strcmp (arg_tmp, "smt2-model"))
+        else if (!strcmp (arg.start, "smt2-model"))
         {
           print_model        = true;
           print_model_format = "smt2";
@@ -455,8 +436,8 @@ run_boolector (int32_t argc, char **argv)
           assert (0);
         }
       }
+      BTOR_RESET_STACK (arg);
     }
-    free (arg);
   }
 
   assert (infile);
@@ -503,10 +484,10 @@ run_boolector (int32_t argc, char **argv)
       }
     }
   }
-  boolector_delete (btor);
   fclose (outfile);
   fclose (infile);
-  free (infile_name);
+  boolector_delete (btor);
+  BTOR_RELEASE_STACK (arg);
 }
 
 void
@@ -517,9 +498,11 @@ run_test_case (int32_t argc,
                bool check_log_file)
 {
   bool skip;
-  int32_t i, count, len;
+  int32_t i, count, len, len_log;
   char *logfile_name, *outfile_name;
   const char **p;
+
+  g_mm = btor_mem_mgr_new ();
 
   g_num_tests++;
   skip = false;
@@ -568,9 +551,10 @@ run_test_case (int32_t argc,
     {
       len = 0;
       /* "log/" + name + ".log" or ".out" + \0 */
-      len          = 4 + strlen (name) + 4 + 1;
-      logfile_name = (char *) malloc (len + 4 + strlen (btor_log_dir));
-      outfile_name = (char *) malloc (len + 4 + strlen (btor_log_dir));
+      len     = 4 + strlen (name) + 4 + 1;
+      len_log = len + 4 + strlen (btor_log_dir);
+      BTOR_NEWN (g_mm, logfile_name, len_log);
+      BTOR_NEWN (g_mm, outfile_name, len_log);
       sprintf (logfile_name, "%s%s.log", btor_log_dir, name);
       sprintf (outfile_name, "%s%s.out", btor_log_dir, name);
 
@@ -584,10 +568,13 @@ run_test_case (int32_t argc,
     {
       fclose (g_logfile);
       check_log (logfile_name, outfile_name);
-      free (logfile_name);
-      free (outfile_name);
+      BTOR_DELETEN (g_mm, logfile_name, len_log);
+      BTOR_DELETEN (g_mm, outfile_name, len_log);
     }
   }
+
+  btor_mem_mgr_delete (g_mm);
+  g_mm = 0;
 
   nl ();
 }
