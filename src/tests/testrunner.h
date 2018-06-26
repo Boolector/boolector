@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2018 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz
+ *  Copyright (C) 2012-2018 Aina Niemetz
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -43,6 +43,8 @@ typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
 void init_tests (BtorTestCaseSpeed speed, bool skip_broken);
 
 void print_test_suite_name (const char *name);
+
+void run_boolector (int32_t argc, char **argv);
 
 void run_test_case (int32_t argc,
                     char **argv,

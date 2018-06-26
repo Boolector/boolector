@@ -28,22 +28,7 @@ static BtorCharPtrStack g_args;
 static void
 test_testcase (void)
 {
-  uint32_t i, len;
-  char *syscall_string;
-
-  /* Note: skip testcases name */
-  for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
-    len += strlen (BTOR_PEEK_STACK (g_args, i));
-  syscall_string = (char *) malloc (sizeof (char *) * len);
-  sprintf (syscall_string, "%sboolector ", btor_bin_dir);
-  len = strlen (syscall_string);
-  for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
-  {
-    sprintf (syscall_string + len, "%s ", BTOR_PEEK_STACK (g_args, i));
-    len += strlen (BTOR_PEEK_STACK (g_args, i)) + 1;
-  }
-  if (system (syscall_string) < 0) abort ();
-  free (syscall_string);
+  run_boolector (BTOR_COUNT_STACK (g_args), g_args.start);
 }
 
 void
@@ -57,8 +42,8 @@ run_testcases_tests (int32_t argc, char **argv)
   BtorCharStack buffer;
   BtorMemMgr *mem;
   char *s, *tmp, *token;
-  FILE *file;
   int32_t ch;
+  FILE *file;
 
   s = (char *) malloc (sizeof (char *) * (strlen (btor_test_dir) + 20));
   sprintf (s, "%stestcases", btor_test_dir);

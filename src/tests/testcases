@@ -1,6 +1,6 @@
-regsmtparse0 regsmtparse0.smt > regsmtparse0.log 2>&1
-regsmtparse1 regsmtparse1.smt > regsmtparse1.log 2>&1
-regsmtparse2 regsmtparse2.smt > regsmtparse2.log 2>&1
+regsmtparse0 regsmtparse0.smt -o regsmtparse0.log
+regsmtparse1 regsmtparse1.smt -o regsmtparse1.log
+regsmtparse2 regsmtparse2.smt -o regsmtparse2.log
 smttrue -m -o smttrue.log smttrue.smt
 smtfalse -m -o smtfalse.log smtfalse.smt
 smtvar -m -o smtvar.log smtvar.smt
@@ -48,10 +48,10 @@ udiv8castdown6 -o udiv8castdown6.log udiv8castdown6.btor
 udiv8castdown7 -o udiv8castdown7.log udiv8castdown7.btor
 udiv16castdown8 -o udiv16castdown8.log udiv16castdown8.btor
 lazyreadwritebug1 -o lazyreadwritebug1.log lazyreadwritebug1.btor
-arrayand arrayand.btor > arrayand.log 2>&1
-arrayeqerr0 arrayeqerr0.btor > arrayeqerr0.log 2>&1
-arrayeqerr1 arrayeqerr1.btor > arrayeqerr1.log 2>&1
-arrayeqerr2 arrayeqerr2.btor > arrayeqerr2.log 2>&1
+arrayand arrayand.btor -o arrayand.log
+arrayeqerr0 arrayeqerr0.btor -o arrayeqerr0.log
+arrayeqerr1 arrayeqerr1.btor -o arrayeqerr1.log
+arrayeqerr2 arrayeqerr2.btor -o arrayeqerr2.log
 dumpbtor1 -rwl 0 -db -o dumpbtor1.log dumpbtor1.btor
 dumpbtor2 -rwl 0 -db -o dumpbtor2.log dumpbtor2.btor
 dumpbtor3 -db -o dumpbtor3.log dumpbtor3.btor
@@ -708,7 +708,7 @@ regaddnorm1 -db -o regaddnorm1.log regaddnorm1.btor
 regaddnorm2 -db -o regaddnorm2.log regaddnorm2.btor
 regnegadd1 -db -o regnegadd1.log regnegadd1.btor
 sc12fuzzcheck2 -o sc12fuzzcheck2.log sc12fuzzcheck2.smt2
-regmismatch regmismatch.smt2 > regmismatch.log 2>&1
+regmismatch regmismatch.smt2 -o regmismatch.log
 regrbetacache1 -bra -o regrbetacache1.log regrbetacache1.btor
 regrbetacache2 -bra -o regrbetacache2.log regrbetacache2.btor
 regrencparamapps -o regrencparamapps.log regrencparamapps.smt2

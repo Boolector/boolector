@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2018 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz
+ *  Copyright (C) 2012-2018 Aina Niemetz
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -21,7 +21,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "boolector.h"
 #include "btorconfig.h"
+#include "btorcore.h"
+#include "btoropt.h"
 
 const char *btor_bin_dir     = BTOR_BIN_DIR;
 const char *btor_log_dir     = BTOR_LOG_DIR;
@@ -341,6 +344,157 @@ find (const char *str, const char **testset, int32_t testset_size)
   return 1;
 }
 #endif
+
+void
+run_boolector (int32_t argc, char **argv)
+{
+  Btor *btor;
+  FILE *infile;
+  char *infile_name;
+  FILE *outfile = stdout;
+  BtorOpt *bo;
+  BtorOption opt;
+  size_t prefix_len;
+  uint32_t val;
+  int32_t i, status, res;
+  char *arg, *s, *arg_val, *err_msg;
+  bool set_opt, is_shrt;
+  bool dump_btor = false, dump_smt = false, print_model = false;
+
+  btor = boolector_new ();
+
+  for (i = 1; i < argc; i++)
+  {
+    arg     = argv[i];
+    is_shrt = true;
+    if (arg[0] != '-')
+    {
+      infile_name = arg;
+      infile      = fopen (infile_name, "r");
+    }
+    else
+    {
+      arg += 1;
+      if (arg[0] == '-')
+      {
+        arg += 1;
+        is_shrt = false;
+      }
+      s = strchr (arg, '=');
+      if (s)
+      {
+        arg_val = arg + 1;
+        s[0]    = '\0';
+      }
+      else
+      {
+        arg_val = 0;
+        if (i + 1 < argc)
+        {
+          s = argv[i + 1];
+          if (s[0] != '-')
+          {
+            i += 1;
+            arg_val = s;
+          }
+        }
+      }
+      for (opt = boolector_first_opt (btor), bo = 0, set_opt = false;
+           boolector_has_opt (btor, opt);
+           opt = btor_opt_next (btor, opt))
+      {
+        bo = &btor->options[opt];
+        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg))
+            || (!is_shrt && !strcmp (bo->lng, arg)))
+        {
+          /* Attention: no no-xxx options supported! supported */
+          val = arg_val ? (uint32_t) atoi (arg_val) : 1;
+          boolector_set_opt (btor, opt, val);
+          set_opt = true;
+          if (opt == BTOR_OPT_MODEL_GEN) print_model = true;
+          break;
+        }
+      }
+      if (!set_opt)
+      {
+        /* Attention: currently only the options of btormain that are actually
+         *            used in file testcases are handled here, extend if needed
+         */
+        if (strcmp (arg, "o") == 0)
+        {
+          outfile = fopen (arg_val, "w");
+          assert (outfile);
+        }
+        else if ((is_shrt && strcmp (arg, "db") == 0)
+                 || strcmp (arg, "dump-btor") == 0)
+        {
+          dump_btor = true;
+        }
+        else if ((is_shrt && strcmp (arg, "ds") == 0)
+                 || strcmp (arg, "dump-smt") == 0)
+        {
+          dump_smt = true;
+        }
+        else if ((is_shrt && strcmp (arg, "d") == 0)
+                 || strcmp (arg, "dec") == 0)
+        {
+          boolector_set_opt (
+              btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, BTOR_OUTPUT_BASE_DEC);
+        }
+        else
+        {
+          /* Unsupported option. */
+          assert (0);
+        }
+      }
+    }
+  }
+
+  res = boolector_parse (btor, infile, infile_name, outfile, &err_msg, &status);
+  if (err_msg)
+  {
+    prefix_len = strlen (btor_test_dir);
+    assert (strlen (err_msg) > prefix_len);
+    fprintf (outfile, "%s\n", err_msg + prefix_len);
+  }
+  else
+  {
+    if (dump_btor)
+    {
+      boolector_simplify (btor);
+      boolector_dump_btor (btor, outfile);
+    }
+    else if (dump_smt)
+    {
+      boolector_simplify (btor);
+      boolector_dump_smt2 (btor, outfile);
+    }
+    else
+    {
+      if (res == BOOLECTOR_PARSE_UNKNOWN)
+      {
+        res = boolector_sat (btor);
+        if (res == BOOLECTOR_SAT)
+        {
+          fprintf (outfile, "sat\n");
+          if (print_model) boolector_print_model (btor, "btor", outfile);
+        }
+        else if (res == BOOLECTOR_UNSAT)
+        {
+          fprintf (outfile, "unsat\n");
+        }
+        else
+        {
+          assert (res == BOOLECTOR_UNKNOWN);
+          fprintf (outfile, "unknown\n");
+        }
+      }
+    }
+  }
+  boolector_delete (btor);
+  fclose (outfile);
+  fclose (infile);
+}
 
 void
 run_test_case (int32_t argc,
