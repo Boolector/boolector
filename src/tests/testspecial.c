@@ -1550,4 +1550,5 @@ void
 finish_special_tests (void)
 {
   assert (!g_fout || remove (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME) == 0);
+  free (g_btor_str);
 }

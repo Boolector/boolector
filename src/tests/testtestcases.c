@@ -104,6 +104,7 @@ run_testcases_tests (int32_t argc, char **argv)
 
     run_test_case (argc, argv, test_testcase, g_args.start[0], 1);
 
+    while (!BTOR_EMPTY_STACK (g_args)) free (BTOR_POP_STACK (g_args));
     BTOR_RESET_STACK (g_args);
   }
 
