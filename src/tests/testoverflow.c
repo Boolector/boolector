@@ -44,7 +44,7 @@ init_overflow_tests (void)
   g_mm = btor_mem_mgr_new ();
 }
 
-#define TEST_OVERFLOW_KEEP_BENCHMARKS
+//#define TEST_OVERFLOW_KEEP_BENCHMARKS
 
 static void
 u_overflow_test (int32_t (*func) (int32_t, int32_t),
