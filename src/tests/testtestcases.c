@@ -16,6 +16,7 @@
 
 #include "btorconfig.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 #include "utils/btorstack.h"
 
 #include <assert.h>
@@ -24,6 +25,7 @@
 #include <string.h>
 
 static BtorCharPtrStack g_args;
+static BtorMemMgr *g_mm;
 
 static void
 test_testcase (void)
@@ -34,26 +36,25 @@ test_testcase (void)
 void
 init_testcases_tests (void)
 {
+  g_mm = btor_mem_mgr_new ();
 }
 
 void
 run_testcases_tests (int32_t argc, char **argv)
 {
   BtorCharStack buffer;
-  BtorMemMgr *mem;
   char *s, *tmp, *token;
-  int32_t ch;
+  int32_t ch, len;
   FILE *file;
 
-  s = (char *) malloc (sizeof (char *) * (strlen (btor_test_dir) + 20));
+  len = strlen (btor_test_dir) + 20;
+  BTOR_NEWN (g_mm, s, len);
   sprintf (s, "%stestcases", btor_test_dir);
   assert ((file = fopen (s, "r")));
-  free (s);
+  BTOR_DELETEN (g_mm, s, len);
 
-  mem = btor_mem_mgr_new ();
-
-  BTOR_INIT_STACK (mem, g_args);
-  BTOR_INIT_STACK (mem, buffer);
+  BTOR_INIT_STACK (g_mm, g_args);
+  BTOR_INIT_STACK (g_mm, buffer);
 
   for (;;)
   {
@@ -86,14 +87,13 @@ run_testcases_tests (int32_t argc, char **argv)
     {
       if ((s = strchr (token, '.')))
       {
-        tmp = (char *) malloc (sizeof (char *)
-                               * (strlen (btor_log_dir) + strlen (token) + 1));
+        len = strlen (btor_log_dir) + strlen (token) + 1;
+        BTOR_NEWN (g_mm, tmp, len);
         sprintf (tmp, "%s%s", btor_log_dir, token);
       }
       else
       {
-        tmp = (char *) malloc (sizeof (char *) * (strlen (token) + 1));
-        strcpy (tmp, token);
+        tmp = btor_mem_strdup (g_mm, token);
       }
       BTOR_PUSH_STACK (g_args, tmp);
       token = strtok (0, " \t");
@@ -104,7 +104,8 @@ run_testcases_tests (int32_t argc, char **argv)
 
     run_test_case (argc, argv, test_testcase, g_args.start[0], 1);
 
-    while (!BTOR_EMPTY_STACK (g_args)) free (BTOR_POP_STACK (g_args));
+    while (!BTOR_EMPTY_STACK (g_args))
+      btor_mem_freestr (g_mm, BTOR_POP_STACK (g_args));
     BTOR_RESET_STACK (g_args);
   }
 
@@ -112,11 +113,10 @@ run_testcases_tests (int32_t argc, char **argv)
 
   BTOR_RELEASE_STACK (buffer);
   BTOR_RELEASE_STACK (g_args);
-
-  btor_mem_mgr_delete (mem);
 }
 
 void
 finish_testcases_tests (void)
 {
+  btor_mem_mgr_delete (g_mm);
 }
