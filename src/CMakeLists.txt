@@ -91,15 +91,15 @@ set(btormc_src_files
 add_executable (btormc ${btormc_src_files})
 target_link_libraries(btormc boolector ${LIBRARIES})
 
-set(btormbt_src_files
-  btormbt.c
-)
-add_executable (btormbt ${btormbt_src_files})
-target_link_libraries(btormbt boolector ${LIBRARIES})
+if(IS_WINDOWS_BUILD)
+  message(STATUS "Skipping btormbt for Windows builds")
+else()
+  set(btormbt_src_files btormbt.c)
+  add_executable (btormbt ${btormbt_src_files})
+  target_link_libraries(btormbt boolector ${LIBRARIES})
+endif()
 
-set(btoruntrace_src_files
-  btoruntrace.c
-)
+set(btoruntrace_src_files btoruntrace.c)
 add_executable (btoruntrace ${btoruntrace_src_files})
 target_link_libraries(btoruntrace boolector ${LIBRARIES})
 
