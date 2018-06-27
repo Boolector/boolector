@@ -31,9 +31,12 @@
 char *g_name     = NULL;
 int32_t g_smtlib = 1;
 
+static BtorMemMgr *g_mm = NULL;
+
 void
 init_parseerror_tests (void)
 {
+  g_mm = btor_mem_mgr_new ();
 }
 
 static void
@@ -42,12 +45,10 @@ run_smt_parse_error_test (void)
   char *fname      = g_name, *smt_fname, *log_fname;
   char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
   char *s_smt, *s_log;
-  int32_t len, suff_len;
+  int32_t len, suff_len, len_smt, len_log, len_smt_fname, len_log_fname;
   BtorCharPtrStack args;
-  BtorMemMgr *mm;
 
-  mm = btor_mem_mgr_new ();
-  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (g_mm, args);
 
   if (g_smtlib == 1)
     BTOR_PUSH_STACK (args, "--smt1");
@@ -57,27 +58,30 @@ run_smt_parse_error_test (void)
   len      = strlen (fname);
   suff_len = strlen (smt_suffix);
 
-  smt_fname = (char *) malloc (sizeof (char) * (len + suff_len + 2));
+  len_smt_fname = len + suff_len + 2;
+  len_log_fname = len + 5;
+
+  BTOR_NEWN (g_mm, smt_fname, len_smt_fname);
   sprintf (smt_fname, "%s.%s", fname, smt_suffix);
-  s_smt = (char *) malloc (sizeof (char *)
-                           * (strlen (btor_log_dir) + strlen (smt_fname) + 20));
+  len_smt = strlen (btor_log_dir) + strlen (smt_fname) + 20;
+  BTOR_NEWN (g_mm, s_smt, len_smt);
   sprintf (s_smt, "%s%s", btor_log_dir, smt_fname);
   BTOR_PUSH_STACK (args, s_smt);
 
-  log_fname = (char *) malloc (sizeof (char) * (len + 5));
+  BTOR_NEWN (g_mm, log_fname, len_log_fname);
   sprintf (log_fname, "%s.log", fname);
   BTOR_PUSH_STACK (args, "-o");
-  s_log = (char *) malloc (sizeof (char *)
-                           * (strlen (btor_log_dir) + strlen (log_fname) + 20));
+  len_log = strlen (btor_log_dir) + strlen (log_fname) + 20;
+  BTOR_NEWN (g_mm, s_log, len_log);
   sprintf (s_log, "%s%s", btor_log_dir, log_fname);
   BTOR_PUSH_STACK (args, s_log);
 
   run_boolector (BTOR_COUNT_STACK (args), args.start);
 
-  free (log_fname);
-  free (smt_fname);
-  free (s_smt);
-  free (s_log);
+  BTOR_DELETEN (g_mm, smt_fname, len_smt_fname);
+  BTOR_DELETEN (g_mm, log_fname, len_log_fname);
+  BTOR_DELETEN (g_mm, s_smt, len_smt);
+  BTOR_DELETEN (g_mm, s_log, len_log);
   BTOR_RELEASE_STACK (args);
 }
 
@@ -126,4 +130,5 @@ run_parseerror_tests (int32_t argc, char **argv)
 void
 finish_parseerror_tests (void)
 {
+  btor_mem_mgr_delete (g_mm);
 }
