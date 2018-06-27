@@ -12,6 +12,7 @@
 
 #include "boolector.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 #include "utils/btorutil.h"
 
 #ifdef NDEBUG
@@ -31,10 +32,16 @@
 #define BTOR_TEST_OVERFLOW_HIGH 4
 
 static Btor *g_btor;
+static BtorMemMgr *g_mm;
+static FILE *g_infile;
+static FILE *g_outfile;
+static char *g_infile_name;
+static char *g_parse_err;
 
 void
 init_overflow_tests (void)
 {
+  g_mm = btor_mem_mgr_new ();
 }
 
 #define TEST_OVERFLOW_KEEP_BENCHMARKS
@@ -51,14 +58,11 @@ u_overflow_test (int32_t (*func) (int32_t, int32_t),
   assert (low > 0);
   assert (low <= high);
 
-  FILE *infile  = NULL;
-  FILE *outfile = NULL;
-  char *infile_name;
   int32_t i, j, num_bits, max, result;
   bool overflow_test, overflow_boolector;
   int32_t parse_res, parse_status;
-  char *parse_err;
   int32_t sat_res;
+  size_t len_infile_name;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -75,43 +79,47 @@ u_overflow_test (int32_t (*func) (int32_t, int32_t),
         overflow_boolector = false;
         result             = func (i, j);
         if (result < 0 || result >= max) overflow_test = true;
-        infile_name = (char *) malloc (
-            sizeof (char)
-            * (strlen (func_name) + btor_util_num_digits (num_bits)
-               + btor_util_num_digits (i) + btor_util_num_digits (j) + 20));
-        sprintf (infile_name,
+        len_infile_name = strlen (func_name) + btor_util_num_digits (num_bits)
+                          + btor_util_num_digits (i) + btor_util_num_digits (j)
+                          + 20;
+        BTOR_NEWN (g_mm, g_infile_name, len_infile_name);
+        sprintf (g_infile_name,
                  "overflow_%s_%d_%d_%d.btor",
                  func_name,
                  num_bits,
                  i,
                  j);
-        infile = fopen (infile_name, "w");
-        assert (infile != NULL);
-        fprintf (infile, "1 constd %d %d\n", num_bits, i);
-        fprintf (infile, "2 constd %d %d\n", num_bits, j);
-        fprintf (infile, "3 %s 1 1 2\n", func_name);
-        fprintf (infile, "4 root 1 3\n");
-        fclose (infile);
-        infile = fopen (infile_name, "r");
-        assert (infile != NULL);
-        outfile = fopen (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME, "w");
-        assert (outfile != NULL);
-        parse_res = boolector_parse_btor (
-            g_btor, infile, infile_name, outfile, &parse_err, &parse_status);
+        g_infile = fopen (g_infile_name, "w");
+        assert (g_infile != NULL);
+        fprintf (g_infile, "1 constd %d %d\n", num_bits, i);
+        fprintf (g_infile, "2 constd %d %d\n", num_bits, j);
+        fprintf (g_infile, "3 %s 1 1 2\n", func_name);
+        fprintf (g_infile, "4 root 1 3\n");
+        fclose (g_infile);
+        g_infile = fopen (g_infile_name, "r");
+        assert (g_infile != NULL);
+        g_outfile = fopen (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME, "w");
+        assert (g_outfile != NULL);
+        parse_res = boolector_parse_btor (g_btor,
+                                          g_infile,
+                                          g_infile_name,
+                                          g_outfile,
+                                          &g_parse_err,
+                                          &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         sat_res = boolector_sat (g_btor);
         assert (sat_res == BOOLECTOR_SAT || sat_res == BOOLECTOR_UNSAT);
         if (sat_res == BOOLECTOR_SAT) overflow_boolector = true;
         if (overflow_boolector) assert (overflow_test);
         if (overflow_test) assert (overflow_boolector);
-        fclose (infile);
-        fclose (outfile);
+        fclose (g_infile);
+        fclose (g_outfile);
         boolector_delete (g_btor);
 #ifndef TEST_OVERFLOW_KEEP_BENCHMARKS
-        assert (remove (infile_name) == 0);
+        assert (remove (g_infile_name) == 0);
 #endif
         assert (remove (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME) == 0);
-        free (infile_name);
+        BTOR_DELETEN (g_mm, g_infile_name, len_infile_name);
       }
     }
   }
@@ -130,15 +138,12 @@ s_overflow_test (int32_t (*func) (int32_t, int32_t),
   assert (low > 0);
   assert (low <= high);
 
-  FILE *infile  = NULL;
-  FILE *outfile = NULL;
-  char *infile_name;
   int32_t i, j;
   bool overflow_test, overflow_boolector;
   int32_t const1_id, const2_id, result, num_bits, max;
   int32_t parse_res, parse_status;
-  char *parse_err;
   int32_t sat_res;
+  size_t len_infile_name;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -158,33 +163,34 @@ s_overflow_test (int32_t (*func) (int32_t, int32_t),
           overflow_boolector = false;
           result             = func (i, j);
           if (!(result >= -max && result < max)) overflow_test = true;
-          infile_name = (char *) malloc (
-              sizeof (char)
-              * (strlen (func_name) + btor_util_num_digits (num_bits)
-                 + btor_util_num_digits (i) + btor_util_num_digits (j) + 20));
-          sprintf (infile_name,
+          len_infile_name = strlen (func_name) + btor_util_num_digits (num_bits)
+                            + btor_util_num_digits (i)
+                            + btor_util_num_digits (j) + 20;
+          BTOR_NEWN (g_mm, g_infile_name, len_infile_name);
+          sprintf (g_infile_name,
                    "overflow_%s_%d_%d_%d.btor",
                    func_name,
                    num_bits,
                    i,
                    j);
-          infile = fopen (infile_name, "w");
-          assert (infile != NULL);
+          g_infile = fopen (g_infile_name, "w");
+          assert (g_infile != NULL);
           if (i < 0)
           {
-            fprintf (infile, "1 constd %d %d\n", num_bits, -i);
-            fprintf (infile, "2 neg %d 1\n", num_bits);
+            fprintf (g_infile, "1 constd %d %d\n", num_bits, -i);
+            fprintf (g_infile, "2 neg %d 1\n", num_bits);
             const1_id = 2;
           }
           else
           {
-            fprintf (infile, "1 constd %d %d\n", num_bits, i);
+            fprintf (g_infile, "1 constd %d %d\n", num_bits, i);
             const1_id = 1;
           }
           if (j < 0)
           {
-            fprintf (infile, "%d constd %d %d\n", const1_id + 1, num_bits, -j);
-            fprintf (infile,
+            fprintf (
+                g_infile, "%d constd %d %d\n", const1_id + 1, num_bits, -j);
+            fprintf (g_infile,
                      "%d neg %d %d\n",
                      const1_id + 2,
                      num_bits,
@@ -193,38 +199,42 @@ s_overflow_test (int32_t (*func) (int32_t, int32_t),
           }
           else
           {
-            fprintf (infile, "%d constd %d %d\n", const1_id + 1, num_bits, j);
+            fprintf (g_infile, "%d constd %d %d\n", const1_id + 1, num_bits, j);
             const2_id = const1_id + 1;
           }
 
-          fprintf (infile,
+          fprintf (g_infile,
                    "%d %s 1 %d %d\n",
                    const2_id + 1,
                    func_name,
                    const1_id,
                    const2_id);
-          fprintf (infile, "%d root 1 %d\n", const2_id + 2, const2_id + 1);
-          fclose (infile);
-          infile = fopen (infile_name, "r");
-          assert (infile != NULL);
-          outfile = fopen (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME, "w");
-          assert (outfile != NULL);
-          parse_res = boolector_parse_btor (
-              g_btor, infile, infile_name, outfile, &parse_err, &parse_status);
+          fprintf (g_infile, "%d root 1 %d\n", const2_id + 2, const2_id + 1);
+          fclose (g_infile);
+          g_infile = fopen (g_infile_name, "r");
+          assert (g_infile != NULL);
+          g_outfile = fopen (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME, "w");
+          assert (g_outfile != NULL);
+          parse_res = boolector_parse_btor (g_btor,
+                                            g_infile,
+                                            g_infile_name,
+                                            g_outfile,
+                                            &g_parse_err,
+                                            &parse_status);
           assert (parse_res != BOOLECTOR_PARSE_ERROR);
           sat_res = boolector_sat (g_btor);
           assert (sat_res == BOOLECTOR_SAT || sat_res == BOOLECTOR_UNSAT);
           if (sat_res == BOOLECTOR_SAT) overflow_boolector = true;
           if (overflow_boolector) assert (overflow_test);
           if (overflow_test) assert (overflow_boolector);
-          fclose (infile);
-          fclose (outfile);
+          fclose (g_infile);
+          fclose (g_outfile);
           boolector_delete (g_btor);
 #ifndef TEST_OVERFLOW_KEEP_BENCHMARKS
-          assert (remove (infile_name) == 0);
+          assert (remove (g_infile_name) == 0);
 #endif
           assert (remove (BTOR_TEST_OVERFLOW_TEMP_OUTFILE_NAME) == 0);
-          free (infile_name);
+          BTOR_DELETEN (g_mm, g_infile_name, len_infile_name);
         }
       }
     }
@@ -349,4 +359,5 @@ run_overflow_tests (int32_t argc, char **argv)
 void
 finish_overflow_tests (void)
 {
+  btor_mem_mgr_delete (g_mm);
 }
