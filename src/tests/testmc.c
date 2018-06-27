@@ -11,6 +11,7 @@
 #include "boolectormc.h"
 #include "btornode.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -20,12 +21,14 @@
 
 static BtorMC *g_mc;
 static Btor *g_btor;
+static BtorMemMgr *g_mm;
 
 void
 init_mc_tests (void)
 {
   assert (!g_mc);
   assert (!g_btor);
+  g_mm = btor_mem_mgr_new ();
 }
 
 void
@@ -84,6 +87,7 @@ test_mctoggle ()
   char *fname, *suffix = "mctoggle.log";
   FILE *file;
   BoolectorSort s;
+  size_t len;
 
   for (mode = 0; mode < 2; mode++)
   {
@@ -116,8 +120,8 @@ test_mctoggle ()
 
     if (mode)
     {
-      fname = (char *) malloc (sizeof (char)
-                               * (strlen (btor_log_dir) + strlen (suffix) + 1));
+      len = strlen (btor_log_dir) + strlen (suffix) + 1;
+      BTOR_NEWN (g_mm, fname, len);
       sprintf (fname, "%s%s", btor_log_dir, suffix);
       file = fopen (fname, "w");
       assert (file);
@@ -129,7 +133,7 @@ test_mctoggle ()
         PRINT (bit, i);
       }
       fclose (file);
-      free (fname);
+      BTOR_DELETEN (g_mm, fname, len);
     }
 
     boolector_release (g_btor, bit);
@@ -148,6 +152,7 @@ test_mccount2enable ()
   char *fname, *suffix = "mccount2enable.log";
   FILE *file;
   BoolectorSort s1, s2;
+  size_t len;
 
   for (mode = 0; mode < 2; mode++)
   {
@@ -188,8 +193,8 @@ test_mccount2enable ()
 
     if (mode)
     {
-      fname = (char *) malloc (sizeof (char)
-                               * (strlen (btor_log_dir) + strlen (suffix) + 1));
+      len = strlen (btor_log_dir) + strlen (suffix) + 1;
+      BTOR_NEWN (g_mm, fname, len);
       sprintf (fname, "%s%s", btor_log_dir, suffix);
       file = fopen (fname, "w");
       assert (file);
@@ -206,7 +211,7 @@ test_mccount2enable ()
         PRINT (enable, i);
       }
       fclose (file);
-      free (fname);
+      BTOR_DELETEN (g_mm, fname, len);
     }
 
     boolector_release (g_btor, counter);
@@ -227,6 +232,7 @@ test_mccount2resetenable ()
   char *fname, *suffix = "mccount2resetenable.log";
   FILE *file;
   BoolectorSort s1, s2;
+  size_t len;
 
   init_mc_test ();
 
@@ -267,8 +273,8 @@ test_mccount2resetenable ()
   k = boolector_mc_bmc (g_mc, 0, 4);
   assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
-  fname = (char *) malloc (sizeof (char)
-                           * (strlen (btor_log_dir) + strlen (suffix) + 1));
+  len = strlen (btor_log_dir) + strlen (suffix) + 1;
+  BTOR_NEWN (g_mm, fname, len);
   sprintf (fname, "%s%s", btor_log_dir, suffix);
   file = fopen (fname, "w");
   assert (file);
@@ -283,7 +289,7 @@ test_mccount2resetenable ()
     PRINT (enable, i);
   }
   fclose (file);
-  free (fname);
+  BTOR_DELETEN (g_mm, fname, len);
 
   boolector_release (g_btor, counter);
   boolector_release (g_btor, enable);
@@ -304,6 +310,7 @@ test_mctwostepsmodel ()
   BoolectorNode * bad, * bada, *badb;
   BoolectorSort s;
   char *fname, *suffix = "mctwostepsmodel.log";
+  size_t len;
 
   init_mc_test ();
 
@@ -346,8 +353,8 @@ test_mctwostepsmodel ()
   k = boolector_mc_bmc (g_mc, 0, 2);
   assert (k == 2);			// can reach bad within k=2 steps
 
-  fname = (char *) malloc (
-      sizeof (char) * (strlen (btor_log_dir) + strlen (suffix) + 1));
+  len = strlen (btor_log_dir) + strlen (suffix) + 1;
+  BTOR_NEWN (g_mm, fname, len);
   sprintf (fname, "%s%s", btor_log_dir, suffix);
   file = fopen (fname, "w");
   assert (file);
@@ -386,7 +393,7 @@ test_mctwostepsmodel ()
       PRINT (bad, i);
     }
   fclose (file);
-  free (fname);
+  BTOR_DELETEN (g_mm, fname, len);
 
   boolector_release (g_btor, or);
   boolector_release (g_btor, xor);
