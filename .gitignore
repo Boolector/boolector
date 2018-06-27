@@ -10,8 +10,5 @@
 *.swp
 *.trace
 makefile
-python.mk
-setup.py
-bin/
 build/
 doc/

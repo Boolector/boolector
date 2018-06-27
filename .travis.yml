@@ -28,8 +28,8 @@ before_script:
   - ./contrib/setup-lingeling.sh
 
 script:
-  - ./configure-cmake.sh "${BTOR_CONFIG}"
-  - cd cmake-build
+  - ./configure.sh "${BTOR_CONFIG}"
+  - cd build
   - make -j2
   - bin/test
 

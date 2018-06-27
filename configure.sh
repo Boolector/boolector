@@ -1,34 +1,87 @@
 #!/bin/sh
+#--------------------------------------------------------------------------#
 
-cd `dirname $0`
+BUILDDIR=build
+
+#--------------------------------------------------------------------------#
 
 asan=no
-debug=unknown
+debug=no
 check=no
-log=unknown
-flto=no
+log=no
 shared=no
-static=no
 
-ROOT=`dirname "$(readlink -f $0)"|sed -e 's, ,\\ ,g'`
+btor2_dir=unknown
 
-lingeling=yes
+lingeling=unknown
 minisat=unknown
 picosat=unknown
 cadical=unknown
-btor2tools=yes   # Note: required dependency, may change in the future
 
-onlylingeling=no
-onlyminisat=no
-onlypicosat=no
-onlycadical=no
+lingeling_dir=unknown
+minisat_dir=unknown
+picosat_dir=unknown
+cadical_dir=unknown
 
 gcov=no
 gprof=no
 python=no
 timestats=no
 
-flags=none
+flags=""
+
+#--------------------------------------------------------------------------#
+
+usage () {
+cat <<EOF
+usage: ./configure.sh [<option> ...]
+
+where <option> is one of the following:
+
+  -h, --help        print this message and exit
+
+  -g                compile with debugging support
+  -f...|-m...       add compiler options
+
+  --shared          shared library
+
+  -l                compile with logging support (default for '-g')
+  -c                check assertions even in optimized compilation
+  --asan            compile with -fsanitize=address -fsanitize-recover=address
+  --gcov            compile with -fprofile-arcs -ftest-coverage
+  --gprof           compile with -pg
+
+  --python          compile python API
+  --time-stats      compile with time statistics
+
+  --btor2tools-dir  the location of the btor2tools package (optional)
+                    default: <boolector_root_dir>/../btor2tools
+
+By default all supported SAT solvers available are used and linked.
+If explicitly enabled, configuration will fail if the SAT solver library 
+can not be found.
+
+  --no-cadical           do not use CaDiCaL
+  --no-lingeling         do not use Lingeling
+  --no-minisat           do not use MiniSAT
+  --no-picosat           do not use PicoSAT
+
+  --only-cadical         only use CaDiCaL
+  --only-lingeling       only use Lingeling
+  --only-minisat         only use MiniSAT
+  --only-picosat         only use PicoSAT
+
+  --cadical-dir <dir>    CaDiCaL root directory (optional)
+                         default: <boolector_root_dir>/../cadical
+  --lingeling-dir <dir>  Lingeling root directory (optional)
+                         default: <boolector_root_dir>/../lingeling
+  --minisat-dir <dir>    MiniSat root directory (optional)
+                         default: <boolector_root_dir>/../minisat
+  --picosat-dir <dir>    PicoSAT root directory (optional)
+                         default: <boolector_root_dir>/../picosat
+EOF
+  exit 0
+}
 
 #--------------------------------------------------------------------------#
 
@@ -43,90 +96,78 @@ msg () {
 
 #--------------------------------------------------------------------------#
 
-usage () {
-cat <<EOF
-usage: ./configure.sh [<option> ...]
-
-where <option> is one of the following:
-
-  -O                optimized compilation (default)
-  -flto             enable link time optimization
-  -static           static compilation
-  -g                compile with debugging support
-  -l                compile with logging support (default for '-g')
-  -c                check assertions even in optimized compilation
-  -m{32,64}         force 32-bit or 64-bit compilation
-  -shared           shared library
-  -asan             compile with -fsanitize=address -fsanitize-recover=address
-  -gcov             compile with -fprofile-arcs -ftest-coverage
-  -gprof            compile with -pg
-  -python           compile python API
-  --time-stats      compile with time statistics
-  -f...|-m...       add compiler options
-
-By default all supported SAT solvers are used and linked into
-the binary if they can be found in the parent directory.
-
-By specifying one of them 'configure.sh' fails if it can not be used.
-
-  --lingeling       use and link with Lingeling (default)
-  --picosat         use and link with PicoSAT
-  --minisat         use and link with MiniSAT
-  --cadical         use and link with CaDiCaL
-
-Disable compilation of specific SAT solver back-ends:
-
-  --no-lingeling    do not use Lingeling
-  --no-picosat      do not use PicoSAT
-  --no-minisat      do not use MiniSAT
-  --no-cadical      do not use CaDiCaL
-
-  --only-lingeling  only use Lingeling
-  --only-picosat    only use PicoSAT
-  --only-minisat    only use MiniSAT
-  --only-cadical    only use CaDiCaL
-
-You might also want to use the environment variables
-CC and CXX to specify the used C and C++ compiler, as in
-
-  CC=gcc-4.4 CXX=g++-4.4 ./configure.sh
-
-which forces to use 'gcc-4.4' and 'g++-4.4'.
-EOF
-  exit 0
-}
-
-#--------------------------------------------------------------------------#
+[ ! -e src/boolector.h ] && die "$0 not called from Boolector base directory"
 
 while [ $# -gt 0 ]
 do
   case $1 in
+    -h|--help) usage;;
+
     -g) debug=yes;;
-    -l) log=yes;;
-    -O) debug=no;;
-    -c) check=yes;;
-    -flto) flto=yes;;
-    -shared) shared=yes;;
-    -static) static=yes;;
-    -picosat|--picosat) picosat=yes;;
-    -no-picosat|--no-picosat) picosat=no;;
-    -lingeling|--lingeling) lingeling=yes;;
-    -no-lingeling|--no-lingeling) lingeling=no;;
-    -only-lingeling|--only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;;
-    -only-picosat|--only-picosat) lingeling=no;minisat=no;picosat=yes;cadical=no;;
-    -only-minisat|--only-minisat) lingeling=no;minisat=yes;picosat=no;cadical=no;;
-    -only-cadical|--only-cadical) lingeling=no;minisat=no;picosat=no;cadical=yes;;
-    -minisat|--minisat) minisat=yes;;
-    -no-minisat|--no-minisat) minisat=no;;
-    -cadical|--cadical) cadical=yes;;
-    -no-cadical|--no-cadical) cadical=no;;
-    -h|-help|--help) usage;;
-    -asan) asan=yes;;
-    -gcov) gcov=yes;;
-    -gprof) gprof=yes;;
-    -python) python=yes;shared=yes;;
+    -f*|-m*) if [ -z "$flags" ]; then flags=$1; else flags="$flags;$1"; fi;;
+
+    --shared) shared=yes;;
+
+    -l)      log=yes;;
+    -c)      check=yes;;
+    --asan)  asan=yes;;
+    --gcov)  gcov=yes;;
+    --gprof) gprof=yes;;
+
+    --python)     python=yes;;
     --time-stats) timestats=yes;;
-    -f*|-m*) if [ $flags = none ]; then flags=$1; else flags="$flags $1"; fi;;
+
+    --btor2tools-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --btor2tools-dir"
+      fi
+      btor2_dir=$1
+      ;;
+    --no-cadical)   cadical=no;;
+    --no-lingeling) lingeling=no;;
+    --no-minisat)   minisat=no;;
+    --no-picosat)   picosat=no;;
+
+    --only-cadical)   lingeling=no;minisat=no;picosat=no;cadical=yes;;
+    --only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;;
+    --only-minisat)   lingeling=no;minisat=yes;picosat=no;cadical=no;;
+    --only-picosat)   lingeling=no;minisat=no;picosat=yes;cadical=no;;
+
+    --cadical-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --cadical-dir"
+      fi
+      cadical_dir=$1
+      ;;
+    --lingeling-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --lingeling-dir"
+      fi
+      lingeling_dir=$1
+      ;;
+    --minisat-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --minisat-dir"
+      fi
+      minisat_dir=$1
+      ;;
+    --picosat-dir)
+      shift
+      if [ $# -eq 0 ]
+      then
+        die "missing argument to --picosat-dir"
+      fi
+      picosat_dir=$1
+      ;;
+
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
@@ -134,558 +175,41 @@ done
 
 #--------------------------------------------------------------------------#
 
-addstcpp () {
-  if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
-  then
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-lstdc++"
-    msg "need to link against 'libstdc++'"
-  fi
-}
+cmake_opts=""
 
-#--------------------------------------------------------------------------#
+[ $asan = yes ] && cmake_opts="$cmake_opts -DASAN=ON"
+[ $debug = yes ] && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=Debug"
+[ $check = yes ] && cmake_opts="$cmake_opts -DCHECK=ON"
+[ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
+[ $shared = yes ] && cmake_opts="$cmake_opts -DSHARED=ON"
 
-if [ $debug = yes ]
-then
-  msg "compiling for debugging as specified"
-  timestats=yes
-else
-  msg "optimized compilation (no '-g')"
-fi
+[ $btor2_dir = unknown ] || cmake_opts="$cmake_opts -DBTOR2_ROOT_DIR=$btor2_dir"
 
-#--------------------------------------------------------------------------#
+[ $cadical = yes ] && cmake_opts="$cmake_opts -DUSE_CADICAL=ON"
+[ $lingeling = yes ] && cmake_opts="$cmake_opts -DUSE_LINGELING=ON"
+[ $minisat = yes ] && cmake_opts="$cmake_opts -DUSE_MINISAT=ON"
+[ $picosat = yes ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=ON"
 
-BINDIR="bin"
-BUILDIR="build"
-TESTDIR="tests"
-SRCDIR="src"
+[ $cadical = no ] && cmake_opts="$cmake_opts -DUSE_CADICAL=OFF"
+[ $lingeling = no ] && cmake_opts="$cmake_opts -DUSE_LINGELING=OFF"
+[ $minisat = no ] && cmake_opts="$cmake_opts -DUSE_MINISAT=OFF"
+[ $picosat = no ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=OFF"
 
-SRCDIRS="src src/dumper src/parser src/sat src/simplifier src/normalizer src/utils"
-if [ $python = yes ]
-then
-  SRCDIRS="$SRCDIRS $SRCDIR/api/python"
-fi
-for additional in tests
-do
-  [ -d src/$additional ] && SRCDIRS="$SRCDIRS src/$additional"
-done
+[ $gcov = yes ] && cmake_opts="$cmake_opts -DGCOV=ON"
+[ $gprof = yes ] && cmake_opts="$cmake_opts -DGPROF=ON"
 
+[ $python = yes ] && cmake_opts="$cmake_opts -DPYTHON=ON"
+[ $timestats = yes ] && cmake_opts="$cmake_opts -DTIME_STATS=ON"
 
-#--------------------------------------------------------------------------#
+[ -n "$flags" ] && cmake_opts="$cmake_opts -DFLAGS=$flags"
 
-TARGETS="$BINDIR/boolector"
-[ $shared = yes ] && TARGETS="$TARGETS $BUILDIR/libboolector.so"
+[ $cadical_dir = unknown ] || cmake_opts="$cmake_opts -DCADICAL_ROOT_DIR=$cadical_dir"
+[ $lingeling_dir = unknown ] || cmake_opts="$cmake_opts -DLINGELING_ROOT_DIR=$lingeling_dir"
+[ $minisat_dir = unknown ] || cmake_opts="$cmake_opts -DMINISAT_ROOT_DIR=$minisat_dir"
+[ $picosat_dir = unknown ] || cmake_opts="$cmake_opts -DPICOSAT_ROOT_DIR=$picosat_dir"
 
-#--------------------------------------------------------------------------#
+mkdir -p $BUILDDIR
+cd $BUILDDIR
 
-if [ X"$CFLAGS" = X ]
-then
-  [ $debug = unknown ] && debug=no
-  CFLAGS="-W -Wall -Wextra -Wredundant-decls"
-  [ $static = yes ] && CFLAGS="$CFLAGS -static"
-  [ $shared = yes ] && CFLAGS="$CFLAGS -fPIC"
-  if [ $debug = yes ]
-  then
-    CFLAGS="$CFLAGS -g3 -ggdb"
-  else
-    CFLAGS="$CFLAGS -O3"
-    [ $check = no ] && CFLAGS="$CFLAGS -DNDEBUG"
-    [ $flto = yes ] && CFLAGS="$CFLAGS -flto"
-  fi
-  [ $flags = none ] || CFLAGS="$CFLAGS $flags"
-elif [ $debug = yes ]
-then
-  die "CFLAGS environment variable defined and '-g' used"
-elif [ $debug = no ]
-then
-  die "CFLAGS environment variable defined and '-O' used"
-fi
-
-[ $timestats = yes ] && CFLAGS="$CFLAGS -DBTOR_TIME_STATISTICS"
-[ $timestats = no ] && msg "time statistics are disabled (no '--time-stats')"
-
-#--------------------------------------------------------------------------#
-
-if [ $log = yes ]
-then
-  msg "compiling with logging support (as specified)"
-elif [ $log = no ]
-then
-  die "internal configuration error: logging disabled"
-elif [ $debug = yes ]
-then
-  msg "compiling with logging support (default for debugging)"
-  log=yes
-else
-  msg "compiling without logging support (default for no debugging)"
-  log=no
-fi
-
-[ $log = no ] && CFLAGS="$CFLAGS -DNBTORLOG"
-[ $asan = yes ] && CFLAGS="$CFLAGS -fsanitize=address -fsanitize-recover=address"
-[ $gcov = yes ] && CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-[ $gprof = yes ] && CFLAGS="$CFLAGS -pg"
-
-#--------------------------------------------------------------------------#
-
-LIBS="-L$BUILDIR -lpthread"
-OBJS=""
-INCS="-I$SRCDIR -I$BUILDIR"
-LDEPS="$BUILDIR/libboolector.a"
-
-LIBZ=no
-LIBM=no
-LIBSTDCPP=no
-RPATHS="-rpath\,$ROOT/$BUILDIR"
-if [ $shared = yes ]
-then
-  LDEPS="$BUILDIR/libboolector.so"
-  LIBSTDCPP=yes
-fi
-
-#--------------------------------------------------------------------------#
-
-if [ $btor2tools = yes ]
-then
-  if [ ! -d $ROOT/../btor2tools ]
-  then
-    die "btor2tools missing"
-  fi
-  if [ $shared = yes -a ! -f $ROOT/../btor2tools/build/libbtor2parser.so ]
-  then
-    die "libbtor2parser.so not found. Compile btor2tools as shared library"
-  elif [ $shared = no -a ! -f $ROOT/../btor2tools/build/libbtor2parser.a ]
-  then
-    die "libbtor2parser.a library not found. Compile btor2tools first."
-  fi
-  if [ $shared = yes ]
-  then
-    LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
-    LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.so"
-  else
-    LIBS="${LIBS} -L$ROOT/../btor2tools/build -lbtor2parser"
-    LDEPS="${LDEPS} $ROOT/../btor2tools/build/libbtor2parser.a"
-  fi
-  INCS="${INCS} -I$ROOT/../btor2tools/src"
-  RPATHS="${RPATHS}\,-rpath\,$ROOT/../btor2tools/build"
-else
-  msg "no using BTOR2Tools"
-fi
-
-#--------------------------------------------------------------------------#
-
-if [ $picosat = no ]
-then
-  msg "not using PicoSAT"
-else
-
-  if [ -d $ROOT/../picosat ]
-  then
-    for path in $ROOT/../picosat/picosat.o $ROOT/../picosat/version.o allfound
-    do
-      [ -f $path ] || break
-    done
-  else
-    path=$ROOT/../picosat
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using PicoSAT in '$ROOT/../picosat'"
-    picosat=yes
-  elif [ $picosat = yes ]
-  then
-    die "impossible to use PicoSAT: '$path' missing"
-  else
-    msg "disabling PicoSAT: '$path' missing"
-    picosat=no
-  fi
-
-  if [ $picosat = yes ]
-  then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$INCS" = X ] || INCS="$INCS "
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    RPATHS="${RPATHS}\,-rpath\,$ROOT/../picosat/"
-    if [ $shared = yes ]		
-    then
-      LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
-      LDEPS="${LDEPS}$ROOT/../picosat/libpicosat.so"
-    else
-      LIBS="${LIBS}-L$ROOT/../picosat -lpicosat"
-      LDEPS="${LDEPS}$ROOT/../picosat/libpicosat.a"
-    fi
-    INCS="${INCS}-I$ROOT/../picosat"
-  fi
-fi
-
-#--------------------------------------------------------------------------#
-
-if [ $lingeling = no ]
-then
-  msg "not using Lingeling as requested by command line option"
-else
-
-  if [ -d $ROOT/../lingeling ]
-  then
-    for path in $ROOT/../lingeling/lglib.h $ROOT/../lingeling/liblgl.a allfound
-    do
-      [ -f $path ] || break
-    done
-  else
-    path=$ROOT/../lingeling
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using Lingeling in '$ROOT/../lingeling'"
-    lingeling=yes
-  elif [ $lingeling = yes ]
-  then
-    die "impossible to use Lingeling: '$path' missing"
-  else
-    msg "disabling Lingeling: '$path' missing"
-    lingeling=no
-  fi
-
-  if [ $lingeling = yes ]
-  then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    [ X"$INCS" = X ] || INCS="$INCS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
-    LIBS="${LIBS}-L$ROOT/../lingeling -llgl"
-    LDEPS="${LDEPS}$ROOT/../lingeling/liblgl.a"
-    LIBM=yes
-    INCS="${INCS}-I$ROOT/../lingeling"
-  fi
-
-  if [ -d $ROOT/../yalsat ]
-  then
-    for path in $ROOT/../yalsat/yals.h $ROOT/../yalsat/libyals.a allfound
-    do
-      [ -f $path ] || break
-    done
-  else
-    path=$ROOT/../yalsat
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using YalSAT in '$ROOT/../yalsat' too"
-    yalsat=yes
-  else
-    msg "not using YalSAT"
-    yalsat=no
-  fi
-
-  if [ $yalsat = yes ]
-  then
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-L$ROOT/../yalsat -lyals"
-    LDEPS="${LDEPS}$ROOT/../yalsat/libyals.a"
-  fi
-
-  if [ -d $ROOT/../druplig ]
-  then
-    for path in $ROOT/../druplig/druplig.h $ROOT/../druplig/libdruplig.a allfound
-    do
-      [ -f $path ] || break
-    done
-  else
-    path=$ROOT/../druplig
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using Druplig in '$ROOT/../druplig' too"
-    druplig=yes
-  else
-    msg "not using Druplig"
-    druplig=no
-  fi
-
-  if [ $druplig = yes ]
-  then
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-L$ROOT/../druplig -ldruplig"
-    LDEPS="${LDEPS}$ROOT/../druplig/libdruplig.a"
-  fi
-fi
-
-#--------------------------------------------------------------------------#
-
-if [ $minisat = no ]
-then
-  msg "not using MiniSAT"
-else
-
-  for path in \
-    $ROOT/../minisat \
-    $ROOT/../minisat/minisat \
-    $ROOT/../minisat/minisat/simp \
-    $ROOT/../minisat/build/release \
-    allfound
-  do
-    [ -d $path ] || break
-  done
-
-  if [ $path = allfound ]
-  then
-    for path in \
-      $ROOT/../minisat/minisat/simp/SimpSolver.h \
-      $ROOT/../minisat/build/release/lib/libminisat.a \
-      allfound
-    do
-      [ -f $path ] || break
-    done
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using MiniSAT in '$ROOT/../minisat'"
-    minisat=yes
-  elif [ $minisat = yes ]
-  then
-    die "impossible to use MiniSAT: '$path' missing"
-  else
-    msg "disabling MiniSAT: '$path' missing"
-  fi
-
-  if [ $minisat = yes ]
-  then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    [ X"$INCS" = X ] || INCS="$INCS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
-    OBJS="${OBJS}$BUILDIR/sat/btorminisat.o"
-    RPATHS="${RPATHS}\,-rpath\,$ROOT/../minisat/build/dynamic/lib"
-    if [ $shared = yes ]
-    then
-      LIBS="${LIBS}-L$ROOT/../minisat/build/dynamic/lib -lminisat"
-      LDEPS="${LDEPS}$ROOT/../minisat/build/dynamic/lib/libminisat.so"
-    else
-      LIBS="${LIBS}-L$ROOT/../minisat/build/release/lib -lminisat"
-      LDEPS="${LDEPS}$ROOT/../minisat/build/release/lib/libminisat.a"
-    fi
-    LIBSTDCPP=yes
-    LIBZ=yes
-    LIBM=yes
-    INCS="${INCS}-I$ROOT/../minisat"
-  fi
-
-fi
-
-if [ $cadical = no ]
-then
-  msg "not using CaDiCaL"
-else
-
-  for path in \
-    $ROOT/../cadical \
-    $ROOT/../cadical/build \
-    allfound
-  do
-    [ -d $path ] || break
-  done
-
-  if [ $path = allfound ]
-  then
-    for path in \
-      $ROOT/../cadical/build/libcadical.a \
-      allfound
-    do
-      [ -f $path ] || break
-    done
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using CaDiCaL in '$ROOT/../cadical'"
-    cadical=yes
-  elif [ $cadical = yes ]
-  then
-    die "impossible to use CaDiCaL: '$path' missing"
-  else
-    msg "disabling CaDiCaL: '$path' missing"
-  fi
-
-  if [ $cadical = yes ]
-  then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
-    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    [ X"$INCS" = X ] || INCS="$INCS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_CADICAL"
-    RPATHS="${RPATHS}\,-rpath=$ROOT/../cadical/build/"
-    if [ $shared = yes ]
-    then
-      LIBS="${LIBS}-L$ROOT/../cadical/build -lcadical"
-      LDEPS="${LDEPS}$ROOT/../cadical/build/libcadical.a"
-    else
-      LIBS="${LIBS}-L$ROOT/../cadical/build -lcadical"
-      LDEPS="${LDEPS}$ROOT/../cadical/build/libcadical.a"
-    fi
-    LIBSTDCPP=yes
-    LIBM=yes
-    INCS="${INCS}-I$ROOT/../cadical/src"
-  fi
-fi
-
-#--------------------------------------------------------------------------#
-
-[ $picosat = no -a $lingeling = no -a $minisat = no -a $cadical = no ] && \
-  die "either need MiniSAT, PicoSAT, Lingeling or CaDiCaL"
-
-#--------------------------------------------------------------------------#
-
-
-if [ $LIBSTDCPP = yes ]
-then
-  [ X"$LIBS" = X ] || LIBS="$LIBS "
-  LIBS="${LIBS}-lstdc++"
-  msg "linking against 'libstdc++'"
-fi
-
-if [ $LIBZ = yes ]
-then
-  [ X"$LIBS" = X ] || LIBS="$LIBS "
-  LIBS="${LIBS}-lz"
-  msg "linking against 'libz'"
-fi
-
-if [ $LIBM = yes ]
-then
-  [ X"$LIBS" = X ] || LIBS="$LIBS "
-  LIBS="${LIBS}-lm"
-  msg "linking against 'libm'"
-fi
-
-#--------------------------------------------------------------------------#
-
-LIBS="-Wl\,${RPATHS} ${LIBS}"
-
-if [ $python = yes ]
-then
-  # set default python command if no PYTHON environment variable was set
-  [ -z "$PYTHON" ] && PYTHON="python"
-  # check if set python command exists
-  type "$PYTHON" > /dev/null 2>&1
-  [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
-
-  py_libraries="boolector"
-  py_library_dirs="$ROOT/$BUILDIR"
-  py_inc_dirs=""
-  if [ $lingeling = yes ]; then
-    py_libraries="$py_libraries lgl"
-    py_library_dirs="$py_library_dirs $ROOT/../lingeling"
-    py_inc_dirs="$py_inc_dirs $ROOT/../lingeling"
-  fi
-  if [ $picosat = yes ]; then
-    py_libraries="$py_libraries picosat"
-    py_library_dirs="$py_library_dirs $ROOT/../picosat"
-    py_inc_dirs="$py_inc_dirs $ROOT/../picosat"
-  fi
-  if [ $minisat = yes ]; then
-    py_libraries="$py_libraries minisat"
-    py_library_dirs="$py_library_dirs $ROOT/../minisat/build/dynamic/lib"
-    py_inc_dirs="$py_inc_dirs $ROOT/../minisat/build/dynamic/lib"
-  fi
-  if [ $cadical = yes ]; then
-    py_libraries="$py_libraries cadical"
-    py_library_dirs="$py_library_dirs $ROOT/../cadical/build"
-    py_inc_dirs="$py_inc_dirs $ROOT/../cadical/build"
-  fi
-  if [ $btor2tools = yes ]; then
-    py_libraries="$py_libraries btor2parser"
-    py_library_dirs="$py_library_dirs $ROOT/../btor2tools/build"
-    py_inc_dirs="$py_inc_dirs $ROOT/../btor2tools/build"
-  fi
-  OBJS="$BUILDIR/api/python/boolector_py.o $OBJS"
-  pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
-  pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
-  pyld=`basename $pyinc`
-  INCS="${INCS} -I$pyinc"
-  LIBS="${LIBS} -L$pylib -l$pyld"
-  cat > setup.py <<EOF
-import os
-from distutils.core import setup
-from distutils.extension import Extension
-from Cython.Build import cythonize
-cwd=os.getcwd()
-ext_modules=[
-    Extension("boolector",
-        sources=["$SRCDIR/api/python/pyboolector.pyx"],
-        include_dirs="$SRCDIR $SRCDIR/api/python $py_inc_dirs".split(),
-        library_dirs="$py_library_dirs".split(),
-        libraries="$py_libraries".split(),
-        extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-        extra_link_args=["-Wl,-rpath,"+":".join("$py_library_dirs".split())]
-    ),
-]
-setup(ext_modules=cythonize(ext_modules,
-                            build_dir="$BUILDIR",
-                            include_path=["$BUILDIR/api/python"]))
-EOF
-
-cat > python.mk <<EOF
-
-all: python
-
-python: \$(BUILDIR)/api/python/boolector_py.o setup.py
-	$PYTHON setup.py build_ext -b $BUILDIR
-	@echo "Compiled Boolector Python module."
-	@echo "Please read $SRCDIR/api/python/README on how to use the module"
-
-python-clean:
-	rm -f python.mk setup.py
-
-clean: python-clean
-
-EOF
-
-opts=`grep "BTOR_OPT.*," $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
-mkdir -p $BUILDIR/api/python/
-echo "$opts" > $BUILDIR/api/python/pyboolector_options.pxd
-
-else
-  touch python.mk
-fi
-
-
-#--------------------------------------------------------------------------#
-
-[ "X$CC" = X ] && CC=gcc
-[ "X$CXX" = X ] && CXX=g++
-
-msg "CC=$CC"
-msg "CFLAGS=$CFLAGS"
-msg "LIBS=$LIBS"
-msg "OBJS=$OBJS"
-msg "INCS=$INCS"
-
-sed \
-  -e "s,@CC@,$CC," \
-  -e "s,@CXX@,$CXX," \
-  -e "s,@INCS@,$INCS," \
-  -e "s,@CFLAGS@,$CFLAGS," \
-  -e "s,@LIBS@,$LIBS," \
-  -e "s,@LDEPS@,$LDEPS," \
-  -e "s,@OBJS@,$OBJS," \
-  -e "s,@TARGETS@,$TARGETS," \
-  -e "s,@SRCDIR@,$SRCDIR," \
-  -e "s,@SRCDIRS@,$SRCDIRS," \
-  -e "s,@BUILDIR@,$BUILDIR," \
-  -e "s,@BINDIR@,$BINDIR," \
-  -e "s,@TESTDIR@,$TESTDIR," \
-  -e "s,@ROOT@,$ROOT,"\
-  $ROOT/makefile.in > $ROOT/makefile
-msg "makefile generated"
+[ -e CMakeCache.txt ] && rm CMakeCache.txt
+cmake .. $cmake_opts
