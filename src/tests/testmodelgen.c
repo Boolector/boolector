@@ -22,9 +22,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+static BtorMemMgr *g_mm = NULL;
+
 void
 init_modelgen_tests (void)
 {
+  g_mm = btor_mem_mgr_new ();
 }
 
 static void
@@ -33,31 +36,33 @@ modelgen_test (const char *fname, int32_t rwl)
   assert (rwl >= 0);
   assert (rwl <= 3);
 
-  char *btor_fname, *log_fname, *syscall_string;
-  size_t len;
+  char *btor_fname, *log_fname;
+  size_t len, len_btor_fname, len_btor, len_log_fname, len_log;
+  char *syscall_string;
+  size_t len_syscall_string;
   int32_t ret_val;
   char *s_btor, *s_log;
   BtorCharPtrStack args;
-  BtorMemMgr *mm;
 
-  mm = btor_mem_mgr_new ();
-  BTOR_INIT_STACK (mm, args);
+  BTOR_INIT_STACK (g_mm, args);
   BTOR_PUSH_STACK (args, (char *) fname);
 
   len = strlen (fname);
 
-  btor_fname = (char *) malloc (sizeof (char) * (len + 6));
+  len_btor_fname = len + 6;
+  BTOR_NEWN (g_mm, btor_fname, len_btor_fname);
   sprintf (btor_fname, "%s.btor", fname);
-  s_btor = (char *) malloc (
-      sizeof (char *) * (strlen (btor_log_dir) + strlen (btor_fname) + 20));
+  len_btor = strlen (btor_log_dir) + strlen (btor_fname) + 20;
+  BTOR_NEWN (g_mm, s_btor, len_btor);
   sprintf (s_btor, "%s%s", btor_log_dir, btor_fname);
   BTOR_PUSH_STACK (args, s_btor);
 
-  log_fname = (char *) malloc (sizeof (char) * (len + 5));
+  len_log_fname = len + 5;
+  BTOR_NEWN (g_mm, log_fname, len_log_fname);
   sprintf (log_fname, "%s.log", fname);
   BTOR_PUSH_STACK (args, "-o");
-  s_log = (char *) malloc (sizeof (char *)
-                           * (strlen (btor_log_dir) + strlen (log_fname) + 20));
+  len_log = strlen (btor_log_dir) + strlen (log_fname) + 20;
+  BTOR_NEWN (g_mm, s_log, len_log);
   sprintf (s_log, "%s%s", btor_log_dir, log_fname);
   BTOR_PUSH_STACK (args, s_log);
 
@@ -66,13 +71,11 @@ modelgen_test (const char *fname, int32_t rwl)
 
   run_boolector (BTOR_COUNT_STACK (args), args.start);
 
-  syscall_string = (char *) malloc (
-      sizeof (char)
-      * (len + 5 + len + 4
-         + strlen ("btorcheckmodel.py   boolector > /dev/null")
-         + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1
-         + strlen (btor_bin_dir)));
-
+  len_syscall_string = len + 5 + len + 4
+                       + strlen ("btorcheckmodel.py   boolector > /dev/null")
+                       + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2
+                       + 1 + strlen (btor_bin_dir);
+  BTOR_NEWN (g_mm, syscall_string, len_syscall_string);
   sprintf (syscall_string,
            "%sbtorcheckmodel.py %s%s %s%s %sboolector > /dev/null",
            btor_contrib_dir,
@@ -84,13 +87,12 @@ modelgen_test (const char *fname, int32_t rwl)
   ret_val = system (syscall_string);
   assert (ret_val == 0);
 
-  free (syscall_string);
-  free (log_fname);
-  free (btor_fname);
-  free (s_btor);
-  free (s_log);
+  BTOR_DELETEN (g_mm, syscall_string, len_syscall_string);
+  BTOR_DELETEN (g_mm, log_fname, len_log_fname);
+  BTOR_DELETEN (g_mm, btor_fname, len_btor_fname);
+  BTOR_DELETEN (g_mm, s_btor, len_btor);
+  BTOR_DELETEN (g_mm, s_log, len_log);
   BTOR_RELEASE_STACK (args);
-  btor_mem_mgr_delete (mm);
 }
 
 static void
@@ -290,4 +292,5 @@ run_modelgen_tests (int32_t argc, char **argv)
 void
 finish_modelgen_tests (void)
 {
+  btor_mem_mgr_delete (g_mm);
 }
