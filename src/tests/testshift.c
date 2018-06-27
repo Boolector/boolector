@@ -116,6 +116,7 @@ shift_test (char *(*func) (int32_t, int32_t, int32_t),
         btor_mem_freestr (g_mm, result);
         fclose (g_fin);
         fclose (g_fout);
+        boolector_delete (g_btor);
       }
     }
   }
