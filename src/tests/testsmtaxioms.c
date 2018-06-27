@@ -23,6 +23,7 @@
 #define BTOR_TEST_SMTAXIOM_TEMP_OUTFILE_NAME "smtaxiomout.tmp"
 
 static Btor *g_btor;
+static BtorMemMgr *g_mm;
 static FILE *g_fout = NULL;
 
 static char *axioms[] = {
@@ -58,15 +59,17 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
   char *buffer, *name, *prefix = "smtaxiom";
   int32_t parse_res, parse_status;
   char *parse_err;
+  size_t len_name, len_buffer;
 
   g_btor = boolector_new ();
   if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
-  name =
-      (char *) malloc (sizeof (char) * (strlen (prefix) + strlen (p) + 10 + 1));
+  len_name = strlen (prefix) + strlen (p) + 10 + 1;
+  BTOR_NEWN (g_mm, name, len_name);
   sprintf (name, "smtaxiom%s%d", p, i);
 
-  buffer = (char *) malloc (strlen (btor_log_dir) + strlen (name) + 4 + 1);
+  len_buffer = strlen (btor_log_dir) + strlen (name) + 4 + 1;
+  BTOR_NEWN (g_mm, buffer, len_buffer);
   sprintf (buffer, "%s%s.smt", btor_log_dir, name);
 
   fin = fopen (buffer, "r");
@@ -81,14 +84,15 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
 
   fclose (fin);
   fclose (g_fout);
-  free (name);
-  free (buffer);
+  BTOR_DELETEN (g_mm, name, len_name);
+  BTOR_DELETEN (g_mm, buffer, len_buffer);
   boolector_delete (g_btor);
 }
 
 void
 init_smtaxioms_tests (void)
 {
+  g_mm = btor_mem_mgr_new ();
 }
 
 void
@@ -124,4 +128,5 @@ run_smtaxioms_tests (int32_t argc, char **argv)
 void
 finish_smtaxioms_tests (void)
 {
+  btor_mem_mgr_delete (g_mm);
 }
