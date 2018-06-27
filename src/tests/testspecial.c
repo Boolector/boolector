@@ -11,6 +11,7 @@
 
 #include "boolector.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -26,11 +27,13 @@
 static char *g_btor_str = NULL;
 static FILE *g_fout     = NULL;
 static Btor *g_btor;
+static BtorMemMgr *g_mm;
 
 void
 init_special_tests (void)
 {
-  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (btor_bin_dir) + 20));
+  g_mm = btor_mem_mgr_new ();
+  BTOR_NEWN (g_mm, g_btor_str, strlen (btor_bin_dir) + 20);
   sprintf (g_btor_str, "%sboolector", btor_bin_dir);
 }
 
@@ -41,11 +44,12 @@ run_test (char *name, int32_t expected)
   FILE *fin, *g_fout;
   int32_t parse_res, parse_status;
   char *parse_err;
+  size_t len;
 
   g_btor = boolector_new ();
   boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
-  full_name = (char *) malloc (sizeof (char)
-                               * (strlen (btor_log_dir) + strlen (name) + 1));
+  len = strlen (btor_log_dir) + strlen (name) + 1;
+  BTOR_NEWN (g_mm, full_name, len);
   strcpy (full_name, btor_log_dir);
   strcat (full_name, name);
   fin = fopen (full_name, "r");
@@ -58,7 +62,7 @@ run_test (char *name, int32_t expected)
   assert (boolector_sat (g_btor) == expected);
   fclose (fin);
   fclose (g_fout);
-  free (full_name);
+  BTOR_DELETEN (g_mm, full_name, len);
   boolector_delete (g_btor);
 }
 
@@ -1283,9 +1287,10 @@ run_verbose_test (char *name, int32_t verbosity)
   char *redirect_str, *v1_str, *v2_str, *v3_str, *v_str;
   char *syscall_str;
   int32_t res;
+  size_t len, len_syscall_str;
 
-  full_name = (char *) malloc (sizeof (char)
-                               * (strlen (btor_log_dir) + strlen (name) + 1));
+  len = strlen (btor_log_dir) + strlen (name) + 1;
+  BTOR_NEWN (g_mm, full_name, len);
 
   redirect_str = "> /dev/null";
   v1_str       = "-v";
@@ -1305,10 +1310,9 @@ run_verbose_test (char *name, int32_t verbosity)
       break;
   }
 
-  syscall_str =
-      (char *) malloc (sizeof (char)
-                       * (strlen (g_btor_str) + 1 + strlen (full_name) + 1
-                          + strlen (v_str) + 1 + strlen (redirect_str) + 1));
+  len_syscall_str = strlen (g_btor_str) + 1 + strlen (full_name) + 1
+                    + strlen (v_str) + 1 + strlen (redirect_str) + 1;
+  BTOR_NEWN (g_mm, syscall_str, len_syscall_str);
   sprintf (
       syscall_str, "%s %s %s %s", g_btor_str, full_name, v_str, redirect_str);
   /* we are not interested in the output,
@@ -1318,8 +1322,8 @@ run_verbose_test (char *name, int32_t verbosity)
    * to redirect them.
    */
   res = system (syscall_str);
-  free (syscall_str);
-  free (full_name);
+  BTOR_DELETEN (g_mm, syscall_str, len_syscall_str);
+  BTOR_DELETEN (g_mm, full_name, len);
   return res;
 }
 
@@ -1550,5 +1554,6 @@ void
 finish_special_tests (void)
 {
   assert (!g_fout || remove (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME) == 0);
-  free (g_btor_str);
+  BTOR_DELETEN (g_mm, g_btor_str, strlen (btor_bin_dir) + 20);
+  btor_mem_mgr_delete (g_mm);
 }
