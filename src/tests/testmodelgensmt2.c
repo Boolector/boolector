@@ -38,9 +38,11 @@ modelgensmt2_test (const char *fname, int32_t rwl)
 
   char *smt_fname, *log_fname;
   size_t len, len_smt_fname, len_log_fname, len_smt, len_log;
+#ifndef BTOR_WINDOWS_BUILD
   char *syscall_string;
   size_t len_syscall_string;
   int32_t ret_val;
+#endif
   char *s_smt, *s_log;
   BtorCharPtrStack args;
 
@@ -72,6 +74,7 @@ modelgensmt2_test (const char *fname, int32_t rwl)
 
   run_boolector (BTOR_COUNT_STACK (args), args.start);
 
+#ifndef BTOR_WINDOWS_BUILD
   len_syscall_string =
       len + 5 + len + 4
       + strlen ("btorcheckmodelsmt2.sh   boolector > /dev/null")
@@ -89,12 +92,13 @@ modelgensmt2_test (const char *fname, int32_t rwl)
 
   ret_val = system (syscall_string);
   assert (ret_val == 0);
+  BTOR_DELETEN (g_mm, syscall_string, len_syscall_string);
+#endif
 
   BTOR_DELETEN (g_mm, smt_fname, len_smt_fname);
   BTOR_DELETEN (g_mm, s_smt, len_smt);
   BTOR_DELETEN (g_mm, log_fname, len_log_fname);
   BTOR_DELETEN (g_mm, s_log, len_log);
-  BTOR_DELETEN (g_mm, syscall_string, len_syscall_string);
   BTOR_RELEASE_STACK (args);
 }
 

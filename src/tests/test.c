@@ -143,7 +143,9 @@ main (int32_t argc, char **argv)
   BTOR_RUN_TESTS (overflow);
   BTOR_RUN_TESTS (shift);
   BTOR_RUN_TESTS (misc);
+#ifndef BTOR_WINDOWS_BUILD
   BTOR_RUN_TESTS (special);
+#endif
   BTOR_RUN_TESTS (testcases);
   BTOR_RUN_TESTS (smtaxioms);
   BTOR_RUN_TESTS (inc);

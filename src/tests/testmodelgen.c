@@ -38,9 +38,11 @@ modelgen_test (const char *fname, int32_t rwl)
 
   char *btor_fname, *log_fname;
   size_t len, len_btor_fname, len_btor, len_log_fname, len_log;
+#ifndef BTOR_WINDOWS_BUILD
   char *syscall_string;
   size_t len_syscall_string;
   int32_t ret_val;
+#endif
   char *s_btor, *s_log;
   BtorCharPtrStack args;
 
@@ -71,6 +73,7 @@ modelgen_test (const char *fname, int32_t rwl)
 
   run_boolector (BTOR_COUNT_STACK (args), args.start);
 
+#ifndef BTOR_WINDOWS_BUILD
   len_syscall_string = len + 5 + len + 4
                        + strlen ("btorcheckmodel.py   boolector > /dev/null")
                        + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2
@@ -86,8 +89,9 @@ modelgen_test (const char *fname, int32_t rwl)
            btor_bin_dir);
   ret_val = system (syscall_string);
   assert (ret_val == 0);
-
   BTOR_DELETEN (g_mm, syscall_string, len_syscall_string);
+#endif
+
   BTOR_DELETEN (g_mm, log_fname, len_log_fname);
   BTOR_DELETEN (g_mm, btor_fname, len_btor_fname);
   BTOR_DELETEN (g_mm, s_btor, len_btor);
