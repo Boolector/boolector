@@ -336,14 +336,14 @@ run_boolector (int32_t argc, char **argv)
   assert (g_mm);
 
   Btor *btor;
-  FILE *infile, *outfile = stdout;
-  char *infile_name;
-  BtorOpt *bo;
+  FILE *infile = 0, *outfile = stdout;
+  char *infile_name = 0;
   BtorOption opt;
   int32_t i, status = 0, res;
   uint32_t val;
   size_t prefix_len, len, j;
   char *arg_val, *err_msg = 0;
+  const char *shrt, *lng;
   bool set_opt, is_shrt;
   bool dump_btor = false, dump_smt = false, print_model = false;
   char *print_model_format = "btor";
@@ -382,13 +382,14 @@ run_boolector (int32_t argc, char **argv)
         i += 1;
         arg_val = argv[i];
       }
-      for (opt = boolector_first_opt (btor), bo = 0, set_opt = false;
+      for (opt = boolector_first_opt (btor), set_opt = false;
            boolector_has_opt (btor, opt);
-           opt = btor_opt_next (btor, opt))
+           opt = boolector_next_opt (btor, opt))
       {
-        bo = &btor->options[opt];
-        if ((is_shrt && bo->shrt && !strcmp (bo->shrt, arg.start))
-            || (!is_shrt && !strcmp (bo->lng, arg.start)))
+        shrt = boolector_get_opt_shrt (btor, opt);
+        lng = boolector_get_opt_lng (btor, opt);
+        if ((is_shrt && shrt && !strcmp (shrt, arg.start))
+            || (!is_shrt && !strcmp (lng, arg.start)))
         {
           /* Attention: no no-xxx options supported! supported */
           val = arg_val ? (uint32_t) atoi (arg_val) : 1;
