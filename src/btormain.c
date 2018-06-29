@@ -730,9 +730,8 @@ print_help (BtorMainApp *app)
 static void
 print_static_stats (int32_t sat_res)
 {
-  double real = btor_util_current_time () - g_start_time_real;
 #ifdef BTOR_TIME_STATISTICS
-#ifdef BTOR_HAVE_GETRUSAGE
+  double real = btor_util_current_time () - g_start_time_real;
   double process = btor_util_time_stamp ();
   if (g_dual_threads)
     btormain_msg ("%.1f seconds process, %.0f%% utilization",
@@ -740,11 +739,8 @@ print_static_stats (int32_t sat_res)
                   real > 0 ? (100 * process) / real / 2 : 0.0);
   else
     btormain_msg ("%.1f seconds process", process);
-#else
-  btormain_msg ("can not determine run-time in seconds (no getrusage)");
-#endif
-#endif
   btormain_msg ("%.1f seconds real", real);
+#endif
   btormain_msg ("%s",
                 sat_res == BOOLECTOR_SAT
                     ? "sat"
@@ -1368,7 +1364,7 @@ boolector_main (int32_t argc, char **argv)
       boolector_print_model (btor, val ? "smt2" : "btor", g_app->outfile);
     }
 
-#ifdef BTOR_HAVE_GETRUSAGE
+#ifdef BTOR_TIME_STATISTICS
     if (g_verbosity) btormain_msg ("%.1f seconds", btor_util_time_stamp ());
 #endif
     goto DONE;

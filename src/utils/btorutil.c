@@ -20,8 +20,6 @@
 #ifndef NDEBUG
 #include <float.h>
 #endif
-#include <sys/time.h>
-#include <time.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -493,10 +491,11 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 }
 
 /*------------------------------------------------------------------------*/
-#if defined(BTOR_HAVE_GETRUSAGE) && defined(BTOR_TIME_STATISTICS)
+#ifdef BTOR_TIME_STATISTICS
 
 #include <sys/resource.h>
-#include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
 
 double
 btor_util_time_stamp (void)
@@ -510,13 +509,6 @@ btor_util_time_stamp (void)
   }
   return res;
 }
-#else
-double
-btor_util_time_stamp (void)
-{
-  return 0;
-}
-#endif
 
 double
 btor_util_process_time_thread (void)
@@ -540,6 +532,28 @@ btor_util_current_time (void)
   }
   return res;
 }
+
+#else
+
+double
+btor_util_time_stamp (void)
+{
+  return 0;
+}
+
+double
+btor_util_process_time_thread (void)
+{
+  return 0;
+}
+
+double
+btor_util_current_time (void)
+{
+  return 0;
+}
+
+#endif
 
 /*------------------------------------------------------------------------*/
 

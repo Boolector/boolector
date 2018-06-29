@@ -21,8 +21,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_HAVE_GETRUSAGE  // TODO make this a configuration option
-
 #define BTOR_MAX_UTIL(x, y) ((x) > (y) ? (x) : (y))
 
 #define BTOR_MIN_UTIL(x, y) ((x) < (y) ? (x) : (y))
@@ -75,11 +73,8 @@ bool btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw);
 
 /*------------------------------------------------------------------------*/
 
-#ifdef BTOR_HAVE_GETRUSAGE
 double btor_util_time_stamp (void);
 double btor_util_process_time_thread (void);
-#endif
-
 double btor_util_current_time (void);
 
 /*------------------------------------------------------------------------*/

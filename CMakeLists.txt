@@ -181,6 +181,16 @@ if(PYTHON OR SHARED)
   add_required_c_cxx_flag("-fPIC")
 endif()
 
+include(CheckSignals)
+if(HAVE_SIGNALS)
+  add_c_cxx_flag("-DBTOR_HAVE_SIGNALS")
+endif()
+
+include(CheckTimeUtils)
+if(NOT HAVE_TIME_UTILS)
+  set(TIME_STATS OFF)
+endif()
+
 if(TIME_STATS)
   add_c_cxx_flag("-DBTOR_TIME_STATISTICS")
 endif()
@@ -223,32 +233,6 @@ if(NOT IS_WINDOWS_BUILD)
     set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
   endif()
-endif()
-
-# Check if signals are available.
-include(CheckCSourceCompiles)
-CHECK_C_SOURCE_COMPILES(
-"
-#include <signal.h>
-#include <unistd.h>
-static void catchsig(int sig) { (void) sig; }
-int main ()
-{
-  alarm (0);
-  (void) signal (SIGALRM, catchsig);
-  (void) signal (SIGINT, catchsig);
-  (void) signal (SIGSEGV, catchsig);
-  (void) signal (SIGABRT, catchsig);
-  (void) signal (SIGTERM, catchsig);
-  (void) signal (SIGBUS, catchsig);
-  return 0;
-}
-"
-HAVE_SIGNALS
-)
-
-if(HAVE_SIGNALS)
-  add_c_cxx_flag("-DBTOR_HAVE_SIGNALS")
 endif()
 
 if(USE_LINGELING)
