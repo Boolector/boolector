@@ -120,6 +120,10 @@ foreach(flag ${FLAGS})
   add_required_c_cxx_flag("${flag}")
 endforeach()
 
+if(IS_WINDOWS_BUILD)
+  add_c_cxx_flag("-DBTOR_WINDOWS_BUILD")
+endif()
+
 #-----------------------------------------------------------------------------#
 
 set(build_types Debug Release)
@@ -212,11 +216,13 @@ message(STATUS "Found Btor2Tools headers: ${BTOR2_INCLUDE_DIR}")
 set(LIBRARIES ${LIBRARIES} ${BTOR2_LIBRARIES})
 include_directories(${BTOR2_INCLUDE_DIR})
 
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads)
-if(Threads_FOUND)
-  set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-  add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
+if(NOT IS_WINDOWS_BUILD)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads)
+  if(Threads_FOUND)
+    set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
+  endif()
 endif()
 
 # Check if signals are available.
