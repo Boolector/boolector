@@ -1,16 +1,38 @@
-+ added support for Cadical
-+ added SMT2 support for:
+news for release 3.0.0 since 2.4.1
+--------------------------------------
++ new build system, requires cmake >= 2.8
+  - setup-*.sh scripts for dependencies (btor2parser, SAT solvers) in contrib
++ support for quantified bit-vectors (BV)
++ new bounded model checker BtorMC
++ support for new format BTOR2
++ support for CaDiCaL as SAT back-end
++ SMT2 support for:
   - echo
   - declare-const
   - check-sat-assuming
   - get-unsat-assumptions
-  - :produce-unsat-assumptions
+  - set-option :produce-unsat-assumptions
+  - set-option :produce-assertions
+  - set-logic ALL
 + new API calls
+  - boolector_constd
+  - boolector_consth
+  - boolector_copyright
+  - boolector_exists
+  - boolector_forall
   - boolector_get_failed_assumptions
-+ removed API calls
+  - boolector_repeat
+  - boolector_pop
+  - boolector_push
+  - boolector_version
++ removed obsolete API calls
   - boolector_set_sat_solver_lingeling
   - boolector_set_sat_solver_minisat
   - boolector_set_sat_solver_picosat
++ changes in API calls
+  - boolector_srl, boolector_sll and boolector_sra now supports operands with
+    the same bit-width (SMT-LIB v2 compatible)
++ various improvements and extensions of btormbt
 
 news for release 2.4.1 since 2.4.0
 --------------------------------------
