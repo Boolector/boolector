@@ -3,7 +3,7 @@
 Module Index: boolector
 =======================
 
-.. automodule:: boolector
+.. automodule:: pyboolector
    :members:
    :show-inheritance:
 
