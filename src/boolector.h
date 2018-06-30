@@ -1196,14 +1196,12 @@ BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 /*!
   Create a rotate left.
 
-  Given bit vector node ``n1``, the value it represents is the number of bits
-  by which node ``n0`` is rotated to the left.
+  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and
-             greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of
-             ``n0``.
+  :param n0: First bit vector operand.
+  :param n1: Second bit vector operand.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
@@ -1211,14 +1209,12 @@ BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 /*!
   Create a rotate right.
 
-  Given bit vector node ``n1``, the value it represents is the number of bits by
-  which node ``n0`` is rotated to the right.
+  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
-  :param n0: First bit vector operand where the bit width is a power of two and
-             greater than 1.
-  :param n1: Second bit vector operand with bit width log2 of the bit width of
-             ``n0``.
+  :param n0: First bit vector operand.
+  :param n1: Second bit vector operand.
   :return: Bit vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
