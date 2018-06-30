@@ -17,7 +17,7 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../build/lib/'))
+sys.path.insert(0, os.path.abspath(os.path.join('..', 'build', 'lib')))
 
 # -- General configuration -----------------------------------------------------
 
@@ -53,8 +53,10 @@ version = None
 # The full version, including alpha/beta/rc tags.
 release = None
 
-with open('../VERSION', 'r') as f:
-    version = f.readline().strip()
+with open(os.path.join('..', 'CMakeLists.txt'), 'r') as f:
+    for line in f:
+        if line.startswith('set(VERSION'):
+            version = line.split()[1].rstrip(')').replace('"', '')
 release = version
 assert(version != None)
 assert(release != None)
