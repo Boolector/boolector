@@ -1,7 +1,7 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../../bin/boolector
-bubble=$dir/bubblesortmem
+boolector=$dir/../../../../build/bin/boolector
+bubble=$dir/../../../../build/bin/examples/bubblesortmem
 inc=1
 for ((size=2;size<=50;size+=$inc))
 do

@@ -331,6 +331,7 @@ add_subdirectory(src/tests)
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()
+add_subdirectory(examples/api/c)
 
 #-----------------------------------------------------------------------------#
 

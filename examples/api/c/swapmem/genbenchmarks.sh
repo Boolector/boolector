@@ -1,7 +1,7 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../../bin/boolector
-swapmem=$dir/swapmem
+boolector=$dir/../../../../build/bin/boolector
+swapmem=$dir/../../../../build/bin/examples/swapmem
 for ((overlap=0;overlap<=1;overlap+=1))
   do
   if [[ $overlap -eq 1 ]]; then

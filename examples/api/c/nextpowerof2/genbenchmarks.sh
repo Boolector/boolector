@@ -1,7 +1,7 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../../bin/boolector
-np2=$dir/nextpowerof2
+boolector=$dir/../../../../build/bin/boolector
+np2=$dir/../../../../build/bin/examples/nextpowerof2
 limit=512
 for ((size=16;size<=$limit;size*=2))
 do

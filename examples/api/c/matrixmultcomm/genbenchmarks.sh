@@ -1,7 +1,7 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../../bin/boolector
-mmcomm=$dir/matrixmultcomm
+boolector=$dir/../../../../build/bin/boolector
+mmcomm=$dir/../../../../build/bin/examples/matrixmultcomm
 numbits=32
 for ((size=2;size<=12;size+=1))
 do

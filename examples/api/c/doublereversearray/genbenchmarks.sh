@@ -1,7 +1,7 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../../bin/boolector
-drarray=$dir/doublereversearray
+boolector=$dir/../../../../build/bin/boolector
+drarray=$dir/../../../../build/bin/examples/doublereversearray
 inc=1
 limit=10
 for ((size=2;size<=$limit;size+=$inc))

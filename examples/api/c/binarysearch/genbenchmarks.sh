@@ -1,12 +1,12 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-boolector=$dir/../../../bin/boolector
+boolector=$dir/../../../builds/bin/boolector
 if [ ! -e $boolector ]
 then
   echo "[error] Boolector not built"
   exit 1
 fi
-bsearch=$dir/binarysearch
+bsearch=$dir/../../../builds/bin/examples/binarysearch
 limit=256
 for ((size=4;size<=$limit;size*=2))
 do

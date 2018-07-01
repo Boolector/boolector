@@ -1,6 +1,6 @@
 import os
-import boolector
-from boolector import Boolector
+import pyboolector
+from pyboolector import Boolector
 
 if __name__ == "__main__":
     b = Boolector() 
@@ -296,11 +296,11 @@ if __name__ == "__main__":
     print("\n".join(["  " + str(o) for o in b.Options()]))
 
     # Set options
-    b.Set_opt(boolector.BTOR_OPT_INCREMENTAL, 1)
-    b.Set_opt(boolector.BTOR_OPT_MODEL_GEN, 1)
+    b.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, 1)
+    b.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, 1)
 
     # Get options
-    o = b.Get_opt(boolector.BTOR_OPT_MODEL_GEN)
+    o = b.Get_opt(pyboolector.BTOR_OPT_MODEL_GEN)
 #    print(o.lng)  # long option name
 #    print(o.shrt) # short option name
 #    print(o.desc) # description

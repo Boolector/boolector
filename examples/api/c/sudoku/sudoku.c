@@ -236,7 +236,7 @@ main (int argc, char **argv)
   const char *assignment, *assignment_dec;
   Btor *btor;
   BtorMemMgr *mm;
-  BoolectorNode *matrix, *temp, *formula, *constraint;
+  BoolectorNode *matrix, *temp, *formula = 0, *constraint;
   BoolectorSort isort, esort, asort;
   BtorBitVector *bv;
 
