@@ -1,7 +1,7 @@
 :orphan:
 
-Module Index: boolector
-=======================
+Module Index: pyboolector
+=========================
 
 .. automodule:: pyboolector
    :members:

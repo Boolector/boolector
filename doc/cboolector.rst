@@ -1,7 +1,7 @@
 Boolector C API documentation
 =============================
 
-.. _Boolector: http://fmv.jku.at/boolector
+.. _Boolector: https://boolector.github.io
 .. _BTOR: http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf
 .. _SMT-LIB v1: http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf
 .. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf

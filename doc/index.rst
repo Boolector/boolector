@@ -11,9 +11,9 @@ Introduction
   This is the documentation of Boolector's public **C interface** and
   **Python interface**.
   For further information and the latest version of Boolector, please refer
-  to http://fmv.jku.at/boolector.
+  to https://boolector.github.io.
 
-  .. _Boolector: http://fmv.jku.at/boolector
+  .. _Boolector: https://boolector.github.io
   .. _BTOR: http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf
   .. _SMT-LIB v1: http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf
   .. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf

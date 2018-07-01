@@ -332,10 +332,10 @@ function(add_cython_target _name)
   endif()
 
   set(no_docstrings_arg "")
-  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR
-     CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
-    set(no_docstrings_arg "--no-docstrings")
-  endif()
+#  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR
+#     CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+#    set(no_docstrings_arg "--no-docstrings")
+#  endif()
 
   set(cython_debug_arg "")
   set(embed_pos_arg "")
