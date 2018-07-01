@@ -6,8 +6,7 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
-STATICDIR     = _static
-TEMPLATESDIR  = _templates
+GITHUBDIR     = github-doc
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -41,14 +40,14 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR) $(STATICDIR) $(TEMPLATESDIR)
+	-rm -rf $(BUILDDIR)
+	-rm -rf $(GITHUBDIR)
 	-rm -f cboolector_index.rst
 	-rm -f cboolector_options.rst
 
 dirs:
 	-mkdir -p $(BUILDDIR)
-	-mkdir -p $(STATICDIR)
-	-mkdir -p $(TEMPLATESDIR)
+
 
 html: dirs
 	python mkcdoc.py ../src/boolector.h
@@ -56,6 +55,15 @@ html: dirs
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
+github: html
+	-mkdir -p $(GITHUBDIR)
+	-cp -r $(BUILDDIR)/html/* $(GITHUBDIR)
+	-mv $(GITHUBDIR)/_modules $(GITHUBDIR)/modules
+	-mv $(GITHUBDIR)/_sources $(GITHUBDIR)/sources
+	-mv $(GITHUBDIR)/_static $(GITHUBDIR)/static
+	-grep -rl _static $(GITHUBDIR) | xargs sed -i 's/_static/static/g'
+	-touch $(GITHUBDIR)/.nojekyll
 
 dirhtml: dirs
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
