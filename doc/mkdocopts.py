@@ -50,7 +50,11 @@ if __name__ == "__main__":
         opts_str.append('\n')
 
     with open('cboolector_options.rst', 'w') as file:
+        file.write('Boolector Options\n')
+        file.write('-----------------\n')
         file.write(''.join(opts_str))
 
     with open('pyboolector_options.rst', 'w') as file:
+        file.write('Boolector Options\n')
+        file.write('-----------------\n')
         file.write(''.join(opts_str))
