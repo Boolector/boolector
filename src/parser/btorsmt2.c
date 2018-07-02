@@ -4128,7 +4128,6 @@ read_command_smt2 (BtorSMT2Parser *parser)
         BTOR_RELEASE_STACK (exps);
         return 0;
       }
-      print_success (parser);
       fputc ('(', parser->outfile);
       char *symbols = parser->tokens.start;
       for (i = 0; i < BTOR_COUNT_STACK (exps); i++)
@@ -4159,7 +4158,6 @@ read_command_smt2 (BtorSMT2Parser *parser)
       parser->commands.model = 1;
       while (read_command_smt2 (parser) && !boolector_terminate (parser->btor))
         ;
-      print_success (parser);
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
