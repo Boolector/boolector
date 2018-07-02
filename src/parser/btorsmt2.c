@@ -2119,18 +2119,26 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser, "only one argument to 'distinct'");
         }
         if (!check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
-        exp = boolector_ne (parser->btor, p[1].exp, p[2].exp);
+        exp = 0;
         for (i = 1; i < nargs; i++)
         {
-          for (j = i + 2; j <= nargs; j++)
+          for (j = i + 1; j <= nargs; j++)
           {
             tmp = boolector_ne (parser->btor, p[i].exp, p[j].exp);
-            old = exp;
-            exp = boolector_and (parser->btor, old, tmp);
-            boolector_release (parser->btor, old);
-            boolector_release (parser->btor, tmp);
+            if (exp)
+            {
+              old = exp;
+              exp = boolector_and (parser->btor, old, tmp);
+              boolector_release (parser->btor, old);
+              boolector_release (parser->btor, tmp);
+            }
+            else
+            {
+              exp = tmp;
+            }
           }
         }
+        assert (exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_ITE_TAG_SMT2)

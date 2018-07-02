@@ -730,3 +730,4 @@ getvalue3 -o getvalue3.log getvalue3.smt2
 invalidmodel1 -o invalidmodel1.log invalidmodel1.smt2
 invalidmodel2 -xl=0 -ml=0 -rwl=2 -o invalidmodel2.log invalidmodel2.smt2
 invalidmodel3 -o invalidmodel3.log invalidmodel3.btor
+regr-distinct -o regr-distinct.log regr-distinct.smt2
