@@ -2122,7 +2122,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_ne (parser->btor, p[1].exp, p[2].exp);
         for (i = 1; i < nargs; i++)
         {
-          for (j = i + 2; j <= nargs; j++)
+          for (j = i + 1; j <= nargs; j++)
           {
             tmp = boolector_ne (parser->btor, p[i].exp, p[j].exp);
             old = exp;
