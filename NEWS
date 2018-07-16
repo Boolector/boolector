@@ -6,6 +6,7 @@ news for release 3.0.0 since 2.4.1
 + new bounded model checker BtorMC
 + support for new format BTOR2
 + support for CaDiCaL as SAT back-end
++ name of the Python module changed to pyboolector
 + SMT2 support for:
   - echo
   - declare-const
