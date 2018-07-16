@@ -155,6 +155,20 @@ void boolector_set_term (Btor *btor, int32_t (*fun) (void *), void *state);
 int32_t boolector_terminate (Btor *btor);
 
 /*!
+  Set an abort callback that is called instead of exit on abort conditions.
+
+  It is recommended to set this function prior to creating Boolector instances.
+
+  .. note::
+  This function is not thread safe (the function pointer is maintained as
+  a global variable). It you use threading, make sure to set the abort
+  function prior to creating threads.
+
+  :param fun: The abort callback function.
+ */
+void boolector_set_abort (void (*fun) (void));
+
+/*!
   Set a verbosity message prefix.
 
   :param btor: Boolector instance.

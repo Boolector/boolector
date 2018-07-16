@@ -38,6 +38,17 @@
 
 /*------------------------------------------------------------------------*/
 
+BtorAbortCallback btor_abort_callback = { .abortfun = 0, .fun = 0 };
+
+static void
+abort_aux (void)
+{
+  if (btor_abort_callback.fun)
+    ((void (*) (void)) btor_abort_callback.fun) ();
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 inc_sort_ext_ref_counter (Btor *btor, BtorSortId id)
 {
@@ -413,6 +424,13 @@ boolector_terminate (Btor *btor)
   BTOR_CHKCLONE_RES_INT (res, terminate);
 #endif
   return res;
+}
+
+void
+boolector_set_abort (void (*fun) (void))
+{
+  btor_abort_callback.abortfun = abort_aux;
+  btor_abort_callback.fun = fun;
 }
 
 void

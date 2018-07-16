@@ -738,4 +738,15 @@ enum BtorOption
 };
 typedef enum BtorOption BtorOption;
 
+/* Callback function to be executed on abort, primarily intended to be used for
+ * plugging in exception handling. */
+struct BtorAbortCallback
+{
+  void (*abortfun) (void);
+  void *fun;   /* termination callback function */
+};
+typedef struct BtorAbortCallback BtorAbortCallback;
+
+extern BtorAbortCallback btor_abort_callback;
+
 #endif

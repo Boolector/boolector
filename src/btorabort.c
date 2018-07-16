@@ -9,9 +9,19 @@
 #include "btorabort.h"
 
 #include "btorexit.h"
+#include "btortypes.h"
 #include "utils/btormem.h"
 
 #include <stdio.h>
+
+void
+btor_abort (void)
+{
+  if (btor_abort_callback.abortfun)
+    btor_abort_callback.abortfun ();
+  else
+    exit (BTOR_ERR_EXIT);
+}
 
 void
 btor_abort_warn (
@@ -33,5 +43,5 @@ btor_abort_warn (
   va_end (list);
   fprintf (stderr, "\n");
   fflush (stderr);
-  if (abort) exit (BTOR_ERR_EXIT);
+  if (abort) btor_abort();
 }

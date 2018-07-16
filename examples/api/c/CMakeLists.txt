@@ -102,6 +102,10 @@ target_link_libraries(sudoku boolector ${LIBRARIES})
 add_executable(swapmem EXCLUDE_FROM_ALL swapmem/swapmem.c)
 target_link_libraries(swapmem boolector ${LIBRARIES})
 
+# exception example
+add_executable(exception EXCLUDE_FROM_ALL exception.cpp)
+target_link_libraries(exception boolector ${LIBRARIES})
+
 # build all examples at once
 add_custom_target(examples
   DEPENDS
@@ -132,4 +136,5 @@ add_custom_target(examples
   selectionsortmem
   sudoku
   swapmem
+  exception
 )
