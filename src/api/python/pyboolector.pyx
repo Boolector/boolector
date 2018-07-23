@@ -2650,45 +2650,6 @@ cdef class Boolector:
         free(c_params)
         return r
 
-    def UF(self, BoolectorSort sort, str symbol = None):
-        """ UF(sort, symbol)
-
-            Create an uninterpreted function with sort ``sort`` and symbol
-            ``symbol``.
-
-            An uninterpreted function's symbol is used as a simple means of
-            identification, either when printing a model via
-            :func:`~pyboolector.Boolector.Print_model`,
-            or generating file dumps via
-            :func:`~pyboolector.Boolector.Dump`.
-            A symbol must be unique but may be None in case that no
-            symbol should be assigned.
-
-            See :func:`~pyboolector.Boolector.Apply`,
-            :func:`~pyboolector.Boolector.FunSort`.
-
-            :param sort: Sort of the uninterpreted function.
-            :type sort:  BoolectorSort
-            :param symbol: Name of the uninterpreted function.
-            :type symbol: str
-            :return:  A function over parameterized expression ``body``.
-            :rtype: :class:`~pyboolector.BoolectorNode`
-
-            .. note::
-                In contrast to composite expressions, which are maintained
-                uniquely w.r.t. to their kind, inputs (and consequently, bit
-                width), uninterpreted functions are not.  Hence, each
-                call to this function returns a fresh uninterpreted function.
-        """
-        if not isinstance(sort, _BoolectorFunSort):
-            raise BoolectorException(
-                     "Sort must be of sort '_BoolectorFunSort'")
-        r = BoolectorFunNode(self)
-        r._sort = sort
-        r._c_node = btorapi.boolector_uf(self._c_btor, sort._c_sort,
-                                         _ChPtr(symbol)._c_str)
-        return r
-
 
     def Apply(self, list args, BoolectorFunNode fun):
         """ Apply(args,fun)
