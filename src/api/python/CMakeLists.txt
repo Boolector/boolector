@@ -26,6 +26,7 @@ add_custom_target(
 add_cython_target(pyboolector)  # implicitely uses pyboolector.pyx
 
 add_library(pyboolector MODULE ${pyboolector} boolector_py.c)
+add_dependencies(pyboolector pyboolector_options)
 
 target_link_libraries(pyboolector boolector ${LIBRARIES} ${PYTHON_LIBRARIES})
 python_extension_module(pyboolector)
