@@ -18,6 +18,9 @@
 #include <stdio.h>
 #include "btortypes.h"
 
+#if __cplusplus
+extern "C" {
+#endif
 /*------------------------------------------------------------------------*/
 
 /*!
@@ -2331,5 +2334,7 @@ const char *boolector_copyright (Btor *btor);
 const char *boolector_version (Btor *btor);
 
 /*------------------------------------------------------------------------*/
-
+#if __cplusplus
+}
+#endif
 #endif

@@ -23,6 +23,8 @@ g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "dual_prop", "just", "ucopt", "lazy_synthesize",
                      "eliminate_slices"}
 
+g_is_abort_fun_set = False
+
 class BoolectorException(Exception):
     """ The class representing a Boolector exception."""
     def __init__(self, msg):
@@ -106,7 +108,7 @@ def _check_precond_slice(BoolectorBVNode a, uint32_t upper, uint32_t lower):
             raise BoolectorException(
                       "Upper limit of slice must be lower than the bit width "\
                       "of the bit vector")
-        if lower < 0 or lower > upper:
+        if lower > upper:
             raise BoolectorException("Lower limit must be within the bounds "\
                                       "of [upper:0]")
 
@@ -138,20 +140,33 @@ cdef class BoolectorSort:
         self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
-        btorapi.boolector_release_sort(self._c_btor, self._c_sort)
+        if <int32_t> self._c_sort > 0:
+            btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorArraySort(BoolectorSort):
+    """
+    The class representing a Boolector array sort.
+    """
     cdef BoolectorSort _index
     cdef BoolectorSort _elem
 
 cdef class _BoolectorFunSort(BoolectorSort):
+    """
+    The class representing a Boolector function sort.
+    """
     cdef list _domain
     cdef BoolectorSort _codomain
 
 cdef class _BoolectorBitVecSort(BoolectorSort):
+    """
+    The class representing a Boolector bit-vector sort.
+    """
     cdef uint32_t _width
 
 cdef class _BoolectorBoolSort(BoolectorSort):
+    """
+    The class representing a Boolector Boolean sort.
+    """
     pass
 
 # option wrapper classes
@@ -585,6 +600,7 @@ cdef class Boolector:
     PARSE_ERROR = 1
 
     def __init__(self, Boolector parent = None):
+        global g_is_abort_fun_set
         if parent is None:
             self._c_btor = btorapi.boolector_new()
         else:
@@ -592,6 +608,10 @@ cdef class Boolector:
         self._option_names = [o.lng for o in self.Options()]
         if self._c_btor is NULL:
             raise MemoryError()
+        if not g_is_abort_fun_set:
+            g_is_abort_fun_set = True
+            btorapi.boolector_set_abort(btorapi.pyboolector_abort_fun)
+
 
     def __dealloc__(self):
         if self._c_btor is not NULL:

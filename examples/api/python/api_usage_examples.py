@@ -1,6 +1,6 @@
 import os
 import pyboolector
-from pyboolector import Boolector
+from pyboolector import Boolector, BoolectorException
 
 if __name__ == "__main__":
     b = Boolector() 
@@ -8,10 +8,34 @@ if __name__ == "__main__":
     print ()
     print (b.Copyright())
 
+    # Try pushing a context without enabling incremental usage,
+    # raises Exception
+    try:
+        print("Expect exception to be raised (incremental usage not enabled).")
+        b.Push()
+    except BoolectorException as e:
+        print("Caught exception: " + str(e))
+
+    # Try popping a context without first having pushed a context,
+    # raises Exception
+    try:
+        b.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+        print("Expect exception to be raised (no context pushed).")
+        b.Pop()
+    except BoolectorException as e:
+        print("Caught exception: " + str(e))
+
 ### Creating Boolector nodes
 
     # Sorts
     _boolsort = b.BoolSort()
+    # Try creating a bit-vector sort of size 0,
+    # raises Exception
+    try:
+        print("Expect exception to be raised (bit-vector size of 0).")
+        _bvsort = b.BitVecSort(0)
+    except BoolectorException as e:
+        print("Caught exception: " + str(e))
     _bvsort   = b.BitVecSort(128)
     _arrsort  = b.ArraySort(_bvsort, _bvsort)
     _funsort  = b.FunSort([_boolsort, _boolsort, _bvsort, _bvsort], _boolsort)
@@ -28,6 +52,14 @@ if __name__ == "__main__":
 
     # Variables
     _var   = b.Var(_bvsort, "var_symbol")
+    # Try getting the assignment of _var without a call to Sat(),
+    # raises Exception
+    try:
+        print("Expect exception to be raised (no previous call to Sat()).")
+        print("{} {}".format(_var.symbol, _var.assignment))
+    except BoolectorException as e:
+        print("Caught exception: " + str(e))
+
     _param = b.Param(_bvsort, "param_symbol")  # used as function parameters
     _array = b.Array(_arrsort, "array_symbol")
     _uf    = b.UF(_funsort)

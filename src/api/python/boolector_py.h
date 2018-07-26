@@ -11,6 +11,10 @@
 #include <Python.h>
 #include "boolector.h"
 
+#if __cplusplus
+extern "C" {
+#endif
+
 /*!
    Set a Python termination callback.
 
@@ -37,4 +41,7 @@ void boolector_py_set_term (Btor* btor, PyObject* fun, PyObject* state);
 */
 void boolector_py_delete (Btor* btor);
 
+#if __cplusplus
+}
+#endif
 #endif
