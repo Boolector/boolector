@@ -742,8 +742,8 @@ typedef enum BtorOption BtorOption;
  * plugging in exception handling. */
 struct BtorAbortCallback
 {
-  void (*abortfun) (void);
-  void *fun;   /* termination callback function */
+  void (*abort_fun) (const char* msg);
+  void *cb_fun;   /* abort callback function */
 };
 typedef struct BtorAbortCallback BtorAbortCallback;
 

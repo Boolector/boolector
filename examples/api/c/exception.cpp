@@ -6,15 +6,32 @@ extern "C" {
 #include <exception>
 #include <iostream>
 
-void abort_fun (void)
+class Exception : public std::exception
 {
-  throw std::exception();
+ public:
+  Exception (const std::string& msg) : msg (msg) {}
+  std::string getMsg () { return msg; }
+
+ protected:
+  std::string msg;
+};
+
+void
+abort_fun (const char* msg)
+{
+  throw Exception (msg);
 }
 
 int
 main ()
 {
   boolector_set_abort (&abort_fun);
-  boolector_delete (0);
-
+  try
+  {
+    boolector_delete (0);
+  }
+  catch (Exception& e)
+  {
+    std::cout << "Caught exception: " << e.getMsg () << std::endl;
+  }
 }

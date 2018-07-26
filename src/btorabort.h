@@ -37,8 +37,7 @@
 
 /*------------------------------------------------------------------------*/
 
-/* Exit if no abort callback function is set. */
-void btor_abort (void);
+void btor_abort_fun (const char* msg);
 
 void btor_abort_warn (
     bool abort, const char* filename, const char* fun, const char* fmt, ...);

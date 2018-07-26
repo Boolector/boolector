@@ -38,14 +38,15 @@
 
 /*------------------------------------------------------------------------*/
 
-BtorAbortCallback btor_abort_callback = { .abortfun = 0, .fun = 0 };
-
 static void
-abort_aux (void)
+abort_aux (const char* msg)
 {
-  if (btor_abort_callback.fun)
-    ((void (*) (void)) btor_abort_callback.fun) ();
+  if (btor_abort_callback.cb_fun)
+    ((void (*) (const char*)) btor_abort_callback.cb_fun) (msg);
 }
+
+BtorAbortCallback btor_abort_callback = {
+    .abort_fun = abort_aux, .cb_fun = btor_abort_fun};
 
 /*------------------------------------------------------------------------*/
 
@@ -427,10 +428,10 @@ boolector_terminate (Btor *btor)
 }
 
 void
-boolector_set_abort (void (*fun) (void))
+boolector_set_abort (void (*fun) (const char* msg))
 {
-  btor_abort_callback.abortfun = abort_aux;
-  btor_abort_callback.fun = fun;
+  btor_abort_callback.abort_fun = abort_aux;
+  btor_abort_callback.cb_fun = fun;
 }
 
 void

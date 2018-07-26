@@ -165,8 +165,9 @@ int32_t boolector_terminate (Btor *btor);
   function prior to creating threads.
 
   :param fun: The abort callback function.
+  :param msg: The abort error message.
  */
-void boolector_set_abort (void (*fun) (void));
+void boolector_set_abort (void (*fun) (const char* msg));
 
 /*!
   Set a verbosity message prefix.
