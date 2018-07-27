@@ -1,6 +1,4 @@
-extern "C" {
 #include "boolector.h"
-}
 
 #include <cstdint>
 #include <exception>
