@@ -548,9 +548,11 @@ static BtorNode *rewrite_exists_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_cond_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
 
 /* -------------------------------------------------------------------------- */
-/* const term rewriting */
+/* const term rewriting                                                       */
+/* -------------------------------------------------------------------------- */
 
-/* match:  binary op with two constants
+/*
+ * match:  binary op with two constants
  * result: constant
  */
 static inline bool
@@ -611,7 +613,8 @@ apply_const_binary_exp (Btor *btor,
   return result;
 }
 
-/* match:  binary op with one constant
+/*
+ * match:  binary op with one constant
  * result: constant
  */
 static inline bool
@@ -879,7 +882,8 @@ apply_special_const_lhs_binary_exp (Btor *btor,
   return result;
 }
 
-/* match:  binary op with one constant
+/*
+ * match:  binary op with one constant
  * result: constant
  */
 static inline bool
@@ -1149,12 +1153,12 @@ apply_special_const_rhs_binary_exp (Btor *btor,
 }
 
 /* -------------------------------------------------------------------------- */
-/* linear term rewriting */
+/* linear term rewriting                                                      */
+/* -------------------------------------------------------------------------- */
 
 /* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
  * and 'factor' is odd?  We check whether this is possible but do not use
- * more than 'bound' recursive calls.
- */
+ * more than 'bound' recursive calls.  */
 static bool
 rewrite_linear_term_bounded (Btor *btor,
                              BtorNode *term,
@@ -1281,33 +1285,34 @@ btor_rewrite_linear_term (Btor *btor,
 }
 
 /* -------------------------------------------------------------------------- */
-/* rewriting rules
- *
+/* rewriting rules                                                            */
+/* -------------------------------------------------------------------------- */
+
+/*
  * for each rule we define two functions:
-
-static inline bool
-applies_<rw_rule> (Btor * btor, ...)
-{
-
-}
-
-static inline BtorNode *
-apply_<rw_rule> (Btor * btor, ...)
-{
-  assert (applies_<rw_rule> (...));
-
-}
-
+ *   static inline bool
+ *   applies_<rw_rule> (Btor * btor, ...)
+ *   {
+ *   }
+ *
+ *   static inline BtorNode *
+ *   apply_<rw_rule> (Btor * btor, ...)
+ *   {
+ *     assert (applies_<rw_rule> (...));
+ *   }
+ *
  * where the first one determines if <rw_rule> is applicable, and the second
  * one applies the rule.
  *
  * for adding rw rules to a rewrite function use the ADD_RW_RULE macro.
- *
  */
 
-/* SLICE rules */
 
-/* match:  exp[len(exp) - 1:0]
+/* SLICE rules                                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match:  exp[len(exp) - 1:0]
  * result: exp
  */
 static inline bool
@@ -1327,7 +1332,8 @@ apply_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return btor_node_copy (btor, exp);
 }
 
-/* match: exp[upper:lower], where exp is a constant
+/*
+ * match: exp[upper:lower], where exp is a constant
  * result: constant
  */
 static inline bool
@@ -1354,7 +1360,8 @@ apply_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return result;
 }
 
-/* match:  (exp[u:l])[upper:lower]
+/*
+ * match:  (exp[u:l])[upper:lower]
  * result: exp[l+upper:l+lower]
  */
 static inline bool
@@ -1382,7 +1389,8 @@ apply_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return result;
 }
 
-/* match: (a::b)[len(b)-1:0]
+/*
+ * match: (a::b)[len(b)-1:0]
  * result: b
  */
 static inline bool
@@ -1413,7 +1421,8 @@ apply_concat_lower_slice (Btor *btor,
   return btor_node_copy (btor, result);
 }
 
-/* match: (a::b)[len(a)+len(b)-1:len(b)]
+/*
+ * match: (a::b)[len(a)+len(b)-1:len(b)]
  * result: a
  */
 static inline bool
@@ -1445,7 +1454,8 @@ apply_concat_upper_slice (Btor *btor,
   return btor_node_copy (btor, result);
 }
 
-/* match:  (a::b)[upper:lower], where lower >= len(b)
+/*
+ * match:  (a::b)[upper:lower], where lower >= len(b)
  * result: a[upper-len(b):lower-len(b)]
  *
  * concats are normalized at rewrite level 3,
@@ -1486,7 +1496,8 @@ apply_concat_rec_upper_slice (Btor *btor,
   return result;
 }
 
-/* match:  (a::b)[upper:lower], where upper < len(b)
+/*
+ * match:  (a::b)[upper:lower], where upper < len(b)
  * result: b[upper:lower]
  *
  * concats are normalized at rewrite level 3,
@@ -1524,7 +1535,8 @@ apply_concat_rec_lower_slice (Btor *btor,
   return result;
 }
 
-/* match:  (a::b)[upper:lower], where lower = 0 and upper >= len(b)
+/*
+ * match:  (a::b)[upper:lower], where lower = 0 and upper >= len(b)
  * result: a[upper-len(b):0]::b
  *
  * concats are normalized at rewrite level 3,
@@ -1567,7 +1579,8 @@ apply_concat_rec_slice (Btor *btor,
   return result;
 }
 
-/* match:  (a & b)[upper:lower]
+/*
+ * match:  (a & b)[upper:lower]
  * result: a[upper:lower] & b[upper:lower]
  */
 static inline bool
@@ -1600,7 +1613,8 @@ apply_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return result;
 }
 
-/* match:  (c ? a : b)[upper:lower]
+/*
+ * match:  (c ? a : b)[upper:lower]
  * result: c ? a[upper:lower] : b[upper:lower]
  */
 static inline bool
@@ -1667,9 +1681,11 @@ apply_zero_lower_slice (Btor *btor,
   return result;
 }
 
-/* EQ rules */
+/* EQ rules                                                                   */
+/* -------------------------------------------------------------------------- */
 
-/* match:  a = a
+/*
+ * match:  a = a
  * result: true
  */
 static inline bool
@@ -1688,7 +1704,8 @@ apply_true_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_true (btor);
 }
 
-/* match:  a = b, where a != b
+/*
+ * match:  a = b, where a != b
  * result: false
  */
 static inline bool
@@ -1706,7 +1723,8 @@ apply_false_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_false (btor);
 }
 
-/* match:  a + b = a
+/*
+ * match:  a + b = a
  * result: b = 0
  *
  * This rule does not lead to less substitutions. 'a' cannot
@@ -1737,7 +1755,8 @@ apply_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  b + a = a
+/*
+ * match:  b + a = a
  * result: b = 0
  *
  * This rule does not lead to less substitutions. 'a' cannot
@@ -1768,7 +1787,8 @@ apply_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a + b = a + c
+/*
+ * match:  a + b = a + c
  * result: b = c
  */
 static inline bool
@@ -1793,7 +1813,8 @@ apply_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a + b = c + a
+/*
+ * match:  a + b = c + a
  * result: b = c
  */
 static inline bool
@@ -1818,7 +1839,8 @@ apply_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  b + a = a + c
+/*
+ * match:  b + a = a + c
  * result: b = c
  */
 static inline bool
@@ -1843,7 +1865,8 @@ apply_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  b + a = c + a
+/*
+ * match:  b + a = c + a
  * result: b = c
  */
 static inline bool
@@ -1868,7 +1891,8 @@ apply_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  t = a - b   (t = a + ~b + 1)
+/*
+ * match:  t = a - b   (t = a + ~b + 1)
  * result: t + b = a
  */
 static inline bool
@@ -1909,7 +1933,8 @@ apply_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 #if 0
-/* match:  a & b = ~a & ~b
+/*
+ * match:  a & b = ~a & ~b
  * result: a = ~b
  *
  * Commutative operators are normalized ignoring signs, so we do not have to
@@ -1945,7 +1970,8 @@ apply_and_and_1_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
   return result;
 }
 
-/* match:  ~a & b = a & ~b
+/*
+ * match:  ~a & b = a & ~b
  * result: a = b
  *
  * Commutative operators are normalized ignoring signs, so we do not have to
@@ -1982,7 +2008,8 @@ apply_and_and_2_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
   return result;
 }
 
-/* match:  a & b = a & ~b
+/*
+ * match:  a & b = a & ~b
  * result: a = 0
  *
  * Commutative operators are normalized ignoring signs, so we do not have to
@@ -2017,7 +2044,8 @@ apply_and_and_3_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
   return result;
 }
 
-/* match:  a & b = ~a & b
+/*
+ * match:  a & b = ~a & b
  * result: b = 0
  *
  * Commutative operators are normalized ignoring signs, so we do not have to
@@ -2053,7 +2081,8 @@ apply_and_and_4_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
-/* match:  b ? a : t = d, where a != d
+/*
+ * match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
 static inline bool
@@ -2080,7 +2109,8 @@ apply_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  b ? a : t = d, where a != d
+/*
+ * match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
 static inline bool
@@ -2107,8 +2137,10 @@ apply_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a = b ? a : c
+/*
+ * match:  a = b ? a : c
  * result: b OR a = c
+ *
  * match:  a = ~(b ? a : c)
  * result: !b AND a = ~c
  */
@@ -2145,8 +2177,10 @@ apply_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a = b ? c : a
+/*
+ * match:  a = b ? c : a
  * result: !b OR a = c
+ *
  * match:  a = ~(b ? c : a)
  * result: b AND a = ~c
  */
@@ -2183,7 +2217,8 @@ apply_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  (x ? a : b) = (x : c : d), where either a = c or b = d
+/*
+ * match:  (x ? a : b) = (x : c : d), where either a = c or b = d
  * result: x ? a = c : b = d
  */
 static inline bool
@@ -2223,7 +2258,8 @@ apply_bcond_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a * b + a * c
+/*
+ * match:  a * b + a * c
  * result: a * (b + c)
  */
 static inline bool
@@ -2302,10 +2338,11 @@ apply_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_true (btor);
 }
 
-/* match:  a :: b = c
- * u: len(c)-1
- * l: len(c)-len(a)+1
+/*
+ * match:  a :: b = c
  * result: a[u:l] = c[u:l] AND (a::b)[l:0] = c[l:0]
+ * with: u: len(c)-1
+ *       l: len(c)-len(a)+1
  *
  * push eq down over concats
  */
@@ -2406,9 +2443,12 @@ apply_zero_eq_and_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
-/* ULT rules */
 
-/* match:  a < a
+/* ULT rules                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match:  a < a
  * result: false
  */
 static inline bool
@@ -2427,7 +2467,8 @@ apply_false_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_false (btor);
 }
 
-/* match:  a < b, where len(a) = 1
+/*
+ * match:  a < b, where len(a) = 1
  * result: !a AND b
  */
 static inline bool
@@ -2451,7 +2492,8 @@ apply_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  (a::b) < (a::c)
+/*
+ * match:  (a::b) < (a::c)
  * result: b < c
  */
 static inline bool
@@ -2477,7 +2519,8 @@ apply_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  (b::a) < (c::a)
+/*
+ * match:  (b::a) < (c::a)
  * result: b < c
  */
 static inline bool
@@ -2503,7 +2546,8 @@ apply_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  (x ? a : b) < (x : c : d), where either a = c or b = d
+/*
+ * match:  (x ? a : b) < (x : c : d), where either a = c or b = d
  * result: x ? a < c : b < d
  */
 static inline bool
@@ -2543,9 +2587,12 @@ apply_bcond_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* AND rules */
 
-/* match:  a & a
+/* AND rules                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match:  a & a
  * result: a
  */
 static inline bool
@@ -2563,7 +2610,8 @@ apply_idem1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_node_copy (btor, e0);
 }
 
-/* match:  a & ~a
+/*
+ * match:  a & ~a
  * result: 0
  */
 static inline bool
@@ -2581,7 +2629,8 @@ apply_contr1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* match: a & b & c & d, where a = ~c OR a = ~d OR b = ~c OR b = ~d
+/*
+ * match: a & b & c & d, where a = ~c OR a = ~d OR b = ~c OR b = ~d
  * result: false
  *
  * second rule of contradiction
@@ -2606,7 +2655,8 @@ apply_contr2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* match: a & b & c & d, where a = c or b = c
+/*
+ * match: a & b & c & d, where a = c or b = c
  * result: a & b & d
  *
  * symmetric rule of idempotency
@@ -2636,7 +2686,8 @@ apply_idem2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a & b & c & d, where a = d OR b = d
+/*
+ * match: a & b & c & d, where a = d OR b = d
  * result: a & b & c
  *
  * use commutativity
@@ -2666,7 +2717,8 @@ apply_comm_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a & b & ~(c & d), where a = c OR a = d OR b = c OR b = d
+/*
+ * match: a & b & ~(c & d), where a = c OR a = d OR b = c OR b = d
  * result: a & b
  */
 static inline bool
@@ -2692,7 +2744,8 @@ apply_subsum1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_node_copy (btor, e0);
 }
 
-/* match: a & b & ~(c & d), where a = c OR b = c
+/*
+ * match: a & b & ~(c & d), where a = c OR b = c
  * result: a & b & ~d
  *
  * symmetric rule of substitution
@@ -2723,7 +2776,8 @@ apply_subst1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a & b & ~(c & d), where a = d OR b = d
+/*
+ * match: a & b & ~(c & d), where a = d OR b = d
  * result: a & b & ~c
  *
  * symmetric rule of substitution
@@ -2754,7 +2808,8 @@ apply_subst2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a XNOR b, where len(a) = 1
+/*
+ * match: a XNOR b, where len(a) = 1
  * result: a = b
  */
 static inline bool
@@ -2794,7 +2849,8 @@ apply_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: ~(a & b) & ~(c & d), where (a = c AND b = ~d) OR (a = d AND b = ~c)
+/*
+ * match: ~(a & b) & ~(c & d), where (a = c AND b = ~d) OR (a = d AND b = ~c)
  * result: ~a
  *
  * rule of resolution
@@ -2823,7 +2879,8 @@ apply_resol1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
       btor_node_copy (btor, btor_node_real_addr (e0)->e[0]));
 }
 
-/* match: ~(a & b) & ~(c & d), where (~a = c AND b = d) OR (a = d AND ~b = c)
+/*
+ * match: ~(a & b) & ~(c & d), where (~a = c AND b = d) OR (a = d AND ~b = c)
  * result: ~a
  *
  * rule of resolution
@@ -2852,7 +2909,8 @@ apply_resol2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
       btor_node_copy (btor, btor_node_real_addr (e1)->e[1]));
 }
 
-/* match: ~(a & b) & c, where a == ~c OR b == ~c
+/*
+ * match: ~(a & b) & c, where a == ~c OR b == ~c
  * result: c
  *
  * first rule of subsumption
@@ -2876,7 +2934,8 @@ apply_subsum2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_node_copy (btor, e1);
 }
 
-/* match: ~(a & b) & c, where b = c
+/*
+ * match: ~(a & b) & c, where b = c
  * result: ~a & c
  *
  * asymmetric rule of substitution
@@ -2904,7 +2963,8 @@ apply_subst3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: ~(a & b) & c, where a = c
+/*
+ * match: ~(a & b) & c, where a = c
  * result: ~b & c
  *
  * asymmetric rule of substitution
@@ -2932,7 +2992,8 @@ apply_subst4_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a & b & c, where a = ~c OR b = ~c
+/*
+ * match: a & b & c, where a = ~c OR b = ~c
  * result: 0
  *
  * first rule of contradiction
@@ -2954,7 +3015,8 @@ apply_contr3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* match: a & b & c, where a = c OR b = c
+/*
+ * match: a & b & c, where a = c OR b = c
  * result: a
  *
  * asymmetric rule of idempotency
@@ -2975,7 +3037,8 @@ apply_idem3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_node_copy (btor, e0);
 }
 
-/* match: a & b & c, where a and c are constants
+/*
+ * match: a & b & c, where a and c are constants
  * result: d & b, where d is a new constant obtained from a & c
  */
 static inline bool
@@ -3002,7 +3065,8 @@ apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a & b & c, where b and c are constants
+/*
+ * match: a & b & c, where b and c are constants
  * result: d & a, where d is a new constant obtained from b & c
  */
 static inline bool
@@ -3029,7 +3093,8 @@ apply_const2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: (a < b) & (b < a)
+/*
+ * match: (a < b) & (b < a)
  * result: false
  */
 static inline bool
@@ -3050,7 +3115,8 @@ apply_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_false (btor);
 }
 
-/* match: ~(a < b) & ~(b < a)
+/*
+ * match: ~(a < b) & ~(b < a)
  * result: a = b
  */
 static inline bool
@@ -3081,7 +3147,6 @@ apply_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 /*
- *
  * recursively find contradicting ands
  */
 static inline bool
@@ -3100,7 +3165,8 @@ apply_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* match:  (0::a) & (b::0)
+/*
+ * match:  (0::a) & (b::0)
  * result: 0
  *
  * match:  (0::a) & (b::1)
@@ -3160,8 +3226,9 @@ apply_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 #if 0
-/* match:
- * result: 
+/*
+ * match:
+ * result:
  */
 static inline bool
 applies_and (Btor * btor, BtorNode * e0, BtorNode * e1)
@@ -3225,9 +3292,12 @@ apply_and (Btor * btor, BtorNode * e0, BtorNode * e1)
     }
 #endif
 
-/* ADD rules */
 
-/* match:  a + b, where len(a) = 1
+/* ADD rules                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match:  a + b, where len(a) = 1
  * result: a XOR b
  */
 static inline bool
@@ -3251,7 +3321,8 @@ apply_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a - b OR -a + b, where a = b
+/*
+ * match:  a - b OR -a + b, where a = b
  * result: 0
  */
 static inline bool
@@ -3273,7 +3344,8 @@ apply_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* match: 0 + b
+/*
+ * match: 0 + b
  * result: b
  */
 static inline bool
@@ -3291,7 +3363,8 @@ apply_zero_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_node_copy (btor, e1);
 }
 
-/* match: c0 + (c1 + b), where c0 and c1 are constants
+/*
+ * match: c0 + (c1 + b), where c0 and c1 are constants
  * result: c + b, where c is a new constant from c0 + c1
  *
  * recursion is no problem here, as one call leads to
@@ -3322,7 +3395,8 @@ apply_const_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: c0 + (b + c1), where c0 and c1 are constants
+/*
+ * match: c0 + (b + c1), where c0 and c1 are constants
  * result: c + b, where c is a new constant from c0 + c1
  *
  * recursion is no problem here, as one call leads to
@@ -3413,7 +3487,8 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
 #endif
 
-/* match:  ~(c * a) + b
+/*
+ * match:  ~(c * a) + b
  * result: ((-c) * a - 1) + b
  */
 static inline bool
@@ -3454,7 +3529,8 @@ apply_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  ~(a * c) + b
+/*
+ * match:  ~(a * c) + b
  * result: (a * (-c) - 1) + b
  */
 static inline bool
@@ -3495,7 +3571,8 @@ apply_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a + a
+/*
+ * match:  a + a
  * result: 2 * a
  */
 static inline bool
@@ -3521,7 +3598,8 @@ apply_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a + ~a
+/*
+ * match:  a + ~a
  * result: -1
  */
 static inline bool
@@ -3540,7 +3618,8 @@ apply_not_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 // TODO (ma): conditional rewriting: check if a and c or b and d are constants
-/* match:  (x ? a : b) + (x : c : d), where either a = c or b = d
+/*
+ * match:  (x ? a : b) + (x : c : d), where either a = c or b = d
  * result: x ? a + c : b + d
  */
 static inline bool
@@ -3596,9 +3675,12 @@ apply_urem_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   return rewrite_urem_exp (btor, x, y);
 }
 
-/* MUL rules */
 
-/* match:  a * b, wher len(a) = 1
+/* MUL rules                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match:  a * b, wher len(a) = 1
  * result: a & b
  */
 static inline bool
@@ -3621,7 +3703,8 @@ apply_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: c0 * (c1 * b), where c0 and c1 are constants
+/*
+ * match: c0 * (c1 * b), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
 static inline bool
@@ -3647,7 +3730,8 @@ apply_const_lhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: c0 * (b * c1), where c0 and c1 are constants
+/*
+ * match: c0 * (b * c1), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
 static inline bool
@@ -3673,7 +3757,8 @@ apply_const_rhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: c0 * (a + c1)
+/*
+ * match: c0 * (a + c1)
  * result: c0 * a + c, where c is a new constant from c0 * c1
  */
 static inline bool
@@ -3773,9 +3858,12 @@ apply_bcond_mul (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
-/* UDIV rules */
 
-/* match: a / b, where len(a) = 1
+/* UDIV rules                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * match: a / b, where len(a) = 1
  * result: ~(~a & b)
  */
 static inline bool
@@ -3799,7 +3887,8 @@ apply_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a / 2^n
+/*
+ * match:  a / 2^n
  * result: 0 :: a[len(a)-1:n]
  */
 static inline bool
@@ -3837,7 +3926,8 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a / a
+/*
+ * match: a / a
  * result: 1, if a != 0 and UINT32_MAX otherwise
  */
 static inline bool
@@ -3870,7 +3960,8 @@ apply_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 // TODO (ma): conditional rewriting: check if a and c or b and d are constants
-/* match:  (x ? a : b) / (x : c : d), where either a = c or b = d
+/*
+ * match:  (x ? a : b) / (x : c : d), where either a = c or b = d
  * result: x ? a / c : b / d
  */
 static inline bool
@@ -3910,9 +4001,11 @@ apply_bcond_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* UREM rules */
+/* UREM rules                                                                 */
+/* -------------------------------------------------------------------------- */
 
-/* match:  a % b, where len(a) = 1
+/*
+ * match:  a % b, where len(a) = 1
  * result: a & ~b
  */
 static inline bool
@@ -3936,7 +4029,8 @@ apply_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a % a
+/*
+ * match:  a % a
  * result: 0
  */
 static inline bool
@@ -3954,9 +4048,11 @@ apply_zero_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_exp_zero (btor, btor_node_get_sort_id (e0));
 }
 
-/* CONCAT rules */
+/* CONCAT rules                                                               */
+/* -------------------------------------------------------------------------- */
 
-/* match:  (a::c0)::c1
+/*
+ * match:  (a::c0)::c1
  * result: a::c, where c is a new constant obtained from c0::c1
  */
 static inline bool
@@ -3988,7 +4084,8 @@ apply_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  a[u1:l1]::a[u2:l2], where l1 = u2 + 1
+/*
+ * match:  a[u1:l1]::a[u2:l2], where l1 = u2 + 1
  * result: a[u1:l2]
  */
 static inline bool
@@ -4100,7 +4197,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
 #endif
 
-/* match: (a & b)::c
+/*
+ * match: (a & b)::c
  * result: (a::c) & (b::c)
  */
 static inline bool
@@ -4136,7 +4234,8 @@ apply_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match: a::(b & c)
+/*
+ * match: a::(b & c)
  * result: (a::b) & (a::c)
  */
 static inline bool
@@ -4172,9 +4271,11 @@ apply_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* SLL rules */
+/* SLL rules                                                                  */
+/* -------------------------------------------------------------------------- */
 
-/* match:  a << c, where c is a constant
+/*
+ * match:  a << c, where c is a constant
  * result: a[len(a)-val(c)-1:0]::0
  */
 static inline bool
@@ -4220,9 +4321,11 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* SRL rules */
+/* SRL rules                                                                  */
+/* -------------------------------------------------------------------------- */
 
-/* match:  a >> c, where c is a constant
+/*
+ * match:  a >> c, where c is a constant
  * result: 0::a[len(a)-1:val(c)]
  */
 static inline bool
@@ -4268,9 +4371,11 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* APPLY rules */
+/* APPLY rules                                                                */
+/* -------------------------------------------------------------------------- */
 
-/* match:  (\lambda x . t)(a), where term t does not contain param x
+/*
+ * match:  (\lambda x . t)(a), where term t does not contain param x
  * result: t
  */
 static inline bool
@@ -4292,7 +4397,8 @@ apply_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
                          btor_node_binder_get_body (btor_node_real_addr (e0)));
 }
 
-/* match:  (\lambda x . x)(a)
+/*
+ * match:  (\lambda x . x)(a)
  * result: a
  */
 static inline bool
@@ -4320,7 +4426,8 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* match:  (\lambda x . f(x))(a)
+/*
+ * match:  (\lambda x . f(x))(a)
  * result: f(a)
  */
 static inline bool
@@ -4358,7 +4465,6 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 /*
- *
  * propagate apply over parameterized bv conditionals
  */
 static inline bool
@@ -4603,6 +4709,9 @@ apply_prop_apply_lambda (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+/*
+ * TODO description
+ */
 static inline bool
 applies_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -4699,7 +4808,8 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
 #if 0 
 // TODO (ma): this rule cannot be applied yet as it may produce lambdas with
 //            different sorts
-/* match: (\lambda j . (\lambda k . t)(j))
+/*
+ * match: (\lambda j . (\lambda k . t)(j))
  * result: \lambda k . t
  */
 static inline bool
@@ -4719,8 +4829,13 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
-/* QUANTIFIER rules */
 
+/* QUANTIFIER rules                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * TODO description
+ */
 static inline int
 applies_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
 {
@@ -4737,11 +4852,13 @@ apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_node_copy (btor, body);
 }
 
-/* FORALL rules */
+/* FORALL rules                                                               */
+/* -------------------------------------------------------------------------- */
 
 #if 0
 
-/* match:  (\forall x . t) where x does not occur in t
+/*
+ * match:  (\forall x . t) where x does not occur in t
  * result: t
  */
 static inline int
@@ -4762,7 +4879,8 @@ apply_param_free_forall (Btor * btor, BtorNode * param, BtorNode * body)
 
 #endif
 
-/* match: \forall x . x = t    if x \not \in vars(t)
+/*
+ * match: \forall x . x = t    if x \not \in vars(t)
  * match: \forall x . x != t    if x \not \in vars(t)
  * result: false
  */
@@ -4792,9 +4910,11 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
 
 #if 0
 
-/* EXISTS rules */
+/* EXISTS rules                                                               */
+/* -------------------------------------------------------------------------- */
 
-/* match:  (\exists x . t) where x does not occur in t
+/*
+ * match:  (\exists x . t) where x does not occur in t
  * result: t
  */
 static inline int
@@ -4815,7 +4935,8 @@ apply_param_free_exists (Btor * btor, BtorNode * param, BtorNode * body)
 
 #endif
 
-/* match: \exists x . x = t    if x \not \in vars(t)
+/*
+ * match: \exists x . x = t    if x \not \in vars(t)
  * match: \exists x . x != t    if x \not \in vars(t)
  * result: true
  */
@@ -4843,9 +4964,11 @@ apply_eq_exists (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_exp_true (btor);
 }
 
-/* COND rules */
+/* COND rules                                                                 */
+/* -------------------------------------------------------------------------- */
 
-/* match: c ? a : a
+/*
+ * match: c ? a : a
  * result: a
  */
 static inline bool
@@ -4868,7 +4991,8 @@ apply_equal_branches_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return btor_node_copy (btor, e1);
 }
 
-/* match: c ? a : b, where c is a constant
+/*
+ * match: c ? a : b, where c is a constant
  * result: a if c is true, and b otherwise
  */
 static inline bool
@@ -4889,7 +5013,8 @@ apply_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return btor_node_copy (btor, e2);
 }
 
-/* match: c0 ? (c0 ? a : b) : c
+/*
+ * match: c0 ? (c0 ? a : b) : c
  * result: c0 ? a : c
  */
 static inline bool
@@ -4916,7 +5041,8 @@ apply_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match: c0 ? (c1 ? a : b) : a
+/*
+ * match: c0 ? (c1 ? a : b) : a
  * result: c0 AND ~c1 ? b : a
  */
 static inline bool
@@ -4953,7 +5079,8 @@ apply_cond_if_merge_if_cond (Btor *btor,
   return result;
 }
 
-/* match: c0 ? (c1 ? b : a) : a
+/*
+ * match: c0 ? (c1 ? b : a) : a
  * result: c0 AND c1 ? b : a
  */
 static inline bool
@@ -4990,7 +5117,8 @@ apply_cond_if_merge_else_cond (Btor *btor,
   return result;
 }
 
-/* match: c0 ? a : (c0 ? b : c)
+/*
+ * match: c0 ? a : (c0 ? b : c)
  * result: c0 ? a : c
  */
 static inline bool
@@ -5020,7 +5148,8 @@ apply_cond_else_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match: c0 ? a : (c1 ? a : b)
+/*
+ * match: c0 ? a : (c1 ? a : b)
  * result: ~c0 AND ~c1 ? b : a
  */
 static inline bool
@@ -5057,7 +5186,8 @@ apply_cond_else_merge_if_cond (Btor *btor,
   return result;
 }
 
-/* match: c0 ? a : (c1 ? b : a)
+/*
+ * match: c0 ? a : (c1 ? b : a)
  * result: ~c0 AND c1 ? b : a
  */
 static inline bool
@@ -5094,7 +5224,8 @@ apply_cond_else_merge_else_cond (Btor *btor,
   return result;
 }
 
-/* match:  c ? a : b, where len(a) = 1
+/*
+ * match:  c ? a : b, where len(a) = 1
  * result: (~c OR a) AND (c OR b)
  */
 static inline bool
@@ -5123,7 +5254,8 @@ apply_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? (a + 1) : a
+/*
+ * match:  c ? (a + 1) : a
  * match:  c ? (1 + a) : a
  * result: a + 0::c
  */
@@ -5152,7 +5284,8 @@ apply_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? a : (a + 1)
+/*
+ * match:  c ? a : (a + 1)
  * match:  c ? a : (1 + a)
  * result: a + 0::c
  */
@@ -5183,7 +5316,8 @@ apply_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? (a::b) : (a::d)
+/*
+ * match:  c ? (a::b) : (a::d)
  * result: a :: (c ? b : d)
  *
  * match:  c ? (a::b) : (d::b)
@@ -5234,7 +5368,8 @@ apply_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? a OP b : a OP d, where OP is either +, &, *, /, %
+/*
+ * match:  c ? a OP b : a OP d, where OP is either +, &, *, /, %
  * result: a OP (c ? b : d)
  */
 static inline bool
@@ -5266,7 +5401,8 @@ apply_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? a OP b : d OP b, where OP is either +, &, *, /, %
+/*
+ * match:  c ? a OP b : d OP b, where OP is either +, &, *, /, %
  * result: (c ? a : d) OP b
  */
 static inline bool
@@ -5298,7 +5434,8 @@ apply_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? a OP b : d OP a, where OP is either +, &, *
+/*
+ * match:  c ? a OP b : d OP a, where OP is either +, &, *
  * result: a OP (c ? b : d)
  */
 static inline bool
@@ -5329,7 +5466,8 @@ apply_comm_op_1_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   return result;
 }
 
-/* match:  c ? a OP b : b OP d, where OP is either +, &, *
+/*
+ * match:  c ? a OP b : b OP d, where OP is either +, &, *
  * result: b OP (c ? a : d)
  */
 static inline bool
@@ -5361,7 +5499,8 @@ apply_comm_op_2_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 }
 
 #if 0
-/* match:
+/*
+ * match:
  * result:
  */
 static inline bool
@@ -5378,7 +5517,8 @@ apply_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 #endif
 
 /* -------------------------------------------------------------------------- */
-/* normalizers */
+/* normalizers                                                                */
+/* -------------------------------------------------------------------------- */
 
 static void
 normalize_bin_comm_ass_exp (Btor *btor,
@@ -5784,7 +5924,8 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
   }
 
   // TODO (ma): check if this is also applicable to mul nodes and maybe others?
-  /* match: c0 = c1 + b
+  /*
+   * match: c0 = c1 + b
    * result: c0 - c1 = b
    *
    * also handles negated adds:
@@ -6038,7 +6179,8 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
 }
 
 /* -------------------------------------------------------------------------- */
-/* term rewriting functions */
+/* term rewriting functions                                                   */
+/* -------------------------------------------------------------------------- */
 
 static BtorNode *
 rewrite_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
