@@ -4917,7 +4917,7 @@ apply_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 }
 
 /* match: c0 ? (c1 ? a : b) : a
- * result: c0 AND ~c1 ? a : b
+ * result: c0 AND ~c1 ? b : a
  */
 static inline bool
 applies_cond_if_merge_if_cond (Btor *btor,
