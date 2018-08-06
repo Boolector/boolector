@@ -2273,9 +2273,9 @@ apply_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* TODO
- *
- *
+/*
+ * match:  a * (b + c) = a * b + a * c
+ * result: true
  */
 static inline bool
 applies_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
