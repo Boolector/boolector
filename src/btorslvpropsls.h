@@ -25,67 +25,6 @@
 
 /*------------------------------------------------------------------------*/
 
-static inline void
-btor_propsls_rec_conf (Btor* btor,
-                       BtorNode* node,
-                       BtorBitVector* bve,
-                       BtorBitVector* bvexp,
-                       int32_t eidx,
-                       char* op,
-                       bool is_recoverable)
-{
-  assert (btor);
-  assert (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP
-          || btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS);
-  assert (bve);
-  assert (bvexp);
-  assert (op);
-
-  (void) bve;
-  (void) bvexp;
-  (void) eidx;
-  (void) op;
-#ifndef NDEBUG
-  char* sbve   = btor_bv_to_char (btor->mm, bve);
-  char* sbvexp = btor_bv_to_char (btor->mm, bvexp);
-  BTORLOG (2, "");
-  if (eidx)
-    BTORLOG (2,
-             "%s CONFLICT (@%d): %s := %s %s x",
-             is_recoverable ? "recoverable" : "non-recoverable",
-             btor_node_get_id (node),
-             sbvexp,
-             sbve,
-             op);
-  else
-    BTORLOG (2,
-             "%s CONFLICT (@%d): %s := x %s %s",
-             is_recoverable ? "recoverable" : "non-recoverable",
-             btor_node_get_id (node),
-             sbvexp,
-             op,
-             sbve);
-  btor_mem_freestr (btor->mm, sbve);
-  btor_mem_freestr (btor->mm, sbvexp);
-#endif
-  if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
-  {
-    if (is_recoverable)
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += 1;
-    else
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-  }
-  else
-  {
-    if (is_recoverable)
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
-    else
-      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-  }
-}
-
-/*------------------------------------------------------------------------*/
-
 void btor_propsls_update_cone (Btor* btor,
                                BtorIntHashTable* bv_model,
                                BtorIntHashTable* roots,
