@@ -480,7 +480,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
 /* Update cone of influence                                                   */
 /* ========================================================================== */
 
-static inline void
+static void
 update_roots_table (Btor *btor,
                     BtorIntHashTable *roots,
                     BtorNode *exp,
@@ -824,7 +824,7 @@ btor_propsls_update_cone (Btor *btor,
 /* Path selection (for down-propagation)                                      */
 /* ========================================================================== */
 
-static inline int32_t
+static int32_t
 select_path_non_const (BtorNode *exp)
 {
   assert (exp);
@@ -846,7 +846,7 @@ select_path_non_const (BtorNode *exp)
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_random (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -854,7 +854,7 @@ select_path_random (Btor *btor, BtorNode *exp)
   return (int32_t) btor_rng_pick_rand (&btor->rng, 0, exp->arity - 1);
 }
 
-static inline int32_t
+static int32_t
 select_path_add (Btor *btor,
                  BtorNode *add,
                  BtorBitVector *bvadd,
@@ -890,7 +890,7 @@ select_path_add (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_and (Btor *btor,
                  BtorNode *and,
                  BtorBitVector *bvand,
@@ -957,7 +957,7 @@ select_path_and (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_eq (Btor *btor,
                 BtorNode *eq,
                 BtorBitVector *bveq,
@@ -992,7 +992,7 @@ select_path_eq (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_ult (Btor *btor,
                  BtorNode *ult,
                  BtorBitVector *bvult,
@@ -1045,7 +1045,7 @@ select_path_ult (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_sll (Btor *btor,
                  BtorNode *sll,
                  BtorBitVector *bvsll,
@@ -1103,7 +1103,7 @@ DONE:
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_srl (Btor *btor,
                  BtorNode *srl,
                  BtorBitVector *bvsrl,
@@ -1162,7 +1162,7 @@ DONE:
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_mul (Btor *btor,
                  BtorNode *mul,
                  BtorBitVector *bvmul,
@@ -1231,7 +1231,7 @@ select_path_mul (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_udiv (Btor *btor,
                   BtorNode *udiv,
                   BtorBitVector *bvudiv,
@@ -1311,7 +1311,7 @@ select_path_udiv (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_urem (Btor *btor,
                   BtorNode *urem,
                   BtorBitVector *bvurem,
@@ -1391,7 +1391,7 @@ select_path_urem (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_concat (Btor *btor,
                     BtorNode *concat,
                     BtorBitVector *bvconcat,
@@ -1445,7 +1445,7 @@ select_path_concat (Btor *btor,
   return eidx;
 }
 
-static inline int32_t
+static int32_t
 select_path_slice (Btor *btor,
                    BtorNode *slice,
                    BtorBitVector *bvslice,
@@ -1477,7 +1477,7 @@ select_path_slice (Btor *btor,
   return 0;
 }
 
-static inline int32_t
+static int32_t
 select_path_cond (Btor *btor,
                   BtorNode *cond,
                   BtorBitVector *bvcond,
@@ -1594,13 +1594,13 @@ select_path_cond (Btor *btor,
 /* ========================================================================== */
 
 #ifdef NDEBUG
-static inline BtorBitVector *inv_slice_bv (Btor *,
-                                           BtorNode *,
-                                           BtorBitVector *,
-                                           BtorBitVector *);
+static BtorBitVector *inv_slice_bv (Btor *,
+                                    BtorNode *,
+                                    BtorBitVector *,
+                                    BtorBitVector *);
 #endif
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_add_bv (Btor *btor,
              BtorNode *add,
              BtorBitVector *bvadd,
@@ -1627,7 +1627,7 @@ cons_add_bv (Btor *btor,
   return btor_bv_new_random (btor->mm, &btor->rng, bvadd->width);
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_and_bv (Btor *btor,
              BtorNode *and,
              BtorBitVector *bvand,
@@ -1684,7 +1684,7 @@ cons_and_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_eq_bv (Btor *btor,
             BtorNode *eq,
             BtorBitVector *bveq,
@@ -1722,7 +1722,7 @@ cons_eq_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_ult_bv (Btor *btor,
              BtorNode *ult,
              BtorBitVector *bvult,
@@ -1780,7 +1780,7 @@ cons_ult_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_sll_bv (Btor *btor,
              BtorNode *sll,
              BtorBitVector *bvsll,
@@ -1836,7 +1836,7 @@ cons_sll_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_srl_bv (Btor *btor,
              BtorNode *srl,
              BtorBitVector *bvsrl,
@@ -1893,7 +1893,7 @@ cons_srl_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_mul_bv (Btor *btor,
              BtorNode *mul,
              BtorBitVector *bvmul,
@@ -1980,7 +1980,7 @@ cons_mul_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_udiv_bv (Btor *btor,
               BtorNode *udiv,
               BtorBitVector *bvudiv,
@@ -2068,7 +2068,7 @@ cons_udiv_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_urem_bv (Btor *btor,
               BtorNode *urem,
               BtorBitVector *bvurem,
@@ -2132,7 +2132,7 @@ cons_urem_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_concat_bv (Btor *btor,
                 BtorNode *concat,
                 BtorBitVector *bvconcat,
@@ -2185,7 +2185,7 @@ cons_concat_bv (Btor *btor,
   return res;
 }
 
-static inline BtorBitVector *
+static BtorBitVector *
 cons_slice_bv (Btor *btor,
                BtorNode *slice,
                BtorBitVector *bvslice,
@@ -2279,7 +2279,7 @@ res_rec_conf (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 #ifndef NDEBUG
-static inline void
+static void
 check_result_binary_dbg (Btor *btor,
                          BtorBitVector *(*fun) (BtorMemMgr *,
                                                 const BtorBitVector *,
@@ -2329,7 +2329,7 @@ check_result_binary_dbg (Btor *btor,
 /* INV: and                                                                   */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2367,7 +2367,7 @@ inv_add_bv (Btor *btor,
 }
 
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2461,7 +2461,7 @@ DONE:
 /* INV: eq                                                                    */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2531,7 +2531,7 @@ inv_eq_bv (Btor *btor,
 /* INV: ult                                                                   */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2641,7 +2641,7 @@ inv_ult_bv (Btor *btor,
 /* INV: sll                                                                   */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2785,7 +2785,7 @@ inv_sll_bv (Btor *btor,
 /* INV: srl                                                                   */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -2932,7 +2932,7 @@ inv_srl_bv (Btor *btor,
 /* INV: mul                                                                   */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -3123,7 +3123,7 @@ inv_mul_bv (Btor *btor,
 /* INV: udiv                                                                  */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -3378,7 +3378,7 @@ inv_udiv_bv (Btor *btor,
 /* INV: urem                                                                  */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
@@ -3710,7 +3710,7 @@ inv_urem_bv (Btor *btor,
 /* INV: concat                                                                */
 /* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
-static inline BtorBitVector *
+static BtorBitVector *
 #else
 BtorBitVector *
 #endif
