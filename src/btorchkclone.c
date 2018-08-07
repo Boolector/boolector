@@ -1170,8 +1170,8 @@ chkclone_slv (Btor *btor, Btor *clone)
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_rec_conf);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_non_rec_conf);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, rec_conf);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, non_rec_conf);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, props);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, updates);
 #ifndef NDEBUG

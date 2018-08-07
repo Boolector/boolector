@@ -2261,9 +2261,9 @@ res_rec_conf (Btor *btor,
   if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
   {
     if (is_recoverable)
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+      BTOR_PROP_SOLVER (btor)->stats.rec_conf += 1;
     else
-      BTOR_PROP_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+      BTOR_PROP_SOLVER (btor)->stats.non_rec_conf += 1;
   }
   else
   {

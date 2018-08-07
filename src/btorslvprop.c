@@ -435,11 +435,11 @@ print_stats_prop_solver (BtorPropSolver *slv)
   BTOR_MSG (btor->msg,
             1,
             "propagation move conflicts (recoverable): %u",
-            slv->stats.move_prop_rec_conf);
+            slv->stats.rec_conf);
   BTOR_MSG (btor->msg,
             1,
             "propagation move conflicts (non-recoverable): %u",
-            slv->stats.move_prop_non_rec_conf);
+            slv->stats.non_rec_conf);
 #ifndef NDEBUG
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (

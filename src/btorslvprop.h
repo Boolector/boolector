@@ -35,8 +35,8 @@ struct BtorPropSolver
   {
     uint32_t restarts;
     uint32_t moves;
-    uint32_t move_prop_rec_conf;
-    uint32_t move_prop_non_rec_conf;
+    uint32_t rec_conf;
+    uint32_t non_rec_conf;
     uint64_t props;
     uint64_t updates;
 
