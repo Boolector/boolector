@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -12,7 +12,9 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
-/*------------------------------------------------------------------------*/
+/* ========================================================================== */
+/* SLS score computation                                                      */
+/* ========================================================================== */
 
 #define BTOR_SLS_SCORE_CFACT 0.5     /* same as in Z3 (c1) */
 #define BTOR_SLS_SCORE_F_CFACT 0.025 /* same as in Z3 (c3) */
@@ -159,7 +161,9 @@ compute_sls_score_node (Btor *btor,
 
   if (btor_node_is_and (real_exp))
   {
-    /* OR --------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
+    /* OR                                                                     */
+    /* ---------------------------------------------------------------------- */
     if (btor_node_is_inverted (exp))
     {
       assert (btor_hashint_map_contains (score,
@@ -191,7 +195,9 @@ compute_sls_score_node (Btor *btor,
 #endif
       res = s0 > s1 ? s0 : s1;
     }
-    /* AND -------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
+    /* AND                                                                    */
+    /* ---------------------------------------------------------------------- */
     else
     {
       assert (btor_hashint_map_contains (score,
@@ -227,7 +233,9 @@ compute_sls_score_node (Btor *btor,
       if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;
     }
   }
-  /* EQ --------------------------------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* EQ                                                                       */
+  /* ------------------------------------------------------------------------ */
   else if (btor_node_is_bv_eq (real_exp))
   {
     bv0 = (BtorBitVector *) btor_model_get_bv_aux (
@@ -261,7 +269,9 @@ compute_sls_score_node (Btor *btor,
                          - hamming_distance (btor, bv0, bv1)
                                / (double) bv0->width);
   }
-  /* ULT -------------------------------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* ULT                                                                      */
+  /* ------------------------------------------------------------------------ */
   else if (btor_node_is_ult (real_exp))
   {
     bv0 = (BtorBitVector *) btor_model_get_bv_aux (
@@ -297,7 +307,9 @@ compute_sls_score_node (Btor *btor,
                 : BTOR_SLS_SCORE_CFACT
                       * (1.0 - min_flip (btor, bv0, bv1) / (double) bv0->width);
   }
-  /* other BOOLEAN ---------------------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* other BOOLEAN                                                            */
+  /* ------------------------------------------------------------------------ */
   else
   {
     assert (btor_node_get_width (btor, real_exp) == 1);
@@ -394,6 +406,8 @@ recursively_compute_sls_score_node (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+
 void
 btor_propsls_compute_sls_scores (Btor *btor,
                                  BtorIntHashTable *bv_model,
@@ -462,7 +476,9 @@ btor_propsls_compute_sls_scores (Btor *btor,
   btor_hashint_map_delete (mark);
 }
 
-/*========================================================================*/
+/* ========================================================================== */
+/* Update cone of influence                                                   */
+/* ========================================================================== */
 
 static inline void
 update_roots_table (Btor *btor,
@@ -804,7 +820,9 @@ btor_propsls_update_cone (Btor *btor,
   *time_update_cone += btor_util_time_stamp () - start;
 }
 
-/*========================================================================*/
+/* ========================================================================== */
+/* Path selection (for down-propagation)                                      */
+/* ========================================================================== */
 
 static inline int32_t
 select_path_non_const (BtorNode *exp)
@@ -1571,7 +1589,9 @@ select_path_cond (Btor *btor,
   return eidx;
 }
 
-/*------------------------------------------------------------------------*/
+/* ========================================================================== */
+/* Consistent value computation                                               */
+/* ========================================================================== */
 
 #ifdef NDEBUG
 static inline BtorBitVector *inv_slice_bv (Btor *,
@@ -2141,8 +2161,7 @@ cons_concat_bv (Btor *btor,
 
   /* If one operand is const, with BTOR_OPT_CONC_FLIP_PROB
    * either slice bits out of current assignment and flip max. one bit
-   * randomly, or slice bits out of given assignment 'bve'.
-   */
+   * randomly, or slice bits out of given assignment 'bve'.  */
 
   if (btor_node_is_bv_const (concat->e[idx])
       && btor_rng_pick_with_prob (
@@ -2179,7 +2198,9 @@ cons_slice_bv (Btor *btor,
   return inv_slice_bv (btor, slice, bvslice, bve);
 }
 
-/*------------------------------------------------------------------------*/
+/* ========================================================================== */
+/* Inverse value computation                                                  */
+/* ========================================================================== */
 
 static BtorBitVector *
 res_rec_conf (Btor *btor,
@@ -2304,6 +2325,9 @@ check_result_binary_dbg (Btor *btor,
 }
 #endif
 
+/* -------------------------------------------------------------------------- */
+/* INV: and                                                                   */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2391,19 +2415,21 @@ inv_and_bv (Btor *btor,
     bitand = btor_bv_get_bit (bvand, i);
     bite   = btor_bv_get_bit (bve, i);
 
-    /* CONFLICT: all bits set in bvand, must be set in bve -------------- */
-    if (bitand&&!bite)
+    if (bitand && !bite)
     {
+      /* CONFLICT: all bits set in bvand, must be set in bve ---------------- */
       btor_bv_free (mm, res);
       res = res_rec_conf (btor, and, e, bvand, bve, eidx, cons_and_bv, "AND");
       goto DONE;
     }
-    /* ^^--------------------------------------------------------------^^ */
 
-    /* res & bve = bve & res = bvand
+    /* ----------------------------------------------------------------------
+     * res & bve = bve & res = bvand
+     *
      * -> all bits set in bvand and bve must be set in res
      * -> all bits not set in bvand but set in bve must not be set in res
-     * -> all bits not set in bve can be chosen to be set randomly */
+     * -> all bits not set in bve can be chosen to be set randomly
+     * ---------------------------------------------------------------------- */
     if (bitand)
       btor_bv_set_bit (res, i, 1);
     else if (bite)
@@ -2431,6 +2457,9 @@ DONE:
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: eq                                                                    */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2461,9 +2490,9 @@ inv_eq_bv (Btor *btor,
 
   mm = btor->mm;
 
-  /* res != bveq -> choose random res != bveq */
   if (btor_bv_is_zero (bveq))
   {
+    /* res != bveq -> choose random res != bveq ----------------------------- */
     if (btor_rng_pick_with_prob (
             &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
     {
@@ -2486,9 +2515,11 @@ inv_eq_bv (Btor *btor,
       } while (!btor_bv_compare (res, bve));
     }
   }
-  /* res = bveq */
   else
+  {
+    /* res = bveq ----------------------------------------------------------- */
     res = btor_bv_copy (mm, bve);
+  }
 
 #ifndef NDEBUG
   check_result_binary_dbg (btor, btor_bv_eq, eq, bve, bveq, res, eidx, "=");
@@ -2496,6 +2527,9 @@ inv_eq_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: ult                                                                   */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2543,24 +2577,25 @@ inv_ult_bv (Btor *btor,
 
   if (eidx)
   {
-    /* CONFLICT: 1...1 < e[1] ------------------------------------------- */
     if (!btor_bv_compare (bve, bvmax) && isult)
     {
     BVULT_CONF:
+      /* CONFLICT: 1...1 < e[1] --------------------------------------------- */
       res = res_rec_conf (btor, ult, e, bvult, bve, eidx, cons_ult_bv, "<");
 #ifndef NDEBUG
       is_inv = false;
 #endif
     }
-    /* ^^---------------------------------------------------------------^^ */
     else
     {
-      /* bve >= e[1] */
       if (!isult)
+      {
+        /* bve >= e[1] ------------------------------------------------------ */
         res = btor_bv_new_random_range (mm, &btor->rng, bw, zero, bve);
-      /* bve < e[1] */
+      }
       else
       {
+        /* bve < e[1] ------------------------------------------------------- */
         tmp = btor_bv_add (mm, bve, one);
         res = btor_bv_new_random_range (mm, &btor->rng, bw, tmp, bvmax);
         btor_bv_free (mm, tmp);
@@ -2569,20 +2604,21 @@ inv_ult_bv (Btor *btor,
   }
   else
   {
-    /* CONFLICT: e[0] < 0 ----------------------------------------------- */
     if (btor_bv_is_zero (bve) && isult)
     {
+      /* CONFLICT: e[0] < 0 ------------------------------------------------- */
       goto BVULT_CONF;
     }
-    /* ^^--------------------------------------------------------------^^ */
     else
     {
-      /* e[0] >= bve */
       if (!isult)
+      {
+        /* e[0] >= bve ------------------------------------------------------ */
         res = btor_bv_new_random_range (mm, &btor->rng, bw, bve, bvmax);
-      /* e[0] < bve */
+      }
       else
       {
+        /* e[0] < bve ------------------------------------------------------- */
         tmp = btor_bv_sub (mm, bve, one);
         res = btor_bv_new_random_range (mm, &btor->rng, bw, zero, tmp);
         btor_bv_free (mm, tmp);
@@ -2601,6 +2637,9 @@ inv_ult_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: sll                                                                   */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2640,36 +2679,40 @@ inv_sll_bv (Btor *btor,
 
   res = 0;
 
-  /* bve << e[1] = bvsll
+  /* ------------------------------------------------------------------------
+   * bve << e[1] = bvsll
+   *
    * -> identify possible shift value via zero LSB in bvsll
-   *    (considering zero LSB in bve) */
+   *    (considering zero LSB in bve)
+   * ------------------------------------------------------------------------ */
   if (eidx)
   {
     sbw = btor_util_log_2 (bvsll->width);
 
-    /* 0...0 << e[1] = 0...0 -> choose res randomly */
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsll))
     {
+      /* 0...0 << e[1] = 0...0 -> choose res randomly ----------------------- */
       res = btor_bv_new_random (mm, &btor->rng, sbw);
     }
-    /* -> ctz(bve) > ctz (bvsll) -> conflict
-     * -> shift = ctz(bvsll) - ctz(bve)
-     *      -> if bvsll = 0 choose shift <= res < bw
-     *      -> else res = shift
-     *           + if all remaining shifted bits match
-     *	   + and if res < bw
-     * -> else conflict  */
     else
     {
+      /* -> ctz(bve) > ctz (bvsll) -> conflict
+       * -> shift = ctz(bvsll) - ctz(bve)
+       *      -> if bvsll = 0 choose shift <= res < bw
+       *      -> else res = shift
+       *           + if all remaining shifted bits match
+       *	   + and if res < bw
+       * -> else conflict
+       * -------------------------------------------------------------------- */
       ctz_bve   = btor_bv_get_num_trailing_zeros (bve);
       ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
       if (ctz_bve <= ctz_bvsll)
       {
         shift = ctz_bvsll - ctz_bve;
 
-        /* CONFLICT: do not allow shift by bw ----------------------- */
         if (shift > bvsll->width - 1)
         {
+          /* CONFLICT: do not allow shift by bw ----------------------------- */
           assert (btor_bv_is_zero (bvsll));
         BVSLL_CONF:
           res =
@@ -2678,11 +2721,11 @@ inv_sll_bv (Btor *btor,
           is_inv = false;
 #endif
         }
-        /* ^^------------------------------------------------------^^ */
-        /* x...x0 << e[1] = 0...0
-         * -> choose random shift <= res < bw */
         else if (btor_bv_is_zero (bvsll))
         {
+          /* x...x0 << e[1] = 0...0
+           * -> choose random shift <= res < bw
+           * ---------------------------------------------------------------- */
           bvmax = btor_bv_ones (mm, sbw);
           tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
           res   = btor_bv_new_random_range (mm, &btor->rng, sbw, tmp, bvmax);
@@ -2691,13 +2734,12 @@ inv_sll_bv (Btor *btor,
         }
         else
         {
-          /* CONFLICT: shifted bits must match -------------------- */
           for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
           {
+            /* CONFLICT: shifted bits must match ---------------------------- */
             if (btor_bv_get_bit (bve, i) != btor_bv_get_bit (bvsll, j + i))
               goto BVSLL_CONF;
           }
-          /* ^^--------------------------------------------------^^ */
 
           res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
         }
@@ -2708,18 +2750,23 @@ inv_sll_bv (Btor *btor,
       }
     }
   }
-  /* e[0] << bve = bvsll
+  /* ------------------------------------------------------------------------
+   * e[0] << bve = bvsll
+   *
    * -> e[0] = bvsll >> bve
-   *    set irrelevant MSBs (the ones that get shifted out) randomly */
+   *    set irrelevant MSBs (the ones that get shifted out) randomly
+   * ------------------------------------------------------------------------ */
   else
   {
     /* using uint64_t here is no problem
      * (max bit width currently handled by Boolector is INT32_MAX) */
     shift = btor_bv_to_uint64 (bve);
 
-    /* CONFLICT: the LSBs shifted must be zero -------------------------- */
-    if (btor_bv_get_num_trailing_zeros (bvsll) < shift) goto BVSLL_CONF;
-    /* ^^--------------------------------------------------------------^^ */
+    if (btor_bv_get_num_trailing_zeros (bvsll) < shift)
+    {
+      /* CONFLICT: the LSBs shifted must be zero ---------------------------- */
+      goto BVSLL_CONF;
+    }
 
     res = btor_bv_srl (mm, bvsll, bve);
     for (i = 0; i < shift; i++)
@@ -2734,6 +2781,9 @@ inv_sll_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: srl                                                                   */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2773,36 +2823,41 @@ inv_srl_bv (Btor *btor,
 
   res = 0;
 
-  /* bve >> e[1] = bvsll
+  /* ------------------------------------------------------------------------
+   * bve >> e[1] = bvsll
+   *
    * -> identify possible shift value via zero MSBs in bvsll
-   *    (considering zero MSBs in bve) */
+   *    (considering zero MSBs in bve)
+   * ------------------------------------------------------------------------ */
   if (eidx)
   {
     sbw = btor_util_log_2 (bvsrl->width);
 
-    /* 0...0 >> e[1] = 0...0 -> choose random res */
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsrl))
     {
+      /* 0...0 >> e[1] = 0...0 -> choose random res ------------------------- */
       res = btor_bv_new_random (mm, &btor->rng, sbw);
     }
-    /* clz(bve) > clz(bvsrl) -> conflict
-     * -> shift = clz(bvsrl) - clz(bve)
-     *      -> if bvsrl = 0 choose shift <= res < bw
-     *      -> else res = shift
-     *           + if all remaining shifted bits match
-     *           + and if res < bw
-     * -> else conflict */
     else
     {
+      /* clz(bve) > clz(bvsrl) -> conflict
+       *
+       * -> shift = clz(bvsrl) - clz(bve)
+       *      -> if bvsrl = 0 choose shift <= res < bw
+       *      -> else res = shift
+       *           + if all remaining shifted bits match
+       *           + and if res < bw
+       * -> else conflict
+       * -------------------------------------------------------------------- */
       clz_bve   = btor_bv_get_num_leading_zeros (bve);
       clz_bvsrl = btor_bv_get_num_leading_zeros (bvsrl);
       if (clz_bve <= clz_bvsrl)
       {
         shift = clz_bvsrl - clz_bve;
 
-        /* CONFLICT: do not allow shift by bw ----------------------- */
         if (shift > bvsrl->width - 1)
         {
+          /* CONFLICT: do not allow shift by bw ----------------------------- */
           assert (btor_bv_is_zero (bvsrl));
         BVSRL_CONF:
           res =
@@ -2811,11 +2866,11 @@ inv_srl_bv (Btor *btor,
           is_inv = false;
 #endif
         }
-        /* ^^------------------------------------------------------^^ */
-        /* x...x0 >> e[1] = 0...0
-         * -> choose random shift <= res < bw */
         else if (btor_bv_is_zero (bvsrl))
         {
+          /* x...x0 >> e[1] = 0...0
+           * -> choose random shift <= res < bw
+           * ---------------------------------------------------------------- */
           bvmax = btor_bv_ones (mm, sbw);
           tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
           res   = btor_bv_new_random_range (mm, &btor->rng, sbw, tmp, bvmax);
@@ -2824,14 +2879,15 @@ inv_srl_bv (Btor *btor,
         }
         else
         {
-          /* CONFLICT: shifted bits must match -------------------- */
           for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
           {
             if (btor_bv_get_bit (bve, bve->width - 1 - i)
                 != btor_bv_get_bit (bvsrl, bvsrl->width - 1 - (j + i)))
+            {
+              /* CONFLICT: shifted bits must match -------------------------- */
               goto BVSRL_CONF;
+            }
           }
-          /* ^^--------------------------------------------------^^ */
 
           res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
         }
@@ -2842,17 +2898,22 @@ inv_srl_bv (Btor *btor,
       }
     }
   }
-  /* e[0] >> bve = bvsll
+  /* ------------------------------------------------------------------------
+   * e[0] >> bve = bvsll
+   *
    * -> e[0] = bvsll << bve
-   *    set irrelevant LSBs (the ones that get shifted out) randomly */
+   *    set irrelevant LSBs (the ones that get shifted out) randomly
+   * ------------------------------------------------------------------------ */
   else
   {
     /* cast is no problem (max bit width handled by Boolector is INT32_MAX) */
     shift = (int32_t) btor_bv_to_uint64 (bve);
 
-    /* CONFLICT: the MSBs shifted must be zero -------------------------- */
-    if (btor_bv_get_num_leading_zeros (bvsrl) < shift) goto BVSRL_CONF;
-    /* ^^--------------------------------------------------------------^^ */
+    if (btor_bv_get_num_leading_zeros (bvsrl) < shift)
+    {
+      /* CONFLICT: the MSBs shifted must be zero ---------------------------- */
+      goto BVSRL_CONF;
+    }
 
     res = btor_bv_sll (mm, bvsrl, bve);
     for (i = 0; i < shift; i++)
@@ -2867,6 +2928,9 @@ inv_srl_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: mul                                                                   */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -2907,7 +2971,8 @@ inv_mul_bv (Btor *btor,
 
   res = 0;
 
-  /* bve * res = bvmul
+  /* ------------------------------------------------------------------------
+   * bve * res = bvmul
    *
    * -> if bve = 0: * bvmul = 0 -> choose random value for res
    *                * bvmul > 0 -> conflict
@@ -2926,71 +2991,75 @@ inv_mul_bv (Btor *btor,
    *	          + else c' = bvmul >> n
    *	            (with all bits shifted in randomly set to 0 or 1)
    *		    -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd)
-   */
+   * ------------------------------------------------------------------------ */
 
   lsbve   = btor_bv_get_bit (bve, 0);
   lsbvmul = btor_bv_get_bit (bvmul, 0);
 
-  /* bve = 0 -> if bvmul = 0 choose random value, else conflict */
   if (btor_bv_is_zero (bve))
   {
+    /* bve = 0 -> if bvmul = 0 choose random value, else conflict ----------- */
     if (btor_bv_is_zero (bvmul))
     {
       res = btor_bv_new_random (mm, &btor->rng, bw);
     }
-    /* CONFLICT: bve = 0 but bvmul != 0 -------------------------------- */
     else
     {
     BVMUL_CONF:
+      /* CONFLICT: bve = 0 but bvmul != 0 ----------------------------------- */
       res = res_rec_conf (btor, mul, e, bvmul, bve, eidx, cons_mul_bv, "*");
 #ifndef NDEBUG
       is_inv = false;
 #endif
     }
-    /* ^^-------------------------------------------------------------^^ */
   }
-  /* CONFLICT: bvmul odd and bve is even --------------------------------- */
   else if (lsbvmul && !lsbve)
   {
+    /* CONFLICT: bvmul odd and bve is even ---------------------------------- */
     goto BVMUL_CONF;
   }
-  /* ^^-----------------------------------------------------------------^^ */
   else
   {
-    /* bve odd
+    /* ----------------------------------------------------------------------
+     * bve odd
+     *
      * -> determine res via modular inverse (extended euklid)
-     *    (unique solution) */
+     *    (unique solution)
+     * ---------------------------------------------------------------------- */
     if (lsbve)
     {
       inv = btor_bv_mod_inverse (mm, bve);
       res = btor_bv_mul (mm, inv, bvmul);
       btor_bv_free (mm, inv);
     }
-    /* bve even
+    /* ----------------------------------------------------------------------
+     * bve even
      * (non-unique, multiple solutions possible!)
+     *
      * if bve = 2^n: + if number of 0-LSBs in bvmul < n -> conflict
      *               + else res = bvmul >> n
      *                      (with all bits shifted in set randomly)
      * else: bve = 2^n * m, m is odd
      *       + if number of 0-LSBs in bvmul < n -> conflict
      *       + else c' = bvmul >> n (with all bits shifted in set randomly)
-     *	      res = c' * m^-1 (with m^-1 the mod inverse of m) */
+     *	      res = c' * m^-1 (with m^-1 the mod inverse of m)
+     * ---------------------------------------------------------------------- */
     else
     {
       if ((ispow2_bve = btor_bv_power_of_two (bve)) >= 0)
       {
         for (i = 0; i < bw; i++)
           if (btor_bv_get_bit (bvmul, i)) break;
-        /* CONFLICT: number of 0-LSBs in bvmul < n (for bve = 2^n) -- */
         if (i < (uint32_t) ispow2_bve)
         {
+          /* CONFLICT: number of 0-LSBs in bvmul < n (for bve = 2^n) -------- */
           goto BVMUL_CONF;
         }
-        /* ^^------------------------------------------------------^^ */
-        /* res = bvmul >> n with all bits shifted in set randomly
-         * (note: bw is not necessarily power of 2 -> do not use srl) */
         else
         {
+          /* res = bvmul >> n with all bits shifted in set randomly
+           * (note: bw is not necessarily power of 2 -> do not use srl)
+           * ---------------------------------------------------------------- */
           tmp = btor_bv_slice (mm, bvmul, bw - 1, ispow2_bve);
           res = btor_bv_uext (mm, tmp, ispow2_bve);
           assert (res->width == bw);
@@ -3006,17 +3075,17 @@ inv_mul_bv (Btor *btor,
           if (btor_bv_get_bit (bvmul, i)) break;
         for (j = 0; j < bw; j++)
           if (btor_bv_get_bit (bve, j)) break;
-        /* CONFLICT: number of 0-LSB in bvmul < number of 0-LSB in bve */
         if (i < j)
         {
+          /* CONFLICT: number of 0-LSB in bvmul < number of 0-LSB in bve ---- */
           goto BVMUL_CONF;
         }
-        /* ^^-------------------------------------------------------^^ */
-        /* c' = bvmul >> n (with all bits shifted in set randomly)
-         * (note: bw is not necessarily power of 2 -> do not use srl)
-         * -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd) */
         else
         {
+          /* c' = bvmul >> n (with all bits shifted in set randomly)
+           * (note: bw is not necessarily power of 2 -> do not use srl)
+           * -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd)
+           * ---------------------------------------------------------------- */
           tmp = btor_bv_slice (mm, bvmul, bw - 1, j);
           res = btor_bv_uext (mm, tmp, j);
           assert (res->width == bw);
@@ -3050,6 +3119,9 @@ inv_mul_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: udiv                                                                  */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -3094,7 +3166,8 @@ inv_udiv_bv (Btor *btor,
 
   res = 0;
 
-  /* bve / e[1] = bvudiv
+  /* ------------------------------------------------------------------------
+   * bve / e[1] = bvudiv
    *
    * -> if bvudiv = 2^bw - 1: + bve = bvudiv = 2^bw - 1 -> e[1] = 1 or e[1] = 0
    *                          + bve != bvudiv -> e[1] = 0
@@ -3105,54 +3178,61 @@ inv_udiv_bv (Btor *btor,
    * -> if bvudiv is a divisor of bve choose with 0.5 prob out of
    *      + e[1] = bvudiv / bve
    *      + choose bve s.t. bve / e[1] = bvudiv
-   * -> else choose bve s.t. bve / e[1] = bvudiv  */
+   * -> else choose bve s.t. bve / e[1] = bvudiv
+   * ------------------------------------------------------------------------ */
   if (eidx)
   {
     if (!btor_bv_compare (bvudiv, bvmax))
     {
-      /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
-       * with prob 0.5 */
       if (!btor_bv_compare (bve, bvudiv)
           && btor_rng_pick_with_prob (&btor->rng, 500))
+      {
+        /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
+         * with prob 0.5
+         * ------------------------------------------------------------------ */
         res = btor_bv_one (mm, bw);
-      /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 */
+      }
       else
+      {
+        /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 ------------------ */
         res = btor_bv_new (mm, bw);
+      }
     }
     else if (btor_bv_is_zero (bvudiv))
     {
-      /* bvudiv = 0 and bve = 0 -> choose random e[1] > 0 */
       if (btor_bv_is_zero (bve))
+      {
+        /* bvudiv = 0 and bve = 0 -> choose random e[1] > 0 ----------------- */
         res = btor_bv_new_random_range (mm, rng, bw, one, bvmax);
-      /* bvudiv = 0 and 0 < bve < 2^bw - 1 -> choose random e[1] > bve */
+      }
       else if (btor_bv_compare (bve, bvmax))
       {
+        /* bvudiv = 0 and 0 < bve < 2^bw - 1 -> choose random e[1] > bve ---- */
         tmp = btor_bv_inc (mm, bve);
         res = btor_bv_new_random_range (mm, rng, bw, tmp, bvmax);
         btor_bv_free (mm, tmp);
       }
-      /* CONFLICT ----------------------------------------------------- */
       else
       {
       BVUDIV_CONF:
+        /* CONFLICT --------------------------------------------------------- */
         res =
             res_rec_conf (btor, udiv, e, bvudiv, bve, eidx, cons_udiv_bv, "/");
 #ifndef NDEBUG
         is_inv = false;
 #endif
       }
-      /* ^^----------------------------------------------------------^^ */
     }
-    /* CONFLICT: bve < bvudiv ------------------------------------------- */
     else if (btor_bv_compare (bve, bvudiv) < 0)
     {
+      /* CONFLICT: bve < bvudiv --------------------------------------------- */
       goto BVUDIV_CONF;
     }
-    /* ^^--------------------------------------------------------------^^ */
     else
     {
       /* if bvudiv is a divisor of bve, choose e[1] = bve / bvudiv
-       * with prob = 0.5 and a bve s.t. bve / e[1] = bvudiv otherwise */
+       * with prob = 0.5 and a bve s.t. bve / e[1] = bvudiv otherwise
+       * -------------------------------------------------------------------- */
       tmp = btor_bv_urem (mm, bve, bvudiv);
       if (btor_bv_is_zero (tmp) && btor_rng_pick_with_prob (rng, 500))
       {
@@ -3162,7 +3242,8 @@ inv_udiv_bv (Btor *btor,
       else
       {
         /* choose e[1] out of all options that yield bve / e[1] = bvudiv
-         * Note: udiv always truncates the results towards 0. */
+         * Note: udiv always truncates the results towards 0.
+         * ------------------------------------------------------------------ */
 
         /* determine upper and lower bounds for e[1]:
          * up = bve / bvudiv
@@ -3177,17 +3258,16 @@ inv_udiv_bv (Btor *btor,
         lo  = btor_bv_inc (mm, tmp); /* lower bound (incl.) */
         btor_bv_free (mm, tmp);
 
-        /* CONFLICT: lo > up ---------------------------------------- */
         if (btor_bv_compare (lo, up) > 0)
         {
+          /* CONFLICT: lo > up ---------------------------------------------- */
           btor_bv_free (mm, lo);
           btor_bv_free (mm, up);
           goto BVUDIV_CONF;
         }
-        /* ^^------------------------------------------------------^^ */
-        /* choose lo <= e[1] <= up */
         else
         {
+          /* choose lo <= e[1] <= up ---------------------------------------- */
           res = btor_bv_new_random_range (mm, rng, bw, lo, up);
           btor_bv_free (mm, lo);
           btor_bv_free (mm, up);
@@ -3196,7 +3276,8 @@ inv_udiv_bv (Btor *btor,
     }
   }
 
-  /* e[0] / bve = bvudiv
+  /* ------------------------------------------------------------------------
+   * e[0] / bve = bvudiv
    *
    * -> if bvudiv = 2^bw - 1 and bve = 1 e[0] = 2^bw-1
    *                         and bve = 0, choose random e[0] > 0
@@ -3205,37 +3286,43 @@ inv_udiv_bv (Btor *btor,
    * -> if bve * bvudiv does not overflow, choose with 0.5 prob out of
    *      + e[0] = bve * bvudiv
    *      + choose bve s.t. e[0] / bve = bvudiv
-   * -> else choose bve s.t. e[0] / bve = bvudiv  */
+   * -> else choose bve s.t. e[0] / bve = bvudiv
+   * ------------------------------------------------------------------------ */
   else
   {
     if (!btor_bv_compare (bvudiv, bvmax))
     {
-      /* bvudiv = 2^bw-1 and bve = 1 -> e[0] = 2^bw-1 */
-      if (!btor_bv_compare (bve, one)) res = btor_bv_copy (mm, bvmax);
-      /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] */
+      if (!btor_bv_compare (bve, one))
+      {
+        /* bvudiv = 2^bw-1 and bve = 1 -> e[0] = 2^bw-1 --------------------- */
+        res = btor_bv_copy (mm, bvmax);
+      }
       else if (btor_bv_is_zero (bve))
+      {
+        /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] -------------- */
         res = btor_bv_new_random (mm, rng, bw);
-      /* CONFLICT ---------------------------------------------------- */
+      }
       else
       {
+        /* CONFLICT --------------------------------------------------------- */
         goto BVUDIV_CONF;
       }
-      /* ^^---------------------------------------------------------^^ */
     }
-    /* CONFLICT: bve = 0 and bvudiv < 2^bw - 1 ------------------------- */
     else if (btor_bv_is_zero (bve))
     {
+      /* CONFLICT: bve = 0 and bvudiv < 2^bw - 1 ---------------------------- */
       goto BVUDIV_CONF;
     }
-    /* ^^-------------------------------------------------------------^^ */
     else
     {
       /* if bve * bvudiv does not overflow, choose e[0] = bve * bvudiv
        * with prob = 0.5 and a bve s.t. e[0] / bve = bvudiv otherwise */
 
-      /* CONFLICT: overflow: bve * bvudiv ----------------------------- */
-      if (btor_bv_is_umulo (mm, bve, bvudiv)) goto BVUDIV_CONF;
-      /* ^^----------------------------------------------------------^^ */
+      if (btor_bv_is_umulo (mm, bve, bvudiv))
+      {
+        /* CONFLICT: overflow: bve * bvudiv --------------------------------- */
+        goto BVUDIV_CONF;
+      }
       else
       {
         if (btor_rng_pick_with_prob (rng, 500))
@@ -3244,7 +3331,8 @@ inv_udiv_bv (Btor *btor,
         {
           /* choose e[0] out of all options that yield
            * e[0] / bve = bvudiv
-           * Note: udiv always truncates the results towards 0. */
+           * Note: udiv always truncates the results towards 0.
+           * ---------------------------------------------------------------- */
 
           /* determine upper and lower bounds for e[0]:
            * up = bve * (budiv + 1) - 1
@@ -3286,6 +3374,9 @@ inv_udiv_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: urem                                                                  */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -3330,18 +3421,20 @@ inv_urem_bv (Btor *btor,
 
   res = 0;
 
-  /* bve % e[1] = bvurem
+  /* -----------------------------------------------------------------------
+   * bve % e[1] = bvurem
+   *
    * -> if bvurem = 1...1 -> bve = 1...1 and e[1] = 0...0, else conflict
    * -> if bve = bvurem, choose either e[1] = 0 or some e[1] > bvurem randomly
    * -> if bvurem > 0 and bvurem = bve - 1, conflict
    * -> if bve > bvurem, e[1] = ((bve - bvurem) / n) > bvurem, else conflict
-   * -> if bve < bvurem, conflict */
+   * -> if bve < bvurem, conflict
+   * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    /* bve % e[1] = 1...1 -> bve = 1...1, e[1] = 0 */
     if (!btor_bv_compare (bvurem, bvmax))
     {
-      /* CONFLICT: bvurem = 1...1 but bve != 1...1 -------------------- */
+      /* CONFLICT: bvurem = 1...1 but bve != 1...1 -------------------------- */
       if (btor_bv_compare (bve, bvmax))
       {
       BVUREM_CONF:
@@ -3351,9 +3444,9 @@ inv_urem_bv (Btor *btor,
         is_inv = false;
 #endif
       }
-      /* ^^----------------------------------------------------------^^ */
       else
       {
+        /* bve % e[1] = 1...1 -> bve = 1...1, e[1] = 0 ---------------------- */
         res = btor_bv_new (mm, bw);
       }
     }
@@ -3361,9 +3454,10 @@ inv_urem_bv (Btor *btor,
     {
       cmp = btor_bv_compare (bve, bvurem);
 
-      /* bve = bvurem, choose either e[1] = 0 or random e[1] > bvurem */
       if (cmp == 0)
       {
+        /* bve = bvurem, choose either e[1] = 0 or random e[1] > bvurem ----- */
+
         /* choose e[1] = 0 with prob = 0.25*/
         if (btor_rng_pick_with_prob (&btor->rng, 250))
           res = btor_bv_new (mm, bw);
@@ -3375,37 +3469,38 @@ inv_urem_bv (Btor *btor,
           btor_bv_free (mm, tmp);
         }
       }
-      /* bve > bvurem, e[1] = (bve - bvurem) / n */
       else if (cmp > 0)
       {
+        /* bve > bvurem, e[1] = (bve - bvurem) / n -------------------------- */
         if (!btor_bv_is_zero (bvurem))
         {
           tmp = btor_bv_dec (mm, bve);
-          /* CONFLICT: -------------------------------------------- */
-          /* bvurem = bve - 1 -> bve % e[1] = bve - 1
-           * -> not possible if bvurem > 0  */
           if (!btor_bv_compare (bvurem, tmp))
           {
+            /* CONFLICT:
+             * bvurem = bve - 1 -> bve % e[1] = bve - 1
+             * -> not possible if bvurem > 0
+             * -------------------------------------------------------------- */
             btor_bv_free (mm, tmp);
             goto BVUREM_CONF;
           }
-          /* ^^--------------------------------------------------^^ */
           btor_bv_free (mm, tmp);
         }
 
         sub = btor_bv_sub (mm, bve, bvurem);
 
-        /* CONFLICT: bve - bvurem <= bvurem ------------------------- */
         if (btor_bv_compare (sub, bvurem) <= 0)
         {
+          /* CONFLICT: bve - bvurem <= bvurem ------------------------------- */
           btor_bv_free (mm, sub);
           goto BVUREM_CONF;
         }
-        /* ^^------------------------------------------------------^^ */
-        /* choose either n = 1 or 1 <= n < (bve - bvurem) / bvurem
-         * with prob = 0.5 */
         else
         {
+          /* choose either n = 1 or 1 <= n < (bve - bvurem) / bvurem
+           * with prob = 0.5
+           * ---------------------------------------------------------------- */
+
           if (btor_rng_pick_with_prob (&btor->rng, 500))
           {
             res = btor_bv_copy (mm, sub);
@@ -3413,18 +3508,20 @@ inv_urem_bv (Btor *btor,
           else
           {
             /* 1 <= n < (bve - bvurem) / bvurem (non-truncating)
-             * (note: div truncates towards 0!) */
+             * (note: div truncates towards 0!)
+             * -------------------------------------------------------------- */
 
-            /* bvurem = 0 -> 1 <= n <= bve */
             if (btor_bv_is_zero (bvurem))
             {
+              /* bvurem = 0 -> 1 <= n <= bve -------------------------------- */
               up = btor_bv_copy (mm, bve);
             }
-            /* e[1] > bvurem
-             * -> (bve - bvurem) / n > bvurem
-             * -> (bve - bvurem) / bvurem > n */
             else
             {
+              /* e[1] > bvurem
+               * -> (bve - bvurem) / n > bvurem
+               * -> (bve - bvurem) / bvurem > n
+               * ------------------------------------------------------------ */
               tmp  = btor_bv_urem (mm, sub, bvurem);
               tmp2 = btor_bv_udiv (mm, sub, bvurem);
               if (btor_bv_is_zero (tmp))
@@ -3432,7 +3529,8 @@ inv_urem_bv (Btor *btor,
                 /* (bve - bvurem) / bvurem is not truncated
                  * (remainder is 0), therefore the EXclusive
                  * upper bound
-                 * -> up = (bve - bvurem) / bvurem - 1 */
+                 * -> up = (bve - bvurem) / bvurem - 1
+                 * ---------------------------------------------------------- */
                 up = btor_bv_sub (mm, tmp2, one);
                 btor_bv_free (mm, tmp2);
               }
@@ -3441,7 +3539,8 @@ inv_urem_bv (Btor *btor,
                 /* (bve - bvurem) / bvurem is truncated
                  * (remainder is not 0), therefore the INclusive
                  * upper bound
-                 * -> up = (bve - bvurem) / bvurem */
+                 * -> up = (bve - bvurem) / bvurem
+                 * ---------------------------------------------------------- */
                 up = tmp2;
               }
               btor_bv_free (mm, tmp);
@@ -3452,7 +3551,8 @@ inv_urem_bv (Btor *btor,
             else
             {
               /* choose 1 <= n <= up randomly
-               * s.t (bve - bvurem) % n = 0 */
+               * s.t (bve - bvurem) % n = 0
+               * ------------------------------------------------------------ */
               n   = btor_bv_new_random_range (mm, &btor->rng, bw, one, up);
               tmp = btor_bv_urem (mm, sub, n);
               for (cnt = 0; cnt < bw && !btor_bv_is_zero (tmp); cnt++)
@@ -3463,11 +3563,16 @@ inv_urem_bv (Btor *btor,
                 tmp = btor_bv_urem (mm, sub, n);
               }
 
-              /* res = (bve - bvurem) / n */
-              if (btor_bv_is_zero (tmp)) res = btor_bv_udiv (mm, sub, n);
-              /* fallback: n = 1 */
+              if (btor_bv_is_zero (tmp))
+              {
+                /* res = (bve - bvurem) / n */
+                res = btor_bv_udiv (mm, sub, n);
+              }
               else
+              {
+                /* fallback: n = 1 */
                 res = btor_bv_copy (mm, sub);
+              }
 
               btor_bv_free (mm, n);
               btor_bv_free (mm, tmp);
@@ -3477,63 +3582,65 @@ inv_urem_bv (Btor *btor,
         }
         btor_bv_free (mm, sub);
       }
-      /* CONFLICT: bve < bvurem --------------------------------------- */
       else
       {
+        /* CONFLICT: bve < bvurem ------------------------------------------- */
         goto BVUREM_CONF;
       }
-      /* ^^----------------------------------------------------------^^ */
     }
   }
-  /* e[0] % bve = bvurem
+  /* ------------------------------------------------------------------------
+   * e[0] % bve = bvurem
+   *
    * -> if bve = 0, e[0] = bvurem
    * -> if bvurem = 1...1 and bve != 0, conflict
    * -> if bve <= bvurem, conflict
    * -> if bvurem > 0 and bve = 1, conflict
    * -> else choose either
    *      - e[0] = bvurem, or
-   *      - e[0] = bve * n + b, with n s.t. (bve * n + b) does not overflow */
+   *      - e[0] = bve * n + b, with n s.t. (bve * n + b) does not overflow
+   * ------------------------------------------------------------------------ */
   else
   {
-    /* bve = 0 -> e[0] = bvurem */
     if (btor_bv_is_zero (bve))
     {
     BVUREM_ZERO_0:
+      /* bve = 0 -> e[0] = bvurem ------------------------------------------- */
       res = btor_bv_copy (mm, bvurem);
     }
-    /* CONFLICT: bvurem > 0 and bve = 1 --------------------------------- */
     else if (!btor_bv_is_zero (bvurem) && btor_bv_is_one (bve))
     {
+      /* CONFLICT: bvurem > 0 and bve = 1 ----------------------------------- */
       goto BVUREM_CONF;
     }
-    /* ^^--------------------------------------------------------------^^ */
-    /* bvurem = 1...1 -> bve = 0, e[0] = 1...1 */
     else if (!btor_bv_compare (bvurem, bvmax))
     {
-      /* CONFLICT: bve != 0 ------------------------------------------- */
       if (!btor_bv_is_zero (bve))
       {
+        /* CONFLICT: bve != 0 ----------------------------------------------- */
         goto BVUREM_CONF;
       }
-      /* ^^----------------------------------------------------------^^ */
       else
       {
+        /* bvurem = 1...1 -> bve = 0, e[0] = 1...1 -------------------------- */
         goto BVUREM_ZERO_0;
       }
     }
     else if (btor_bv_compare (bve, bvurem) > 0)
     {
-      /* choose simplest solution (0 <= res < bve -> res = bvurem)
-       * with prob 0.5 */
       if (btor_rng_pick_with_prob (&btor->rng, 500))
       {
       BVUREM_EQ_0:
+        /* choose simplest solution (0 <= res < bve -> res = bvurem)
+         * with prob 0.5
+         * ------------------------------------------------------------------ */
         res = btor_bv_copy (mm, bvurem);
       }
-      /* e[0] = bve * n + bvurem,
-       * with n s.t. (bve * n + bvurem) does not overflow */
       else
       {
+        /* e[0] = bve * n + bvurem,
+         * with n s.t. (bve * n + bvurem) does not overflow
+         * ------------------------------------------------------------------ */
         tmp2 = btor_bv_sub (mm, bvmax, bve);
 
         /* overflow for n = 1 -> only simplest solution possible */
@@ -3581,12 +3688,11 @@ inv_urem_bv (Btor *btor,
         }
       }
     }
-    /* CONFLICT: bve <= bvurem ------------------------------------------ */
     else
     {
+      /* CONFLICT: bve <= bvurem -------------------------------------------- */
       goto BVUREM_CONF;
     }
-    /* ^^--------------------------------------------------------------^^ */
   }
 
   btor_bv_free (mm, one);
@@ -3600,6 +3706,9 @@ inv_urem_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: concat                                                                */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -3636,37 +3745,43 @@ inv_concat_bv (Btor *btor,
 
   res = 0;
 
-  /* bve o e[1] = bvconcat, slice e[1] out of the lower bits of bvconcat */
+  /* ------------------------------------------------------------------------
+   * bve o e[1] = bvconcat
+   *
+   * -> slice e[1] out of the lower bits of bvconcat
+   * ------------------------------------------------------------------------ */
   if (eidx)
   {
     tmp = btor_bv_slice (
         mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve->width);
-    /* CONFLICT: bve bits do not match bvconcat ------------------------- */
     if (btor_bv_compare (tmp, bve))
     {
     BVCONCAT_CONF:
+      /* CONFLICT: bve bits do not match bvconcat --------------------------- */
       res = res_rec_conf (
           btor, concat, e, bvconcat, bve, eidx, cons_concat_bv, "o");
 #ifndef NDEBUG
       is_inv = false;
 #endif
     }
-    /* ^^--------------------------------------------------------------^^ */
     else
     {
       res = btor_bv_slice (mm, bvconcat, bvconcat->width - bve->width - 1, 0);
     }
   }
-  /* e[0] o bve = bvconcat, slice e[0] out of the upper bits of bvconcat */
+  /* ------------------------------------------------------------------------
+   * e[0] o bve = bvconcat
+   *
+   * -> slice e[0] out of the upper bits of bvconcat
+   * ------------------------------------------------------------------------ */
   else
   {
     tmp = btor_bv_slice (mm, bvconcat, bve->width - 1, 0);
-    /* CONFLICT: bve bits do not match bvconcat ------------------------- */
     if (btor_bv_compare (tmp, bve))
     {
+      /* CONFLICT: bve bits do not match bvconcat --------------------------- */
       goto BVCONCAT_CONF;
     }
-    /* ^^--------------------------------------------------------------^^ */
     else
     {
       res = btor_bv_slice (mm, bvconcat, bvconcat->width - 1, bve->width);
@@ -3681,6 +3796,9 @@ inv_concat_bv (Btor *btor,
   return res;
 }
 
+/* -------------------------------------------------------------------------- */
+/* INV: slice                                                                 */
+/* -------------------------------------------------------------------------- */
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -3801,7 +3919,9 @@ inv_slice_bv (Btor *btor,
   return res;
 }
 
-/*------------------------------------------------------------------------*/
+/* ========================================================================== */
+/* Propagation move                                                           */
+/* ========================================================================== */
 
 uint64_t
 btor_propsls_select_move_prop (Btor *btor,
