@@ -2292,7 +2292,7 @@ inv_and_bv (Btor *btor,
   BtorBitVector *res;
   BtorMemMgr *mm;
   BtorUIntStack dcbits;
-  bool b;
+  bool b, is_rec;
 
 #ifndef NDEBUG
   if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
@@ -2323,13 +2323,15 @@ inv_and_bv (Btor *btor,
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_node_is_bv_const (e))
       {
-        res = btor_propsls_non_rec_conf (btor, bve, bvand, eidx, "AND");
+        res    = 0;
+        is_rec = false;
       }
       else
       {
         res = cons_and_bv (btor, and, bvand, bve, eidx);
-        btor_propsls_rec_conf (btor);
+        is_rec = true;
       }
+      btor_propsls_rec_conf (btor, and, bve, bvand, eidx, "AND", is_rec);
       goto DONE;
     }
     /* ^^--------------------------------------------------------------^^ */
@@ -2455,6 +2457,7 @@ inv_ult_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res, *zero, *one, *bvmax, *tmp;
   BtorMemMgr *mm;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -2485,13 +2488,15 @@ inv_ult_bv (Btor *btor,
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_node_is_bv_const (e))
       {
-        res = btor_propsls_non_rec_conf (btor, bve, bvult, eidx, "<");
+        res    = 0;
+        is_rec = false;
       }
       else
       {
         res = cons_ult_bv (btor, ult, bvult, bve, eidx);
-        btor_propsls_rec_conf (btor);
+        is_rec = true;
       }
+      btor_propsls_rec_conf (btor, ult, bve, bvult, eidx, "<", is_rec);
 #ifndef NDEBUG
       is_inv = false;
 #endif
@@ -2570,6 +2575,7 @@ inv_sll_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res, *tmp, *bvmax;
   BtorMemMgr *mm;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -2620,13 +2626,15 @@ inv_sll_bv (Btor *btor,
           if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_node_is_bv_const (e))
           {
-            res = btor_propsls_non_rec_conf (btor, bve, bvsll, eidx, "<<");
+            res    = 0;
+            is_rec = false;
           }
           else
           {
             res = cons_sll_bv (btor, sll, bvsll, bve, eidx);
-            btor_propsls_rec_conf (btor);
+            is_rec = true;
           }
+          btor_propsls_rec_conf (btor, sll, bve, bvsll, eidx, "<<", is_rec);
 #ifndef NDEBUG
           is_inv = false;
 #endif
@@ -2712,6 +2720,7 @@ inv_srl_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp;
   BtorMemMgr *mm;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -2762,13 +2771,15 @@ inv_srl_bv (Btor *btor,
           if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && btor_node_is_bv_const (e))
           {
-            res = btor_propsls_non_rec_conf (btor, bve, bvsrl, eidx, ">>");
+            res    = 0;
+            is_rec = false;
           }
           else
           {
             res = cons_srl_bv (btor, srl, bvsrl, bve, eidx);
-            btor_propsls_rec_conf (btor);
+            is_rec = true;
           }
+          btor_propsls_rec_conf (btor, srl, bve, bvsrl, eidx, ">>", is_rec);
 #ifndef NDEBUG
           is_inv = false;
 #endif
@@ -2854,6 +2865,7 @@ inv_mul_bv (Btor *btor,
   BtorBitVector *res, *inv, *tmp, *tmp2;
   BtorMemMgr *mm;
   BtorNode *e;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -2908,20 +2920,22 @@ inv_mul_bv (Btor *btor,
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_node_is_bv_const (e))
       {
-        res = btor_propsls_non_rec_conf (btor, bve, bvmul, eidx, "*");
+        res    = 0;
+        is_rec = false;
       }
       else
       {
         res = cons_mul_bv (btor, mul, bvmul, bve, eidx);
-        btor_propsls_rec_conf (btor);
+        is_rec = true;
       }
+      btor_propsls_rec_conf (btor, mul, bve, bvmul, eidx, "*", is_rec);
 #ifndef NDEBUG
       is_inv = false;
 #endif
     }
     /* ^^-------------------------------------------------------------^^ */
   }
-  /* CONFLICT: bvmul odd and bve ----------------------------------------- */
+  /* CONFLICT: bvmul odd and bve is even --------------------------------- */
   else if (lsbvmul && !lsbve)
   {
     goto BVMUL_CONF;
@@ -3047,6 +3061,7 @@ inv_udiv_bv (Btor *btor,
   BtorBitVector *res, *lo, *up, *one, *bvmax, *tmp;
   BtorMemMgr *mm;
   BtorRNG *rng;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -3111,13 +3126,15 @@ inv_udiv_bv (Btor *btor,
         if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_node_is_bv_const (e))
         {
-          res = btor_propsls_non_rec_conf (btor, bve, bvudiv, eidx, "/");
+          res    = 0;
+          is_rec = false;
         }
         else
         {
           res = cons_udiv_bv (btor, udiv, bvudiv, bve, eidx);
-          btor_propsls_rec_conf (btor);
+          is_rec = true;
         }
+        btor_propsls_rec_conf (btor, udiv, bve, bvudiv, eidx, "/", is_rec);
 #ifndef NDEBUG
         is_inv = false;
 #endif
@@ -3292,6 +3309,7 @@ inv_urem_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *n, *mul, *up, *sub;
   BtorMemMgr *mm;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -3330,13 +3348,15 @@ inv_urem_bv (Btor *btor,
         if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && btor_node_is_bv_const (e))
         {
-          res = btor_propsls_non_rec_conf (btor, bve, bvurem, eidx, "%");
+          res    = 0;
+          is_rec = false;
         }
         else
         {
           res = cons_urem_bv (btor, urem, bvurem, bve, eidx);
-          btor_propsls_rec_conf (btor);
+          is_rec = true;
         }
+        btor_propsls_rec_conf (btor, urem, bve, bvurem, eidx, "%", is_rec);
 #ifndef NDEBUG
         is_inv = false;
 #endif
@@ -3612,6 +3632,7 @@ inv_concat_bv (Btor *btor,
   BtorNode *e;
   BtorBitVector *res, *tmp;
   BtorMemMgr *mm;
+  bool is_rec;
 #ifndef NDEBUG
   bool is_inv = true;
 #endif
@@ -3639,13 +3660,15 @@ inv_concat_bv (Btor *btor,
       if (btor_opt_get (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && btor_node_is_bv_const (e))
       {
-        res = btor_propsls_non_rec_conf (btor, bve, bvconcat, eidx, "o");
+        res    = 0;
+        is_rec = false;
       }
       else
       {
         res = cons_concat_bv (btor, concat, bvconcat, bve, eidx);
-        btor_propsls_rec_conf (btor);
+        is_rec = true;
       }
+      btor_propsls_rec_conf (btor, concat, bve, bvconcat, eidx, "o", is_rec);
 #ifndef NDEBUG
       is_inv = false;
 #endif
