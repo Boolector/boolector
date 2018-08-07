@@ -2701,7 +2701,7 @@ inv_sll_bv (Btor *btor,
        *      -> if bvsll = 0 choose shift <= res < bw
        *      -> else res = shift
        *           + if all remaining shifted bits match
-       *	   + and if res < bw
+       *           + and if res < bw
        * -> else conflict
        * -------------------------------------------------------------------- */
       ctz_bve   = btor_bv_get_num_trailing_zeros (bve);
@@ -2980,17 +2980,17 @@ inv_mul_bv (Btor *btor,
    * -> if bvmul odd and bve even -> conflict
    *
    * -> if bve odd -> determine res via modular inverse (extended euklid)
-   *		      (unique solution)
+   *                  (unique solution)
    *
    * -> else if bve is even (non-unique, multiple solutions possible!)
    *      * bve = 2^n: + if number of 0-LSBs in bvmul < n -> conflict
    *                   + else res = bvmul >> n
    *                     (with all bits shifted in randomly set to 0 or 1)
    *      * else: bve = 2^n * m, m is odd
-   *		  + if number of 0-LSBs in bvmul < n -> conflict
-   *	          + else c' = bvmul >> n
-   *	            (with all bits shifted in randomly set to 0 or 1)
-   *		    -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd)
+   *              + if number of 0-LSBs in bvmul < n -> conflict
+   *              + else c' = bvmul >> n
+   *                (with all bits shifted in randomly set to 0 or 1)
+   *                -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd)
    * ------------------------------------------------------------------------ */
 
   lsbve   = btor_bv_get_bit (bve, 0);
@@ -3042,7 +3042,7 @@ inv_mul_bv (Btor *btor,
      * else: bve = 2^n * m, m is odd
      *       + if number of 0-LSBs in bvmul < n -> conflict
      *       + else c' = bvmul >> n (with all bits shifted in set randomly)
-     *	      res = c' * m^-1 (with m^-1 the mod inverse of m)
+     *         res = c' * m^-1 (with m^-1 the mod inverse of m)
      * ---------------------------------------------------------------------- */
     else
     {
@@ -3336,8 +3336,8 @@ inv_udiv_bv (Btor *btor,
 
           /* determine upper and lower bounds for e[0]:
            * up = bve * (budiv + 1) - 1
-           *	  if bve * (bvudiv + 1) does not overflow
-           *	  else 2^bw - 1
+           *      if bve * (bvudiv + 1) does not overflow
+           *      else 2^bw - 1
            * lo = bve * bvudiv */
           lo  = btor_bv_mul (mm, bve, bvudiv);
           tmp = btor_bv_inc (mm, bvudiv);
