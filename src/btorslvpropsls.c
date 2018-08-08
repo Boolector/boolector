@@ -1601,7 +1601,13 @@ select_path_cond (Btor *btor,
 static BtorBitVector *inv_slice_bv (Btor *,
                                     BtorNode *,
                                     BtorBitVector *,
-                                    BtorBitVector *);
+                                    BtorBitVector *,
+                                    int32_t);
+static BtorBitVector *inv_cond_bv (Btor *,
+                                   BtorNode *,
+                                   BtorBitVector *,
+                                   BtorBitVector *,
+                                   int32_t);
 #endif
 
 static BtorBitVector *
@@ -4070,11 +4076,12 @@ inv_cond_bv (Btor *btor,
   assert (!btor_bv_compare (bve, btor_model_get_bv (btor, cond->e[0])));
   assert (eidx || !btor_node_is_bv_const (cond->e[eidx]));
 
-  BtorBitVector *res;
+  BtorBitVector *res, *bve1, *bve2;
   BtorMemMgr *mm = btor->mm;
+
+  bve1 = (BtorBitVector *) btor_model_get_bv (btor, cond->e[1]);
+  bve2 = (BtorBitVector *) btor_model_get_bv (btor, cond->e[2]);
 #ifndef NDEBUG
-  BtorBitVector *bve1 = (BtorBitVector *) btor_model_get_bv (btor, cond->e[1]);
-  BtorBitVector *bve2 = (BtorBitVector *) btor_model_get_bv (btor, cond->e[2]);
   char *sbvcond       = btor_bv_to_char (btor->mm, bvcond);
   char *sbve0         = btor_bv_to_char (mm, bve);
   char *sbve1         = btor_bv_to_char (mm, bve1);
