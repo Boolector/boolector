@@ -2244,10 +2244,10 @@ cons_slice_bv (Btor *btor,
 
 static BtorBitVector *
 cons_cond_bv (Btor *btor,
-               BtorNode *cond,
-               BtorBitVector *bvcond,
-               BtorBitVector *bve,
-               int32_t eidx)
+              BtorNode *cond,
+              BtorBitVector *bvcond,
+              BtorBitVector *bve,
+              int32_t eidx)
 {
   if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
   {
@@ -2318,42 +2318,23 @@ res_rec_conf (Btor *btor,
              sbve);
   btor_mem_freestr (btor->mm, sbve);
   btor_mem_freestr (btor->mm, sbvexp);
-  /* fix counters since we always increase the counter, even in the conflict case */
+  /* fix counters since we always increase the counter, even in the conflict
+   * case */
   switch (exp->kind)
   {
-    case BTOR_ADD_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1;
-      break;
-    case BTOR_AND_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_and -= 1;
-      break;
-    case BTOR_BV_EQ_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1;
-      break;
-    case BTOR_ULT_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1;
-      break;
-    case BTOR_SLL_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_sll -= 1;
-      break;
-    case BTOR_SRL_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1;
-      break;
-    case BTOR_MUL_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_mul -= 1;
-      break;
-    case BTOR_UDIV_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_udiv -= 1;
-      break;
-    case BTOR_UREM_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_urem -= 1;
-      break;
+    case BTOR_ADD_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1; break;
+    case BTOR_AND_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_and -= 1; break;
+    case BTOR_BV_EQ_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1; break;
+    case BTOR_ULT_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1; break;
+    case BTOR_SLL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_sll -= 1; break;
+    case BTOR_SRL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1; break;
+    case BTOR_MUL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_mul -= 1; break;
+    case BTOR_UDIV_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_udiv -= 1; break;
+    case BTOR_UREM_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_urem -= 1; break;
     case BTOR_CONCAT_NODE:
       BTOR_PROP_SOLVER (btor)->stats.inv_concat -= 1;
       break;
-    case BTOR_SLICE_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1;
-      break;
+    case BTOR_SLICE_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1; break;
     default:
       assert (btor_node_is_bv_cond (exp));
       /* do not decrease, we do not call cons function in conflict case */
@@ -2365,7 +2346,8 @@ res_rec_conf (Btor *btor,
       BTOR_PROP_SOLVER (btor)->stats.rec_conf += 1;
     else
       BTOR_PROP_SOLVER (btor)->stats.non_rec_conf += 1;
-    /* fix counter since we always increase the counter, even in the conflict case */
+    /* fix counter since we always increase the counter, even in the conflict
+     * case */
     BTOR_PROP_SOLVER (btor)->stats.props_inv -= 1;
   }
   else
@@ -4119,7 +4101,7 @@ inv_cond_bv (Btor *btor,
     res = btor_bv_copy (mm, bvcond);
     if (btor_node_is_bv_const (cond->e[eidx]))
     {
-      bool is_recoverable = !btor_bv_compare(bvcond, eidx == 1 ? bve2 : bve1);
+      bool is_recoverable = !btor_bv_compare (bvcond, eidx == 1 ? bve2 : bve1);
 #ifndef NDEBUG
       if (eidx == 2)
       {
@@ -4161,7 +4143,7 @@ inv_cond_bv (Btor *btor,
   }
 
 #ifndef NDEBUG
-  char *sres    = btor_bv_to_char (mm, res);
+  char *sres = btor_bv_to_char (mm, res);
   BTORLOG (3,
            "prop (e[%d]): %s: %s := %s ? %s : %s",
            eidx,
@@ -4209,7 +4191,8 @@ select_move (Btor *btor,
   assert (eidx >= 0);
   /* special case slice: only one child
    * special case cond: we only need assignment of condition to compute value */
-  idx = eidx ? 0 : (btor_node_is_slice (exp) || btor_node_is_cond (exp) ? 0 : 1);
+  idx =
+      eidx ? 0 : (btor_node_is_slice (exp) || btor_node_is_cond (exp) ? 0 : 1);
   *value = compute_value (btor, exp, bvexp, bve[idx], eidx);
   return exp->e[eidx];
 }
@@ -4322,32 +4305,33 @@ btor_propsls_select_move_prop (Btor *btor,
           compute_value = b ? inv_srl_bv : cons_srl_bv;
           break;
         case BTOR_MUL_NODE:
-          select_path = select_path_mul;
+          select_path   = select_path_mul;
           compute_value = b ? inv_mul_bv : cons_mul_bv;
           break;
         case BTOR_UDIV_NODE:
-          select_path = select_path_udiv;
+          select_path   = select_path_udiv;
           compute_value = b ? inv_udiv_bv : cons_udiv_bv;
           break;
         case BTOR_UREM_NODE:
-          select_path = select_path_urem;
+          select_path   = select_path_urem;
           compute_value = b ? inv_urem_bv : cons_urem_bv;
           break;
         case BTOR_CONCAT_NODE:
-          select_path = select_path_concat;
+          select_path   = select_path_concat;
           compute_value = b ? inv_concat_bv : cons_concat_bv;
           break;
         case BTOR_SLICE_NODE:
-          select_path = select_path_slice;
+          select_path   = select_path_slice;
           compute_value = b ? inv_slice_bv : cons_slice_bv;
           break;
         default:
           assert (btor_node_is_bv_cond (real_cur));
-          select_path = select_path_cond;
+          select_path   = select_path_cond;
           compute_value = b ? inv_cond_bv : cons_cond_bv;
       }
 
-      cur = select_move(btor, real_cur, bvcur, bve, select_path, compute_value, &bvenew);
+      cur = select_move (
+          btor, real_cur, bvcur, bve, select_path, compute_value, &bvenew);
       if (!bvenew) break; /* non-recoverable conflict */
 
       btor_bv_free (btor->mm, bvcur);
