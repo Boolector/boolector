@@ -12,7 +12,6 @@ git:
 
 os:
   - linux
-  - osx
 
 addons:
   apt:
@@ -20,7 +19,10 @@ addons:
       - cython
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip2 install cython; fi
+  - eval "${MATRIX_EVAL}"
+  #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip2 install cython; fi
+    # rm /usr/local/include/c++; brew install gcc@7 || true; fi
+
 
 before_script:
   - ./contrib/setup-btor2tools.sh
@@ -28,19 +30,41 @@ before_script:
   - ./contrib/setup-lingeling.sh
 
 script:
+  #  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then export CC=gcc-4.9; fi
+  - $CC --version
   - ./configure.sh "${BTOR_CONFIG}"
   - cd build
-  - make -j2
+  - make -j2 VERBOSE=1
   - bin/test
 
 env:
-  - BTOR_CONFIG='-g'
   - BTOR_CONFIG=''
+  - BTOR_CONFIG='-g'
   - BTOR_CONFIG='--python'
 
 matrix:
+  include:
+    - os: osx
+      osx_image: xcode9.1
+      env:
+        -  MATRIX_EVAL="brew cask uninstall oclint && brew install gcc@8 && export CC=gcc-8 && export CXX=g++-8 && BTOR_CONFIG='-g'"
+
+    - os: osx
+      osx_image: xcode9.1
+      env:
+        -  MATRIX_EVAL="brew cask uninstall oclint && brew install gcc@8 && export CC=gcc-8 && export CXX=g++-8"
+
+    - os: osx
+      compiler: clang
+      env:
+        -  MATRIX_EVAL="BTOR_CONFIG='-g'"
+
+    - os: osx
+      compiler: clang
+
   fast_finish: true
 
 #branches:
 #  only:
 #    - master
+#
