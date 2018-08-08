@@ -2318,30 +2318,32 @@ res_rec_conf (Btor *btor,
              sbve);
   btor_mem_freestr (btor->mm, sbve);
   btor_mem_freestr (btor->mm, sbvexp);
-  /* fix counters since we always increase the counter, even in the conflict
-   * case */
-  switch (exp->kind)
-  {
-    case BTOR_ADD_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1; break;
-    case BTOR_AND_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_and -= 1; break;
-    case BTOR_BV_EQ_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1; break;
-    case BTOR_ULT_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1; break;
-    case BTOR_SLL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_sll -= 1; break;
-    case BTOR_SRL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1; break;
-    case BTOR_MUL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_mul -= 1; break;
-    case BTOR_UDIV_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_udiv -= 1; break;
-    case BTOR_UREM_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_urem -= 1; break;
-    case BTOR_CONCAT_NODE:
-      BTOR_PROP_SOLVER (btor)->stats.inv_concat -= 1;
-      break;
-    case BTOR_SLICE_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1; break;
-    default:
-      assert (btor_node_is_bv_cond (exp));
-      /* do not decrease, we do not call cons function in conflict case */
-  }
 #endif
   if (btor_opt_get (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
   {
+#ifndef NDEBUG
+    /* fix counters since we always increase the counter, even in the conflict
+     * case */
+    switch (exp->kind)
+    {
+      case BTOR_ADD_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1; break;
+      case BTOR_AND_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_and -= 1; break;
+      case BTOR_BV_EQ_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1; break;
+      case BTOR_ULT_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1; break;
+      case BTOR_SLL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_sll -= 1; break;
+      case BTOR_SRL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1; break;
+      case BTOR_MUL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_mul -= 1; break;
+      case BTOR_UDIV_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_udiv -= 1; break;
+      case BTOR_UREM_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_urem -= 1; break;
+      case BTOR_CONCAT_NODE:
+        BTOR_PROP_SOLVER (btor)->stats.inv_concat -= 1;
+        break;
+      case BTOR_SLICE_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1; break;
+      default:
+        assert (btor_node_is_bv_cond (exp));
+        /* do not decrease, we do not call cons function in conflict case */
+    }
+#endif
     if (is_recoverable)
       BTOR_PROP_SOLVER (btor)->stats.rec_conf += 1;
     else
