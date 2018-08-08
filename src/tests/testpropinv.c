@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -236,7 +236,7 @@ test_propinv_complete_slice_bv (void)
         bvexp = btor_bv_slice (g_mm, bve, up, lo);
         for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++)
         {
-          res = inv_slice_bv (g_btor, exp, bvexp, bve);
+          res = inv_slice_bv (g_btor, exp, bvexp, bve, 0);
           assert (res);
           if (!btor_bv_compare (res, bve)) break;
           btor_bv_free (g_mm, res);

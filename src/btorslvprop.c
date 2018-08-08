@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -428,6 +428,12 @@ print_stats_prop_solver (BtorPropSolver *slv)
   BTOR_MSG (btor->msg, 1, "propagation (steps): %u", slv->stats.props);
   BTOR_MSG (btor->msg,
             1,
+            "   consistent value propagations: %u",
+            slv->stats.props_cons);
+  BTOR_MSG (
+      btor->msg, 1, "   inverse value propagations: %u", slv->stats.props_inv);
+  BTOR_MSG (btor->msg,
+            1,
             "propagation (steps) per second: %.2f",
             (double) slv->stats.props / (btor->time.sat - btor->time.simplify));
   BTOR_MSG (btor->msg, 1, "updates (cone): %u", slv->stats.updates);
@@ -465,6 +471,8 @@ print_stats_prop_solver (BtorPropSolver *slv)
             slv->stats.cons_concat);
   BTOR_MSG (
       btor->msg, 1, "consistent fun calls (slice): %u", slv->stats.cons_slice);
+  BTOR_MSG (
+      btor->msg, 1, "consistent fun calls (cond): %u", slv->stats.cons_cond);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "inverse fun calls (add): %u", slv->stats.inv_add);
@@ -480,6 +488,7 @@ print_stats_prop_solver (BtorPropSolver *slv)
       btor->msg, 1, "inverse fun calls (concat): %u", slv->stats.inv_concat);
   BTOR_MSG (
       btor->msg, 1, "inverse fun calls (slice): %u", slv->stats.inv_slice);
+  BTOR_MSG (btor->msg, 1, "inverse fun calls (cond): %u", slv->stats.inv_cond);
 #endif
 }
 

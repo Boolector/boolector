@@ -112,7 +112,14 @@ BtorBitVector* inv_concat_bv (Btor* btor,
 BtorBitVector* inv_slice_bv (Btor* btor,
                              BtorNode* slice_exp,
                              BtorBitVector* bvslice,
-                             BtorBitVector* bve);
+                             BtorBitVector* bve,
+                             int32_t eidx);
+
+BtorBitVector* inv_cond_bv (Btor* btor,
+                            BtorNode* cond_exp,
+                            BtorBitVector* bvcond,
+                            BtorBitVector* bve,
+                            int32_t eidx);
 
 int32_t sat_prop_solver_aux (Btor* btor);
 #endif

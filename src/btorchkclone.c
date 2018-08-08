@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2018 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -1173,6 +1173,8 @@ chkclone_slv (Btor *btor, Btor *clone)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, rec_conf);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, non_rec_conf);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, props);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, props_inv);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, props_cons);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, updates);
 #ifndef NDEBUG
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, inv_add);

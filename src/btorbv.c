@@ -83,6 +83,7 @@ btor_bv_new (BtorMemMgr *mm, uint32_t bw)
   res->len = i;
   assert (res->len);
   res->width = bw;
+  assert (res->width <= res->len * BTOR_BV_TYPE_BW);
   return res;
 }
 
@@ -617,6 +618,7 @@ uint32_t
 btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos)
 {
   assert (bv);
+  assert (pos < bv->width);
 
   uint32_t i, j;
 
