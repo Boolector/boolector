@@ -20,8 +20,6 @@ addons:
 
 before_install:
   - eval "${MATRIX_EVAL}"
-  #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip2 install cython; fi
-    # rm /usr/local/include/c++; brew install gcc@7 || true; fi
 
 
 before_script:
@@ -30,11 +28,10 @@ before_script:
   - ./contrib/setup-lingeling.sh
 
 script:
-  #  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then export CC=gcc-4.9; fi
   - $CC --version
   - ./configure.sh "${BTOR_CONFIG}"
   - cd build
-  - make -j2 VERBOSE=1
+  - make -j2
   - bin/test
 
 env:
@@ -61,6 +58,11 @@ matrix:
 
     - os: osx
       compiler: clang
+
+    - os: osx
+      compiler: clang
+      env:
+        -  MATRIX_EVAL="pip2 install cython && BTOR_CONFIG='--python'"
 
   fast_finish: true
 
