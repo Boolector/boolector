@@ -16,9 +16,11 @@ if not sys.argv[1].endswith('btortypes.h'):
 
 with open(sys.argv[1], 'r') as btortypes:
     with open(sys.argv[2], 'w') as outfile:
+        outfile.write("cdef extern from \"btortypes.h\":\n")
+        outfile.write("    cpdef enum BtorOption:")
         i = 0
         for line in btortypes:
             line = line.strip()
             if line.startswith('BTOR_OPT_') and line.endswith(','):
-                outfile.write('{}={}\n'.format(line.strip(','), i))
+                outfile.write('{}\n        {}'.format(',' if i > 0 else '', line.strip(',')))
                 i += 1

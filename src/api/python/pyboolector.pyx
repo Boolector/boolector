@@ -204,9 +204,9 @@ cdef class BoolectorOpt:
     The class representing a Boolector option.
     """
     cdef Boolector btor
-    cdef int32_t opt
+    cdef BtorOption opt
 
-    def __init__(self, Boolector boolector, int32_t opt):
+    def __init__(self, Boolector boolector, BtorOption opt):
         self.btor = boolector
         self.opt = opt
 
@@ -951,7 +951,7 @@ cdef class Boolector:
         return r
 
     # Boolector options
-    def Set_opt(self, int32_t opt, uint32_t value):
+    def Set_opt(self, BtorOption opt, uint32_t value):
         """ Set_opt(opt, value)
 
             Set option.
@@ -976,7 +976,7 @@ cdef class Boolector:
             raise BoolectorException("Invalid Boolector option")
         btorapi.boolector_set_opt(self._c_btor, opt, value)
 
-    def Get_opt(self, int32_t opt):
+    def Get_opt(self, BtorOption opt):
         """ Get_opt(opt)
 
             Get the Boolector option with name ``opt``.

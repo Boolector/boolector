@@ -14,6 +14,8 @@ from cpython.ref cimport PyObject
 from libc.stdint cimport int32_t, uint32_t
 from pyboolector import BoolectorException
 
+#include "pyboolector_options.pxd"
+
 cdef inline int raise_py_error() except *:
     raise BoolectorException(pyboolector_get_err_msg().decode('utf-8'))
 
@@ -110,37 +112,37 @@ cdef extern from "boolector.h":
     void boolector_set_sat_solver (Btor * btor, const char * solver) \
       except +raise_py_error
 
-    void boolector_set_opt (Btor * btor, int32_t opt, uint32_t val) \
+    void boolector_set_opt (Btor * btor, BtorOption opt, uint32_t val) \
       except +raise_py_error
 
-    uint32_t boolector_get_opt (Btor * btor, int32_t opt) \
+    uint32_t boolector_get_opt (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    uint32_t boolector_get_opt_min (Btor * btor, int32_t opt) \
+    uint32_t boolector_get_opt_min (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    uint32_t boolector_get_opt_max (Btor * btor, int32_t opt) \
+    uint32_t boolector_get_opt_max (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    uint32_t boolector_get_opt_dflt (Btor * btor, int32_t opt) \
+    uint32_t boolector_get_opt_dflt (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    const char * boolector_get_opt_shrt (Btor * btor, int32_t opt) \
+    const char * boolector_get_opt_shrt (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    const char * boolector_get_opt_lng (Btor * btor, int32_t opt) \
+    const char * boolector_get_opt_lng (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    const char * boolector_get_opt_desc (Btor * btor, int32_t opt) \
+    const char * boolector_get_opt_desc (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    int32_t boolector_first_opt (Btor * btor) \
+    BtorOption boolector_first_opt (Btor * btor) \
       except +raise_py_error
 
-    int32_t boolector_next_opt (Btor * btor, int32_t opt) \
+    BtorOption boolector_next_opt (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
-    bool boolector_has_opt (Btor * btor, int32_t opt) \
+    bool boolector_has_opt (Btor * btor, BtorOption opt) \
       except +raise_py_error
 
     BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node) \
