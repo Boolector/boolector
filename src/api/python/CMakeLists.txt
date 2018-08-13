@@ -22,7 +22,6 @@ add_custom_target(
   COMMENT
     "Generate pyboolector_options.pxd"
 )
-add_check_cxx_flag("-fpermissive")
 add_cython_target(pyboolector CXX)  # implicitely uses pyboolector.pyx
 
 add_library(pyboolector
