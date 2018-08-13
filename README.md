@@ -33,7 +33,7 @@ To build Boolector from source you need:
   * g++/clang++
 
 To build the python module `pyboolector` you further need:
-  * Cython
+  * Cython >= 0.22
 
 
 Build
@@ -126,7 +126,7 @@ make examples
 
 For examples and instructions on how to use Boolector's Python API, refer to
 `examples/api/python/api_usage_examples.py`
-and the [API documentation](https://boolector.github.io/docs).
+and the [API documentation](https://boolector.github.io/docs).  
 To run `api_usage_examples.py`, from Boolector's root directory issue:
 ```
 PYTHONPATH="build/lib" python examples/api/python/api_usage_examples.py
