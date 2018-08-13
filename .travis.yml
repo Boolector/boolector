@@ -29,6 +29,17 @@ before_script:
 
 script:
   - $CC --version
+  - |
+    if [ "$BTOR_CONFIG" = "--python" ]
+    then
+      if [ "$TRAVIS_OS_NAME" = "linux" ]
+      then
+        sudo apt-get remove cython
+        sudo pip install -U cython
+      else
+        pip install cython
+      fi
+    fi
   - ./configure.sh "${BTOR_CONFIG}"
   - cd build
   - make -j2
@@ -52,7 +63,7 @@ matrix:
     - os: osx
       compiler: clang
       env:
-        -  MATRIX_EVAL="pip2 install cython && BTOR_CONFIG='--python'"
+        -  MATRIX_EVAL="BTOR_CONFIG='--python'"
 
   fast_finish: true
 
