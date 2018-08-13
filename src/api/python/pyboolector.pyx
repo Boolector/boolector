@@ -10,7 +10,7 @@
 cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
-from libc.stdint cimport int32_t, uint32_t
+from libc.stdint cimport int32_t, uint32_t, uint64_t
 from cpython cimport bool
 from cpython.ref cimport PyObject
 import math, os, sys
@@ -140,7 +140,7 @@ cdef class BoolectorSort:
         self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
-        if <int32_t> self._c_sort > 0:
+        if <uint64_t> self._c_sort > 0:
             btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorArraySort(BoolectorSort):
