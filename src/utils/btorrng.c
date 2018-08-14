@@ -59,7 +59,9 @@ double
 btor_rng_pick_rand_dbl (BtorRNG* rng, double from, double to)
 {
   assert (rng);
+#ifndef NDEBUG
   assert (from <= to && to < DBL_MAX);
+#endif
 
   double res;
 
