@@ -2435,7 +2435,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
 #endif
   BoolectorNode *res;
   assert (ass);
+#ifndef NDEBUG
   assert (ass->range.id == r.id);
+#endif
 
   for (uint32_t i = 0; i < ass->nranges; i++)
   {

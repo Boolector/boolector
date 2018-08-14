@@ -527,7 +527,9 @@ beta_reduce (Btor *btor,
       goto BETA_REDUCE_PUSH_RESULT;
     }
   }
+#ifndef NDEBUG
   assert (BTOR_EMPTY_STACK (unassign_stack));
+#endif
   assert (cur_lambda_depth == 0);
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);

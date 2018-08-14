@@ -1062,7 +1062,9 @@ find_ranges (Btor *btor,
       prev_inc = inc;
     }
     if (inc) btor_bv_free (mm, inc);
+#ifndef NDEBUG
     assert (num_indices == cnt);
+#endif
   }
 
   /* return statistics */

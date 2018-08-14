@@ -337,9 +337,13 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
       continue;
     }
     assert (csort->id == sort->id);
+#ifndef NDEBUG
     assert (csort->parents == sort->parents);
+#endif
     assert (csort->ext_refs == 0);
+#ifndef NDEBUG
     assert (sort->refs == csort->refs - 1 + sort->refs - sort->parents);
+#endif
     csort->refs     = sort->refs;
     csort->ext_refs = sort->ext_refs;
   }
@@ -895,8 +899,8 @@ clone_aux_btor (Btor *btor,
       allocated += strlen (btor->options[o].valstr) + 1;
   }
   allocated += MEM_PTR_HASH_TABLE (clone->str2opt);
-#endif
   assert (allocated == clone->mm->allocated);
+#endif
 
   /* always auto cleanup internal and external references (may be dangling
    * otherise) */
@@ -922,7 +926,9 @@ clone_aux_btor (Btor *btor,
   }
 
   clone->msg = btor_msg_new (clone);
+#ifndef NDEBUG
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
+#endif
 
   /* set msg prefix for clone */
   clone_prefix = "clone";
@@ -939,7 +945,9 @@ clone_aux_btor (Btor *btor,
   if (exp_layer_only)
   {
     clone->bv_assignments = btor_ass_new_bv_list (mm);
+#ifndef NDEBUG
     assert ((allocated += sizeof (BtorBVAssList)) == clone->mm->allocated);
+#endif
   }
   else
   {
@@ -959,7 +967,9 @@ clone_aux_btor (Btor *btor,
   if (exp_layer_only)
   {
     clone->fun_assignments = btor_ass_new_fun_list (mm);
+#ifndef NDEBUG
     assert ((allocated += sizeof (BtorFunAssList)) == clone->mm->allocated);
+#endif
   }
   else
   {
@@ -986,18 +996,21 @@ clone_aux_btor (Btor *btor,
     if (exp_layer_only)
     {
       clone->avmgr = btor_aigvec_mgr_new (clone);
+#ifndef NDEBUG
       assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                             + sizeof (BtorSATMgr)
                             /* true and false AIGs */
                             + 2 * sizeof (BtorAIG *)
                             + sizeof (int32_t)) /* unique table chains */
               == clone->mm->allocated);
+#endif
     }
     else
     {
       BTORLOG_TIMESTAMP (delta);
       clone->avmgr = btor_aigvec_mgr_clone (clone, btor->avmgr);
       BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_util_time_stamp () - delta));
+#ifndef NDEBUG
       assert (
           (allocated +=
            sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
@@ -1013,6 +1026,7 @@ clone_aux_btor (Btor *btor,
            + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
            + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t))
           == clone->mm->allocated);
+#endif
     }
   }
 
@@ -1036,8 +1050,10 @@ clone_aux_btor (Btor *btor,
 #endif
 
   emap = btor_nodemap_new (clone);
+#ifndef NDEBUG
   assert ((allocated += sizeof (*emap) + MEM_PTR_HASH_TABLE (emap->table))
           == clone->mm->allocated);
+#endif
 
   BTOR_INIT_STACK (btor->mm, rhos);
   BTORLOG_TIMESTAMP (delta);
@@ -1078,8 +1094,10 @@ clone_aux_btor (Btor *btor,
   BTORLOG (1,
            "  clone nodes unique table: %.3f s",
            (btor_util_time_stamp () - delta));
+#ifndef NDEBUG
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
+#endif
 
   clone->symbols = btor_hashptr_table_clone (mm,
                                              btor->symbols,
@@ -1108,78 +1126,118 @@ clone_aux_btor (Btor *btor,
 #endif
 
   CLONE_PTR_HASH_TABLE_DATA (inputs, btor_clone_data_as_int);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->inputs))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (bv_vars);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_vars))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (ufs);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->ufs))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE_DATA (lambdas, btor_clone_data_as_int);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE_DATA (quantifiers, btor_clone_data_as_int);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->quantifiers))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (exists_vars);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->exists_vars))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (forall_vars);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->forall_vars))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE_DATA (feqs, btor_clone_data_as_int);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->feqs))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE_DATA (substitutions, btor_clone_data_as_node_ptr);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->substitutions))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE_DATA (varsubst_constraints, btor_clone_data_as_node_ptr);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->varsubst_constraints))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (embedded_constraints);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->embedded_constraints))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (unsynthesized_constraints);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->unsynthesized_constraints))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (synthesized_constraints);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->synthesized_constraints))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (assumptions);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->assumptions))
           == clone->mm->allocated);
+#endif
   btor_clone_node_ptr_stack (
       mm, &btor->failed_assumptions, &clone->failed_assumptions, emap, true);
+#ifndef NDEBUG
   assert ((allocated +=
            BTOR_SIZE_STACK (btor->failed_assumptions) * sizeof (BtorNode *))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (var_rhs);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->var_rhs))
           == clone->mm->allocated);
+#endif
   CLONE_PTR_HASH_TABLE (fun_rhs);
+#ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_rhs))
           == clone->mm->allocated);
+#endif
 
   clone->assertions_cache =
       btor_hashint_table_clone (clone->mm, btor->assertions_cache);
+#ifndef NDEBUG
   assert ((allocated += MEM_INT_HASH_TABLE (btor->assertions_cache))
           == clone->mm->allocated);
+#endif
 
   btor_clone_node_ptr_stack (
       mm, &btor->assertions, &clone->assertions, emap, false);
+#ifndef NDEBUG
   assert (
       (allocated += BTOR_SIZE_STACK (btor->assertions) * sizeof (BtorNode *))
       == clone->mm->allocated);
+#endif
 
   BTOR_INIT_STACK (clone->mm, clone->assertions_trail);
   for (i = 0; i < BTOR_COUNT_STACK (btor->assertions_trail); i++)
     BTOR_PUSH_STACK (clone->assertions_trail,
                      BTOR_PEEK_STACK (btor->assertions_trail, i));
   BTOR_ADJUST_STACK (btor->assertions_trail, clone->assertions_trail);
+#ifndef NDEBUG
   assert ((allocated +=
            BTOR_SIZE_STACK (btor->assertions_trail) * sizeof (uint32_t))
           == clone->mm->allocated);
+#endif
 
   if (btor->bv_model)
   {
@@ -1197,9 +1255,9 @@ clone_aux_btor (Btor *btor,
     }
 #endif
   }
+#ifndef NDEBUG
   assert ((allocated += MEM_INT_HASH_MAP (btor->bv_model))
           == clone->mm->allocated);
-#ifndef NDEBUG
   if (!exp_layer_only && btor->stats.rw_rules_applied)
   {
     clone->stats.rw_rules_applied =
@@ -1236,8 +1294,10 @@ clone_aux_btor (Btor *btor,
     }
 #endif
   }
+#ifndef NDEBUG
   assert ((allocated += MEM_INT_HASH_MAP (btor->fun_model))
           == clone->mm->allocated);
+#endif
 
   /* NOTE: we need bv_model for cloning rhos */
   while (!BTOR_EMPTY_STACK (rhos))
@@ -1258,7 +1318,9 @@ clone_aux_btor (Btor *btor,
 #endif
   }
   BTOR_RELEASE_STACK (rhos);
+#ifndef NDEBUG
   assert (allocated == clone->mm->allocated);
+#endif
 
   if (exp_layer_only)
   {
@@ -1282,9 +1344,11 @@ clone_aux_btor (Btor *btor,
     BTORLOG (1,
              "  clone functions_with_model: %.3f s",
              btor_util_time_stamp () - delta);
+#ifndef NDEBUG
     assert ((allocated +=
              BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
             == clone->mm->allocated);
+#endif
   }
 
   BTORLOG_TIMESTAMP (delta);

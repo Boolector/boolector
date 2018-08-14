@@ -215,7 +215,9 @@ resize (BtorIntHashTable *t)
   BTOR_DELETEN (t->mm, old_keys, old_size);
   BTOR_DELETEN (t->mm, old_hop_info, old_size);
   if (old_data) BTOR_DELETEN (t->mm, old_data, old_size);
+#ifndef NDEBUG
   assert (old_count == t->count);
+#endif
 }
 
 /*------------------------------------------------------------------------*/

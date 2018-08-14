@@ -3838,7 +3838,9 @@ run (BtorMBT *mbt)
     pid_t wid =
 #endif
         wait (&status);
+#ifndef NDEBUG
     assert (wid == id);
+#endif
   }
   else
   {
