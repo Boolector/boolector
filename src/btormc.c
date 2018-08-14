@@ -764,7 +764,9 @@ initialize_inputs_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
     sym = timed_symbol (mc, '@', src, f->time);
     dst = new_var_or_array (mc, src, sym);
     btor_mem_freestr (mc->mm, sym);
+#ifndef NDEBUG
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
+#endif
     BTOR_PUSH_STACK (f->inputs, dst);
     boolector_nodemap_map (map, src, dst);
   }
