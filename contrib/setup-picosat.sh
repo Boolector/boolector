@@ -16,5 +16,11 @@ wget http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
 mv picosat-965/* .
 rmdir picosat-965
-./configure.sh --shared
+case "$(uname -s)" in
+   CYGWIN*|MINGW32*|MSYS*)
+     patch -p1 < ../../contrib/windows_patches/picosat-965.patch
+     EXTRA_FLAGS="--optimize --no-stats --no-trace"
+     ;;
+esac
+./configure.sh --shared ${EXTRA_FLAGS}
 make -j2
