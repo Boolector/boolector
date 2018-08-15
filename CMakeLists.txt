@@ -165,8 +165,9 @@ if(GCOV)
   # we do not check if the compiler supports the flag here (we actually would
   # like to require support here) since check_c(xx)_compiler_flag reports
   # false negative
-  add_c_cxx_flag("-fprofile-arcs")
-  add_required_c_cxx_flag("-ftest-coverage")
+  include(CodeCoverage)
+  APPEND_COVERAGE_COMPILER_FLAGS()
+  setup_target_for_coverage_lcov(NAME coverage EXECUTABLE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test DEPENDENCIES testbtor boolector-bin)
 endif()
 
 if(GPROF)
