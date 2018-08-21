@@ -13,7 +13,7 @@ extern "C" {
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btornode.h"
-#include "btorslvpropsls.h"
+#include "btorproputils.h"
 #include "utils/btorutil.h"
 }
 

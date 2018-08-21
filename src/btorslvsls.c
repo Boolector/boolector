@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *  Copyright (C) 2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -8,15 +8,18 @@
  */
 
 #include "btorslvsls.h"
+
 #include "btorabort.h"
 #include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorlog.h"
+#include "btorlsutils.h"
 #include "btormodel.h"
 #include "btorprintmodel.h"
-#include "btorslvpropsls.h"
+#include "btorproputils.h"
+#include "btorslsutils.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
@@ -342,7 +345,7 @@ try_move (Btor *btor,
   }
 #endif
 
-  btor_propsls_update_cone (btor,
+  btor_lsutils_update_cone (btor,
                             bv_model,
                             slv->roots,
                             score,
@@ -1161,7 +1164,7 @@ move (Btor *btor, uint32_t nmoves)
      * encountered, no move is performed. */
     slv->max_move = BTOR_SLS_MOVE_PROP;
     slv->stats.props +=
-        btor_propsls_select_move_prop (btor, constr, &can, &neigh);
+        btor_proputils_select_move_prop (btor, constr, &can, &neigh);
     if (can)
     {
       assert (neigh);
@@ -1251,7 +1254,7 @@ move (Btor *btor, uint32_t nmoves)
   }
 #endif
 
-  btor_propsls_update_cone (btor,
+  btor_lsutils_update_cone (btor,
                             btor->bv_model,
                             slv->roots,
                             slv->score,
@@ -1549,8 +1552,8 @@ sat_sls_solver (BtorSLSSolver *slv)
         btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->prop_flip_cond_const_prob_delta =
         slv->prop_flip_cond_const_prob > (BTOR_PROB_MAX / 2)
-            ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
-            : BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA;
+            ? -BTOR_PROPUTILS_PROB_FLIP_COND_CONST_DELTA
+            : BTOR_PROPUTILS_PROB_FLIP_COND_CONST_DELTA;
 
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);
@@ -1571,7 +1574,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     }
 
     /* compute initial sls score */
-    btor_propsls_compute_sls_scores (
+    btor_slsutils_compute_sls_scores (
         btor, btor->bv_model, btor->fun_model, slv->score);
 
     if (!slv->roots->count) goto SAT;

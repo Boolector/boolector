@@ -14,7 +14,7 @@ extern "C" {
 #include "btorexp.h"
 #include "btormodel.h"
 #include "btornode.h"
-#include "btorslvpropsls.h"
+#include "btorproputils.h"
 #include "utils/btorutil.h"
 }
 

@@ -6,8 +6,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORPROPSLS_H_INCLUDED
-#define BTORPROPSLS_H_INCLUDED
+#ifndef BTORPROPUTILS_H_INCLUDED
+#define BTORPROPUTILS_H_INCLUDED
 
 #include "btorslvprop.h"
 #include "btorslvsls.h"
@@ -21,30 +21,14 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA 100
+#define BTOR_PROPUTILS_PROB_FLIP_COND_CONST_DELTA 100
 
 /*------------------------------------------------------------------------*/
 
-void btor_propsls_update_cone (Btor* btor,
-                               BtorIntHashTable* bv_model,
-                               BtorIntHashTable* roots,
-                               BtorIntHashTable* score,
-                               BtorIntHashTable* exps,
-                               bool update_roots,
-                               uint64_t* stats_updates,
-                               double* time_update_cone,
-                               double* time_update_cone_reset,
-                               double* time_update_cone_model_gen,
-                               double* time_update_cone_compute_score);
-
-uint64_t btor_propsls_select_move_prop (Btor* btor,
-                                        BtorNode* root,
-                                        BtorNode** input,
-                                        BtorBitVector** assignment);
-void btor_propsls_compute_sls_scores (Btor* btor,
-                                      BtorIntHashTable* bv_model,
-                                      BtorIntHashTable* fun_model,
-                                      BtorIntHashTable* score);
+uint64_t btor_proputils_select_move_prop (Btor* btor,
+                                          BtorNode* root,
+                                          BtorNode** input,
+                                          BtorBitVector** assignment);
 
 /*------------------------------------------------------------------------*/
 
