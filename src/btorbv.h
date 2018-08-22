@@ -274,7 +274,12 @@ BtorBitVector *btor_bv_srl (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
-/* Create the multiplication of of bit-vectors 'a' and 'b'. */
+/* Create the arithmetic shift right of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sra (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the multiplication of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_mul (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);

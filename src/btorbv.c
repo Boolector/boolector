@@ -2019,6 +2019,33 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_sra (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  if (btor_bv_get_bit (a, a->width - 1))
+  {
+    BtorBitVector *not_a       = btor_bv_not (mm, a);
+    BtorBitVector *not_a_srl_b = btor_bv_srl (mm, not_a, b);
+    res                        = btor_bv_not (mm, not_a_srl_b);
+    btor_bv_free (mm, not_a);
+    btor_bv_free (mm, not_a_srl_b);
+  }
+  else
+  {
+    res = btor_bv_srl (mm, a, b);
+  }
+#ifndef BTOR_USE_GMP
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *
 btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);

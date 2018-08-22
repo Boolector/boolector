@@ -4593,6 +4593,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline bool
 applies_same_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
+  (void) btor;
   return e0 == e1;
 }
 

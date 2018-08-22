@@ -199,6 +199,19 @@ class TestBv : public TestBtor
     return (x >> y) % (uint64_t) pow (2, bw);
   }
 
+  static uint64_t sra (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    assert (bw <= 64);
+    uint64_t max = pow (2, bw);
+    if ((x >> (bw - 1)) & 1)
+    {
+      if (y > bw) return ~0 % max;
+      return ~((~x % max) >> y) % max;
+    }
+    if (y > bw) return 0;
+    return (x >> y) % max;
+  }
+
   static uint64_t mul (uint64_t x, uint64_t y, uint32_t bw)
   {
     return (x * y) % (uint64_t) pow (2, bw);
@@ -2374,6 +2387,116 @@ TEST_F (TestBv, srl)
                     std::bitset<128> (0u).set (120, 1).to_string ().c_str (),
                     std::string (bw, '0').c_str (),
                     btor_bv_srl);
+    }
+  }
+}
+
+TEST_F (TestBv, sra)
+{
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 2);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 8);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 9);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 16);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<2> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<3> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<8> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<65> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<128> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (120, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sra);
     }
   }
 }
