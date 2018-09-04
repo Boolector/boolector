@@ -34,7 +34,7 @@ flags=""
 
 usage () {
 cat <<EOF
-usage: ./configure.sh [<option> ...]
+usage: $0 [<option> ...]
 
 where <option> is one of the following:
 
