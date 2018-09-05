@@ -79,6 +79,8 @@ btor_opt_init_opts (Btor *btor)
 {
   assert (btor);
 
+  BtorPtrHashTable *opts;
+
   BTOR_CNEWN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
   btor->str2opt = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
@@ -123,6 +125,15 @@ btor_opt_init_opts (Btor *btor)
             BTOR_INPUT_FORMAT_MIN + 1,
             BTOR_INPUT_FORMAT_MAX - 1,
             "input file format");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "none")->data.as_int  = BTOR_INPUT_FORMAT_NONE;
+  btor_hashptr_table_add (opts, "btor")->data.as_int  = BTOR_INPUT_FORMAT_BTOR;
+  btor_hashptr_table_add (opts, "btor2")->data.as_int = BTOR_INPUT_FORMAT_BTOR2;
+  btor_hashptr_table_add (opts, "smt1")->data.as_int  = BTOR_INPUT_FORMAT_SMT1;
+  btor_hashptr_table_add (opts, "smt2")->data.as_int  = BTOR_INPUT_FORMAT_SMT2;
+  btor->options[BTOR_OPT_INPUT_FORMAT].options        = opts;
+
   init_opt (btor,
             BTOR_OPT_OUTPUT_NUMBER_FORMAT,
             false,
@@ -133,6 +144,13 @@ btor_opt_init_opts (Btor *btor)
             BTOR_OUTPUT_BASE_MIN + 1,
             BTOR_OUTPUT_BASE_MAX - 1,
             "output number format");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "bin")->data.as_int    = BTOR_OUTPUT_BASE_BIN;
+  btor_hashptr_table_add (opts, "hex")->data.as_int    = BTOR_OUTPUT_BASE_HEX;
+  btor_hashptr_table_add (opts, "dec")->data.as_int    = BTOR_OUTPUT_BASE_DEC;
+  btor->options[BTOR_OPT_OUTPUT_NUMBER_FORMAT].options = opts;
+
   init_opt (btor,
             BTOR_OPT_OUTPUT_FORMAT,
             false,
@@ -143,6 +161,20 @@ btor_opt_init_opts (Btor *btor)
             BTOR_OUTPUT_FORMAT_MIN + 1,
             BTOR_OUTPUT_FORMAT_MAX - 1,
             "output file format");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "btor")->data.as_int =
+      BTOR_OUTPUT_FORMAT_BTOR;
+  btor_hashptr_table_add (opts, "btor2")->data.as_int =
+      BTOR_OUTPUT_FORMAT_BTOR2;
+  btor_hashptr_table_add (opts, "smt2")->data.as_int =
+      BTOR_OUTPUT_FORMAT_SMT2;
+  btor_hashptr_table_add (opts, "aiger")->data.as_int =
+      BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+  btor_hashptr_table_add (opts, "aigerbin")->data.as_int =
+      BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+  btor->options[BTOR_OPT_OUTPUT_FORMAT].options = opts;
+
   init_opt (btor,
             BTOR_OPT_ENGINE,
             false,
@@ -153,6 +185,16 @@ btor_opt_init_opts (Btor *btor)
             BTOR_ENGINE_MIN + 1,
             BTOR_ENGINE_MAX - 1,
             "enable specific engine");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "fun")->data.as_int     = BTOR_ENGINE_FUN;
+  btor_hashptr_table_add (opts, "sls")->data.as_int     = BTOR_ENGINE_SLS;
+  btor_hashptr_table_add (opts, "prop")->data.as_int    = BTOR_ENGINE_PROP;
+  btor_hashptr_table_add (opts, "aigprop")->data.as_int = BTOR_ENGINE_AIGPROP;
+  btor_hashptr_table_add (opts, "quant")->data.as_int   = BTOR_ENGINE_QUANT;
+  btor->options[BTOR_OPT_ENGINE].options = opts;
+
+
   init_opt (btor,
             BTOR_OPT_SAT_ENGINE,
             false,
@@ -163,6 +205,18 @@ btor_opt_init_opts (Btor *btor)
             BTOR_SAT_ENGINE_MIN + 1,
             BTOR_SAT_ENGINE_MAX - 1,
             "enable specific SAT solver");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "lingeling")->data.as_int =
+      BTOR_SAT_ENGINE_LINGELING;
+  btor_hashptr_table_add (opts, "picosat")->data.as_int =
+      BTOR_SAT_ENGINE_PICOSAT;
+  btor_hashptr_table_add (opts, "minisat")->data.as_int =
+      BTOR_SAT_ENGINE_MINISAT;
+  btor_hashptr_table_add (opts, "cadical")->data.as_int =
+      BTOR_SAT_ENGINE_CADICAL;
+  btor->options[BTOR_OPT_SAT_ENGINE].options = opts;
+
   init_opt (btor,
             BTOR_OPT_AUTO_CLEANUP,
             false,
@@ -371,6 +425,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "dual propagation optimization");
+
   init_opt (btor,
             BTOR_OPT_FUN_DUAL_PROP_QSORT,
             false,
@@ -381,6 +436,13 @@ btor_opt_init_opts (Btor *btor)
             BTOR_DP_QSORT_MIN + 1,
             BTOR_DP_QSORT_MAX - 1,
             "order in which to assume inputs in dual solver");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "just")->data.as_int  = BTOR_DP_QSORT_JUST;
+  btor_hashptr_table_add (opts, "asc")->data.as_int   = BTOR_DP_QSORT_ASC;
+  btor_hashptr_table_add (opts, "desc")->data.as_int  = BTOR_DP_QSORT_DESC;
+  btor->options[BTOR_OPT_FUN_DUAL_PROP_QSORT].options = opts;
+
   init_opt (btor,
             BTOR_OPT_FUN_JUST,
             false,
@@ -391,6 +453,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "justification optimization");
+
   init_opt (btor,
             BTOR_OPT_FUN_JUST_HEURISTIC,
             false,
@@ -401,6 +464,16 @@ btor_opt_init_opts (Btor *btor)
             BTOR_JUST_HEUR_MIN + 1,
             BTOR_JUST_HEUR_MAX - 1,
             "justification heuristic");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "left")->data.as_int =
+      BTOR_JUST_HEUR_LEFT;
+  btor_hashptr_table_add (opts, "app")->data.as_int =
+      BTOR_JUST_HEUR_BRANCH_MIN_APP;
+  btor_hashptr_table_add (opts, "dep")->data.as_int =
+      BTOR_JUST_HEUR_BRANCH_MIN_DEP;
+  btor->options[BTOR_OPT_FUN_JUST_HEURISTIC].options = opts;
+
   init_opt (btor,
             BTOR_OPT_FUN_LAZY_SYNTHESIZE,
             false,
@@ -411,6 +484,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "lazily synthesize expressions");
+
   init_opt (btor,
             BTOR_OPT_FUN_EAGER_LEMMAS,
             false,
@@ -421,6 +495,15 @@ btor_opt_init_opts (Btor *btor)
             BTOR_FUN_EAGER_LEMMAS_MIN + 1,
             BTOR_FUN_EAGER_LEMMAS_MAX - 1,
             "eager lemma generation");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "none")->data.as_int =
+      BTOR_FUN_EAGER_LEMMAS_NONE;
+  btor_hashptr_table_add (opts, "conf")->data.as_int =
+      BTOR_FUN_EAGER_LEMMAS_CONF;
+  btor_hashptr_table_add (opts, "all")->data.as_int = BTOR_FUN_EAGER_LEMMAS_ALL;
+  btor->options[BTOR_OPT_FUN_EAGER_LEMMAS].options  = opts;
+
   init_opt (btor,
             BTOR_OPT_FUN_STORE_LAMBDAS,
             false,
@@ -443,6 +526,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             UINT32_MAX,
             "number of bit-flips used as a limit for sls engine");
+
   init_opt (btor,
             BTOR_OPT_SLS_STRATEGY,
             false,
@@ -453,6 +537,15 @@ btor_opt_init_opts (Btor *btor)
             BTOR_SLS_STRAT_MIN + 1,
             BTOR_SLS_STRAT_MAX - 1,
             "move strategy for sls");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "best")->data.as_int = BTOR_SLS_STRAT_BEST_MOVE;
+  btor_hashptr_table_add (opts, "walk")->data.as_int = BTOR_SLS_STRAT_RAND_WALK;
+  btor_hashptr_table_add (opts, "first")->data.as_int = BTOR_SLS_STRAT_FIRST_BEST_MOVE;
+  btor_hashptr_table_add (opts, "same")->data.as_int = BTOR_SLS_STRAT_BEST_SAME_MOVE;
+  btor_hashptr_table_add (opts, "prop")->data.as_int = BTOR_SLS_STRAT_BEST_SAME_MOVE;
+  btor->options[BTOR_OPT_SLS_STRATEGY].options = opts;
+
   init_opt (btor,
             BTOR_OPT_SLS_JUST,
             false,
@@ -537,7 +630,6 @@ btor_opt_init_opts (Btor *btor)
             1,
             "randomize a range of bits of a randomly chosen candidate "
             "variable if neighbor with better score is found");
-
   init_opt (btor,
             BTOR_OPT_SLS_MOVE_PROP,
             false,
@@ -644,6 +736,7 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "use bandit scheme for constraint selection");
+
   init_opt (btor,
             BTOR_OPT_PROP_PATH_SEL,
             false,
@@ -654,6 +747,16 @@ btor_opt_init_opts (Btor *btor)
             BTOR_PROP_PATH_SEL_MIN + 1,
             BTOR_PROP_PATH_SEL_MAX - 1,
             "path selection mode");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "controlling")->data.as_int =
+      BTOR_PROP_PATH_SEL_CONTROLLING;
+  btor_hashptr_table_add (opts, "essential")->data.as_int =
+      BTOR_PROP_PATH_SEL_ESSENTIAL;
+  btor_hashptr_table_add (opts, "random")->data.as_int =
+      BTOR_PROP_PATH_SEL_RANDOM;
+  btor->options[BTOR_OPT_PROP_PATH_SEL].options = opts;
+
   init_opt (btor,
             BTOR_OPT_PROP_PROB_USE_INV_VALUE,
             false,
@@ -867,6 +970,16 @@ btor_opt_init_opts (Btor *btor)
             "2=enumlearn modulo predicates,"
             "3=1+2 combined,"
             "4=enumlearn modulo formula");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor_hashptr_table_add (opts, "none")->data.as_int = BTOR_QUANT_SYNTH_NONE;
+  btor_hashptr_table_add (opts, "el")->data.as_int   = BTOR_QUANT_SYNTH_EL;
+  btor_hashptr_table_add (opts, "elmc")->data.as_int = BTOR_QUANT_SYNTH_ELMC;
+  btor_hashptr_table_add (opts, "elelmc")->data.as_int =
+      BTOR_QUANT_SYNTH_EL_ELMC;
+  btor_hashptr_table_add (opts, "elmr")->data.as_int = BTOR_QUANT_SYNTH_ELMR;
+  btor->options[BTOR_OPT_QUANT_SYNTH].options        = opts;
+
   init_opt (btor,
             BTOR_OPT_QUANT_DUAL_SOLVER,
             false,
@@ -1061,6 +1174,14 @@ btor_opt_clone_opts (Btor *btor, Btor *clone)
       if (btor->options[o].valstr)
         clone->options[o].valstr =
             btor_mem_strdup (clone->mm, btor->options[o].valstr);
+      if (btor->options[o].options)
+        clone->options[o].options =
+            btor_hashptr_table_clone (clone->mm,
+                                      btor->options[o].options,
+                                      btor_clone_key_as_static_str,
+                                      btor_clone_data_as_int,
+                                      0,
+                                      0);
     }
   }
   if (btor->str2opt)
@@ -1091,6 +1212,8 @@ btor_opt_delete_opts (Btor *btor)
         btor_mem_freestr (btor->mm, btor->options[o].valstr);
         btor->options[o].valstr = 0;
       }
+      if (btor->options[o].options)
+        btor_hashptr_table_delete (btor->options[o].options);
     }
     BTOR_DELETEN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
     btor->options = 0;

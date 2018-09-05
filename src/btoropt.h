@@ -21,16 +21,17 @@
 
 struct BtorOpt
 {
-  bool internal;    /* internal option? */
-  bool isflag;      /* flag? */
-  const char *shrt; /* short option identifier (may be 0) */
-  const char *lng;  /* long option identifier */
-  const char *desc; /* description */
-  uint32_t val;     /* value */
-  uint32_t dflt;    /* default value */
-  uint32_t min;     /* min value */
-  uint32_t max;     /* max value */
-  char *valstr;     /* optional option string value */
+  bool internal;              /* internal option? */
+  bool isflag;                /* flag? */
+  const char *shrt;           /* short option identifier (may be 0) */
+  const char *lng;            /* long option identifier */
+  const char *desc;           /* description */
+  uint32_t val;               /* value */
+  uint32_t dflt;              /* default value */
+  uint32_t min;               /* min value */
+  uint32_t max;               /* max value */
+  char *valstr;               /* optional option string value */
+  BtorPtrHashTable *options;  /* maps option CL value strings to enum values */
 };
 
 typedef struct BtorOpt BtorOpt;

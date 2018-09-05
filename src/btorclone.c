@@ -893,6 +893,8 @@ clone_aux_btor (Btor *btor,
   {
     if (btor->options[o].valstr)
       allocated += strlen (btor->options[o].valstr) + 1;
+    if (btor->options[o].options)
+      allocated += MEM_PTR_HASH_TABLE (clone->options[o].options);
   }
   allocated += MEM_PTR_HASH_TABLE (clone->str2opt);
 #endif
