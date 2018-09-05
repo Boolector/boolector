@@ -27,13 +27,13 @@ enum BtorArgRead
 };
 typedef enum BtorArgRead BtorArgRead;
 
-enum BtoArgExpected
+enum BtorArgExpected
 {
   BTOR_ARG_EXPECT_NONE,
   BTOR_ARG_EXPECT_INT,
   BTOR_ARG_EXPECT_STR,
 };
-typedef enum BtoArgExpected BtoArgExpected;
+typedef enum BtorArgExpected BtorArgExpected;
 
 /*------------------------------------------------------------------------*/
 

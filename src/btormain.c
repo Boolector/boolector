@@ -86,17 +86,17 @@ typedef enum BtorMainOption BtorMainOption;
 
 typedef struct BtorMainOpt
 {
-  bool general;       /* general option? */
-  const char *shrt;   /* short option identifier (may be 0) */
-  const char *lng;    /* long option identifier */
-  const char *desc;   /* description */
-  uint32_t val;       /* value */
-  uint32_t dflt;      /* default value */
-  uint32_t min;       /* min value */
-  uint32_t max;       /* max value */
-  bool candisable;    /* can be disabled via '-(-)no-XX'? */
-  bool isflag;        /* is option flag? */
-  BtoArgExpected arg; /* expects argument? */
+  bool general;        /* general option? */
+  const char *shrt;    /* short option identifier (may be 0) */
+  const char *lng;     /* long option identifier */
+  const char *desc;    /* description */
+  uint32_t val;        /* value */
+  uint32_t dflt;       /* default value */
+  uint32_t min;        /* min value */
+  uint32_t max;        /* max value */
+  bool candisable;     /* can be disabled via '-(-)no-XX'? */
+  bool isflag;         /* is option flag? */
+  BtorArgExpected arg; /* expects argument? */
 } BtorMainOpt;
 
 /*------------------------------------------------------------------------*/
@@ -129,7 +129,7 @@ btormain_init_opt (BtorMainApp *app,
                    uint32_t min,
                    uint32_t max,
                    bool candisable,
-                   BtoArgExpected arg,
+                   BtorArgExpected arg,
                    char *desc)
 {
   assert (app);
