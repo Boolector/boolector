@@ -426,20 +426,26 @@ btormain_init_opts (BtorMainApp *app)
 }
 
 static bool
-btormain_opt_has_str_arg (const char *opt)
+btormain_opt_has_str_arg (const char *opt, BtorOpt *btor_opts)
 {
   assert (opt);
 
   BtorMainOption mopt;
   BtorMainOpt *mo;
+  size_t i;
 
   for (mopt = 0; mopt < BTORMAIN_OPT_NUM_OPTS; mopt++)
   {
     mo = &g_app->options[mopt];
     if ((mo->shrt && strcmp (mo->shrt, opt) == 0) || strcmp (mo->lng, opt) == 0)
-    {
       return g_app->options[mopt].arg == BTOR_ARG_EXPECT_STR;
-    }
+  }
+  for (i = 0; i < BTOR_OPT_NUM_OPTS; i++)
+  {
+    if (((btor_opts[i].shrt && strcmp (opt, btor_opts[i].shrt) == 0)
+         || strcmp (opt, btor_opts[i].lng) == 0)
+        && btor_opts[i].options)
+      return true;
   }
   return false;
 }
@@ -865,6 +871,8 @@ boolector_main (int32_t argc, char **argv)
   BtorMainOpt *bmo;
   BtorMemMgr *mm;
   Btor *btor;
+  BtorPtrHashBucket *b;
+  BtorPtrHashTableIterator it;
 
   g_start_time_real = btor_util_current_time ();
 
@@ -887,8 +895,13 @@ boolector_main (int32_t argc, char **argv)
   BTOR_INIT_STACK (mm, opts);
   BTOR_INIT_STACK (mm, infiles);
 
-  btor_optparse_parse (
-      mm, argc, argv, &opts, &infiles, btormain_opt_has_str_arg);
+  btor_optparse_parse (mm,
+                       argc,
+                       argv,
+                       &opts,
+                       &infiles,
+                       g_app->btor->options,
+                       btormain_opt_has_str_arg);
 
   /* input file ======================================================= */
 
@@ -1132,8 +1145,7 @@ boolector_main (int32_t argc, char **argv)
     /* >> btor options ------------------------------------------------ */
     else
     {
-      for (bopt = boolector_first_opt (btor), bo = 0;
-           boolector_has_opt (btor, bopt);
+      for (bopt = btor_opt_first (btor), bo = 0; btor_opt_is_valid (btor, bopt);
            bopt = btor_opt_next (btor, bopt))
       {
         bo = &btor->options[bopt];
@@ -1150,66 +1162,106 @@ boolector_main (int32_t argc, char **argv)
         btormain_error (g_app, "invalid option '%s'", po->orig.start);
         goto DONE;
       }
-      if (BTOR_ARG_IS_MISSING (BTOR_ARG_EXPECT_INT, bo->isflag, po->readval))
+      if ((bo->options
+           && BTOR_ARG_IS_MISSING (
+                  BTOR_ARG_EXPECT_STR, bo->isflag, po->readval))
+          || (!bo->options
+              && BTOR_ARG_IS_MISSING (
+                     BTOR_ARG_EXPECT_INT, bo->isflag, po->readval)))
       {
         btormain_error (g_app, "missing argument for '%s'", po->orig.start);
         goto DONE;
       }
-      if (BTOR_ARG_IS_INVALID (BTOR_ARG_EXPECT_INT, bo->isflag, po->readval))
+      if (bo->options)
       {
-        btormain_error (
-            g_app, "invalid argument for '%s', expected int", po->orig.start);
-        goto DONE;
-      }
-      if (bo->isflag)
-      {
-        if (po->isdisable)
+        if (!(b = btor_hashptr_table_get (bo->options, po->valstr)))
         {
-          if (bopt == BTOR_OPT_MODEL_GEN)
+          char *s;
+          BtorCharStack argopts;
+          BTOR_INIT_STACK (mm, argopts);
+          btor_iter_hashptr_init (&it, bo->options);
+          while (btor_iter_hashptr_has_next (&it))
           {
-            mgen   = 0;
-            pmodel = 0;
+            s = btor_iter_hashptr_next (&it);
+            for (i = 0; s[i]; i++) BTOR_PUSH_STACK (argopts, s[i]);
+            if (btor_iter_hashptr_has_next (&it))
+            {
+              BTOR_PUSH_STACK (argopts, ',');
+              BTOR_PUSH_STACK (argopts, ' ');
+            }
           }
-          else
-            boolector_set_opt (btor, bopt, 0);
+          BTOR_PUSH_STACK (argopts, '\0');
+          btormain_error (
+              g_app,
+              "invalid argument '%s' for '%s', expected one of '%s'",
+              po->valstr,
+              po->orig.start,
+              argopts.start);
+          BTOR_RELEASE_STACK (argopts);
+          goto DONE;
         }
-        else
-        {
-          switch (bopt)
-          {
-            case BTOR_OPT_MODEL_GEN:
-              if (BTOR_ARG_READ_IS_INT (po->readval) && po->val == 0)
-              {
-                mgen   = 0;
-                pmodel = 0;
-              }
-              else
-              {
-                mgen += 1;
-                pmodel = 1;
-              }
-              break;
-            case BTOR_OPT_VERBOSITY:
-            case BTOR_OPT_LOGLEVEL:
-              if (BTOR_ARG_READ_IS_INT (po->readval))
-                boolector_set_opt (btor, bopt, po->val);
-              else
-                boolector_set_opt (
-                    btor, bopt, boolector_get_opt (btor, bopt) + 1);
-              break;
-            default:
-              assert (bopt != BTOR_OPT_NUM_OPTS);
-              if (BTOR_ARG_READ_IS_INT (po->readval))
-                boolector_set_opt (btor, bopt, po->val);
-              else
-                boolector_set_opt (btor, bopt, 1);
-          }
-        }
+
+        boolector_set_opt (btor, bopt, b->data.as_int);
       }
       else
       {
-        assert (BTOR_ARG_READ_IS_INT (po->readval));
-        boolector_set_opt (btor, bopt, po->val);
+        if (BTOR_ARG_IS_INVALID (BTOR_ARG_EXPECT_INT, bo->isflag, po->readval))
+        {
+          btormain_error (
+              g_app, "invalid argument for '%s', expected int", po->orig.start);
+          goto DONE;
+        }
+
+        if (bo->isflag)
+        {
+          if (po->isdisable)
+          {
+            if (bopt == BTOR_OPT_MODEL_GEN)
+            {
+              mgen   = 0;
+              pmodel = 0;
+            }
+            else
+              boolector_set_opt (btor, bopt, 0);
+          }
+          else
+          {
+            switch (bopt)
+            {
+              case BTOR_OPT_MODEL_GEN:
+                if (BTOR_ARG_READ_IS_INT (po->readval) && po->val == 0)
+                {
+                  mgen   = 0;
+                  pmodel = 0;
+                }
+                else
+                {
+                  mgen += 1;
+                  pmodel = 1;
+                }
+                break;
+              case BTOR_OPT_VERBOSITY:
+              case BTOR_OPT_LOGLEVEL:
+                if (BTOR_ARG_READ_IS_INT (po->readval))
+                  boolector_set_opt (btor, bopt, po->val);
+                else
+                  boolector_set_opt (
+                      btor, bopt, boolector_get_opt (btor, bopt) + 1);
+                break;
+              default:
+                assert (bopt != BTOR_OPT_NUM_OPTS);
+                if (BTOR_ARG_READ_IS_INT (po->readval))
+                  boolector_set_opt (btor, bopt, po->val);
+                else
+                  boolector_set_opt (btor, bopt, 1);
+            }
+          }
+        }
+        else
+        {
+          assert (BTOR_ARG_READ_IS_INT (po->readval));
+          boolector_set_opt (btor, bopt, po->val);
+        }
       }
     }
   }

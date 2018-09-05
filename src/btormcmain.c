@@ -788,7 +788,7 @@ main (int32_t argc, char **argv)
   BTOR_INIT_STACK (mm, opts);
   BTOR_INIT_STACK (mm, infiles);
 
-  btor_optparse_parse (mm, argc, argv, &opts, &infiles, 0);
+  btor_optparse_parse (mm, argc, argv, &opts, &infiles, 0, 0);
 
   /* input file ======================================================= */
 

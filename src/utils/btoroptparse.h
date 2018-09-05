@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2016-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -9,6 +9,7 @@
 #ifndef BTOROPTPARSE_H_INCLUDED
 #define BTOROPTPARSE_H_INCLUDED
 
+#include "btoropt.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
@@ -93,6 +94,7 @@ void btor_optparse_parse (BtorMemMgr *mm,
                           char **argv,
                           BtorParsedOptPtrStack *opts,
                           BtorParsedInputPtrStack *infiles,
-                          bool (*has_str_arg) (const char *));
+                          BtorOpt *btor_options,
+                          bool (*has_str_arg) (const char *, BtorOpt *));
 
 #endif
