@@ -51,6 +51,8 @@ static void (*sig_bus_handler) (int32_t);
 static void (*sig_alrm_handler) (int32_t);
 #endif
 
+BTOR_DECLARE_STACK (BtorOption, BtorOption);
+
 /*------------------------------------------------------------------------*/
 
 enum BtorMainOption
@@ -60,8 +62,6 @@ enum BtorMainOption
   BTORMAIN_OPT_VERSION,
   BTORMAIN_OPT_TIME,
   BTORMAIN_OPT_OUTPUT,
-  BTORMAIN_OPT_ENGINE,
-  BTORMAIN_OPT_SAT_ENGINE,
   BTORMAIN_OPT_LGL_NOFORK,
   BTORMAIN_OPT_HEX,
   BTORMAIN_OPT_DEC,
@@ -219,32 +219,6 @@ btormain_init_opts (BtorMainApp *app)
                      false,
                      BTOR_ARG_EXPECT_STR,
                      "set output file for dumping");
-  btormain_init_opt (
-      app,
-      BTORMAIN_OPT_ENGINE,
-      true,
-      false,
-      (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE),
-      (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_ENGINE),
-      BTOR_ENGINE_DFLT,
-      BTOR_ENGINE_MIN,
-      BTOR_ENGINE_MAX,
-      false,
-      BTOR_ARG_EXPECT_STR,
-      "set engine (core sls prop aigprop) [core]");
-  btormain_init_opt (
-      app,
-      BTORMAIN_OPT_SAT_ENGINE,
-      true,
-      false,
-      (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE),
-      (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_SAT_ENGINE),
-      BTOR_SAT_ENGINE_DFLT,
-      BTOR_SAT_ENGINE_MIN + 1,
-      BTOR_SAT_ENGINE_MAX - 1,
-      false,
-      BTOR_ARG_EXPECT_STR,
-      "set sat solver");
 #ifdef BTOR_USE_LINGELING
   btormain_init_opt (app,
                      BTORMAIN_OPT_LGL_NOFORK,
@@ -516,7 +490,7 @@ btormain_msg (char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
-#define LEN_OPTSTR 43
+#define LEN_OPTSTR 42
 #define LEN_PARAMSTR 16
 #define LEN_HELPSTR 85
 
@@ -741,9 +715,13 @@ print_help (BtorMainApp *app)
   assert (app);
 
   BtorOption o;
+  BtorOptionStack ostack;
   BtorMainOption mo;
   FILE *out;
-  char *s;
+  char *s, *fun, *sls, *prop, *aigprop, *quant;
+  size_t i;
+
+  BTOR_INIT_STACK (app->mm, ostack);
 
   out = app->outfile;
 
@@ -755,8 +733,7 @@ print_help (BtorMainApp *app)
   for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
     if (!app->options[mo].general) continue;
-    if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
-        || mo == BTORMAIN_OPT_HEX
+    if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_HEX
         || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_BTOR2
         || mo == BTORMAIN_OPT_DUMP_BTOR)
       fprintf (out, "\n");
@@ -768,27 +745,55 @@ print_help (BtorMainApp *app)
   for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
     if (app->options[mo].general) continue;
+    if (mo == BTORMAIN_OPT_LGL_NOFORK) continue;
     PRINT_MAIN_OPT (app, &app->options[mo]);
     if (mo == BTORMAIN_OPT_SMT2_MODEL) fprintf (out, "\n");
   }
+
+  BTOR_PUSH_STACK (ostack, BTOR_OPT_ENGINE);
+  BTOR_PUSH_STACK (ostack, BTOR_OPT_SAT_ENGINE);
+  for (i = 0; i < BTOR_COUNT_STACK (ostack); i++)
+  {
+    o = BTOR_PEEK_STACK (ostack, i);
+    s = get_opt_vals_string(app->mm, &app->btor->options[o]);
+    print_opt (app,
+               app->btor->options[o].lng,
+               app->btor->options[o].shrt,
+               app->btor->options[o].isflag,
+               app->btor->options[o].dflt,
+               get_opt_val_string (app->btor->options[o].options,
+                                   app->btor->options[o].dflt),
+               s,
+               app->btor->options[o].desc,
+               true);
+    if (s) btor_mem_freestr(app->mm, s);
+  }
+  PRINT_MAIN_OPT (app, &app->options[BTORMAIN_OPT_LGL_NOFORK]);
 
   fprintf (out, "\n");
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
+  fun = sls = prop = quant = 0;
   for (o = boolector_first_opt (app->btor); boolector_has_opt (app->btor, o);
        o = boolector_next_opt (app->btor, o))
   {
     if (app->btor->options[o].internal) continue;
-    if (o == BTOR_OPT_ENGINE || o == BTOR_OPT_SAT_ENGINE
-        || o == BTOR_OPT_INPUT_FORMAT || o == BTOR_OPT_OUTPUT_NUMBER_FORMAT
-        || o == BTOR_OPT_OUTPUT_FORMAT)
-      continue;
-    if (o == BTOR_OPT_INCREMENTAL || o == BTOR_OPT_REWRITE_LEVEL
-        || o == BTOR_OPT_BETA_REDUCE_ALL || o == BTOR_OPT_AUTO_CLEANUP
-        || o == BTOR_OPT_FUN_DUAL_PROP || o == BTOR_OPT_SLS_STRATEGY
-        || o == BTOR_OPT_SORT_EXP)
+
+    if (o == BTOR_OPT_AUTO_CLEANUP || o == BTOR_OPT_BETA_REDUCE_ALL
+        || o == BTOR_OPT_INCREMENTAL || o == BTOR_OPT_INPUT_FORMAT
+        || o == BTOR_OPT_ENGINE || o == BTOR_OPT_REWRITE_LEVEL
+        || o == BTOR_OPT_SORT_EXP
+        || (!fun && (fun = strstr (app->btor->options[o].lng, "fun:")))
+        || (!sls && (sls = strstr (app->btor->options[o].lng, "sls:")))
+        || (!prop && (prop = strstr (app->btor->options[o].lng, "prop:")))
+        || (!aigprop
+            && (aigprop = strstr (app->btor->options[o].lng, "aigprop:")))
+        || (!quant && (quant = strstr (app->btor->options[o].lng, "quant:"))))
+    {
       fprintf (out, "\n");
+    }
+
     s = get_opt_vals_string (app->mm, &app->btor->options[o]);
     print_opt (app,
                app->btor->options[o].lng,
@@ -804,6 +809,7 @@ print_help (BtorMainApp *app)
   }
 
   app->done = true;
+  BTOR_RELEASE_STACK (ostack);
 }
 
 static void
@@ -1098,54 +1104,6 @@ boolector_main (int32_t argc, char **argv)
 
         case BTORMAIN_OPT_SMT2_MODEL:
           g_app->options[BTORMAIN_OPT_SMT2_MODEL].val += 1;
-          break;
-
-        case BTORMAIN_OPT_ENGINE:
-          if (!strcasecmp (po->valstr, "core"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-          else if (!strcasecmp (po->valstr, "sls"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
-          else if (!strcasecmp (po->valstr, "prop"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
-          else if (!strcasecmp (po->valstr, "aigprop"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_AIGPROP);
-          else if (!strcasecmp (po->valstr, "ef"))
-            boolector_set_opt (btor, BTOR_OPT_ENGINE, BTOR_ENGINE_QUANT);
-          else
-          {
-            btormain_error (g_app,
-                            "invalid engine '%s' for '%s'",
-                            po->valstr,
-                            po->orig.start);
-            goto DONE;
-          }
-          break;
-
-        case BTORMAIN_OPT_SAT_ENGINE:
-          if (!strcasecmp (po->valstr, "lingeling"))
-          {
-            boolector_set_opt (
-                btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
-          }
-          else if (!strcasecmp (po->valstr, "picosat"))
-          {
-            boolector_set_opt (
-                btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
-          }
-          else if (!strcasecmp (po->valstr, "minisat"))
-            boolector_set_opt (
-                btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
-          else if (!strcasecmp (po->valstr, "cadical"))
-            boolector_set_opt (
-                btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_CADICAL);
-          else
-          {
-            btormain_error (g_app,
-                            "invalid sat solver '%s' for '%s'",
-                            po->valstr,
-                            po->orig.start);
-            goto DONE;
-          }
           break;
 
         case BTORMAIN_OPT_LGL_NOFORK:
