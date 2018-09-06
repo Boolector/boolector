@@ -542,6 +542,35 @@ get_opt_val_string (BtorPtrHashTable *options, int32_t val)
   return s;
 }
 
+char *
+get_opt_vals_string (BtorMemMgr *mm, BtorOpt *bo)
+{
+  size_t i;
+  char *s = 0;
+  BtorCharStack argopts;
+  BtorPtrHashTableIterator it;
+
+  if (bo->options)
+  {
+    BTOR_INIT_STACK (mm, argopts);
+    btor_iter_hashptr_init (&it, bo->options);
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      s = btor_iter_hashptr_next (&it);
+      for (i = 0; s[i]; i++) BTOR_PUSH_STACK (argopts, s[i]);
+      if (btor_iter_hashptr_has_next (&it))
+      {
+        BTOR_PUSH_STACK (argopts, ',');
+        BTOR_PUSH_STACK (argopts, ' ');
+      }
+    }
+    BTOR_PUSH_STACK (argopts, '\0');
+    s = btor_mem_strdup (mm, argopts.start);
+    BTOR_RELEASE_STACK (argopts);
+  }
+  return s;
+}
+
 static void
 print_opt (BtorMainApp *app,
            const char *lng,
@@ -549,6 +578,7 @@ print_opt (BtorMainApp *app,
            bool isflag,
            uint32_t dflt,
            const char *dflt_str,
+           const char *opts_str,
            const char *desc,
            bool print_dflt)
 {
@@ -618,9 +648,9 @@ print_opt (BtorMainApp *app,
   {
     if (dflt_str)
     {
-      len = strlen (desc) + 3 + strlen (dflt_str);
+      len = strlen (desc) + 3 + strlen (opts_str) + 3 + strlen (dflt_str);
       BTOR_CNEWN (mm, str, len + 1);
-      sprintf (str, "%s [%s]", desc, dflt_str);
+      sprintf (str, "%s {%s} [%s]", desc, opts_str, dflt_str);
     }
     else
     {
@@ -684,6 +714,7 @@ print_opt (BtorMainApp *app,
                (opt)->isflag,    \
                (opt)->dflt,      \
                0,                \
+               0,                \
                (opt)->desc,      \
                false);           \
   } while (0)
@@ -712,6 +743,7 @@ print_help (BtorMainApp *app)
   BtorOption o;
   BtorMainOption mo;
   FILE *out;
+  char *s;
 
   out = app->outfile;
 
@@ -757,6 +789,7 @@ print_help (BtorMainApp *app)
         || o == BTOR_OPT_FUN_DUAL_PROP || o == BTOR_OPT_SLS_STRATEGY
         || o == BTOR_OPT_SORT_EXP)
       fprintf (out, "\n");
+    s = get_opt_vals_string (app->mm, &app->btor->options[o]);
     print_opt (app,
                app->btor->options[o].lng,
                app->btor->options[o].shrt,
@@ -764,8 +797,10 @@ print_help (BtorMainApp *app)
                app->btor->options[o].dflt,
                get_opt_val_string (app->btor->options[o].options,
                                    app->btor->options[o].dflt),
+               s,
                app->btor->options[o].desc,
                true);
+    if (s) btor_mem_freestr (app->mm, s);
   }
 
   app->done = true;
@@ -910,7 +945,6 @@ boolector_main (int32_t argc, char **argv)
   BtorMemMgr *mm;
   Btor *btor;
   BtorPtrHashBucket *b;
-  BtorPtrHashTableIterator it;
 
   g_start_time_real = btor_util_current_time ();
 
@@ -1214,28 +1248,15 @@ boolector_main (int32_t argc, char **argv)
       {
         if (!(b = btor_hashptr_table_get (bo->options, po->valstr)))
         {
-          char *s;
-          BtorCharStack argopts;
-          BTOR_INIT_STACK (mm, argopts);
-          btor_iter_hashptr_init (&it, bo->options);
-          while (btor_iter_hashptr_has_next (&it))
-          {
-            s = btor_iter_hashptr_next (&it);
-            for (i = 0; s[i]; i++) BTOR_PUSH_STACK (argopts, s[i]);
-            if (btor_iter_hashptr_has_next (&it))
-            {
-              BTOR_PUSH_STACK (argopts, ',');
-              BTOR_PUSH_STACK (argopts, ' ');
-            }
-          }
-          BTOR_PUSH_STACK (argopts, '\0');
+          char *s = get_opt_vals_string (mm, bo);
+          assert (s);
           btormain_error (
               g_app,
               "invalid argument '%s' for '%s', expected one of '%s'",
               po->valstr,
               po->orig.start,
-              argopts.start);
-          BTOR_RELEASE_STACK (argopts);
+              s);
+          btor_mem_freestr (mm, s);
           goto DONE;
         }
 
