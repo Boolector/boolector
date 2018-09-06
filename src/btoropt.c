@@ -964,12 +964,12 @@ btor_opt_init_opts (Btor *btor)
             BTOR_QUANT_SYNTH_DFLT,
             BTOR_QUANT_SYNTH_MIN,
             BTOR_QUANT_SYNTH_MAX,
-            "synthesis mode for Skolem functions:"
-            "0=none,"
-            "1=enumlearn,"
-            "2=enumlearn modulo predicates,"
-            "3=1+2 combined,"
-            "4=enumlearn modulo formula");
+            "synthesis mode for Skolem functions");
+            //"0=none,"
+            //"1=enumlearn,"
+            //"2=enumlearn modulo predicates,"
+            //"3=1+2 combined,"
+            //"4=enumlearn modulo formula");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   btor_hashptr_table_add (opts, "none")->data.as_int = BTOR_QUANT_SYNTH_NONE;

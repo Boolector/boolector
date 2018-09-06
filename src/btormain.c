@@ -516,11 +516,31 @@ btormain_msg (char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
-#define LEN_OPTSTR 38
+#define LEN_OPTSTR 43
 #define LEN_PARAMSTR 16
-#define LEN_HELPSTR 80
+#define LEN_HELPSTR 85
 
 #define IS_OPT(optlng, lng) (!strcmp (optlng, lng))
+
+const char *
+get_opt_val_string (BtorPtrHashTable *options, int32_t val)
+{
+  BtorPtrHashTableIterator it;
+  int32_t v;
+  char *s = 0;
+
+  if (options)
+  {
+    btor_iter_hashptr_init (&it, options);
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      v = it.bucket->data.as_int;
+      s = btor_iter_hashptr_next (&it);
+      if (val == v) break;
+    }
+  }
+  return s;
+}
 
 static void
 print_opt (BtorMainApp *app,
@@ -528,6 +548,7 @@ print_opt (BtorMainApp *app,
            const char *shrt,
            bool isflag,
            uint32_t dflt,
+           const char *dflt_str,
            const char *desc,
            bool print_dflt)
 {
@@ -536,7 +557,7 @@ print_opt (BtorMainApp *app,
   assert (desc);
 
   char paramstr[LEN_PARAMSTR];
-  char *descstr, descstrline[LEN_HELPSTR], *word;
+  char *str, descstrline[LEN_HELPSTR], *word;
   size_t i, j, len, len_paramstr;
   BtorCharStack optstr;
   BtorCharPtrStack words;
@@ -553,7 +574,12 @@ print_opt (BtorMainApp *app,
                        boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE)))
     sprintf (paramstr, "<engine>");
   else if (!isflag)
-    sprintf (paramstr, "<n>");
+  {
+    if (!dflt_str)
+      sprintf (paramstr, "<n>");
+    else
+      sprintf (paramstr, "<str>");
+  }
   else
     paramstr[0] = '\0';
 
@@ -590,24 +616,33 @@ print_opt (BtorMainApp *app,
   /* append default value to description */
   if (print_dflt)
   {
-    len = strlen (desc) + 3 + btor_util_num_digits (dflt);
-    BTOR_CNEWN (mm, descstr, len + 1);
-    sprintf (descstr, "%s [%u]", desc, dflt);
+    if (dflt_str)
+    {
+      len = strlen (desc) + 3 + strlen (dflt_str);
+      BTOR_CNEWN (mm, str, len + 1);
+      sprintf (str, "%s [%s]", desc, dflt_str);
+    }
+    else
+    {
+      len = strlen (desc) + 3 + btor_util_num_digits (dflt);
+      BTOR_CNEWN (mm, str, len + 1);
+      sprintf (str, "%s [%u]", desc, dflt);
+    }
   }
   else
   {
     len = strlen (desc);
-    BTOR_CNEWN (mm, descstr, len + 1);
-    sprintf (descstr, "%s", desc);
+    BTOR_CNEWN (mm, str, len + 1);
+    sprintf (str, "%s", desc);
   }
   BTOR_INIT_STACK (mm, words);
-  word = strtok (descstr, " ");
+  word = strtok (str, " ");
   while (word)
   {
     BTOR_PUSH_STACK (words, btor_mem_strdup (mm, word));
     word = strtok (0, " ");
   }
-  BTOR_DELETEN (mm, descstr, len + 1);
+  BTOR_DELETEN (mm, str, len + 1);
 
   BTOR_CLRN (descstrline, LEN_HELPSTR);
   sprintf (descstrline, "%s ", optstr.start);
@@ -648,6 +683,7 @@ print_opt (BtorMainApp *app,
                (opt)->shrt,      \
                (opt)->isflag,    \
                (opt)->dflt,      \
+               0,                \
                (opt)->desc,      \
                false);           \
   } while (0)
@@ -726,6 +762,8 @@ print_help (BtorMainApp *app)
                app->btor->options[o].shrt,
                app->btor->options[o].isflag,
                app->btor->options[o].dflt,
+               get_opt_val_string (app->btor->options[o].options,
+                                   app->btor->options[o].dflt),
                app->btor->options[o].desc,
                true);
   }
