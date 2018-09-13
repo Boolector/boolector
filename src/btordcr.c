@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2017 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -218,8 +218,8 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
     compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
     compute_scores_aux_min_dep (btor, nodes);
-  else /* no scores required for BTOR_JUST_HEUR_LEFT */
-    assert (h == BTOR_JUST_HEUR_LEFT);
+  else /* no scores required for BTOR_JUST_HEUR_BRANCH_LEFT */
+    assert (h == BTOR_JUST_HEUR_BRANCH_LEFT);
 }
 
 void
@@ -238,7 +238,8 @@ btor_dcr_compute_scores (Btor *btor)
 
   /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
    * BTOR_JUST_HEUR_BRANCH_MIN_APP */
-  if (btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
+  if (btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC)
+      == BTOR_JUST_HEUR_BRANCH_LEFT)
     return;
 
   /* Collect all nodes we actually need the score for.  If just is enabled, we
@@ -312,7 +313,8 @@ btor_dcr_compute_scores_dual_prop (Btor *btor)
 
   /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
    * BTOR_JUST_HEUR_BRANCH_MIN_APP */
-  if (btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
+  if (btor_opt_get (btor, BTOR_OPT_FUN_JUST_HEURISTIC)
+      == BTOR_JUST_HEUR_BRANCH_LEFT)
     return;
 
   start = btor_util_time_stamp ();

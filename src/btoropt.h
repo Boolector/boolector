@@ -33,8 +33,21 @@ struct BtorOpt
   char *valstr;               /* optional option string value */
   BtorPtrHashTable *options;  /* maps option CL value strings to enum values */
 };
-
 typedef struct BtorOpt BtorOpt;
+
+/*------------------------------------------------------------------------*/
+
+/**
+ * Represents the data required to print help messages for options that
+ * expect an enum value rather than an (u)int value. This is mainly needed
+ * for invoking the solver via the command line (with '--<opt>=help').
+ */
+struct BtorOptHelp
+{
+  int32_t val;     /* the enum value */
+  const char *msg; /* the help message */
+};
+typedef struct BtorOptHelp BtorOptHelp;
 
 /*------------------------------------------------------------------------*/
 
@@ -131,7 +144,7 @@ typedef enum BtorOptDPQsort BtorOptDPQsort;
 enum BtorOptJustHeur
 {
   BTOR_JUST_HEUR_MIN,
-  BTOR_JUST_HEUR_LEFT,
+  BTOR_JUST_HEUR_BRANCH_LEFT,
   BTOR_JUST_HEUR_BRANCH_MIN_APP,
   BTOR_JUST_HEUR_BRANCH_MIN_DEP,
   BTOR_JUST_HEUR_MAX,

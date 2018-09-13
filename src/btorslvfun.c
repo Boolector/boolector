@@ -1105,7 +1105,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
                 }
                 else
                 {
-                  assert (h == BTOR_JUST_HEUR_LEFT);
+                  assert (h == BTOR_JUST_HEUR_BRANCH_LEFT);
                   BTOR_PUSH_STACK (stack, cur->e[0]);
                 }
               }

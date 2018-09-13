@@ -490,7 +490,7 @@ btormain_msg (char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
-#define LEN_OPTSTR 42
+#define LEN_OPTSTR 38
 #define LEN_PARAMSTR 16
 #define LEN_HELPSTR 85
 
@@ -500,7 +500,7 @@ const char *
 get_opt_val_string (BtorPtrHashTable *options, int32_t val)
 {
   BtorPtrHashTableIterator it;
-  int32_t v;
+  BtorOptHelp *h;
   char *s = 0;
 
   if (options)
@@ -508,9 +508,9 @@ get_opt_val_string (BtorPtrHashTable *options, int32_t val)
     btor_iter_hashptr_init (&it, options);
     while (btor_iter_hashptr_has_next (&it))
     {
-      v = it.bucket->data.as_int;
+      h = (BtorOptHelp *) it.bucket->data.as_ptr;
       s = btor_iter_hashptr_next (&it);
-      if (val == v) break;
+      if (val == h->val) break;
     }
   }
   return s;
@@ -546,6 +546,58 @@ get_opt_vals_string (BtorMemMgr *mm, BtorOpt *bo)
 }
 
 static void
+print_opt_line_fmt (BtorMainApp *app,
+                    char *str,
+                    char *prefix,
+                    size_t prefix_len,
+                    size_t max_len)
+{
+  size_t i, j, len, slen;
+  char *line, *word, *s;
+  BtorCharPtrStack words_stack;
+
+  BTOR_CNEWN (app->mm, line, max_len);
+  BTOR_INIT_STACK (app->mm, words_stack);
+
+  slen = strlen (str) + 1;
+  BTOR_CNEWN (app->mm, s, slen);
+  strcpy (s, str);
+  word = strtok (s, " ");
+  while (word)
+  {
+    BTOR_PUSH_STACK (words_stack, btor_mem_strdup (app->mm, word));
+    word = strtok (0, " ");
+  }
+  BTOR_DELETEN (app->mm, s, slen);
+
+  sprintf (line, "%s ", prefix);
+  i = 0;
+  do
+  {
+    j = prefix_len;
+    for (; i < BTOR_COUNT_STACK (words_stack); i++)
+    {
+      word = BTOR_PEEK_STACK (words_stack, i);
+      len  = strlen (word);
+      /* word does not fit into remaining line */
+      if (j + 1 + len >= max_len) break;
+      strcpy (line + j, word);
+      j += len;
+      line[j++] = ' ';
+    }
+    line[j] = 0;
+    fprintf (app->outfile, "%s\n", line);
+    BTOR_CLRN (line, max_len);
+    memset (line, ' ', prefix_len * sizeof (char));
+  } while (i < BTOR_COUNT_STACK (words_stack));
+
+  BTOR_DELETEN (app->mm, line, max_len);
+  while (!BTOR_EMPTY_STACK (words_stack))
+    btor_mem_freestr (app->mm, BTOR_POP_STACK (words_stack));
+  BTOR_RELEASE_STACK (words_stack);
+}
+
+static void
 print_opt (BtorMainApp *app,
            const char *lng,
            const char *shrt,
@@ -561,10 +613,9 @@ print_opt (BtorMainApp *app,
   assert (desc);
 
   char paramstr[LEN_PARAMSTR];
-  char *str, descstrline[LEN_HELPSTR], *word;
-  size_t i, j, len, len_paramstr;
+  char *str;
+  size_t i, len, len_paramstr;
   BtorCharStack optstr;
-  BtorCharPtrStack words;
   BtorMemMgr *mm;
 
   mm = app->mm;
@@ -582,7 +633,7 @@ print_opt (BtorMainApp *app,
     if (!dflt_str)
       sprintf (paramstr, "<n>");
     else
-      sprintf (paramstr, "<str>");
+      sprintf (paramstr, "<mode>");
   }
   else
     paramstr[0] = '\0';
@@ -594,14 +645,22 @@ print_opt (BtorMainApp *app,
   len_paramstr = strlen (paramstr);
   if (shrt)
   {
-    BTOR_PUSH_STACK (optstr, '-');
-    for (i = 0, len = strlen (shrt); i < len; i++)
-      BTOR_PUSH_STACK (optstr, shrt[i]);
-    if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, ' ');
-    for (i = 0; i < len_paramstr; i++)
-      BTOR_PUSH_STACK (optstr, paramstr[i]);
-    BTOR_PUSH_STACK (optstr, ',');
-    BTOR_PUSH_STACK (optstr, ' ');
+    if (len_paramstr && strchr (shrt, ':'))
+    {
+      fprintf (app->outfile, "  -%s %s,\n", shrt, paramstr);
+      BTOR_PUSH_STACK (optstr, ' ');
+      BTOR_PUSH_STACK (optstr, ' ');
+    }
+    else
+    {
+      BTOR_PUSH_STACK (optstr, '-');
+      for (i = 0, len = strlen (shrt); i < len; i++)
+        BTOR_PUSH_STACK (optstr, shrt[i]);
+      if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, ' ');
+      for (i = 0; i < len_paramstr; i++) BTOR_PUSH_STACK (optstr, paramstr[i]);
+      BTOR_PUSH_STACK (optstr, ',');
+      BTOR_PUSH_STACK (optstr, ' ');
+    }
   }
   BTOR_PUSH_STACK (optstr, '-');
   BTOR_PUSH_STACK (optstr, '-');
@@ -639,44 +698,41 @@ print_opt (BtorMainApp *app,
     BTOR_CNEWN (mm, str, len + 1);
     sprintf (str, "%s", desc);
   }
-  BTOR_INIT_STACK (mm, words);
-  word = strtok (str, " ");
-  while (word)
-  {
-    BTOR_PUSH_STACK (words, btor_mem_strdup (mm, word));
-    word = strtok (0, " ");
-  }
+
+  print_opt_line_fmt (app, str, optstr.start, LEN_OPTSTR, LEN_HELPSTR);
   BTOR_DELETEN (mm, str, len + 1);
-
-  BTOR_CLRN (descstrline, LEN_HELPSTR);
-  sprintf (descstrline, "%s ", optstr.start);
-  i = 0;
-  do
-  {
-    j = LEN_OPTSTR;
-    for (; i < BTOR_COUNT_STACK (words); i++)
-    {
-      word = BTOR_PEEK_STACK (words, i);
-      len  = strlen (word);
-
-      /* word does not fit into remaining line */
-      if (j + 1 + len >= LEN_HELPSTR) break;
-
-      strcpy (descstrline + j, word);
-      j += len;
-      descstrline[j++] = ' ';
-    }
-    descstrline[j] = 0;
-    fprintf (app->outfile, "%s\n", descstrline);
-    BTOR_CLRN (descstrline, LEN_HELPSTR);
-    memset (descstrline, ' ', LEN_OPTSTR * sizeof (char));
-  } while (i < BTOR_COUNT_STACK (words));
 
   /* cleanup */
   BTOR_RELEASE_STACK (optstr);
-  while (!BTOR_EMPTY_STACK (words))
-    btor_mem_freestr (mm, BTOR_POP_STACK (words));
-  BTOR_RELEASE_STACK (words);
+}
+
+void
+print_opt_help (BtorMainApp *app,
+                const char *shrt,
+                const char *lng,
+                const char *desc,
+                BtorPtrHashTable *opts)
+{
+  assert (app);
+  assert (lng);
+  assert (desc);
+  assert (opts);
+
+  BtorPtrHashTableIterator it;
+  BtorOptHelp *hdata;
+
+  if (shrt)
+    fprintf (app->outfile, "Modes for option -%s, --%s: %s\n", shrt, lng, desc);
+  else
+    fprintf (app->outfile, "Modes for option --%s: %s\n", lng, desc);
+
+  btor_iter_hashptr_init (&it, opts);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    fprintf (app->outfile, "\n  + %s:\n", (char *) it.cur);
+    hdata = (BtorOptHelp *) btor_iter_hashptr_next_data (&it)->as_ptr;
+    print_opt_line_fmt (app, (char *) hdata->msg, "    ", 4, LEN_HELPSTR);
+  }
 }
 
 #define PRINT_MAIN_OPT(app, opt) \
@@ -702,7 +758,12 @@ print_opt (BtorMainApp *app,
   "integer. Alternatively, use '-no-<short name>' and '--no-<long name>' for"  \
   "\n"                                                                         \
   "disabling, and '-<short name>' and '--<long name>' for enabling flags."     \
+  "\n\n"                                                                       \
+  "You can query a more detailed help message for options that select a "      \
+  "<mode>"                                                                     \
   "\n"                                                                         \
+  "with -<short name>=help or --<long name>=help."                             \
+  "\n\n"                                                                       \
   "Note that all of the following options can also be set via env. variables " \
   "of"                                                                         \
   "\n"                                                                         \
@@ -1204,7 +1265,12 @@ boolector_main (int32_t argc, char **argv)
       }
       if (bo->options)
       {
-        if (!(b = btor_hashptr_table_get (bo->options, po->valstr)))
+        if (strcmp (po->valstr, "help") == 0)
+        {
+          print_opt_help (g_app, bo->shrt, bo->lng, bo->desc, bo->options);
+          goto DONE;
+        }
+        else if (!(b = btor_hashptr_table_get (bo->options, po->valstr)))
         {
           char *s = get_opt_vals_string (mm, bo);
           assert (s);

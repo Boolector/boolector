@@ -74,16 +74,33 @@ init_opt (Btor *btor,
   }
 }
 
+static void
+add_opt_help (
+    BtorMemMgr *mm, BtorPtrHashTable *opts, char *key, int32_t value, char *msg)
+{
+  assert (opts);
+
+  BtorOptHelp *hdata;
+
+  BTOR_NEW (mm, hdata);
+  hdata->val = value;
+  hdata->msg = msg;
+
+  btor_hashptr_table_add (opts, key)->data.as_ptr = hdata;
+}
+
 void
 btor_opt_init_opts (Btor *btor)
 {
   assert (btor);
 
   BtorPtrHashTable *opts;
+  BtorMemMgr *mm;
 
-  BTOR_CNEWN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
+  mm = btor->mm;
+  BTOR_CNEWN (mm, btor->options, BTOR_OPT_NUM_OPTS);
   btor->str2opt = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   init_opt (btor,
             BTOR_OPT_MODEL_GEN,
@@ -127,12 +144,23 @@ btor_opt_init_opts (Btor *btor)
             "input file format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "none")->data.as_int  = BTOR_INPUT_FORMAT_NONE;
-  btor_hashptr_table_add (opts, "btor")->data.as_int  = BTOR_INPUT_FORMAT_BTOR;
-  btor_hashptr_table_add (opts, "btor2")->data.as_int = BTOR_INPUT_FORMAT_BTOR2;
-  btor_hashptr_table_add (opts, "smt1")->data.as_int  = BTOR_INPUT_FORMAT_SMT1;
-  btor_hashptr_table_add (opts, "smt2")->data.as_int  = BTOR_INPUT_FORMAT_SMT2;
-  btor->options[BTOR_OPT_INPUT_FORMAT].options        = opts;
+  add_opt_help (
+      mm, opts, "none", BTOR_INPUT_FORMAT_NONE, "auto-detect input format");
+  add_opt_help (
+      mm, opts, "btor", BTOR_INPUT_FORMAT_BTOR, "force BTOR input format");
+  add_opt_help (
+      mm, opts, "btor2", BTOR_INPUT_FORMAT_BTOR2, "force BTOR2 input format");
+  add_opt_help (mm,
+                opts,
+                "smt1",
+                BTOR_INPUT_FORMAT_SMT1,
+                "force SMT-LIB v1 input format");
+  add_opt_help (mm,
+                opts,
+                "smt2",
+                BTOR_INPUT_FORMAT_SMT2,
+                "force SMT-LIB v2 input format");
+  btor->options[BTOR_OPT_INPUT_FORMAT].options = opts;
 
   init_opt (btor,
             BTOR_OPT_OUTPUT_NUMBER_FORMAT,
@@ -146,9 +174,21 @@ btor_opt_init_opts (Btor *btor)
             "output number format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "bin")->data.as_int    = BTOR_OUTPUT_BASE_BIN;
-  btor_hashptr_table_add (opts, "hex")->data.as_int    = BTOR_OUTPUT_BASE_HEX;
-  btor_hashptr_table_add (opts, "dec")->data.as_int    = BTOR_OUTPUT_BASE_DEC;
+  add_opt_help (mm,
+                opts,
+                "bin",
+                BTOR_OUTPUT_BASE_BIN,
+                "print bit-vector values in binary format");
+  add_opt_help (mm,
+                opts,
+                "hex",
+                BTOR_OUTPUT_BASE_HEX,
+                "print bit-vector values in hexa-decimal format");
+  add_opt_help (mm,
+                opts,
+                "dec",
+                BTOR_OUTPUT_BASE_DEC,
+                "print bit-vector values in decimal format");
   btor->options[BTOR_OPT_OUTPUT_NUMBER_FORMAT].options = opts;
 
   init_opt (btor,
@@ -163,16 +203,31 @@ btor_opt_init_opts (Btor *btor)
             "output file format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "btor")->data.as_int =
-      BTOR_OUTPUT_FORMAT_BTOR;
-  btor_hashptr_table_add (opts, "btor2")->data.as_int =
-      BTOR_OUTPUT_FORMAT_BTOR2;
-  btor_hashptr_table_add (opts, "smt2")->data.as_int =
-      BTOR_OUTPUT_FORMAT_SMT2;
-  btor_hashptr_table_add (opts, "aiger")->data.as_int =
-      BTOR_OUTPUT_FORMAT_AIGER_ASCII;
-  btor_hashptr_table_add (opts, "aigerbin")->data.as_int =
-      BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+  add_opt_help (mm,
+                opts,
+                "btor",
+                BTOR_OUTPUT_FORMAT_BTOR,
+                "use BTOR as output file format");
+  add_opt_help (mm,
+                opts,
+                "btor2",
+                BTOR_OUTPUT_FORMAT_BTOR2,
+                "use BTOR2 as output file format");
+  add_opt_help (mm,
+                opts,
+                "smt2",
+                BTOR_OUTPUT_FORMAT_SMT2,
+                "use SMT2 as output file format");
+  add_opt_help (mm,
+                opts,
+                "aiger",
+                BTOR_OUTPUT_FORMAT_AIGER_ASCII,
+                "use the AIGER ascii format as output file format");
+  add_opt_help (mm,
+                opts,
+                "aigerbin",
+                BTOR_OUTPUT_FORMAT_AIGER_BINARY,
+                "use the AIGER binary format as output file format");
   btor->options[BTOR_OPT_OUTPUT_FORMAT].options = opts;
 
   init_opt (btor,
@@ -187,11 +242,32 @@ btor_opt_init_opts (Btor *btor)
             "enable specific engine");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "fun")->data.as_int     = BTOR_ENGINE_FUN;
-  btor_hashptr_table_add (opts, "sls")->data.as_int     = BTOR_ENGINE_SLS;
-  btor_hashptr_table_add (opts, "prop")->data.as_int    = BTOR_ENGINE_PROP;
-  btor_hashptr_table_add (opts, "aigprop")->data.as_int = BTOR_ENGINE_AIGPROP;
-  btor_hashptr_table_add (opts, "quant")->data.as_int   = BTOR_ENGINE_QUANT;
+  add_opt_help (mm,
+                opts,
+                "fun",
+                BTOR_ENGINE_FUN,
+                "use the default engine (supports any combination of QF_AUFBV "
+                "+ lambdas, uses eager bit-blasting for QF_BV)");
+  add_opt_help (mm,
+                opts,
+                "sls",
+                BTOR_ENGINE_SLS,
+                "use the score-based local search engine (QF_BV only)");
+  add_opt_help (mm,
+                opts,
+                "prop",
+                BTOR_ENGINE_PROP,
+                "use the propagation-based local search engine (QF_BV only)");
+  add_opt_help (mm,
+                opts,
+                "aigprop",
+                BTOR_ENGINE_AIGPROP,
+                "use the propagation-based local search engine (QF_BV only)");
+  add_opt_help (mm,
+                opts,
+                "quant",
+                BTOR_ENGINE_QUANT,
+                "use the quantifier engine (BV only)");
   btor->options[BTOR_OPT_ENGINE].options = opts;
 
 
@@ -207,14 +283,26 @@ btor_opt_init_opts (Btor *btor)
             "enable specific SAT solver");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "lingeling")->data.as_int =
-      BTOR_SAT_ENGINE_LINGELING;
-  btor_hashptr_table_add (opts, "picosat")->data.as_int =
-      BTOR_SAT_ENGINE_PICOSAT;
-  btor_hashptr_table_add (opts, "minisat")->data.as_int =
-      BTOR_SAT_ENGINE_MINISAT;
-  btor_hashptr_table_add (opts, "cadical")->data.as_int =
-      BTOR_SAT_ENGINE_CADICAL;
+  add_opt_help (mm,
+                opts,
+                "cadical",
+                BTOR_SAT_ENGINE_CADICAL,
+                "use cadical as back end SAT solver");
+  add_opt_help (mm,
+                opts,
+                "lingeling",
+                BTOR_SAT_ENGINE_LINGELING,
+                "use lingeling as back end SAT solver");
+  add_opt_help (mm,
+                opts,
+                "minisat",
+                BTOR_SAT_ENGINE_MINISAT,
+                "use minisat as back end SAT solver");
+  add_opt_help (mm,
+                opts,
+                "picosat",
+                BTOR_SAT_ENGINE_PICOSAT,
+                "use picosat as back end SAT solver");
   btor->options[BTOR_OPT_SAT_ENGINE].options = opts;
 
   init_opt (btor,
@@ -400,9 +488,8 @@ btor_opt_init_opts (Btor *btor)
             0,
             0,
             1,
-            "run prop engine as a preprocessing step "
-            "within a sequential portfolio "
-            "(QF_BV only!)");
+            "run prop engine as preprocessing within a sequential portfolio "
+            "(QF_BV only)");
   init_opt (btor,
             BTOR_OPT_FUN_PRESLS,
             false,
@@ -412,9 +499,8 @@ btor_opt_init_opts (Btor *btor)
             0,
             0,
             1,
-            "run sls engine as a preprocessing step "
-            "within a sequential portfolio "
-            "(QF_BV only!)");
+            "run sls engine as preprocessing within a sequential portfolio "
+            "(QF_BV only)");
   init_opt (btor,
             BTOR_OPT_FUN_DUAL_PROP,
             false,
@@ -438,9 +524,15 @@ btor_opt_init_opts (Btor *btor)
             "order in which to assume inputs in dual solver");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "just")->data.as_int  = BTOR_DP_QSORT_JUST;
-  btor_hashptr_table_add (opts, "asc")->data.as_int   = BTOR_DP_QSORT_ASC;
-  btor_hashptr_table_add (opts, "desc")->data.as_int  = BTOR_DP_QSORT_DESC;
+  add_opt_help (mm,
+                opts,
+                "just",
+                BTOR_DP_QSORT_JUST,
+                "use justification-based heuristic to determine order");
+  add_opt_help (
+      mm, opts, "asc", BTOR_DP_QSORT_ASC, "use ascending (node id) order");
+  add_opt_help (
+      mm, opts, "desc", BTOR_DP_QSORT_DESC, "use descending (node id) order");
   btor->options[BTOR_OPT_FUN_DUAL_PROP_QSORT].options = opts;
 
   init_opt (btor,
@@ -466,12 +558,23 @@ btor_opt_init_opts (Btor *btor)
             "justification heuristic");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "left")->data.as_int =
-      BTOR_JUST_HEUR_LEFT;
-  btor_hashptr_table_add (opts, "app")->data.as_int =
-      BTOR_JUST_HEUR_BRANCH_MIN_APP;
-  btor_hashptr_table_add (opts, "dep")->data.as_int =
-      BTOR_JUST_HEUR_BRANCH_MIN_DEP;
+  add_opt_help (mm,
+                opts,
+                "left",
+                BTOR_JUST_HEUR_BRANCH_LEFT,
+                "if there is a choice, choose left branch");
+  add_opt_help (mm,
+                opts,
+                "applies",
+                BTOR_JUST_HEUR_BRANCH_MIN_APP,
+                "if there is a choice, "
+                "choose branch with the minimum number of applies");
+  add_opt_help (mm,
+                opts,
+                "depth",
+                BTOR_JUST_HEUR_BRANCH_MIN_DEP,
+                "if there is a choice, "
+                "choose branch with minimum depth");
   btor->options[BTOR_OPT_FUN_JUST_HEURISTIC].options = opts;
 
   init_opt (btor,
@@ -497,11 +600,22 @@ btor_opt_init_opts (Btor *btor)
             "eager lemma generation");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "none")->data.as_int =
-      BTOR_FUN_EAGER_LEMMAS_NONE;
-  btor_hashptr_table_add (opts, "conf")->data.as_int =
-      BTOR_FUN_EAGER_LEMMAS_CONF;
-  btor_hashptr_table_add (opts, "all")->data.as_int = BTOR_FUN_EAGER_LEMMAS_ALL;
+  add_opt_help (mm,
+                opts,
+                "none",
+                BTOR_FUN_EAGER_LEMMAS_NONE,
+                "do not generate lemmas eagerly");
+  add_opt_help (mm,
+                opts,
+                "conf",
+                BTOR_FUN_EAGER_LEMMAS_CONF,
+                "only generate lemmas eagerly until the first conflict "
+                "dependent on another conflict is found");
+  add_opt_help (mm,
+                opts,
+                "all",
+                BTOR_FUN_EAGER_LEMMAS_ALL,
+                "generate lemmas for all conflicts");
   btor->options[BTOR_OPT_FUN_EAGER_LEMMAS].options  = opts;
 
   init_opt (btor,
@@ -539,11 +653,35 @@ btor_opt_init_opts (Btor *btor)
             "move strategy for sls");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "best")->data.as_int = BTOR_SLS_STRAT_BEST_MOVE;
-  btor_hashptr_table_add (opts, "walk")->data.as_int = BTOR_SLS_STRAT_RAND_WALK;
-  btor_hashptr_table_add (opts, "first")->data.as_int = BTOR_SLS_STRAT_FIRST_BEST_MOVE;
-  btor_hashptr_table_add (opts, "same")->data.as_int = BTOR_SLS_STRAT_BEST_SAME_MOVE;
-  btor_hashptr_table_add (opts, "prop")->data.as_int = BTOR_SLS_STRAT_BEST_SAME_MOVE;
+  add_opt_help (mm,
+                opts,
+                "best",
+                BTOR_SLS_STRAT_BEST_MOVE,
+                "always choose best score improving move");
+  add_opt_help (mm,
+                opts,
+                "walk",
+                BTOR_SLS_STRAT_RAND_WALK,
+                "always choose random walk weighted by score");
+  add_opt_help (mm,
+                opts,
+                "first",
+                BTOR_SLS_STRAT_FIRST_BEST_MOVE,
+                "always choose first best move (no matter if any other move "
+                "is better");
+  add_opt_help (mm,
+                opts,
+                "same",
+                BTOR_SLS_STRAT_BEST_SAME_MOVE,
+                "choose move as best move even if its score is greater or "
+                "equal (rather than strictly greater) than the score of the "
+                "previous best move");
+  add_opt_help (mm,
+                opts,
+                "prop",
+                BTOR_SLS_STRAT_ALWAYS_PROP,
+                "always choose propagation move (and recover with SLS move in "
+                "case of conflict)");
   btor->options[BTOR_OPT_SLS_STRATEGY].options = opts;
 
   init_opt (btor,
@@ -749,12 +887,21 @@ btor_opt_init_opts (Btor *btor)
             "path selection mode");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "controlling")->data.as_int =
-      BTOR_PROP_PATH_SEL_CONTROLLING;
-  btor_hashptr_table_add (opts, "essential")->data.as_int =
-      BTOR_PROP_PATH_SEL_ESSENTIAL;
-  btor_hashptr_table_add (opts, "random")->data.as_int =
-      BTOR_PROP_PATH_SEL_RANDOM;
+  add_opt_help (mm,
+                opts,
+                "controlling",
+                BTOR_PROP_PATH_SEL_CONTROLLING,
+                "select bath based on controlling inputs");
+  add_opt_help (mm,
+                opts,
+                "essential",
+                BTOR_PROP_PATH_SEL_ESSENTIAL,
+                "select bath based on essential inputs");
+  add_opt_help (mm,
+                opts,
+                "random",
+                BTOR_PROP_PATH_SEL_RANDOM,
+                "select bath based on random inputs");
   btor->options[BTOR_OPT_PROP_PATH_SEL].options = opts;
 
   init_opt (btor,
@@ -933,7 +1080,7 @@ btor_opt_init_opts (Btor *btor)
             1,
             0,
             1,
-            "apply destructive equality resolution (DER)");
+            "apply destructive equality resolution");
   init_opt (btor,
             BTOR_OPT_QUANT_CER,
             false,
@@ -943,7 +1090,7 @@ btor_opt_init_opts (Btor *btor)
             1,
             0,
             1,
-            "apply constructive equality resolution (CER)");
+            "apply constructive equality resolution");
   init_opt (btor,
             BTOR_OPT_QUANT_MINISCOPE,
             false,
@@ -972,12 +1119,36 @@ btor_opt_init_opts (Btor *btor)
             //"4=enumlearn modulo formula");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btor_hashptr_table_add (opts, "none")->data.as_int = BTOR_QUANT_SYNTH_NONE;
-  btor_hashptr_table_add (opts, "el")->data.as_int   = BTOR_QUANT_SYNTH_EL;
-  btor_hashptr_table_add (opts, "elmc")->data.as_int = BTOR_QUANT_SYNTH_ELMC;
-  btor_hashptr_table_add (opts, "elelmc")->data.as_int =
-      BTOR_QUANT_SYNTH_EL_ELMC;
-  btor_hashptr_table_add (opts, "elmr")->data.as_int = BTOR_QUANT_SYNTH_ELMR;
+  add_opt_help (mm,
+                opts,
+                "none",
+                BTOR_QUANT_SYNTH_NONE,
+                "do not synthesize skolem functions (use model values for "
+                "instantiation)");
+  add_opt_help (mm,
+                opts,
+                "el",
+                BTOR_QUANT_SYNTH_EL,
+                "use enumerative learning to synthesize skolem functions");
+  add_opt_help (mm,
+                opts,
+                "elmc",
+                BTOR_QUANT_SYNTH_ELMC,
+                "use enumerative learning modulo the predicates in the cone of"
+                "influence of the existential variables to synthesize skolem "
+                "functions");
+  add_opt_help (mm,
+                opts,
+                "elelmc",
+                BTOR_QUANT_SYNTH_EL_ELMC,
+                "chain 'el' and 'elmc' approaches to synthesize skolem "
+                "functions");
+  add_opt_help (mm,
+                opts,
+                "elmr",
+                BTOR_QUANT_SYNTH_ELMR,
+                "use enumerative learning modulo the given root constraints "
+                "to synthesize skolem functions");
   btor->options[BTOR_OPT_QUANT_SYNTH].options        = opts;
 
   init_opt (btor,
@@ -1158,6 +1329,24 @@ btor_opt_init_opts (Btor *btor)
 }
 
 void
+clone_data_as_opt_help_ptr (BtorMemMgr *mm,
+                            const void *map,
+                            BtorHashTableData *data,
+                            BtorHashTableData *cloned_data)
+{
+  assert (data);
+  assert (cloned_data);
+  (void) map;
+
+  BtorOptHelp *cloned_hdata;
+
+  BTOR_NEW (mm, cloned_hdata);
+  cloned_hdata->val   = ((BtorOptHelp *) data->as_ptr)->val;
+  cloned_hdata->msg   = ((BtorOptHelp *) data->as_ptr)->msg;
+  cloned_data->as_ptr = cloned_hdata;
+}
+
+void
 btor_opt_clone_opts (Btor *btor, Btor *clone)
 {
   assert (btor);
@@ -1179,7 +1368,7 @@ btor_opt_clone_opts (Btor *btor, Btor *clone)
             btor_hashptr_table_clone (clone->mm,
                                       btor->options[o].options,
                                       btor_clone_key_as_static_str,
-                                      btor_clone_data_as_int,
+                                      clone_data_as_opt_help_ptr,
                                       0,
                                       0);
     }
@@ -1201,6 +1390,7 @@ btor_opt_delete_opts (Btor *btor)
   assert (btor);
 
   BtorOption o;
+  BtorPtrHashTableIterator it;
 
   if (btor->options)
   {
@@ -1213,7 +1403,14 @@ btor_opt_delete_opts (Btor *btor)
         btor->options[o].valstr = 0;
       }
       if (btor->options[o].options)
+      {
+        btor_iter_hashptr_init (&it, btor->options[o].options);
+        while (btor_iter_hashptr_has_next (&it))
+          BTOR_DELETE (
+              btor->mm,
+              (BtorOptHelp *) btor_iter_hashptr_next_data (&it)->as_ptr);
         btor_hashptr_table_delete (btor->options[o].options);
+      }
     }
     BTOR_DELETEN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
     btor->options = 0;
