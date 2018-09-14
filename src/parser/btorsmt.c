@@ -10,6 +10,7 @@
 
 #include "btorsmt.h"
 #include "btorbv.h"
+#include "btoropt.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -177,7 +178,7 @@ struct BtorSMTParser
   uint32_t verbosity;
   uint32_t modelgen;
   uint32_t incremental;
-  BtorParseMode incremental_smt1;
+  BtorOptIncrementalSMT1 incremental_smt1;
 
   struct
   {
@@ -571,9 +572,9 @@ new_smt_parser (Btor *btor)
   if (res->incremental)
   {
     smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (res->incremental_smt1 == BTOR_PARSE_MODE_BASIC_INCREMENTAL)
+    if (res->incremental_smt1 == BTOR_INCREMENTAL_SMT1_BASIC)
       smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else if (res->incremental_smt1 == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+    else if (res->incremental_smt1 == BTOR_INCREMENTAL_SMT1_CONTINUE)
       smt_message (res, 2, "check all ':formula' for satisfiability");
   }
 
@@ -2526,8 +2527,7 @@ continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
   if (res->result != BOOLECTOR_SAT) return true;
   return parser->incremental
-         && parser->incremental_smt1
-                == BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
+         && parser->incremental_smt1 == BTOR_INCREMENTAL_SMT1_CONTINUE;
 }
 
 static char *

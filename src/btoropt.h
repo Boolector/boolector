@@ -200,6 +200,16 @@ enum BtorOptFunEagerLemmas
 #define BTOR_FUN_EAGER_LEMMAS_DFLT BTOR_FUN_EAGER_LEMMAS_CONF
 typedef enum BtorOptFunEagerLemmas BtorOptFunEagerLemmas;
 
+enum BtorOptIncrementalSMT1
+{
+  BTOR_INCREMENTAL_SMT1_MIN,
+  BTOR_INCREMENTAL_SMT1_BASIC,
+  BTOR_INCREMENTAL_SMT1_CONTINUE,
+  BTOR_INCREMENTAL_SMT1_MAX,
+};
+#define BTOR_INCREMENTAL_SMT1_DFLT BTOR_INCREMENTAL_SMT1_BASIC
+typedef enum BtorOptIncrementalSMT1 BtorOptIncrementalSMT1;
+
 /*------------------------------------------------------------------------*/
 
 void btor_opt_init_opts (Btor *btor);

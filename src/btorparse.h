@@ -36,14 +36,6 @@ typedef char *(*BtorParse) (BtorParser *,
                             FILE *,
                             BtorParseResult *);
 
-enum BtorParseMode
-{
-  BTOR_PARSE_MODE_BASIC_INCREMENTAL        = 1,
-  BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE = 2,
-};
-
-typedef enum BtorParseMode BtorParseMode;
-
 struct BtorParseResult
 {
   BtorLogic logic;

@@ -128,10 +128,24 @@ btor_opt_init_opts (Btor *btor)
             false,
             "incremental-smt1",
             "I",
-            BTOR_PARSE_MODE_BASIC_INCREMENTAL,
-            BTOR_PARSE_MODE_BASIC_INCREMENTAL,
-            BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE,
+            BTOR_INCREMENTAL_SMT1_DFLT,
+            BTOR_INCREMENTAL_SMT1_MIN,
+            BTOR_INCREMENTAL_SMT1_MAX,
             "incremental mode for SMT1");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  add_opt_help (mm,
+                opts,
+                "basic",
+                BTOR_INCREMENTAL_SMT1_BASIC,
+                "stop after first satisfiable formula");
+  add_opt_help (mm,
+                opts,
+                "continue",
+                BTOR_INCREMENTAL_SMT1_CONTINUE,
+                "solve all formulas");
+  btor->options[BTOR_OPT_INCREMENTAL_SMT1].options = opts;
+
   init_opt (btor,
             BTOR_OPT_INPUT_FORMAT,
             false,
