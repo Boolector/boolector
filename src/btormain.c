@@ -492,7 +492,7 @@ btormain_msg (char *msg, ...)
 
 #define LEN_OPTSTR 38
 #define LEN_PARAMSTR 16
-#define LEN_HELPSTR 85
+#define LEN_HELPSTR 81
 
 #define IS_OPT(optlng, lng) (!strcmp (optlng, lng))
 
@@ -645,7 +645,7 @@ print_opt (BtorMainApp *app,
   len_paramstr = strlen (paramstr);
   if (shrt)
   {
-    if (len_paramstr && strchr (shrt, ':'))
+    if (len_paramstr)
     {
       fprintf (app->outfile, "  -%s %s,\n", shrt, paramstr);
       BTOR_PUSH_STACK (optstr, ' ');
