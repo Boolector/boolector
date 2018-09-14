@@ -4,6 +4,10 @@
   (called on abort instead of actually aborting)
 + Python API now throws Python exceptions on abort conditions
   (e.g., when underlying C API is misused)
++ command line options that previously expected integer values denoting enum
+  values are now configured with strings denoting the particular modes that
+  can be selected; -<opt>=help and --<opt>=help allow to print detailed help
+  messages for these modes
 
 news for release 3.0.0 since 2.4.1
 --------------------------------------------------------------------------------
