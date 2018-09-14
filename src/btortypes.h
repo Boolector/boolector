@@ -65,42 +65,49 @@ enum BtorOption
   /*!
     * **BTOR_OPT_INCREMENTAL_SMT1**
 
-      | Incremental mode for SMT1. Stop after first satisfiable formula
-        (``value``: 1) or solve all formulas (``value``: 2).
-      | Note that currently, incremental mode while parsing an input file is
-        only supported for `SMT-LIB v1`_ input.
+      | Set incremental mode for SMT-LIB v1 input.
+
+      * BTOR_INCREMENTAL_SMT1_BASIC [default]:
+        stop after first satisfiable formula
+      * BTOR_INCREMENTAL_SMT1_CONTINUE:
+        solve all formulas
   */
   BTOR_OPT_INCREMENTAL_SMT1,
 
   /*!
     * **BTOR_OPT_INPUT_FORMAT**
 
-      | Force input file format (``value``:
-        `BTOR
-         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_:
-         BTOR_INPUT_FORMAT_BTOR,
-        `BTOR2
-         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_:
-         BTOR_INPUT_FORMAT_BTOR2 ,
-        `SMT-LIB v1
-         <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_:
-         BTOR_INPUT_FORMAT_SMT1,
-        `SMT-LIB v2
-         <http://smtlib.cs.uiowa.edu/papers/
-          smt-lib-reference-v2.0-r12.09.09.pdf>`_:
-          BTOR_INPUT_FORMAT_SMT2)
-         when parsing an input file.
+      | Force input file format.
       | If unspecified, Boolector automatically detects the input file format
         while parsing.
+
+      * BTOR_INPUT_FORMAT_BTOR:
+        `BTOR format
+         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_
+      * BTOR_INPUT_FORMAT_BTOR2:
+        `BTOR2 format
+         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_
+      * BTOR_INPUT_FORMAT_SMT1:
+        `SMT-LIB v1 format
+         <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_
+      * BTOR_INPUT_FORMAT_SMT2:
+        `SMT-LIB v2 format
+         <http://smtlib.cs.uiowa.edu/papers/
+          smt-lib-reference-v2.0-r12.09.09.pdf>`_
   */
 
   BTOR_OPT_INPUT_FORMAT,
   /*!
     * **BTOR_OPT_OUTPUT_NUMBER_FORMAT**
 
-      | Force output number format (``value``: binary: 0, hexadecimal: 1,
-        decimal: 2).
-      | Boolector uses binary by default.
+      | Force output number format.
+
+      * BTOR_OUTPUT_BASE_BIN [default]:
+        binary
+      * BTOR_OUTPUT_BASE_HEX:
+        hexa-decimal
+      * BTOR_OUTPUT_BASE_DEC:
+        decimal
   */
   BTOR_OPT_OUTPUT_NUMBER_FORMAT,
 
@@ -109,26 +116,61 @@ enum BtorOption
 
       | Force output file format (``value``: BTOR_: -1, `SMT-LIB v1`_: 1,
         `SMT-LIB v2`_: 2).
-      | Boolector uses BTOR_ by default.
+
+      * BTOR_OUTPUT_FORMAT_BTOR [default]:
+        `BTOR format
+         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_
+      * BTOR_OUTPUT_FORMAT_BTOR2:
+        `BTOR2 format
+         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_
+      * BTOR_OUTPUT_FORMAT_SMT2:
+        `SMT-LIB v2 format
+         <http://smtlib.cs.uiowa.edu/papers/
+          smt-lib-reference-v2.0-r12.09.09.pdf>`_
+      * BTOR_OUTPUT_FORMAT_AIGER_ASCII:
+        `Aiger ascii format
+        <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
+      * BTOR_OUTPUT_FORMAT_AIGER_BINARY:
+        `Aiger binary format
+        <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
   */
   BTOR_OPT_OUTPUT_FORMAT,
 
   /*!
     * **BTOR_OPT_ENGINE**
 
-      | Set solver engine (``value``: BTOR_ENGINE_FUN: 0, BTOR_ENGINE_SLS: 1,
-        BTOR_ENGINE_PROP: 2).
-      | Boolector uses BTOR_ENGINE_FUN by default.
+      | Set solver engine.
+
+      * BTOR_ENGINE_FUN [default]:
+        the default engine for all combinations of QF_AUFBV, uses lemmas on 
+        demand for QF_AUFBV and eager bit-blasting for QF_BV
+      * BTOR_ENGINE_SLS:
+        the score-based local search QF_BV engine
+      * BTOR_ENGINE_PROP:
+        the propagation-based local search QF_BV engine
+      * BTOR_ENGINE_AIGPROP:
+        the propagation-based local search QF_BV engine that operates on the
+        bit-blasted formula (the AIG layer)
+      * BTOR_ENGINE_QUANT:
+        the quantifier engine (BV only)
   */
   BTOR_OPT_ENGINE,
 
   /*!
     * **BTOR_OPT_SAT_ENGINE**
 
-      | Set sat solver engine (``value``: BTOR_SAT_ENGINE_LINGELING,
-        BTOR_SAT_ENGINE_PICOSAT, BTOR_SAT_ENGINE_MINISAT).
+      | Set sat solver engine.
       | Available option values and default values depend on the sat solvers
         configured.
+
+      * BTOR_SAT_ENGINE_CADICAL:
+        `CaDiCaL <https://fmv.jku.at/cadical>`_
+      * BTOR_SAT_ENGINE_LINGELING:
+        `Lingeling <https://fmv.jku.at/lingeling>`_
+      * BTOR_SAT_ENGINE_MINISAT:
+        `MiniSat <https://github.com/niklasso/minisat>`_
+      * BTOR_SAT_ENGINE_PICOSAT:
+        `PicoSat <http://fmv.jku.at/picosat/>`_
   */
   BTOR_OPT_SAT_ENGINE,
 
@@ -318,11 +360,13 @@ enum BtorOption
     * **BTOR_OPT_FUN_DUAL_PROP_QSORT**
 
       | Set order in which inputs are assumed in dual propagation clone.
-      | Boolector uses BTOR_DP_QSORT_JUST by default.
 
-      * BTOR_DP_QSORT_JUST (0): order by score, highest score first
-      * BTOR_DP_QSORT_ASC (1): order by input id, ascending
-      * BTOR_DP_QSORT_DESC (2): order by input id, descending
+      * BTOR_DP_QSORT_JUST [default]:
+        order by score, highest score first
+      * BTOR_DP_QSORT_ASC:
+        order by input id, ascending
+      * BTOR_DP_QSORT_DESC:
+        order by input id, descending
   */
   BTOR_OPT_FUN_DUAL_PROP_QSORT,
 
@@ -339,12 +383,13 @@ enum BtorOption
 
       | Set heuristic that determines path selection for justification
         optimization.
-      | Boolector uses BTOR_JUST_HEUR_BRANCH_MIN_APP by default.
 
-      * BTOR_JUST_HEUR_LEF (0): always choose left branch
-      * BTOR_JUST_HEUR_BRANCH_MIN_APP (1): choose branch with minimum number of
-        applies
-      * BTOR_JUST_HEUR_BRANCH_MIN_DEP (2): choose branch with minimum depth
+      * BTOR_JUST_HEUR_BRANCH_MIN_APP [default]:
+        choose branch with minimum number of applies
+      * BTOR_JUST_HEUR_BRANCH_MIN_DEP:
+        choose branch with minimum depth
+      * BTOR_JUST_HEUR_LEFT:
+        always choose left branch
   */
   BTOR_OPT_FUN_JUST_HEURISTIC,
 
@@ -359,11 +404,16 @@ enum BtorOption
   /*!
     * **BTOR_OPT_FUN_EAGER_LEMMAS**
 
-      | Enable (``value``: 1) or disable (``value``: 0) eager generation
-        lemmas.
-      | If enabled, in each refinement iteration, lemmas for all possible
-        conflicts for the candidate model are generated (rather than generating
-        one single lemma per refinement iteration).
+      | Select mode for eager generation lemmas.
+
+      * BTOR_FUN_EAGER_LEMMAS_NONE:
+        do not generate lemmas eagerly (generate one single lemma per
+        refinement iteration)
+      * BTOR_FUN_EAGER_LEMMAS_CONF:
+        only generate lemmas eagerly until the first conflict dependent on
+        another conflict is found
+      * BTOR_FUN_EAGER_LEMMAS_ALL:
+        in each refinement iteration, generate lemmas for all conflicts
   */
   BTOR_OPT_FUN_EAGER_LEMMAS,
 
@@ -385,19 +435,20 @@ enum BtorOption
   /*!
     * **BTOR_OPT_SLS_STRATEGY**
 
-      | Set move strategy for SLS engine.
-      | Boolector uses BTOR_SLS_STRAT_BEST_MOVE by default.
+      | Select move strategy for SLS engine.
 
-      * BTOR_SLS_STRAT_BEST_MOVE (0): always choose best score improving move
-      * BTOR_SLS_STRAT_RAND_WALK (1): always choose random walk weighted by
-        score
-      * BTOR_SLS_STRAT_FIRST_BEST_MOVE (2): always choose first best move (no
-        matter if any other move is better)
-      * BTOR_SLS_STRAT_BEST_SAME_MOVE (3): determine move as best move even if
-        its score is not better but the same as the score of the previous best
-        move
-      * BTOR_SLS_STRAT_ALWAYS_PROP (4): always choose propagation move (and
-        recover with SLS move in case of conflict)
+      * BTOR_SLS_STRAT_BEST_MOVE:
+        always choose best score improving move
+      * BTOR_SLS_STRAT_RAND_WALK:
+        always choose random walk weighted by score
+      * BTOR_SLS_STRAT_FIRST_BEST_MOVE [default]:
+        always choose first best move (no matter if any other move is better)
+      * BTOR_SLS_STRAT_BEST_SAME_MOVE:
+        determine move as best move even if its score is not better but the
+        same as the score of the previous best move
+      * BTOR_SLS_STRAT_ALWAYS_PROP:
+        always choose propagation move (and recover with SLS move in case of
+        conflict)
   */
   BTOR_OPT_SLS_STRATEGY,
 
@@ -573,7 +624,14 @@ enum BtorOption
   /*!
     * **BTOR_OPT_PROP_PATH_SEL**
 
-      Choose mode for path selection.
+      Select mode for path selection.
+
+      * BTOR_PROP_PATH_SEL_CONTROLLING:
+        select path based on controlling inputs
+      * BTOR_PROP_PATH_SEL_ESSENTIAL [default]:
+        select path based on essential inputs
+      * BTOR_PROP_PATH_SEL_RANDOM:
+        select path based on random inputs
   */
   BTOR_OPT_PROP_PATH_SEL,
 
@@ -708,14 +766,72 @@ enum BtorOption
   BTOR_OPT_AIGPROP_USE_BANDIT,
 
   /* QUANT engine ------------------------------------------------------- */
+  /*!
+   * **BTOR_OPT_QUANT_SYNTH**
+
+     Select synthesis mode for Skolem functions.
+
+     * BTOR_QUANT_SYNTH_NONE:
+       do not synthesize skolem functions (use model values for instantiation)
+     * BTOR_QUANT_SYNTH_EL:
+       use enumerative learning to synthesize skolem functions
+     * BTOR_QUANT_SYNTH_ELMC:
+       use enumerative learning modulo the predicates in the cone of influence
+       of the existential variables to synthesize skolem functions
+     * BTOR_QUANT_SYNTH_EL_ELMC:
+       chain BTOR_QUANT_SYNTH_EL and BTOR_QUANT_SYNTH_ELMC approaches to
+       synthesize skolem functions
+     * BTOR_QUANT_SYNTH_ELMR:
+       use enumerative learning modulo the given root constraints to synthesize
+       skolem functions
+  */
   BTOR_OPT_QUANT_SYNTH,
+
+  /*!
+   * **BTOR_OPT_QUANT_DUAL_SOLVER**
+
+      Enable (``value``: 1) or disable (``value``: 0) solving the dual
+      (negated) version of the quantified bit-vector formula.
+   */
   BTOR_OPT_QUANT_DUAL_SOLVER,
+
+  /*!
+   * **BTOR_OPT_QUANT_SYNTH_LIMIT**
+
+      Set the limit of enumerated expressions for the enumerative learning
+      synthesis algorithm.
+   */
   BTOR_OPT_QUANT_SYNTH_LIMIT,
-  BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE,
-  BTOR_OPT_QUANT_FIXSYNTH,
+
+  /*!
+   * **BTOR_OPT_SYNTH_QI**
+
+      Enable (``value``: 1) or disable (``value``: 0) generalization of
+      quantifier instantiations via enumerative learning.
+   */
   BTOR_OPT_QUANT_SYNTH_QI,
+
+  /*!
+   * **BTOR_OPT_QUANT_DER**
+
+      Enable (``value``: 1) or disable (``value``: 0) destructive equality
+      resolution simplification.
+   */
   BTOR_OPT_QUANT_DER,
+
+  /*!
+   * **BTOR_OPT_QUANT_CER**
+
+      Enable (``value``: 1) or disable (``value``: 0) constructive equality
+      resolution simplification.
+   */
   BTOR_OPT_QUANT_CER,
+
+  /*!
+   * **BTOR_OPT_QUANT_MINISCOPE**
+
+      Enable (``value``: 1) or disable (``value``: 0) miniscoping.
+   */
   BTOR_OPT_QUANT_MINISCOPE,
 
   /* internal options --------------------------------------------------- */
@@ -733,6 +849,8 @@ enum BtorOption
   BTOR_OPT_SAT_ENGINE_LGL_FORK,
   BTOR_OPT_INCREMENTAL_RW,
   BTOR_OPT_DECLSORT_BV_WIDTH,
+  BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE,
+  BTOR_OPT_QUANT_FIXSYNTH,
   /* this MUST be the last entry! */
   BTOR_OPT_NUM_OPTS,
 };

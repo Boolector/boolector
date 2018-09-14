@@ -258,15 +258,15 @@ btor_opt_init_opts (Btor *btor)
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   add_opt_help (mm,
                 opts,
+                "aigprop",
+                BTOR_ENGINE_AIGPROP,
+                "use the propagation-based local search engine (QF_BV only)");
+  add_opt_help (mm,
+                opts,
                 "fun",
                 BTOR_ENGINE_FUN,
                 "use the default engine (supports any combination of QF_AUFBV "
                 "+ lambdas, uses eager bit-blasting for QF_BV)");
-  add_opt_help (mm,
-                opts,
-                "sls",
-                BTOR_ENGINE_SLS,
-                "use the score-based local search engine (QF_BV only)");
   add_opt_help (mm,
                 opts,
                 "prop",
@@ -274,9 +274,9 @@ btor_opt_init_opts (Btor *btor)
                 "use the propagation-based local search engine (QF_BV only)");
   add_opt_help (mm,
                 opts,
-                "aigprop",
-                BTOR_ENGINE_AIGPROP,
-                "use the propagation-based local search engine (QF_BV only)");
+                "sls",
+                BTOR_ENGINE_SLS,
+                "use the score-based local search engine (QF_BV only)");
   add_opt_help (mm,
                 opts,
                 "quant",
@@ -905,17 +905,17 @@ btor_opt_init_opts (Btor *btor)
                 opts,
                 "controlling",
                 BTOR_PROP_PATH_SEL_CONTROLLING,
-                "select bath based on controlling inputs");
+                "select path based on controlling inputs");
   add_opt_help (mm,
                 opts,
                 "essential",
                 BTOR_PROP_PATH_SEL_ESSENTIAL,
-                "select bath based on essential inputs");
+                "select path based on essential inputs");
   add_opt_help (mm,
                 opts,
                 "random",
                 BTOR_PROP_PATH_SEL_RANDOM,
-                "select bath based on random inputs");
+                "select path based on random inputs");
   btor->options[BTOR_OPT_PROP_PATH_SEL].options = opts;
 
   init_opt (btor,
