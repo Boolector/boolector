@@ -12,4 +12,4 @@ MINISAT_DIR=${SETUP_DIR}/minisat
 # Download and build MiniSat
 git clone --depth 1 https://github.com/niklasso/minisat.git ${MINISAT_DIR}
 cd ${MINISAT_DIR}
-make -j${NPROC}
+make -j${NPROC} CXXFLAGS=-fPIC
