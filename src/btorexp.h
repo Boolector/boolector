@@ -55,7 +55,7 @@ BtorNode *btor_exp_false (Btor *btor);
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
  */
-BtorNode *btor_exp_int (Btor *emg, int32_t i, BtorSortId sort);
+BtorNode *btor_exp_int (Btor *btor, int32_t i, BtorSortId sort);
 
 /* Binary constant representing the unsigned integer.
  * The constant is obtained by either truncating bits
