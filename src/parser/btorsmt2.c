@@ -46,7 +46,7 @@ typedef enum BtorSMT2TagClass
   BTOR_KEYWORD_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 3),
   BTOR_CORE_TAG_CLASS_SMT2     = (BTOR_CLASS_SIZE_SMT2 << 4),
   BTOR_ARRAY_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 5),
-  BTOR_BITVEC_TAG_CLASS_SMT2   = (BTOR_CLASS_SIZE_SMT2 << 6),
+  BTOR_BV_TAG_CLASS_SMT2       = (BTOR_CLASS_SIZE_SMT2 << 6),
   BTOR_LOGIC_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 7),
 } BtorSMT2TagClass;
 
@@ -68,10 +68,16 @@ typedef enum BtorSMT2Tag
   /* (<sorted_var>+) */
   BTOR_SORTED_VARS_TAG_SMT2 = 10 + BTOR_OTHER_TAG_CLASS_SMT2,
 
+  /* ---------------------------------------------------------------------- */
+  /* Constants                                                              */
+
   BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2 = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_BINARY_CONSTANT_TAG_SMT2      = 2 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_STRING_CONSTANT_TAG_SMT2      = 3 + BTOR_CONSTANT_TAG_CLASS_SMT2,
+
+  /* ---------------------------------------------------------------------- */
+  /* Reserved Words                                                         */
 
   BTOR_PAR_TAG_SMT2                   = 0 + BTOR_RESERVED_TAG_CLASS_SMT2,
   BTOR_NUMERAL_RESERVED_WORD_TAG_SMT2 = 1 + BTOR_RESERVED_TAG_CLASS_SMT2,
@@ -83,6 +89,9 @@ typedef enum BtorSMT2Tag
   BTOR_LET_TAG_SMT2                   = 7 + BTOR_RESERVED_TAG_CLASS_SMT2,
   BTOR_FORALL_TAG_SMT2                = 8 + BTOR_RESERVED_TAG_CLASS_SMT2,
   BTOR_EXISTS_TAG_SMT2                = 9 + BTOR_RESERVED_TAG_CLASS_SMT2,
+
+  /* ---------------------------------------------------------------------- */
+  /* Commands                                                               */
 
   BTOR_SET_LOGIC_TAG_SMT2             = 0 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_SET_OPTION_TAG_SMT2            = 1 + BTOR_COMMAND_TAG_CLASS_SMT2,
@@ -109,6 +118,9 @@ typedef enum BtorSMT2Tag
   BTOR_GET_MODEL_TAG_SMT2             = 22 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_MODEL_TAG_SMT2                 = 23 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_ECHO_TAG_SMT2                  = 24 + BTOR_COMMAND_TAG_CLASS_SMT2,
+
+  /* ---------------------------------------------------------------------- */
+  /* Keywords                                                               */
 
   BTOR_ALL_STATISTICS_TAG_SMT2            = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                   = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -145,8 +157,11 @@ typedef enum BtorSMT2Tag
   BTOR_VALUES_TAG_SMT2                    = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERBOSITY_TAG_SMT2                 = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                   = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  /* ---------------------------------------------------------------------- */
 
+  /* ---------------------------------------------------------------------- */
+  /* Theories                                                               */
+
+  /* Core ----------------------------------------------------------------- */
   BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
   BTOR_TRUE_TAG_SMT2     = 1 + BTOR_CORE_TAG_CLASS_SMT2,
   BTOR_FALSE_TAG_SMT2    = 2 + BTOR_CORE_TAG_CLASS_SMT2,
@@ -159,79 +174,84 @@ typedef enum BtorSMT2Tag
   BTOR_DISTINCT_TAG_SMT2 = 9 + BTOR_CORE_TAG_CLASS_SMT2,
   BTOR_ITE_TAG_SMT2      = 10 + BTOR_CORE_TAG_CLASS_SMT2,
 
-  BTOR_ARRAY_TAG_SMT2  = 0 + BTOR_ARRAY_TAG_CLASS_SMT2,
-  BTOR_SELECT_TAG_SMT2 = 1 + BTOR_ARRAY_TAG_CLASS_SMT2,
-  BTOR_STORE_TAG_SMT2  = 2 + BTOR_ARRAY_TAG_CLASS_SMT2,
+  /* Array ---------------------------------------------------------------- */
+  BTOR_ARRAY_TAG_SMT2        = 0 + BTOR_ARRAY_TAG_CLASS_SMT2,
+  BTOR_ARRAY_SELECT_TAG_SMT2 = 1 + BTOR_ARRAY_TAG_CLASS_SMT2,
+  BTOR_ARRAY_STORE_TAG_SMT2  = 2 + BTOR_ARRAY_TAG_CLASS_SMT2,
 
-  BTOR_BITVEC_TAG_SMT2       = 0 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_CONCAT_TAG_SMT2       = 1 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_EXTRACT_TAG_SMT2      = 2 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVNOT_TAG_SMT2        = 3 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVNEG_TAG_SMT2        = 4 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVAND_TAG_SMT2        = 5 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVOR_TAG_SMT2         = 6 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVADD_TAG_SMT2        = 7 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVMUL_TAG_SMT2        = 8 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVUDIV_TAG_SMT2       = 9 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVUREM_TAG_SMT2       = 10 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSHL_TAG_SMT2        = 11 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVLSHR_TAG_SMT2       = 12 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVULT_TAG_SMT2        = 13 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVNAND_TAG_SMT2       = 14 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVNOR_TAG_SMT2        = 15 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVXOR_TAG_SMT2        = 16 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVXNOR_TAG_SMT2       = 17 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVCOMP_TAG_SMT2       = 18 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSUB_TAG_SMT2        = 19 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSDIV_TAG_SMT2       = 20 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSREM_TAG_SMT2       = 21 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSMOD_TAG_SMT2       = 22 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVASHR_TAG_SMT2       = 23 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_REPEAT_TAG_SMT2       = 24 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_ZERO_EXTEND_TAG_SMT2  = 25 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_SIGN_EXTEND_TAG_SMT2  = 26 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_ROTATE_LEFT_TAG_SMT2  = 27 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_ROTATE_RIGHT_TAG_SMT2 = 28 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVULE_TAG_SMT2        = 29 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVUGT_TAG_SMT2        = 30 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVUGE_TAG_SMT2        = 31 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSLT_TAG_SMT2        = 32 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSLE_TAG_SMT2        = 33 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSGT_TAG_SMT2        = 34 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  /* Bit-Vectors ---------------------------------------------------------- */
+  BTOR_BV_BITVEC_TAG_SMT2       = 0 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_CONCAT_TAG_SMT2       = 1 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_EXTRACT_TAG_SMT2      = 2 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_NOT_TAG_SMT2          = 3 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_NEG_TAG_SMT2          = 4 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_AND_TAG_SMT2          = 5 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_OR_TAG_SMT2           = 6 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ADD_TAG_SMT2          = 7 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_MUL_TAG_SMT2          = 8 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_UDIV_TAG_SMT2         = 9 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_UREM_TAG_SMT2         = 10 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SHL_TAG_SMT2          = 11 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_LSHR_TAG_SMT2         = 12 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ULT_TAG_SMT2          = 13 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_NAND_TAG_SMT2         = 14 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BVNOR_TAG_SMT2           = 15 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_XOR_TAG_SMT2          = 16 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_XNOR_TAG_SMT2         = 17 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_COMP_TAG_SMT2         = 18 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SUB_TAG_SMT2          = 19 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SDIV_TAG_SMT2         = 20 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SREM_TAG_SMT2         = 21 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SMOD_TAG_SMT2         = 22 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ASHR_TAG_SMT2         = 23 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_REPEAT_TAG_SMT2       = 24 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ZERO_EXTEND_TAG_SMT2  = 25 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SIGN_EXTEND_TAG_SMT2  = 26 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ROTATE_LEFT_TAG_SMT2  = 27 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ROTATE_RIGHT_TAG_SMT2 = 28 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_ULE_TAG_SMT2          = 29 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_UGT_TAG_SMT2          = 30 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_UGE_TAG_SMT2          = 31 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SLT_TAG_SMT2          = 32 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SLE_TAG_SMT2          = 33 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SGT_TAG_SMT2          = 34 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_SGE_TAG_SMT2          = 35 + BTOR_BV_TAG_CLASS_SMT2,
   /* Z3 extensions */
-  BTOR_BVREDOR_TAG_SMT2          = 36 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVREDAND_TAG_SMT2         = 37 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_EXT_ROTATE_LEFT_TAG_SMT2  = 38 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_EXT_ROTATE_RIGHT_TAG_SMT2 = 39 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_BV_REDOR_TAG_SMT2            = 36 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_REDAND_TAG_SMT2           = 37 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2  = 38 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_EXT_ROTATE_RIGHT_TAG_SMT2 = 39 + BTOR_BV_TAG_CLASS_SMT2,
 
-  BTOR_AUFLIA_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_AUFLIRA_TAG_SMT2   = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_AUFNIRA_TAG_SMT2   = 2 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_LRA_TAG_SMT2       = 3 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_ABV_TAG_SMT2    = 4 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_AUFBV_TAG_SMT2  = 5 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_AUFLIA_TAG_SMT2 = 6 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_AX_TAG_SMT2     = 7 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_BV_TAG_SMT2     = 8 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_IDL_TAG_SMT2    = 9 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_LIA_TAG_SMT2    = 10 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_LRA_TAG_SMT2    = 11 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_NIA_TAG_SMT2    = 12 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_NRA_TAG_SMT2    = 13 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_RDL_TAG_SMT2    = 14 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UF_TAG_SMT2     = 15 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UFBV_TAG_SMT2   = 16 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UFIDL_TAG_SMT2  = 17 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UFLIA_TAG_SMT2  = 18 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UFLRA_TAG_SMT2  = 19 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_UFNRA_TAG_SMT2  = 20 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_UFLRA_TAG_SMT2     = 21 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_UFNIA_TAG_SMT2     = 22 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_BV_TAG_SMT2        = 23 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_UFBV_TAG_SMT2      = 24 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_ABV_TAG_SMT2       = 25 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_ALL_SMT2           = 26 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  /* ---------------------------------------------------------------------- */
+  /* Logic                                                                  */
+
+  BTOR_LOGIC_AUFLIA_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_AUFLIRA_TAG_SMT2   = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_AUFNIRA_TAG_SMT2   = 2 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_LRA_TAG_SMT2       = 3 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_ABV_TAG_SMT2    = 4 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_AUFBV_TAG_SMT2  = 5 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_AUFLIA_TAG_SMT2 = 6 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_AX_TAG_SMT2     = 7 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_BV_TAG_SMT2     = 8 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_IDL_TAG_SMT2    = 9 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_LIA_TAG_SMT2    = 10 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_LRA_TAG_SMT2    = 11 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_NIA_TAG_SMT2    = 12 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_NRA_TAG_SMT2    = 13 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_RDL_TAG_SMT2    = 14 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UF_TAG_SMT2     = 15 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UFBV_TAG_SMT2   = 16 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UFIDL_TAG_SMT2  = 17 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UFLIA_TAG_SMT2  = 18 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UFLRA_TAG_SMT2  = 19 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_QF_UFNRA_TAG_SMT2  = 20 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_UFLRA_TAG_SMT2     = 21 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_UFNIA_TAG_SMT2     = 22 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_BV_TAG_SMT2        = 23 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_UFBV_TAG_SMT2      = 24 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_ABV_TAG_SMT2       = 25 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_LOGIC_ALL_TAG_SMT2       = 26 + BTOR_LOGIC_TAG_CLASS_SMT2,
 
 } BtorSMT2Tag;
 
@@ -569,7 +589,7 @@ new_node_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
 {
   BtorSMT2Node *res;
   BTOR_CNEW (parser->mem, res);
-  res->tag = tag;
+  res->tag         = tag;
   res->scope_level = parser->scope_level;
   return res;
 }
@@ -839,86 +859,86 @@ static void
 insert_array_symbols_smt2 (BtorSMT2Parser *parser)
 {
   INSERT ("Array", BTOR_ARRAY_TAG_SMT2);
-  INSERT ("select", BTOR_SELECT_TAG_SMT2);
-  INSERT ("store", BTOR_STORE_TAG_SMT2);
+  INSERT ("select", BTOR_ARRAY_SELECT_TAG_SMT2);
+  INSERT ("store", BTOR_ARRAY_STORE_TAG_SMT2);
 }
 
 static void
 insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
 {
-  INSERT ("BitVec", BTOR_BITVEC_TAG_SMT2);
-  INSERT ("concat", BTOR_CONCAT_TAG_SMT2);
-  INSERT ("extract", BTOR_EXTRACT_TAG_SMT2);
-  INSERT ("bvnot", BTOR_BVNOT_TAG_SMT2);
-  INSERT ("bvneg", BTOR_BVNEG_TAG_SMT2);
-  INSERT ("bvand", BTOR_BVAND_TAG_SMT2);
-  INSERT ("bvor", BTOR_BVOR_TAG_SMT2);
-  INSERT ("bvadd", BTOR_BVADD_TAG_SMT2);
-  INSERT ("bvmul", BTOR_BVMUL_TAG_SMT2);
-  INSERT ("bvudiv", BTOR_BVUDIV_TAG_SMT2);
-  INSERT ("bvurem", BTOR_BVUREM_TAG_SMT2);
-  INSERT ("bvshl", BTOR_BVSHL_TAG_SMT2);
-  INSERT ("bvlshr", BTOR_BVLSHR_TAG_SMT2);
-  INSERT ("bvult", BTOR_BVULT_TAG_SMT2);
-  INSERT ("bvnand", BTOR_BVNAND_TAG_SMT2);
+  INSERT ("BitVec", BTOR_BV_BITVEC_TAG_SMT2);
+  INSERT ("concat", BTOR_BV_CONCAT_TAG_SMT2);
+  INSERT ("extract", BTOR_BV_EXTRACT_TAG_SMT2);
+  INSERT ("bvnot", BTOR_BV_NOT_TAG_SMT2);
+  INSERT ("bvneg", BTOR_BV_NEG_TAG_SMT2);
+  INSERT ("bvand", BTOR_BV_AND_TAG_SMT2);
+  INSERT ("bvor", BTOR_BV_OR_TAG_SMT2);
+  INSERT ("bvadd", BTOR_BV_ADD_TAG_SMT2);
+  INSERT ("bvmul", BTOR_BV_MUL_TAG_SMT2);
+  INSERT ("bvudiv", BTOR_BV_UDIV_TAG_SMT2);
+  INSERT ("bvurem", BTOR_BV_UREM_TAG_SMT2);
+  INSERT ("bvshl", BTOR_BV_SHL_TAG_SMT2);
+  INSERT ("bvlshr", BTOR_BV_LSHR_TAG_SMT2);
+  INSERT ("bvult", BTOR_BV_ULT_TAG_SMT2);
+  INSERT ("bvnand", BTOR_BV_NAND_TAG_SMT2);
   INSERT ("bvnor", BTOR_BVNOR_TAG_SMT2);
-  INSERT ("bvxor", BTOR_BVXOR_TAG_SMT2);
-  INSERT ("bvxnor", BTOR_BVXNOR_TAG_SMT2);
-  INSERT ("bvcomp", BTOR_BVCOMP_TAG_SMT2);
-  INSERT ("bvsub", BTOR_BVSUB_TAG_SMT2);
-  INSERT ("bvsdiv", BTOR_BVSDIV_TAG_SMT2);
-  INSERT ("bvsrem", BTOR_BVSREM_TAG_SMT2);
-  INSERT ("bvsmod", BTOR_BVSMOD_TAG_SMT2);
-  INSERT ("bvashr", BTOR_BVASHR_TAG_SMT2);
-  INSERT ("repeat", BTOR_REPEAT_TAG_SMT2);
-  INSERT ("zero_extend", BTOR_ZERO_EXTEND_TAG_SMT2);
-  INSERT ("sign_extend", BTOR_SIGN_EXTEND_TAG_SMT2);
-  INSERT ("rotate_left", BTOR_ROTATE_LEFT_TAG_SMT2);
-  INSERT ("rotate_right", BTOR_ROTATE_RIGHT_TAG_SMT2);
-  INSERT ("bvule", BTOR_BVULE_TAG_SMT2);
-  INSERT ("bvugt", BTOR_BVUGT_TAG_SMT2);
-  INSERT ("bvuge", BTOR_BVUGE_TAG_SMT2);
-  INSERT ("bvslt", BTOR_BVSLT_TAG_SMT2);
-  INSERT ("bvsle", BTOR_BVSLE_TAG_SMT2);
-  INSERT ("bvsgt", BTOR_BVSGT_TAG_SMT2);
-  INSERT ("bvsge", BTOR_BVSGE_TAG_SMT2);
+  INSERT ("bvxor", BTOR_BV_XOR_TAG_SMT2);
+  INSERT ("bvxnor", BTOR_BV_XNOR_TAG_SMT2);
+  INSERT ("bvcomp", BTOR_BV_COMP_TAG_SMT2);
+  INSERT ("bvsub", BTOR_BV_SUB_TAG_SMT2);
+  INSERT ("bvsdiv", BTOR_BV_SDIV_TAG_SMT2);
+  INSERT ("bvsrem", BTOR_BV_SREM_TAG_SMT2);
+  INSERT ("bvsmod", BTOR_BV_SMOD_TAG_SMT2);
+  INSERT ("bvashr", BTOR_BV_ASHR_TAG_SMT2);
+  INSERT ("repeat", BTOR_BV_REPEAT_TAG_SMT2);
+  INSERT ("zero_extend", BTOR_BV_ZERO_EXTEND_TAG_SMT2);
+  INSERT ("sign_extend", BTOR_BV_SIGN_EXTEND_TAG_SMT2);
+  INSERT ("rotate_left", BTOR_BV_ROTATE_LEFT_TAG_SMT2);
+  INSERT ("rotate_right", BTOR_BV_ROTATE_RIGHT_TAG_SMT2);
+  INSERT ("bvule", BTOR_BV_ULE_TAG_SMT2);
+  INSERT ("bvugt", BTOR_BV_UGT_TAG_SMT2);
+  INSERT ("bvuge", BTOR_BV_UGE_TAG_SMT2);
+  INSERT ("bvslt", BTOR_BV_SLT_TAG_SMT2);
+  INSERT ("bvsle", BTOR_BV_SLE_TAG_SMT2);
+  INSERT ("bvsgt", BTOR_BV_SGT_TAG_SMT2);
+  INSERT ("bvsge", BTOR_BV_SGE_TAG_SMT2);
   /* Z3 extensions */
-  INSERT ("bvredor", BTOR_BVREDOR_TAG_SMT2);
-  INSERT ("bvredand", BTOR_BVREDAND_TAG_SMT2);
-  INSERT ("ext_rotate_left", BTOR_EXT_ROTATE_LEFT_TAG_SMT2);
-  INSERT ("ext_rotate_right", BTOR_EXT_ROTATE_RIGHT_TAG_SMT2);
+  INSERT ("bvredor", BTOR_BV_REDOR_TAG_SMT2);
+  INSERT ("bvredand", BTOR_BV_REDAND_TAG_SMT2);
+  INSERT ("ext_rotate_left", BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2);
+  INSERT ("ext_rotate_right", BTOR_BV_EXT_ROTATE_RIGHT_TAG_SMT2);
 }
 
 static void
 insert_logics_smt2 (BtorSMT2Parser *parser)
 {
-  INSERT ("AUFLIA", BTOR_AUFLIA_TAG_SMT2);
-  INSERT ("AUFLIRA", BTOR_AUFLIRA_TAG_SMT2);
-  INSERT ("AUFNIRA", BTOR_AUFNIRA_TAG_SMT2);
-  INSERT ("LRA", BTOR_LRA_TAG_SMT2);
-  INSERT ("QF_ABV", BTOR_QF_ABV_TAG_SMT2);
-  INSERT ("QF_AUFBV", BTOR_QF_AUFBV_TAG_SMT2);
-  INSERT ("QF_AUFLIA", BTOR_QF_AUFLIA_TAG_SMT2);
-  INSERT ("QF_AX", BTOR_QF_AX_TAG_SMT2);
-  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
-  INSERT ("QF_IDL", BTOR_QF_IDL_TAG_SMT2);
-  INSERT ("QF_LIA", BTOR_QF_LIA_TAG_SMT2);
-  INSERT ("QF_LRA", BTOR_QF_LRA_TAG_SMT2);
-  INSERT ("QF_NIA", BTOR_QF_NIA_TAG_SMT2);
-  INSERT ("QF_NRA", BTOR_QF_NRA_TAG_SMT2);
-  INSERT ("QF_RDL", BTOR_QF_RDL_TAG_SMT2);
-  INSERT ("QF_UF", BTOR_QF_UF_TAG_SMT2);
-  INSERT ("QF_UFBV", BTOR_QF_UFBV_TAG_SMT2);
-  INSERT ("QF_UFIDL", BTOR_QF_UFIDL_TAG_SMT2);
-  INSERT ("QF_UFLIA", BTOR_QF_UFLIA_TAG_SMT2);
-  INSERT ("QF_UFLRA", BTOR_QF_UFLRA_TAG_SMT2);
-  INSERT ("QF_UFNRA", BTOR_QF_UFNRA_TAG_SMT2);
-  INSERT ("UFLRA", BTOR_UFLRA_TAG_SMT2);
-  INSERT ("UFNIA", BTOR_UFNIA_TAG_SMT2);
-  INSERT ("BV", BTOR_BV_TAG_SMT2);
-  INSERT ("UFBV", BTOR_UFBV_TAG_SMT2);
-  INSERT ("ABV", BTOR_ABV_TAG_SMT2);
-  INSERT ("ALL", BTOR_ALL_SMT2);
+  INSERT ("AUFLIA", BTOR_LOGIC_AUFLIA_TAG_SMT2);
+  INSERT ("AUFLIRA", BTOR_LOGIC_AUFLIRA_TAG_SMT2);
+  INSERT ("AUFNIRA", BTOR_LOGIC_AUFNIRA_TAG_SMT2);
+  INSERT ("LRA", BTOR_LOGIC_LRA_TAG_SMT2);
+  INSERT ("QF_ABV", BTOR_LOGIC_QF_ABV_TAG_SMT2);
+  INSERT ("QF_AUFBV", BTOR_LOGIC_QF_AUFBV_TAG_SMT2);
+  INSERT ("QF_AUFLIA", BTOR_LOGIC_QF_AUFLIA_TAG_SMT2);
+  INSERT ("QF_AX", BTOR_LOGIC_QF_AX_TAG_SMT2);
+  INSERT ("QF_BV", BTOR_LOGIC_QF_BV_TAG_SMT2);
+  INSERT ("QF_IDL", BTOR_LOGIC_QF_IDL_TAG_SMT2);
+  INSERT ("QF_LIA", BTOR_LOGIC_QF_LIA_TAG_SMT2);
+  INSERT ("QF_LRA", BTOR_LOGIC_QF_LRA_TAG_SMT2);
+  INSERT ("QF_NIA", BTOR_LOGIC_QF_NIA_TAG_SMT2);
+  INSERT ("QF_NRA", BTOR_LOGIC_QF_NRA_TAG_SMT2);
+  INSERT ("QF_RDL", BTOR_LOGIC_QF_RDL_TAG_SMT2);
+  INSERT ("QF_UF", BTOR_LOGIC_QF_UF_TAG_SMT2);
+  INSERT ("QF_UFBV", BTOR_LOGIC_QF_UFBV_TAG_SMT2);
+  INSERT ("QF_UFIDL", BTOR_LOGIC_QF_UFIDL_TAG_SMT2);
+  INSERT ("QF_UFLIA", BTOR_LOGIC_QF_UFLIA_TAG_SMT2);
+  INSERT ("QF_UFLRA", BTOR_LOGIC_QF_UFLRA_TAG_SMT2);
+  INSERT ("QF_UFNRA", BTOR_LOGIC_QF_UFNRA_TAG_SMT2);
+  INSERT ("UFLRA", BTOR_LOGIC_UFLRA_TAG_SMT2);
+  INSERT ("UFNIA", BTOR_LOGIC_UFNIA_TAG_SMT2);
+  INSERT ("BV", BTOR_LOGIC_BV_TAG_SMT2);
+  INSERT ("UFBV", BTOR_LOGIC_UFBV_TAG_SMT2);
+  INSERT ("ABV", BTOR_LOGIC_ABV_TAG_SMT2);
+  INSERT ("ALL", BTOR_LOGIC_ALL_TAG_SMT2);
 }
 
 static BtorSMT2Parser *
@@ -1449,7 +1469,7 @@ last_lpar_smt2 (BtorSMT2Parser *parser)
 #define BTOR_TAG_CLASS_MASK_SMT2                              \
   (BTOR_RESERVED_TAG_CLASS_SMT2 | BTOR_COMMAND_TAG_CLASS_SMT2 \
    | BTOR_KEYWORD_TAG_CLASS_SMT2 | BTOR_CORE_TAG_CLASS_SMT2   \
-   | BTOR_ARRAY_TAG_CLASS_SMT2 | BTOR_BITVEC_TAG_CLASS_SMT2   \
+   | BTOR_ARRAY_TAG_CLASS_SMT2 | BTOR_BV_TAG_CLASS_SMT2       \
    | BTOR_LOGIC_TAG_CLASS_SMT2)
 
 static bool
@@ -2148,7 +2168,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_cond (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_SELECT_TAG_SMT2)
+      else if (tag == BTOR_ARRAY_SELECT_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!boolector_is_array (parser->btor, p[1].exp))
@@ -2177,7 +2197,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_read (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_STORE_TAG_SMT2)
+      else if (tag == BTOR_ARRAY_STORE_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!boolector_is_array (parser->btor, p[1].exp))
@@ -2223,7 +2243,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_write (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_EXTRACT_TAG_SMT2)
+      else if (tag == BTOR_BV_EXTRACT_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
@@ -2240,7 +2260,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_slice (parser->btor, p[1].exp, p->hi, p->lo);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_BVNOT_TAG_SMT2)
+      else if (tag == BTOR_BV_NOT_TAG_SMT2)
       {
         unaryfun = boolector_not;
       UNARY_BV_FUN:
@@ -2249,22 +2269,22 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = unaryfun (parser->btor, p[1].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_BVNEG_TAG_SMT2)
+      else if (tag == BTOR_BV_NEG_TAG_SMT2)
       {
         unaryfun = boolector_neg;
         goto UNARY_BV_FUN;
       }
-      else if (tag == BTOR_BVREDOR_TAG_SMT2)
+      else if (tag == BTOR_BV_REDOR_TAG_SMT2)
       {
         unaryfun = boolector_redor;
         goto UNARY_BV_FUN;
       }
-      else if (tag == BTOR_BVREDAND_TAG_SMT2)
+      else if (tag == BTOR_BV_REDAND_TAG_SMT2)
       {
         unaryfun = boolector_redand;
         goto UNARY_BV_FUN;
       }
-      else if (tag == BTOR_CONCAT_TAG_SMT2)
+      else if (tag == BTOR_BV_CONCAT_TAG_SMT2)
       {
         binfun = boolector_concat;
       BIN_BV_LEFT_ASSOCIATIVE_CORE:
@@ -2273,7 +2293,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser, "argument to '%s' missing", p->node->name);
         }
-        if (tag != BTOR_CONCAT_TAG_SMT2
+        if (tag != BTOR_BV_CONCAT_TAG_SMT2
             && !check_arg_sorts_match_smt2 (parser, p, nargs))
           return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
@@ -2292,37 +2312,37 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         assert (exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_BVAND_TAG_SMT2)
+      else if (tag == BTOR_BV_AND_TAG_SMT2)
       {
         binfun = boolector_and;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVOR_TAG_SMT2)
+      else if (tag == BTOR_BV_OR_TAG_SMT2)
       {
         binfun = boolector_or;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVXOR_TAG_SMT2)
+      else if (tag == BTOR_BV_XOR_TAG_SMT2)
       {
         binfun = boolector_xor;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVADD_TAG_SMT2)
+      else if (tag == BTOR_BV_ADD_TAG_SMT2)
       {
         binfun = boolector_add;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVSUB_TAG_SMT2)
+      else if (tag == BTOR_BV_SUB_TAG_SMT2)
       {
         binfun = boolector_sub;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVMUL_TAG_SMT2)
+      else if (tag == BTOR_BV_MUL_TAG_SMT2)
       {
         binfun = boolector_mul;
         goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
       }
-      else if (tag == BTOR_BVUDIV_TAG_SMT2)
+      else if (tag == BTOR_BV_UDIV_TAG_SMT2)
       {
         binfun = boolector_udiv;
       BINARY_BV_FUN:
@@ -2332,27 +2352,27 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = binfun (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_BVUREM_TAG_SMT2)
+      else if (tag == BTOR_BV_UREM_TAG_SMT2)
       {
         binfun = boolector_urem;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSHL_TAG_SMT2)
+      else if (tag == BTOR_BV_SHL_TAG_SMT2)
       {
         binfun = boolector_sll;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVLSHR_TAG_SMT2)
+      else if (tag == BTOR_BV_LSHR_TAG_SMT2)
       {
         binfun = boolector_srl;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVULT_TAG_SMT2)
+      else if (tag == BTOR_BV_ULT_TAG_SMT2)
       {
         binfun = boolector_ult;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVNAND_TAG_SMT2)
+      else if (tag == BTOR_BV_NAND_TAG_SMT2)
       {
         binfun = boolector_nand;
         goto BINARY_BV_FUN;
@@ -2362,37 +2382,37 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         binfun = boolector_nor;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVXNOR_TAG_SMT2)
+      else if (tag == BTOR_BV_XNOR_TAG_SMT2)
       {
         binfun = boolector_xnor;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVCOMP_TAG_SMT2)
+      else if (tag == BTOR_BV_COMP_TAG_SMT2)
       {
         binfun = boolector_eq;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSDIV_TAG_SMT2)
+      else if (tag == BTOR_BV_SDIV_TAG_SMT2)
       {
         binfun = boolector_sdiv;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSREM_TAG_SMT2)
+      else if (tag == BTOR_BV_SREM_TAG_SMT2)
       {
         binfun = boolector_srem;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSMOD_TAG_SMT2)
+      else if (tag == BTOR_BV_SMOD_TAG_SMT2)
       {
         binfun = boolector_smod;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVASHR_TAG_SMT2)
+      else if (tag == BTOR_BV_ASHR_TAG_SMT2)
       {
         binfun = boolector_sra;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_REPEAT_TAG_SMT2)
+      else if (tag == BTOR_BV_REPEAT_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
@@ -2406,7 +2426,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = boolector_repeat (parser->btor, p[1].exp, p->num);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
+      else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
       {
         extfun = boolector_uext;
       EXTEND_BV_FUN:
@@ -2422,12 +2442,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp = extfun (parser->btor, p[1].exp, p->num);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
+      else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
       {
         extfun = boolector_sext;
         goto EXTEND_BV_FUN;
       }
-      else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
+      else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
       {
         rotatefun = rotate_left_smt2;
       ROTATE_BV_FUN:
@@ -2437,14 +2457,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         exp   = rotatefun (parser->btor, p[1].exp, p->num % width);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
+      else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
       {
         rotatefun = rotate_right_smt2;
         goto ROTATE_BV_FUN;
       }
       /* Z3 bit vector extension */
-      else if (tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2
-               || tag == BTOR_EXT_ROTATE_RIGHT_TAG_SMT2)
+      else if (tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2
+               || tag == BTOR_BV_EXT_ROTATE_RIGHT_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
@@ -2456,45 +2476,46 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               "second argument '%s' of ext_rotate_%s"
               "is not a bit vector constant",
               p[2].node->name,
-              tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2 ? "left" : "right");
+              tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2 ? "left" : "right");
         }
-        exp = translate_ext_rotate_smt2 (parser->btor,
-                                         p[1].exp,
-                                         p[2].exp,
-                                         tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2);
+        exp =
+            translate_ext_rotate_smt2 (parser->btor,
+                                       p[1].exp,
+                                       p[2].exp,
+                                       tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
-      else if (tag == BTOR_BVULE_TAG_SMT2)
+      else if (tag == BTOR_BV_ULE_TAG_SMT2)
       {
         binfun = boolector_ulte;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVUGT_TAG_SMT2)
+      else if (tag == BTOR_BV_UGT_TAG_SMT2)
       {
         binfun = boolector_ugt;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVUGE_TAG_SMT2)
+      else if (tag == BTOR_BV_UGE_TAG_SMT2)
       {
         binfun = boolector_ugte;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSLT_TAG_SMT2)
+      else if (tag == BTOR_BV_SLT_TAG_SMT2)
       {
         binfun = boolector_slt;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSLE_TAG_SMT2)
+      else if (tag == BTOR_BV_SLE_TAG_SMT2)
       {
         binfun = boolector_slte;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSGT_TAG_SMT2)
+      else if (tag == BTOR_BV_SGT_TAG_SMT2)
       {
         binfun = boolector_sgt;
         goto BINARY_BV_FUN;
       }
-      else if (tag == BTOR_BVSGE_TAG_SMT2)
+      else if (tag == BTOR_BV_SGE_TAG_SMT2)
       {
         binfun = boolector_sgte;
         goto BINARY_BV_FUN;
@@ -2798,7 +2819,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             open++, assert (open > 0);
             push_item_smt2 (parser, BTOR_SORTED_VARS_TAG_SMT2);
             assert (!parser->sorted_var);
-            parser->sorted_var = 1;
+            parser->sorted_var       = 1;
             parser->need_quantifiers = true;
           }
           else if (tag == BTOR_EXISTS_TAG_SMT2)
@@ -2820,7 +2841,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             if (tag == EOF)
               return !perr_smt2 (parser, "unexpected end-of-file after '_'");
 
-            if (tag == BTOR_REPEAT_TAG_SMT2)
+            if (tag == BTOR_BV_REPEAT_TAG_SMT2)
             {
               assert (node && tag == (int32_t) node->tag);
               read_rpar_msg = " to close '(_ repeat'";
@@ -2852,27 +2873,27 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               assert (open > 0);
               open--;
             }
-            else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
+            else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
             {
               read_rpar_msg = " to close '(_ zero_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
-            else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
+            else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
             {
               read_rpar_msg = " to close '(_ sign_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
-            else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
+            else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
             {
               read_rpar_msg = " to close '(_ rotate_left'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
-            else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
+            else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
             {
               read_rpar_msg = " to close '(_ rotate_right'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
-            else if (tag == BTOR_EXTRACT_TAG_SMT2)
+            else if (tag == BTOR_BV_EXTRACT_TAG_SMT2)
             {
               BtorSMT2Coo firstcoo;
               assert (node && tag == (int32_t) node->tag);
@@ -3008,9 +3029,9 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (tag == BTOR_ARRAY_TAG_SMT2)
             return !perr_smt2 (parser, "unexpected 'Array'");
         }
-        else if (tag & BTOR_BITVEC_TAG_CLASS_SMT2)
+        else if (tag & BTOR_BV_TAG_CLASS_SMT2)
         {
-          if (tag == BTOR_BITVEC_TAG_SMT2)
+          if (tag == BTOR_BV_BITVEC_TAG_SMT2)
             return !perr_smt2 (parser, "unexpected 'BitVec'");
         }
         else
@@ -3118,7 +3139,7 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !perr_smt2 (parser, "expected 'BitVec' but reached end-of-file");
-  if (tag != BTOR_BITVEC_TAG_SMT2)
+  if (tag != BTOR_BV_BITVEC_TAG_SMT2)
     return !perr_smt2 (
         parser, "expected 'BitVec' at '%s'", parser->token.start);
   tag = read_token_smt2 (parser);
@@ -3612,7 +3633,7 @@ declare_sort_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *sort_alias;
   BoolectorSort sort;
 
-  opt_bit_width = boolector_get_opt(parser->btor, BTOR_OPT_DECLSORT_BV_WIDTH);
+  opt_bit_width = boolector_get_opt (parser->btor, BTOR_OPT_DECLSORT_BV_WIDTH);
   if (!opt_bit_width)
     return !perr_smt2 (parser,
                        "'declare-sort' not supported if it is not interpreted "
@@ -3634,9 +3655,9 @@ declare_sort_smt2 (BtorSMT2Parser *parser)
 
   if (!parse_uint32_smt2 (parser, false, &arity)) return 0;
   if (arity != 0)
-    return !perr_smt2(parser, "sort arity other than 0 not supported");
+    return !perr_smt2 (parser, "sort arity other than 0 not supported");
 
-  sort = boolector_bitvec_sort (parser->btor, opt_bit_width);
+  sort                   = boolector_bitvec_sort (parser->btor, opt_bit_width);
   sort_alias->sort       = 1;
   sort_alias->sort_alias = sort;
   BTOR_PUSH_STACK (parser->sorts, sort);
@@ -3945,16 +3966,22 @@ read_command_smt2 (BtorSMT2Parser *parser)
             parser, "expected logic at '%s'", parser->token.start);
       switch (tag)
       {
-        case BTOR_QF_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_QF_BV; break;
-        case BTOR_QF_AUFBV_TAG_SMT2:
-        case BTOR_QF_UFBV_TAG_SMT2:
-        case BTOR_QF_ABV_TAG_SMT2:
+        case BTOR_LOGIC_QF_BV_TAG_SMT2:
+          parser->res->logic = BTOR_LOGIC_QF_BV;
+          break;
+        case BTOR_LOGIC_QF_AUFBV_TAG_SMT2:
+        case BTOR_LOGIC_QF_UFBV_TAG_SMT2:
+        case BTOR_LOGIC_QF_ABV_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_QF_AUFBV;
           break;
-        case BTOR_ABV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_QF_ABV; break;
-        case BTOR_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
-        case BTOR_UFBV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_QF_UFBV; break;
-        case BTOR_ALL_SMT2:
+        case BTOR_LOGIC_ABV_TAG_SMT2:
+          parser->res->logic = BTOR_LOGIC_QF_ABV;
+          break;
+        case BTOR_LOGIC_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
+        case BTOR_LOGIC_UFBV_TAG_SMT2:
+          parser->res->logic = BTOR_LOGIC_QF_UFBV;
+          break;
+        case BTOR_LOGIC_ALL_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_ALL;
           break;
         default:
@@ -4270,7 +4297,8 @@ parse_smt2_parser (BtorSMT2Parser *parser,
             parser->commands.all,
             delta);
 
-  if (parser->need_functions && parser->need_arrays
+  if (parser->need_functions
+      && parser->need_arrays
       && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
@@ -4303,7 +4331,8 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   }
   else if (parser->commands.set_logic)
   {
-    assert (!parser->need_functions || parser->res->logic == BTOR_LOGIC_QF_AUFBV
+    assert (!parser->need_functions
+            || parser->res->logic == BTOR_LOGIC_QF_AUFBV
             || parser->res->logic == BTOR_LOGIC_QF_UFBV
             || parser->res->logic == BTOR_LOGIC_QF_ABV);
     if (!parser->need_functions
