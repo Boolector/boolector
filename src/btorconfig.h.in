@@ -17,7 +17,7 @@
 #define BTOR_CONTRIB_DIR "@CMAKE_CURRENT_SOURCE_DIR@/contrib/"
 #define BTOR_RELEASED    "@TIME@"
 #define BTOR_VERSION     "@VERSION@"
-#define BTOR_ID          "@GIT_SHA1@"
+#define BTOR_ID          "@GIT_BRANCH@@GIT_SHA1@@GIT_DIRTY@"
 
 #endif
 
