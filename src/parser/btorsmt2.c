@@ -3175,6 +3175,41 @@ parse_term_smt2 (BtorSMT2Parser *parser,
   return parse_term_aux_smt2 (parser, false, 0, resptr, cooptr);
 }
 
+static int32_t
+parse_bit_width_smt2 (BtorSMT2Parser *parser, uint32_t *width)
+{
+  int32_t tag;
+
+  tag = read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2)
+  {
+    return 0;
+  }
+  if (tag == EOF)
+  {
+    return !perr_smt2 (parser, "expected bit-width but reached end-of-file");
+  }
+  if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
+  {
+    return !perr_smt2 (
+        parser, "expected bit-width at '%s'", parser->token.start);
+  }
+  assert (parser->token.start[0] != '-');
+  if (strchr (parser->token.start, '.'))
+  {
+    return !perr_smt2 (parser,
+                       "invalid bit-width '%s', expected integer",
+                       parser->token.start);
+  }
+  if (parser->token.start[0] == '0')
+  {
+    assert (!parser->token.start[1]);
+    return !perr_smt2 (parser, "invalid zero bit-width");
+  }
+  *width = 0;
+  return str2uint32_smt2 (parser, true, parser->token.start, width) ? 1 : 0;
+}
+
 /*
  * skiptokens = 1 -> skip BTOR_LPAR_TAG_SMT2
  * skiptokens = 2 -> skip BTOR_UNDERSCORE_TAG_SMT2
@@ -3188,7 +3223,11 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
 
   int32_t tag;
   uint32_t width;
-  if (skiptokens < 1 && !read_lpar_smt2 (parser, 0)) return 0;
+
+  if (skiptokens < 1 && !read_lpar_smt2 (parser, 0))
+  {
+    return 0;
+  }
   if (skiptokens < 2)
   {
     tag = read_token_smt2 (parser);
@@ -3197,38 +3236,33 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
     if (tag != BTOR_UNDERSCORE_TAG_SMT2)
       return !perr_smt2 (parser, "expected '_' at '%s'", parser->token.start);
   }
+
   tag = read_token_smt2 (parser);
-  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == BTOR_INVALID_TAG_SMT2)
+  {
+    return 0;
+  }
   if (tag == EOF)
+  {
     return !perr_smt2 (parser, "expected 'BitVec' but reached end-of-file");
+  }
   if (tag != BTOR_BV_BITVEC_TAG_SMT2)
+  {
     return !perr_smt2 (
         parser, "expected 'BitVec' at '%s'", parser->token.start);
-  tag = read_token_smt2 (parser);
-  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
-  if (tag == EOF)
-    return !perr_smt2 (parser, "expected bit-width but reached end-of-file");
-  if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
-    return !perr_smt2 (
-        parser, "expected bit-width at '%s'", parser->token.start);
-  assert (parser->token.start[0] != '-');
-  if (strchr (parser->token.start, '.'))
-    return !perr_smt2 (
-        parser, "invalid floating point bit-width '%s'", parser->token.start);
-  if (parser->token.start[0] == '0')
-  {
-    assert (!parser->token.start[1]);
-    return !perr_smt2 (parser, "invalid zero bit-width");
   }
-  width = 0;
-  if (!str2uint32_smt2 (parser, true, parser->token.start, &width)) return 0;
+
+  if (!parse_bit_width_smt2 (parser, &width))
+  {
+    return 0;
+  }
   BTOR_MSG (boolector_get_btor_msg (parser->btor),
             3,
             "parsed bit-vector sort of width %d",
             width);
-
   *resptr = boolector_bitvec_sort (parser->btor, width);
   BTOR_PUSH_STACK (parser->sorts, *resptr);
+
   return read_rpar_smt2 (parser, " to close bit-vector sort");
 }
 
