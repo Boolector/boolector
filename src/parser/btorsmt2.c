@@ -1886,6 +1886,9 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   BoolectorSort s;
   BtorSMT2Item *l, *p;
   BtorSMT2Node *sym, *new_sym;
+  Btor *btor;
+
+  btor = parser->btor;
 
   unaryfun = 0;
   binfun   = 0;
@@ -1974,7 +1977,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       if (tag == BTOR_EXP_TAG_SMT2)
       {
         /* function application */
-        if (nargs && boolector_is_fun (parser->btor, p[0].exp))
+        if (nargs && boolector_is_fun (btor, p[0].exp))
         {
           BoolectorNodePtrStack fargs;
           BTOR_INIT_STACK (parser->mem, fargs);
@@ -1989,12 +1992,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             BTOR_PUSH_STACK (fargs, p[i].exp);
           }
           tmp = p[0].exp;
-          if (nargs != boolector_get_fun_arity (parser->btor, tmp))
+          if (nargs != boolector_get_fun_arity (btor, tmp))
           {
             BTOR_RELEASE_STACK (fargs);
             return !perr_smt2 (parser, "invalid number of arguments");
           }
-          k = boolector_fun_sort_check (parser->btor, fargs.start, nargs, tmp);
+          k = boolector_fun_sort_check (btor, fargs.start, nargs, tmp);
           if (k >= 0)
           {
             BTOR_RELEASE_STACK (fargs);
@@ -2002,9 +2005,9 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           }
           parser->work.top = p;
           l->tag           = BTOR_EXP_TAG_SMT2;
-          l->exp = boolector_apply (parser->btor, fargs.start, nargs, tmp);
+          l->exp = boolector_apply (btor, fargs.start, nargs, tmp);
           for (i = 0; i <= nargs; i++)
-            boolector_release (parser->btor, p[i].exp);
+            boolector_release (btor, p[i].exp);
           BTOR_RELEASE_STACK (fargs);
         }
         else
@@ -2031,13 +2034,13 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              nargs);
         }
         tmp = p[1].exp;
-        if (boolector_is_array (parser->btor, tmp))
+        if (boolector_is_array (btor, tmp))
         {
           parser->perrcoo = p[1].coo;
           return !perr_smt2 (
               parser, "unexpected array expression as argument to 'not'");
         }
-        if ((width = boolector_get_width (parser->btor, tmp)) != 1)
+        if ((width = boolector_get_width (btor, tmp)) != 1)
         {
           parser->perrcoo = p[1].coo;
           return !perr_smt2 (
@@ -2047,8 +2050,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = boolector_not (parser->btor, tmp);
-        boolector_release (parser->btor, tmp);
+        l->exp           = boolector_not (btor, tmp);
+        boolector_release (btor, tmp);
       }
       /* CORE: IMPLIES ------------------------------------------------------ */
       else if (tag == BTOR_IMPLIES_TAG_SMT2)
@@ -2062,15 +2065,15 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (exp)
           {
             old = exp;
-            exp = boolector_implies (parser->btor, p[i].exp, old);
-            boolector_release (parser->btor, old);
+            exp = boolector_implies (btor, p[i].exp, old);
+            boolector_release (btor, old);
           }
           else
-            exp = boolector_copy (parser->btor, p[i].exp);
+            exp = boolector_copy (btor, p[i].exp);
         }
         assert (exp);
       RELEASE_EXP_AND_OVERWRITE:
-        for (i = 1; i <= nargs; i++) boolector_release (parser->btor, p[i].exp);
+        for (i = 1; i <= nargs; i++) boolector_release (btor, p[i].exp);
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
         l->exp           = exp;
@@ -2092,11 +2095,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (exp)
           {
             old = exp;
-            exp = binfun (parser->btor, old, p[i].exp);
-            boolector_release (parser->btor, old);
+            exp = binfun (btor, old, p[i].exp);
+            boolector_release (btor, old);
           }
           else
-            exp = boolector_copy (parser->btor, p[i].exp);
+            exp = boolector_copy (btor, p[i].exp);
         }
         assert (exp);
         goto RELEASE_EXP_AND_OVERWRITE;
@@ -2127,14 +2130,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser, "only one argument to '='");
         }
         if (!check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
-        exp = boolector_eq (parser->btor, p[1].exp, p[2].exp);
+        exp = boolector_eq (btor, p[1].exp, p[2].exp);
         for (i = 3; i < nargs; i++)
         {
-          tmp = boolector_eq (parser->btor, p[i - 1].exp, p[i].exp);
+          tmp = boolector_eq (btor, p[i - 1].exp, p[i].exp);
           old = exp;
-          exp = boolector_and (parser->btor, old, tmp);
-          boolector_release (parser->btor, old);
-          boolector_release (parser->btor, tmp);
+          exp = boolector_and (btor, old, tmp);
+          boolector_release (btor, old);
+          boolector_release (btor, tmp);
         }
         goto RELEASE_EXP_AND_OVERWRITE;
       }
@@ -2157,13 +2160,13 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         {
           for (j = i + 1; j <= nargs; j++)
           {
-            tmp = boolector_ne (parser->btor, p[i].exp, p[j].exp);
+            tmp = boolector_ne (btor, p[i].exp, p[j].exp);
             if (exp)
             {
               old = exp;
-              exp = boolector_and (parser->btor, old, tmp);
-              boolector_release (parser->btor, old);
-              boolector_release (parser->btor, tmp);
+              exp = boolector_and (btor, old, tmp);
+              boolector_release (btor, old);
+              boolector_release (btor, tmp);
             }
             else
             {
@@ -2179,26 +2182,26 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       {
         if (!check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!check_ite_args_sorts_match_smt2 (parser, p)) return 0;
-        exp = boolector_cond (parser->btor, p[1].exp, p[2].exp, p[3].exp);
+        exp = boolector_cond (btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* ARRAY: SELECT ------------------------------------------------------ */
       else if (tag == BTOR_ARRAY_SELECT_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
-        if (!boolector_is_array (parser->btor, p[1].exp))
+        if (!boolector_is_array (btor, p[1].exp))
         {
           parser->perrcoo = p[1].coo;
           return !perr_smt2 (parser,
                              "first argument of 'select' is not an array");
         }
-        if (boolector_is_array (parser->btor, p[2].exp))
+        if (boolector_is_array (btor, p[2].exp))
         {
           parser->perrcoo = p[2].coo;
           return !perr_smt2 (parser, "second argument of 'select' is an array");
         }
-        width  = boolector_get_width (parser->btor, p[2].exp);
-        domain = boolector_get_index_width (parser->btor, p[1].exp);
+        width  = boolector_get_width (btor, p[2].exp);
+        domain = boolector_get_index_width (btor, p[1].exp);
         if (width != domain)
         {
           parser->perrcoo = p->coo;
@@ -2209,31 +2212,31 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              domain,
                              width);
         }
-        exp = boolector_read (parser->btor, p[1].exp, p[2].exp);
+        exp = boolector_read (btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* ARRAY: STORE ------------------------------------------------------- */
       else if (tag == BTOR_ARRAY_STORE_TAG_SMT2)
       {
         if (!check_nargs_smt2 (parser, p, nargs, 3)) return 0;
-        if (!boolector_is_array (parser->btor, p[1].exp))
+        if (!boolector_is_array (btor, p[1].exp))
         {
           parser->perrcoo = p[1].coo;
           return !perr_smt2 (parser,
                              "first argument of 'store' is not an array");
         }
-        if (boolector_is_array (parser->btor, p[2].exp))
+        if (boolector_is_array (btor, p[2].exp))
         {
           parser->perrcoo = p[2].coo;
           return !perr_smt2 (parser, "second argument of 'store' is an array");
         }
-        if (boolector_is_array (parser->btor, p[3].exp))
+        if (boolector_is_array (btor, p[3].exp))
         {
           parser->perrcoo = p[3].coo;
           return !perr_smt2 (parser, "third argument of 'store' is an array");
         }
-        width  = boolector_get_width (parser->btor, p[2].exp);
-        domain = boolector_get_index_width (parser->btor, p[1].exp);
+        width  = boolector_get_width (btor, p[2].exp);
+        domain = boolector_get_index_width (btor, p[1].exp);
         if (width != domain)
         {
           parser->perrcoo = p->coo;
@@ -2244,8 +2247,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              domain,
                              width);
         }
-        width  = boolector_get_width (parser->btor, p[1].exp);
-        width2 = boolector_get_width (parser->btor, p[3].exp);
+        width  = boolector_get_width (btor, p[1].exp);
+        width2 = boolector_get_width (btor, p[3].exp);
         if (width != width2)
         {
           parser->perrcoo = p->coo;
@@ -2256,7 +2259,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              width,
                              width2);
         }
-        exp = boolector_write (parser->btor, p[1].exp, p[2].exp, p[3].exp);
+        exp = boolector_write (btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: EXTRACT -------------------------------------------------------- */
@@ -2264,7 +2267,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       {
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (parser->btor, p[1].exp);
+        width = boolector_get_width (btor, p[1].exp);
         if (width <= (uint32_t) p->idx0)
         {
           parser->perrcoo = p->coo;
@@ -2274,7 +2277,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              p->idx0,
                              width);
         }
-        exp = boolector_slice (parser->btor, p[1].exp, p->idx0, p->idx1);
+        exp = boolector_slice (btor, p[1].exp, p->idx0, p->idx1);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: NOT ------------------------------------------------------------ */
@@ -2284,7 +2287,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       UNARY_BV_FUN:
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        exp = unaryfun (parser->btor, p[1].exp);
+        exp = unaryfun (btor, p[1].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: NEG ------------------------------------------------------------ */
@@ -2325,11 +2328,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (exp)
           {
             old = exp;
-            exp = binfun (parser->btor, old, p[i].exp);
-            boolector_release (parser->btor, old);
+            exp = binfun (btor, old, p[i].exp);
+            boolector_release (btor, old);
           }
           else
-            exp = boolector_copy (parser->btor, p[i].exp);
+            exp = boolector_copy (btor, p[i].exp);
         }
         assert (exp);
         goto RELEASE_EXP_AND_OVERWRITE;
@@ -2378,7 +2381,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        exp = binfun (parser->btor, p[1].exp, p[2].exp);
+        exp = binfun (btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: UREM ----------------------------------------------------------- */
@@ -2458,14 +2461,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       {
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (parser->btor, p[1].exp);
+        width = boolector_get_width (btor, p[1].exp);
         if (p->num && ((uint32_t) (INT32_MAX / p->num) < width))
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "resulting bit-width of 'repeat' too large");
         }
-        exp = boolector_repeat (parser->btor, p[1].exp, p->num);
+        exp = boolector_repeat (btor, p[1].exp, p->num);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: ZERO EXTEND ---------------------------------------------------- */
@@ -2475,14 +2478,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       EXTEND_BV_FUN:
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (parser->btor, p[1].exp);
+        width = boolector_get_width (btor, p[1].exp);
         if ((uint32_t) (INT32_MAX - p->num) < width)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (
               parser, "resulting bit-width of '%s' too large", p->node->name);
         }
-        exp = extfun (parser->btor, p[1].exp, p->num);
+        exp = extfun (btor, p[1].exp, p->num);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: SIGN EXTEND ---------------------------------------------------- */
@@ -2498,8 +2501,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       ROTATE_BV_FUN:
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (parser->btor, p[1].exp);
-        exp   = rotatefun (parser->btor, p[1].exp, p->num % width);
+        width = boolector_get_width (btor, p[1].exp);
+        exp   = rotatefun (btor, p[1].exp, p->num % width);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: ROTATE RIGHT --------------------------------------------------- */
@@ -2514,7 +2517,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       {
         if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        if (!boolector_is_const (parser->btor, p[2].exp))
+        if (!boolector_is_const (btor, p[2].exp))
         {
           parser->perrcoo = p[2].coo;
           return !perr_smt2 (
@@ -2525,7 +2528,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2 ? "left" : "right");
         }
         exp =
-            translate_ext_rotate_smt2 (parser->btor,
+            translate_ext_rotate_smt2 (btor,
                                        p[1].exp,
                                        p[2].exp,
                                        tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2);
@@ -2687,17 +2690,17 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           assert (sym->tag);
           assert (sym->tag == BTOR_SYMBOL_TAG_SMT2);
           assert (sym->exp);
-          BTOR_PUSH_STACK (params, boolector_copy (parser->btor, sym->exp));
+          BTOR_PUSH_STACK (params, boolector_copy (btor, sym->exp));
           remove_symbol_smt2 (parser, sym);
         }
         l[0].tag = BTOR_EXP_TAG_SMT2;
-        l[0].exp = quantfun (parser->btor,
+        l[0].exp = quantfun (btor,
                              params.start,
                              BTOR_COUNT_STACK (params),
                              p[nargs].exp);
         while (!BTOR_EMPTY_STACK (params))
-          boolector_release (parser->btor, BTOR_POP_STACK (params));
-        boolector_release (parser->btor, p[nargs].exp);
+          boolector_release (btor, BTOR_POP_STACK (params));
+        boolector_release (btor, p[nargs].exp);
         BTOR_RELEASE_STACK (params);
         parser->work.top = p;
       }
@@ -2722,7 +2725,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         parser->work.top = p;
         l->tag           = BTOR_SYMBOL_TAG_SMT2;
         l->node          = p[1].node;
-        assert (boolector_is_param (parser->btor, l->node->exp));
+        assert (boolector_is_param (btor, l->node->exp));
         assert (!parser->sorted_var);
         parser->sorted_var = 1;
       }
@@ -2735,7 +2738,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         for (i = 1; i <= nargs; i++)
         {
           assert (p[i].tag == BTOR_SYMBOL_TAG_SMT2);
-          assert (boolector_is_param (parser->btor, p[i].node->exp));
+          assert (boolector_is_param (btor, p[i].node->exp));
         }
 #endif
         for (i = 0; i < nargs; i++) l[i] = p[i + 1];
@@ -2835,7 +2838,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           char buf[strlen (sym->name)
                    + btor_util_num_digits (parser->bound_vars) + 2];
           sprintf (buf, "%s!%d", sym->name, parser->bound_vars++);
-          sym->exp = boolector_param (parser->btor, s, buf);
+          sym->exp = boolector_param (btor, s, buf);
         }
         open++;
       }
@@ -3004,12 +3007,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                                   width);
               }
               else if (width2 == width)
-                exp = boolector_const (parser->btor, constr);
+                exp = boolector_const (btor, constr);
               else if (!width2)
               {
-                s   = boolector_bitvec_sort (parser->btor, width);
-                exp = boolector_zero (parser->btor, s);
-                boolector_release_sort (parser->btor, s);
+                s   = boolector_bitvec_sort (btor, width);
+                exp = boolector_zero (btor, s);
+                boolector_release_sort (btor, s);
               }
               else
               {
@@ -3024,7 +3027,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                       btor_bv_uext (parser->mem, constrbv, width - width2);
                 }
                 uconstr = btor_bv_to_char (parser->mem, uconstrbv);
-                exp     = boolector_const (parser->btor, uconstr);
+                exp     = boolector_const (btor, uconstr);
                 btor_mem_freestr (parser->mem, uconstr);
                 btor_bv_free (parser->mem, uconstrbv);
                 if (constrbv) btor_bv_free (parser->mem, constrbv);
@@ -3033,7 +3036,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               btor_mem_freestr (parser->mem, decstr);
               btor_mem_freestr (parser->mem, constr);
               if (!exp) return 0;
-              assert (boolector_get_width (parser->btor, exp) == width);
+              assert (boolector_get_width (btor, exp) == width);
               assert (p > parser->work.start);
               p--, parser->work.top--;
               assert (p->tag == BTOR_LPAR_TAG_SMT2);
@@ -3061,17 +3064,17 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (!p->node->exp)
             return !perr_smt2 (parser, "undefined symbol '%s'", p->node->name);
           p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_copy (parser->btor, p->node->exp);
+          p->exp = boolector_copy (btor, p->node->exp);
         }
         else if (tag == BTOR_TRUE_TAG_SMT2)
         {
           p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_true (parser->btor);
+          p->exp = boolector_true (btor);
         }
         else if (tag == BTOR_FALSE_TAG_SMT2)
         {
           p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_false (parser->btor);
+          p->exp = boolector_false (btor);
         }
         else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
         {
@@ -3100,7 +3103,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
       {
         p->tag = BTOR_EXP_TAG_SMT2;
-        p->exp = boolector_const (parser->btor, parser->token.start + 2);
+        p->exp = boolector_const (btor, parser->token.start + 2);
       }
       else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
       {
@@ -3127,7 +3130,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           if (constrbv) btor_bv_free (parser->mem, constrbv);
         }
         p->tag = BTOR_EXP_TAG_SMT2;
-        p->exp = boolector_const (parser->btor, uconstr);
+        p->exp = boolector_const (btor, uconstr);
         btor_mem_freestr (parser->mem, uconstr);
         btor_mem_freestr (parser->mem, constr);
       }
@@ -3158,7 +3161,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         "internal parse error: failed to translate parsed term at '%s'",
         item2str_smt2 (p));
   }
-  res     = boolector_copy (parser->btor, p->exp);
+  res     = boolector_copy (btor, p->exp);
   *cooptr = p->coo;
   release_item_smt2 (parser, p);
   assert (BTOR_COUNT_STACK (parser->work) == work_cnt);
