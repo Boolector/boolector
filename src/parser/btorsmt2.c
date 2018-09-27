@@ -1307,7 +1307,6 @@ RESTART:
   else
     return !cerr_smt2 (parser, "illegal", ch, 0);
 
-  // TODO should be dead code ...?
   return !perr_smt2 (parser, "internal token reading error");
 }
 
@@ -2080,7 +2079,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_AND_TAG_SMT2)
       {
         binfun = boolector_and;
-      BIN_BOOL_LEFT_ASSOCIATIVE_CORE:
+      BIN_BOOL_LEFT_ASSOCIATIVE:
         if (nargs < 2)
         {
           parser->perrcoo = p->coo;
@@ -2106,13 +2105,13 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_OR_TAG_SMT2)
       {
         binfun = boolector_or;
-        goto BIN_BOOL_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BOOL_LEFT_ASSOCIATIVE;
       }
       /* CORE: XOR ---------------------------------------------------------- */
       else if (tag == BTOR_XOR_TAG_SMT2)
       {
         binfun = boolector_xor;
-        goto BIN_BOOL_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BOOL_LEFT_ASSOCIATIVE;
       }
       /* CORE: EQUAL -------------------------------------------------------- */
       else if (tag == BTOR_EQUAL_TAG_SMT2)
@@ -2310,7 +2309,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_BV_CONCAT_TAG_SMT2)
       {
         binfun = boolector_concat;
-      BIN_BV_LEFT_ASSOCIATIVE_CORE:
+      BIN_BV_LEFT_ASSOCIATIVE:
         if (nargs < 2)
         {
           parser->perrcoo = p->coo;
@@ -2339,37 +2338,37 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_BV_AND_TAG_SMT2)
       {
         binfun = boolector_and;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: OR ------------------------------------------------------------- */
       else if (tag == BTOR_BV_OR_TAG_SMT2)
       {
         binfun = boolector_or;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: XOR ------------------------------------------------------------ */
       else if (tag == BTOR_BV_XOR_TAG_SMT2)
       {
         binfun = boolector_xor;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: ADD ------------------------------------------------------------ */
       else if (tag == BTOR_BV_ADD_TAG_SMT2)
       {
         binfun = boolector_add;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: SUB ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SUB_TAG_SMT2)
       {
         binfun = boolector_sub;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: MUL ------------------------------------------------------------ */
       else if (tag == BTOR_BV_MUL_TAG_SMT2)
       {
         binfun = boolector_mul;
-        goto BIN_BV_LEFT_ASSOCIATIVE_CORE;
+        goto BIN_BV_LEFT_ASSOCIATIVE;
       }
       /* BV: UDIV ----------------------------------------------------------- */
       else if (tag == BTOR_BV_UDIV_TAG_SMT2)
