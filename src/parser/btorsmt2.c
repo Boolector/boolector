@@ -201,7 +201,7 @@ typedef enum BtorSMT2Tag
   BTOR_BV_LSHR_TAG_SMT2         = 12 + BTOR_BV_TAG_CLASS_SMT2,
   BTOR_BV_ULT_TAG_SMT2          = 13 + BTOR_BV_TAG_CLASS_SMT2,
   BTOR_BV_NAND_TAG_SMT2         = 14 + BTOR_BV_TAG_CLASS_SMT2,
-  BTOR_BVNOR_TAG_SMT2           = 15 + BTOR_BV_TAG_CLASS_SMT2,
+  BTOR_BV_NOR_TAG_SMT2          = 15 + BTOR_BV_TAG_CLASS_SMT2,
   BTOR_BV_XOR_TAG_SMT2          = 16 + BTOR_BV_TAG_CLASS_SMT2,
   BTOR_BV_XNOR_TAG_SMT2         = 17 + BTOR_BV_TAG_CLASS_SMT2,
   BTOR_BV_COMP_TAG_SMT2         = 18 + BTOR_BV_TAG_CLASS_SMT2,
@@ -887,7 +887,7 @@ insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
   INSERT ("bvlshr", BTOR_BV_LSHR_TAG_SMT2);
   INSERT ("bvult", BTOR_BV_ULT_TAG_SMT2);
   INSERT ("bvnand", BTOR_BV_NAND_TAG_SMT2);
-  INSERT ("bvnor", BTOR_BVNOR_TAG_SMT2);
+  INSERT ("bvnor", BTOR_BV_NOR_TAG_SMT2);
   INSERT ("bvxor", BTOR_BV_XOR_TAG_SMT2);
   INSERT ("bvxnor", BTOR_BV_XNOR_TAG_SMT2);
   INSERT ("bvcomp", BTOR_BV_COMP_TAG_SMT2);
@@ -2055,6 +2055,56 @@ close_term_bin_bv_left_associative (BtorSMT2Parser *parser,
   return 1;
 }
 
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+close_term_bin_bv_fun (BtorSMT2Parser *parser,
+                       BtorSMT2Item *item_open,
+                       BtorSMT2Item *item_cur,
+                       uint32_t nargs,
+                       BoolectorNode *(*fun) (Btor *,
+                                              BoolectorNode *,
+                                              BoolectorNode *) )
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_BV_UDIV_TAG_SMT2
+          || item_cur->tag == BTOR_BV_UREM_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SHL_TAG_SMT2
+          || item_cur->tag == BTOR_BV_LSHR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_ASHR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_NAND_TAG_SMT2
+          || item_cur->tag == BTOR_BV_NOR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_XNOR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_COMP_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SDIV_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SREM_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SMOD_TAG_SMT2
+          || item_cur->tag == BTOR_BV_ULT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_ULE_TAG_SMT2
+          || item_cur->tag == BTOR_BV_UGT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_UGE_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SLT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SLE_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SGT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SGE_TAG_SMT2);
+
+  BoolectorNode *exp;
+
+  if (!check_nargs_smt2 (parser, item_cur, nargs, 2)) return 0;
+  if (!check_arg_sorts_match_smt2 (parser, item_cur, 2)) return 0;
+  if (!check_not_array_or_uf_args_smt2 (parser, item_cur, nargs)) return 0;
+  exp = fun (parser->btor, item_cur[1].exp, item_cur[2].exp);
+  release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -2069,7 +2119,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   size_t work_cnt;
   int32_t k, tag, open = 0;
   uint32_t width, width2, domain, nargs, i, j;
-  BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
   BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int32_t);
   BoolectorNode *(*quantfun) (Btor *, BoolectorNode *[], int, BoolectorNode *);
@@ -2081,7 +2130,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
 
   btor = parser->btor;
 
-  binfun   = 0;
   work_cnt = BTOR_COUNT_STACK (parser->work);
   sym      = 0;
 
@@ -2537,85 +2585,106 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* BV: UDIV ----------------------------------------------------------- */
       else if (tag == BTOR_BV_UDIV_TAG_SMT2)
       {
-        binfun = boolector_udiv;
-      BINARY_BV_FUN:
-        if (!check_nargs_smt2 (parser, p, nargs, 2)) return 0;
-        if (!check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
-        if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        exp = binfun (btor, p[1].exp, p[2].exp);
-        release_exp_and_overwrite (parser, l, p, nargs, exp);
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_udiv))
+        {
+          return 0;
+        }
       }
       /* BV: UREM ----------------------------------------------------------- */
       else if (tag == BTOR_BV_UREM_TAG_SMT2)
       {
-        binfun = boolector_urem;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_urem))
+        {
+          return 0;
+        }
       }
       /* BV: SHL ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SHL_TAG_SMT2)
       {
-        binfun = boolector_sll;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_sll))
+        {
+          return 0;
+        }
       }
       /* BV: LSHR ----------------------------------------------------------- */
       else if (tag == BTOR_BV_LSHR_TAG_SMT2)
       {
-        binfun = boolector_srl;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_srl))
+        {
+          return 0;
+        }
       }
       /* BV: ULT ------------------------------------------------------------ */
       else if (tag == BTOR_BV_ULT_TAG_SMT2)
       {
-        binfun = boolector_ult;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_ult))
+        {
+          return 0;
+        }
       }
       /* BV: NAND ----------------------------------------------------------- */
       else if (tag == BTOR_BV_NAND_TAG_SMT2)
       {
-        binfun = boolector_nand;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_nand))
+        {
+          return 0;
+        }
       }
       /* BV: NOR ------------------------------------------------------------ */
-      else if (tag == BTOR_BVNOR_TAG_SMT2)
+      else if (tag == BTOR_BV_NOR_TAG_SMT2)
       {
-        binfun = boolector_nor;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_nor))
+        {
+          return 0;
+        }
       }
       /* BV: XNOR ----------------------------------------------------------- */
       else if (tag == BTOR_BV_XNOR_TAG_SMT2)
       {
-        binfun = boolector_xnor;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_xnor))
+        {
+          return 0;
+        }
       }
       /* BV: COMP ----------------------------------------------------------- */
       else if (tag == BTOR_BV_COMP_TAG_SMT2)
       {
-        binfun = boolector_eq;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_eq))
+        {
+          return 0;
+        }
       }
       /* BV: SDIV ----------------------------------------------------------- */
       else if (tag == BTOR_BV_SDIV_TAG_SMT2)
       {
-        binfun = boolector_sdiv;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_sdiv))
+        {
+          return 0;
+        }
       }
       /* BV: SREM ----------------------------------------------------------- */
       else if (tag == BTOR_BV_SREM_TAG_SMT2)
       {
-        binfun = boolector_srem;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_srem))
+        {
+          return 0;
+        }
       }
       /* BV: SMOD ----------------------------------------------------------- */
       else if (tag == BTOR_BV_SMOD_TAG_SMT2)
       {
-        binfun = boolector_smod;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_smod))
+        {
+          return 0;
+        }
       }
       /* BV: ASHR ----------------------------------------------------------- */
       else if (tag == BTOR_BV_ASHR_TAG_SMT2)
       {
-        binfun = boolector_sra;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_sra))
+        {
+          return 0;
+        }
       }
       /* BV: REPEAT --------------------------------------------------------- */
       else if (tag == BTOR_BV_REPEAT_TAG_SMT2)
@@ -2698,44 +2767,58 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* BV: ULE ------------------------------------------------------------ */
       else if (tag == BTOR_BV_ULE_TAG_SMT2)
       {
-        binfun = boolector_ulte;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_ulte))
+        {
+          return 0;
+        }
       }
       /* BV: UGT ------------------------------------------------------------ */
       else if (tag == BTOR_BV_UGT_TAG_SMT2)
       {
-        binfun = boolector_ugt;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_ugt))
+        {
+          return 0;
+        }
       }
       /* BV: UGE ------------------------------------------------------------ */
       else if (tag == BTOR_BV_UGE_TAG_SMT2)
       {
-        binfun = boolector_ugte;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_ugte))
+        {
+          return 0;
+        }
       }
       /* BV: SLT ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SLT_TAG_SMT2)
       {
-        binfun = boolector_slt;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_slt))
+        {
+          return 0;
+        }
       }
       /* BV: SLE ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SLE_TAG_SMT2)
       {
-        binfun = boolector_slte;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_slte))
+        {
+          return 0;
+        }
       }
       /* BV: SGT ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SGT_TAG_SMT2)
       {
-        binfun = boolector_sgt;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_sgt))
+        {
+          return 0;
+        }
       }
       /* BV: SGE ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SGE_TAG_SMT2)
       {
-        binfun = boolector_sgte;
-        goto BINARY_BV_FUN;
+        if (!close_term_bin_bv_fun (parser, l, p, nargs, boolector_sgte))
+        {
+          return 0;
+        }
       }
       /* let (<var_binding>+) <term> ------------------------------- */
       else if (tag == BTOR_LET_TAG_SMT2)
