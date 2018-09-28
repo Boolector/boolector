@@ -2913,7 +2913,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                 assert (parser->work.start[1].tag == BTOR_UNDERSCORE_TAG_SMT2);
                 parser->perrcoo = parser->work.start[0].coo;
                 return !perr_smt2 (
-                    parser, "expected another '(' before '(_ %s'", node->name);
+                    parser, "expected '(' before '(_ %s'", node->name);
               }
               if (parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
               {
