@@ -2150,6 +2150,39 @@ close_term_extend_bv_fun (BtorSMT2Parser *parser,
  * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
  */
 static int32_t
+close_term_rotate_bv_fun (BtorSMT2Parser *parser,
+                          BtorSMT2Item *item_open,
+                          BtorSMT2Item *item_cur,
+                          uint32_t nargs,
+                          BoolectorNode *(*fun) (Btor *,
+                                                 BoolectorNode *,
+                                                 int32_t))
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2);
+
+  BoolectorNode *exp;
+  uint32_t width;
+
+  if (!check_nargs_smt2 (parser, item_cur, nargs, 1)) return 0;
+  if (!check_not_array_or_uf_args_smt2 (parser, item_cur, nargs)) return 0;
+  width = boolector_get_width (parser->btor, item_cur[1].exp);
+  exp   = fun (parser->btor, item_cur[1].exp, item_cur->num % width);
+  release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
+  return 1;
+}
+
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
 close_term_quant (BtorSMT2Parser *parser,
                   BtorSMT2Item *item_open,
                   BtorSMT2Item *item_cur,
@@ -2233,7 +2266,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   size_t work_cnt;
   int32_t k, tag, open = 0;
   uint32_t width, width2, domain, nargs, i, j;
-  BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int32_t);
   BoolectorNode *res, *exp, *tmp, *old;
   BoolectorSort s;
   BtorSMT2Item *l, *p;
@@ -2832,19 +2864,18 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* BV: ROTATE LEFT ---------------------------------------------------- */
       else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
       {
-        rotatefun = rotate_left_smt2;
-      ROTATE_BV_FUN:
-        if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (btor, p[1].exp);
-        exp   = rotatefun (btor, p[1].exp, p->num % width);
-        release_exp_and_overwrite (parser, l, p, nargs, exp);
+        if (!close_term_rotate_bv_fun (parser, l, p, nargs, rotate_left_smt2))
+        {
+          return 0;
+        }
       }
       /* BV: ROTATE RIGHT --------------------------------------------------- */
       else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
       {
-        rotatefun = rotate_right_smt2;
-        goto ROTATE_BV_FUN;
+        if (!close_term_rotate_bv_fun (parser, l, p, nargs, rotate_right_smt2))
+        {
+          return 0;
+        }
       }
       /* BV: Z3 extensions -------------------------------------------------- */
       else if (tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2
