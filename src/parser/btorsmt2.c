@@ -2105,6 +2105,45 @@ close_term_bin_bv_fun (BtorSMT2Parser *parser,
   return 1;
 }
 
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+close_term_extend_bv_fun (BtorSMT2Parser *parser,
+                          BtorSMT2Item *item_open,
+                          BtorSMT2Item *item_cur,
+                          uint32_t nargs,
+                          BoolectorNode *(*fun) (Btor *,
+                                                 BoolectorNode *,
+                                                 uint32_t))
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2);
+
+  BoolectorNode *exp;
+  uint32_t width;
+
+  if (!check_nargs_smt2 (parser, item_cur, nargs, 1)) return 0;
+  if (!check_not_array_or_uf_args_smt2 (parser, item_cur, nargs)) return 0;
+  width = boolector_get_width (parser->btor, item_cur[1].exp);
+  if ((uint32_t) (INT32_MAX - item_cur->num) < width)
+  {
+    parser->perrcoo = item_cur->coo;
+    return !perr_smt2 (
+        parser, "resulting bit-width of '%s' too large", item_cur->node->name);
+  }
+  exp = fun (parser->btor, item_cur[1].exp, item_cur->num);
+  release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -2119,7 +2158,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   size_t work_cnt;
   int32_t k, tag, open = 0;
   uint32_t width, width2, domain, nargs, i, j;
-  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, uint32_t);
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int32_t);
   BoolectorNode *(*quantfun) (Btor *, BoolectorNode *[], int, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
@@ -2704,25 +2742,18 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* BV: ZERO EXTEND ---------------------------------------------------- */
       else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
       {
-        extfun = boolector_uext;
-      EXTEND_BV_FUN:
-        if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        width = boolector_get_width (btor, p[1].exp);
-        if ((uint32_t) (INT32_MAX - p->num) < width)
+        if (!close_term_extend_bv_fun (parser, l, p, nargs, boolector_uext))
         {
-          parser->perrcoo = p->coo;
-          return !perr_smt2 (
-              parser, "resulting bit-width of '%s' too large", p->node->name);
+          return 0;
         }
-        exp = extfun (btor, p[1].exp, p->num);
-        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: SIGN EXTEND ---------------------------------------------------- */
       else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
       {
-        extfun = boolector_sext;
-        goto EXTEND_BV_FUN;
+        if (!close_term_extend_bv_fun (parser, l, p, nargs, boolector_sext))
+        {
+          return 0;
+        }
       }
       /* BV: ROTATE LEFT ---------------------------------------------------- */
       else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
@@ -3412,6 +3443,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   *resptr = res;
   return 1;
 }
+
+/* -------------------------------------------------------------------------- */
 
 static int32_t
 parse_term_smt2 (BtorSMT2Parser *parser,
