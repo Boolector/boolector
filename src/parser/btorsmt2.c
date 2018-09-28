@@ -2144,6 +2144,81 @@ close_term_extend_bv_fun (BtorSMT2Parser *parser,
   return 1;
 }
 
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+close_term_quant (BtorSMT2Parser *parser,
+                  BtorSMT2Item *item_open,
+                  BtorSMT2Item *item_cur,
+                  uint32_t nargs,
+                  BoolectorNode *(*fun) (
+                      Btor *, BoolectorNode *[], int32_t, BoolectorNode *) )
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_FORALL_TAG_SMT2
+          || item_cur->tag == BTOR_EXISTS_TAG_SMT2);
+
+  BoolectorNodePtrStack params;
+  uint32_t i;
+  char *msg;
+  BtorSMT2Node *sym;
+
+  msg = item_cur->tag == BTOR_FORALL_TAG_SMT2 ? "forall" : "exists";
+
+  for (i = 1; i < nargs; i++)
+  {
+    if (item_cur[i].tag != BTOR_SYMBOL_TAG_SMT2)
+    {
+      parser->perrcoo = item_cur[i].coo;
+      return !perr_smt2 (
+          parser, "expected symbol as argument %d of '%s'", i, msg);
+    }
+  }
+  if (item_cur[nargs].tag != BTOR_SYMBOL_TAG_SMT2
+      && item_cur[nargs].tag != BTOR_EXP_TAG_SMT2)
+  {
+    parser->perrcoo = item_cur[nargs].coo;
+    return !perr_smt2 (
+        parser, "expected expression as argument %d of '%s'", nargs, msg);
+  }
+  if (!is_boolean_exp_smt2 (parser, item_cur + nargs))
+  {
+    parser->perrcoo = item_cur[nargs].coo;
+    return !perr_smt2 (parser, "body of '%s' is not a boolean term", msg);
+  }
+  BTOR_INIT_STACK (parser->mem, params);
+  for (i = 1; i < nargs; i++)
+  {
+    assert (item_cur[i].tag == BTOR_SYMBOL_TAG_SMT2);
+    sym = item_cur[i].node;
+    assert (sym);
+    assert (sym->coo.x);
+    assert (sym->tag);
+    assert (sym->tag == BTOR_SYMBOL_TAG_SMT2);
+    assert (sym->exp);
+    BTOR_PUSH_STACK (params, boolector_copy (parser->btor, sym->exp));
+    remove_symbol_smt2 (parser, sym);
+  }
+  item_open[0].tag = BTOR_EXP_TAG_SMT2;
+  item_open[0].exp = fun (parser->btor,
+                          params.start,
+                          BTOR_COUNT_STACK (params),
+                          item_cur[nargs].exp);
+  while (!BTOR_EMPTY_STACK (params))
+    boolector_release (parser->btor, BTOR_POP_STACK (params));
+  boolector_release (parser->btor, item_cur[nargs].exp);
+  BTOR_RELEASE_STACK (params);
+  parser->work.top = item_cur;
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -2159,7 +2234,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   int32_t k, tag, open = 0;
   uint32_t width, width2, domain, nargs, i, j;
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int32_t);
-  BoolectorNode *(*quantfun) (Btor *, BoolectorNode *[], int, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
   BoolectorSort s;
   BtorSMT2Item *l, *p;
@@ -2930,61 +3004,18 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* forall (<sorted_var>+) <term> -------------------------------------- */
       else if (tag == BTOR_FORALL_TAG_SMT2)
       {
-        BoolectorNodePtrStack params;
-        msg      = "forall";
-        quantfun = boolector_forall;
-      CREATE_QUANTIFIER_TERM:
-        for (i = 1; i < nargs; i++)
+        if (!close_term_quant (parser, l, p, nargs, boolector_forall))
         {
-          if (p[i].tag != BTOR_SYMBOL_TAG_SMT2)
-          {
-            parser->perrcoo = p[i].coo;
-            return !perr_smt2 (
-                parser, "expected symbol as argument %d of '%s'", i, msg);
-          }
+          return 0;
         }
-        if (p[nargs].tag != BTOR_SYMBOL_TAG_SMT2
-            && p[nargs].tag != BTOR_EXP_TAG_SMT2)
-        {
-          parser->perrcoo = p[nargs].coo;
-          return !perr_smt2 (
-              parser, "expected expression as argument %d of '%s'", nargs, msg);
-        }
-        if (!is_boolean_exp_smt2 (parser, p + nargs))
-        {
-          parser->perrcoo = p[nargs].coo;
-          return !perr_smt2 (parser, "body of '%s' is not a boolean term", msg);
-        }
-        BTOR_INIT_STACK (parser->mem, params);
-        for (i = 1; i < nargs; i++)
-        {
-          assert (p[i].tag == BTOR_SYMBOL_TAG_SMT2);
-          sym = p[i].node;
-          assert (sym);
-          assert (sym->coo.x);
-          assert (sym->tag);
-          assert (sym->tag == BTOR_SYMBOL_TAG_SMT2);
-          assert (sym->exp);
-          BTOR_PUSH_STACK (params, boolector_copy (btor, sym->exp));
-          remove_symbol_smt2 (parser, sym);
-        }
-        l[0].tag = BTOR_EXP_TAG_SMT2;
-        l[0].exp = quantfun (btor,
-                             params.start,
-                             BTOR_COUNT_STACK (params),
-                             p[nargs].exp);
-        while (!BTOR_EMPTY_STACK (params))
-          boolector_release (btor, BTOR_POP_STACK (params));
-        boolector_release (btor, p[nargs].exp);
-        BTOR_RELEASE_STACK (params);
-        parser->work.top = p;
       }
       /* exists (<sorted_var>+) <term> -------------------------------------- */
       else if (tag == BTOR_EXISTS_TAG_SMT2)
       {
-        msg      = "exists";
-        quantfun = boolector_exists;
-        goto CREATE_QUANTIFIER_TERM;
+        if (!close_term_quant (parser, l, p, nargs, boolector_exists))
+        {
+          return 0;
+        }
       }
       /* <sorted_var> ------------------------------------------------------- */
       else if (tag == BTOR_SORTED_VAR_TAG_SMT2)
