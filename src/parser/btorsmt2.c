@@ -1865,6 +1865,22 @@ static int parse_sort (BtorSMT2Parser *parser,
 
 /* -------------------------------------------------------------------------- */
 
+static void
+release_exp_and_overwrite (BtorSMT2Parser *parser,
+                           BtorSMT2Item *item_open,
+                           BtorSMT2Item *item_cur,
+                           uint32_t nargs,
+                           BoolectorNode *exp)
+{
+  uint32_t i;
+
+  for (i = 1; i <= nargs; i++)
+    boolector_release (parser->btor, item_cur[i].exp);
+  parser->work.top = item_cur;
+  item_open->tag   = BTOR_EXP_TAG_SMT2;
+  item_open->exp   = exp;
+}
+
 /**
  * item_open and item_cur point to items on the parser work stack.
  * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
@@ -1938,10 +1954,7 @@ close_term_bin_bool (BtorSMT2Parser *parser,
   }
   assert (exp);
 
-  for (i = 1; i <= nargs; i++) boolector_release (btor, item_cur[i].exp);
-  parser->work.top = item_cur;
-  item_open->tag   = BTOR_EXP_TAG_SMT2;
-  item_open->exp   = exp;
+  release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
 
   return 1;
 }
@@ -2191,11 +2204,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           boolector_release (btor, old);
           boolector_release (btor, tmp);
         }
-      RELEASE_EXP_AND_OVERWRITE:
-        for (i = 1; i <= nargs; i++) boolector_release (btor, p[i].exp);
-        parser->work.top = p;
-        l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = exp;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* CORE: DISTINCT ----------------------------------------------------- */
       else if (tag == BTOR_DISTINCT_TAG_SMT2)
@@ -2231,7 +2240,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           }
         }
         assert (exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* CORE: ITE ---------------------------------------------------------- */
       else if (tag == BTOR_ITE_TAG_SMT2)
@@ -2239,7 +2248,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!check_ite_args_sorts_match_smt2 (parser, p)) return 0;
         exp = boolector_cond (btor, p[1].exp, p[2].exp, p[3].exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* ARRAY: SELECT ------------------------------------------------------ */
       else if (tag == BTOR_ARRAY_SELECT_TAG_SMT2)
@@ -2269,7 +2278,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              width);
         }
         exp = boolector_read (btor, p[1].exp, p[2].exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* ARRAY: STORE ------------------------------------------------------- */
       else if (tag == BTOR_ARRAY_STORE_TAG_SMT2)
@@ -2316,7 +2325,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              width2);
         }
         exp = boolector_write (btor, p[1].exp, p[2].exp, p[3].exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: EXTRACT -------------------------------------------------------- */
       else if (tag == BTOR_BV_EXTRACT_TAG_SMT2)
@@ -2334,7 +2343,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              width);
         }
         exp = boolector_slice (btor, p[1].exp, p->idx0, p->idx1);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: NOT ------------------------------------------------------------ */
       else if (tag == BTOR_BV_NOT_TAG_SMT2)
@@ -2344,7 +2353,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         exp = unaryfun (btor, p[1].exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: NEG ------------------------------------------------------------ */
       else if (tag == BTOR_BV_NEG_TAG_SMT2)
@@ -2391,7 +2400,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             exp = boolector_copy (btor, p[i].exp);
         }
         assert (exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: AND ------------------------------------------------------------ */
       else if (tag == BTOR_BV_AND_TAG_SMT2)
@@ -2438,7 +2447,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         exp = binfun (btor, p[1].exp, p[2].exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: UREM ----------------------------------------------------------- */
       else if (tag == BTOR_BV_UREM_TAG_SMT2)
@@ -2525,7 +2534,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                              "resulting bit-width of 'repeat' too large");
         }
         exp = boolector_repeat (btor, p[1].exp, p->num);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: ZERO EXTEND ---------------------------------------------------- */
       else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
@@ -2542,7 +2551,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               parser, "resulting bit-width of '%s' too large", p->node->name);
         }
         exp = extfun (btor, p[1].exp, p->num);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: SIGN EXTEND ---------------------------------------------------- */
       else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
@@ -2559,7 +2568,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (btor, p[1].exp);
         exp   = rotatefun (btor, p[1].exp, p->num % width);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: ROTATE RIGHT --------------------------------------------------- */
       else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
@@ -2588,7 +2597,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                                        p[1].exp,
                                        p[2].exp,
                                        tag == BTOR_BV_EXT_ROTATE_LEFT_TAG_SMT2);
-        goto RELEASE_EXP_AND_OVERWRITE;
+        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: ULE ------------------------------------------------------------ */
       else if (tag == BTOR_BV_ULE_TAG_SMT2)
