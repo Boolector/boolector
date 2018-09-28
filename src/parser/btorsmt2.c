@@ -1863,6 +1863,89 @@ static int parse_sort (BtorSMT2Parser *parser,
                        bool allow_array_sort,
                        BoolectorSort *sort);
 
+/* -------------------------------------------------------------------------- */
+
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+close_term_bin_bool (BtorSMT2Parser *parser,
+                     BtorSMT2Item *item_open,
+                     BtorSMT2Item *item_cur,
+                     uint32_t nargs,
+                     BoolectorNode *(*fun) (Btor *,
+                                            BoolectorNode *,
+                                            BoolectorNode *) )
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_IMPLIES_TAG_SMT2
+          || item_cur->tag == BTOR_AND_TAG_SMT2
+          || item_cur->tag == BTOR_OR_TAG_SMT2
+          || item_cur->tag == BTOR_XOR_TAG_SMT2);
+
+  BoolectorNode *old, *exp;
+  Btor *btor;
+  uint32_t i;
+
+  btor = parser->btor;
+
+  if (nargs < 2)
+  {
+    parser->perrcoo = item_cur->coo;
+    return !perr_smt2 (
+        parser, "argument to '%s' missing", item_cur->node->name);
+  }
+
+  if (!check_boolean_args_smt2 (parser, item_cur, nargs)) return 0;
+
+  if (item_cur->tag == BTOR_IMPLIES_TAG_SMT2) /* right-associative */
+  {
+    for (i = nargs, exp = 0; i >= 1; i--)
+    {
+      if (exp)
+      {
+        old = exp;
+        exp = fun (btor, item_cur[i].exp, old);
+        boolector_release (btor, old);
+      }
+      else
+      {
+        exp = boolector_copy (btor, item_cur[i].exp);
+      }
+    }
+  }
+  else
+  {
+    for (i = 1, exp = 0; i <= nargs; i++)
+    {
+      if (exp)
+      {
+        old = exp;
+        exp = fun (btor, old, item_cur[i].exp);
+        boolector_release (btor, old);
+      }
+      else
+      {
+        exp = boolector_copy (btor, item_cur[i].exp);
+      }
+    }
+  }
+  assert (exp);
+
+  for (i = 1; i <= nargs; i++) boolector_release (btor, item_cur[i].exp);
+  parser->work.top = item_cur;
+  item_open->tag   = BTOR_EXP_TAG_SMT2;
+  item_open->exp   = exp;
+
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -2056,65 +2139,34 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* CORE: IMPLIES ------------------------------------------------------ */
       else if (tag == BTOR_IMPLIES_TAG_SMT2)
       {
-        if (!nargs)
-          return !perr_smt2 (parser, "argument to '%s' missing", p->node->name);
-        if (!check_boolean_args_smt2 (parser, p, nargs)) return 0;
-        exp = 0;
-        for (i = nargs; i >= 1; i--)
+        if (!close_term_bin_bool (parser, l, p, nargs, boolector_implies))
         {
-          if (exp)
-          {
-            old = exp;
-            exp = boolector_implies (btor, p[i].exp, old);
-            boolector_release (btor, old);
-          }
-          else
-            exp = boolector_copy (btor, p[i].exp);
+          return 0;
         }
-        assert (exp);
-      RELEASE_EXP_AND_OVERWRITE:
-        for (i = 1; i <= nargs; i++) boolector_release (btor, p[i].exp);
-        parser->work.top = p;
-        l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = exp;
       }
       /* CORE: AND ---------------------------------------------------------- */
       else if (tag == BTOR_AND_TAG_SMT2)
       {
-        binfun = boolector_and;
-      BIN_BOOL_LEFT_ASSOCIATIVE:
-        if (nargs < 2)
+        if (!close_term_bin_bool (parser, l, p, nargs, boolector_and))
         {
-          parser->perrcoo = p->coo;
-          return !perr_smt2 (parser, "argument to '%s' missing", p->node->name);
+          return 0;
         }
-        if (!check_boolean_args_smt2 (parser, p, nargs)) return 0;
-        exp = 0;
-        for (i = 1; i <= nargs; i++)
-        {
-          if (exp)
-          {
-            old = exp;
-            exp = binfun (btor, old, p[i].exp);
-            boolector_release (btor, old);
-          }
-          else
-            exp = boolector_copy (btor, p[i].exp);
-        }
-        assert (exp);
-        goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* CORE: OR ----------------------------------------------------------- */
       else if (tag == BTOR_OR_TAG_SMT2)
       {
-        binfun = boolector_or;
-        goto BIN_BOOL_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bool (parser, l, p, nargs, boolector_or))
+        {
+          return 0;
+        }
       }
       /* CORE: XOR ---------------------------------------------------------- */
       else if (tag == BTOR_XOR_TAG_SMT2)
       {
-        binfun = boolector_xor;
-        goto BIN_BOOL_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bool (parser, l, p, nargs, boolector_xor))
+        {
+          return 0;
+        }
       }
       /* CORE: EQUAL -------------------------------------------------------- */
       else if (tag == BTOR_EQUAL_TAG_SMT2)
@@ -2139,7 +2191,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           boolector_release (btor, old);
           boolector_release (btor, tmp);
         }
-        goto RELEASE_EXP_AND_OVERWRITE;
+      RELEASE_EXP_AND_OVERWRITE:
+        for (i = 1; i <= nargs; i++) boolector_release (btor, p[i].exp);
+        parser->work.top = p;
+        l->tag           = BTOR_EXP_TAG_SMT2;
+        l->exp           = exp;
       }
       /* CORE: DISTINCT ----------------------------------------------------- */
       else if (tag == BTOR_DISTINCT_TAG_SMT2)
