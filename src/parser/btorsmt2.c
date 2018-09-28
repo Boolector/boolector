@@ -3095,6 +3095,27 @@ close_term (BtorSMT2Parser *parser)
   return 1;
 }
 
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+parse_open_term_quant (BtorSMT2Parser *parser, char *msg)
+{
+  assert (parser);
+  assert (msg);
+
+  if (!read_lpar_smt2 (parser, msg)) return 0;
+  push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
+  parser->open++, assert (parser->open > 0);
+  push_item_smt2 (parser, BTOR_SORTED_VARS_TAG_SMT2);
+  assert (!parser->sorted_var);
+  parser->sorted_var       = 1;
+  parser->need_quantifiers = true;
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -3105,7 +3126,6 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                      BoolectorNode **resptr,
                      BtorSMT2Coo *cooptr)
 {
-  const char *msg;
   size_t work_cnt;
   int32_t tag;
   uint32_t width, width2;
@@ -3270,20 +3290,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           }
           else if (tag == BTOR_FORALL_TAG_SMT2)
           {
-            msg = " after 'forall'";
-          PARSE_QUANTIFIER_TERM:
-            if (!read_lpar_smt2 (parser, msg)) return 0;
-            push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
-            parser->open++, assert (parser->open > 0);
-            push_item_smt2 (parser, BTOR_SORTED_VARS_TAG_SMT2);
-            assert (!parser->sorted_var);
-            parser->sorted_var       = 1;
-            parser->need_quantifiers = true;
+            if (!parse_open_term_quant (parser, " after 'forall'")) return 0;
           }
           else if (tag == BTOR_EXISTS_TAG_SMT2)
           {
-            msg = " after 'exists'";
-            goto PARSE_QUANTIFIER_TERM;
+            if (!parse_open_term_quant (parser, " after 'exists'")) return 0;
           }
           else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
           {
