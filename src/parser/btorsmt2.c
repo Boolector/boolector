@@ -1990,6 +1990,71 @@ close_term_unary_bv_fun (BtorSMT2Parser *parser,
   return 1;
 }
 
+/**
+ * item_open and item_cur point to items on the parser work stack.
+ * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
+ * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
+ */
+static int32_t
+close_term_bin_bv_left_associative (BtorSMT2Parser *parser,
+                                    BtorSMT2Item *item_open,
+                                    BtorSMT2Item *item_cur,
+                                    uint32_t nargs,
+                                    BoolectorNode *(*fun) (Btor *,
+                                                           BoolectorNode *,
+                                                           BoolectorNode *) )
+{
+  assert (parser);
+  assert (item_open);
+  assert (item_cur);
+  assert (fun);
+
+  assert (item_cur->tag == BTOR_BV_CONCAT_TAG_SMT2
+          || item_cur->tag == BTOR_BV_AND_TAG_SMT2
+          || item_cur->tag == BTOR_BV_OR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_XOR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_ADD_TAG_SMT2
+          || item_cur->tag == BTOR_BV_SUB_TAG_SMT2
+          || item_cur->tag == BTOR_BV_MUL_TAG_SMT2);
+
+  BoolectorNode *old, *exp;
+  uint32_t i;
+
+  if (nargs < 2)
+  {
+    parser->perrcoo = item_cur->coo;
+    return !perr_smt2 (
+        parser, "argument to '%s' missing", item_cur->node->name);
+  }
+
+  if (item_cur->tag != BTOR_BV_CONCAT_TAG_SMT2
+      && !check_arg_sorts_match_smt2 (parser, item_cur, nargs))
+  {
+    return 0;
+  }
+
+  if (!check_not_array_or_uf_args_smt2 (parser, item_cur, nargs))
+  {
+    return 0;
+  }
+
+  for (i = 1, exp = 0; i <= nargs; i++)
+  {
+    if (exp)
+    {
+      old = exp;
+      exp = fun (parser->btor, old, item_cur[i].exp);
+      boolector_release (parser->btor, old);
+    }
+    else
+      exp = boolector_copy (parser->btor, item_cur[i].exp);
+  }
+  assert (exp);
+  release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
+
+  return 1;
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -2409,67 +2474,65 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       /* BV: CONCAT --------------------------------------------------------- */
       else if (tag == BTOR_BV_CONCAT_TAG_SMT2)
       {
-        binfun = boolector_concat;
-      BIN_BV_LEFT_ASSOCIATIVE:
-        if (nargs < 2)
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_concat))
         {
-          parser->perrcoo = p->coo;
-          return !perr_smt2 (parser, "argument to '%s' missing", p->node->name);
-        }
-        if (tag != BTOR_BV_CONCAT_TAG_SMT2
-            && !check_arg_sorts_match_smt2 (parser, p, nargs))
           return 0;
-        if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
-        exp = 0;
-        for (i = 1; i <= nargs; i++)
-        {
-          if (exp)
-          {
-            old = exp;
-            exp = binfun (btor, old, p[i].exp);
-            boolector_release (btor, old);
-          }
-          else
-            exp = boolector_copy (btor, p[i].exp);
         }
-        assert (exp);
-        release_exp_and_overwrite (parser, l, p, nargs, exp);
       }
       /* BV: AND ------------------------------------------------------------ */
       else if (tag == BTOR_BV_AND_TAG_SMT2)
       {
-        binfun = boolector_and;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_and))
+        {
+          return 0;
+        }
       }
       /* BV: OR ------------------------------------------------------------- */
       else if (tag == BTOR_BV_OR_TAG_SMT2)
       {
-        binfun = boolector_or;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_or))
+        {
+          return 0;
+        }
       }
       /* BV: XOR ------------------------------------------------------------ */
       else if (tag == BTOR_BV_XOR_TAG_SMT2)
       {
-        binfun = boolector_xor;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_xor))
+        {
+          return 0;
+        }
       }
       /* BV: ADD ------------------------------------------------------------ */
       else if (tag == BTOR_BV_ADD_TAG_SMT2)
       {
-        binfun = boolector_add;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_add))
+        {
+          return 0;
+        }
       }
       /* BV: SUB ------------------------------------------------------------ */
       else if (tag == BTOR_BV_SUB_TAG_SMT2)
       {
-        binfun = boolector_sub;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_sub))
+        {
+          return 0;
+        }
       }
       /* BV: MUL ------------------------------------------------------------ */
       else if (tag == BTOR_BV_MUL_TAG_SMT2)
       {
-        binfun = boolector_mul;
-        goto BIN_BV_LEFT_ASSOCIATIVE;
+        if (!close_term_bin_bv_left_associative (
+                parser, l, p, nargs, boolector_mul))
+        {
+          return 0;
+        }
       }
       /* BV: UDIV ----------------------------------------------------------- */
       else if (tag == BTOR_BV_UDIV_TAG_SMT2)
