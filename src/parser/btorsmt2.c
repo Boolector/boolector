@@ -348,6 +348,7 @@ typedef struct BtorSMT2Parser
   bool saved;
   int32_t savedch;
   int32_t last_end_of_line_ycoo;
+  int32_t open;
   uint32_t nprefix;
   int sorted_var;
   uint32_t bound_vars; /* used for exists/forall vars to enumerate symbols */
@@ -2264,7 +2265,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
 {
   const char *msg;
   size_t work_cnt;
-  int32_t k, tag, open = 0;
+  int32_t k, tag;
   uint32_t width, width2, domain, nargs, i, j;
   BoolectorNode *res, *exp, *tmp, *old;
   BoolectorSort s;
@@ -2273,6 +2274,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   Btor *btor;
 
   btor = parser->btor;
+  parser->open = 0;
 
   work_cnt = BTOR_COUNT_STACK (parser->work);
   sym      = 0;
@@ -2313,7 +2315,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       if (parser->expecting_body)
       {
         l = 0;
-        if (open)
+        if (parser->open)
         {
           l = last_lpar_smt2 (parser);
           if (++l >= parser->work.top) l = 0;
@@ -2332,8 +2334,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           return !perr_smt2 (parser, "body to 'let' missing");
         }
       }
-      assert (open >= 0);
-      if (!open) return !perr_smt2 (parser, "expected expression");
+      assert (parser->open >= 0);
+      if (!parser->open) return !perr_smt2 (parser, "expected expression");
       l = last_lpar_smt2 (parser);
       assert (l);
       p = l + 1;
@@ -3094,8 +3096,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             "internal parse error: can not close yet unsupported '%s'",
             item2str_smt2 (p));
       }
-      assert (open > 0);
-      open--;
+      assert (parser->open > 0);
+      parser->open--;
     }
     /* ------------------------------------------------------------------- */
     /* parse term                                                          */
@@ -3177,7 +3179,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           sprintf (buf, "%s!%d", sym->name, parser->bound_vars++);
           sym->exp = boolector_param (btor, s, buf);
         }
-        open++;
+        parser->open++;
       }
       else if (parser->isvarbinding)
       {
@@ -3204,7 +3206,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           {
             if (!read_lpar_smt2 (parser, " after 'let'")) return 0;
             push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
-            open++, assert (open > 0);
+            parser->open++, assert (parser->open > 0);
             push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
             assert (!parser->isvarbinding);
             parser->isvarbinding = true;
@@ -3215,7 +3217,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           PARSE_QUANTIFIER_TERM:
             if (!read_lpar_smt2 (parser, msg)) return 0;
             push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
-            open++, assert (open > 0);
+            parser->open++, assert (parser->open > 0);
             push_item_smt2 (parser, BTOR_SORTED_VARS_TAG_SMT2);
             assert (!parser->sorted_var);
             parser->sorted_var       = 1;
@@ -3269,8 +3271,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               l->node          = node;
               parser->work.top = p;
               if (!read_rpar_smt2 (parser, read_rpar_msg)) return 0;
-              assert (open > 0);
-              open--;
+              assert (parser->open > 0);
+              parser->open--;
             }
             else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
             {
@@ -3316,8 +3318,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               l->node          = node;
               parser->work.top = p;
               if (!read_rpar_smt2 (parser, " to close '(_ extract'")) return 0;
-              assert (open > 0);
-              open--;
+              assert (parser->open > 0);
+              parser->open--;
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
                      && is_bvconst_str_smt2 (parser->token.start))
@@ -3377,8 +3379,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               assert (p > parser->work.start);
               p--, parser->work.top--;
               assert (p->tag == BTOR_LPAR_TAG_SMT2);
-              assert (open > 0);
-              open--;
+              assert (parser->open > 0);
+              parser->open--;
               p->tag = BTOR_EXP_TAG_SMT2;
               p->exp = exp;
               if (!read_rpar_smt2 (parser, " to close '(_ bv..'")) return 0;
@@ -3477,7 +3479,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             parser, "unexpected token '%s'", parser->token.start);
       }
     }
-  } while (open);
+  } while (parser->open);
   if (BTOR_COUNT_STACK (parser->work) - work_cnt != 1)
   {
     parser->perrcoo = p->coo;
