@@ -288,7 +288,7 @@ typedef struct BtorSMT2Item
     int32_t num;
     struct
     {
-      int32_t hi, lo;
+      int32_t idx0, idx1;
     };
   };
   union
@@ -2265,16 +2265,16 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if (width <= (uint32_t) p->hi)
+        if (width <= (uint32_t) p->idx0)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "first (high) 'extract' parameter %u too large "
                              "for bit-vector argument of bit-width %u",
-                             p->hi,
+                             p->idx0,
                              width);
         }
-        exp = boolector_slice (parser->btor, p[1].exp, p->hi, p->lo);
+        exp = boolector_slice (parser->btor, p[1].exp, p->idx0, p->idx1);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       /* BV: NOT ------------------------------------------------------------ */
@@ -2960,17 +2960,17 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
                 goto ONE_FIXED_NUM_PARAMETRIC;
               l = p - 1;
-              if (!parse_int32_smt2 (parser, false, &l->hi)) return 0;
+              if (!parse_int32_smt2 (parser, false, &l->idx0)) return 0;
               firstcoo = parser->coo;
-              if (!parse_int32_smt2 (parser, false, &l->lo)) return 0;
-              if (l->hi < l->lo)
+              if (!parse_int32_smt2 (parser, false, &l->idx1)) return 0;
+              if (l->idx0 < l->idx1)
               {
                 parser->perrcoo = firstcoo;
                 return !perr_smt2 (parser,
                                    "first parameter '%u' of '(_ extract' "
                                    "smaller than second '%u'",
-                                   l->hi,
-                                   l->lo);
+                                   l->idx0,
+                                   l->idx1);
               }
               l->tag           = tag;
               l->node          = node;
