@@ -3329,6 +3329,231 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   return 1;
 }
 
+static int32_t
+parse_open_term (BtorSMT2Parser *parser, int32_t tag)
+{
+  assert (parser);
+
+  uint32_t width, width2;
+  BtorSMT2Item *item_cur;
+  BtorSMT2Node *sym, *new_sym;
+  BoolectorSort s;
+  Btor *btor;
+
+  btor = parser->btor;
+  sym  = 0;
+  new_sym = 0;
+
+  if (parser->expecting_body) parser->expecting_body = 0;
+
+  item_cur = push_item_smt2 (parser, tag);
+
+  if (tag == BTOR_LPAR_TAG_SMT2)
+  {
+    BtorSMT2Item *q;
+    if (parser->isvarbinding)
+    {
+      push_item_smt2 (parser, BTOR_LETBIND_TAG_SMT2);
+      parser->isvarbinding = false;
+
+      tag = read_token_smt2 (parser);
+
+      if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+      if (tag == EOF)
+        return !perr_smt2 (
+            parser,
+            "expected symbol to be bound after '(' at line %d "
+            "column %d but reached end-of-file",
+            item_cur->coo.x,
+            item_cur->coo.y);
+
+      if (tag != BTOR_SYMBOL_TAG_SMT2)
+        return !perr_smt2 (
+            parser,
+            "expected symbol to be bound at '%s' after '(' at "
+            "line %d column %d",
+            parser->token.start,
+            item_cur->coo.x,
+            item_cur->coo.y);
+      sym = parser->last_node;
+      assert (sym);
+      /* shadow previously defined symbols */
+      if (sym->coo.x)
+      {
+        new_sym       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+        new_sym->name = btor_mem_strdup (parser->mem, sym->name);
+        /* symbol may already be in symbol table */
+        insert_symbol_smt2 (parser, new_sym);
+        sym = new_sym;
+      }
+      sym->coo = parser->coo;
+      q        = push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+      q->node  = sym;
+    }
+    /* parse <sorted_var>: <symbol> <sort> */
+    else if (parser->sorted_var)
+    {
+      push_item_smt2 (parser, BTOR_SORTED_VAR_TAG_SMT2);
+      parser->sorted_var = 0;
+      s                  = 0;
+      if (!read_symbol (parser, " in sorted var after '('", &sym)) return 0;
+      assert (sym && sym->tag == BTOR_SYMBOL_TAG_SMT2);
+      /* shadow previously defined symbols */
+      if (sym->coo.x)
+      {
+        new_sym       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+        new_sym->name = btor_mem_strdup (parser->mem, sym->name);
+        /* symbol may already be in symbol table */
+        insert_symbol_smt2 (parser, new_sym);
+        sym = new_sym;
+      }
+      sym->coo = parser->coo;
+
+      tag = read_token_smt2 (parser);
+      if (!parse_sort (parser, tag, false, &s)) return 0;
+
+      q       = push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+      q->node = sym;
+      char buf[strlen (sym->name)
+               + btor_util_num_digits (parser->bound_vars) + 2];
+      sprintf (buf, "%s!%d", sym->name, parser->bound_vars++);
+      sym->exp = boolector_param (btor, s, buf);
+    }
+    parser->open++;
+  }
+  else if (parser->isvarbinding)
+  {
+    return !perr_smt2 (
+        parser, "expected var binding at '%s'", parser->token.start);
+  }
+  else if (parser->sorted_var)
+  {
+    return !perr_smt2 (
+        parser, "expected sorted variable at '%s'", parser->token.start);
+  }
+  else if (is_item_with_node_smt2 (item_cur))
+  {
+    item_cur->node = parser->last_node;
+    if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
+      return !perr_smt2 (parser, "unexpected command '%s'", item_cur->node->name);
+    if (tag & BTOR_KEYWORD_TAG_CLASS_SMT2)
+      return !perr_smt2 (parser, "unexpected keyword '%s'", item_cur->node->name);
+    if (tag & BTOR_LOGIC_TAG_CLASS_SMT2)
+      return !perr_smt2 (parser, "unexpected logic '%s'", item_cur->node->name);
+    if (tag & BTOR_RESERVED_TAG_CLASS_SMT2)
+    {
+      if (tag == BTOR_LET_TAG_SMT2)
+      {
+        if (!read_lpar_smt2 (parser, " after 'let'")) return 0;
+        push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
+        parser->open++, assert (parser->open > 0);
+        push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
+        assert (!parser->isvarbinding);
+        parser->isvarbinding = true;
+      }
+      else if (tag == BTOR_FORALL_TAG_SMT2)
+      {
+        if (!parse_open_term_quant (parser, " after 'forall'")) return 0;
+      }
+      else if (tag == BTOR_EXISTS_TAG_SMT2)
+      {
+        if (!parse_open_term_quant (parser, " after 'exists'")) return 0;
+      }
+      else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
+      {
+        if (!parse_open_term_underscore(parser, item_cur)) return 0;
+      }
+      else
+      {
+        assert (item_cur->node->name);
+        return !perr_smt2 (
+            parser, "unsupported reserved word '%s'", item_cur->node->name);
+      }
+    }
+    else if (tag == BTOR_SYMBOL_TAG_SMT2)
+    {
+      assert (item_cur->node);
+      if (!item_cur->node->exp)
+        return !perr_smt2 (parser, "undefined symbol '%s'", item_cur->node->name);
+      item_cur->tag = BTOR_EXP_TAG_SMT2;
+      item_cur->exp = boolector_copy (btor, item_cur->node->exp);
+    }
+    else if (tag == BTOR_TRUE_TAG_SMT2)
+    {
+      item_cur->tag = BTOR_EXP_TAG_SMT2;
+      item_cur->exp = boolector_true (btor);
+    }
+    else if (tag == BTOR_FALSE_TAG_SMT2)
+    {
+      item_cur->tag = BTOR_EXP_TAG_SMT2;
+      item_cur->exp = boolector_false (btor);
+    }
+    else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
+    {
+      return !perr_smt2 (
+          parser, "unexpected attribute '%s'", parser->token.start);
+    }
+    else if (tag & BTOR_CORE_TAG_CLASS_SMT2)
+    {
+      if (tag == BTOR_BOOL_TAG_SMT2)
+        return !perr_smt2 (parser, "unexpected 'Bool'");
+    }
+    else if (tag & BTOR_ARRAY_TAG_CLASS_SMT2)
+    {
+      if (tag == BTOR_ARRAY_TAG_SMT2)
+        return !perr_smt2 (parser, "unexpected 'Array'");
+    }
+    else if (tag & BTOR_BV_TAG_CLASS_SMT2)
+    {
+      if (tag == BTOR_BV_BITVEC_TAG_SMT2)
+        return !perr_smt2 (parser, "unexpected 'BitVec'");
+    }
+    else
+      return !perr_smt2 (
+          parser, "unexpected token '%s'", item2str_smt2 (item_cur));
+  }
+  else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
+  {
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = boolector_const (btor, parser->token.start + 2);
+  }
+  else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
+  {
+    char *constr, *uconstr;
+    BtorBitVector *constrbv = 0, *uconstrbv;
+    constr =
+        btor_util_hex_to_bin_str (parser->mem, parser->token.start + 2);
+    width2 = strlen (constr);
+    width  = strlen (parser->token.start + 2) * 4;
+    assert (width2 <= width);
+    if (width2 == width)
+      uconstr = btor_mem_strdup (parser->mem, constr);
+    else
+    {
+      if (!strcmp (constr, ""))
+        uconstrbv = btor_bv_new (parser->mem, width - width2);
+      else
+      {
+        constrbv  = btor_bv_char_to_bv (parser->mem, constr);
+        uconstrbv = btor_bv_uext (parser->mem, constrbv, width - width2);
+      }
+      uconstr = btor_bv_to_char (parser->mem, uconstrbv);
+      btor_bv_free (parser->mem, uconstrbv);
+      if (constrbv) btor_bv_free (parser->mem, constrbv);
+    }
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = boolector_const (btor, uconstr);
+    btor_mem_freestr (parser->mem, uconstr);
+    btor_mem_freestr (parser->mem, constr);
+  }
+  else
+  {
+    return !perr_smt2 (
+        parser, "unexpected token '%s'", parser->token.start);
+  }
+
+  return 1;
+}
 
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
@@ -3342,18 +3567,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
 {
   size_t work_cnt;
   int32_t tag;
-  uint32_t width, width2;
   BoolectorNode *res;
-  BoolectorSort s;
   BtorSMT2Item *l, *p;
-  BtorSMT2Node *sym, *new_sym;
   Btor *btor;
 
   btor         = parser->btor;
   parser->open = 0;
 
   work_cnt = BTOR_COUNT_STACK (parser->work);
-  sym      = 0;
 
   do
   {
@@ -3395,218 +3616,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
     /* ------------------------------------------------------------------- */
     else
     {
-      if (parser->expecting_body) parser->expecting_body = 0;
-
-      p = push_item_smt2 (parser, tag);
-
-      if (tag == BTOR_LPAR_TAG_SMT2)
-      {
-        BtorSMT2Item *q;
-        if (parser->isvarbinding)
-        {
-          push_item_smt2 (parser, BTOR_LETBIND_TAG_SMT2);
-          parser->isvarbinding = false;
-
-          tag = read_token_smt2 (parser);
-
-          if (tag == BTOR_INVALID_TAG_SMT2) return 0;
-          if (tag == EOF)
-            return !perr_smt2 (
-                parser,
-                "expected symbol to be bound after '(' at line %d "
-                "column %d but reached end-of-file",
-                p->coo.x,
-                p->coo.y);
-
-          if (tag != BTOR_SYMBOL_TAG_SMT2)
-            return !perr_smt2 (
-                parser,
-                "expected symbol to be bound at '%s' after '(' at "
-                "line %d column %d",
-                parser->token.start,
-                p->coo.x,
-                p->coo.y);
-          sym = parser->last_node;
-          assert (sym);
-          /* shadow previously defined symbols */
-          if (sym->coo.x)
-          {
-            new_sym       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-            new_sym->name = btor_mem_strdup (parser->mem, sym->name);
-            /* symbol may already be in symbol table */
-            insert_symbol_smt2 (parser, new_sym);
-            sym = new_sym;
-          }
-          sym->coo = parser->coo;
-          q        = push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-          q->node  = sym;
-        }
-        /* parse <sorted_var>: <symbol> <sort> */
-        else if (parser->sorted_var)
-        {
-          push_item_smt2 (parser, BTOR_SORTED_VAR_TAG_SMT2);
-          parser->sorted_var = 0;
-          s                  = 0;
-          if (!read_symbol (parser, " in sorted var after '('", &sym)) return 0;
-          assert (sym && sym->tag == BTOR_SYMBOL_TAG_SMT2);
-          /* shadow previously defined symbols */
-          if (sym->coo.x)
-          {
-            new_sym       = new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-            new_sym->name = btor_mem_strdup (parser->mem, sym->name);
-            /* symbol may already be in symbol table */
-            insert_symbol_smt2 (parser, new_sym);
-            sym = new_sym;
-          }
-          sym->coo = parser->coo;
-
-          tag = read_token_smt2 (parser);
-          if (!parse_sort (parser, tag, false, &s)) return 0;
-
-          q       = push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-          q->node = sym;
-          char buf[strlen (sym->name)
-                   + btor_util_num_digits (parser->bound_vars) + 2];
-          sprintf (buf, "%s!%d", sym->name, parser->bound_vars++);
-          sym->exp = boolector_param (btor, s, buf);
-        }
-        parser->open++;
-      }
-      else if (parser->isvarbinding)
-      {
-        return !perr_smt2 (
-            parser, "expected var binding at '%s'", parser->token.start);
-      }
-      else if (parser->sorted_var)
-      {
-        return !perr_smt2 (
-            parser, "expected sorted variable at '%s'", parser->token.start);
-      }
-      else if (is_item_with_node_smt2 (p))
-      {
-        p->node = parser->last_node;
-        if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
-          return !perr_smt2 (parser, "unexpected command '%s'", p->node->name);
-        if (tag & BTOR_KEYWORD_TAG_CLASS_SMT2)
-          return !perr_smt2 (parser, "unexpected keyword '%s'", p->node->name);
-        if (tag & BTOR_LOGIC_TAG_CLASS_SMT2)
-          return !perr_smt2 (parser, "unexpected logic '%s'", p->node->name);
-        if (tag & BTOR_RESERVED_TAG_CLASS_SMT2)
-        {
-          if (tag == BTOR_LET_TAG_SMT2)
-          {
-            if (!read_lpar_smt2 (parser, " after 'let'")) return 0;
-            push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
-            parser->open++, assert (parser->open > 0);
-            push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
-            assert (!parser->isvarbinding);
-            parser->isvarbinding = true;
-          }
-          else if (tag == BTOR_FORALL_TAG_SMT2)
-          {
-            if (!parse_open_term_quant (parser, " after 'forall'")) return 0;
-          }
-          else if (tag == BTOR_EXISTS_TAG_SMT2)
-          {
-            if (!parse_open_term_quant (parser, " after 'exists'")) return 0;
-          }
-          else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
-          {
-            if (!parse_open_term_underscore(parser, p)) return 0;
-          }
-          else
-          {
-            assert (p->node->name);
-            return !perr_smt2 (
-                parser, "unsupported reserved word '%s'", p->node->name);
-          }
-        }
-        else if (tag == BTOR_SYMBOL_TAG_SMT2)
-        {
-          assert (p->node);
-          if (!p->node->exp)
-            return !perr_smt2 (parser, "undefined symbol '%s'", p->node->name);
-          p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_copy (btor, p->node->exp);
-        }
-        else if (tag == BTOR_TRUE_TAG_SMT2)
-        {
-          p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_true (btor);
-        }
-        else if (tag == BTOR_FALSE_TAG_SMT2)
-        {
-          p->tag = BTOR_EXP_TAG_SMT2;
-          p->exp = boolector_false (btor);
-        }
-        else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
-        {
-          return !perr_smt2 (
-              parser, "unexpected attribute '%s'", parser->token.start);
-        }
-        else if (tag & BTOR_CORE_TAG_CLASS_SMT2)
-        {
-          if (tag == BTOR_BOOL_TAG_SMT2)
-            return !perr_smt2 (parser, "unexpected 'Bool'");
-        }
-        else if (tag & BTOR_ARRAY_TAG_CLASS_SMT2)
-        {
-          if (tag == BTOR_ARRAY_TAG_SMT2)
-            return !perr_smt2 (parser, "unexpected 'Array'");
-        }
-        else if (tag & BTOR_BV_TAG_CLASS_SMT2)
-        {
-          if (tag == BTOR_BV_BITVEC_TAG_SMT2)
-            return !perr_smt2 (parser, "unexpected 'BitVec'");
-        }
-        else
-          return !perr_smt2 (
-              parser, "unexpected token '%s'", item2str_smt2 (p));
-      }
-      else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
-      {
-        p->tag = BTOR_EXP_TAG_SMT2;
-        p->exp = boolector_const (btor, parser->token.start + 2);
-      }
-      else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
-      {
-        char *constr, *uconstr;
-        BtorBitVector *constrbv = 0, *uconstrbv;
-        constr =
-            btor_util_hex_to_bin_str (parser->mem, parser->token.start + 2);
-        width2 = strlen (constr);
-        width  = strlen (parser->token.start + 2) * 4;
-        assert (width2 <= width);
-        if (width2 == width)
-          uconstr = btor_mem_strdup (parser->mem, constr);
-        else
-        {
-          if (!strcmp (constr, ""))
-            uconstrbv = btor_bv_new (parser->mem, width - width2);
-          else
-          {
-            constrbv  = btor_bv_char_to_bv (parser->mem, constr);
-            uconstrbv = btor_bv_uext (parser->mem, constrbv, width - width2);
-          }
-          uconstr = btor_bv_to_char (parser->mem, uconstrbv);
-          btor_bv_free (parser->mem, uconstrbv);
-          if (constrbv) btor_bv_free (parser->mem, constrbv);
-        }
-        p->tag = BTOR_EXP_TAG_SMT2;
-        p->exp = boolector_const (btor, uconstr);
-        btor_mem_freestr (parser->mem, uconstr);
-        btor_mem_freestr (parser->mem, constr);
-      }
-      else
-      {
-        return !perr_smt2 (
-            parser, "unexpected token '%s'", parser->token.start);
-      }
+      if (!parse_open_term(parser, tag)) return 0;
     }
   } while (parser->open);
   if (BTOR_COUNT_STACK (parser->work) - work_cnt != 1)
   {
-    parser->perrcoo = p->coo;
     // This should not occur, but we keep it as a bad style of
     // defensive programming for future extensions of the parser.
     return !perr_smt2 (parser,
