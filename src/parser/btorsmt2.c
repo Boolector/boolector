@@ -3095,13 +3095,8 @@ close_term (BtorSMT2Parser *parser)
   return 1;
 }
 
-/**
- * item_open and item_cur point to items on the parser work stack.
- * If if nargs > 0, we expect nargs SMT2Items on the stack after item_cur:
- * item_cur[1] is the first argument, ..., item_cur[nargs] is the last argument.
- */
 static int32_t
-parse_open_term_quant (BtorSMT2Parser *parser, char *msg)
+parse_open_term_quant (BtorSMT2Parser *parser, const char *msg)
 {
   assert (parser);
   assert (msg);
@@ -3116,6 +3111,186 @@ parse_open_term_quant (BtorSMT2Parser *parser, char *msg)
   return 1;
 }
 
+static int32_t
+parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
+{
+  assert (parser);
+  assert (item_cur);
+
+  uint32_t width, width2;
+  int32_t tag;
+  const char *read_rpar_msg;
+  BtorSMT2Item *item_open;
+  BtorSMT2Node *node;
+  BoolectorNode *exp;
+  BoolectorSort s;
+  Btor *btor;
+
+  btor = parser->btor;
+
+  if (!prev_item_was_lpar_smt2 (parser)) return 0;
+
+  tag  = read_token_smt2 (parser);
+  node = parser->last_node;
+
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !perr_smt2 (parser, "unexpected end-of-file after '_'");
+
+  if (tag == BTOR_BV_REPEAT_TAG_SMT2)
+  {
+    assert (node && tag == (int32_t) node->tag);
+    read_rpar_msg = " to close '(_ repeat'";
+  ONE_FIXED_NUM_PARAMETRIC:
+    assert (BTOR_COUNT_STACK (parser->work) >= 2);
+    if (BTOR_COUNT_STACK (parser->work) < 3)
+    {
+      assert (BTOR_COUNT_STACK (parser->work) == 2);
+      assert (parser->work.start[0].tag == BTOR_LPAR_TAG_SMT2);
+      assert (parser->work.start[1].tag == BTOR_UNDERSCORE_TAG_SMT2);
+      parser->perrcoo = parser->work.start[0].coo;
+      return !perr_smt2 (
+          parser, "expected '(' before '(_ %s'", node->name);
+    }
+    if (parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+    {
+      parser->perrcoo = parser->work.top[-3].coo;
+      return !perr_smt2 (parser,
+                         "expected '(' at '%s' before '(_ %s'",
+                         item2str_smt2 (parser->work.top - 3),
+                         node->name);
+    }
+    item_open = item_cur - 1;
+    if (!parse_int32_smt2 (parser, false, &item_open->num)) return 0;
+    item_open->tag           = tag;
+    item_open->node          = node;
+    parser->work.top = item_cur;
+    if (!read_rpar_smt2 (parser, read_rpar_msg)) return 0;
+    assert (parser->open > 0);
+    parser->open--;
+  }
+  else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
+  {
+    read_rpar_msg = " to close '(_ zero_extend'";
+    goto ONE_FIXED_NUM_PARAMETRIC;
+  }
+  else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
+  {
+    read_rpar_msg = " to close '(_ sign_extend'";
+    goto ONE_FIXED_NUM_PARAMETRIC;
+  }
+  else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
+  {
+    read_rpar_msg = " to close '(_ rotate_left'";
+    goto ONE_FIXED_NUM_PARAMETRIC;
+  }
+  else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
+  {
+    read_rpar_msg = " to close '(_ rotate_right'";
+    goto ONE_FIXED_NUM_PARAMETRIC;
+  }
+  else if (tag == BTOR_BV_EXTRACT_TAG_SMT2)
+  {
+    BtorSMT2Coo firstcoo;
+    assert (node && tag == (int32_t) node->tag);
+    if (BTOR_COUNT_STACK (parser->work) < 3
+        || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+      goto ONE_FIXED_NUM_PARAMETRIC;
+    item_open = item_cur - 1;
+    if (!parse_int32_smt2 (parser, false, &item_open->idx0)) return 0;
+    firstcoo = parser->coo;
+    if (!parse_int32_smt2 (parser, false, &item_open->idx1)) return 0;
+    if (item_open->idx0 < item_open->idx1)
+    {
+      parser->perrcoo = firstcoo;
+      return !perr_smt2 (parser,
+                         "first parameter '%u' of '(_ extract' "
+                         "smaller than second '%u'",
+                         item_open->idx0,
+                         item_open->idx1);
+    }
+    item_open->tag           = tag;
+    item_open->node          = node;
+    parser->work.top = item_cur;
+    if (!read_rpar_smt2 (parser, " to close '(_ extract'")) return 0;
+    assert (parser->open > 0);
+    parser->open--;
+  }
+  else if (tag == BTOR_SYMBOL_TAG_SMT2
+           && is_bvconst_str_smt2 (parser->token.start))
+  {
+    char *constr, *decstr;
+    BtorSMT2Coo coo;
+    exp    = 0;
+    decstr = btor_mem_strdup (parser->mem, parser->token.start + 2);
+    constr = btor_util_dec_to_bin_str (parser->mem,
+                                       parser->token.start + 2);
+    coo    = parser->coo;
+    coo.y += 2;
+    if (!parse_uint32_smt2 (parser, true, &width))
+      goto UNDERSCORE_DONE;
+    width2 = strlen (constr);
+    if (width2 > width)
+    {
+      parser->perrcoo = coo;
+      (void) perr_smt2 (parser,
+                        "decimal constant '%s' needs %d bits which "
+                        "exceeds bit-width '%d'",
+                        decstr,
+                        width2,
+                        width);
+    }
+    else if (width2 == width)
+      exp = boolector_const (btor, constr);
+    else if (!width2)
+    {
+      s   = boolector_bitvec_sort (btor, width);
+      exp = boolector_zero (btor, s);
+      boolector_release_sort (btor, s);
+    }
+    else
+    {
+      BtorBitVector *constrbv = 0, *uconstrbv;
+      char *uconstr;
+      if (!strcmp (constr, ""))
+        uconstrbv = btor_bv_new (parser->mem, width - width2);
+      else
+      {
+        constrbv = btor_bv_char_to_bv (parser->mem, constr);
+        uconstrbv =
+            btor_bv_uext (parser->mem, constrbv, width - width2);
+      }
+      uconstr = btor_bv_to_char (parser->mem, uconstrbv);
+      exp     = boolector_const (btor, uconstr);
+      btor_mem_freestr (parser->mem, uconstr);
+      btor_bv_free (parser->mem, uconstrbv);
+      if (constrbv) btor_bv_free (parser->mem, constrbv);
+    }
+  UNDERSCORE_DONE:
+    btor_mem_freestr (parser->mem, decstr);
+    btor_mem_freestr (parser->mem, constr);
+    if (!exp) return 0;
+    assert (boolector_get_width (btor, exp) == width);
+    assert (item_cur > parser->work.start);
+    item_cur--, parser->work.top--;
+    assert (item_cur->tag == BTOR_LPAR_TAG_SMT2);
+    assert (parser->open > 0);
+    parser->open--;
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = exp;
+    if (!read_rpar_smt2 (parser, " to close '(_ bv..'")) return 0;
+  }
+  else
+  {
+
+    return !perr_smt2 (parser,
+                       "invalid parametric term '_ %s'",
+                       parser->token.start);
+  }
+  return 1;
+}
+
+
 /* Note: we need look ahead and tokens string only for get-value
  *       (for parsing a term list and printing the originally parsed,
  *       non-simplified expression) */
@@ -3129,7 +3304,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   size_t work_cnt;
   int32_t tag;
   uint32_t width, width2;
-  BoolectorNode *res, *exp;
+  BoolectorNode *res;
   BoolectorSort s;
   BtorSMT2Item *l, *p;
   BtorSMT2Node *sym, *new_sym;
@@ -3298,6 +3473,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           }
           else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
           {
+            if (!parse_open_term_underscore(parser, p)) return 0;
+#if 0
             const char *read_rpar_msg = 0;
             BtorSMT2Node *node        = 0;
 
@@ -3457,6 +3634,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               return !perr_smt2 (parser,
                                  "invalid parametric term '_ %s'",
                                  parser->token.start);
+#endif
           }
           else
           {
