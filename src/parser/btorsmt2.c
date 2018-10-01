@@ -3112,7 +3112,7 @@ parse_open_term_quant (BtorSMT2Parser *parser, const char *msg)
 }
 
 static int32_t
-check_open_term_underscore_one_fixed_num_parametric (BtorSMT2Parser *parser,
+check_open_term_indexed_one_fixed_num_parametric (BtorSMT2Parser *parser,
                                                      BtorSMT2Node *node)
 {
   assert (parser);
@@ -3137,7 +3137,7 @@ check_open_term_underscore_one_fixed_num_parametric (BtorSMT2Parser *parser,
 }
 
 static int32_t
-parse_open_term_underscore_one_fixed_num_parametric (BtorSMT2Parser *parser,
+parse_open_term_indexed_one_fixed_num_parametric (BtorSMT2Parser *parser,
                                                      BtorSMT2Item *item_cur,
                                                      int32_t tag,
                                                      BtorSMT2Node *node,
@@ -3152,7 +3152,7 @@ parse_open_term_underscore_one_fixed_num_parametric (BtorSMT2Parser *parser,
 
   BtorSMT2Item *item_open;
 
-  if (!check_open_term_underscore_one_fixed_num_parametric (parser, node))
+  if (!check_open_term_indexed_one_fixed_num_parametric (parser, node))
     return 0;
   item_open = item_cur - 1;
   if (!parse_int32_smt2 (parser, false, &item_open->num)) return 0;
@@ -3166,7 +3166,7 @@ parse_open_term_underscore_one_fixed_num_parametric (BtorSMT2Parser *parser,
 }
 
 static int32_t
-parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
+parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
 {
   assert (parser);
   assert (item_cur);
@@ -3192,7 +3192,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   if (tag == BTOR_BV_REPEAT_TAG_SMT2)
   {
     assert (node && tag == (int32_t) node->tag);
-    if (!parse_open_term_underscore_one_fixed_num_parametric (
+    if (!parse_open_term_indexed_one_fixed_num_parametric (
             parser, item_cur, tag, node, " to close '(_ repeat'"))
     {
       return 0;
@@ -3200,7 +3200,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   }
   else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
   {
-    if (!parse_open_term_underscore_one_fixed_num_parametric (
+    if (!parse_open_term_indexed_one_fixed_num_parametric (
             parser, item_cur, tag, node, " to close '(_ zero_extend'"))
     {
       return 0;
@@ -3208,7 +3208,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   }
   else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
   {
-    if (!parse_open_term_underscore_one_fixed_num_parametric (
+    if (!parse_open_term_indexed_one_fixed_num_parametric (
             parser, item_cur, tag, node, " to close '(_ sign_extend'"))
     {
       return 0;
@@ -3216,7 +3216,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   }
   else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
   {
-    if (!parse_open_term_underscore_one_fixed_num_parametric (
+    if (!parse_open_term_indexed_one_fixed_num_parametric (
             parser, item_cur, tag, node, " to close '(_ rotate_left'"))
     {
       return 0;
@@ -3224,7 +3224,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   }
   else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
   {
-    if (!parse_open_term_underscore_one_fixed_num_parametric (
+    if (!parse_open_term_indexed_one_fixed_num_parametric (
             parser, item_cur, tag, node, " to close '(_ rotate_right'"))
     {
       return 0;
@@ -3235,7 +3235,7 @@ parse_open_term_underscore (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
     BtorSMT2Coo firstcoo;
     BtorSMT2Item *item_open = item_cur - 1;
     assert (node && tag == (int32_t) node->tag);
-    if (!check_open_term_underscore_one_fixed_num_parametric (parser, node))
+    if (!check_open_term_indexed_one_fixed_num_parametric (parser, node))
       return 0;
     if (!parse_int32_smt2 (parser, false, &item_open->idx0)) return 0;
     firstcoo = parser->coo;
@@ -3461,7 +3461,7 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
       }
       else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
       {
-        if (!parse_open_term_underscore(parser, item_cur)) return 0;
+        if (!parse_open_term_indexed(parser, item_cur)) return 0;
       }
       else
       {
