@@ -9,14 +9,14 @@
 #ifndef BTORTRAPI_H_INCLUDED
 #define BTORTRAPI_H_INCLUDED
 
-#include <btorcore.h>
+#include "btorcore.h"
 #include <stdio.h>
 
 #define BTOR_TRAPI_NODE_FMT "n%d@%p "
 #define BTOR_TRAPI_SORT_FMT "s%d@%p "
 
-#define BTOR_TRAPI_NODE_ID(exp)                                             \
-  (btor_node_is_inverted (exp) ? -btor_node_real_addr (exp)->id : exp->id), \
+#define BTOR_TRAPI_NODE_ID(exp)                                               \
+  (btor_node_is_inverted (exp) ? -btor_node_real_addr (exp)->id : (exp)->id), \
       btor_node_real_addr (exp)->btor
 
 #define BTOR_TRAPI_PRINT(args...)    \
@@ -76,7 +76,7 @@
 #define BTOR_TRAPI_RETURN_UINT(res) BTOR_TRAPI_RETURN ("%u", res)
 
 #define BTOR_TRAPI_RETURN_BOOL(res) \
-  BTOR_TRAPI_RETURN ("%s", res ? "true" : "false")
+  BTOR_TRAPI_RETURN ("%s", (res) ? "true" : "false")
 
 #define BTOR_TRAPI_RETURN_SORT(sort) \
   BTOR_TRAPI_RETURN (BTOR_TRAPI_SORT_FMT, sort, btor)
