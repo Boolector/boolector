@@ -10,18 +10,19 @@ debug=no
 check=no
 log=no
 shared=no
+prefix=
 
-btor2_dir=unknown
+btor2_dir=
 
 lingeling=unknown
 minisat=unknown
 picosat=unknown
 cadical=unknown
 
-lingeling_dir=unknown
-minisat_dir=unknown
-picosat_dir=unknown
-cadical_dir=unknown
+lingeling_dir=
+minisat_dir=
+picosat_dir=
+cadical_dir=
 
 gcov=no
 gprof=no
@@ -42,6 +43,8 @@ where <option> is one of the following:
 
   -g                compile with debugging support
   -f...|-m...       add compiler options
+
+  --prefix <dir>    install prefix
 
   --shared          shared library
 
@@ -100,11 +103,18 @@ msg () {
 
 while [ $# -gt 0 ]
 do
-  case $1 in
+  opt=$1
+  case $opt in
     -h|--help) usage;;
 
     -g) debug=yes;;
     -f*|-m*) if [ -z "$flags" ]; then flags=$1; else flags="$flags;$1"; fi;;
+
+    --prefix)
+      shift
+      [ $# -eq 0 ] && die "missing argument to $opt"
+      prefix=$1
+      ;;
 
     --shared) shared=yes;;
 
@@ -119,10 +129,7 @@ do
 
     --btor2tools-dir)
       shift
-      if [ $# -eq 0 ]
-      then
-        die "missing argument to --btor2tools-dir"
-      fi
+      [ $# -eq 0 ] && die "missing argument to $opt"
       btor2_dir=$1
       ;;
     --no-cadical)   cadical=no;;
@@ -137,38 +144,26 @@ do
 
     --cadical-dir)
       shift
-      if [ $# -eq 0 ]
-      then
-        die "missing argument to --cadical-dir"
-      fi
+      [ $# -eq 0 ] && die "missing argument to $opt"
       cadical_dir=$1
       ;;
     --lingeling-dir)
       shift
-      if [ $# -eq 0 ]
-      then
-        die "missing argument to --lingeling-dir"
-      fi
+      [ $# -eq 0 ] && die "missing argument to $opt"
       lingeling_dir=$1
       ;;
     --minisat-dir)
       shift
-      if [ $# -eq 0 ]
-      then
-        die "missing argument to --minisat-dir"
-      fi
+      [ $# -eq 0 ] && die "missing argument to $opt"
       minisat_dir=$1
       ;;
     --picosat-dir)
       shift
-      if [ $# -eq 0 ]
-      then
-        die "missing argument to --picosat-dir"
-      fi
+      [ $# -eq 0 ] && die "missing argument to $opt"
       picosat_dir=$1
       ;;
 
-    -*) die "invalid option '$1' (try '-h')";;
+    -*) die "invalid option '$opt' (try '-h')";;
   esac
   shift
 done
@@ -183,7 +178,9 @@ cmake_opts=""
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DSHARED=ON"
 
-[ $btor2_dir = unknown ] || cmake_opts="$cmake_opts -DBTOR2_ROOT_DIR=$btor2_dir"
+[ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
+
+[ -n "$btor2_dir" ] && cmake_opts="$cmake_opts -DBtor2Tools_ROOT_DIR=$btor2_dir"
 
 [ $cadical = yes ] && cmake_opts="$cmake_opts -DUSE_CADICAL=ON"
 [ $lingeling = yes ] && cmake_opts="$cmake_opts -DUSE_LINGELING=ON"
@@ -203,13 +200,13 @@ cmake_opts=""
 
 [ -n "$flags" ] && cmake_opts="$cmake_opts -DFLAGS=$flags"
 
-[ $cadical_dir = unknown ] || cmake_opts="$cmake_opts -DCADICAL_ROOT_DIR=$cadical_dir"
-[ $lingeling_dir = unknown ] || cmake_opts="$cmake_opts -DLINGELING_ROOT_DIR=$lingeling_dir"
-[ $minisat_dir = unknown ] || cmake_opts="$cmake_opts -DMINISAT_ROOT_DIR=$minisat_dir"
-[ $picosat_dir = unknown ] || cmake_opts="$cmake_opts -DPICOSAT_ROOT_DIR=$picosat_dir"
+[ -n "$cadical_dir" ] && cmake_opts="$cmake_opts -DCaDiCaL_ROOT_DIR=$cadical_dir"
+[ -n "$lingeling_dir" ] && cmake_opts="$cmake_opts -DLingeling_ROOT_DIR=$lingeling_dir"
+[ -n "$minisat_dir" ] && cmake_opts="$cmake_opts -DMiniSat_ROOT_DIR=$minisat_dir"
+[ -n "$picosat_dir" ] && cmake_opts="$cmake_opts -DPicoSAT_ROOT_DIR=$picosat_dir"
 
 mkdir -p $BUILDDIR
-cd $BUILDDIR
+cd $BUILDDIR || exit 1
 
 [ -e CMakeCache.txt ] && rm CMakeCache.txt
 cmake .. $cmake_opts

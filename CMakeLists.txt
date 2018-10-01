@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 #-----------------------------------------------------------------------------#
 
@@ -106,6 +106,20 @@ option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 
 #-----------------------------------------------------------------------------#
 
+# Automatically build shared libraries if Python bindings are enabled.
+if(PYTHON)
+  set(SHARED ON)
+endif()
+
+if(SHARED)
+  set(BUILD_SHARED_LIBS ON)
+else()
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+endif()
+
+#-----------------------------------------------------------------------------#
+
 # Note: Do not set these flags the cmake way as we need them for generating
 #       btorconfig.h and they are else not yet added to CMAKE_C(XX)_FLAGS at
 #       file generation time (configure_file).
@@ -122,7 +136,7 @@ foreach(flag ${FLAGS})
 endforeach()
 
 if(IS_WINDOWS_BUILD)
-  add_c_cxx_flag("-DBTOR_WINDOWS_BUILD")
+  add_definitions("-DBTOR_WINDOWS_BUILD")
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -145,7 +159,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_check_c_cxx_flag("-O3")
   if(NOT CHECK)
-    add_c_cxx_flag("-DNDEBUG")
+    add_definitions("-DNDEBUG")
   endif()
   set(LOG OFF)
   set(TIME_STATS OFF)
@@ -154,10 +168,11 @@ endif()
 #-----------------------------------------------------------------------------#
 
 if(ASAN)
-  # we do not check if the compiler supports the flag here (we actually would
-  # like to require support here) since check_c(xx)_compiler_flag reports
-  # false negative
-  add_c_cxx_flag("-fsanitize=address")
+  # -fsanitize=address requires CMAKE_REQUIRED_FLAGS to be explicitely set,
+  # otherwise the -fsanitize=address check will fail while linking.
+  set(CMAKE_REQUIRED_FLAGS -fsanitize=address)
+  add_required_c_cxx_flag("-fsanitize=address")
+  unset(CMAKE_REQUIRED_FLAGS)
   add_check_c_cxx_flag("-fno-omit-frame-pointer")
   add_required_c_cxx_flag("-fsanitize-recover=address")
 endif()
@@ -176,16 +191,12 @@ if(GPROF)
 endif()
 
 if(NOT LOG)
-  add_c_cxx_flag("-DNBTORLOG")
-endif()
-
-if(PYTHON OR SHARED)
-  add_required_c_cxx_flag("-fPIC")
+  add_definitions("-DNBTORLOG")
 endif()
 
 include(CheckSignals)
 if(HAVE_SIGNALS)
-  add_c_cxx_flag("-DBTOR_HAVE_SIGNALS")
+  add_definitions("-DBTOR_HAVE_SIGNALS")
 endif()
 
 include(CheckTimeUtils)
@@ -194,7 +205,7 @@ if(NOT HAVE_TIME_UTILS)
 endif()
 
 if(TIME_STATS)
-  add_c_cxx_flag("-DBTOR_TIME_STATISTICS")
+  add_definitions("-DBTOR_TIME_STATISTICS")
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -223,31 +234,28 @@ endif()
 
 #-----------------------------------------------------------------------------#
 
-find_package(BTOR2 REQUIRED)
-message(STATUS "Found Btor2Tools headers: ${BTOR2_INCLUDE_DIR}")
-set(LIBRARIES ${LIBRARIES} ${BTOR2_LIBRARIES})
-include_directories(${BTOR2_INCLUDE_DIR})
+find_package(Btor2Tools REQUIRED)
 
 if(NOT IS_WINDOWS_BUILD)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads)
   if(Threads_FOUND)
     set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
+    add_definitions("-DBTOR_HAVE_PTHREADS")
   endif()
 endif()
 
 if(USE_LINGELING)
-  find_package(LINGELING QUIET)
+  find_package(Lingeling)
 endif()
 if(USE_CADICAL)
-  find_package(CADICAL QUIET)
+  find_package(CaDiCaL)
 endif()
 if(USE_PICOSAT)
-  find_package(PICOSAT QUIET)
+  find_package(PicoSAT)
 endif()
 if(USE_MINISAT)
-  find_package(MINISAT QUIET)
+  find_package(MiniSat)
 endif()
 
 if(NOT USE_LINGELING
@@ -262,59 +270,43 @@ elseif(NOT LINGELING_FOUND
   message(FATAL_ERROR "No SAT solver found")
 endif()
 
-if(LINGELING_FOUND)
-  if(${LINGELING_INCLUDE_DIR} STREQUAL "LINGELING_INCLUDE_DIR-NOTFOUND")
+if(Lingeling_FOUND)
+  if(NOT Lingeling_INCLUDE_DIR)
     message(FATAL_ERROR "Lingeling headers not found")
   else()
-    include_directories(${LINGELING_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${LINGELING_LIBRARIES})
-    message(STATUS "Found Lingeling: ${LINGELING_LIBRARIES}")
-    message(STATUS "Found Lingeling headers: ${LINGELING_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_LINGELING")
+    add_definitions("-DBTOR_USE_LINGELING")
   endif()
-elseif(GIVEN_LINGELING_ROOT_DIR)
+elseif(GIVEN_Lingeling_ROOT_DIR)
   message(FATAL_ERROR "Lingeling not found")
 endif()
 
-if(CADICAL_FOUND)
-  if(${CADICAL_INCLUDE_DIR} STREQUAL "CADICAL_INCLUDE_DIR-NOTFOUND")
+if(CaDiCaL_FOUND)
+  if(NOT CaDiCaL_INCLUDE_DIR)
     message(FATAL_ERROR "CaDiCaL headers not found")
   else()
-    include_directories(${CADICAL_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${CADICAL_LIBRARIES})
-    message(STATUS "Found CaDiCaL: ${CADICAL_LIBRARIES}")
-    message(STATUS "Found CaDiCaL headers: ${CADICAL_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_CADICAL")
+    add_definitions("-DBTOR_USE_CADICAL")
   endif()
-elseif(GIVEN_CADICAL_ROOT_DIR)
+elseif(GIVEN_CaDiCaL_ROOT_DIR)
   message(FATAL_ERROR "CaDiCaL not found")
 endif()
 
-if(PICOSAT_FOUND)
-  if(${PICOSAT_INCLUDE_DIR} STREQUAL "PICOSAT_INCLUDE_DIR-NOTFOUND")
+if(PicoSAT_FOUND)
+  if(NOT PicoSAT_INCLUDE_DIR)
     message(FATAL_ERROR "PicoSAT headers not found")
   else()
-    include_directories(${PICOSAT_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${PICOSAT_LIBRARIES})
-    message(STATUS "Found PicoSAT: ${PICOSAT_LIBRARIES}")
-    message(STATUS "Found PicoSAT headers: ${PICOSAT_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_PICOSAT")
+    add_definitions("-DBTOR_USE_PICOSAT")
   endif()
-elseif(GIVEN_PICOSAT_ROOT_DIR)
+elseif(GIVEN_PicoSAT_ROOT_DIR)
   message(FATAL_ERROR "PicoSAT not found")
 endif()
 
-if(MINISAT_FOUND)
-  if(${MINISAT_INCLUDE_DIR} STREQUAL "MINISAT_INCLUDE_DIR-NOTFOUND")
+if(MiniSat_FOUND)
+  if(NOT MiniSat_INCLUDE_DIR)
     message(FATAL_ERROR "MiniSAT headers not found")
   else()
-    include_directories(${MINISAT_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${MINISAT_LIBRARIES})
-    message(STATUS "Found MiniSAT: ${MINISAT_LIBRARIES}")
-    message(STATUS "Found MiniSAT headers: ${MINISAT_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_MINISAT")
+    add_definitions("-DBTOR_USE_MINISAT")
   endif()
-elseif(GIVEN_MINISAT_ROOT_DIR)
+elseif(GIVEN_MiniSat_ROOT_DIR)
   message(FATAL_ERROR "MiniSAT not found")
 endif()
 
@@ -355,6 +347,7 @@ if(GIT_FOUND)
   endif()
 endif()
 
+# TODO: definitions added via add_definititions
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
