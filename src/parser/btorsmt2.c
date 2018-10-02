@@ -3268,8 +3268,7 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
     BtorSMT2Coo coo;
     exp    = 0;
     decstr = btor_mem_strdup (parser->mem, parser->token.start + 2);
-    constr = btor_util_dec_to_bin_str (parser->mem,
-                                       parser->token.start + 2);
+    constr = btor_util_dec_to_bin_str (parser->mem, parser->token.start + 2);
     coo    = parser->coo;
     coo.y += 2;
     if (parse_uint32_smt2 (parser, true, &width))
@@ -3326,10 +3325,8 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
   }
   else
   {
-
-    return !perr_smt2 (parser,
-                       "invalid parametric term '_ %s'",
-                       parser->token.start);
+    return !perr_smt2 (
+        parser, "invalid parametric term '_ %s'", parser->token.start);
   }
   return 1;
 }
@@ -3447,8 +3444,8 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
   BoolectorSort s;
   Btor *btor;
 
-  btor = parser->btor;
-  sym  = 0;
+  btor    = parser->btor;
+  sym     = 0;
   new_sym = 0;
 
   if (parser->expecting_body) parser->expecting_body = 0;
@@ -3467,21 +3464,19 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
 
       if (tag == BTOR_INVALID_TAG_SMT2) return 0;
       if (tag == EOF)
-        return !perr_smt2 (
-            parser,
-            "expected symbol to be bound after '(' at line %d "
-            "column %d but reached end-of-file",
-            item_cur->coo.x,
-            item_cur->coo.y);
+        return !perr_smt2 (parser,
+                           "expected symbol to be bound after '(' at line %d "
+                           "column %d but reached end-of-file",
+                           item_cur->coo.x,
+                           item_cur->coo.y);
 
       if (tag != BTOR_SYMBOL_TAG_SMT2)
-        return !perr_smt2 (
-            parser,
-            "expected symbol to be bound at '%s' after '(' at "
-            "line %d column %d",
-            parser->token.start,
-            item_cur->coo.x,
-            item_cur->coo.y);
+        return !perr_smt2 (parser,
+                           "expected symbol to be bound at '%s' after '(' at "
+                           "line %d column %d",
+                           parser->token.start,
+                           item_cur->coo.x,
+                           item_cur->coo.y);
       sym = parser->last_node;
       assert (sym);
       /* shadow previously defined symbols */
@@ -3521,8 +3516,8 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
 
       q       = push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
       q->node = sym;
-      char buf[strlen (sym->name)
-               + btor_util_num_digits (parser->bound_vars) + 2];
+      char buf[strlen (sym->name) + btor_util_num_digits (parser->bound_vars)
+               + 2];
       sprintf (buf, "%s!%d", sym->name, parser->bound_vars++);
       sym->exp = boolector_param (btor, s, buf);
     }
@@ -3551,8 +3546,7 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
   {
     char *constr, *uconstr;
     BtorBitVector *constrbv = 0, *uconstrbv;
-    constr =
-        btor_util_hex_to_bin_str (parser->mem, parser->token.start + 2);
+    constr = btor_util_hex_to_bin_str (parser->mem, parser->token.start + 2);
     width2 = strlen (constr);
     width  = strlen (parser->token.start + 2) * 4;
     assert (width2 <= width);
@@ -3578,8 +3572,7 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
   }
   else
   {
-    return !perr_smt2 (
-        parser, "unexpected token '%s'", parser->token.start);
+    return !perr_smt2 (parser, "unexpected token '%s'", parser->token.start);
   }
 
   return 1;
@@ -3646,7 +3639,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
     /* ------------------------------------------------------------------- */
     else
     {
-      if (!parse_open_term(parser, tag)) return 0;
+      if (!parse_open_term (parser, tag)) return 0;
     }
   } while (parser->open);
   if (BTOR_COUNT_STACK (parser->work) - work_cnt != 1)
@@ -4904,8 +4897,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
             parser->commands.all,
             delta);
 
-  if (parser->need_functions
-      && parser->need_arrays
+  if (parser->need_functions && parser->need_arrays
       && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
@@ -4938,8 +4930,7 @@ parse_smt2_parser (BtorSMT2Parser *parser,
   }
   else if (parser->commands.set_logic)
   {
-    if (!parser->need_functions
-        && !parser->need_arrays
+    if (!parser->need_functions && !parser->need_arrays
         && !parser->need_quantifiers
         && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
