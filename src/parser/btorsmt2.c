@@ -3112,10 +3112,10 @@ parse_open_term_quant (BtorSMT2Parser *parser, const char *msg)
 }
 
 static int32_t
-check_open_term_indexed_one_fixed_num_parametric (BtorSMT2Parser *parser,
-                                                     BtorSMT2Node *node)
+check_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Node *node)
 {
   assert (parser);
+  assert (node);
 
   if (BTOR_COUNT_STACK (parser->work) < 3)
   {
@@ -3137,25 +3137,49 @@ check_open_term_indexed_one_fixed_num_parametric (BtorSMT2Parser *parser,
 }
 
 static int32_t
-parse_open_term_indexed_one_fixed_num_parametric (BtorSMT2Parser *parser,
-                                                     BtorSMT2Item *item_cur,
-                                                     int32_t tag,
-                                                     BtorSMT2Node *node,
-                                                     const char *msg)
+parse_open_term_indexed_parametric (BtorSMT2Parser *parser,
+                                    BtorSMT2Item *item_cur,
+                                    int32_t tag,
+                                    uint32_t nargs,
+                                    BtorSMT2Node *node,
+                                    const char *msg)
 {
   assert (parser);
   assert (item_cur);
   assert (node);
   assert (msg);
 
-  assert (BTOR_COUNT_STACK (parser->work) >= 2);
+  assert (nargs > 1 || BTOR_COUNT_STACK (parser->work) >= 2);
 
+  BtorSMT2Coo firstcoo;
   BtorSMT2Item *item_open;
 
-  if (!check_open_term_indexed_one_fixed_num_parametric (parser, node))
-    return 0;
+  if (!check_open_term_indexed (parser, node)) return 0;
+
   item_open = item_cur - 1;
-  if (!parse_int32_smt2 (parser, false, &item_open->num)) return 0;
+  assert (node && tag == (int32_t) node->tag);
+
+  if (nargs == 1)
+  {
+    if (!parse_int32_smt2 (parser, false, &item_open->num)) return 0;
+  }
+  else
+  {
+    assert (nargs == 2);
+    if (!parse_int32_smt2 (parser, false, &item_open->idx0)) return 0;
+    firstcoo = parser->coo;
+    if (!parse_int32_smt2 (parser, false, &item_open->idx1)) return 0;
+    if (tag == BTOR_BV_EXTRACT_TAG_SMT2 && item_open->idx0 < item_open->idx1)
+    {
+      parser->perrcoo = firstcoo;
+      return !perr_smt2 (parser,
+                         "first parameter '%u' of '(_ extract' "
+                         "smaller than second '%u'",
+                         item_open->idx0,
+                         item_open->idx1);
+    }
+  }
+
   item_open->tag   = tag;
   item_open->node  = node;
   parser->work.top = item_cur;
@@ -3191,70 +3215,51 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
 
   if (tag == BTOR_BV_REPEAT_TAG_SMT2)
   {
-    assert (node && tag == (int32_t) node->tag);
-    if (!parse_open_term_indexed_one_fixed_num_parametric (
-            parser, item_cur, tag, node, " to close '(_ repeat'"))
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 1, node, " to close '(_ repeat'"))
     {
       return 0;
     }
   }
   else if (tag == BTOR_BV_ZERO_EXTEND_TAG_SMT2)
   {
-    if (!parse_open_term_indexed_one_fixed_num_parametric (
-            parser, item_cur, tag, node, " to close '(_ zero_extend'"))
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 1, node, " to close '(_ zero_extend'"))
     {
       return 0;
     }
   }
   else if (tag == BTOR_BV_SIGN_EXTEND_TAG_SMT2)
   {
-    if (!parse_open_term_indexed_one_fixed_num_parametric (
-            parser, item_cur, tag, node, " to close '(_ sign_extend'"))
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 1, node, " to close '(_ sign_extend'"))
     {
       return 0;
     }
   }
   else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
   {
-    if (!parse_open_term_indexed_one_fixed_num_parametric (
-            parser, item_cur, tag, node, " to close '(_ rotate_left'"))
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 1, node, " to close '(_ rotate_left'"))
     {
       return 0;
     }
   }
   else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
   {
-    if (!parse_open_term_indexed_one_fixed_num_parametric (
-            parser, item_cur, tag, node, " to close '(_ rotate_right'"))
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 1, node, " to close '(_ rotate_right'"))
     {
       return 0;
     }
   }
   else if (tag == BTOR_BV_EXTRACT_TAG_SMT2)
   {
-    BtorSMT2Coo firstcoo;
-    BtorSMT2Item *item_open = item_cur - 1;
-    assert (node && tag == (int32_t) node->tag);
-    if (!check_open_term_indexed_one_fixed_num_parametric (parser, node))
-      return 0;
-    if (!parse_int32_smt2 (parser, false, &item_open->idx0)) return 0;
-    firstcoo = parser->coo;
-    if (!parse_int32_smt2 (parser, false, &item_open->idx1)) return 0;
-    if (item_open->idx0 < item_open->idx1)
+    if (!parse_open_term_indexed_parametric (
+            parser, item_cur, tag, 2, node, " to close '(_ extract'"))
     {
-      parser->perrcoo = firstcoo;
-      return !perr_smt2 (parser,
-                         "first parameter '%u' of '(_ extract' "
-                         "smaller than second '%u'",
-                         item_open->idx0,
-                         item_open->idx1);
+      return 0;
     }
-    item_open->tag           = tag;
-    item_open->node          = node;
-    parser->work.top = item_cur;
-    if (!read_rpar_smt2 (parser, " to close '(_ extract'")) return 0;
-    assert (parser->open > 0);
-    parser->open--;
   }
   else if (tag == BTOR_SYMBOL_TAG_SMT2
            && is_bvconst_str_smt2 (parser->token.start))
