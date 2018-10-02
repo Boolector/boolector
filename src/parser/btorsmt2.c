@@ -3330,6 +3330,108 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
 }
 
 static int32_t
+parse_open_term_item_with_node (BtorSMT2Parser *parser,
+                                int32_t tag,
+                                BtorSMT2Item *item_cur)
+{
+  assert (parser);
+  assert (item_cur);
+
+  Btor *btor;
+
+  btor = parser->btor;
+
+  item_cur->node = parser->last_node;
+
+  if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
+  {
+    return !perr_smt2 (parser, "unexpected command '%s'", item_cur->node->name);
+  }
+  if (tag & BTOR_KEYWORD_TAG_CLASS_SMT2)
+  {
+    return !perr_smt2 (parser, "unexpected keyword '%s'", item_cur->node->name);
+  }
+  if (tag & BTOR_LOGIC_TAG_CLASS_SMT2)
+  {
+    return !perr_smt2 (parser, "unexpected logic '%s'", item_cur->node->name);
+  }
+  if (tag & BTOR_RESERVED_TAG_CLASS_SMT2)
+  {
+    if (tag == BTOR_LET_TAG_SMT2)
+    {
+      if (!read_lpar_smt2 (parser, " after 'let'")) return 0;
+      push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
+      parser->open++, assert (parser->open > 0);
+      push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
+      assert (!parser->isvarbinding);
+      parser->isvarbinding = true;
+    }
+    else if (tag == BTOR_FORALL_TAG_SMT2)
+    {
+      if (!parse_open_term_quant (parser, " after 'forall'")) return 0;
+    }
+    else if (tag == BTOR_EXISTS_TAG_SMT2)
+    {
+      if (!parse_open_term_quant (parser, " after 'exists'")) return 0;
+    }
+    else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
+    {
+      if (!parse_open_term_indexed (parser, item_cur)) return 0;
+    }
+    else
+    {
+      assert (item_cur->node->name);
+      return !perr_smt2 (
+          parser, "unsupported reserved word '%s'", item_cur->node->name);
+    }
+  }
+  else if (tag == BTOR_SYMBOL_TAG_SMT2)
+  {
+    assert (item_cur->node);
+    if (!item_cur->node->exp)
+      return !perr_smt2 (parser, "undefined symbol '%s'", item_cur->node->name);
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = boolector_copy (btor, item_cur->node->exp);
+  }
+  else if (tag == BTOR_TRUE_TAG_SMT2)
+  {
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = boolector_true (btor);
+  }
+  else if (tag == BTOR_FALSE_TAG_SMT2)
+  {
+    item_cur->tag = BTOR_EXP_TAG_SMT2;
+    item_cur->exp = boolector_false (btor);
+  }
+  else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
+  {
+    return !perr_smt2 (
+        parser, "unexpected attribute '%s'", parser->token.start);
+  }
+  else if (tag & BTOR_CORE_TAG_CLASS_SMT2)
+  {
+    if (tag == BTOR_BOOL_TAG_SMT2)
+      return !perr_smt2 (parser, "unexpected 'Bool'");
+  }
+  else if (tag & BTOR_ARRAY_TAG_CLASS_SMT2)
+  {
+    if (tag == BTOR_ARRAY_TAG_SMT2)
+      return !perr_smt2 (parser, "unexpected 'Array'");
+  }
+  else if (tag & BTOR_BV_TAG_CLASS_SMT2)
+  {
+    if (tag == BTOR_BV_BITVEC_TAG_SMT2)
+      return !perr_smt2 (parser, "unexpected 'BitVec'");
+  }
+  else
+  {
+    return !perr_smt2 (
+        parser, "unexpected token '%s'", item2str_smt2 (item_cur));
+  }
+  return 1;
+}
+
+static int32_t
 parse_open_term (BtorSMT2Parser *parser, int32_t tag)
 {
   assert (parser);
@@ -3433,84 +3535,7 @@ parse_open_term (BtorSMT2Parser *parser, int32_t tag)
   }
   else if (is_item_with_node_smt2 (item_cur))
   {
-    item_cur->node = parser->last_node;
-    if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
-      return !perr_smt2 (parser, "unexpected command '%s'", item_cur->node->name);
-    if (tag & BTOR_KEYWORD_TAG_CLASS_SMT2)
-      return !perr_smt2 (parser, "unexpected keyword '%s'", item_cur->node->name);
-    if (tag & BTOR_LOGIC_TAG_CLASS_SMT2)
-      return !perr_smt2 (parser, "unexpected logic '%s'", item_cur->node->name);
-    if (tag & BTOR_RESERVED_TAG_CLASS_SMT2)
-    {
-      if (tag == BTOR_LET_TAG_SMT2)
-      {
-        if (!read_lpar_smt2 (parser, " after 'let'")) return 0;
-        push_item_smt2 (parser, BTOR_LPAR_TAG_SMT2);
-        parser->open++, assert (parser->open > 0);
-        push_item_smt2 (parser, BTOR_PARLETBINDING_TAG_SMT2);
-        assert (!parser->isvarbinding);
-        parser->isvarbinding = true;
-      }
-      else if (tag == BTOR_FORALL_TAG_SMT2)
-      {
-        if (!parse_open_term_quant (parser, " after 'forall'")) return 0;
-      }
-      else if (tag == BTOR_EXISTS_TAG_SMT2)
-      {
-        if (!parse_open_term_quant (parser, " after 'exists'")) return 0;
-      }
-      else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
-      {
-        if (!parse_open_term_indexed(parser, item_cur)) return 0;
-      }
-      else
-      {
-        assert (item_cur->node->name);
-        return !perr_smt2 (
-            parser, "unsupported reserved word '%s'", item_cur->node->name);
-      }
-    }
-    else if (tag == BTOR_SYMBOL_TAG_SMT2)
-    {
-      assert (item_cur->node);
-      if (!item_cur->node->exp)
-        return !perr_smt2 (parser, "undefined symbol '%s'", item_cur->node->name);
-      item_cur->tag = BTOR_EXP_TAG_SMT2;
-      item_cur->exp = boolector_copy (btor, item_cur->node->exp);
-    }
-    else if (tag == BTOR_TRUE_TAG_SMT2)
-    {
-      item_cur->tag = BTOR_EXP_TAG_SMT2;
-      item_cur->exp = boolector_true (btor);
-    }
-    else if (tag == BTOR_FALSE_TAG_SMT2)
-    {
-      item_cur->tag = BTOR_EXP_TAG_SMT2;
-      item_cur->exp = boolector_false (btor);
-    }
-    else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
-    {
-      return !perr_smt2 (
-          parser, "unexpected attribute '%s'", parser->token.start);
-    }
-    else if (tag & BTOR_CORE_TAG_CLASS_SMT2)
-    {
-      if (tag == BTOR_BOOL_TAG_SMT2)
-        return !perr_smt2 (parser, "unexpected 'Bool'");
-    }
-    else if (tag & BTOR_ARRAY_TAG_CLASS_SMT2)
-    {
-      if (tag == BTOR_ARRAY_TAG_SMT2)
-        return !perr_smt2 (parser, "unexpected 'Array'");
-    }
-    else if (tag & BTOR_BV_TAG_CLASS_SMT2)
-    {
-      if (tag == BTOR_BV_BITVEC_TAG_SMT2)
-        return !perr_smt2 (parser, "unexpected 'BitVec'");
-    }
-    else
-      return !perr_smt2 (
-          parser, "unexpected token '%s'", item2str_smt2 (item_cur));
+    if (!parse_open_term_item_with_node (parser, tag, item_cur)) return 0;
   }
   else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
   {
