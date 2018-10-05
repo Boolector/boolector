@@ -509,11 +509,24 @@ btor_print_stats (Btor *btor)
       btor->msg, 1, "%5lld beta reductions", btor->stats.beta_reduce_calls);
   BTOR_MSG (btor->msg, 1, "%5lld clone calls", btor->stats.clone_calls);
 
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "rewrite rule cache");
+  BTOR_MSG (btor->msg, 1, "  %lld cached (add) ", btor->rw_cache->num_add);
+  BTOR_MSG (btor->msg, 1, "  %lld cached (get)", btor->rw_cache->num_get);
+  BTOR_MSG (btor->msg, 1, "  %lld updated", btor->rw_cache->num_update);
+  BTOR_MSG (btor->msg, 1, "  %lld removed (gc)", btor->rw_cache->num_remove);
+  BTOR_MSG (btor->msg,
+            1,
+            "  %.2f MB cache",
+            (btor->rw_cache->cache->count * sizeof (BtorRwCacheTuple)
+             + btor->rw_cache->cache->count * sizeof (BtorPtrHashBucket)
+             + btor->rw_cache->cache->size * sizeof (BtorPtrHashBucket *))
+                / (double) (1 << 20));
+
 #ifndef NDEBUG
   BtorPtrHashTableIterator it;
   char *rule;
   int32_t num = 0;
-  BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "applied rewriting rules:");
   if (btor->stats.rw_rules_applied->count == 0)
     BTOR_MSG (btor->msg, 1, "  none");
@@ -759,6 +772,9 @@ btor_new (void)
 #endif
 
   btor->true_exp = btor_exp_true (btor);
+
+  BTOR_CNEW (mm, btor->rw_cache);
+  btor_rw_cache_init (btor->rw_cache, btor);
 
   return btor;
 }
@@ -1024,6 +1040,9 @@ btor_delete (Btor *btor)
 
   if (btor->avmgr) btor_aigvec_mgr_delete (btor->avmgr);
   btor_opt_delete_opts (btor);
+
+  btor_rw_cache_delete (btor->rw_cache);
+  BTOR_DELETE (mm, btor->rw_cache);
 
   assert (btor->rec_rw_calls == 0);
   btor_msg_delete (btor->msg);
@@ -4337,15 +4356,17 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     }
     else
     {
-      BTORLOG (2,
-               "assert model for %s (%s)",
-               btor_util_node2string (real_simp_clone),
-               btor_node_get_symbol (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
       model =
           btor_exp_const (clone,
                           (BtorBitVector *) btor_model_get_bv (
                               btor, btor_node_cond_invert (simp_clone, simp)));
+      BTORLOG (2,
+               "assert model for %s (%s) [%s]",
+               btor_util_node2string (real_simp_clone),
+               btor_node_get_symbol (clone, cur),
+               btor_util_node2string (model));
+
       eq = btor_exp_eq (clone, real_simp_clone, model);
       btor_assert_exp (clone, eq);
       btor_node_release (clone, eq);

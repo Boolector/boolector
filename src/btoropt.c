@@ -1527,7 +1527,6 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
 
   o      = &btor->options[opt];
   oldval = o->val;
-  (void) oldval;
 
   if (opt == BTOR_OPT_SEED)
   {
@@ -1647,6 +1646,12 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
   {
     assert (val <= 3);
     assert (oldval <= 3);
+
+    /* If the rewrite level changes we need to reset the rewrite cache. */
+    if (val != oldval)
+    {
+      btor_rw_cache_reset (btor->rw_cache);
+    }
   }
 #endif
 

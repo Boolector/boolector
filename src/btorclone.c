@@ -17,6 +17,7 @@
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btormsg.h"
+#include "btorrwcache.h"
 #include "btorsat.h"
 #include "btorslvaigprop.h"
 #include "btorslvfun.h"
@@ -82,6 +83,21 @@ btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
   assert (t);
   (void) map;
   return btor_bv_copy_tuple (mm, (BtorBitVectorTuple *) t);
+}
+
+void *
+btor_clone_key_as_rw_cache_tuple (BtorMemMgr *mm,
+                                  const void *map,
+                                  const void *t)
+{
+  assert (mm);
+  assert (t);
+  (void) map;
+
+  BtorRwCacheTuple *res;
+  BTOR_CNEW (mm, res);
+  memcpy (res, t, sizeof (BtorRwCacheTuple));
+  return res;
 }
 
 void
@@ -1315,6 +1331,16 @@ clone_aux_btor (Btor *btor,
     (void) btor_iter_hashptr_next (&cpit);
   }
   assert (allocated == clone->mm->allocated);
+#endif
+  BTOR_NEW (mm, clone->rw_cache);
+  clone->rw_cache->btor  = clone;
+  clone->rw_cache->cache = btor_hashptr_table_clone (
+      mm, btor->rw_cache->cache, btor_clone_key_as_rw_cache_tuple, 0, 0, 0);
+#ifndef NDEBUG
+  CHKCLONE_MEM_PTR_HASH_TABLE (btor->rw_cache->cache, clone->rw_cache->cache);
+  allocated += sizeof (*btor->rw_cache);
+  allocated += btor->rw_cache->cache->count * sizeof (BtorRwCacheTuple);
+  allocated += MEM_PTR_HASH_TABLE (btor->rw_cache->cache);
 #endif
 
   /* move synthesized constraints to unsynthesized if we only clone the exp

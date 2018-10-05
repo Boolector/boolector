@@ -120,6 +120,30 @@
 //{fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
 
 /* -------------------------------------------------------------------------- */
+/* rewrite cache */
+
+static BtorNode *
+check_rw_cache (
+    Btor *btor, BtorNodeKind kind, int32_t id0, int32_t id1, int32_t id2)
+{
+  BtorNode *result = 0;
+
+  int32_t cached_result_id =
+      btor_rw_cache_get (btor->rw_cache, kind, id0, id1, id2);
+  if (cached_result_id)
+  {
+    result = btor_node_get_by_id (btor, cached_result_id);
+    if (result)
+    {
+      btor->rw_cache->num_get++;
+      result = btor_node_copy (
+          btor, btor_pointer_chase_simplified_exp (btor, result));
+    }
+  }
+  return result;
+}
+
+/* -------------------------------------------------------------------------- */
 /* util functions */
 
 static bool
@@ -996,9 +1020,11 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         result = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
       else if (kind == BTOR_ULT_NODE)
       {
+        BTOR_INC_REC_RW_CALL (btor);
         tmp1   = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
         result = rewrite_eq_exp (btor, e0, tmp1);
         btor_node_release (btor, tmp1);
+        BTOR_DEC_REC_RW_CALL (btor);
       }
       break;
     case BTOR_SPECIAL_CONST_BV_ONES:
@@ -1037,7 +1063,11 @@ apply_special_const_rhs_binary_exp (Btor *btor,
       else if (kind == BTOR_AND_NODE)
         result = btor_node_copy (btor, e0);
       else if (kind == BTOR_ULT_NODE)
+      {
+        BTOR_INC_REC_RW_CALL (btor);
         result = btor_node_invert (rewrite_eq_exp (btor, e0, e1));
+        BTOR_DEC_REC_RW_CALL (btor);
+      }
       else if (kind == BTOR_MUL_NODE)
         result = btor_exp_neg (btor, e0);
       break;
@@ -2110,8 +2140,8 @@ apply_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 /*
- * match:  b ? a : t = d, where a != d
- * result: !b AND d = t
+ * match:  b ? a : t = d, where t != d
+ * result: b AND a = t
  */
 static inline bool
 applies_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
@@ -6183,28 +6213,48 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
 /* -------------------------------------------------------------------------- */
 
 static BtorNode *
-rewrite_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
+rewrite_slice_exp (Btor *btor, BtorNode *e, uint32_t upper, uint32_t lower)
 {
   BtorNode *result = 0;
 
-  exp = btor_simplify_exp (btor, exp);
-  assert (btor_dbg_precond_slice_exp (btor, exp, upper, lower));
+  e = btor_simplify_exp (btor, e);
+  assert (btor_dbg_precond_slice_exp (btor, e, upper, lower));
 
-  ADD_RW_RULE (full_slice, exp, upper, lower);
-  ADD_RW_RULE (const_slice, exp, upper, lower);
-  ADD_RW_RULE (slice_slice, exp, upper, lower);
-  ADD_RW_RULE (concat_lower_slice, exp, upper, lower);
-  ADD_RW_RULE (concat_upper_slice, exp, upper, lower);
-  ADD_RW_RULE (concat_rec_upper_slice, exp, upper, lower);
-  ADD_RW_RULE (concat_rec_lower_slice, exp, upper, lower);
-  ADD_RW_RULE (concat_rec_slice, exp, upper, lower);
-  ADD_RW_RULE (and_slice, exp, upper, lower);
-  ADD_RW_RULE (bcond_slice, exp, upper, lower);
-  ADD_RW_RULE (zero_lower_slice, exp, upper, lower);
+  result = check_rw_cache (
+      btor, BTOR_SLICE_NODE, btor_node_get_id (e), upper, lower);
 
-  assert (!result);
-  result = btor_node_create_slice (btor, exp, upper, lower);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (full_slice, e, upper, lower);
+    ADD_RW_RULE (const_slice, e, upper, lower);
+    ADD_RW_RULE (slice_slice, e, upper, lower);
+    ADD_RW_RULE (concat_lower_slice, e, upper, lower);
+    ADD_RW_RULE (concat_upper_slice, e, upper, lower);
+    ADD_RW_RULE (concat_rec_upper_slice, e, upper, lower);
+    ADD_RW_RULE (concat_rec_lower_slice, e, upper, lower);
+    ADD_RW_RULE (concat_rec_slice, e, upper, lower);
+    ADD_RW_RULE (and_slice, e, upper, lower);
+    ADD_RW_RULE (bcond_slice, e, upper, lower);
+    ADD_RW_RULE (zero_lower_slice, e, upper, lower);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_slice (btor, e, upper, lower);
+    }
+    else
+    {
+    /* Note: The else branch is only active if we were able to use a rewrite
+     * rule. */
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_SLICE_NODE,
+                         btor_node_get_id (e),
+                         upper,
+                         lower,
+                         btor_node_get_id (result));
+    }
+  }
   assert (result);
   return result;
 }
@@ -6212,65 +6262,86 @@ DONE:
 static BtorNode *
 rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  bool swap_ops    = false;
+  bool swap_ops = false;
   BtorNode *result = 0;
   BtorNodeKind kind;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_eq_exp (btor, e0, e1));
-
   kind = btor_node_is_fun (e0) ? BTOR_FUN_EQ_NODE : BTOR_BV_EQ_NODE;
 
   e0 = btor_node_copy (btor, e0);
   e1 = btor_node_copy (btor, e1);
   normalize_eq (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, kind, e0, e1);
-  /* We do not rewrite eq in the boolean case, as we cannot extract the
-   * resulting XNOR on top level again and would therefore loose substitutions.
-   *
-   * Additionally, we do not rewrite eq in the boolean case, as we rewrite
-   * a != b to a = ~b and substitute.
-   */
-  ADD_RW_RULE (true_eq, e0, e1);
-  ADD_RW_RULE (false_eq, e0, e1);
-  ADD_RW_RULE (bcond_eq, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, kind, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, kind, e0, e1);
 SWAP_OPERANDS:
-  ADD_RW_RULE (add_left_eq, e0, e1);
-  ADD_RW_RULE (add_right_eq, e0, e1);
-  ADD_RW_RULE (add_add_1_eq, e0, e1);
-  ADD_RW_RULE (add_add_2_eq, e0, e1);
-  ADD_RW_RULE (add_add_3_eq, e0, e1);
-  ADD_RW_RULE (add_add_4_eq, e0, e1);
-  ADD_RW_RULE (sub_eq, e0, e1);
-  ADD_RW_RULE (bcond_uneq_if_eq, e0, e1);
-  ADD_RW_RULE (bcond_uneq_else_eq, e0, e1);
-  ADD_RW_RULE (bcond_if_eq, e0, e1);
-  ADD_RW_RULE (bcond_else_eq, e0, e1);
-  ADD_RW_RULE (distrib_add_mul_eq, e0, e1);
-  ADD_RW_RULE (concat_eq, e0, e1);
+  result = check_rw_cache (
+      btor, kind, btor_node_get_id (e0), btor_node_get_id (e1), 0);
+
+  if (!result)
+  {
+    if (!swap_ops)
+    {
+      ADD_RW_RULE (const_binary_exp, kind, e0, e1);
+      /* We do not rewrite eq in the boolean case, as we cannot extract the
+       * resulting XNOR on top level again and would therefore lose
+       * substitutions.
+       *
+       * Additionally, we do not rewrite eq in the boolean case, as we rewrite
+       * a != b to a = ~b and substitute.
+       */
+      ADD_RW_RULE (true_eq, e0, e1);
+      ADD_RW_RULE (false_eq, e0, e1);
+      ADD_RW_RULE (bcond_eq, e0, e1);
+      ADD_RW_RULE (special_const_lhs_binary_exp, kind, e0, e1);
+      ADD_RW_RULE (special_const_rhs_binary_exp, kind, e0, e1);
+    }
+    ADD_RW_RULE (add_left_eq, e0, e1);
+    ADD_RW_RULE (add_right_eq, e0, e1);
+    ADD_RW_RULE (add_add_1_eq, e0, e1);
+    ADD_RW_RULE (add_add_2_eq, e0, e1);
+    ADD_RW_RULE (add_add_3_eq, e0, e1);
+    ADD_RW_RULE (add_add_4_eq, e0, e1);
+    ADD_RW_RULE (sub_eq, e0, e1);
+    ADD_RW_RULE (bcond_uneq_if_eq, e0, e1);
+    ADD_RW_RULE (bcond_uneq_else_eq, e0, e1);
+    ADD_RW_RULE (bcond_if_eq, e0, e1);
+    ADD_RW_RULE (bcond_else_eq, e0, e1);
+    ADD_RW_RULE (distrib_add_mul_eq, e0, e1);
+    ADD_RW_RULE (concat_eq, e0, e1);
 #if 0
-  ADD_RW_RULE (zero_eq_and_eq, e0, e1);
+    ADD_RW_RULE (zero_eq_and_eq, e0, e1);
 #endif
 
-  assert (!result);
+    assert (!result);
+    /* no result so far, swap operands */
+    if (!swap_ops)
+    {
+      BTOR_SWAP (BtorNode *, e0, e1);
+      swap_ops = true;
+      goto SWAP_OPERANDS;
+    }
 
-  /* no result so far, swap operands */
-  if (!swap_ops)
-  {
-    BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = true;
-    goto SWAP_OPERANDS;
+    if (!result)
+    {
+      result = btor_node_create_eq (btor, e1, e0);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         kind,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
   }
 
-  result = btor_node_create_eq (btor, e1, e0);
-DONE:
-  assert (result);
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
@@ -6287,28 +6358,47 @@ rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_ult (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_ULT_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ULT_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_ULT_NODE, e0, e1);
-  ADD_RW_RULE (false_ult, e0, e1);
-  ADD_RW_RULE (bool_ult, e0, e1);
-  ADD_RW_RULE (concat_upper_ult, e0, e1);
-  ADD_RW_RULE (concat_lower_ult, e0, e1);
-  ADD_RW_RULE (bcond_ult, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_ULT_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_ult (btor, e0, e1);
-DONE:
-  assert (result);
+  if (!result)
+  {
+    ADD_RW_RULE (const_binary_exp, BTOR_ULT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ULT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_ULT_NODE, e0, e1);
+    ADD_RW_RULE (false_ult, e0, e1);
+    ADD_RW_RULE (bool_ult, e0, e1);
+    ADD_RW_RULE (concat_upper_ult, e0, e1);
+    ADD_RW_RULE (concat_lower_ult, e0, e1);
+    ADD_RW_RULE (bcond_ult, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_ult (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_ULT_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
 static BtorNode *
 rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  bool swap_ops    = false;
+  bool swap_ops = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -6319,55 +6409,77 @@ rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_and (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_AND_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_AND_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_AND_NODE, e0, e1);
-  ADD_RW_RULE (idem1_and, e0, e1);
-  ADD_RW_RULE (contr1_and, e0, e1);
-  ADD_RW_RULE (contr2_and, e0, e1);
-  ADD_RW_RULE (idem2_and, e0, e1);
-  ADD_RW_RULE (comm_and, e0, e1);
-  ADD_RW_RULE (bool_xnor_and, e0, e1);
-  ADD_RW_RULE (resol1_and, e0, e1);
-  ADD_RW_RULE (resol2_and, e0, e1);
-  ADD_RW_RULE (ult_false_and, e0, e1);
-  ADD_RW_RULE (ult_and, e0, e1);
-  ADD_RW_RULE (contr_rec_and, e0, e1);
 SWAP_OPERANDS:
-  ADD_RW_RULE (subsum1_and, e0, e1);
-  ADD_RW_RULE (subst1_and, e0, e1);
-  ADD_RW_RULE (subst2_and, e0, e1);
-  ADD_RW_RULE (subsum2_and, e0, e1);
-  ADD_RW_RULE (subst3_and, e0, e1);
-  ADD_RW_RULE (subst4_and, e0, e1);
-  ADD_RW_RULE (contr3_and, e0, e1);
-  ADD_RW_RULE (idem3_and, e0, e1);
-  ADD_RW_RULE (const1_and, e0, e1);
-  ADD_RW_RULE (const2_and, e0, e1);
-  ADD_RW_RULE (concat_and, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_AND_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-
-  /* no result so far, swap operands */
-  if (!swap_ops)
+  if (!result)
   {
-    BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = true;
-    goto SWAP_OPERANDS;
+    if (!swap_ops)
+    {
+      ADD_RW_RULE (const_binary_exp, BTOR_AND_NODE, e0, e1);
+      ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_AND_NODE, e0, e1);
+      ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_AND_NODE, e0, e1);
+      ADD_RW_RULE (idem1_and, e0, e1);
+      ADD_RW_RULE (contr1_and, e0, e1);
+      ADD_RW_RULE (contr2_and, e0, e1);
+      ADD_RW_RULE (idem2_and, e0, e1);
+      ADD_RW_RULE (comm_and, e0, e1);
+      ADD_RW_RULE (bool_xnor_and, e0, e1);
+      ADD_RW_RULE (resol1_and, e0, e1);
+      ADD_RW_RULE (resol2_and, e0, e1);
+      ADD_RW_RULE (ult_false_and, e0, e1);
+      ADD_RW_RULE (ult_and, e0, e1);
+      ADD_RW_RULE (contr_rec_and, e0, e1);
+    }
+    ADD_RW_RULE (subsum1_and, e0, e1);
+    ADD_RW_RULE (subst1_and, e0, e1);
+    ADD_RW_RULE (subst2_and, e0, e1);
+    ADD_RW_RULE (subsum2_and, e0, e1);
+    ADD_RW_RULE (subst3_and, e0, e1);
+    ADD_RW_RULE (subst4_and, e0, e1);
+    ADD_RW_RULE (contr3_and, e0, e1);
+    ADD_RW_RULE (idem3_and, e0, e1);
+    ADD_RW_RULE (const1_and, e0, e1);
+    ADD_RW_RULE (const2_and, e0, e1);
+    ADD_RW_RULE (concat_and, e0, e1);
+
+    assert (!result);
+
+    /* no result so far, swap operands */
+    if (!swap_ops)
+    {
+      BTOR_SWAP (BtorNode *, e0, e1);
+      swap_ops = true;
+      goto SWAP_OPERANDS;
+    }
+
+    if (!result)
+    {
+      result = btor_node_create_and (btor, e1, e0);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_AND_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
   }
 
-  result = btor_node_create_and (btor, e1, e0);
-DONE:
-  assert (result);
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
 static BtorNode *
 rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  bool swap_ops    = false;
+  bool swap_ops = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -6378,44 +6490,66 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_add (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_ADD_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ADD_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_ADD_NODE, e0, e1);
-  ADD_RW_RULE (bool_add, e0, e1);
-  ADD_RW_RULE (mult_add, e0, e1);
-  ADD_RW_RULE (not_add, e0, e1);
-  ADD_RW_RULE (bcond_add, e0, e1);
-  ADD_RW_RULE (urem_add, e0, e1);
 SWAP_OPERANDS:
-  ADD_RW_RULE (neg_add, e0, e1);
-  ADD_RW_RULE (zero_add, e0, e1);
-  ADD_RW_RULE (const_lhs_add, e0, e1);
-  ADD_RW_RULE (const_rhs_add, e0, e1);
-  ADD_RW_RULE (const_neg_lhs_add, e0, e1);
-  ADD_RW_RULE (const_neg_rhs_add, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_ADD_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-
-  /* no result so far, swap operands */
-  if (!swap_ops)
+  if (!result)
   {
-    BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = true;
-    goto SWAP_OPERANDS;
+    if (!swap_ops)
+    {
+      ADD_RW_RULE (const_binary_exp, BTOR_ADD_NODE, e0, e1);
+      ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ADD_NODE, e0, e1);
+      ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_ADD_NODE, e0, e1);
+      ADD_RW_RULE (bool_add, e0, e1);
+      ADD_RW_RULE (mult_add, e0, e1);
+      ADD_RW_RULE (not_add, e0, e1);
+      ADD_RW_RULE (bcond_add, e0, e1);
+      ADD_RW_RULE (urem_add, e0, e1);
+    }
+    ADD_RW_RULE (neg_add, e0, e1);
+    ADD_RW_RULE (zero_add, e0, e1);
+    ADD_RW_RULE (const_lhs_add, e0, e1);
+    ADD_RW_RULE (const_rhs_add, e0, e1);
+    ADD_RW_RULE (const_neg_lhs_add, e0, e1);
+    ADD_RW_RULE (const_neg_rhs_add, e0, e1);
+
+    assert (!result);
+
+    /* no result so far, swap operands */
+    if (!swap_ops)
+    {
+      BTOR_SWAP (BtorNode *, e0, e1);
+      swap_ops = true;
+      goto SWAP_OPERANDS;
+    }
+
+    if (!result)
+    {
+      result = btor_node_create_add (btor, e1, e0);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_ADD_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
   }
 
-  result = btor_node_create_add (btor, e1, e0);
-DONE:
-  assert (result);
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
 static BtorNode *
 rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  bool swap_ops    = false;
+  bool swap_ops = false;
   BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -6426,34 +6560,56 @@ rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_mul (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_MUL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_MUL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_MUL_NODE, e0, e1);
-  ADD_RW_RULE (bool_mul, e0, e1);
-#if 0
-  // TODO (ma): this increases mul nodes in the general case, needs restriction
-  ADD_RW_RULE (bcond_mul, e0, e1);
-#endif
 SWAP_OPERANDS:
-  ADD_RW_RULE (const_lhs_mul, e0, e1);
-  ADD_RW_RULE (const_rhs_mul, e0, e1);
-  ADD_RW_RULE (const_mul, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_MUL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-
-  /* no result so far, swap operands */
-  if (!swap_ops)
+  if (!result)
   {
-    BTOR_SWAP (BtorNode *, e0, e1);
-    swap_ops = true;
-    goto SWAP_OPERANDS;
+    if (!swap_ops)
+    {
+      ADD_RW_RULE (const_binary_exp, BTOR_MUL_NODE, e0, e1);
+      ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_MUL_NODE, e0, e1);
+      ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_MUL_NODE, e0, e1);
+      ADD_RW_RULE (bool_mul, e0, e1);
+#if 0
+      // TODO (ma): this increases mul nodes in the general case, needs restriction
+      ADD_RW_RULE (bcond_mul, e0, e1);
+#endif
+    }
+    ADD_RW_RULE (const_lhs_mul, e0, e1);
+    ADD_RW_RULE (const_rhs_mul, e0, e1);
+    ADD_RW_RULE (const_mul, e0, e1);
+
+    assert (!result);
+
+    /* no result so far, swap operands */
+    if (!swap_ops)
+    {
+      BTOR_SWAP (BtorNode *, e0, e1);
+      swap_ops = true;
+      goto SWAP_OPERANDS;
+    }
+
+    if (!result)
+    {
+      result = btor_node_create_mul (btor, e1, e0);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_MUL_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
   }
 
-  result = btor_node_create_mul (btor, e1, e0);
-DONE:
-  assert (result);
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
@@ -6470,23 +6626,42 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_udiv (btor, &e0, &e1);
 
-  // TODO what about non powers of 2, like divisor 3, which means that
-  // some upper bits are 0 ...
+  result = check_rw_cache (
+      btor, BTOR_UDIV_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_UDIV_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
-  ADD_RW_RULE (bool_udiv, e0, e1);
-  ADD_RW_RULE (power2_udiv, e0, e1);
-  ADD_RW_RULE (one_udiv, e0, e1);
-  ADD_RW_RULE (bcond_udiv, e0, e1);
+  if (!result)
+  {
+    // TODO what about non powers of 2, like divisor 3, which means that
+    // some upper bits are 0 ...
 
-  assert (!result);
-  result = btor_node_create_udiv (btor, e0, e1);
-DONE:
-  assert (result);
+    ADD_RW_RULE (const_binary_exp, BTOR_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (bool_udiv, e0, e1);
+    ADD_RW_RULE (power2_udiv, e0, e1);
+    ADD_RW_RULE (one_udiv, e0, e1);
+    ADD_RW_RULE (bcond_udiv, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_udiv (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_UDIV_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
@@ -6503,23 +6678,42 @@ rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_urem (btor, &e0, &e1);
 
-  // TODO do optimize for powers of two even AIGs do it as well !!!
+  result = check_rw_cache (
+      btor, BTOR_UREM_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  // TODO what about non powers of 2, like modulo 3, which means that
-  // all but the last two bits are zero
+  if (!result)
+  {
+    // TODO do optimize for powers of two even AIGs do it as well !!!
 
-  ADD_RW_RULE (const_binary_exp, BTOR_UREM_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_UREM_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_UREM_NODE, e0, e1);
-  ADD_RW_RULE (bool_urem, e0, e1);
-  ADD_RW_RULE (zero_urem, e0, e1);
+    // TODO what about non powers of 2, like modulo 3, which means that
+    // all but the last two bits are zero
 
-  assert (!result);
-  result = btor_node_create_urem (btor, e0, e1);
-DONE:
-  assert (result);
+    ADD_RW_RULE (const_binary_exp, BTOR_UREM_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_UREM_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_UREM_NODE, e0, e1);
+    ADD_RW_RULE (bool_urem, e0, e1);
+    ADD_RW_RULE (zero_urem, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_urem (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_UREM_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
@@ -6536,20 +6730,39 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_node_copy (btor, e1);
   normalize_concat (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_CONCAT_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
-  ADD_RW_RULE (const_concat, e0, e1);
-  ADD_RW_RULE (slice_concat, e0, e1);
-  ADD_RW_RULE (and_lhs_concat, e0, e1);
-  ADD_RW_RULE (and_rhs_concat, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_CONCAT_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_concat (btor, e0, e1);
-DONE:
-  assert (result);
+  if (!result)
+  {
+    ADD_RW_RULE (const_binary_exp, BTOR_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (const_concat, e0, e1);
+    ADD_RW_RULE (slice_concat, e0, e1);
+    ADD_RW_RULE (and_lhs_concat, e0, e1);
+    ADD_RW_RULE (and_rhs_concat, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_concat (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_CONCAT_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
+  assert (result);
   return result;
 }
 
@@ -6562,14 +6775,33 @@ rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
-  ADD_RW_RULE (const_binary_exp, BTOR_SLL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SLL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_SLL_NODE, e0, e1);
-  ADD_RW_RULE (const_sll, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_SLL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_sll (btor, e0, e1);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (const_binary_exp, BTOR_SLL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SLL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_SLL_NODE, e0, e1);
+    ADD_RW_RULE (const_sll, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_sll (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_SLL_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   assert (result);
   return result;
 }
@@ -6583,14 +6815,33 @@ rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
-  ADD_RW_RULE (const_binary_exp, BTOR_SRL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SRL_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_SRL_NODE, e0, e1);
-  ADD_RW_RULE (const_srl, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_SRL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_srl (btor, e0, e1);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (const_binary_exp, BTOR_SRL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SRL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_SRL_NODE, e0, e1);
+    ADD_RW_RULE (const_srl, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_srl (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_SRL_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   assert (result);
   return result;
 }
@@ -6604,15 +6855,34 @@ rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_apply_exp (btor, e0, e1));
 
-  ADD_RW_RULE (const_lambda_apply, e0, e1);
-  ADD_RW_RULE (param_lambda_apply, e0, e1);
-  ADD_RW_RULE (apply_apply, e0, e1);
-  ADD_RW_RULE (prop_apply_lambda, e0, e1);
-  ADD_RW_RULE (prop_apply_update, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_APPLY_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_apply (btor, e0, e1);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (const_lambda_apply, e0, e1);
+    ADD_RW_RULE (param_lambda_apply, e0, e1);
+    ADD_RW_RULE (apply_apply, e0, e1);
+    ADD_RW_RULE (prop_apply_lambda, e0, e1);
+    ADD_RW_RULE (prop_apply_update, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_apply (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_APPLY_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   assert (result);
   return result;
 }
@@ -6624,6 +6894,8 @@ rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
+
+  // Note: Rewrite caching not needed since no rules applied
 
   // FIXME: this rule may yield lambdas with differents sorts (in case of
   // curried
@@ -6645,13 +6917,32 @@ rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
-  ADD_RW_RULE (const_quantifier, e0, e1);
-  ADD_RW_RULE (eq_forall, e0, e1);
-  //  ADD_RW_RULE (param_free_forall, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_FORALL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_forall (btor, e0, e1);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (const_quantifier, e0, e1);
+    ADD_RW_RULE (eq_forall, e0, e1);
+    //  ADD_RW_RULE (param_free_forall, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_forall (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_FORALL_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   assert (result);
   return result;
 }
@@ -6664,13 +6955,32 @@ rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
-  ADD_RW_RULE (const_quantifier, e0, e1);
-  ADD_RW_RULE (eq_exists, e0, e1);
-  //  ADD_RW_RULE (param_free_exists, e0, e1);
+  result = check_rw_cache (
+      btor, BTOR_EXISTS_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
-  assert (!result);
-  result = btor_node_create_exists (btor, e0, e1);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (const_quantifier, e0, e1);
+    ADD_RW_RULE (eq_exists, e0, e1);
+    //  ADD_RW_RULE (param_free_exists, e0, e1);
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_exists (btor, e0, e1);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_EXISTS_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         0,
+                         btor_node_get_id (result));
+    }
+  }
+
   assert (result);
   return result;
 }
@@ -6691,30 +7001,51 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   normalize_cond (btor, &e0, &e1, &e2);
   assert (btor_node_is_regular (e0));
 
-  ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
-  ADD_RW_RULE (const_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
-  // TODO (ma): check if more rules can be applied for ite on bv and funs
-  if (!btor_node_is_fun (e1))
-  {
-    ADD_RW_RULE (bool_cond, e0, e1, e2);
-    ADD_RW_RULE (add_if_cond, e0, e1, e2);
-    ADD_RW_RULE (add_else_cond, e0, e1, e2);
-    ADD_RW_RULE (concat_cond, e0, e1, e2);
-    ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
-    ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
-    ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
-    ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
-  }
+  result = check_rw_cache (btor,
+                           BTOR_COND_NODE,
+                           btor_node_get_id (e0),
+                           btor_node_get_id (e1),
+                           btor_node_get_id (e2));
 
-  assert (!result);
-  result = btor_node_create_cond (btor, e0, e1, e2);
-DONE:
+  if (!result)
+  {
+    ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
+    ADD_RW_RULE (const_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
+    // TODO (ma): check if more rules can be applied for ite on bv and funs
+    if (!btor_node_is_fun (e1))
+    {
+      ADD_RW_RULE (bool_cond, e0, e1, e2);
+      ADD_RW_RULE (add_if_cond, e0, e1, e2);
+      ADD_RW_RULE (add_else_cond, e0, e1, e2);
+      ADD_RW_RULE (concat_cond, e0, e1, e2);
+      ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
+      ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
+      ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
+      ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
+    }
+
+    assert (!result);
+    if (!result)
+    {
+      result = btor_node_create_cond (btor, e0, e1, e2);
+    }
+    else
+    {
+    DONE:
+      btor_rw_cache_add (btor->rw_cache,
+                         BTOR_COND_NODE,
+                         btor_node_get_id (e0),
+                         btor_node_get_id (e1),
+                         btor_node_get_id (e2),
+                         btor_node_get_id (result));
+    }
+  }
   btor_node_release (btor, e0);
   btor_node_release (btor, e1);
   btor_node_release (btor, e2);

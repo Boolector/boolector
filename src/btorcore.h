@@ -16,6 +16,7 @@
 #include "btormsg.h"
 #include "btornode.h"
 #include "btoropt.h"
+#include "btorrwcache.h"
 #include "btorsat.h"
 #include "btorslv.h"
 #include "btorsort.h"
@@ -124,6 +125,7 @@ struct Btor
 
   uint32_t rec_rw_calls; /* calls for recursive rewriting */
   uint32_t valid_assignments;
+  BtorRwCache *rw_cache;
 
   int32_t vis_idx; /* file index for visualizing expressions */
 

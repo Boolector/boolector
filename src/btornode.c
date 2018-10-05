@@ -979,6 +979,7 @@ btor_node_get_by_id (Btor *btor, int32_t id)
   id               = abs (id);
   if ((size_t) id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
   BtorNode *res = BTOR_PEEK_STACK (btor->nodes_id_table, id);
+  if (!res) return 0;
   return is_inverted ? btor_node_invert (res) : res;
 }
 

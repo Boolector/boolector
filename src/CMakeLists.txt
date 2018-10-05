@@ -22,6 +22,7 @@ set(libboolector_src_files
   btorparse.c
   btorprintmodel.c
   btorrewrite.c
+  btorrwcache.c
   btorsat.c
   btorslvaigprop.c
   btorslvfun.c
