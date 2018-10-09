@@ -75,6 +75,21 @@ macro(add_required_c_cxx_flag flag)
   add_required_cxx_flag(${flag})
 endmacro()
 
+# 3-valued option IGNORE/OFF/ON
+macro(option3vl var description)
+  set(${var} IGNORE CACHE STRING "${description}")
+  # Provide drop down menu options in cmake-gui
+  set_property(CACHE ${var} PROPERTY STRINGS IGNORE ON OFF)
+endmacro()
+
+# Set option only if it still has initial value IGNORE (do not overwrite user
+# configurations)
+macro(set_option var value)
+  if(${var} STREQUAL "IGNORE")
+    set(${var} ${value})
+  endif()
+endmacro()
+
 #-----------------------------------------------------------------------------#
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -85,14 +100,14 @@ message(STATUS "BIN directory is '${CMAKE_BINARY_DIR}/bin'")
 
 #-----------------------------------------------------------------------------#
 
-option(ASAN       "Compile with ASAN support" OFF)
-option(CHECK      "Enable assertions even for optimized compilation" OFF)
-option(GCOV       "Compile with coverage support" OFF)
-option(GPROF      "Compile with profiling support" OFF)
-option(LOG        "Compile with logging support (default for Debug builds)" OFF)
-option(PYTHON     "Build Python API" OFF)
-option(SHARED     "Shared Library" OFF)
-option(TIME_STATS "Compile with time statistics" OFF)
+option3vl(ASAN       "Compile with ASAN support")
+option3vl(CHECK      "Enable assertions even for optimized compilation")
+option3vl(GCOV       "Compile with coverage support")
+option3vl(GPROF      "Compile with profiling support")
+option3vl(LOG        "Compile with logging support (default for Debug builds)")
+option3vl(PYTHON     "Build Python API")
+option3vl(SHARED     "Shared Library")
+option3vl(TIME_STATS "Compile with time statistics")
 
 option(USE_CADICAL    "Use and link with CaDiCaL" ON)
 option(USE_LINGELING  "Use and link with Lingeling (default)" ON)
@@ -154,15 +169,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_required_c_cxx_flag("-g")
   add_check_c_cxx_flag("-g3")
   add_check_c_cxx_flag("-ggdb")
-  set(LOG ON)
-  set(TIME_STATS ON)
+  set_option(LOG ON)
+  set_option(TIME_STATS ON)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_check_c_cxx_flag("-O3")
   if(NOT CHECK)
     add_definitions("-DNDEBUG")
   endif()
-  set(LOG OFF)
-  set(TIME_STATS OFF)
+  set_option(LOG OFF)
+  set_option(TIME_STATS OFF)
 endif()
 
 #-----------------------------------------------------------------------------#
