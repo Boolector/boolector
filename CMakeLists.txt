@@ -109,10 +109,10 @@ option3vl(PYTHON     "Build Python API")
 option3vl(SHARED     "Shared Library")
 option3vl(TIME_STATS "Compile with time statistics")
 
-option(USE_CADICAL    "Use and link with CaDiCaL" ON)
-option(USE_LINGELING  "Use and link with Lingeling (default)" ON)
-option(USE_MINISAT    "Use and link with MiniSat" ON)
-option(USE_PICOSAT    "Use and link with PicoSAT" ON)
+option3vl(USE_CADICAL    "Use and link with CaDiCaL")
+option3vl(USE_LINGELING  "Use and link with Lingeling (default)")
+option3vl(USE_MINISAT    "Use and link with MiniSat")
+option3vl(USE_PICOSAT    "Use and link with PicoSAT")
 
 option(ONLY_CADICAL   "Only use CaDiCaL" OFF)
 option(ONLY_LINGELING "Only use Lingeling" OFF)
@@ -123,15 +123,31 @@ option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 
 # Automatically build shared libraries if Python bindings are enabled.
 if(PYTHON)
-  set(SHARED ON)
+  # Produce a python module that only links against system libraries. SAT
+  # solvers and libboolector should be included in the module itself.
+  if(NOT SHARED)
+    add_check_c_cxx_flag("-fPIC")
+    # Disable MiniSat since the static library is not compiled with -fPIC by
+    # default.
+    set_option(USE_MINISAT OFF)
+    set_option(USE_PICOSAT OFF)
+  endif()
 endif()
 
 if(SHARED)
   set(BUILD_SHARED_LIBS ON)
-else()
+elseif(NOT PYTHON)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 endif()
+
+#-----------------------------------------------------------------------------#
+# Default values for 3-valued options
+
+set_option(USE_CADICAL ON)
+set_option(USE_LINGELING ON)
+set_option(USE_MINISAT ON)
+set_option(USE_PICOSAT ON)
 
 #-----------------------------------------------------------------------------#
 
