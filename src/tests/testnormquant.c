@@ -385,13 +385,13 @@ test_normquant_expand_quant (void)
 
   sort    = btor_sort_bitvec (g_btor, 32);
   x       = btor_exp_param (g_btor, sort, "x");
-  redandx = btor_exp_redand (g_btor, x);
+  redandx = btor_exp_bv_redand (g_btor, x);
   forall  = btor_exp_forall (g_btor, x, redandx);
   and     = btor_exp_and (g_btor, btor_node_invert (forall), forall);
   result  = btor_normalize_quantifiers_node (g_btor, and);
 
   X        = btor_exp_param (g_btor, sort, "X");
-  redandX  = btor_exp_redand (g_btor, X);
+  redandX  = btor_exp_bv_redand (g_btor, X);
   exists   = btor_exp_exists (g_btor, X, btor_node_invert (redandX));
   expected = btor_exp_and (g_btor, forall, exists);
 

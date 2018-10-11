@@ -719,7 +719,7 @@ btor_exp_bv_redxor (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_exp_redand (Btor *btor, BtorNode *exp)
+btor_exp_bv_redand (Btor *btor, BtorNode *exp)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 

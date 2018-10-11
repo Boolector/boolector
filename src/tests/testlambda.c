@@ -346,7 +346,7 @@ test_lambda_param_redxor (void)
 static void
 test_lambda_param_redand (void)
 {
-  unary_param_exp_test (btor_exp_redand);
+  unary_param_exp_test (btor_exp_bv_redand);
 }
 
 static void

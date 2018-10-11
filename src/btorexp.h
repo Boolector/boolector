@@ -102,7 +102,7 @@ BtorNode *btor_exp_bv_redxor (Btor *btor, BtorNode *exp);
 /* AND reduction.
  * width(result) = 1
  */
-BtorNode *btor_exp_redand (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_redand (Btor *btor, BtorNode *exp);
 
 /* BtorSlice a sub-vector from 'upper' to 'lower'.
  * upper < width(exp)
