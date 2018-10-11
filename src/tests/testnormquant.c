@@ -226,7 +226,7 @@ test_normquant_inv_prefix (void)
   x[0]    = btor_exp_param (g_btor, sort, 0);
   x[1]    = btor_exp_param (g_btor, sort, 0);
   x[2]    = btor_exp_param (g_btor, sort, 0);
-  and     = btor_exp_and_n (g_btor, x, 3);
+  and     = btor_exp_bv_and_n (g_btor, x, 3);
   forall0 = btor_exp_forall (g_btor, x[0], and);
   exists  = btor_exp_exists (g_btor, x[1], forall0);
   forall1 = btor_node_invert (btor_exp_forall (g_btor, x[2], exists));
@@ -234,7 +234,7 @@ test_normquant_inv_prefix (void)
   y[0]     = btor_exp_param (g_btor, sort, 0);
   y[1]     = btor_exp_param (g_btor, sort, 0);
   y[2]     = btor_exp_param (g_btor, sort, 0);
-  andy     = btor_exp_and_n (g_btor, y, 3);
+  andy     = btor_exp_bv_and_n (g_btor, y, 3);
   exists0  = btor_exp_exists (g_btor, y[0], btor_node_invert (andy));
   forall   = btor_exp_forall (g_btor, y[1], exists0);
   expected = btor_exp_exists (g_btor, y[2], forall);

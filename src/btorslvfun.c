@@ -1499,7 +1499,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app1, BtorNode *app2)
     lemma = con;
   else
   {
-    and   = btor_exp_and_n (btor, prem.start, BTOR_COUNT_STACK (prem));
+    and   = btor_exp_bv_and_n (btor, prem.start, BTOR_COUNT_STACK (prem));
     lemma = btor_exp_implies (btor, and, con);
     btor_node_release (btor, and);
     btor_node_release (btor, con);
