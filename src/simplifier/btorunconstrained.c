@@ -212,7 +212,7 @@ btor_optimize_unconstrained (Btor *btor)
             if (!cur->parameterized && (uc[0] || uc[1]))
               mark_uc (btor, ucs, cur);
             break;
-          case BTOR_ULT_NODE:
+          case BTOR_BV_ULT_NODE:
           case BTOR_CONCAT_NODE:
           case BTOR_BV_AND_NODE:
           case BTOR_BV_MUL_NODE:

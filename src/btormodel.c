@@ -849,7 +849,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);
           break;
-        case BTOR_ULT_NODE:
+        case BTOR_BV_ULT_NODE:
           result = btor_bv_ult (mm, e[1], e[0]);
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);
