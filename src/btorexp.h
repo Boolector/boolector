@@ -235,7 +235,7 @@ BtorNode *btor_exp_bv_ult (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_slt (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned less than or equal.
  * width(e0) = width(e1)

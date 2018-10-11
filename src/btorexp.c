@@ -1104,7 +1104,7 @@ btor_exp_bv_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1174,7 +1174,7 @@ btor_exp_slte (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  slt    = btor_exp_slt (btor, e1, e0);
+  slt    = btor_exp_bv_slt (btor, e1, e0);
   result = btor_exp_bv_not (btor, slt);
   btor_node_release (btor, slt);
   return result;
@@ -1201,7 +1201,7 @@ btor_exp_sgt (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return btor_exp_slt (btor, e1, e0);
+  return btor_exp_bv_slt (btor, e1, e0);
 }
 
 BtorNode *
@@ -1234,7 +1234,7 @@ btor_exp_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  slt    = btor_exp_slt (btor, e0, e1);
+  slt    = btor_exp_bv_slt (btor, e0, e1);
   result = btor_exp_bv_not (btor, slt);
   btor_node_release (btor, slt);
   return result;

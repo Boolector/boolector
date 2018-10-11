@@ -625,8 +625,8 @@ test_lambda_param_ult (void)
 static void
 test_lambda_param_slt (void)
 {
-  binary_param_exp_test (0, btor_exp_slt);
-  binary_param_exp_test (1, btor_exp_slt);
+  binary_param_exp_test (0, btor_exp_bv_slt);
+  binary_param_exp_test (1, btor_exp_bv_slt);
 }
 
 static void
