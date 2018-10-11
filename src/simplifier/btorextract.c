@@ -116,8 +116,8 @@ create_range (Btor *btor,
   int64_t pos;
   BtorNode *res, *le0, *le1, *and, *off, *sub, *rem, *eq, *zero, *slice;
 
-  le0 = btor_exp_ulte (btor, lower, param);
-  le1 = btor_exp_ulte (btor, param, upper);
+  le0 = btor_exp_bv_ulte (btor, lower, param);
+  le1 = btor_exp_bv_ulte (btor, param, upper);
   and = btor_exp_bv_and (btor, le0, le1);
 
   /* increment by one */
