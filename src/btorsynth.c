@@ -386,7 +386,7 @@ eval_candidate (Btor *btor,
 
         case BTOR_BV_ULT_NODE: result = btor_bv_ult (mm, bv[0], bv[1]); break;
 
-        case BTOR_SLL_NODE: result = btor_bv_sll (mm, bv[0], bv[1]); break;
+        case BTOR_BV_SLL_NODE: result = btor_bv_sll (mm, bv[0], bv[1]); break;
 
         case BTOR_SRL_NODE: result = btor_bv_srl (mm, bv[0], bv[1]); break;
 
@@ -548,7 +548,7 @@ eval_exps (Btor *btor,
 
         case BTOR_BV_ULT_NODE: result = btor_bv_ult (mm, bv[0], bv[1]); break;
 
-        case BTOR_SLL_NODE: result = btor_bv_sll (mm, bv[0], bv[1]); break;
+        case BTOR_BV_SLL_NODE: result = btor_bv_sll (mm, bv[0], bv[1]); break;
 
         case BTOR_SRL_NODE: result = btor_bv_srl (mm, bv[0], bv[1]); break;
 

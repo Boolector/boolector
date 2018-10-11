@@ -345,7 +345,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_FUN_EQ_NODE: op = "eq"; break;
     case BTOR_BV_MUL_NODE: op = "mul"; break;
     case BTOR_PROXY_NODE: op = "proxy"; break;
-    case BTOR_SLL_NODE: op = "sll"; break;
+    case BTOR_BV_SLL_NODE: op = "sll"; break;
     case BTOR_SRL_NODE: op = "srl"; break;
     case BTOR_UDIV_NODE: op = "udiv"; break;
     case BTOR_BV_ULT_NODE: op = "ult"; break;

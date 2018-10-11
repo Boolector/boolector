@@ -2813,7 +2813,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);
           break;
-        case BTOR_SLL_NODE:
+        case BTOR_BV_SLL_NODE:
           result = btor_bv_sll (mm, e[1], e[0]);
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);

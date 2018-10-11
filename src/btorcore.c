@@ -3612,7 +3612,7 @@ btor_synthesize_exp (Btor *btor,
           case BTOR_BV_ULT_NODE:
             cur->av = btor_aigvec_ult (avmgr, av0, av1);
             break;
-          case BTOR_SLL_NODE:
+          case BTOR_BV_SLL_NODE:
             cur->av = btor_aigvec_sll (avmgr, av0, av1);
             break;
           case BTOR_SRL_NODE:

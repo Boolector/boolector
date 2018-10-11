@@ -56,7 +56,7 @@ enum BtorNodeKind
   BTOR_BV_ADD_NODE  = 8,
   BTOR_BV_MUL_NODE  = 9,
   BTOR_BV_ULT_NODE  = 10,
-  BTOR_SLL_NODE     = 11,
+  BTOR_BV_SLL_NODE  = 11,
   BTOR_SRL_NODE     = 12,
   BTOR_UDIV_NODE    = 13,
   BTOR_UREM_NODE    = 14,
