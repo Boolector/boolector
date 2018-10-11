@@ -2189,7 +2189,7 @@ close_term_quant (BtorSMT2Parser *parser,
                   BtorSMT2Item *item_cur,
                   uint32_t nargs,
                   BoolectorNode *(*fun) (
-                      Btor *, BoolectorNode *[], int32_t, BoolectorNode *) )
+                      Btor *, BoolectorNode *[], uint32_t, BoolectorNode *) )
 {
   assert (parser);
   assert (item_open);

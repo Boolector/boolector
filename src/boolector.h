@@ -1571,7 +1571,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
  */
 BoolectorNode *boolector_forall (Btor *btor,
                                  BoolectorNode *params[],
-                                 int paramc,
+                                 uint32_t paramc,
                                  BoolectorNode *body);
 
 /*!
@@ -1587,7 +1587,7 @@ BoolectorNode *boolector_forall (Btor *btor,
  */
 BoolectorNode *boolector_exists (Btor *btor,
                                  BoolectorNode *param[],
-                                 int paramc,
+                                 uint32_t paramc,
                                  BoolectorNode *body);
 
 /*------------------------------------------------------------------------*/

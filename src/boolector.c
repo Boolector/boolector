@@ -819,7 +819,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s %d", btor_opt_get_lng (btor, opt), val);
+  BTOR_TRAPI ("%s %u", btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   BTOR_ABORT (
       val < btor_opt_get_min (btor, opt) || val > btor_opt_get_max (btor, opt),
@@ -1591,7 +1591,7 @@ boolector_slice (Btor *btor,
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (exp);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%d %d", upper, lower);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u %u", upper, lower);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
@@ -1615,7 +1615,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (exp);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%d", width);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u", width);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
@@ -1636,7 +1636,7 @@ boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (exp);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%d", width);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u", width);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
@@ -2779,7 +2779,7 @@ boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (exp);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%d", n);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u", n);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
@@ -2961,11 +2961,11 @@ boolector_fun (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
+  BTOR_TRAPI_PRINT ("%s %p %u ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
-                "'params[%d]' is not a parameter",
+                "'params[%u]' is not a parameter",
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
@@ -3006,7 +3006,7 @@ boolector_apply (Btor *btor,
   BTOR_ABORT_REFS_NOT_POS (e_fun);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_fun);
 
-  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, argc);
+  BTOR_TRAPI_PRINT ("%s %p %u ", __FUNCTION__ + 10, btor, argc);
   for (i = 0; i < argc; i++)
     BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
   BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
@@ -3081,10 +3081,10 @@ boolector_dec (Btor *btor, BoolectorNode *node)
 BoolectorNode *
 boolector_forall (Btor *btor,
                   BoolectorNode *param_nodes[],
-                  int paramc,
+                  uint32_t paramc,
                   BoolectorNode *body_node)
 {
-  int i;
+  uint32_t i;
   BtorNode **params, *body, *res;
 
   params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
@@ -3092,13 +3092,12 @@ boolector_forall (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (params);
   BTOR_ABORT_ARG_NULL (body);
-  BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
+  BTOR_TRAPI_PRINT ("%s %p %u ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
-                "'params[%d]' is not a parameter",
+                "'params[%u]' is not a parameter",
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
@@ -3111,7 +3110,7 @@ boolector_forall (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
   BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of forall must be bit width 1, but has "
-              "%d instead",
+              "%u instead",
               btor_node_get_width (btor, body));
 
   res = btor_exp_forall_n (btor, params, paramc, body);
@@ -3130,10 +3129,10 @@ boolector_forall (Btor *btor,
 BoolectorNode *
 boolector_exists (Btor *btor,
                   BoolectorNode *param_nodes[],
-                  int paramc,
+                  uint32_t paramc,
                   BoolectorNode *body_node)
 {
-  int i;
+  uint32_t i;
   BtorNode **params, *body, *res;
 
   params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
@@ -3141,13 +3140,12 @@ boolector_exists (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (params);
   BTOR_ABORT_ARG_NULL (body);
-  BTOR_ABORT (paramc < 1, "'paramc' must not be < 1");
 
-  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, paramc);
+  BTOR_TRAPI_PRINT ("%s %p %u ", __FUNCTION__ + 10, btor, paramc);
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
-                "'params[%d]' is not a parameter",
+                "'params[%u]' is not a parameter",
                 i);
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
@@ -3160,7 +3158,7 @@ boolector_exists (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
   BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of exists must be bit width 1, but has "
-              "%d instead",
+              "%u instead",
               btor_node_get_width (btor, body));
 
   res = btor_exp_exists_n (btor, params, paramc, body);
@@ -3672,7 +3670,7 @@ boolector_fun_sort_check (Btor *btor,
   BTOR_ABORT (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
 
-  BTOR_TRAPI_PRINT ("%s %p %d ", __FUNCTION__ + 10, btor, argc);
+  BTOR_TRAPI_PRINT ("%s %p %u ", __FUNCTION__ + 10, btor, argc);
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_ARG_NULL (args[i]);
@@ -3893,7 +3891,7 @@ boolector_array_assignment (Btor *btor,
   fun_assignment (btor, e_array, indices, values, size, &ass);
 
   /* special case: we treat out parameters as return values for btoruntrace */
-  BTOR_TRAPI_RETURN ("%p %p %d", *indices, *values, *size);
+  BTOR_TRAPI_RETURN ("%p %p %u", *indices, *values, *size);
 
 #ifndef NDEBUG
   if (btor->clone)
@@ -3928,7 +3926,7 @@ boolector_free_array_assignment (Btor *btor,
   BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%p %p %d", indices, values, size);
+  BTOR_TRAPI ("%p %p %u", indices, values, size);
   BTOR_ABORT (size && !indices, "size > 0 but 'indices' are zero");
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
@@ -3975,7 +3973,7 @@ boolector_uf_assignment (Btor *btor,
   fun_assignment (btor, e_uf, args, values, size, &ass);
 
   /* special case: we treat out parameters as return values for btoruntrace */
-  BTOR_TRAPI_RETURN ("%p %p %d", *args, *values, *size);
+  BTOR_TRAPI_RETURN ("%p %p %u", *args, *values, *size);
 
 #ifndef NDEBUG
   if (btor->clone)
@@ -4010,7 +4008,7 @@ boolector_free_uf_assignment (Btor *btor,
   BtorFunAss *funass;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%p %p %d", args, values, size);
+  BTOR_TRAPI ("%p %p %u", args, values, size);
   BTOR_ABORT (size && !args, "size > 0 but 'args' are zero");
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && args, "non zero 'args' but 'size == 0'");
@@ -4071,7 +4069,7 @@ BoolectorSort
 boolector_bitvec_sort (Btor *btor, uint32_t width)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%d", width);
+  BTOR_TRAPI ("%u", width);
   BTOR_ABORT (width == 0, "'width' must be > 0");
 
   BtorSortId res;
@@ -4121,11 +4119,11 @@ boolector_fun_sort (Btor *btor,
   {
     s = BTOR_IMPORT_BOOLECTOR_SORT (domain[i]);
     BTOR_ABORT (!btor_sort_is_valid (btor, s),
-                "'domain' sort at position %d is not a valid sort",
+                "'domain' sort at position %u is not a valid sort",
                 i);
     BTOR_ABORT (
         !btor_sort_is_bitvec (btor, s) && !btor_sort_is_bool (btor, s),
-        "'domain' sort at position %d must be a bool or bit vector sort",
+        "'domain' sort at position %u must be a bool or bit vector sort",
         i);
   }
   cos = BTOR_IMPORT_BOOLECTOR_SORT (codomain);
