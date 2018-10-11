@@ -836,7 +836,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
             else
             {
               assert (tmpstr[0] == '1');
-              tmp3 = btor_exp_or (btor, tmp1, tmp2);
+              tmp3 = btor_exp_bv_or (btor, tmp1, tmp2);
               tmp4 = btor_exp_ones (btor, sort);
               BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_node_release (btor, tmp3);
@@ -1112,7 +1112,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
             else
             {
               assert (tmpstr[0] == '1');
-              tmp3 = btor_exp_or (btor, tmp1, tmp2);
+              tmp3 = btor_exp_bv_or (btor, tmp1, tmp2);
               tmp4 = btor_exp_ones (btor, sort);
               BTOR_PUSH_STACK (stack, rewrite_eq_exp (btor, tmp3, tmp4));
               btor_node_release (btor, tmp3);
@@ -2200,7 +2200,7 @@ apply_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   else
   {
     tmp    = rewrite_eq_exp (btor, real_e1->e[2], e0);
-    result = btor_exp_or (btor, real_e1->e[0], tmp);
+    result = btor_exp_bv_or (btor, real_e1->e[0], tmp);
   }
   btor_node_release (btor, tmp);
   BTOR_DEC_REC_RW_CALL (btor);
@@ -2240,7 +2240,7 @@ apply_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   else
   {
     tmp    = rewrite_eq_exp (btor, real_e1->e[1], e0);
-    result = btor_exp_or (btor, btor_node_invert (real_e1->e[0]), tmp);
+    result = btor_exp_bv_or (btor, btor_node_invert (real_e1->e[0]), tmp);
   }
   btor_node_release (btor, tmp);
   BTOR_DEC_REC_RW_CALL (btor);
@@ -5277,8 +5277,8 @@ apply_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   BtorNode *tmp1, *tmp2, *result;
 
   BTOR_INC_REC_RW_CALL (btor);
-  tmp1   = btor_exp_or (btor, btor_node_invert (e0), e1);
-  tmp2   = btor_exp_or (btor, e0, e2);
+  tmp1   = btor_exp_bv_or (btor, btor_node_invert (e0), e1);
+  tmp2   = btor_exp_bv_or (btor, e0, e2);
   result = rewrite_and_exp (btor, tmp1, tmp2);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, tmp1);

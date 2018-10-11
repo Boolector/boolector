@@ -548,8 +548,8 @@ test_lambda_param_nand (void)
 static void
 test_lambda_param_or (void)
 {
-  binary_param_exp_test (0, btor_exp_or);
-  binary_param_exp_test (1, btor_exp_or);
+  binary_param_exp_test (0, btor_exp_bv_or);
+  binary_param_exp_test (1, btor_exp_bv_or);
 }
 
 static void

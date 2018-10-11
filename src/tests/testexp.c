@@ -456,7 +456,7 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
 static void
 test_or_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_or);
+  binary_commutative_exp_test (btor_exp_bv_or);
 }
 
 static void

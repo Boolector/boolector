@@ -169,7 +169,7 @@ BtorNode *btor_exp_bv_nand (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_or (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_or (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NOR.
  * width(e0) = width(e1)
