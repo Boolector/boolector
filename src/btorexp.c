@@ -39,7 +39,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_add (btor, e[0], e[1]);
     case BTOR_MUL_NODE:
       assert (arity == 2);
-      return btor_exp_mul (btor, e[0], e[1]);
+      return btor_exp_bv_mul (btor, e[0], e[1]);
     case BTOR_ULT_NODE:
       assert (arity == 2);
       return btor_exp_ult (btor, e[0], e[1]);
@@ -915,7 +915,7 @@ btor_exp_bv_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -929,7 +929,7 @@ btor_exp_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_MUL_NODE, e0, e1);
   else
-    result = btor_node_create_mul (btor, e0, e1);
+    result = btor_node_create_bv_mul (btor, e0, e1);
 
   assert (result);
   return result;
@@ -980,7 +980,7 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   }
   uext_e1 = btor_exp_bv_uext (btor, e0, 1);
   uext_e2 = btor_exp_bv_uext (btor, e1, 1);
-  mul     = btor_exp_mul (btor, uext_e1, uext_e2);
+  mul     = btor_exp_bv_mul (btor, uext_e1, uext_e2);
   slice   = btor_exp_bv_slice (btor, mul, width, width);
   or      = btor_exp_bv_or (btor, result, slice);
   btor_node_release (btor, uext_e1);
@@ -1015,7 +1015,7 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   {
     sext_e1         = btor_exp_bv_sext (btor, e0, 1);
     sext_e2         = btor_exp_bv_sext (btor, e1, 1);
-    mul             = btor_exp_mul (btor, sext_e1, sext_e2);
+    mul             = btor_exp_bv_mul (btor, sext_e1, sext_e2);
     slice_n         = btor_exp_bv_slice (btor, mul, width, width);
     slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);
     result          = btor_exp_bv_xor (btor, slice_n, slice_n_minus_1);
@@ -1057,7 +1057,7 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
     sext_e1         = btor_exp_bv_sext (btor, e0, 1);
     sext_e2         = btor_exp_bv_sext (btor, e1, 1);
-    mul             = btor_exp_mul (btor, sext_e1, sext_e2);
+    mul             = btor_exp_bv_mul (btor, sext_e1, sext_e2);
     slice_n         = btor_exp_bv_slice (btor, mul, width, width);
     slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);
     xor             = btor_exp_bv_xor (btor, slice_n, slice_n_minus_1);

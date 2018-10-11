@@ -597,8 +597,8 @@ test_lambda_param_saddo (void)
 static void
 test_lambda_param_mul (void)
 {
-  binary_param_exp_test (0, btor_exp_mul);
-  binary_param_exp_test (1, btor_exp_mul);
+  binary_param_exp_test (0, btor_exp_bv_mul);
+  binary_param_exp_test (1, btor_exp_bv_mul);
 }
 
 static void

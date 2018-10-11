@@ -510,7 +510,7 @@ test_saddo_exp (void)
 static void
 test_mul_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_mul);
+  binary_commutative_exp_test (btor_exp_bv_mul);
 }
 
 static void

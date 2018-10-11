@@ -1546,7 +1546,7 @@ normalize_substitution (Btor *btor,
     btor_bv_free (btor->mm, fc);
     inv = btor_exp_const (btor, ic);
     btor_bv_free (btor->mm, ic);
-    tmp = btor_exp_mul (btor, *right_result, inv);
+    tmp = btor_exp_bv_mul (btor, *right_result, inv);
     btor_node_release (btor, inv);
     btor_node_release (btor, *right_result);
     *right_result = tmp;

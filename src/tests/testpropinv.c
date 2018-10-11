@@ -182,7 +182,7 @@ static void
 test_propinv_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (mul, btor_exp_mul);
+  TEST_PROP_INV_COMPLETE_BINARY (mul, btor_exp_bv_mul);
 #endif
 }
 
@@ -344,8 +344,8 @@ test_propinv_complete_slice_bv (void)
     {                                                                       \
       ce[0]   = btor_exp_const (g_btor, bve);                               \
       ce[1]   = btor_exp_const (g_btor, bve);                               \
-      cmul[0] = btor_exp_mul (g_btor, ce[0], e[1]);                         \
-      cmul[1] = btor_exp_mul (g_btor, e[0], ce[1]);                         \
+      cmul[0] = btor_exp_bv_mul (g_btor, ce[0], e[1]);                      \
+      cmul[1] = btor_exp_bv_mul (g_btor, e[0], ce[1]);                      \
     }                                                                       \
     res = inv_mul_bv (g_btor, mul, bvmul, bve, 0);                          \
     assert (res);                                                           \
@@ -959,7 +959,7 @@ prop_inv_conf_mul_bv (uint32_t bw)
   BtorBitVector *res, *bvmul, *bve;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (mul, btor_exp_mul);
+  TEST_PROP_INV_CONF_BINARY_INIT (mul, btor_exp_bv_mul);
 
   /* prop engine: all conflicts are treated as fixable */
 
@@ -968,8 +968,8 @@ PROP_INV_CONF_MUL_TESTS:
   bve     = btor_bv_new (g_mm, bw);
   ce[0]   = btor_exp_const (g_btor, bve);
   ce[1]   = btor_exp_const (g_btor, bve);
-  cmul[0] = btor_exp_mul (g_btor, ce[0], e[1]);
-  cmul[1] = btor_exp_mul (g_btor, e[0], ce[1]);
+  cmul[0] = btor_exp_bv_mul (g_btor, ce[0], e[1]);
+  cmul[1] = btor_exp_bv_mul (g_btor, e[0], ce[1]);
   for (k = 0; k < 10; k++)
   {
     bvmul = btor_bv_new_random (g_mm, &g_btor->rng, bw);
