@@ -774,7 +774,7 @@ NEXT:
       {
         PARSE_ARGS1 (tok, str);
         opt     = btorunt_get_btor_opt (g_btorunt, arg1_str)->kind;
-        ret_int = boolector_has_opt (btor, opt);
+        ret_bool = boolector_has_opt (btor, opt);
         exp_ret = RET_BOOL;
       }
       else
