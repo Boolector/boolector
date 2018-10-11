@@ -1449,7 +1449,7 @@ eval_exp (Btor *btor,
 
         case BTOR_BV_UREM_NODE: result = btor_bv_urem (mm, bv[0], bv[1]); break;
 
-        case BTOR_CONCAT_NODE:
+        case BTOR_BV_CONCAT_NODE:
           result = btor_bv_concat (mm, bv[0], bv[1]);
           break;
 

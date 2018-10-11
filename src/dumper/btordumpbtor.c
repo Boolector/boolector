@@ -339,7 +339,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   {
     case BTOR_BV_ADD_NODE: op = "add"; break;
     case BTOR_BV_AND_NODE: op = "and"; break;
-    case BTOR_CONCAT_NODE: op = "concat"; break;
+    case BTOR_BV_CONCAT_NODE: op = "concat"; break;
     case BTOR_COND_NODE: op = bdc->version == 1 ? "cond" : "ite"; break;
     case BTOR_BV_EQ_NODE:
     case BTOR_FUN_EQ_NODE: op = "eq"; break;

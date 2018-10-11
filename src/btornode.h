@@ -45,32 +45,32 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-  BTOR_INVALID_NODE = 0,
-  BTOR_CONST_NODE   = 1,
-  BTOR_VAR_NODE     = 2,
-  BTOR_PARAM_NODE   = 3, /* parameter for lambda expressions */
-  BTOR_SLICE_NODE   = 4,
-  BTOR_BV_AND_NODE  = 5,
-  BTOR_BV_EQ_NODE   = 6, /* equality on bit vectors */
-  BTOR_FUN_EQ_NODE  = 7, /* equality on arrays */
-  BTOR_BV_ADD_NODE  = 8,
-  BTOR_BV_MUL_NODE  = 9,
-  BTOR_BV_ULT_NODE  = 10,
-  BTOR_BV_SLL_NODE  = 11,
-  BTOR_BV_SRL_NODE  = 12,
-  BTOR_BV_UDIV_NODE = 13,
-  BTOR_BV_UREM_NODE = 14,
-  BTOR_CONCAT_NODE  = 15,
-  BTOR_APPLY_NODE   = 16,
-  BTOR_FORALL_NODE  = 17,
-  BTOR_EXISTS_NODE  = 18,
-  BTOR_LAMBDA_NODE  = 19, /* lambda expression */
-  BTOR_COND_NODE    = 20, /* conditional on bit vectors */
-  BTOR_ARGS_NODE    = 21,
-  BTOR_UF_NODE      = 22,
-  BTOR_UPDATE_NODE  = 23,
-  BTOR_PROXY_NODE   = 24, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE = 25
+  BTOR_INVALID_NODE   = 0,
+  BTOR_CONST_NODE     = 1,
+  BTOR_VAR_NODE       = 2,
+  BTOR_PARAM_NODE     = 3, /* parameter for lambda expressions */
+  BTOR_SLICE_NODE     = 4,
+  BTOR_BV_AND_NODE    = 5,
+  BTOR_BV_EQ_NODE     = 6, /* equality on bit vectors */
+  BTOR_FUN_EQ_NODE    = 7, /* equality on arrays */
+  BTOR_BV_ADD_NODE    = 8,
+  BTOR_BV_MUL_NODE    = 9,
+  BTOR_BV_ULT_NODE    = 10,
+  BTOR_BV_SLL_NODE    = 11,
+  BTOR_BV_SRL_NODE    = 12,
+  BTOR_BV_UDIV_NODE   = 13,
+  BTOR_BV_UREM_NODE   = 14,
+  BTOR_BV_CONCAT_NODE = 15,
+  BTOR_APPLY_NODE     = 16,
+  BTOR_FORALL_NODE    = 17,
+  BTOR_EXISTS_NODE    = 18,
+  BTOR_LAMBDA_NODE    = 19, /* lambda expression */
+  BTOR_COND_NODE      = 20, /* conditional on bit vectors */
+  BTOR_ARGS_NODE      = 21,
+  BTOR_UF_NODE        = 22,
+  BTOR_UPDATE_NODE    = 23,
+  BTOR_PROXY_NODE     = 24, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 25
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -404,7 +404,7 @@ static inline bool
 btor_node_is_bv_concat (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_CONCAT_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_CONCAT_NODE;
 }
 
 static inline bool

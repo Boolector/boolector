@@ -626,7 +626,7 @@ apply_const_binary_exp (Btor *btor,
     case BTOR_BV_SLL_NODE: bresult = btor_bv_sll (mm, b0, b1); break;
     case BTOR_BV_SRL_NODE: bresult = btor_bv_srl (mm, b0, b1); break;
     default:
-      assert (kind == BTOR_CONCAT_NODE);
+      assert (kind == BTOR_BV_CONCAT_NODE);
       bresult = btor_bv_concat (mm, b0, b1);
       break;
   }
@@ -2389,7 +2389,7 @@ applies_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) e1;
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_real_addr (e0)->kind == BTOR_CONCAT_NODE;
+         && btor_node_real_addr (e0)->kind == BTOR_BV_CONCAT_NODE;
 }
 
 static inline BtorNode *
@@ -6744,13 +6744,13 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   normalize_concat (btor, &e0, &e1);
 
   result = check_rw_cache (
-      btor, BTOR_CONCAT_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
+      btor, BTOR_BV_CONCAT_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
   if (!result)
   {
-    ADD_RW_RULE (const_binary_exp, BTOR_CONCAT_NODE, e0, e1);
-    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
-    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (const_binary_exp, BTOR_BV_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BV_CONCAT_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BV_CONCAT_NODE, e0, e1);
     ADD_RW_RULE (const_concat, e0, e1);
     ADD_RW_RULE (slice_concat, e0, e1);
     ADD_RW_RULE (and_lhs_concat, e0, e1);
@@ -6765,7 +6765,7 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     {
     DONE:
       btor_rw_cache_add (btor->rw_cache,
-                         BTOR_CONCAT_NODE,
+                         BTOR_BV_CONCAT_NODE,
                          btor_node_get_id (e0),
                          btor_node_get_id (e1),
                          0,
@@ -7112,7 +7112,7 @@ btor_rewrite_binary_exp (Btor *btor,
 
     case BTOR_BV_UREM_NODE: result = rewrite_urem_exp (btor, e0, e1); break;
 
-    case BTOR_CONCAT_NODE: result = rewrite_concat_exp (btor, e0, e1); break;
+    case BTOR_BV_CONCAT_NODE: result = rewrite_concat_exp (btor, e0, e1); break;
 
     case BTOR_BV_SLL_NODE: result = rewrite_sll_exp (btor, e0, e1); break;
 

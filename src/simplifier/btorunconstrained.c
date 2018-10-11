@@ -213,7 +213,7 @@ btor_optimize_unconstrained (Btor *btor)
               mark_uc (btor, ucs, cur);
             break;
           case BTOR_BV_ULT_NODE:
-          case BTOR_CONCAT_NODE:
+          case BTOR_BV_CONCAT_NODE:
           case BTOR_BV_AND_NODE:
           case BTOR_BV_MUL_NODE:
           case BTOR_BV_SLL_NODE:

@@ -3625,7 +3625,7 @@ btor_synthesize_exp (Btor *btor,
             cur->av = btor_aigvec_urem (avmgr, av0, av1);
             break;
           default:
-            assert (cur->kind == BTOR_CONCAT_NODE);
+            assert (cur->kind == BTOR_BV_CONCAT_NODE);
             cur->av = btor_aigvec_concat (avmgr, av0, av1);
             break;
         }
