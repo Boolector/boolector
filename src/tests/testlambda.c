@@ -583,8 +583,8 @@ test_lambda_param_add (void)
 static void
 test_lambda_param_uaddo (void)
 {
-  binary_param_exp_test (0, btor_exp_uaddo);
-  binary_param_exp_test (1, btor_exp_uaddo);
+  binary_param_exp_test (0, btor_exp_bv_uaddo);
+  binary_param_exp_test (1, btor_exp_bv_uaddo);
 }
 
 static void

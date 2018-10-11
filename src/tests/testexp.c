@@ -430,7 +430,7 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
   assert (exp4 == exp5);
   assert (btor_node_get_width (g_btor, exp1) == 8);
   assert (btor_node_get_width (g_btor, exp2) == 8);
-  if (func == btor_exp_eq || func == btor_exp_ne || func == btor_exp_uaddo
+  if (func == btor_exp_eq || func == btor_exp_ne || func == btor_exp_bv_uaddo
       || func == btor_exp_saddo || func == btor_exp_umulo)
   {
     assert (btor_node_get_width (g_btor, exp3) == 1);
@@ -498,7 +498,7 @@ test_add_exp (void)
 static void
 test_uaddo_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_uaddo);
+  binary_commutative_exp_test (btor_exp_bv_uaddo);
 }
 
 static void

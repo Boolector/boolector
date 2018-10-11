@@ -199,7 +199,7 @@ BtorNode *btor_exp_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two signed operands leads to an overflow.
  * width(e0) = width(e1)
