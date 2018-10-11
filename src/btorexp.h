@@ -143,7 +143,7 @@ BtorNode *btor_exp_iff (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_xor (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_xor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector XNOR.
  * width(e0) = width(e1)

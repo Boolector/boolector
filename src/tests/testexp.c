@@ -462,7 +462,7 @@ test_or_exp (void)
 static void
 test_xor_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_xor);
+  binary_commutative_exp_test (btor_exp_bv_xor);
 }
 
 static void

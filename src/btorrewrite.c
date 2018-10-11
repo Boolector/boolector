@@ -3346,7 +3346,7 @@ apply_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result;
 
   BTOR_INC_REC_RW_CALL (btor);
-  result = btor_exp_xor (btor, e0, e1);
+  result = btor_exp_bv_xor (btor, e0, e1);
   BTOR_DEC_REC_RW_CALL (btor);
   return result;
 }
