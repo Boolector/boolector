@@ -114,10 +114,6 @@ BtorNode *btor_exp_slice (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
                           uint32_t lower);
-BtorNode *btor_slice_exp_node (Btor *btor,
-                               BtorNode *exp,
-                               uint32_t upper,
-                               uint32_t lower);
 
 /* Unsigned extension of 'width' bits.
  * width >= 0
