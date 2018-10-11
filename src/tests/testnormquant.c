@@ -284,7 +284,7 @@ test_normquant_inv_and_exists (void)
   x       = btor_exp_param (g_btor, sort, 0);
   y[0]    = btor_exp_param (g_btor, sort, 0);
   y[1]    = btor_exp_param (g_btor, sort, 0);
-  ugt     = btor_exp_ugt (g_btor, x, y[0]);
+  ugt     = btor_exp_bv_ugt (g_btor, x, y[0]);
   exists0 = btor_exp_exists (g_btor, y[0], ugt);
   ult     = btor_exp_bv_ult (g_btor, x, y[1]);
   exists1 = btor_exp_exists (g_btor, y[1], ult);
@@ -294,7 +294,7 @@ test_normquant_inv_and_exists (void)
   X        = btor_exp_param (g_btor, sort, 0);
   Y[0]     = btor_exp_param (g_btor, sort, 0);
   Y[1]     = btor_exp_param (g_btor, sort, 0);
-  ulte     = btor_exp_ugt (g_btor, X, Y[0]);
+  ulte     = btor_exp_bv_ugt (g_btor, X, Y[0]);
   forall0  = btor_exp_forall (g_btor, Y[0], ulte);
   ugte     = btor_exp_bv_ult (g_btor, X, Y[1]);
   forall1  = btor_exp_forall (g_btor, Y[1], ugte);
@@ -353,8 +353,8 @@ test_normquant_normalize_negated_quant (void)
   x       = btor_exp_param (g_btor, sort, "x");
   y       = btor_exp_param (g_btor, sort, "y");
   zero    = btor_exp_zero (g_btor, sort);
-  xugt0   = btor_exp_ugt (g_btor, x, zero);
-  yugtx   = btor_exp_ugt (g_btor, y, x);
+  xugt0   = btor_exp_bv_ugt (g_btor, x, zero);
+  yugtx   = btor_exp_bv_ugt (g_btor, y, x);
   existsy = btor_exp_exists (g_btor, y, yugtx);
   and     = btor_exp_bv_and (g_btor, btor_node_invert (existsy), xugt0);
   forallx = btor_exp_forall (g_btor, x, btor_node_invert (and));

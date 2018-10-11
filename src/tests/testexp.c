@@ -589,7 +589,7 @@ test_slte_exp (void)
 static void
 test_ugt_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_ugt);
+  binary_non_commutative_exp_test (btor_exp_bv_ugt);
 }
 
 static void
