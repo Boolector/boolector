@@ -678,7 +678,7 @@ btor_exp_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 }
 
 BtorNode *
-btor_exp_redor (Btor *btor, BtorNode *exp)
+btor_exp_bv_redor (Btor *btor, BtorNode *exp)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 

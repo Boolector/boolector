@@ -334,7 +334,7 @@ test_lambda_param_neg (void)
 static void
 test_lambda_param_redor (void)
 {
-  unary_param_exp_test (btor_exp_redor);
+  unary_param_exp_test (btor_exp_bv_redor);
 }
 
 static void
@@ -1627,7 +1627,7 @@ test_quantifier_hashing_2 (void)
   a4 = btor_exp_and (g_btor, a3, y2);
   a5 = btor_exp_and (g_btor, a4, x3);
   a6 = btor_exp_and (g_btor, a5, y3);
-  r0 = btor_exp_redor (g_btor, a6);
+  r0 = btor_exp_bv_redor (g_btor, a6);
   f0 = btor_exp_forall (g_btor, x0, r0);
   e0 = btor_exp_exists (g_btor, y0, f0);
   e1 = btor_exp_exists (g_btor, y1, e0);
@@ -1653,7 +1653,7 @@ test_quantifier_hashing_2 (void)
   a14 = btor_exp_and (g_btor, a13, y12);
   a15 = btor_exp_and (g_btor, a14, x13);
   a16 = btor_exp_and (g_btor, a15, y13);
-  r10 = btor_exp_redor (g_btor, a16);
+  r10 = btor_exp_bv_redor (g_btor, a16);
   f10 = btor_exp_forall (g_btor, x10, r10);
   e10 = btor_exp_exists (g_btor, y10, f10);
   e11 = btor_exp_exists (g_btor, y11, e10);

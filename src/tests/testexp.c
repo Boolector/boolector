@@ -335,7 +335,7 @@ test_neg_exp (void)
 static void
 test_redor_exp (void)
 {
-  unary_exp_test (btor_exp_redor);
+  unary_exp_test (btor_exp_bv_redor);
 }
 
 static void
