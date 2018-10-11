@@ -58,7 +58,7 @@ enum BtorNodeKind
   BTOR_BV_ULT_NODE  = 10,
   BTOR_BV_SLL_NODE  = 11,
   BTOR_BV_SRL_NODE  = 12,
-  BTOR_UDIV_NODE    = 13,
+  BTOR_BV_UDIV_NODE = 13,
   BTOR_UREM_NODE    = 14,
   BTOR_CONCAT_NODE  = 15,
   BTOR_APPLY_NODE   = 16,
@@ -383,7 +383,7 @@ static inline bool
 btor_node_is_bv_udiv (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_UDIV_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_UDIV_NODE;
 }
 
 static inline bool

@@ -621,7 +621,7 @@ apply_const_binary_exp (Btor *btor,
     case BTOR_BV_ADD_NODE: bresult = btor_bv_add (mm, b0, b1); break;
     case BTOR_BV_MUL_NODE: bresult = btor_bv_mul (mm, b0, b1); break;
     case BTOR_BV_ULT_NODE: bresult = btor_bv_ult (mm, b0, b1); break;
-    case BTOR_UDIV_NODE: bresult = btor_bv_udiv (mm, b0, b1); break;
+    case BTOR_BV_UDIV_NODE: bresult = btor_bv_udiv (mm, b0, b1); break;
     case BTOR_UREM_NODE: bresult = btor_bv_urem (mm, b0, b1); break;
     case BTOR_BV_SLL_NODE: bresult = btor_bv_sll (mm, b0, b1); break;
     case BTOR_BV_SRL_NODE: bresult = btor_bv_srl (mm, b0, b1); break;
@@ -734,7 +734,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         case BTOR_BV_AND_NODE:
           result = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
           break;
-        case BTOR_UDIV_NODE:
+        case BTOR_BV_UDIV_NODE:
           tmp2   = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
           tmp4   = btor_exp_ones (btor, btor_node_get_sort_id (real_e0));
           eq     = rewrite_eq_exp (btor, e1, tmp2);
@@ -1005,7 +1005,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         case BTOR_BV_ULT_NODE: /* x < 0 */
           result = btor_exp_false (btor);
           break;
-        case BTOR_UDIV_NODE:
+        case BTOR_BV_UDIV_NODE:
           result = btor_exp_ones (btor, btor_node_get_sort_id (real_e0));
           break;
         default: break;
@@ -1014,11 +1014,11 @@ apply_special_const_rhs_binary_exp (Btor *btor,
     case BTOR_SPECIAL_CONST_BV_ONE_ONES:
       assert (width_e1 == 1);
       if (kind == BTOR_BV_AND_NODE || kind == BTOR_BV_EQ_NODE
-          || kind == BTOR_BV_MUL_NODE || kind == BTOR_UDIV_NODE)
+          || kind == BTOR_BV_MUL_NODE || kind == BTOR_BV_UDIV_NODE)
         result = btor_node_copy (btor, e0);
       break;
     case BTOR_SPECIAL_CONST_BV_ONE:
-      if (kind == BTOR_BV_MUL_NODE || kind == BTOR_UDIV_NODE)
+      if (kind == BTOR_BV_MUL_NODE || kind == BTOR_BV_UDIV_NODE)
         result = btor_node_copy (btor, e0);
       else if (kind == BTOR_UREM_NODE)
         result = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
@@ -6640,16 +6640,16 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   normalize_udiv (btor, &e0, &e1);
 
   result = check_rw_cache (
-      btor, BTOR_UDIV_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
+      btor, BTOR_BV_UDIV_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
   if (!result)
   {
     // TODO what about non powers of 2, like divisor 3, which means that
     // some upper bits are 0 ...
 
-    ADD_RW_RULE (const_binary_exp, BTOR_UDIV_NODE, e0, e1);
-    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
-    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (const_binary_exp, BTOR_BV_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BV_UDIV_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BV_UDIV_NODE, e0, e1);
     ADD_RW_RULE (bool_udiv, e0, e1);
     ADD_RW_RULE (power2_udiv, e0, e1);
     ADD_RW_RULE (one_udiv, e0, e1);
@@ -6664,7 +6664,7 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     {
     DONE:
       btor_rw_cache_add (btor->rw_cache,
-                         BTOR_UDIV_NODE,
+                         BTOR_BV_UDIV_NODE,
                          btor_node_get_id (e0),
                          btor_node_get_id (e1),
                          0,
@@ -7108,7 +7108,7 @@ btor_rewrite_binary_exp (Btor *btor,
 
     case BTOR_BV_MUL_NODE: result = rewrite_mul_exp (btor, e0, e1); break;
 
-    case BTOR_UDIV_NODE: result = rewrite_udiv_exp (btor, e0, e1); break;
+    case BTOR_BV_UDIV_NODE: result = rewrite_udiv_exp (btor, e0, e1); break;
 
     case BTOR_UREM_NODE: result = rewrite_urem_exp (btor, e0, e1); break;
 
