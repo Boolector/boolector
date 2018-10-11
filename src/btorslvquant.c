@@ -1435,7 +1435,7 @@ eval_exp (Btor *btor,
 
         case BTOR_BV_EQ_NODE: result = btor_bv_eq (mm, bv[0], bv[1]); break;
 
-        case BTOR_ADD_NODE: result = btor_bv_add (mm, bv[0], bv[1]); break;
+        case BTOR_BV_ADD_NODE: result = btor_bv_add (mm, bv[0], bv[1]); break;
 
         case BTOR_MUL_NODE: result = btor_bv_mul (mm, bv[0], bv[1]); break;
 

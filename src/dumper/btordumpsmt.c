@@ -459,7 +459,7 @@ static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
     [BTOR_SLICE_NODE] = "extract",   [BTOR_BV_AND_NODE] = "bvand",
     [BTOR_FUN_EQ_NODE] = "=",        [BTOR_BV_EQ_NODE] = "=",
-    [BTOR_ADD_NODE] = "bvadd",       [BTOR_MUL_NODE] = "bvmul",
+    [BTOR_BV_ADD_NODE] = "bvadd",    [BTOR_MUL_NODE] = "bvmul",
     [BTOR_ULT_NODE] = "bvult",       [BTOR_SLL_NODE] = "bvshl",
     [BTOR_SRL_NODE] = "bvlshr",      [BTOR_UDIV_NODE] = "bvudiv",
     [BTOR_UREM_NODE] = "bvurem",     [BTOR_CONCAT_NODE] = "concat",
@@ -869,7 +869,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
               op        = is_bool ? "and" : "bvand";
               expect_bv = !is_bool;
               break;
-            case BTOR_ADD_NODE:
+            case BTOR_BV_ADD_NODE:
               assert (!is_bool);
               op = "bvadd";
               break;

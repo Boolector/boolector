@@ -713,7 +713,7 @@ btor_propsls_update_cone (Btor *btor,
     }
     switch (cur->kind)
     {
-      case BTOR_ADD_NODE: bv = btor_bv_add (mm, e[0], e[1]); break;
+      case BTOR_BV_ADD_NODE: bv = btor_bv_add (mm, e[0], e[1]); break;
       case BTOR_BV_AND_NODE: bv = btor_bv_and (mm, e[0], e[1]); break;
       case BTOR_BV_EQ_NODE: bv = btor_bv_eq (mm, e[0], e[1]); break;
       case BTOR_ULT_NODE: bv = btor_bv_ult (mm, e[0], e[1]); break;
@@ -2332,7 +2332,7 @@ res_rec_conf (Btor *btor,
      * case */
     switch (exp->kind)
     {
-      case BTOR_ADD_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1; break;
+      case BTOR_BV_ADD_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_add -= 1; break;
       case BTOR_BV_AND_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_and -= 1; break;
       case BTOR_BV_EQ_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1; break;
       case BTOR_ULT_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1; break;
@@ -4289,7 +4289,7 @@ btor_propsls_select_move_prop (Btor *btor,
       /* select path and determine path assignment */
       switch (real_cur->kind)
       {
-        case BTOR_ADD_NODE:
+        case BTOR_BV_ADD_NODE:
           select_path   = select_path_add;
           compute_value = b ? inv_add_bv : cons_add_bv;
           break;

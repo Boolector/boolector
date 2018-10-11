@@ -1739,7 +1739,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   assert (btor_node_is_lambda (result));
   assert (result != fun->e[1]);
   assert (result->e[0] != fun->e[1]->e[0]);
-  assert (btor_node_real_addr (result->e[1])->kind == BTOR_ADD_NODE);
+  assert (btor_node_real_addr (result->e[1])->kind == BTOR_BV_ADD_NODE);
   assert (btor_node_real_addr (result->e[1])->e[0] == a);
   assert (btor_node_real_addr (result->e[1])->e[1] == result->e[0]);
 

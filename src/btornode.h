@@ -53,7 +53,7 @@ enum BtorNodeKind
   BTOR_BV_AND_NODE  = 5,
   BTOR_BV_EQ_NODE   = 6, /* equality on bit vectors */
   BTOR_FUN_EQ_NODE  = 7, /* equality on arrays */
-  BTOR_ADD_NODE     = 8,
+  BTOR_BV_ADD_NODE  = 8,
   BTOR_MUL_NODE     = 9,
   BTOR_ULT_NODE     = 10,
   BTOR_SLL_NODE     = 11,
@@ -369,7 +369,7 @@ static inline bool
 btor_node_is_bv_add (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_ADD_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_ADD_NODE;
 }
 
 static inline bool

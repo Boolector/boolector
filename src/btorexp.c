@@ -34,7 +34,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
     case BTOR_FUN_EQ_NODE:
       assert (arity == 2);
       return btor_exp_eq (btor, e[0], e[1]);
-    case BTOR_ADD_NODE:
+    case BTOR_BV_ADD_NODE:
       assert (arity == 2);
       return btor_exp_bv_add (btor, e[0], e[1]);
     case BTOR_MUL_NODE:
@@ -454,7 +454,7 @@ btor_exp_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
-    result = btor_rewrite_binary_exp (btor, BTOR_ADD_NODE, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_BV_ADD_NODE, e0, e1);
   else
     result = btor_node_create_bv_add (btor, e0, e1);
 

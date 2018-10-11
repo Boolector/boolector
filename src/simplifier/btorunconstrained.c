@@ -206,7 +206,7 @@ btor_optimize_unconstrained (Btor *btor)
                 mark_uc (btor, ucs, cur);
             }
             break;
-          case BTOR_ADD_NODE:
+          case BTOR_BV_ADD_NODE:
           case BTOR_BV_EQ_NODE:
           case BTOR_FUN_EQ_NODE:
             if (!cur->parameterized && (uc[0] || uc[1]))

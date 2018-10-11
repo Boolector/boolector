@@ -618,7 +618,7 @@ apply_const_binary_exp (Btor *btor,
   {
     case BTOR_BV_AND_NODE: bresult = btor_bv_and (mm, b0, b1); break;
     case BTOR_BV_EQ_NODE: bresult = btor_bv_eq (mm, b0, b1); break;
-    case BTOR_ADD_NODE: bresult = btor_bv_add (mm, b0, b1); break;
+    case BTOR_BV_ADD_NODE: bresult = btor_bv_add (mm, b0, b1); break;
     case BTOR_MUL_NODE: bresult = btor_bv_mul (mm, b0, b1); break;
     case BTOR_ULT_NODE: bresult = btor_bv_ult (mm, b0, b1); break;
     case BTOR_UDIV_NODE: bresult = btor_bv_udiv (mm, b0, b1); break;
@@ -726,7 +726,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         case BTOR_ULT_NODE: /* 0 < a --> a != 0 */
           result = btor_node_invert (rewrite_eq_exp (btor, e0, e1));
           break;
-        case BTOR_ADD_NODE: result = btor_node_copy (btor, e1); break;
+        case BTOR_BV_ADD_NODE: result = btor_node_copy (btor, e1); break;
         case BTOR_MUL_NODE:
         case BTOR_SLL_NODE:
         case BTOR_SRL_NODE:
@@ -997,7 +997,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         case BTOR_SLL_NODE:
         case BTOR_SRL_NODE:
         case BTOR_UREM_NODE:
-        case BTOR_ADD_NODE: result = btor_node_copy (btor, e0); break;
+        case BTOR_BV_ADD_NODE: result = btor_node_copy (btor, e0); break;
         case BTOR_MUL_NODE:
         case BTOR_BV_AND_NODE:
           result = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
@@ -1226,7 +1226,7 @@ rewrite_linear_term_bounded (Btor *btor,
     *factor_ptr = btor_bv_neg (btor->mm, factor);
     btor_bv_free (btor->mm, factor);
   }
-  else if (term->kind == BTOR_ADD_NODE)
+  else if (term->kind == BTOR_BV_ADD_NODE)
   {
     if (rewrite_linear_term_bounded (
             btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
@@ -1769,7 +1769,7 @@ applies_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && !btor_node_is_inverted (e0) && e0->kind == BTOR_ADD_NODE
+         && !btor_node_is_inverted (e0) && e0->kind == BTOR_BV_ADD_NODE
          && e0->e[0] == e1;
 }
 
@@ -1801,7 +1801,7 @@ applies_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && !btor_node_is_inverted (e0) && e0->kind == BTOR_ADD_NODE
+         && !btor_node_is_inverted (e0) && e0->kind == BTOR_BV_ADD_NODE
          && e0->e[1] == e1;
 }
 
@@ -1831,7 +1831,7 @@ applies_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
+         && e0->kind == BTOR_BV_ADD_NODE && e1->kind == BTOR_BV_ADD_NODE
          && e0->e[0] == e1->e[0];
 }
 
@@ -1857,7 +1857,7 @@ applies_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
+         && e0->kind == BTOR_BV_ADD_NODE && e1->kind == BTOR_BV_ADD_NODE
          && e0->e[0] == e1->e[1];
 }
 
@@ -1883,7 +1883,7 @@ applies_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
+         && e0->kind == BTOR_BV_ADD_NODE && e1->kind == BTOR_BV_ADD_NODE
          && e0->e[1] == e1->e[0];
 }
 
@@ -1909,7 +1909,7 @@ applies_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
+         && e0->kind == BTOR_BV_ADD_NODE && e1->kind == BTOR_BV_ADD_NODE
          && e0->e[1] == e1->e[1];
 }
 
@@ -3475,7 +3475,7 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       btor_node_is_inverted (e0) &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
-      (temp = btor_node_real_addr (e0))->kind == BTOR_ADD_NODE)
+      (temp = btor_node_real_addr (e0))->kind == BTOR_BV_ADD_NODE)
     {
       BtorNode * e00 = temp->e[0];
       BtorNode * e01 = temp->e[1];
@@ -3504,7 +3504,7 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       btor_node_is_inverted (e1) &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
-      (temp = btor_node_real_addr (e1))->kind == BTOR_ADD_NODE)
+      (temp = btor_node_real_addr (e1))->kind == BTOR_BV_ADD_NODE)
     {
       BtorNode * e10 = temp->e[0];
       BtorNode * e11 = temp->e[1];
@@ -5703,7 +5703,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
 
   if (kind == BTOR_BV_AND_NODE)
     btor->stats.ands_normalized++;
-  else if (kind == BTOR_ADD_NODE)
+  else if (kind == BTOR_BV_ADD_NODE)
     btor->stats.adds_normalized++;
   else
   {
@@ -5849,7 +5849,7 @@ find_top_add (Btor *btor, BtorNode *e)
 {
   BtorNode *res;
   if (btor_node_is_inverted (e)) e = btor_node_real_addr (e);
-  if (e->kind == BTOR_ADD_NODE) return e;
+  if (e->kind == BTOR_BV_ADD_NODE) return e;
   if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND) return 0;
   res = 0;
   if (e->kind == BTOR_SLICE_NODE)
@@ -6503,15 +6503,15 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 SWAP_OPERANDS:
   result = check_rw_cache (
-      btor, BTOR_ADD_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
+      btor, BTOR_BV_ADD_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
   if (!result)
   {
     if (!swap_ops)
     {
-      ADD_RW_RULE (const_binary_exp, BTOR_ADD_NODE, e0, e1);
-      ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ADD_NODE, e0, e1);
-      ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_ADD_NODE, e0, e1);
+      ADD_RW_RULE (const_binary_exp, BTOR_BV_ADD_NODE, e0, e1);
+      ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BV_ADD_NODE, e0, e1);
+      ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BV_ADD_NODE, e0, e1);
       ADD_RW_RULE (bool_add, e0, e1);
       ADD_RW_RULE (mult_add, e0, e1);
       ADD_RW_RULE (not_add, e0, e1);
@@ -6543,7 +6543,7 @@ SWAP_OPERANDS:
     {
     DONE:
       btor_rw_cache_add (btor->rw_cache,
-                         BTOR_ADD_NODE,
+                         BTOR_BV_ADD_NODE,
                          btor_node_get_id (e0),
                          btor_node_get_id (e1),
                          0,
@@ -7102,7 +7102,7 @@ btor_rewrite_binary_exp (Btor *btor,
 
     case BTOR_BV_AND_NODE: result = rewrite_and_exp (btor, e0, e1); break;
 
-    case BTOR_ADD_NODE: result = rewrite_add_exp (btor, e0, e1); break;
+    case BTOR_BV_ADD_NODE: result = rewrite_add_exp (btor, e0, e1); break;
 
     case BTOR_MUL_NODE: result = rewrite_mul_exp (btor, e0, e1); break;
 
