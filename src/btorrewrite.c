@@ -190,7 +190,7 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
 #endif
 
 static bool
-is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
+is_bv_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -209,13 +209,12 @@ is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
 }
 
 static bool
-is_odd_const_exp (BtorNode *exp)
+is_odd_bv_const_exp (BtorNode *exp)
 {
   BtorBitVector *bits;
 
+  if (!btor_node_is_bv_const (exp)) return false;
   if (btor_node_is_inverted (exp)) return false;
-
-  if (exp->kind != BTOR_BV_CONST_NODE) return false;
 
   bits = btor_node_const_get_bits (exp);
   return btor_bv_get_bit (bits, 0) == 1;
@@ -1253,7 +1252,7 @@ rewrite_linear_term_bounded (Btor *btor,
   }
   else if (term->kind == BTOR_MUL_NODE)
   {
-    if (is_odd_const_exp (term->e[0]))
+    if (is_odd_bv_const_exp (term->e[0]))
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
@@ -1266,7 +1265,7 @@ rewrite_linear_term_bounded (Btor *btor,
        */
       other = term->e[0];
     }
-    else if (is_odd_const_exp (term->e[1]))
+    else if (is_odd_bv_const_exp (term->e[1]))
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
@@ -3229,10 +3228,10 @@ applies_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   e01 = btor_node_cond_invert (e0, real_e0->e[1]);
   e10 = btor_node_cond_invert (e1, real_e1->e[0]);
   e11 = btor_node_cond_invert (e1, real_e1->e[1]);
-  return ((is_const_zero_or_ones_exp (btor, e00)
-           && is_const_zero_or_ones_exp (btor, e11))
-          || (is_const_zero_or_ones_exp (btor, e01)
-              && is_const_zero_or_ones_exp (btor, e10)));
+  return ((is_bv_const_zero_or_ones_exp (btor, e00)
+           && is_bv_const_zero_or_ones_exp (btor, e11))
+          || (is_bv_const_zero_or_ones_exp (btor, e01)
+              && is_bv_const_zero_or_ones_exp (btor, e10)));
 }
 
 static inline BtorNode *
