@@ -565,7 +565,7 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
 static void
 test_ult_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_ult);
+  binary_non_commutative_exp_test (btor_exp_bv_ult);
 }
 
 static void

@@ -1454,7 +1454,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
 
     /* these nodes are boolean by definition */
     if (btor_node_is_bv_eq (cur) || btor_node_is_fun_eq (cur)
-        || btor_node_is_ult (cur)
+        || btor_node_is_bv_ult (cur)
         || cur == btor_node_real_addr (sdc->btor->true_exp)
         || btor_node_is_quantifier (cur))
     {

@@ -286,7 +286,7 @@ test_normquant_inv_and_exists (void)
   y[1]    = btor_exp_param (g_btor, sort, 0);
   ugt     = btor_exp_ugt (g_btor, x, y[0]);
   exists0 = btor_exp_exists (g_btor, y[0], ugt);
-  ult     = btor_exp_ult (g_btor, x, y[1]);
+  ult     = btor_exp_bv_ult (g_btor, x, y[1]);
   exists1 = btor_exp_exists (g_btor, y[1], ult);
   and     = btor_exp_bv_and (g_btor, exists0, exists1);
   forall  = btor_exp_forall (g_btor, x, btor_node_invert (and));
@@ -296,7 +296,7 @@ test_normquant_inv_and_exists (void)
   Y[1]     = btor_exp_param (g_btor, sort, 0);
   ulte     = btor_exp_ugt (g_btor, X, Y[0]);
   forall0  = btor_exp_forall (g_btor, Y[0], ulte);
-  ugte     = btor_exp_ult (g_btor, X, Y[1]);
+  ugte     = btor_exp_bv_ult (g_btor, X, Y[1]);
   forall1  = btor_exp_forall (g_btor, Y[1], ugte);
   or       = btor_exp_bv_and (g_btor, forall0, forall1);
   expected = btor_exp_forall (g_btor, X, btor_node_invert (or));
@@ -444,7 +444,7 @@ test_normquant_elim_ite1 (void)
   v1     = btor_exp_var (g_btor, sort, "v1");
   xy[0]  = btor_exp_param (g_btor, sort, "x");
   xy[1]  = btor_exp_param (g_btor, sort, "y");
-  ult    = btor_exp_ult (g_btor, xy[0], xy[1]);
+  ult    = btor_exp_bv_ult (g_btor, xy[0], xy[1]);
   exists = btor_exp_exists_n (g_btor, xy, 2, ult);
   ite    = btor_exp_cond (g_btor, exists, v0, v1);
   eq     = btor_exp_eq (g_btor, v, ite);
@@ -457,7 +457,7 @@ test_normquant_elim_ite1 (void)
   V[3]   = btor_exp_param (g_btor, sort, "V");
   XY[0]  = btor_exp_param (g_btor, sort, "x0");
   XY[1]  = btor_exp_param (g_btor, sort, "y0");
-  ultXY  = btor_exp_ult (g_btor, XY[0], XY[1]);
+  ultXY  = btor_exp_bv_ult (g_btor, XY[0], XY[1]);
   forall = btor_exp_forall_n (g_btor, XY, 2, ultXY);
   eq0    = btor_exp_eq (g_btor, V[1], V[0]);
   eq1    = btor_exp_eq (g_btor, V[1], V[2]);
@@ -534,7 +534,7 @@ test_normquant_elim_ite2 (void)
   v1     = btor_exp_var (g_btor, sort, "v1");
   x      = btor_exp_param (g_btor, sort, "x");
   y      = btor_exp_param (g_btor, sort, "y");
-  ult    = btor_exp_ult (g_btor, x, y);
+  ult    = btor_exp_bv_ult (g_btor, x, y);
   exists = btor_exp_exists (g_btor, y, ult);
   ite    = btor_exp_cond (g_btor, exists, v0, v1);
   eqx    = btor_exp_eq (g_btor, x, ite);
@@ -555,8 +555,8 @@ test_normquant_elim_ite2 (void)
   eqZX     = btor_exp_eq (g_btor, X, Z);
   eqZv0    = btor_exp_eq (g_btor, Z, V[0]);
   eqZv1    = btor_exp_eq (g_btor, Z, V[1]);
-  ultY     = btor_exp_ult (g_btor, X, Y[0]);
-  ultY1    = btor_exp_ult (g_btor, X, Y[1]);
+  ultY     = btor_exp_bv_ult (g_btor, X, Y[0]);
+  ultY1    = btor_exp_bv_ult (g_btor, X, Y[1]);
   forallY  = btor_exp_forall (g_btor, Y[0], ultY);
   existsY  = btor_exp_exists (g_btor, Y[1], ultY1);
   imp_if   = btor_exp_bv_and (g_btor, forallY, btor_node_invert (eqZv0));
@@ -635,7 +635,7 @@ test_normquant_elim_top_ite (void)
   v1 = btor_exp_var (g_btor, 32, "v1");
   v2 = btor_exp_var (g_btor, 32, "v2");
   y = btor_exp_param (g_btor, 32, "y");
-  ult = btor_exp_ult (g_btor, v2, y); 
+  ult = btor_exp_bv_ult (g_btor, v2, y); 
   exists = btor_exp_exists (g_btor, y, ult);
   ite = btor_exp_cond (g_btor, exists, v0, v1); 
   eqv = btor_exp_eq (g_btor, v2, ite);
@@ -652,7 +652,7 @@ test_normquant_elim_top_ite (void)
   eqZv2 = btor_exp_eq (g_btor, V[2], V[3]);
   eqZv0 = btor_exp_eq (g_btor, V[3], V[0]); 
   eqZv1 = btor_exp_eq (g_btor, V[3], V[1]);
-  ultY = btor_exp_ult (g_btor, V[2], Y[0]);
+  ultY = btor_exp_bv_ult (g_btor, V[2], Y[0]);
   ugte = btor_exp_ugte (g_btor, V[2], Y[1]);
   forallY = btor_exp_forall (g_btor, Y[0], ultY);
   existsY = btor_exp_exists (g_btor, Y[1], ugte);

@@ -1408,7 +1408,7 @@ normalize_substitution (Btor *btor,
     return true;
   }
 
-  if (btor_node_is_ult (exp)
+  if (btor_node_is_bv_ult (exp)
       && (btor_node_is_bv_var (btor_node_real_addr (exp)->e[0])
           || btor_node_is_bv_var (btor_node_real_addr (exp)->e[1])))
   {

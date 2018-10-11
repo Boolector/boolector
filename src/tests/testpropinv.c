@@ -158,7 +158,7 @@ static void
 test_propinv_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (ult, btor_exp_ult);
+  TEST_PROP_INV_COMPLETE_BINARY (ult, btor_exp_bv_ult);
 #endif
 }
 
@@ -534,7 +534,7 @@ prop_inv_conf_ult_bv (uint32_t bw)
   BtorBitVector *res, *bvult, *bve, *zero, *bvmax;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (ult, btor_exp_ult);
+  TEST_PROP_INV_CONF_BINARY_INIT (ult, btor_exp_bv_ult);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);
@@ -550,7 +550,7 @@ PROP_INV_CONF_ULT_TESTS:
   assert (btor_bv_compare (res, zero) > 0);
   btor_bv_free (g_mm, res);
   ce   = btor_exp_const (g_btor, bve);
-  cult = btor_exp_ult (g_btor, ce, e[1]);
+  cult = btor_exp_bv_ult (g_btor, ce, e[1]);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 1);
   if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
     assert (!res);
@@ -570,7 +570,7 @@ PROP_INV_CONF_ULT_TESTS:
   assert (btor_bv_compare (res, bvmax) < 0);
   btor_bv_free (g_mm, res);
   ce   = btor_exp_const (g_btor, bve);
-  cult = btor_exp_ult (g_btor, e[0], ce);
+  cult = btor_exp_bv_ult (g_btor, e[0], ce);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 0);
   if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
     assert (!res);

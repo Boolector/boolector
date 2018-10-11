@@ -272,7 +272,7 @@ compute_sls_score_node (Btor *btor,
   /* ------------------------------------------------------------------------ */
   /* ULT                                                                      */
   /* ------------------------------------------------------------------------ */
-  else if (btor_node_is_ult (real_exp))
+  else if (btor_node_is_bv_ult (real_exp))
   {
     bv0 = (BtorBitVector *) btor_model_get_bv_aux (
         btor, bv_model, fun_model, real_exp->e[0]);
@@ -356,7 +356,7 @@ recursively_compute_sls_score_node (Btor *btor,
   BtorMemMgr *mm;
 
   res = 0.0;
-  assert (btor_node_is_bv_eq (exp) || btor_node_is_ult (exp)
+  assert (btor_node_is_bv_eq (exp) || btor_node_is_bv_ult (exp)
           || btor_node_get_width (btor, exp) == 1);
 
   if (btor_hashint_map_contains (score, btor_node_get_id (exp)))

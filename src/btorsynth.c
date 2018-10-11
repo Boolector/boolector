@@ -1279,7 +1279,7 @@ init_ops (Btor *btor, Op *ops)
   //  INIT_OP (1, false, btor_dec_exp);
 
   /* boolean ops */
-  INIT_OP (2, false, btor_exp_ult);
+  INIT_OP (2, false, btor_exp_bv_ult);
   INIT_OP (2, false, btor_exp_slt);
   INIT_OP (2, true, btor_exp_eq);
 

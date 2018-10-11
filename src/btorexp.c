@@ -42,7 +42,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_mul (btor, e[0], e[1]);
     case BTOR_ULT_NODE:
       assert (arity == 2);
-      return btor_exp_ult (btor, e[0], e[1]);
+      return btor_exp_bv_ult (btor, e[0], e[1]);
     case BTOR_SLL_NODE:
       assert (arity == 2);
       return btor_exp_sll (btor, e[0], e[1]);
@@ -1083,7 +1083,7 @@ btor_exp_bv_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1097,7 +1097,7 @@ btor_exp_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_ULT_NODE, e0, e1);
   else
-    result = btor_node_create_ult (btor, e0, e1);
+    result = btor_node_create_bv_ult (btor, e0, e1);
 
   assert (result);
   return result;
@@ -1124,7 +1124,7 @@ btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
   s1                 = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   r0                 = btor_exp_bv_slice (btor, e0, width - 2, 0);
   r1                 = btor_exp_bv_slice (btor, e1, width - 2, 0);
-  ult                = btor_exp_ult (btor, r0, r1);
+  ult                = btor_exp_bv_ult (btor, r0, r1);
   determined_by_sign = btor_exp_bv_and (btor, s0, btor_node_invert (s1));
   l                  = btor_node_copy (btor, determined_by_sign);
   r                  = btor_exp_bv_and (btor, btor_node_invert (s0), s1);
@@ -1156,7 +1156,7 @@ btor_exp_ulte (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  ult    = btor_exp_ult (btor, e1, e0);
+  ult    = btor_exp_bv_ult (btor, e1, e0);
   result = btor_exp_bv_not (btor, ult);
   btor_node_release (btor, ult);
   return result;
@@ -1189,7 +1189,7 @@ btor_exp_ugt (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  return btor_exp_ult (btor, e1, e0);
+  return btor_exp_bv_ult (btor, e1, e0);
 }
 
 BtorNode *
@@ -1216,7 +1216,7 @@ btor_exp_ugte (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  ult    = btor_exp_ult (btor, e0, e1);
+  ult    = btor_exp_bv_ult (btor, e0, e1);
   result = btor_exp_bv_not (btor, ult);
   btor_node_release (btor, ult);
   return result;

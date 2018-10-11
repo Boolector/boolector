@@ -3132,7 +3132,7 @@ static inline bool
 applies_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
-  return btor_node_is_ult (e0) && btor_node_is_ult (e1)
+  return btor_node_is_bv_ult (e0) && btor_node_is_bv_ult (e1)
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
          && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0];
 }
@@ -3156,8 +3156,8 @@ applies_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *real_e0, *real_e1;
   real_e0 = btor_node_real_addr (e0);
   real_e1 = btor_node_real_addr (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_ult (real_e0)
-         && btor_node_is_ult (real_e1) && btor_node_is_inverted (e0)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_ult (real_e0)
+         && btor_node_is_bv_ult (real_e1) && btor_node_is_inverted (e0)
          && btor_node_is_inverted (e1) && real_e0->e[0] == real_e1->e[1]
          && real_e0->e[1] == real_e1->e[0];
 }
@@ -6380,7 +6380,7 @@ rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     assert (!result);
     if (!result)
     {
-      result = btor_node_create_ult (btor, e0, e1);
+      result = btor_node_create_bv_ult (btor, e0, e1);
     }
     else
     {

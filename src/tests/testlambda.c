@@ -618,8 +618,8 @@ test_lambda_param_smulo (void)
 static void
 test_lambda_param_ult (void)
 {
-  binary_param_exp_test (0, btor_exp_ult);
-  binary_param_exp_test (1, btor_exp_ult);
+  binary_param_exp_test (0, btor_exp_bv_ult);
+  binary_param_exp_test (1, btor_exp_bv_ult);
 }
 
 static void
