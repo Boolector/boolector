@@ -1107,7 +1107,7 @@ btor_process_unsynthesized_constraints (Btor *btor)
 	      // use rewrite level > 1 for lemma generation.
 	      //if (other 
 	      //    && !btor_node_is_inverted (other) 
-	      //    && btor_node_is_add (other))
+	      //    && btor_node_is_bv_add (other))
 	      //  {
 	      //    assert (!btor_node_is_bv_const (other->e[0]));
 	      //    assert (!btor_node_is_bv_const (other->e[1]));

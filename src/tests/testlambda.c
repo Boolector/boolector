@@ -576,8 +576,8 @@ test_lambda_param_ne (void)
 static void
 test_lambda_param_add (void)
 {
-  binary_param_exp_test (0, btor_exp_add);
-  binary_param_exp_test (1, btor_exp_add);
+  binary_param_exp_test (0, btor_exp_bv_add);
+  binary_param_exp_test (1, btor_exp_bv_add);
 }
 
 static void
@@ -1274,11 +1274,11 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   a                   = btor_exp_var (g_btor, g_elem_sort, "a");
   b                   = btor_exp_var (g_btor, g_elem_sort, "b");
   BtorNode *args[2]   = {a, b};
-  expected            = btor_exp_add (g_btor, a, b);
+  expected            = btor_exp_bv_add (g_btor, a, b);
   x                   = btor_exp_param (g_btor, g_elem_sort, "x");
   y                   = btor_exp_param (g_btor, g_elem_sort, "y");
   BtorNode *params[2] = {x, y};
-  add                 = btor_exp_add (g_btor, x, y);
+  add                 = btor_exp_bv_add (g_btor, x, y);
   fun                 = btor_exp_fun (g_btor, params, 2, add);
 
   result = apply_and_reduce (g_btor, args, 2, fun);
@@ -1314,12 +1314,12 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   lambda_index_sort = g_elem_sort;
   a                 = btor_exp_var (g_btor, g_elem_sort, "a");
   b                 = btor_exp_var (g_btor, g_elem_sort, "b");
-  expected          = btor_exp_add (g_btor, a, b);
+  expected          = btor_exp_bv_add (g_btor, a, b);
   x                 = btor_exp_param (g_btor, lambda_index_sort, "x");
   y                 = btor_exp_param (g_btor, lambda_index_sort, "y");
   lambda2           = btor_exp_lambda (g_btor, y, y);
   app               = btor_exp_apply_n (g_btor, lambda2, &b, 1);
-  add               = btor_exp_add (g_btor, x, app);
+  add               = btor_exp_bv_add (g_btor, x, app);
   lambda1           = btor_exp_lambda (g_btor, x, add);
   result            = apply_and_reduce (g_btor, &a, 1, lambda1);
 
@@ -1352,13 +1352,13 @@ test_lambda_reduce_nested_lambdas_read (void)
   y       = btor_exp_param (g_btor, g_elem_sort, "y");
   lambda2 = btor_exp_lambda (g_btor, y, y);
   x       = btor_exp_param (g_btor, g_elem_sort, "x");
-  add     = btor_exp_add (g_btor, x, var);
+  add     = btor_exp_bv_add (g_btor, x, var);
   app     = btor_exp_apply_n (g_btor, lambda2, &add, 1);
   napp    = btor_exp_bv_not (g_btor, app);
   lambda1 = btor_exp_lambda (g_btor, x, napp);
   a       = btor_exp_var (g_btor, g_elem_sort, "a");
   /* exptected not (a + var) */
-  expected_add = btor_exp_add (g_btor, a, var);
+  expected_add = btor_exp_bv_add (g_btor, a, var);
   expected     = btor_exp_bv_not (g_btor, expected_add);
   result       = apply_and_reduce (g_btor, &a, 1, lambda1);
 
@@ -1730,7 +1730,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   a = btor_exp_var (g_btor, g_elem_sort, "a");
   x = btor_exp_param (g_btor, g_elem_sort, "x");
   y = btor_exp_param (g_btor, g_elem_sort, "y");
-  add = btor_exp_add (g_btor, x, y);
+  add = btor_exp_bv_add (g_btor, x, y);
   fun = btor_exp_fun (g_btor, params, 2, add); 
   result = apply_and_reduce (g_btor, 1, &a, fun);
 

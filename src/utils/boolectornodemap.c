@@ -173,7 +173,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
     case BTOR_AND_NODE: res = btor_exp_bv_and (btor, e[0], e[1]); break;
     case BTOR_BV_EQ_NODE:
     case BTOR_FUN_EQ_NODE: res = btor_exp_eq (btor, e[0], e[1]); break;
-    case BTOR_ADD_NODE: res = btor_exp_add (btor, e[0], e[1]); break;
+    case BTOR_ADD_NODE: res = btor_exp_bv_add (btor, e[0], e[1]); break;
     case BTOR_MUL_NODE: res = btor_exp_mul (btor, e[0], e[1]); break;
     case BTOR_ULT_NODE: res = btor_exp_ult (btor, e[0], e[1]); break;
     case BTOR_SLL_NODE: res = btor_exp_sll (btor, e[0], e[1]); break;

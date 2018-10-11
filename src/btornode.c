@@ -153,7 +153,7 @@ btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
 
   real_exp = btor_node_real_addr (exp);
 
-  if (!btor_node_is_add (real_exp)) return false;
+  if (!btor_node_is_bv_add (real_exp)) return false;
 
   if (btor_node_is_bv_const_one (btor, real_exp->e[0]))
   {
@@ -2339,7 +2339,7 @@ btor_node_create_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_node_create_add (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_node_create_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);

@@ -492,7 +492,7 @@ test_ne_exp (void)
 static void
 test_add_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_add);
+  binary_commutative_exp_test (btor_exp_bv_add);
 }
 
 static void

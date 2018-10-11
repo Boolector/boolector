@@ -193,7 +193,7 @@ BtorNode *btor_exp_ne (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_add (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
  * width(e0) = width(e1)

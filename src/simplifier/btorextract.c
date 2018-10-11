@@ -22,7 +22,7 @@ inline static void
 extract_base_addr_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
 {
   assert (btor_node_is_regular (bvadd));
-  assert (btor_node_is_add (bvadd));
+  assert (btor_node_is_bv_add (bvadd));
 
   if (btor_node_is_bv_const (bvadd->e[0]))
   {
@@ -58,8 +58,8 @@ cmp_abs_rel_indices (const void *a, const void *b)
   {
     assert (!btor_node_is_inverted (x));
     assert (!btor_node_is_inverted (y));
-    assert (btor_node_is_add (x));
-    assert (btor_node_is_add (y));
+    assert (btor_node_is_bv_add (x));
+    assert (btor_node_is_bv_add (y));
     extract_base_addr_offset (x, &x_base_addr, &x_offset);
     extract_base_addr_offset (y, &y_base_addr, &y_offset);
     assert (x_base_addr == y_base_addr);
@@ -108,8 +108,8 @@ create_range (Btor *btor,
   assert (param);
   assert (btor_node_is_regular (param));
   assert (btor_node_is_param (param));
-  assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
-  assert (btor_node_is_bv_const (upper) || btor_node_is_add (upper));
+  assert (btor_node_is_bv_const (lower) || btor_node_is_bv_add (lower));
+  assert (btor_node_is_bv_const (upper) || btor_node_is_bv_add (upper));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (offset);
 
@@ -173,7 +173,7 @@ create_pattern_memset (Btor *btor,
   assert (upper);
   assert (btor_node_real_addr (lower)->kind
           == btor_node_real_addr (upper)->kind);
-  assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
+  assert (btor_node_is_bv_const (lower) || btor_node_is_bv_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (offset);
 
@@ -206,7 +206,7 @@ create_pattern_itoi (Btor *btor,
   assert (upper);
   assert (btor_node_real_addr (lower)->kind
           == btor_node_real_addr (upper)->kind);
-  assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
+  assert (btor_node_is_bv_const (lower) || btor_node_is_bv_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (btor_sort_fun_get_codomain (btor, btor_node_get_sort_id (array))
           == btor_node_get_sort_id (lower));
@@ -241,7 +241,7 @@ create_pattern_itoip1 (Btor *btor,
   assert (upper);
   assert (btor_node_real_addr (lower)->kind
           == btor_node_real_addr (upper)->kind);
-  assert (btor_node_is_bv_const (lower) || btor_node_is_add (lower));
+  assert (btor_node_is_bv_const (lower) || btor_node_is_bv_add (lower));
   assert (btor_node_get_sort_id (lower) == btor_node_get_sort_id (upper));
   assert (btor_sort_fun_get_codomain (btor, btor_node_get_sort_id (array))
           == btor_node_get_sort_id (lower));
@@ -278,8 +278,8 @@ create_pattern_cpy (Btor *btor,
 {
   assert (!btor_node_is_inverted (lower));
   assert (!btor_node_is_inverted (upper));
-  assert (btor_node_is_add (lower));
-  assert (btor_node_is_add (upper));
+  assert (btor_node_is_bv_add (lower));
+  assert (btor_node_is_bv_add (upper));
 
   BtorNode *res, *param, *ite, *read, *cond, *read_src, *add, *sub;
 
@@ -288,7 +288,7 @@ create_pattern_cpy (Btor *btor,
   cond  = create_range (btor, lower, upper, param, offset);
 
   sub      = btor_exp_sub (btor, param, dst_addr);
-  add      = btor_exp_add (btor, src_addr, sub);
+  add      = btor_exp_bv_add (btor, src_addr, sub);
   read_src = btor_exp_read (btor, src_array, add);
   ite      = btor_exp_cond (btor, cond, read_src, read);
   res      = btor_exp_lambda (btor, param, ite);
@@ -410,10 +410,10 @@ is_cpy_pattern (BtorNode *index, BtorNode *value)
 {
   BtorNode *bvadd, *dst_addr, *off;
 
-  if (btor_node_is_inverted (index) || !btor_node_is_add (index)
+  if (btor_node_is_inverted (index) || !btor_node_is_bv_add (index)
       || btor_node_is_inverted (value) || !btor_node_is_apply (value)
       || btor_node_is_inverted (value->e[1]->e[0])
-      || !btor_node_is_add (value->e[1]->e[0]))
+      || !btor_node_is_bv_add (value->e[1]->e[0]))
     return false;
 
   if (btor_node_is_bv_const (index->e[0]))
@@ -466,7 +466,8 @@ is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
 {
   BtorNode *base_addr, *offset, *prev_base_addr, *prev_offset;
 
-  if (btor_node_is_inverted (index) || !btor_node_is_add (index)) return false;
+  if (btor_node_is_inverted (index) || !btor_node_is_bv_add (index))
+    return false;
 
   if (!btor_node_is_bv_const (index->e[0])
       && !btor_node_is_bv_const (index->e[1]))
@@ -474,7 +475,7 @@ is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
 
   if (!prev_index) return true;
 
-  if (btor_node_is_inverted (prev_index) || !btor_node_is_add (prev_index))
+  if (btor_node_is_inverted (prev_index) || !btor_node_is_bv_add (prev_index))
     return false;
 
   if (!btor_node_is_bv_const (prev_index->e[0])
@@ -573,7 +574,7 @@ add_to_index_map (Btor *btor,
   else
   {
     assert (btor_node_is_regular (index));
-    assert (btor_node_is_add (index));
+    assert (btor_node_is_bv_add (index));
     extract_base_addr_offset (index, 0, &offset);
     assert (btor_node_is_bv_const (offset));
   }
@@ -939,8 +940,8 @@ find_ranges (Btor *btor,
       n0 = btor_node_real_addr (BTOR_PEEK_STACK (index_stack, i - 1));
       n1 = btor_node_real_addr (BTOR_PEEK_STACK (index_stack, i));
       assert (n0->kind == n1->kind);
-      assert (btor_node_is_add (n0) || btor_node_is_bv_const (n0));
-      if (btor_node_is_add (n0))
+      assert (btor_node_is_bv_add (n0) || btor_node_is_bv_const (n0));
+      if (btor_node_is_bv_add (n0))
       {
         extract_base_addr_offset (n0, &n0_base_addr, &n0_offset);
         extract_base_addr_offset (n1, &n1_base_addr, &n1_offset);
@@ -972,8 +973,8 @@ find_ranges (Btor *btor,
         {
           assert (!btor_node_is_inverted (n0));
           assert (!btor_node_is_inverted (n1));
-          assert (btor_node_is_add (n0));
-          assert (btor_node_is_add (n1));
+          assert (btor_node_is_bv_add (n0));
+          assert (btor_node_is_bv_add (n1));
           extract_base_addr_offset (n0, &n0_base_addr, &n0_offset);
           extract_base_addr_offset (n1, &n1_base_addr, &n1_offset);
           assert (n0_base_addr == n1_base_addr);

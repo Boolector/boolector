@@ -364,7 +364,7 @@ beta_reduce (Btor *btor,
           btor_node_release (btor, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_exp_add (btor, e[1], e[0]);
+          result = btor_exp_bv_add (btor, e[1], e[0]);
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);
           break;
@@ -707,7 +707,7 @@ beta_reduce_partial_aux (Btor *btor,
           btor_node_release (btor, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_exp_add (btor, e[1], e[0]);
+          result = btor_exp_bv_add (btor, e[1], e[0]);
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);
           break;

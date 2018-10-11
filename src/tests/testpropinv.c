@@ -134,7 +134,7 @@ static void
 test_propinv_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (add, btor_exp_add);
+  TEST_PROP_INV_COMPLETE_BINARY (add, btor_exp_bv_add);
 #endif
 }
 

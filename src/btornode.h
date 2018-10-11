@@ -362,7 +362,7 @@ btor_node_is_ult (const BtorNode *exp)
 }
 
 static inline bool
-btor_node_is_add (const BtorNode *exp)
+btor_node_is_bv_add (const BtorNode *exp)
 {
   assert (exp);
   return btor_node_real_addr (exp)->kind == BTOR_ADD_NODE;
@@ -708,7 +708,7 @@ BtorNode *btor_node_create_bv_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_node_create_add (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_node_create_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_mul (Btor *btor, BtorNode *e0, BtorNode *e1);
 
