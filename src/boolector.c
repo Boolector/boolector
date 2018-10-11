@@ -153,7 +153,7 @@ translate_shift (Btor *btor,
     else if (f == btor_exp_sra)
       e0 = btor_exp_sext (btor, a0, p0);
     else
-      e0 = btor_exp_uext (btor, a0, p0);
+      e0 = btor_exp_bv_uext (btor, a0, p0);
 
     assert (btor_node_get_width (btor, e0) == l0);
 
@@ -1619,7 +1619,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  res = btor_exp_uext (btor, exp, width);
+  res = btor_exp_bv_uext (btor, exp, width);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

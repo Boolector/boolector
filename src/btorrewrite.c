@@ -5307,7 +5307,7 @@ apply_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   BtorNode *result, *tmp;
 
   BTOR_INC_REC_RW_CALL (btor);
-  tmp    = btor_exp_uext (btor, e0, btor_node_get_width (btor, e1) - 1);
+  tmp    = btor_exp_bv_uext (btor, e0, btor_node_get_width (btor, e1) - 1);
   result = rewrite_add_exp (btor, e2, tmp);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, tmp);
@@ -5338,7 +5338,7 @@ apply_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   BtorNode *result, *tmp;
 
   BTOR_INC_REC_RW_CALL (btor);
-  tmp = btor_exp_uext (
+  tmp = btor_exp_bv_uext (
       btor, btor_node_invert (e0), btor_node_get_width (btor, e1) - 1);
   result = rewrite_add_exp (btor, e1, tmp);
   BTOR_DEC_REC_RW_CALL (btor);

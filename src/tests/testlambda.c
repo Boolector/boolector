@@ -421,7 +421,7 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 static void
 test_lambda_param_uext (void)
 {
-  param_extension_test (btor_exp_uext);
+  param_extension_test (btor_exp_bv_uext);
 }
 
 static void

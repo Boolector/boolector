@@ -735,7 +735,7 @@ btor_exp_bv_redand (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_exp_uext (Btor *btor, BtorNode *exp, uint32_t width)
+btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 
@@ -868,8 +868,8 @@ btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width   = btor_node_get_width (btor, e0);
-  uext_e1 = btor_exp_uext (btor, e0, 1);
-  uext_e2 = btor_exp_uext (btor, e1, 1);
+  uext_e1 = btor_exp_bv_uext (btor, e0, 1);
+  uext_e2 = btor_exp_bv_uext (btor, e1, 1);
   add     = btor_exp_add (btor, uext_e1, uext_e2);
   result  = btor_exp_bv_slice (btor, add, width, width);
   btor_node_release (btor, uext_e1);
@@ -978,8 +978,8 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
     btor_node_release (btor, result);
     result = or ;
   }
-  uext_e1 = btor_exp_uext (btor, e0, 1);
-  uext_e2 = btor_exp_uext (btor, e1, 1);
+  uext_e1 = btor_exp_bv_uext (btor, e0, 1);
+  uext_e2 = btor_exp_bv_uext (btor, e1, 1);
   mul     = btor_exp_mul (btor, uext_e1, uext_e2);
   slice   = btor_exp_bv_slice (btor, mul, width, width);
   or      = btor_exp_or (btor, result, slice);
@@ -1383,8 +1383,8 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width   = btor_node_get_width (btor, e0);
-  uext_e1 = btor_exp_uext (btor, e0, 1);
-  uext_e2 = btor_exp_uext (btor, btor_node_invert (e1), 1);
+  uext_e1 = btor_exp_bv_uext (btor, e0, 1);
+  uext_e2 = btor_exp_bv_uext (btor, btor_node_invert (e1), 1);
   assert (width < INT32_MAX);
   sort = btor_sort_bitvec (btor, width + 1);
   one  = btor_exp_one (btor, sort);

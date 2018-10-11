@@ -399,7 +399,7 @@ ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 static void
 test_uext_exp (void)
 {
-  ext_exp_test (btor_exp_uext);
+  ext_exp_test (btor_exp_bv_uext);
 }
 
 static void

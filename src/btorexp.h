@@ -119,7 +119,7 @@ BtorNode *btor_exp_bv_slice (Btor *btor,
  * width >= 0
  * width(result) = width(exp) + width
  */
-BtorNode *btor_exp_uext (Btor *btor, BtorNode *exp, uint32_t width);
+BtorNode *btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width);
 
 /* Signed extension of 'width' bits (keep sign).
  * width >= 0
