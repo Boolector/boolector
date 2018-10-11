@@ -217,7 +217,7 @@ BtorNode *btor_exp_bv_mul (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_umulo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
  * width(e0) = width(e1)

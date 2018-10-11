@@ -431,7 +431,7 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *,
   assert (btor_node_get_width (g_btor, exp1) == 8);
   assert (btor_node_get_width (g_btor, exp2) == 8);
   if (func == btor_exp_eq || func == btor_exp_ne || func == btor_exp_bv_uaddo
-      || func == btor_exp_bv_saddo || func == btor_exp_umulo)
+      || func == btor_exp_bv_saddo || func == btor_exp_bv_umulo)
   {
     assert (btor_node_get_width (g_btor, exp3) == 1);
     assert (btor_node_get_width (g_btor, exp4) == 1);
@@ -687,7 +687,7 @@ mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   exp5 = func (g_btor, exp2, exp1);
 
   assert (exp3 == exp4);
-  if (func == btor_exp_umulo)
+  if (func == btor_exp_bv_umulo)
     assert (exp4 != exp5);
   else
     assert (exp4 == exp5);
@@ -708,7 +708,7 @@ static void
 test_umulo_exp (void)
 {
   /* Implementation is not symmetric */
-  mulo_exp_test (btor_exp_umulo);
+  mulo_exp_test (btor_exp_bv_umulo);
 }
 
 static void
