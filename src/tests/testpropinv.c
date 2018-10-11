@@ -174,7 +174,7 @@ static void
 test_propinv_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_SHIFT (srl, btor_exp_srl);
+  TEST_PROP_INV_COMPLETE_SHIFT (srl, btor_exp_bv_srl);
 #endif
 }
 
@@ -788,7 +788,7 @@ prop_inv_conf_srl_bv (uint32_t bw)
   BtorBitVector *res, *bvsrl, *bve;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_SHIFT_INIT (srl, btor_exp_srl);
+  TEST_PROP_INV_CONF_SHIFT_INIT (srl, btor_exp_bv_srl);
 
   /* prop engine: all conflicts are treated as fixable */
 
@@ -802,7 +802,7 @@ PROP_INV_CONF_SRL_TESTS:
     bve = btor_bv_new_random (g_mm, &g_btor->rng, bw);
     if (!btor_bv_get_bit (bve, bw - 1)) btor_bv_set_bit (bve, bw - 1, 1);
     ce   = btor_exp_const (g_btor, bve);
-    csrl = btor_exp_srl (g_btor, ce, e[1]);
+    csrl = btor_exp_bv_srl (g_btor, ce, e[1]);
     res  = inv_srl_bv (g_btor, srl, bvsrl, bve, 1);
     assert (res);
     btor_bv_free (g_mm, res);
@@ -821,85 +821,85 @@ PROP_INV_CONF_SRL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "01", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "00", "01", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "00", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "00", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "01", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "01", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "01", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "01", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "10", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "10", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "11", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "11", "10", 0);
       break;
 
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "1000", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "1110", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0000", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0000", "1000", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0000", "1110", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0001", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0001", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0001", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0001", "0111", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1000", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1000", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1000", "0111", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1010", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1010", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1010", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1010", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "0111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "1010", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0110", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0110", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0110", "1010", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "0110", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0100", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1111", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1111", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1111", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_bv_srl, "1111", "0100", 1);
       break;
 
     case 8:
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00000000", "01111111", 1);
+          1, srl, btor_exp_bv_srl, "00000000", "01111111", 1);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00000000", "01010101", 1);
+          1, srl, btor_exp_bv_srl, "00000000", "01010101", 1);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00000100", "00111100", 2);
+          1, srl, btor_exp_bv_srl, "00000100", "00111100", 2);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00000100", "00001111", 4);
+          1, srl, btor_exp_bv_srl, "00000100", "00001111", 4);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00100000", "11001100", 0);
+          1, srl, btor_exp_bv_srl, "00100000", "11001100", 0);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "00100000", "01000010", 1);
+          1, srl, btor_exp_bv_srl, "00100000", "01000010", 1);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "01010101", "01010111", 1);
+          1, srl, btor_exp_bv_srl, "01010101", "01010111", 1);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "01010101", "00101001", 2);
+          1, srl, btor_exp_bv_srl, "01010101", "00101001", 2);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "11111110", "10111100", 0);
+          1, srl, btor_exp_bv_srl, "11111110", "10111100", 0);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "11111110", "11111101", 0);
+          1, srl, btor_exp_bv_srl, "11111110", "11111101", 0);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "01111111", "00101111", 2);
+          1, srl, btor_exp_bv_srl, "01111111", "00101111", 2);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "01111111", "11111101", 0);
+          1, srl, btor_exp_bv_srl, "01111111", "11111101", 0);
       ///
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "11111111", "01011111", 1);
+          1, srl, btor_exp_bv_srl, "11111111", "01011111", 1);
       TEST_PROP_INV_CONF_SHIFT (
-          1, srl, btor_exp_srl, "11111111", "11111101", 0);
+          1, srl, btor_exp_bv_srl, "11111111", "11111101", 0);
       break;
 
     default: break;
@@ -910,22 +910,22 @@ PROP_INV_CONF_SRL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "1", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "1", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "1", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "1", "11", 0);
       break;
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "01", "1000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "10", "0110", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "11", "0011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "01", "1000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "10", "0110", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "11", "0011", 0);
       break;
     case 8:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "001", "11000000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "010", "01110000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "011", "00110000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "100", "00111111", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "101", "00011000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "110", "00110011", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "111", "00000011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "001", "11000000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "010", "01110000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "011", "00110000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "100", "00111111", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "101", "00011000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "110", "00110011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_bv_srl, "111", "00000011", 0);
       break;
     default: break;
   }

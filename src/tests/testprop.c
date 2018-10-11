@@ -177,7 +177,7 @@ prop_complete_binary (uint32_t n,
   BtorBitVector *bve[2], *bvexp;
 
   TEST_PROP_ONE_COMPLETE_BINARY_INIT (create_exp);
-  if (create_exp == btor_exp_bv_sll || create_exp == btor_exp_srl)
+  if (create_exp == btor_exp_bv_sll || create_exp == btor_exp_bv_srl)
     bw1 = btor_util_log_2 (bw0);
 
   for (i = 0; i < (uint32_t) (1 << bw0); i++)
@@ -270,7 +270,7 @@ static void
 test_prop_one_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_exp_srl, btor_bv_srl, inv_srl_bv);
+  prop_complete_binary (1, btor_exp_bv_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 
@@ -352,7 +352,7 @@ static void
 test_prop_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_exp_srl, btor_bv_srl, inv_srl_bv);
+  prop_complete_binary (2, btor_exp_bv_srl, btor_bv_srl, inv_srl_bv);
 #endif
 }
 

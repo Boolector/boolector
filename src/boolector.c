@@ -2376,7 +2376,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   width = btor_node_get_width (btor, e0);
   if (width == btor_node_get_width (btor, e1))
   {
-    res = translate_shift (btor, e0, e1, btor_exp_srl);
+    res = translate_shift (btor, e0, e1, btor_exp_bv_srl);
   }
   else
   {
@@ -2384,7 +2384,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
                 "bit-width of 'e0' must be a power of 2");
     BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
                 "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-    res = btor_exp_srl (btor, e0, e1);
+    res = btor_exp_bv_srl (btor, e0, e1);
   }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);

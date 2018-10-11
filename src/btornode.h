@@ -716,7 +716,7 @@ BtorNode *btor_node_create_bv_ult (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_bv_sll (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_node_create_srl (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_node_create_bv_srl (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 

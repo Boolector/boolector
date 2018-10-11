@@ -756,7 +756,7 @@ test_sll_exp (void)
 static void
 test_srl_exp (void)
 {
-  shift_exp_test (btor_exp_srl);
+  shift_exp_test (btor_exp_bv_srl);
 }
 
 static void
