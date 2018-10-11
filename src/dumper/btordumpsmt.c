@@ -461,7 +461,7 @@ static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_FUN_EQ_NODE] = "=",        [BTOR_BV_EQ_NODE] = "=",
     [BTOR_BV_ADD_NODE] = "bvadd",    [BTOR_BV_MUL_NODE] = "bvmul",
     [BTOR_BV_ULT_NODE] = "bvult",    [BTOR_BV_SLL_NODE] = "bvshl",
-    [BTOR_SRL_NODE] = "bvlshr",      [BTOR_UDIV_NODE] = "bvudiv",
+    [BTOR_BV_SRL_NODE] = "bvlshr",   [BTOR_UDIV_NODE] = "bvudiv",
     [BTOR_UREM_NODE] = "bvurem",     [BTOR_CONCAT_NODE] = "concat",
     [BTOR_APPLY_NODE] = "apply",     [BTOR_LAMBDA_NODE] = "lambda",
     [BTOR_COND_NODE] = "ite",        [BTOR_ARGS_NODE] = "args",
@@ -773,9 +773,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       switch (real_exp->kind)
       {
         case BTOR_BV_SLL_NODE:
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
           assert (!is_bool);
-          op = real_exp->kind == BTOR_SRL_NODE ? "bvlshr" : "bvshl";
+          op = real_exp->kind == BTOR_BV_SRL_NODE ? "bvlshr" : "bvshl";
           assert (btor_node_get_width (sdc->btor, real_exp) > 1);
           pad = btor_node_get_width (sdc->btor, real_exp)
                 - btor_node_get_width (sdc->btor, real_exp->e[1]);

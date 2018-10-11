@@ -46,7 +46,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
     case BTOR_BV_SLL_NODE:
       assert (arity == 2);
       return btor_exp_bv_sll (btor, e[0], e[1]);
-    case BTOR_SRL_NODE:
+    case BTOR_BV_SRL_NODE:
       assert (arity == 2);
       return btor_exp_bv_srl (btor, e[0], e[1]);
     case BTOR_UDIV_NODE:
@@ -1274,7 +1274,7 @@ btor_exp_bv_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
-    result = btor_rewrite_binary_exp (btor, BTOR_SRL_NODE, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_BV_SRL_NODE, e0, e1);
   else
     result = btor_node_create_bv_srl (btor, e0, e1);
 

@@ -383,7 +383,7 @@ beta_reduce (Btor *btor,
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);
           break;
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
           result = btor_exp_bv_srl (btor, e[1], e[0]);
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);
@@ -726,7 +726,7 @@ beta_reduce_partial_aux (Btor *btor,
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);
           break;
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
           result = btor_exp_bv_srl (btor, e[1], e[0]);
           btor_node_release (btor, e[0]);
           btor_node_release (btor, e[1]);

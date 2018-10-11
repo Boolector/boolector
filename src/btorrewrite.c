@@ -624,7 +624,7 @@ apply_const_binary_exp (Btor *btor,
     case BTOR_UDIV_NODE: bresult = btor_bv_udiv (mm, b0, b1); break;
     case BTOR_UREM_NODE: bresult = btor_bv_urem (mm, b0, b1); break;
     case BTOR_BV_SLL_NODE: bresult = btor_bv_sll (mm, b0, b1); break;
-    case BTOR_SRL_NODE: bresult = btor_bv_srl (mm, b0, b1); break;
+    case BTOR_BV_SRL_NODE: bresult = btor_bv_srl (mm, b0, b1); break;
     default:
       assert (kind == BTOR_CONCAT_NODE);
       bresult = btor_bv_concat (mm, b0, b1);
@@ -729,7 +729,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         case BTOR_BV_ADD_NODE: result = btor_node_copy (btor, e1); break;
         case BTOR_BV_MUL_NODE:
         case BTOR_BV_SLL_NODE:
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
         case BTOR_UREM_NODE:
         case BTOR_BV_AND_NODE:
           result = btor_exp_zero (btor, btor_node_get_sort_id (real_e0));
@@ -995,7 +995,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
           }
           break;
         case BTOR_BV_SLL_NODE:
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
         case BTOR_UREM_NODE:
         case BTOR_BV_ADD_NODE: result = btor_node_copy (btor, e0); break;
         case BTOR_BV_MUL_NODE:
@@ -6829,13 +6829,13 @@ rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   result = check_rw_cache (
-      btor, BTOR_SRL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
+      btor, BTOR_BV_SRL_NODE, btor_node_get_id (e0), btor_node_get_id (e1), 0);
 
   if (!result)
   {
-    ADD_RW_RULE (const_binary_exp, BTOR_SRL_NODE, e0, e1);
-    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_SRL_NODE, e0, e1);
-    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_SRL_NODE, e0, e1);
+    ADD_RW_RULE (const_binary_exp, BTOR_BV_SRL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BV_SRL_NODE, e0, e1);
+    ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BV_SRL_NODE, e0, e1);
     ADD_RW_RULE (const_srl, e0, e1);
 
     assert (!result);
@@ -6847,7 +6847,7 @@ rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     {
     DONE:
       btor_rw_cache_add (btor->rw_cache,
-                         BTOR_SRL_NODE,
+                         BTOR_BV_SRL_NODE,
                          btor_node_get_id (e0),
                          btor_node_get_id (e1),
                          0,
@@ -7116,7 +7116,7 @@ btor_rewrite_binary_exp (Btor *btor,
 
     case BTOR_BV_SLL_NODE: result = rewrite_sll_exp (btor, e0, e1); break;
 
-    case BTOR_SRL_NODE: result = rewrite_srl_exp (btor, e0, e1); break;
+    case BTOR_BV_SRL_NODE: result = rewrite_srl_exp (btor, e0, e1); break;
 
     case BTOR_APPLY_NODE: result = rewrite_apply_exp (btor, e0, e1); break;
 

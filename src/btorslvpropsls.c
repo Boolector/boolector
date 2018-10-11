@@ -718,7 +718,7 @@ btor_propsls_update_cone (Btor *btor,
       case BTOR_BV_EQ_NODE: bv = btor_bv_eq (mm, e[0], e[1]); break;
       case BTOR_BV_ULT_NODE: bv = btor_bv_ult (mm, e[0], e[1]); break;
       case BTOR_BV_SLL_NODE: bv = btor_bv_sll (mm, e[0], e[1]); break;
-      case BTOR_SRL_NODE: bv = btor_bv_srl (mm, e[0], e[1]); break;
+      case BTOR_BV_SRL_NODE: bv = btor_bv_srl (mm, e[0], e[1]); break;
       case BTOR_BV_MUL_NODE: bv = btor_bv_mul (mm, e[0], e[1]); break;
       case BTOR_UDIV_NODE: bv = btor_bv_udiv (mm, e[0], e[1]); break;
       case BTOR_UREM_NODE: bv = btor_bv_urem (mm, e[0], e[1]); break;
@@ -2337,7 +2337,7 @@ res_rec_conf (Btor *btor,
       case BTOR_BV_EQ_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_eq -= 1; break;
       case BTOR_BV_ULT_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_ult -= 1; break;
       case BTOR_BV_SLL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_sll -= 1; break;
-      case BTOR_SRL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1; break;
+      case BTOR_BV_SRL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_srl -= 1; break;
       case BTOR_BV_MUL_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_mul -= 1; break;
       case BTOR_UDIV_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_udiv -= 1; break;
       case BTOR_UREM_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_urem -= 1; break;
@@ -4309,7 +4309,7 @@ btor_propsls_select_move_prop (Btor *btor,
           select_path   = select_path_sll;
           compute_value = b ? inv_sll_bv : cons_sll_bv;
           break;
-        case BTOR_SRL_NODE:
+        case BTOR_BV_SRL_NODE:
           select_path   = select_path_srl;
           compute_value = b ? inv_srl_bv : cons_srl_bv;
           break;
