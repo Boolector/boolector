@@ -45,7 +45,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_ult (btor, e[0], e[1]);
     case BTOR_SLL_NODE:
       assert (arity == 2);
-      return btor_exp_sll (btor, e[0], e[1]);
+      return btor_exp_bv_sll (btor, e[0], e[1]);
     case BTOR_SRL_NODE:
       assert (arity == 2);
       return btor_exp_srl (btor, e[0], e[1]);
@@ -1241,7 +1241,7 @@ btor_exp_bv_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1255,7 +1255,7 @@ btor_exp_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_SLL_NODE, e0, e1);
   else
-    result = btor_node_create_sll (btor, e0, e1);
+    result = btor_node_create_bv_sll (btor, e0, e1);
 
   assert (result);
   return result;
@@ -1318,7 +1318,7 @@ btor_exp_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
-  sll    = btor_exp_sll (btor, e0, e1);
+  sll    = btor_exp_bv_sll (btor, e0, e1);
   neg_e2 = btor_exp_bv_neg (btor, e1);
   srl    = btor_exp_srl (btor, e0, neg_e2);
   result = btor_exp_bv_or (btor, sll, srl);
@@ -1342,7 +1342,7 @@ btor_exp_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   srl    = btor_exp_srl (btor, e0, e1);
   neg_e2 = btor_exp_bv_neg (btor, e1);
-  sll    = btor_exp_sll (btor, e0, neg_e2);
+  sll    = btor_exp_bv_sll (btor, e0, neg_e2);
   result = btor_exp_bv_or (btor, srl, sll);
   btor_node_release (btor, srl);
   btor_node_release (btor, neg_e2);

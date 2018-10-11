@@ -750,7 +750,7 @@ shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 static void
 test_sll_exp (void)
 {
-  shift_exp_test (btor_exp_sll);
+  shift_exp_test (btor_exp_bv_sll);
 }
 
 static void

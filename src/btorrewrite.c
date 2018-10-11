@@ -6793,7 +6793,7 @@ rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     assert (!result);
     if (!result)
     {
-      result = btor_node_create_sll (btor, e0, e1);
+      result = btor_node_create_bv_sll (btor, e0, e1);
     }
     else
     {
