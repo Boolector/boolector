@@ -760,7 +760,7 @@ btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width)
 }
 
 BtorNode *
-btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width)
+btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 
@@ -1013,8 +1013,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (width == 1) return btor_exp_and (btor, e0, e1);
   if (width == 2)
   {
-    sext_e1         = btor_exp_sext (btor, e0, 1);
-    sext_e2         = btor_exp_sext (btor, e1, 1);
+    sext_e1         = btor_exp_bv_sext (btor, e0, 1);
+    sext_e2         = btor_exp_bv_sext (btor, e1, 1);
     mul             = btor_exp_mul (btor, sext_e1, sext_e2);
     slice_n         = btor_exp_bv_slice (btor, mul, width, width);
     slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);
@@ -1029,8 +1029,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   {
     sign_e1      = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
     sign_e2      = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
-    sext_sign_e1 = btor_exp_sext (btor, sign_e1, width - 1);
-    sext_sign_e2 = btor_exp_sext (btor, sign_e2, width - 1);
+    sext_sign_e1 = btor_exp_bv_sext (btor, sign_e1, width - 1);
+    sext_sign_e2 = btor_exp_bv_sext (btor, sign_e2, width - 1);
     xor_sign_e1  = btor_exp_xor (btor, e0, sext_sign_e1);
     xor_sign_e2  = btor_exp_xor (btor, e1, sext_sign_e2);
     BTOR_NEWN (btor->mm, temps_e2, width - 2);
@@ -1055,8 +1055,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
       btor_node_release (btor, result);
       result = or ;
     }
-    sext_e1         = btor_exp_sext (btor, e0, 1);
-    sext_e2         = btor_exp_sext (btor, e1, 1);
+    sext_e1         = btor_exp_bv_sext (btor, e0, 1);
+    sext_e2         = btor_exp_bv_sext (btor, e1, 1);
     mul             = btor_exp_mul (btor, sext_e1, sext_e2);
     slice_n         = btor_exp_bv_slice (btor, mul, width, width);
     slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);

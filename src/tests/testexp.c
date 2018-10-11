@@ -405,7 +405,7 @@ test_uext_exp (void)
 static void
 test_sext_exp (void)
 {
-  ext_exp_test (btor_exp_sext);
+  ext_exp_test (btor_exp_bv_sext);
 }
 
 static void

@@ -125,7 +125,7 @@ BtorNode *btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width);
  * width >= 0
  * width(result) = width(exp) + width
  */
-BtorNode *btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width);
+BtorNode *btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width);
 
 /* Logical IMPLICATION.
  * width(e0) = width(e1) = 1

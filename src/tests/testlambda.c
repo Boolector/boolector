@@ -427,7 +427,7 @@ test_lambda_param_uext (void)
 static void
 test_lambda_param_sext (void)
 {
-  param_extension_test (btor_exp_sext);
+  param_extension_test (btor_exp_bv_sext);
 }
 
 /*---------------------------------------------------------------------------
