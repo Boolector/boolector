@@ -458,8 +458,8 @@ binary_param_exp_test (int32_t param_pos,
     v2_bw = 1;
   }
   else if (func == btor_exp_bv_sll || func == btor_exp_bv_srl
-           || func == btor_exp_bv_sra || func == btor_exp_rol
-           || func == btor_exp_ror)
+           || func == btor_exp_bv_sra || func == btor_exp_bv_rol
+           || func == btor_exp_bv_ror)
   {
     v2_bw = btor_util_log_2 (v1_bw);
   }
@@ -696,15 +696,15 @@ test_lambda_param_sra (void)
 static void
 test_lambda_param_rol (void)
 {
-  binary_param_exp_test (0, btor_exp_rol);
-  binary_param_exp_test (1, btor_exp_rol);
+  binary_param_exp_test (0, btor_exp_bv_rol);
+  binary_param_exp_test (1, btor_exp_bv_rol);
 }
 
 static void
 test_lambda_param_ror (void)
 {
-  binary_param_exp_test (0, btor_exp_ror);
-  binary_param_exp_test (1, btor_exp_ror);
+  binary_param_exp_test (0, btor_exp_bv_ror);
+  binary_param_exp_test (1, btor_exp_bv_ror);
 }
 
 static void

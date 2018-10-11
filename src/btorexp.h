@@ -299,14 +299,14 @@ BtorNode *btor_exp_bv_sra (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e1) = log2(width(e0))
  * width(result) = width(e0)
  */
-BtorNode *btor_exp_rol (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_rol (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Rotate right.
  * is_power_of_2(width(e0))
  * width(e1) = log2(width(e0))
  * width(result) = width(e0)
  */
-BtorNode *btor_exp_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Subtractor.
  * width(e0) = width(e1)

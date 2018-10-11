@@ -768,13 +768,13 @@ test_sra_exp (void)
 static void
 test_rol_exp (void)
 {
-  shift_exp_test (btor_exp_rol);
+  shift_exp_test (btor_exp_bv_rol);
 }
 
 static void
 test_ror_exp (void)
 {
-  shift_exp_test (btor_exp_ror);
+  shift_exp_test (btor_exp_bv_ror);
 }
 
 static void
