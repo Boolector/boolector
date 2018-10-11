@@ -793,7 +793,7 @@ btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width)
 }
 
 BtorNode *
-btor_exp_nand (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_nand (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);

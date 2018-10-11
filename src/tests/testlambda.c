@@ -541,8 +541,8 @@ test_lambda_param_and (void)
 static void
 test_lambda_param_nand (void)
 {
-  binary_param_exp_test (0, btor_exp_nand);
-  binary_param_exp_test (1, btor_exp_nand);
+  binary_param_exp_test (0, btor_exp_bv_nand);
+  binary_param_exp_test (1, btor_exp_bv_nand);
 }
 
 static void
