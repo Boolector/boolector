@@ -653,7 +653,7 @@ test_normquant_elim_top_ite (void)
   eqZv0 = btor_exp_eq (g_btor, V[3], V[0]); 
   eqZv1 = btor_exp_eq (g_btor, V[3], V[1]);
   ultY = btor_exp_bv_ult (g_btor, V[2], Y[0]);
-  ugte = btor_exp_ugte (g_btor, V[2], Y[1]);
+  ugte = btor_exp_bv_ugte (g_btor, V[2], Y[1]);
   forallY = btor_exp_forall (g_btor, Y[0], ultY);
   existsY = btor_exp_exists (g_btor, Y[1], ugte);
   imp_if = btor_exp_bv_and (g_btor, forallY, btor_node_invert (eqZv0));
