@@ -1077,7 +1077,7 @@ collect_shared_exps (BtorSMTDumpContext *sdc,
                      BtorNode *root,
                      BtorNodePtrStack *shared)
 {
-  int i, refs;
+  uint32_t i, refs;
   BtorNode *cur;
   BtorIntHashTable *cache;
   BtorMemMgr *mm;

@@ -1548,7 +1548,7 @@ find_binder_exp (Btor *btor,
   return result;
 }
 
-static int
+static int32_t
 compare_binder_exp (Btor *btor,
                     BtorNode *param,
                     BtorNode *body,
@@ -1564,7 +1564,7 @@ compare_binder_exp (Btor *btor,
   assert (btor_node_is_binder (binder));
   assert (!binder->parameterized || map);
 
-  int i, equal = 0;
+  int32_t i, equal = 0;
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *result, *subst_param, **e, *b0, *b1;
   BtorPtrHashTable *cache, *param_map;

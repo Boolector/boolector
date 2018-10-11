@@ -4836,7 +4836,7 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 /*
  * TODO description
  */
-static inline int
+static inline bool
 applies_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
 {
   (void) btor;
@@ -4861,7 +4861,7 @@ apply_const_quantifier (Btor *btor, BtorNode *param, BtorNode *body)
  * match:  (\forall x . t) where x does not occur in t
  * result: t
  */
-static inline int
+static inline bool
 applies_param_free_forall (Btor * btor, BtorNode * param, BtorNode * body)
 { 
   (void) btor;
@@ -4884,7 +4884,7 @@ apply_param_free_forall (Btor * btor, BtorNode * param, BtorNode * body)
  * match: \forall x . x != t    if x \not \in vars(t)
  * result: false
  */
-static inline int
+static inline bool
 applies_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
 {
   (void) btor;
@@ -4917,7 +4917,7 @@ apply_eq_forall (Btor *btor, BtorNode *param, BtorNode *body)
  * match:  (\exists x . t) where x does not occur in t
  * result: t
  */
-static inline int
+static inline bool
 applies_param_free_exists (Btor * btor, BtorNode * param, BtorNode * body)
 { 
   (void) btor;
@@ -4940,7 +4940,7 @@ apply_param_free_exists (Btor * btor, BtorNode * param, BtorNode * body)
  * match: \exists x . x != t    if x \not \in vars(t)
  * result: true
  */
-static inline int
+static inline bool
 applies_eq_exists (Btor *btor, BtorNode *param, BtorNode *body)
 {
   (void) btor;

@@ -10,7 +10,7 @@
 #include "btorabort.h"
 #include "btorcore.h"
 
-static int
+static int32_t
 py_terminate_btor (void *btor)
 {
   assert (btor);

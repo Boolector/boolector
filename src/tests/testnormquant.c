@@ -709,7 +709,7 @@ test_normquant_elim_top_ite (void)
  */
 
 void
-run_normquant_tests (int argc, char **argv)
+run_normquant_tests (int32_t argc, char **argv)
 {
   RUN_TEST (normquant_inv_exists);
   RUN_TEST (normquant_inv_forall);

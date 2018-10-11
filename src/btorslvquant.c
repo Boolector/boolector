@@ -2514,7 +2514,7 @@ thread_work (void *state)
   return NULL;
 }
 
-int
+int32_t
 thread_terminate (void *state)
 {
   (void) state;

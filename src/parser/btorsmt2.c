@@ -350,7 +350,7 @@ typedef struct BtorSMT2Parser
   int32_t last_end_of_line_ycoo;
   int32_t open;
   uint32_t nprefix;
-  int sorted_var;
+  int32_t sorted_var;
   uint32_t bound_vars; /* used for exists/forall vars to enumerate symbols */
   bool isvarbinding;
   const char *expecting_body;
@@ -1859,10 +1859,10 @@ translate_ext_rotate_smt2 (Btor *btor,
   return translate_rotate_smt2 (btor, exp, shift_width, left);
 }
 
-static int parse_sort (BtorSMT2Parser *parser,
-                       int tag,
-                       bool allow_array_sort,
-                       BoolectorSort *sort);
+static int32_t parse_sort (BtorSMT2Parser *parser,
+                           int32_t tag,
+                           bool allow_array_sort,
+                           BoolectorSort *sort);
 
 /* -------------------------------------------------------------------------- */
 
