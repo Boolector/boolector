@@ -2430,7 +2430,7 @@ sat_fun_solver (BtorFunSolver *slv)
           slv->stats.refinement_iterations,
           slv->stats.lod_refinements,
           slv->stats.extensionality_lemmas,
-          btor->ops[BTOR_BV_VAR_NODE].cur,
+          btor->ops[BTOR_VAR_NODE].cur,
           btor->ops[BTOR_APPLY_NODE].cur);
     }
 

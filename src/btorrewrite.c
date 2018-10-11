@@ -1289,7 +1289,7 @@ rewrite_linear_term_bounded (Btor *btor,
     *rhs_ptr = rewrite_mul_exp (btor, other, tmp);
     btor_node_release (btor, tmp);
   }
-  else if (term->kind == BTOR_BV_VAR_NODE)
+  else if (term->kind == BTOR_VAR_NODE)
   {
     *lhs_ptr    = btor_node_copy (btor, term);
     *rhs_ptr    = btor_exp_zero (btor, btor_node_get_sort_id (term));

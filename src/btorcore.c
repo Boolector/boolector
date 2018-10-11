@@ -2418,7 +2418,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   {
     case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
-    case BTOR_BV_VAR_NODE:
+    case BTOR_VAR_NODE:
     case BTOR_PARAM_NODE:
     case BTOR_UF_NODE:
       return btor_node_copy (btor, btor_simplify_exp (btor, exp));

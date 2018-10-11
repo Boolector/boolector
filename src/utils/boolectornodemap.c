@@ -160,7 +160,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
 
   switch (node->kind)
   {
-    case BTOR_BV_VAR_NODE: res = btor_node_copy (btor, node); break;
+    case BTOR_VAR_NODE: res = btor_node_copy (btor, node); break;
     case BTOR_BV_CONST_NODE:
       res = btor_exp_const (btor, btor_node_const_get_bits (node));
       break;

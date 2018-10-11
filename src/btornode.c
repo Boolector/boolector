@@ -43,7 +43,7 @@
 
 const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE] = "invalid", [BTOR_BV_CONST_NODE] = "const",
-    [BTOR_BV_VAR_NODE] = "var",      [BTOR_PARAM_NODE] = "param",
+    [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
     [BTOR_SLICE_NODE] = "slice",     [BTOR_AND_NODE] = "and",
     [BTOR_BV_EQ_NODE] = "beq",       [BTOR_FUN_EQ_NODE] = "feq",
     [BTOR_ADD_NODE] = "add",         [BTOR_MUL_NODE] = "mul",
@@ -476,7 +476,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, bool keep_symbol)
 
   switch (exp->kind)
   {
-    case BTOR_BV_VAR_NODE:
+    case BTOR_VAR_NODE:
       btor_hashptr_table_remove (btor->bv_vars, exp, 0, 0);
       break;
     case BTOR_LAMBDA_NODE:
@@ -709,7 +709,7 @@ disconnect_children_exp (Btor *btor, BtorNode *exp)
  * We use this function to update operator stats
  */
 static void
-erase_local_data_exp (Btor *btor, BtorNode *exp, bool free_sort)
+erase_local_data_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -771,13 +771,6 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, bool free_sort)
     default: break;
   }
 
-  if (free_sort)
-  {
-    assert (btor_node_get_sort_id (exp));
-    btor_sort_release (btor, btor_node_get_sort_id (exp));
-    btor_node_set_sort_id (exp, 0);
-  }
-
   if (exp->av)
   {
     btor_aigvec_release_delete (btor->avmgr, exp->av);
@@ -812,6 +805,10 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
     if (btor_node_const_get_invbits (exp))
       btor_bv_free (btor->mm, btor_node_const_get_invbits (exp));
   }
+  assert (btor_node_get_sort_id (exp));
+  btor_sort_release (btor, btor_node_get_sort_id (exp));
+  btor_node_set_sort_id (exp, 0);
+
   btor_mem_free (mm, exp, exp->bytes);
 }
 
@@ -857,7 +854,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
       }
 
       remove_from_nodes_unique_table_exp (btor, cur);
-      erase_local_data_exp (btor, cur, true);
+      erase_local_data_exp (btor, cur);
 
       /* It is safe to access the children here, since they are pushed
        * on the stack and will be released later if necessary.
@@ -903,7 +900,7 @@ btor_node_set_to_proxy (Btor *btor, BtorNode *exp)
 
   remove_from_nodes_unique_table_exp (btor, exp);
   /* also updates op stats */
-  erase_local_data_exp (btor, exp, false);
+  erase_local_data_exp (btor, exp);
   assert (exp->arity <= 3);
   BTOR_CLR (e);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -2204,7 +2201,7 @@ btor_node_create_var (Btor *btor, BtorSortId sort, const char *symbol)
   BtorBVVarNode *exp;
 
   BTOR_CNEW (btor->mm, exp);
-  set_kind (btor, (BtorNode *) exp, BTOR_BV_VAR_NODE);
+  set_kind (btor, (BtorNode *) exp, BTOR_VAR_NODE);
   exp->bytes = sizeof *exp;
   setup_node_and_add_to_id_table (btor, exp);
   btor_node_set_sort_id ((BtorNode *) exp, btor_sort_copy (btor, sort));

@@ -185,7 +185,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   switch (exp->kind)
   {
-    case BTOR_BV_VAR_NODE: type = "v"; goto DUMP_SYMBOL;
+    case BTOR_VAR_NODE: type = "v"; goto DUMP_SYMBOL;
 
     case BTOR_PARAM_NODE:
       type = "p";
@@ -456,7 +456,7 @@ extract_store (BtorSMTDumpContext * sdc, BtorNode * exp,
 
 static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE] = "invalid", [BTOR_BV_CONST_NODE] = "const",
-    [BTOR_BV_VAR_NODE] = "var",      [BTOR_PARAM_NODE] = "param",
+    [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
     [BTOR_SLICE_NODE] = "extract",   [BTOR_AND_NODE] = "bvand",
     [BTOR_FUN_EQ_NODE] = "=",        [BTOR_BV_EQ_NODE] = "=",
     [BTOR_ADD_NODE] = "bvadd",       [BTOR_MUL_NODE] = "bvmul",

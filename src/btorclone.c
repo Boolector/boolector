@@ -513,7 +513,7 @@ clone_exp (Btor *clone,
   res = btor_mem_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
 
-  /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
+  /* ------------------- BTOR_VAR_NODE_STRUCT (all nodes) -----------------> */
   if (btor_node_is_bv_const (exp))
   {
     bits = btor_bv_copy (mm, btor_node_const_get_bits (exp));
@@ -1720,7 +1720,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
         case BTOR_BV_CONST_NODE:
           cur_clone = btor_exp_const (clone, btor_node_const_get_bits (cur));
           break;
-        case BTOR_BV_VAR_NODE:
+        case BTOR_VAR_NODE:
           b      = btor_hashptr_table_get (btor->node2symbol, cur);
           symbol = b ? b->data.as_str : 0;
           if (symbol && (b = btor_hashptr_table_get (clone->symbols, symbol)))

@@ -353,7 +353,7 @@ eval_candidate (Btor *btor,
           break;
 
         case BTOR_PARAM_NODE:
-        case BTOR_BV_VAR_NODE:
+        case BTOR_VAR_NODE:
           assert (btor_hashint_map_get (value_in_map, real_cur->id));
           pos = btor_hashint_map_get (value_in_map, real_cur->id)->as_int;
           /* initial signature computation */
@@ -508,7 +508,7 @@ eval_exps (Btor *btor,
           break;
 
         case BTOR_PARAM_NODE:
-        case BTOR_BV_VAR_NODE:
+        case BTOR_VAR_NODE:
           assert (btor_hashint_map_get (value_in_map, real_cur->id));
           pos = btor_hashint_map_get (value_in_map, real_cur->id)->as_int;
           /* initial signature computation */

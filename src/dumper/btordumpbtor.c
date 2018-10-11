@@ -413,7 +413,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_ARGS_NODE: op = "args"; break;
     case BTOR_UPDATE_NODE: op = "write"; break;
-    default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
+    default: assert (node->kind == BTOR_VAR_NODE); op = "var";
   }
 
   /* print id, operator and sort */

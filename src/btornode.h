@@ -47,7 +47,7 @@ enum BtorNodeKind
    */
   BTOR_INVALID_NODE  = 0,
   BTOR_BV_CONST_NODE = 1,
-  BTOR_BV_VAR_NODE   = 2,
+  BTOR_VAR_NODE      = 2,
   BTOR_PARAM_NODE    = 3, /* parameter for lambda expressions */
   BTOR_SLICE_NODE    = 4,
   BTOR_AND_NODE      = 5,
@@ -330,7 +330,9 @@ static inline bool
 btor_node_is_bv_var (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_BV_VAR_NODE;
+  exp = btor_node_real_addr (exp);
+  return btor_sort_is_bitvec (exp->btor, exp->sort_id)
+         && exp->kind == BTOR_VAR_NODE;
 }
 
 static inline bool
