@@ -328,7 +328,7 @@ test_lambda_param_not (void)
 static void
 test_lambda_param_neg (void)
 {
-  unary_param_exp_test (btor_exp_neg);
+  unary_param_exp_test (btor_exp_bv_neg);
 }
 
 static void

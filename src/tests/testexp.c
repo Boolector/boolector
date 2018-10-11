@@ -292,11 +292,11 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 
   assert (exp2 == exp3);
   assert (btor_node_get_width (g_btor, exp1) == len);
-  if (func == btor_exp_bv_not || func == btor_exp_neg)
+  if (func == btor_exp_bv_not || func == btor_exp_bv_neg)
   {
     assert (btor_node_get_width (g_btor, exp2) == len);
     assert (btor_node_get_width (g_btor, exp3) == len);
-    if (func == btor_exp_neg)
+    if (func == btor_exp_bv_neg)
     {
       assert (btor_node_is_neg (g_btor, exp2, 0));
       assert (btor_node_is_neg (g_btor, exp3, 0));
@@ -329,7 +329,7 @@ test_not_exp (void)
 static void
 test_neg_exp (void)
 {
-  unary_exp_test (btor_exp_neg);
+  unary_exp_test (btor_exp_bv_neg);
 }
 
 static void

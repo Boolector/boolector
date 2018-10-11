@@ -87,7 +87,7 @@ BtorNode *btor_exp_bv_not (Btor *btor, BtorNode *exp);
 /* Two's complement.
  * width(result) = width(exp)
  */
-BtorNode *btor_exp_neg (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_neg (Btor *btor, BtorNode *exp);
 
 /* OR reduction.
  * width(result) = 1

@@ -793,7 +793,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
       else if (kind == BTOR_ULT_NODE) /* UNSIGNED_MAX < x */
         result = btor_exp_false (btor);
       else if (kind == BTOR_MUL_NODE)
-        result = btor_exp_neg (btor, e1);
+        result = btor_exp_bv_neg (btor, e1);
       break;
     default:
       assert (sc == BTOR_SPECIAL_CONST_BV_NONE);
@@ -1069,7 +1069,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         BTOR_DEC_REC_RW_CALL (btor);
       }
       else if (kind == BTOR_MUL_NODE)
-        result = btor_exp_neg (btor, e0);
+        result = btor_exp_bv_neg (btor, e0);
       break;
     default:
       assert (sc == BTOR_SPECIAL_CONST_BV_NONE);
@@ -3544,7 +3544,7 @@ apply_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   e01     = real_e0->e[1];
 
   BTOR_INC_REC_RW_CALL (btor);
-  n00    = btor_exp_neg (btor, e00);
+  n00    = btor_exp_bv_neg (btor, e00);
   n01    = btor_node_copy (btor, e01);
   one    = btor_exp_one (btor, btor_node_get_sort_id (real_e0));
   tmp    = rewrite_mul_exp (btor, n00, n01);
@@ -3587,7 +3587,7 @@ apply_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   BTOR_INC_REC_RW_CALL (btor);
   n00    = btor_node_copy (btor, e00);
-  n01    = btor_exp_neg (btor, e01);
+  n01    = btor_exp_bv_neg (btor, e01);
   one    = btor_exp_one (btor, btor_node_get_sort_id (real_e0));
   tmp    = rewrite_mul_exp (btor, n00, n01);
   sum    = btor_exp_sub (btor, tmp, one);
