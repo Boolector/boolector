@@ -689,7 +689,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
       {
         case BTOR_BV_EQ_NODE:
           if (width_e0 == 1)
-            result = btor_exp_not (btor, e1);
+            result = btor_exp_bv_not (btor, e1);
           else if (is_xor_exp (btor, e1)) /* 0 == (a ^ b)  -->  a = b */
           {
             if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
@@ -959,7 +959,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
       {
         case BTOR_BV_EQ_NODE:
           if (width_e0 == 1)
-            result = btor_exp_not (btor, e0);
+            result = btor_exp_bv_not (btor, e0);
           else if (is_xor_exp (btor, e0)) /* (a ^ b) == 0 -->  a = b */
           {
             if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)

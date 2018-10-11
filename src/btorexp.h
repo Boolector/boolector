@@ -82,7 +82,7 @@ BtorNode *btor_exp_uf (Btor *btor, BtorSortId sort, const char *symbol);
 /* One's complement.
  * width(result) = width(exp)
  */
-BtorNode *btor_exp_not (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_not (Btor *btor, BtorNode *exp);
 
 /* Two's complement.
  * width(result) = width(exp)

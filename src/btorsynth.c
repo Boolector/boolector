@@ -1270,7 +1270,7 @@ init_ops (Btor *btor, Op *ops)
 {
   uint32_t i = 0;
 
-  INIT_OP (1, false, btor_exp_not);
+  INIT_OP (1, false, btor_exp_bv_not);
   //  INIT_OP (1, false, btor_neg_exp);
   //  INIT_OP (1, false, btor_redor_exp);
   //  INIT_OP (1, false, btor_redxor_exp);

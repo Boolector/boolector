@@ -234,9 +234,9 @@ test_lambda_const_lambda_negated (void)
   init_lambda_test ();
 
   a      = btor_exp_var (g_btor, g_elem_sort, "a");
-  not_a  = btor_exp_not (g_btor, a);
+  not_a  = btor_exp_bv_not (g_btor, a);
   x      = btor_exp_param (g_btor, g_elem_sort, "x");
-  not_x  = btor_exp_not (g_btor, x);
+  not_x  = btor_exp_bv_not (g_btor, x);
   lambda = btor_exp_lambda (g_btor, x, not_x);
 
   /* (lambda x . not (x)) (not (a)) */
@@ -322,7 +322,7 @@ unary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 static void
 test_lambda_param_not (void)
 {
-  unary_param_exp_test (btor_exp_not);
+  unary_param_exp_test (btor_exp_bv_not);
 }
 
 static void
@@ -1354,12 +1354,12 @@ test_lambda_reduce_nested_lambdas_read (void)
   x       = btor_exp_param (g_btor, g_elem_sort, "x");
   add     = btor_exp_add (g_btor, x, var);
   app     = btor_exp_apply_n (g_btor, lambda2, &add, 1);
-  napp    = btor_exp_not (g_btor, app);
+  napp    = btor_exp_bv_not (g_btor, app);
   lambda1 = btor_exp_lambda (g_btor, x, napp);
   a       = btor_exp_var (g_btor, g_elem_sort, "a");
   /* exptected not (a + var) */
   expected_add = btor_exp_add (g_btor, a, var);
-  expected     = btor_exp_not (g_btor, expected_add);
+  expected     = btor_exp_bv_not (g_btor, expected_add);
   result       = apply_and_reduce (g_btor, &a, 1, lambda1);
 
   assert (result == expected);
