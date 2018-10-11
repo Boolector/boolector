@@ -343,7 +343,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_COND_NODE: op = bdc->version == 1 ? "cond" : "ite"; break;
     case BTOR_BV_EQ_NODE:
     case BTOR_FUN_EQ_NODE: op = "eq"; break;
-    case BTOR_MUL_NODE: op = "mul"; break;
+    case BTOR_BV_MUL_NODE: op = "mul"; break;
     case BTOR_PROXY_NODE: op = "proxy"; break;
     case BTOR_SLL_NODE: op = "sll"; break;
     case BTOR_SRL_NODE: op = "srl"; break;
