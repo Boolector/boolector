@@ -1283,7 +1283,7 @@ btor_exp_bv_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);

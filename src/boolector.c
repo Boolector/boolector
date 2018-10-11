@@ -103,7 +103,7 @@ translate_shift (Btor *btor,
     assert (l0 == 1);
     assert (l1 == 0);
 
-    if (f != btor_exp_sra)
+    if (f != btor_exp_bv_sra)
     {
       tmp = btor_exp_bv_not (btor, a1);
       res = btor_exp_bv_and (btor, a0, tmp);
@@ -135,7 +135,7 @@ translate_shift (Btor *btor,
 
     btor_node_release (btor, u);
 
-    if (f == btor_exp_sra)
+    if (f == btor_exp_bv_sra)
     {
       tmp = btor_exp_bv_slice (btor, a0, width - 1, width - 1);
       t   = btor_exp_bv_sext (btor, tmp, width - 1);
@@ -150,7 +150,7 @@ translate_shift (Btor *btor,
 
     if (!p0)
       e0 = btor_node_copy (btor, a0);
-    else if (f == btor_exp_sra)
+    else if (f == btor_exp_bv_sra)
       e0 = btor_exp_bv_sext (btor, a0, p0);
     else
       e0 = btor_exp_bv_uext (btor, a0, p0);
@@ -2415,7 +2415,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   width = btor_node_get_width (btor, e0);
   if (width == btor_node_get_width (btor, e1))
   {
-    res = translate_shift (btor, e0, e1, btor_exp_sra);
+    res = translate_shift (btor, e0, e1, btor_exp_bv_sra);
   }
   else
   {
@@ -2423,7 +2423,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
                 "bit-width of 'e0' must be a power of 2");
     BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
                 "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-    res = btor_exp_sra (btor, e0, e1);
+    res = btor_exp_bv_sra (btor, e0, e1);
   }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
