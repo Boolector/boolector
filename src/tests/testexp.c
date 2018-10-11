@@ -474,7 +474,7 @@ test_xnor_exp (void)
 static void
 test_and_exp (void)
 {
-  binary_commutative_exp_test (btor_exp_and);
+  binary_commutative_exp_test (btor_exp_bv_and);
 }
 
 static void

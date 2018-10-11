@@ -155,7 +155,7 @@ BtorNode *btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_and (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_exp_and_n (Btor *btor, BtorNode *args[], uint32_t argc);
 

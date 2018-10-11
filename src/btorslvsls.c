@@ -200,7 +200,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_node_is_and (real_cur)
+    if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_node_is_bv_and (real_cur)
         && btor_node_get_width (btor, real_cur) == 1)
     {
       bv = btor_model_get_bv (btor, real_cur);

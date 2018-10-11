@@ -348,7 +348,7 @@ btor_node_is_fun_eq (const BtorNode *exp)
 }
 
 static inline bool
-btor_node_is_and (const BtorNode *exp)
+btor_node_is_bv_and (const BtorNode *exp)
 {
   assert (exp);
   return btor_node_real_addr (exp)->kind == BTOR_AND_NODE;
@@ -704,7 +704,7 @@ BtorNode *btor_node_create_bv_slice (Btor *btor,
                                      uint32_t upper,
                                      uint32_t lower);
 
-BtorNode *btor_node_create_and (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_node_create_bv_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
 

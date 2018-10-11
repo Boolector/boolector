@@ -383,7 +383,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
     }
     else
     {
-      and = btor_exp_and (clone, *root, cur);
+      and = btor_exp_bv_and (clone, *root, cur);
       btor_node_release (clone, *root);
       *root = and;
     }
@@ -929,7 +929,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
    * expression) */
   clemma = btor_clone_recursively_rebuild_exp (btor, clone, lemma, exp_map, 0);
   assert (clemma);
-  and = btor_exp_and (clone, *root, clemma);
+  and = btor_exp_bv_and (clone, *root, clemma);
   btor_node_release (clone, clemma);
   btor_node_release (clone, *root);
   *root = and;
@@ -1370,7 +1370,7 @@ mk_equal_args (Btor *btor, BtorNode *args1, BtorNode *args2)
     eq = btor_exp_eq (btor, arg1, arg2);
     if (res)
     {
-      tmp = btor_exp_and (btor, res, eq);
+      tmp = btor_exp_bv_and (btor, res, eq);
       btor_node_release (btor, res);
       btor_node_release (btor, eq);
       res = tmp;
@@ -1399,7 +1399,7 @@ mk_premise (Btor *btor, BtorNode *args, BtorNode *prem[], uint32_t num_prem)
 
     if (res)
     {
-      tmp = btor_exp_and (btor, res, p);
+      tmp = btor_exp_bv_and (btor, res, p);
       btor_node_release (btor, res);
       btor_node_release (btor, p);
       res = tmp;

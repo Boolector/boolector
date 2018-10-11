@@ -108,7 +108,7 @@ test_map1 ()
   sort = btor_sort_bitvec (stor, 32);
   s    = btor_exp_var (stor, sort, "0");
   t    = btor_exp_var (stor, sort, "1");
-  a    = btor_exp_and (stor, s, t);
+  a    = btor_exp_bv_and (stor, s, t);
   map  = btor_nodemap_new (mtor);
   // BtorNode * m;
   // m = btor_nodemap_mapped (map, s);

@@ -238,7 +238,7 @@ static void
 test_prop_one_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_exp_and, btor_bv_and, inv_and_bv);
+  prop_complete_binary (1, btor_exp_bv_and, btor_bv_and, inv_and_bv);
 #endif
 }
 
@@ -320,7 +320,7 @@ static void
 test_prop_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_exp_and, btor_bv_and, inv_and_bv);
+  prop_complete_binary (2, btor_exp_bv_and, btor_bv_and, inv_and_bv);
 #endif
 }
 

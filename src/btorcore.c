@@ -1730,7 +1730,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
-  if (!btor_node_is_inverted (exp) && btor_node_is_and (exp))
+  if (!btor_node_is_inverted (exp) && btor_node_is_bv_and (exp))
   {
     BTOR_INIT_STACK (mm, stack);
     cur = exp;
@@ -1741,17 +1741,17 @@ add_constraint (Btor *btor, BtorNode *exp)
       cur = BTOR_POP_STACK (stack);
     ADD_CONSTRAINT_ENTER_LOOP_WITHOUT_POP:
       assert (!btor_node_is_inverted (cur));
-      assert (btor_node_is_and (cur));
+      assert (btor_node_is_bv_and (cur));
       if (!btor_hashint_table_contains (mark, cur->id))
       {
         btor_hashint_table_add (mark, cur->id);
         child = cur->e[1];
-        if (!btor_node_is_inverted (child) && btor_node_is_and (child))
+        if (!btor_node_is_inverted (child) && btor_node_is_bv_and (child))
           BTOR_PUSH_STACK (stack, child);
         else
           insert_new_constraint (btor, child);
         child = cur->e[0];
-        if (!btor_node_is_inverted (child) && btor_node_is_and (child))
+        if (!btor_node_is_inverted (child) && btor_node_is_bv_and (child))
           BTOR_PUSH_STACK (stack, child);
         else
           insert_new_constraint (btor, child);
@@ -1916,7 +1916,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   {
     res = true;
   }
-  else if (btor_node_is_inverted (exp) || !btor_node_is_and (exp))
+  else if (btor_node_is_inverted (exp) || !btor_node_is_bv_and (exp))
   {
     real_exp = btor_node_real_addr (exp);
     assert (btor->found_constraint_false || btor_node_is_synth (real_exp));
@@ -1961,13 +1961,13 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
     {
       cur = BTOR_POP_STACK (work_stack);
       assert (!btor_node_is_inverted (cur));
-      assert (btor_node_is_and (cur));
+      assert (btor_node_is_bv_and (cur));
       if (btor_hashint_table_contains (mark, cur->id)) continue;
       btor_hashint_table_add (mark, cur->id);
       for (i = 0; i < 2; i++)
       {
         e = cur->e[i];
-        if (!btor_node_is_inverted (e) && btor_node_is_and (e))
+        if (!btor_node_is_inverted (e) && btor_node_is_bv_and (e))
           BTOR_PUSH_STACK (work_stack, e);
         else
         {
@@ -1989,7 +1989,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
     while (!BTOR_EMPTY_STACK (assumptions))
     {
       cur = BTOR_POP_STACK (assumptions);
-      assert (btor_node_is_inverted (cur) || !btor_node_is_and (cur));
+      assert (btor_node_is_inverted (cur) || !btor_node_is_bv_and (cur));
       lit = exp_to_cnf_lit (btor, cur);
       if (lit == smgr->true_lit) continue;
       if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
@@ -3735,7 +3735,7 @@ btor_add_again_assumptions (Btor *btor)
     exp = btor_iter_hashptr_next (&it);
     assert (!btor_node_is_proxy (exp));
 
-    if (btor_node_is_inverted (exp) || !btor_node_is_and (exp))
+    if (btor_node_is_inverted (exp) || !btor_node_is_bv_and (exp))
     {
       if (!btor_hashptr_table_get (assumptions, exp))
         btor_hashptr_table_add (assumptions, exp);
@@ -3747,13 +3747,13 @@ btor_add_again_assumptions (Btor *btor)
       {
         cur = BTOR_POP_STACK (stack);
         assert (!btor_node_is_inverted (cur));
-        assert (btor_node_is_and (cur));
+        assert (btor_node_is_bv_and (cur));
         if (btor_hashint_table_contains (mark, cur->id)) continue;
         btor_hashint_table_add (mark, cur->id);
         for (i = 0; i < 2; i++)
         {
           e = cur->e[i];
-          if (!btor_node_is_inverted (e) && btor_node_is_and (e))
+          if (!btor_node_is_inverted (e) && btor_node_is_bv_and (e))
             BTOR_PUSH_STACK (stack, e);
           else if (!btor_hashptr_table_get (assumptions, e))
             btor_hashptr_table_add (assumptions, e);

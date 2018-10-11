@@ -2313,7 +2313,7 @@ btor_node_create_bv_slice (Btor *btor,
 }
 
 BtorNode *
-btor_node_create_and (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_node_create_bv_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);

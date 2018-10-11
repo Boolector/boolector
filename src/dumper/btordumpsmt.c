@@ -474,7 +474,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
 {
   assert (children);
   assert (BTOR_EMPTY_STACK (*children));
-  assert (btor_node_is_and (exp));
+  assert (btor_node_is_bv_and (exp));
 
   bool skip;
   uint32_t i;
@@ -505,7 +505,7 @@ collect_and_children (BtorSMTDumpContext *sdc,
     else
       b = 0;
 
-    if (!btor_node_is_and (real_cur) || (b && b->data.as_int > 1)
+    if (!btor_node_is_bv_and (real_cur) || (b && b->data.as_int > 1)
         || btor_node_is_inverted (cur) || skip)
     {
       BTOR_PUSH_STACK (*children, cur);
@@ -899,7 +899,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
               break;
             default: assert (0); op = "unknown";
           }
-          if (btor_node_is_and (real_exp) && is_bool)
+          if (btor_node_is_bv_and (real_exp) && is_bool)
           {
             assert (BTOR_EMPTY_STACK (args));
             collect_and_children (sdc, exp, &args);
@@ -1475,7 +1475,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
         btor_hashptr_table_add (sdc->boolean, cur);
       continue;
     }
-    else if ((btor_node_is_and (cur) || btor_node_is_bv_cond (cur))
+    else if ((btor_node_is_bv_and (cur) || btor_node_is_bv_cond (cur))
              && btor_node_get_width (sdc->btor, cur) == 1)
     {
       is_bool = true;

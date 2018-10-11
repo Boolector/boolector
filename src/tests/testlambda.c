@@ -534,8 +534,8 @@ test_lambda_param_xnor (void)
 static void
 test_lambda_param_and (void)
 {
-  binary_param_exp_test (0, btor_exp_and);
-  binary_param_exp_test (1, btor_exp_and);
+  binary_param_exp_test (0, btor_exp_bv_and);
+  binary_param_exp_test (1, btor_exp_bv_and);
 }
 
 static void
@@ -1620,13 +1620,13 @@ test_quantifier_hashing_2 (void)
   y2   = btor_exp_param (g_btor, sort, 0);
   y3   = btor_exp_param (g_btor, sort, 0);
 
-  a0 = btor_exp_and (g_btor, x0, y0);
-  a1 = btor_exp_and (g_btor, a0, x1);
-  a2 = btor_exp_and (g_btor, a1, y1);
-  a3 = btor_exp_and (g_btor, a2, x2);
-  a4 = btor_exp_and (g_btor, a3, y2);
-  a5 = btor_exp_and (g_btor, a4, x3);
-  a6 = btor_exp_and (g_btor, a5, y3);
+  a0 = btor_exp_bv_and (g_btor, x0, y0);
+  a1 = btor_exp_bv_and (g_btor, a0, x1);
+  a2 = btor_exp_bv_and (g_btor, a1, y1);
+  a3 = btor_exp_bv_and (g_btor, a2, x2);
+  a4 = btor_exp_bv_and (g_btor, a3, y2);
+  a5 = btor_exp_bv_and (g_btor, a4, x3);
+  a6 = btor_exp_bv_and (g_btor, a5, y3);
   r0 = btor_exp_bv_redor (g_btor, a6);
   f0 = btor_exp_forall (g_btor, x0, r0);
   e0 = btor_exp_exists (g_btor, y0, f0);
@@ -1646,13 +1646,13 @@ test_quantifier_hashing_2 (void)
   y12 = btor_exp_param (g_btor, sort, 0);
   y13 = btor_exp_param (g_btor, sort, 0);
 
-  a10 = btor_exp_and (g_btor, x10, y10);
-  a11 = btor_exp_and (g_btor, a10, x11);
-  a12 = btor_exp_and (g_btor, a11, y11);
-  a13 = btor_exp_and (g_btor, a12, x12);
-  a14 = btor_exp_and (g_btor, a13, y12);
-  a15 = btor_exp_and (g_btor, a14, x13);
-  a16 = btor_exp_and (g_btor, a15, y13);
+  a10 = btor_exp_bv_and (g_btor, x10, y10);
+  a11 = btor_exp_bv_and (g_btor, a10, x11);
+  a12 = btor_exp_bv_and (g_btor, a11, y11);
+  a13 = btor_exp_bv_and (g_btor, a12, x12);
+  a14 = btor_exp_bv_and (g_btor, a13, y12);
+  a15 = btor_exp_bv_and (g_btor, a14, x13);
+  a16 = btor_exp_bv_and (g_btor, a15, y13);
   r10 = btor_exp_bv_redor (g_btor, a16);
   f10 = btor_exp_forall (g_btor, x10, r10);
   e10 = btor_exp_exists (g_btor, y10, f10);
@@ -1779,7 +1779,7 @@ test_lambda_define_fun (void)
   right = params[1];
   for (i = 0; i < nesting_lvl - 1; i++)
   {
-    ands[i] = btor_exp_and (g_btor, left, right);
+    ands[i] = btor_exp_bv_and (g_btor, left, right);
 
     if (i + 2 < nesting_lvl)
     {

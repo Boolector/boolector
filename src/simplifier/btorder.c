@@ -166,7 +166,7 @@ find_substitutions (Btor *btor,
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
-  if (!btor_node_is_and (root)) return;
+  if (!btor_node_is_bv_and (root)) return;
 
   if (elim_evars && !btor_node_is_inverted (root))
     top_and = root;
@@ -188,7 +188,7 @@ find_substitutions (Btor *btor,
 
     btor_hashint_table_add (cache, real_cur->id);
 
-    if (!btor_node_is_inverted (cur) && btor_node_is_and (cur))
+    if (!btor_node_is_inverted (cur) && btor_node_is_bv_and (cur))
     {
       BTOR_PUSH_STACK (visit, cur->e[0]);
       BTOR_PUSH_STACK (visit, cur->e[1]);

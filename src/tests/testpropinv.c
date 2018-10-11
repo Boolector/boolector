@@ -26,29 +26,29 @@ static BtorRNG *g_rng;
 #define TEST_PROP_INV_COMPLETE_BW 8
 #define TEST_PROP_INV_COMPLETE_N_TESTS 10000
 
-#define TEST_PROP_INV_COMPLETE_BINARY_INIT(fun) \
-  do                                            \
-  {                                             \
-    bw   = TEST_PROP_INV_COMPLETE_BW;           \
-    sort = btor_sort_bitvec (g_btor, bw);       \
-    e[0] = btor_exp_var (g_btor, sort, 0);      \
-    e[1] = btor_exp_var (g_btor, sort, 0);      \
-    btor_sort_release (g_btor, sort);           \
-    exp = btor_exp_##fun (g_btor, e[0], e[1]);  \
+#define TEST_PROP_INV_COMPLETE_BINARY_INIT(expfun) \
+  do                                               \
+  {                                                \
+    bw   = TEST_PROP_INV_COMPLETE_BW;              \
+    sort = btor_sort_bitvec (g_btor, bw);          \
+    e[0] = btor_exp_var (g_btor, sort, 0);         \
+    e[1] = btor_exp_var (g_btor, sort, 0);         \
+    btor_sort_release (g_btor, sort);              \
+    exp = expfun (g_btor, e[0], e[1]);             \
   } while (0)
 
-#define TEST_PROP_INV_COMPLETE_SHIFT_INIT(fun) \
-  do                                           \
-  {                                            \
-    bw   = TEST_PROP_INV_COMPLETE_BW;          \
-    sbw  = btor_util_log_2 (bw);               \
-    sort = btor_sort_bitvec (g_btor, bw);      \
-    e[0] = btor_exp_var (g_btor, sort, 0);     \
-    btor_sort_release (g_btor, sort);          \
-    sort = btor_sort_bitvec (g_btor, sbw);     \
-    e[1] = btor_exp_var (g_btor, sort, 0);     \
-    btor_sort_release (g_btor, sort);          \
-    exp = btor_exp_##fun (g_btor, e[0], e[1]); \
+#define TEST_PROP_INV_COMPLETE_SHIFT_INIT(expfun) \
+  do                                              \
+  {                                               \
+    bw   = TEST_PROP_INV_COMPLETE_BW;             \
+    sbw  = btor_util_log_2 (bw);                  \
+    sort = btor_sort_bitvec (g_btor, bw);         \
+    e[0] = btor_exp_var (g_btor, sort, 0);        \
+    btor_sort_release (g_btor, sort);             \
+    sort = btor_sort_bitvec (g_btor, sbw);        \
+    e[1] = btor_exp_var (g_btor, sort, 0);        \
+    btor_sort_release (g_btor, sort);             \
+    exp = expfun (g_btor, e[0], e[1]);            \
   } while (0)
 
 #define TEST_PROP_INV_COMPLETE_BINARY_FINISH(fun) \
@@ -75,7 +75,7 @@ static BtorRNG *g_rng;
     btor_bv_free (g_mm, res);                                     \
   } while (0)
 
-#define TEST_PROP_INV_COMPLETE_BINARY(fun)                           \
+#define TEST_PROP_INV_COMPLETE_BINARY(fun, expfun)                   \
   do                                                                 \
   {                                                                  \
     uint32_t bw;                                                     \
@@ -83,7 +83,7 @@ static BtorRNG *g_rng;
     BtorNode *exp, *e[2];                                            \
     BtorSortId sort;                                                 \
     BtorBitVector *bve[2], *bvexp, *res;                             \
-    TEST_PROP_INV_COMPLETE_BINARY_INIT (fun);                        \
+    TEST_PROP_INV_COMPLETE_BINARY_INIT (expfun);                     \
     for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
     {                                                                \
       bve[0] = btor_bv_uint64_to_bv (g_mm, i, bw);                   \
@@ -101,7 +101,7 @@ static BtorRNG *g_rng;
     TEST_PROP_INV_COMPLETE_BINARY_FINISH (fun);                      \
   } while (0)
 
-#define TEST_PROP_INV_COMPLETE_SHIFT(fun)                            \
+#define TEST_PROP_INV_COMPLETE_SHIFT(fun, expfun)                    \
   do                                                                 \
   {                                                                  \
     uint32_t bw, sbw;                                                \
@@ -109,7 +109,7 @@ static BtorRNG *g_rng;
     BtorNode *exp, *e[2];                                            \
     BtorSortId sort;                                                 \
     BtorBitVector *bve[2], *bvexp, *res;                             \
-    TEST_PROP_INV_COMPLETE_SHIFT_INIT (fun);                         \
+    TEST_PROP_INV_COMPLETE_SHIFT_INIT (expfun);                      \
     for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
     {                                                                \
       bve[0] = btor_bv_uint64_to_bv (g_mm, i, bw);                   \
@@ -134,7 +134,7 @@ static void
 test_propinv_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (add);
+  TEST_PROP_INV_COMPLETE_BINARY (add, btor_exp_add);
 #endif
 }
 
@@ -142,7 +142,7 @@ static void
 test_propinv_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (and);
+  TEST_PROP_INV_COMPLETE_BINARY (and, btor_exp_bv_and);
 #endif
 }
 
@@ -150,7 +150,7 @@ static void
 test_propinv_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (eq);
+  TEST_PROP_INV_COMPLETE_BINARY (eq, btor_exp_eq);
 #endif
 }
 
@@ -158,7 +158,7 @@ static void
 test_propinv_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (ult);
+  TEST_PROP_INV_COMPLETE_BINARY (ult, btor_exp_ult);
 #endif
 }
 
@@ -166,7 +166,7 @@ static void
 test_propinv_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_SHIFT (sll);
+  TEST_PROP_INV_COMPLETE_SHIFT (sll, btor_exp_sll);
 #endif
 }
 
@@ -174,7 +174,7 @@ static void
 test_propinv_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_SHIFT (srl);
+  TEST_PROP_INV_COMPLETE_SHIFT (srl, btor_exp_srl);
 #endif
 }
 
@@ -182,7 +182,7 @@ static void
 test_propinv_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (mul);
+  TEST_PROP_INV_COMPLETE_BINARY (mul, btor_exp_mul);
 #endif
 }
 
@@ -190,7 +190,7 @@ static void
 test_propinv_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (udiv);
+  TEST_PROP_INV_COMPLETE_BINARY (udiv, btor_exp_udiv);
 #endif
 }
 
@@ -198,7 +198,7 @@ static void
 test_propinv_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (urem);
+  TEST_PROP_INV_COMPLETE_BINARY (urem, btor_exp_urem);
 #endif
 }
 
@@ -206,7 +206,7 @@ static void
 test_propinv_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (concat);
+  TEST_PROP_INV_COMPLETE_BINARY (concat, btor_exp_concat);
 #endif
 }
 
@@ -259,17 +259,17 @@ test_propinv_complete_slice_bv (void)
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#define TEST_PROP_INV_CONF_BINARY_INIT(fun)    \
-  do                                           \
-  {                                            \
-    sort = btor_sort_bitvec (g_btor, bw);      \
-    e[0] = btor_exp_var (g_btor, sort, 0);     \
-    e[1] = btor_exp_var (g_btor, sort, 0);     \
-    btor_sort_release (g_btor, sort);          \
-    fun = btor_exp_##fun (g_btor, e[0], e[1]); \
+#define TEST_PROP_INV_CONF_BINARY_INIT(fun, expfun) \
+  do                                                \
+  {                                                 \
+    sort = btor_sort_bitvec (g_btor, bw);           \
+    e[0] = btor_exp_var (g_btor, sort, 0);          \
+    e[1] = btor_exp_var (g_btor, sort, 0);          \
+    btor_sort_release (g_btor, sort);               \
+    fun = expfun (g_btor, e[0], e[1]);              \
   } while (0)
 
-#define TEST_PROP_INV_CONF_SHIFT_INIT(fun)                  \
+#define TEST_PROP_INV_CONF_SHIFT_INIT(fun, expfun)          \
   do                                                        \
   {                                                         \
     sort = btor_sort_bitvec (g_btor, bw);                   \
@@ -278,7 +278,7 @@ test_propinv_complete_slice_bv (void)
     sort = btor_sort_bitvec (g_btor, btor_util_log_2 (bw)); \
     e[1] = btor_exp_var (g_btor, sort, 0);                  \
     btor_sort_release (g_btor, sort);                       \
-    fun = btor_exp_##fun (g_btor, e[0], e[1]);              \
+    fun = expfun (g_btor, e[0], e[1]);                      \
   } while (0)
 
 #define TEST_PROP_INV_CONF_BINARY_FINISH(fun) \
@@ -289,52 +289,52 @@ test_propinv_complete_slice_bv (void)
     btor_node_release (g_btor, e[1]);         \
   } while (0)
 
-#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rvalmax)     \
-  do                                                                 \
-  {                                                                  \
-    bve     = btor_bv_char_to_bv (g_mm, ve);                         \
-    bv##fun = btor_bv_char_to_bv (g_mm, vshift);                     \
-    ce      = btor_exp_const (g_btor, bve);                          \
-    if (eidx)                                                        \
-    {                                                                \
-      c##fun = btor_exp_##fun (g_btor, ce, e[1]);                    \
-      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 1);        \
-      assert (res);                                                  \
-      assert (btor_bv_to_uint64 (res) <= rvalmax);                   \
-      btor_bv_free (g_mm, res);                                      \
-      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 1);        \
-      if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) \
-      {                                                              \
-        assert (!res);                                               \
-      }                                                              \
-      else                                                           \
-      {                                                              \
-        assert (res);                                                \
-        assert (btor_bv_to_uint64 (res) <= rvalmax);                 \
-        btor_bv_free (g_mm, res);                                    \
-      }                                                              \
-    }                                                                \
-    else                                                             \
-    {                                                                \
-      c##fun = btor_exp_##fun (g_btor, e[0], ce);                    \
-      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 0);        \
-      assert (res);                                                  \
-      btor_bv_free (g_mm, res);                                      \
-      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 0);        \
-      if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) \
-      {                                                              \
-        assert (!res);                                               \
-      }                                                              \
-      else                                                           \
-      {                                                              \
-        assert (res);                                                \
-        btor_bv_free (g_mm, res);                                    \
-      }                                                              \
-    }                                                                \
-    btor_bv_free (g_mm, bv##fun);                                    \
-    btor_bv_free (g_mm, bve);                                        \
-    btor_node_release (g_btor, ce);                                  \
-    btor_node_release (g_btor, c##fun);                              \
+#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, expfun, ve, vshift, rvalmax) \
+  do                                                                     \
+  {                                                                      \
+    bve     = btor_bv_char_to_bv (g_mm, ve);                             \
+    bv##fun = btor_bv_char_to_bv (g_mm, vshift);                         \
+    ce      = btor_exp_const (g_btor, bve);                              \
+    if (eidx)                                                            \
+    {                                                                    \
+      c##fun = expfun (g_btor, ce, e[1]);                                \
+      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 1);            \
+      assert (res);                                                      \
+      assert (btor_bv_to_uint64 (res) <= rvalmax);                       \
+      btor_bv_free (g_mm, res);                                          \
+      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 1);            \
+      if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)     \
+      {                                                                  \
+        assert (!res);                                                   \
+      }                                                                  \
+      else                                                               \
+      {                                                                  \
+        assert (res);                                                    \
+        assert (btor_bv_to_uint64 (res) <= rvalmax);                     \
+        btor_bv_free (g_mm, res);                                        \
+      }                                                                  \
+    }                                                                    \
+    else                                                                 \
+    {                                                                    \
+      c##fun = expfun (g_btor, e[0], ce);                                \
+      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 0);            \
+      assert (res);                                                      \
+      btor_bv_free (g_mm, res);                                          \
+      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 0);            \
+      if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)     \
+      {                                                                  \
+        assert (!res);                                                   \
+      }                                                                  \
+      else                                                               \
+      {                                                                  \
+        assert (res);                                                    \
+        btor_bv_free (g_mm, res);                                        \
+      }                                                                  \
+    }                                                                    \
+    btor_bv_free (g_mm, bv##fun);                                        \
+    btor_bv_free (g_mm, bve);                                            \
+    btor_node_release (g_btor, ce);                                      \
+    btor_node_release (g_btor, c##fun);                                  \
   } while (0)
 
 #define TEST_PROP_INV_CONF_MUL(cinit)                                       \
@@ -438,7 +438,7 @@ prop_inv_conf_and_bv (uint32_t bw)
   BtorBitVector *bvand, *bve[2], *res, *tmp, *tmp2;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (and);
+  TEST_PROP_INV_CONF_BINARY_INIT (and, btor_exp_bv_and);
 
   for (i = 0; i < (uint32_t) (1 << bw); i++)
   {
@@ -446,8 +446,8 @@ prop_inv_conf_and_bv (uint32_t bw)
     bve[1]  = btor_bv_uint64_to_bv (g_mm, i, bw);
     ce[0]   = btor_exp_const (g_btor, bve[0]);
     ce[1]   = btor_exp_const (g_btor, bve[1]);
-    cand[0] = btor_exp_and (g_btor, ce[0], e[1]);
-    cand[1] = btor_exp_and (g_btor, e[0], ce[1]);
+    cand[0] = btor_exp_bv_and (g_btor, ce[0], e[1]);
+    cand[1] = btor_exp_bv_and (g_btor, e[0], ce[1]);
 
     for (j = 0; j < (uint32_t) (1 << bw); j++)
     {
@@ -534,7 +534,7 @@ prop_inv_conf_ult_bv (uint32_t bw)
   BtorBitVector *res, *bvult, *bve, *zero, *bvmax;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (ult);
+  TEST_PROP_INV_CONF_BINARY_INIT (ult, btor_exp_ult);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);
@@ -617,7 +617,7 @@ prop_inv_conf_sll_bv (uint32_t bw)
   BtorBitVector *res, *bvsll, *bve;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_SHIFT_INIT (sll);
+  TEST_PROP_INV_CONF_SHIFT_INIT (sll, btor_exp_sll);
 
   /* prop engine: all conflicts are treated as fixable */
 
@@ -650,71 +650,85 @@ PROP_INV_CONF_SLL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00", "01", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00", "10", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "00", "01", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "00", "10", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "00", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "01", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "01", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "10", "01", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "10", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "10", "01", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "10", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "11", "01", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "11", "01", 0);
       break;
 
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0000", "0010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0000", "1000", 3);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0000", "1110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0000", "0010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0000", "1000", 3);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0000", "1110", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0001", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0001", "1100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0001", "1010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0001", "1110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0001", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0001", "1100", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0001", "1010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0001", "1110", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1000", "1100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1000", "1010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1000", "1110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1000", "1100", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1000", "1010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1000", "1110", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1010", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1010", "1100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1010", "1110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1010", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1010", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1010", "1100", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1010", "1110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1010", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0110", "0111", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0110", "0010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0110", "1010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "0110", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0110", "0111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0110", "0010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0110", "1010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "0110", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1111", "1010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1111", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1111", "0010", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "1111", "0011", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1111", "1010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1111", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1111", "0010", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, sll, btor_exp_sll, "1111", "0011", 0);
       break;
 
     case 8:
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00000000", "11111110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00000000", "10101010", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00000000", "11111110", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00000000", "10101010", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00000100", "00111100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00000100", "11110000", 4);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00000100", "00111100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00000100", "11110000", 4);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00100000", "11001100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "00100000", "01000010", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00100000", "11001100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "00100000", "01000010", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "01010101", "10101110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "01010101", "10100100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "01010101", "10101110", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "01010101", "10100100", 2);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "11111110", "10111100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "11111110", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "11111110", "10111100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "11111110", "11111101", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "01111111", "10111100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "01111111", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "01111111", "10111100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "01111111", "11111101", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "11111111", "10111110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, sll, "11111111", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "11111111", "10111110", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, sll, btor_exp_sll, "11111111", "11111101", 0);
       break;
 
     default: break;
@@ -725,22 +739,22 @@ PROP_INV_CONF_SLL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "1", "01", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "1", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "1", "01", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "1", "11", 0);
       break;
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "01", "0001", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "10", "0110", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "11", "1100", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "01", "0001", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "10", "0110", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "11", "1100", 0);
       break;
     case 8:
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "001", "00000011", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "010", "00001110", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "011", "00001100", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "100", "11111100", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "101", "00011000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "110", "11001100", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, sll, "111", "11000000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "001", "00000011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "010", "00001110", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "011", "00001100", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "100", "11111100", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "101", "00011000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "110", "11001100", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, sll, btor_exp_sll, "111", "11000000", 0);
       break;
     default: break;
   }
@@ -774,7 +788,7 @@ prop_inv_conf_srl_bv (uint32_t bw)
   BtorBitVector *res, *bvsrl, *bve;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_SHIFT_INIT (srl);
+  TEST_PROP_INV_CONF_SHIFT_INIT (srl, btor_exp_srl);
 
   /* prop engine: all conflicts are treated as fixable */
 
@@ -807,71 +821,85 @@ PROP_INV_CONF_SRL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00", "01", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "01", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "00", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "01", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "01", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "10", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "10", "11", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "11", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "11", "10", 0);
       break;
 
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0000", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0000", "1000", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0000", "1110", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "1000", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0000", "1110", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0001", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0001", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0001", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0001", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0001", "0111", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1000", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1000", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1000", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1000", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1000", "0111", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1010", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1010", "0011", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1010", "0111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1010", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0011", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1010", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0110", "0111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0110", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0110", "1010", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "0110", "1111", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "0111", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "1010", 0);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "0110", "1111", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1111", "0101", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1111", "0110", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1111", "0010", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "1111", "0100", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0101", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0110", 1);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0010", 2);
+      TEST_PROP_INV_CONF_SHIFT (1, srl, btor_exp_srl, "1111", "0100", 1);
       break;
 
     case 8:
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00000000", "01111111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00000000", "01010101", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00000000", "01111111", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00000000", "01010101", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00000100", "00111100", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00000100", "00001111", 4);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00000100", "00111100", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00000100", "00001111", 4);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00100000", "11001100", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "00100000", "01000010", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00100000", "11001100", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "00100000", "01000010", 1);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01010101", "01010111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01010101", "00101001", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "01010101", "01010111", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "01010101", "00101001", 2);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "11111110", "10111100", 0);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "11111110", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "11111110", "10111100", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "11111110", "11111101", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01111111", "00101111", 2);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "01111111", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "01111111", "00101111", 2);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "01111111", "11111101", 0);
       ///
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "11111111", "01011111", 1);
-      TEST_PROP_INV_CONF_SHIFT (1, srl, "11111111", "11111101", 0);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "11111111", "01011111", 1);
+      TEST_PROP_INV_CONF_SHIFT (
+          1, srl, btor_exp_srl, "11111111", "11111101", 0);
       break;
 
     default: break;
@@ -882,22 +910,22 @@ PROP_INV_CONF_SRL_TESTS:
   switch (bw)
   {
     case 2:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "1", "10", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "1", "11", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "1", "10", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "1", "11", 0);
       break;
     case 4:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "01", "1000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "10", "0110", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "11", "0011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "01", "1000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "10", "0110", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "11", "0011", 0);
       break;
     case 8:
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "001", "11000000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "010", "01110000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "011", "00110000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "100", "00111111", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "101", "00011000", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "110", "00110011", 0);
-      TEST_PROP_INV_CONF_SHIFT (0, srl, "111", "00000011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "001", "11000000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "010", "01110000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "011", "00110000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "100", "00111111", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "101", "00011000", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "110", "00110011", 0);
+      TEST_PROP_INV_CONF_SHIFT (0, srl, btor_exp_srl, "111", "00000011", 0);
       break;
     default: break;
   }
@@ -931,7 +959,7 @@ prop_inv_conf_mul_bv (uint32_t bw)
   BtorBitVector *res, *bvmul, *bve;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (mul);
+  TEST_PROP_INV_CONF_BINARY_INIT (mul, btor_exp_mul);
 
   /* prop engine: all conflicts are treated as fixable */
 
@@ -1047,7 +1075,7 @@ prop_inv_conf_udiv_bv (uint32_t bw)
   BtorBitVector *res, *bve, *bvudiv, *bvmax, *zero, *tmp, *tmp2;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (udiv);
+  TEST_PROP_INV_CONF_BINARY_INIT (udiv, btor_exp_udiv);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);
@@ -1132,7 +1160,7 @@ prop_inv_conf_urem_bv (uint32_t bw)
   BtorBitVector *res, *bve, *bvurem, *bvmax, *zero, *two, *tmp, *tmp2;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (urem);
+  TEST_PROP_INV_CONF_BINARY_INIT (urem, btor_exp_urem);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);

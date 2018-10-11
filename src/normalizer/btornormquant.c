@@ -190,7 +190,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
         ite_else = btor_exp_implies (btor, btor_node_invert (e[0]), tmp);
         btor_node_release (btor, tmp);
 
-        ite = btor_exp_and (btor, ite_if, ite_else);
+        ite = btor_exp_bv_and (btor, ite_if, ite_else);
         btor_node_release (btor, ite_if);
         btor_node_release (btor, ite_else);
 
@@ -207,7 +207,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
           {
             ite = BTOR_POP_STACK (conds);
             if (ite == real_cur) break;
-            tmp = btor_exp_and (btor, ite, e[1]);
+            tmp = btor_exp_bv_and (btor, ite, e[1]);
             btor_node_release (btor, ite);
             btor_node_release (btor, e[1]);
             e[1] = tmp;
@@ -244,7 +244,7 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
   while (!BTOR_EMPTY_STACK (args))
   {
     cur = BTOR_POP_STACK (args);
-    tmp = btor_exp_and (btor, result, cur);
+    tmp = btor_exp_bv_and (btor, result, cur);
     btor_node_release (btor, result);
     btor_node_release (btor, cur);
     result = tmp;
@@ -304,7 +304,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
     assert (!btor_node_is_bv_var (real_cur));
 
     /* polarities are only pushed along the boolean skeleton */
-    if (!btor_node_is_and (real_cur) && !btor_node_is_quantifier (real_cur)
+    if (!btor_node_is_bv_and (real_cur) && !btor_node_is_quantifier (real_cur)
         && !(btor_node_is_bv_eq (real_cur) && real_cur->quantifier_below
              && btor_node_get_width (btor, real_cur) == 1))
       cur_pol = 1;
@@ -343,7 +343,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
         btor_opt_set (btor, BTOR_OPT_REWRITE_LEVEL, 0);
         BtorNode *i1  = btor_exp_implies (btor, real_cur->e[0], real_cur->e[1]);
         BtorNode *i2  = btor_exp_implies (btor, real_cur->e[1], real_cur->e[0]);
-        BtorNode *iff = btor_exp_and (btor, i1, i2);
+        BtorNode *iff = btor_exp_bv_and (btor, i1, i2);
         btor_node_release (btor, i1);
         btor_node_release (btor, i2);
         iff = btor_node_cond_invert (cur, iff);

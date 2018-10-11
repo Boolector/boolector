@@ -118,7 +118,7 @@ create_range (Btor *btor,
 
   le0 = btor_exp_ulte (btor, lower, param);
   le1 = btor_exp_ulte (btor, param, upper);
-  and = btor_exp_and (btor, le0, le1);
+  and = btor_exp_bv_and (btor, le0, le1);
 
   /* increment by one */
   if (btor_bv_is_one (offset)) res = btor_node_copy (btor, and);
@@ -130,7 +130,7 @@ create_range (Btor *btor,
     slice = btor_exp_bv_slice (btor, sub, pos - 1, 0);
     zero  = btor_exp_zero (btor, btor_node_get_sort_id (slice));
     eq    = btor_exp_eq (btor, slice, zero);
-    res   = btor_exp_and (btor, and, eq);
+    res   = btor_exp_bv_and (btor, and, eq);
 
     btor_node_release (btor, zero);
     btor_node_release (btor, slice);
@@ -146,7 +146,7 @@ create_range (Btor *btor,
     sub = btor_exp_sub (btor, upper, param);
     rem = btor_exp_urem (btor, sub, off);
     eq  = btor_exp_eq (btor, rem, zero);
-    res = btor_exp_and (btor, and, eq);
+    res = btor_exp_bv_and (btor, and, eq);
 
     btor_node_release (btor, zero);
     btor_node_release (btor, off);

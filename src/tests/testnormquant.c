@@ -288,7 +288,7 @@ test_normquant_inv_and_exists (void)
   exists0 = btor_exp_exists (g_btor, y[0], ugt);
   ult     = btor_exp_ult (g_btor, x, y[1]);
   exists1 = btor_exp_exists (g_btor, y[1], ult);
-  and     = btor_exp_and (g_btor, exists0, exists1);
+  and     = btor_exp_bv_and (g_btor, exists0, exists1);
   forall  = btor_exp_forall (g_btor, x, btor_node_invert (and));
 
   X        = btor_exp_param (g_btor, sort, 0);
@@ -298,7 +298,7 @@ test_normquant_inv_and_exists (void)
   forall0  = btor_exp_forall (g_btor, Y[0], ulte);
   ugte     = btor_exp_ult (g_btor, X, Y[1]);
   forall1  = btor_exp_forall (g_btor, Y[1], ugte);
-  or       = btor_exp_and (g_btor, forall0, forall1);
+  or       = btor_exp_bv_and (g_btor, forall0, forall1);
   expected = btor_exp_forall (g_btor, X, btor_node_invert (or));
 
   result = btor_normalize_quantifiers_node (g_btor, forall);
@@ -356,7 +356,7 @@ test_normquant_normalize_negated_quant (void)
   xugt0   = btor_exp_ugt (g_btor, x, zero);
   yugtx   = btor_exp_ugt (g_btor, y, x);
   existsy = btor_exp_exists (g_btor, y, yugtx);
-  and     = btor_exp_and (g_btor, btor_node_invert (existsy), xugt0);
+  and     = btor_exp_bv_and (g_btor, btor_node_invert (existsy), xugt0);
   forallx = btor_exp_forall (g_btor, x, btor_node_invert (and));
 
   result = btor_normalize_quantifiers_node (g_btor, forallx);
@@ -387,13 +387,13 @@ test_normquant_expand_quant (void)
   x       = btor_exp_param (g_btor, sort, "x");
   redandx = btor_exp_bv_redand (g_btor, x);
   forall  = btor_exp_forall (g_btor, x, redandx);
-  and     = btor_exp_and (g_btor, btor_node_invert (forall), forall);
+  and     = btor_exp_bv_and (g_btor, btor_node_invert (forall), forall);
   result  = btor_normalize_quantifiers_node (g_btor, and);
 
   X        = btor_exp_param (g_btor, sort, "X");
   redandX  = btor_exp_bv_redand (g_btor, X);
   exists   = btor_exp_exists (g_btor, X, btor_node_invert (redandX));
-  expected = btor_exp_and (g_btor, forall, exists);
+  expected = btor_exp_bv_and (g_btor, forall, exists);
 
   assert (result == expected);
 
@@ -462,12 +462,12 @@ test_normquant_elim_ite1 (void)
   eq0    = btor_exp_eq (g_btor, V[1], V[0]);
   eq1    = btor_exp_eq (g_btor, V[1], V[2]);
   eq2    = btor_exp_eq (g_btor, V[3], V[1]);
-  and0   = btor_exp_and (g_btor, forall, btor_node_invert (eq0));
-  and1 =
-      btor_exp_and (g_btor, btor_node_invert (exists), btor_node_invert (eq1));
-  and2 =
-      btor_exp_and (g_btor, btor_node_invert (and0), btor_node_invert (and1));
-  and3     = btor_exp_and (g_btor, eq2, and2);
+  and0   = btor_exp_bv_and (g_btor, forall, btor_node_invert (eq0));
+  and1   = btor_exp_bv_and (
+      g_btor, btor_node_invert (exists), btor_node_invert (eq1));
+  and2 = btor_exp_bv_and (
+      g_btor, btor_node_invert (and0), btor_node_invert (and1));
+  and3     = btor_exp_bv_and (g_btor, eq2, and2);
   expected = btor_exp_exists_n (g_btor, V, 4, and3);
 
   assert (result == expected);
@@ -559,12 +559,12 @@ test_normquant_elim_ite2 (void)
   ultY1    = btor_exp_ult (g_btor, X, Y[1]);
   forallY  = btor_exp_forall (g_btor, Y[0], ultY);
   existsY  = btor_exp_exists (g_btor, Y[1], ultY1);
-  imp_if   = btor_exp_and (g_btor, forallY, btor_node_invert (eqZv0));
-  imp_else = btor_exp_and (
+  imp_if   = btor_exp_bv_and (g_btor, forallY, btor_node_invert (eqZv0));
+  imp_else = btor_exp_bv_and (
       g_btor, btor_node_invert (existsY), btor_node_invert (eqZv1));
-  and0 = btor_exp_and (
+  and0 = btor_exp_bv_and (
       g_btor, btor_node_invert (imp_if), btor_node_invert (imp_else));
-  and1     = btor_exp_and (g_btor, eqZX, and0);
+  and1     = btor_exp_bv_and (g_btor, eqZX, and0);
   forallX  = btor_exp_forall (g_btor, X, and1);
   expected = btor_exp_exists_n (g_btor, V, 2, forallX);
 
@@ -656,11 +656,11 @@ test_normquant_elim_top_ite (void)
   ugte = btor_exp_ugte (g_btor, V[2], Y[1]);
   forallY = btor_exp_forall (g_btor, Y[0], ultY);
   existsY = btor_exp_exists (g_btor, Y[1], ugte);
-  imp_if = btor_exp_and (g_btor, forallY, btor_node_invert (eqZv0));
-  imp_else = btor_exp_and (g_btor, existsY, btor_node_invert (eqZv1));
-  and0 = btor_exp_and (g_btor, btor_node_invert (imp_if),
+  imp_if = btor_exp_bv_and (g_btor, forallY, btor_node_invert (eqZv0));
+  imp_else = btor_exp_bv_and (g_btor, existsY, btor_node_invert (eqZv1));
+  and0 = btor_exp_bv_and (g_btor, btor_node_invert (imp_if),
 		       btor_node_invert (imp_else));
-  and1 = btor_exp_and (g_btor, eqZv2, and0); 
+  and1 = btor_exp_bv_and (g_btor, eqZv2, and0); 
   expected = btor_exp_exists_n (g_btor, V, 4, and1);
 
   printf ("\n"); btor_dump_smt2_node (g_btor, stdout, result, -1);

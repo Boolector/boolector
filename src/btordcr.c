@@ -140,7 +140,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
                                 (BtorCmpPtr) btor_node_compare_by_id);
     in = b->data.as_ptr;
 
-    if (!cur->parameterized && btor_node_is_and (cur))
+    if (!cur->parameterized && btor_node_is_bv_and (cur))
     {
       /* choose min path */
       min_t = 0;
@@ -275,7 +275,7 @@ btor_dcr_compute_scores (Btor *btor)
       for (i = 0; i < cur->arity; i++)
       {
         e = btor_node_real_addr (cur->e[i]);
-        if (!cur->parameterized && btor_node_is_and (cur)
+        if (!cur->parameterized && btor_node_is_bv_and (cur)
             && !btor_hashptr_table_get (slv->score, e))
         {
           btor_hashptr_table_add (slv->score, btor_node_copy (btor, e));

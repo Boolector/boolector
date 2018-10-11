@@ -1148,7 +1148,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
     {
       eq = btor_exp_eq (
           btor, BTOR_PEEK_STACK (params, i), BTOR_PEEK_STACK (consts, i));
-      tmp = btor_exp_and (btor, cond, eq);
+      tmp = btor_exp_bv_and (btor, cond, eq);
       btor_node_release (btor, cond);
       btor_node_release (btor, eq);
       cond = tmp;
@@ -1272,7 +1272,7 @@ mk_concrete_ite_model (BtorGroundSolvers *gslv,
 
       if (cond)
       {
-        tmp = btor_exp_and (btor, cond, eq);
+        tmp = btor_exp_bv_and (btor, cond, eq);
         btor_node_release (btor, cond);
         btor_node_release (btor, eq);
         cond = tmp;

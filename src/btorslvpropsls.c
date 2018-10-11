@@ -159,7 +159,7 @@ compute_sls_score_node (Btor *btor,
   BTORLOG (3, "");
   BTORLOG (3, "*** compute sls score for: %s", btor_util_node2string (exp));
 
-  if (btor_node_is_and (real_exp))
+  if (btor_node_is_bv_and (real_exp))
   {
     /* ---------------------------------------------------------------------- */
     /* OR                                                                     */

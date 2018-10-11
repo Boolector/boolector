@@ -98,7 +98,7 @@ miniscope (Btor *btor,
 
     btor_hashint_table_add (cache, real_cur->id);
 
-    if (btor_node_is_and (cur))
+    if (btor_node_is_bv_and (cur))
     {
       e0      = btor_node_real_addr (real_cur->e[0]);
       e1      = btor_node_real_addr (real_cur->e[1]);
@@ -144,7 +144,7 @@ miniscope (Btor *btor,
     assert (cur != btor_node_binder_get_body (quant));
     /* 'cur_parent' is tagged with the child number, where the new scope
      * of 'quant' begins */
-    assert (btor_node_is_and (scope_parent));
+    assert (btor_node_is_bv_and (scope_parent));
 
     btor_hashint_map_add (pushed_to, quant->id)->as_ptr = scope;
     b = btor_hashptr_table_get (rev_pushed_to, scope_parent);
@@ -262,7 +262,7 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
 
       if ((b = btor_hashptr_table_get (pushed, real_cur)))
       {
-        assert (btor_node_is_and (real_cur));
+        assert (btor_node_is_bv_and (real_cur));
         quants = b->data.as_ptr;
         assert (!BTOR_EMPTY_STACK (*quants));
         tmp = rebuild_mk_quantifiers (btor, quants, e[0], map, pushed_quants);
@@ -274,7 +274,7 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
       if ((b = btor_hashptr_table_get (pushed,
                                        btor_node_set_tag (real_cur, 1))))
       {
-        assert (btor_node_is_and (real_cur));
+        assert (btor_node_is_bv_and (real_cur));
         quants = b->data.as_ptr;
         assert (!BTOR_EMPTY_STACK (*quants));
         tmp = rebuild_mk_quantifiers (btor, quants, e[1], map, pushed_quants);

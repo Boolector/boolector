@@ -88,7 +88,7 @@ btor_add_ackermann_constraints (Btor *btor)
           else
           {
             tmp = p;
-            p   = btor_exp_and (btor, tmp, eq);
+            p   = btor_exp_bv_and (btor, tmp, eq);
             btor_node_release (btor, tmp);
             btor_node_release (btor, eq);
           }

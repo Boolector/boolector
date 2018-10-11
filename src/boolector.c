@@ -106,7 +106,7 @@ translate_shift (Btor *btor,
     if (f != btor_exp_sra)
     {
       tmp = btor_exp_bv_not (btor, a1);
-      res = btor_exp_and (btor, a0, tmp);
+      res = btor_exp_bv_and (btor, a0, tmp);
       btor_node_release (btor, tmp);
     }
     else
@@ -1780,7 +1780,7 @@ boolector_and (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT_BW_MISMATCH (e0, e1);
-  res = btor_exp_and (btor, e0, e1);
+  res = btor_exp_bv_and (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
