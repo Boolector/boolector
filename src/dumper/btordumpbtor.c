@@ -349,7 +349,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_BV_SRL_NODE: op = "srl"; break;
     case BTOR_BV_UDIV_NODE: op = "udiv"; break;
     case BTOR_BV_ULT_NODE: op = "ult"; break;
-    case BTOR_UREM_NODE: op = "urem"; break;
+    case BTOR_BV_UREM_NODE: op = "urem"; break;
     case BTOR_SLICE_NODE: op = "slice"; break;
     case BTOR_UF_NODE:
       op = btor_node_is_uf_array (node) ? "array" : "uf";

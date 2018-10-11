@@ -219,7 +219,7 @@ btor_optimize_unconstrained (Btor *btor)
           case BTOR_BV_SLL_NODE:
           case BTOR_BV_SRL_NODE:
           case BTOR_BV_UDIV_NODE:
-          case BTOR_UREM_NODE:
+          case BTOR_BV_UREM_NODE:
             if (!cur->parameterized && uc[0] && uc[1]) mark_uc (btor, ucs, cur);
             break;
           case BTOR_COND_NODE:

@@ -49,7 +49,7 @@ const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
     [BTOR_BV_ADD_NODE] = "add",      [BTOR_BV_MUL_NODE] = "mul",
     [BTOR_BV_ULT_NODE] = "ult",      [BTOR_BV_SLL_NODE] = "sll",
     [BTOR_BV_SRL_NODE] = "srl",      [BTOR_BV_UDIV_NODE] = "udiv",
-    [BTOR_UREM_NODE] = "urem",       [BTOR_CONCAT_NODE] = "concat",
+    [BTOR_BV_UREM_NODE] = "urem",    [BTOR_CONCAT_NODE] = "concat",
     [BTOR_APPLY_NODE] = "apply",     [BTOR_FORALL_NODE] = "forall",
     [BTOR_EXISTS_NODE] = "exists",   [BTOR_LAMBDA_NODE] = "lambda",
     [BTOR_COND_NODE] = "cond",       [BTOR_ARGS_NODE] = "args",
@@ -2041,7 +2041,7 @@ new_node (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
       assert (kind == BTOR_BV_AND_NODE || kind == BTOR_BV_ADD_NODE
               || kind == BTOR_BV_MUL_NODE || kind == BTOR_BV_SLL_NODE
               || kind == BTOR_BV_SRL_NODE || kind == BTOR_BV_UDIV_NODE
-              || kind == BTOR_UREM_NODE || kind == BTOR_UPDATE_NODE);
+              || kind == BTOR_BV_UREM_NODE || kind == BTOR_UPDATE_NODE);
       sort = btor_sort_copy (btor, btor_node_get_sort_id (e[0]));
   }
 
@@ -2402,7 +2402,7 @@ btor_node_create_bv_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
-  return create_exp (btor, BTOR_UREM_NODE, 2, e);
+  return create_exp (btor, BTOR_BV_UREM_NODE, 2, e);
 }
 
 BtorNode *

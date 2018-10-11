@@ -392,7 +392,7 @@ eval_candidate (Btor *btor,
 
         case BTOR_BV_UDIV_NODE: result = btor_bv_udiv (mm, bv[0], bv[1]); break;
 
-        case BTOR_UREM_NODE: result = btor_bv_urem (mm, bv[0], bv[1]); break;
+        case BTOR_BV_UREM_NODE: result = btor_bv_urem (mm, bv[0], bv[1]); break;
 
         case BTOR_CONCAT_NODE:
           result = btor_bv_concat (mm, bv[0], bv[1]);
@@ -554,7 +554,7 @@ eval_exps (Btor *btor,
 
         case BTOR_BV_UDIV_NODE: result = btor_bv_udiv (mm, bv[0], bv[1]); break;
 
-        case BTOR_UREM_NODE: result = btor_bv_urem (mm, bv[0], bv[1]); break;
+        case BTOR_BV_UREM_NODE: result = btor_bv_urem (mm, bv[0], bv[1]); break;
 
         case BTOR_CONCAT_NODE:
           result = btor_bv_concat (mm, bv[0], bv[1]);
@@ -1296,7 +1296,7 @@ init_ops (Btor *btor, Op *ops)
     INIT_OP (2, false, btor_exp_bv_udiv);
     INIT_OP (2, false, btor_exp_bv_sdiv);
   }
-  if (btor->ops[BTOR_UREM_NODE].cur > 0)
+  if (btor->ops[BTOR_BV_UREM_NODE].cur > 0)
   {
     INIT_OP (2, false, btor_exp_bv_urem);
     INIT_OP (2, false, btor_exp_bv_srem);
