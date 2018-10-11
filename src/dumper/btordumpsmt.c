@@ -938,7 +938,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       open_sexp (sdc);
       fprintf (sdc->file, "%s", op);
 
-      if (btor_node_is_slice (real_exp))
+      if (btor_node_is_bv_slice (real_exp))
       {
         fmt = "%d %d)";
         fprintf (sdc->file,

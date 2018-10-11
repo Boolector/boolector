@@ -143,7 +143,7 @@ struct BtorBVConstNode
 
 typedef struct BtorBVConstNode BtorBVConstNode;
 
-struct BtorSliceNode
+struct BtorBVSliceNode
 {
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
@@ -151,7 +151,7 @@ struct BtorSliceNode
   uint32_t lower;
 };
 
-typedef struct BtorSliceNode BtorSliceNode;
+typedef struct BtorBVSliceNode BtorBVSliceNode;
 
 struct BtorBVNode
 {
@@ -390,7 +390,7 @@ btor_node_is_urem (const BtorNode *exp)
 }
 
 static inline bool
-btor_node_is_slice (const BtorNode *exp)
+btor_node_is_bv_slice (const BtorNode *exp)
 {
   assert (exp);
   return btor_node_real_addr (exp)->kind == BTOR_SLICE_NODE;
@@ -699,10 +699,10 @@ BtorNode *btor_node_create_param (Btor *btor,
                                   BtorSortId sort,
                                   const char *symbol);
 
-BtorNode *btor_node_create_slice (Btor *btor,
-                                  BtorNode *exp,
-                                  uint32_t upper,
-                                  uint32_t lower);
+BtorNode *btor_node_create_bv_slice (Btor *btor,
+                                     BtorNode *exp,
+                                     uint32_t upper,
+                                     uint32_t lower);
 
 BtorNode *btor_node_create_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 

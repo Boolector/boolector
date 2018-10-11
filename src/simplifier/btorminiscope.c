@@ -291,12 +291,12 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
         else
           result = btor_node_copy (btor, real_cur);
       }
-      else if (btor_node_is_slice (real_cur))
+      else if (btor_node_is_bv_slice (real_cur))
       {
-        result = btor_exp_slice (btor,
-                                 e[0],
-                                 btor_node_slice_get_upper (real_cur),
-                                 btor_node_slice_get_lower (real_cur));
+        result = btor_exp_bv_slice (btor,
+                                    e[0],
+                                    btor_node_slice_get_upper (real_cur),
+                                    btor_node_slice_get_lower (real_cur));
       }
       /* scope of quantifier changed */
       else if (btor_node_is_quantifier (real_cur)

@@ -1290,15 +1290,15 @@ btor_node_lambda_delete_static_rho (Btor *btor, BtorNode *lambda)
 uint32_t
 btor_node_slice_get_upper (BtorNode *slice)
 {
-  assert (btor_node_is_slice (slice));
-  return ((BtorSliceNode *) btor_node_real_addr (slice))->upper;
+  assert (btor_node_is_bv_slice (slice));
+  return ((BtorBVSliceNode *) btor_node_real_addr (slice))->upper;
 }
 
 uint32_t
 btor_node_slice_get_lower (BtorNode *slice)
 {
-  assert (btor_node_is_slice (slice));
-  return ((BtorSliceNode *) btor_node_real_addr (slice))->lower;
+  assert (btor_node_is_bv_slice (slice));
+  return ((BtorBVSliceNode *) btor_node_real_addr (slice))->lower;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1684,7 +1684,7 @@ compare_binder_exp (Btor *btor,
       args.top -= real_cur->arity;
       e = args.top;
 
-      if (btor_node_is_slice (real_cur))
+      if (btor_node_is_bv_slice (real_cur))
       {
         result = *find_slice_exp (btor,
                                   e[0],
@@ -1788,7 +1788,7 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   assert (upper < btor_node_get_width (btor, e0));
   assert (upper >= lower);
 
-  BtorSliceNode *exp = 0;
+  BtorBVSliceNode *exp = 0;
 
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_SLICE_NODE);
@@ -2302,10 +2302,10 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 }
 
 BtorNode *
-btor_node_create_slice (Btor *btor,
-                        BtorNode *exp,
-                        uint32_t upper,
-                        uint32_t lower)
+btor_node_create_bv_slice (Btor *btor,
+                           BtorNode *exp,
+                           uint32_t upper,
+                           uint32_t lower)
 {
   exp = btor_simplify_exp (btor, exp);
   assert (btor_dbg_precond_slice_exp (btor, exp, upper, lower));

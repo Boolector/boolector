@@ -4200,8 +4200,8 @@ select_move (Btor *btor,
   assert (eidx >= 0);
   /* special case slice: only one child
    * special case cond: we only need assignment of condition to compute value */
-  idx =
-      eidx ? 0 : (btor_node_is_slice (exp) || btor_node_is_cond (exp) ? 0 : 1);
+  idx = eidx ? 0
+             : (btor_node_is_bv_slice (exp) || btor_node_is_cond (exp) ? 0 : 1);
   *value = compute_value (btor, exp, bvexp, bve[idx], eidx);
   return exp->e[eidx];
 }

@@ -363,8 +363,8 @@ test_lambda_param_slice (void)
 
   var      = btor_exp_var (g_btor, g_elem_sort, "v1");
   param    = btor_exp_param (g_btor, g_elem_sort, "p1");
-  expected = btor_exp_slice (g_btor, var, upper, lower);
-  slice    = btor_exp_slice (g_btor, param, upper, lower);
+  expected = btor_exp_bv_slice (g_btor, var, upper, lower);
+  slice    = btor_exp_bv_slice (g_btor, param, upper, lower);
   lambda   = btor_exp_lambda (g_btor, param, slice);
   result   = apply_and_reduce (g_btor, &var, 1, lambda);
 

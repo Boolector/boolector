@@ -641,7 +641,7 @@ btor_util_node2string (BtorNode *exp)
         strbuf, cur_len, new_len, " %d", btor_node_get_id (real_exp->e[i]));
   }
 
-  if (btor_node_is_slice (real_exp))
+  if (btor_node_is_bv_slice (real_exp))
   {
     new_len += btor_util_num_digits (btor_node_slice_get_upper (exp)) + 1;
     new_len += btor_util_num_digits (btor_node_slice_get_lower (exp)) + 1;

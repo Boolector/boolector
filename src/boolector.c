@@ -122,8 +122,8 @@ translate_shift (Btor *btor,
 
     assert (p1 > 0);
 
-    u = btor_exp_slice (btor, a1, width - 1, width - p1);
-    l = btor_exp_slice (btor, a1, l1 - 1, 0);
+    u = btor_exp_bv_slice (btor, a1, width - 1, width - p1);
+    l = btor_exp_bv_slice (btor, a1, l1 - 1, 0);
 
     assert (btor_node_get_width (btor, u) == p1);
     assert (btor_node_get_width (btor, l) == l1);
@@ -137,7 +137,7 @@ translate_shift (Btor *btor,
 
     if (f == btor_exp_sra)
     {
-      tmp = btor_exp_slice (btor, a0, width - 1, width - 1);
+      tmp = btor_exp_bv_slice (btor, a0, width - 1, width - 1);
       t   = btor_exp_sext (btor, tmp, width - 1);
       btor_node_release (btor, tmp);
     }
@@ -163,7 +163,7 @@ translate_shift (Btor *btor,
 
     if (p0 > 0)
     {
-      tmp = btor_exp_slice (btor, e, width - 1, 0);
+      tmp = btor_exp_bv_slice (btor, e, width - 1, 0);
       btor_node_release (btor, e);
       e = tmp;
     }
@@ -1598,7 +1598,7 @@ boolector_slice (Btor *btor,
   BTOR_ABORT (upper < lower, "'upper' must not be < 'lower'");
   BTOR_ABORT ((uint32_t) upper >= btor_node_get_width (btor, exp),
               "'upper' must not be >= width of 'exp'");
-  res = btor_exp_slice (btor, exp, upper, lower);
+  res = btor_exp_bv_slice (btor, exp, upper, lower);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

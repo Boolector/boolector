@@ -2423,10 +2423,10 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_UF_NODE:
       return btor_node_copy (btor, btor_simplify_exp (btor, exp));
     case BTOR_SLICE_NODE:
-      return btor_exp_slice (btor,
-                             exp->e[0],
-                             btor_node_slice_get_upper (exp),
-                             btor_node_slice_get_lower (exp));
+      return btor_exp_bv_slice (btor,
+                                exp->e[0],
+                                btor_node_slice_get_upper (exp),
+                                btor_node_slice_get_lower (exp));
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_EXISTS_NODE:
     case BTOR_FORALL_NODE: return rebuild_binder_exp (btor, exp);
@@ -2908,12 +2908,12 @@ btor_substitute_nodes_node_map (Btor *btor,
         else
           result = btor_node_copy (btor, real_cur);
       }
-      else if (btor_node_is_slice (real_cur))
+      else if (btor_node_is_bv_slice (real_cur))
       {
-        result = btor_exp_slice (btor,
-                                 e[0],
-                                 btor_node_slice_get_upper (real_cur),
-                                 btor_node_slice_get_lower (real_cur));
+        result = btor_exp_bv_slice (btor,
+                                    e[0],
+                                    btor_node_slice_get_upper (real_cur),
+                                    btor_node_slice_get_lower (real_cur));
       }
       else
       {
@@ -3561,7 +3561,7 @@ btor_synthesize_exp (Btor *btor,
 
       if (cur->arity == 1)
       {
-        assert (btor_node_is_slice (cur));
+        assert (btor_node_is_bv_slice (cur));
         invert_av0 = btor_node_is_inverted (cur->e[0]);
         av0        = btor_node_real_addr (cur->e[0])->av;
         if (invert_av0) btor_aigvec_invert (avmgr, av0);

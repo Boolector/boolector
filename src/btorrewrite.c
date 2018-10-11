@@ -289,7 +289,7 @@ slice_simplifiable (BtorNode *exp)
 {
   exp = btor_node_real_addr (exp);
   return btor_node_is_bv_var (exp) || btor_node_is_bv_const (exp)
-         || btor_node_is_slice (exp);
+         || btor_node_is_bv_slice (exp);
 }
 
 static bool
@@ -1399,7 +1399,7 @@ applies_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_slice (exp);
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_slice (exp);
 }
 
 static inline BtorNode *
@@ -2408,7 +2408,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   /* creating two slices on e1 does not really improve the situation here,
    * hence only create a result if a slice on e1 yields a result different
    * from a slice (through further rewriting) */
-  if (!(btor_node_is_slice (tmp2) && btor_node_is_slice (tmp4)))
+  if (!(btor_node_is_bv_slice (tmp2) && btor_node_is_bv_slice (tmp4)))
   {
     eq1    = rewrite_eq_exp (btor, tmp1, tmp2);
     eq2    = rewrite_eq_exp (btor, tmp3, tmp4);
@@ -4127,7 +4127,7 @@ applies_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && btor_node_is_inverted (e0) == btor_node_is_inverted (e1)
-         && btor_node_is_slice (real_e0) && btor_node_is_slice (real_e1)
+         && btor_node_is_bv_slice (real_e0) && btor_node_is_bv_slice (real_e1)
          && real_e0->e[0] == real_e1->e[0]
          && btor_node_slice_get_lower (real_e0)
                 == btor_node_slice_get_upper (real_e1) + 1;
@@ -6240,7 +6240,7 @@ rewrite_slice_exp (Btor *btor, BtorNode *e, uint32_t upper, uint32_t lower)
     assert (!result);
     if (!result)
     {
-      result = btor_node_create_slice (btor, e, upper, lower);
+      result = btor_node_create_bv_slice (btor, e, upper, lower);
     }
     else
     {

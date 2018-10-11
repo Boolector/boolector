@@ -478,7 +478,7 @@ btor_exp_bv_neg (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_exp_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
+btor_exp_bv_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 
@@ -490,7 +490,7 @@ btor_exp_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_slice_exp (btor, exp, upper, lower);
   else
-    result = btor_node_create_slice (btor, exp, upper, lower);
+    result = btor_node_create_bv_slice (btor, exp, upper, lower);
 
   assert (result);
   return result;
@@ -706,10 +706,10 @@ btor_exp_bv_redxor (Btor *btor, BtorNode *exp)
 
   width = btor_node_get_width (btor, exp);
 
-  result = btor_exp_slice (btor, exp, 0, 0);
+  result = btor_exp_bv_slice (btor, exp, 0, 0);
   for (i = 1; i < width; i++)
   {
-    slice = btor_exp_slice (btor, exp, i, i);
+    slice = btor_exp_bv_slice (btor, exp, i, i);
     xor   = btor_exp_xor (btor, result, slice);
     btor_node_release (btor, slice);
     btor_node_release (btor, result);
@@ -781,7 +781,7 @@ btor_exp_sext (Btor *btor, BtorNode *exp, uint32_t width)
     ones = btor_exp_ones (btor, sort);
     btor_sort_release (btor, sort);
     exp_width = btor_node_get_width (btor, exp);
-    neg       = btor_exp_slice (btor, exp, exp_width - 1, exp_width - 1);
+    neg       = btor_exp_bv_slice (btor, exp, exp_width - 1, exp_width - 1);
     cond      = btor_exp_cond (btor, neg, ones, zero);
     result    = btor_exp_concat (btor, cond, exp);
     btor_node_release (btor, zero);
@@ -871,7 +871,7 @@ btor_exp_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   uext_e1 = btor_exp_uext (btor, e0, 1);
   uext_e2 = btor_exp_uext (btor, e1, 1);
   add     = btor_exp_add (btor, uext_e1, uext_e2);
-  result  = btor_exp_slice (btor, add, width, width);
+  result  = btor_exp_bv_slice (btor, add, width, width);
   btor_node_release (btor, uext_e1);
   btor_node_release (btor, uext_e2);
   btor_node_release (btor, add);
@@ -893,10 +893,10 @@ btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width       = btor_node_get_width (btor, e0);
-  sign_e1     = btor_exp_slice (btor, e0, width - 1, width - 1);
-  sign_e2     = btor_exp_slice (btor, e1, width - 1, width - 1);
+  sign_e1     = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  sign_e2     = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   add         = btor_exp_add (btor, e0, e1);
-  sign_result = btor_exp_slice (btor, add, width - 1, width - 1);
+  sign_result = btor_exp_bv_slice (btor, add, width - 1, width - 1);
   and1        = btor_exp_and (btor, sign_e1, sign_e2);
   or1         = btor_exp_and (btor, and1, btor_node_invert (sign_result));
   and2        = btor_exp_and (
@@ -958,19 +958,19 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
   BTOR_NEWN (btor->mm, temps_e2, width - 1);
-  temps_e2[0] = btor_exp_slice (btor, e1, width - 1, width - 1);
+  temps_e2[0] = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   for (i = 1; i < width - 1; i++)
   {
-    slice       = btor_exp_slice (btor, e1, width - 1 - i, width - 1 - i);
+    slice       = btor_exp_bv_slice (btor, e1, width - 1 - i, width - 1 - i);
     temps_e2[i] = btor_exp_or (btor, temps_e2[i - 1], slice);
     btor_node_release (btor, slice);
   }
-  slice  = btor_exp_slice (btor, e0, 1, 1);
+  slice  = btor_exp_bv_slice (btor, e0, 1, 1);
   result = btor_exp_and (btor, slice, temps_e2[0]);
   btor_node_release (btor, slice);
   for (i = 1; i < width - 1; i++)
   {
-    slice = btor_exp_slice (btor, e0, i + 1, i + 1);
+    slice = btor_exp_bv_slice (btor, e0, i + 1, i + 1);
     and   = btor_exp_and (btor, slice, temps_e2[i]);
     or    = btor_exp_or (btor, result, and);
     btor_node_release (btor, slice);
@@ -981,7 +981,7 @@ btor_exp_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   uext_e1 = btor_exp_uext (btor, e0, 1);
   uext_e2 = btor_exp_uext (btor, e1, 1);
   mul     = btor_exp_mul (btor, uext_e1, uext_e2);
-  slice   = btor_exp_slice (btor, mul, width, width);
+  slice   = btor_exp_bv_slice (btor, mul, width, width);
   or      = btor_exp_or (btor, result, slice);
   btor_node_release (btor, uext_e1);
   btor_node_release (btor, uext_e2);
@@ -1016,8 +1016,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
     sext_e1         = btor_exp_sext (btor, e0, 1);
     sext_e2         = btor_exp_sext (btor, e1, 1);
     mul             = btor_exp_mul (btor, sext_e1, sext_e2);
-    slice_n         = btor_exp_slice (btor, mul, width, width);
-    slice_n_minus_1 = btor_exp_slice (btor, mul, width - 1, width - 1);
+    slice_n         = btor_exp_bv_slice (btor, mul, width, width);
+    slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);
     result          = btor_exp_xor (btor, slice_n, slice_n_minus_1);
     btor_node_release (btor, sext_e1);
     btor_node_release (btor, sext_e2);
@@ -1027,26 +1027,27 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   }
   else
   {
-    sign_e1      = btor_exp_slice (btor, e0, width - 1, width - 1);
-    sign_e2      = btor_exp_slice (btor, e1, width - 1, width - 1);
+    sign_e1      = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+    sign_e2      = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
     sext_sign_e1 = btor_exp_sext (btor, sign_e1, width - 1);
     sext_sign_e2 = btor_exp_sext (btor, sign_e2, width - 1);
     xor_sign_e1  = btor_exp_xor (btor, e0, sext_sign_e1);
     xor_sign_e2  = btor_exp_xor (btor, e1, sext_sign_e2);
     BTOR_NEWN (btor->mm, temps_e2, width - 2);
-    temps_e2[0] = btor_exp_slice (btor, xor_sign_e2, width - 2, width - 2);
+    temps_e2[0] = btor_exp_bv_slice (btor, xor_sign_e2, width - 2, width - 2);
     for (i = 1; i < width - 2; i++)
     {
-      slice = btor_exp_slice (btor, xor_sign_e2, width - 2 - i, width - 2 - i);
+      slice =
+          btor_exp_bv_slice (btor, xor_sign_e2, width - 2 - i, width - 2 - i);
       temps_e2[i] = btor_exp_or (btor, temps_e2[i - 1], slice);
       btor_node_release (btor, slice);
     }
-    slice  = btor_exp_slice (btor, xor_sign_e1, 1, 1);
+    slice  = btor_exp_bv_slice (btor, xor_sign_e1, 1, 1);
     result = btor_exp_and (btor, slice, temps_e2[0]);
     btor_node_release (btor, slice);
     for (i = 1; i < width - 2; i++)
     {
-      slice = btor_exp_slice (btor, xor_sign_e1, i + 1, i + 1);
+      slice = btor_exp_bv_slice (btor, xor_sign_e1, i + 1, i + 1);
       and   = btor_exp_and (btor, slice, temps_e2[i]);
       or    = btor_exp_or (btor, result, and);
       btor_node_release (btor, slice);
@@ -1057,8 +1058,8 @@ btor_exp_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
     sext_e1         = btor_exp_sext (btor, e0, 1);
     sext_e2         = btor_exp_sext (btor, e1, 1);
     mul             = btor_exp_mul (btor, sext_e1, sext_e2);
-    slice_n         = btor_exp_slice (btor, mul, width, width);
-    slice_n_minus_1 = btor_exp_slice (btor, mul, width - 1, width - 1);
+    slice_n         = btor_exp_bv_slice (btor, mul, width, width);
+    slice_n_minus_1 = btor_exp_bv_slice (btor, mul, width - 1, width - 1);
     xor             = btor_exp_xor (btor, slice_n, slice_n_minus_1);
     or              = btor_exp_or (btor, result, xor);
     btor_node_release (btor, sext_e1);
@@ -1119,10 +1120,10 @@ btor_exp_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   width = btor_node_get_width (btor, e0);
   if (width == 1) return btor_exp_and (btor, e0, btor_node_invert (e1));
-  s0                 = btor_exp_slice (btor, e0, width - 1, width - 1);
-  s1                 = btor_exp_slice (btor, e1, width - 1, width - 1);
-  r0                 = btor_exp_slice (btor, e0, width - 2, 0);
-  r1                 = btor_exp_slice (btor, e1, width - 2, 0);
+  s0                 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  s1                 = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
+  r0                 = btor_exp_bv_slice (btor, e0, width - 2, 0);
+  r1                 = btor_exp_bv_slice (btor, e1, width - 2, 0);
   ult                = btor_exp_ult (btor, r0, r1);
   determined_by_sign = btor_exp_and (btor, s0, btor_node_invert (s1));
   l                  = btor_node_copy (btor, determined_by_sign);
@@ -1295,7 +1296,7 @@ btor_exp_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
   width   = btor_node_get_width (btor, e0);
-  sign_e1 = btor_exp_slice (btor, e0, width - 1, width - 1);
+  sign_e1 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   srl1    = btor_exp_srl (btor, e0, e1);
   srl2    = btor_exp_srl (btor, btor_node_invert (e0), e1);
   result  = btor_exp_cond (btor, sign_e1, btor_node_invert (srl2), srl1);
@@ -1390,7 +1391,7 @@ btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   btor_sort_release (btor, sort);
   add1   = btor_exp_add (btor, uext_e2, one);
   add2   = btor_exp_add (btor, uext_e1, add1);
-  result = btor_node_invert (btor_exp_slice (btor, add2, width, width));
+  result = btor_node_invert (btor_exp_bv_slice (btor, add2, width, width));
   btor_node_release (btor, uext_e1);
   btor_node_release (btor, uext_e2);
   btor_node_release (btor, add1);
@@ -1414,10 +1415,10 @@ btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
   width       = btor_node_get_width (btor, e0);
-  sign_e1     = btor_exp_slice (btor, e0, width - 1, width - 1);
-  sign_e2     = btor_exp_slice (btor, e1, width - 1, width - 1);
+  sign_e1     = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  sign_e2     = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   sub         = btor_exp_sub (btor, e0, e1);
-  sign_result = btor_exp_slice (btor, sub, width - 1, width - 1);
+  sign_result = btor_exp_bv_slice (btor, sub, width - 1, width - 1);
   and1        = btor_exp_and (btor, btor_node_invert (sign_e1), sign_e2);
   or1         = btor_exp_and (btor, and1, sign_result);
   and2        = btor_exp_and (btor, sign_e1, btor_node_invert (sign_e2));
@@ -1474,8 +1475,8 @@ btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (width == 1)
     return btor_node_invert (btor_exp_and (btor, btor_node_invert (e0), e1));
 
-  sign_e1 = btor_exp_slice (btor, e0, width - 1, width - 1);
-  sign_e2 = btor_exp_slice (btor, e1, width - 1, width - 1);
+  sign_e1 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  sign_e2 = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   /* xor: must result be signed? */
   xor    = btor_exp_xor (btor, sign_e1, sign_e2);
   neg_e1 = btor_exp_bv_neg (btor, e0);
@@ -1562,8 +1563,8 @@ btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (width == 1) return btor_exp_and (btor, e0, btor_node_invert (e1));
 
-  sign_e0 = btor_exp_slice (btor, e0, width - 1, width - 1);
-  sign_e1 = btor_exp_slice (btor, e1, width - 1, width - 1);
+  sign_e0 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  sign_e1 = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   neg_e0  = btor_exp_bv_neg (btor, e0);
   neg_e1  = btor_exp_bv_neg (btor, e1);
   /* normalize e0 and e1 if necessary */
@@ -1605,8 +1606,8 @@ btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
   width     = btor_node_get_width (btor, e0);
   zero      = btor_exp_zero (btor, btor_node_get_sort_id (e0));
   e0_zero   = btor_exp_eq (btor, zero, e0);
-  sign_e0   = btor_exp_slice (btor, e0, width - 1, width - 1);
-  sign_e1   = btor_exp_slice (btor, e1, width - 1, width - 1);
+  sign_e0   = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
+  sign_e1   = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   neg_e0    = btor_exp_bv_neg (btor, e0);
   neg_e1    = btor_exp_bv_neg (btor, e1);
   e0_and_e1 = btor_exp_and (

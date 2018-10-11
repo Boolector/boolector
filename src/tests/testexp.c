@@ -361,8 +361,8 @@ test_slice_exp (void)
   sort = btor_sort_bitvec (g_btor, 32);
 
   exp1 = btor_exp_var (g_btor, sort, "v1");
-  exp2 = btor_exp_slice (g_btor, exp1, 31, 30);
-  exp3 = btor_exp_slice (g_btor, exp1, 31, 30);
+  exp2 = btor_exp_bv_slice (g_btor, exp1, 31, 30);
+  exp3 = btor_exp_bv_slice (g_btor, exp1, 31, 30);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);

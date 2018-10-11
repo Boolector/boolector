@@ -412,7 +412,7 @@ test_prop_complete_slice_bv (void)
         for (j = 0; j < bw; j++)
         {
           e        = btor_exp_var (g_btor, sort, 0);
-          exp      = btor_exp_slice (g_btor, e, up, lo);
+          exp      = btor_exp_bv_slice (g_btor, e, up, lo);
           bve      = btor_bv_uint64_to_bv (g_mm, i, bw);
           bvexp    = btor_bv_slice (g_mm, bve, up, lo);
           val      = btor_exp_const (g_btor, bvexp);

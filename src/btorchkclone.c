@@ -570,7 +570,7 @@ btor_chkclone_exp (Btor *btor,
       }
     }
 
-    if (btor_node_is_slice (real_exp))
+    if (btor_node_is_bv_slice (real_exp))
     {
       assert (btor_node_slice_get_upper (real_exp)
               == btor_node_slice_get_upper (real_cexp));

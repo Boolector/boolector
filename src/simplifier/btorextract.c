@@ -127,7 +127,7 @@ create_range (Btor *btor,
   {
     assert (pos > 0);
     sub   = btor_exp_sub (btor, upper, param);
-    slice = btor_exp_slice (btor, sub, pos - 1, 0);
+    slice = btor_exp_bv_slice (btor, sub, pos - 1, 0);
     zero  = btor_exp_zero (btor, btor_node_get_sort_id (slice));
     eq    = btor_exp_eq (btor, slice, zero);
     res   = btor_exp_and (btor, and, eq);

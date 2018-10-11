@@ -229,7 +229,7 @@ test_propinv_complete_slice_bv (void)
   {
     for (up = lo; up < bw; up++)
     {
-      exp = btor_exp_slice (g_btor, e, up, lo);
+      exp = btor_exp_bv_slice (g_btor, e, up, lo);
       for (i = 0; i < (uint32_t) (1 << bw); i++)
       {
         bve   = btor_bv_uint64_to_bv (g_mm, i, bw);
