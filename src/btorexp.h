@@ -205,7 +205,7 @@ BtorNode *btor_exp_bv_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_saddo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_saddo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Multiplier.
  * width(e0) = width(e1)
