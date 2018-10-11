@@ -457,7 +457,7 @@ extract_store (BtorSMTDumpContext * sdc, BtorNode * exp,
 static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE] = "invalid", [BTOR_CONST_NODE] = "const",
     [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
-    [BTOR_SLICE_NODE] = "extract",   [BTOR_AND_NODE] = "bvand",
+    [BTOR_SLICE_NODE] = "extract",   [BTOR_BV_AND_NODE] = "bvand",
     [BTOR_FUN_EQ_NODE] = "=",        [BTOR_BV_EQ_NODE] = "=",
     [BTOR_ADD_NODE] = "bvadd",       [BTOR_MUL_NODE] = "bvmul",
     [BTOR_ULT_NODE] = "bvult",       [BTOR_SLL_NODE] = "bvshl",
@@ -865,7 +865,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
               assert (!is_bool);
               op = "(_ extract ";
               break;
-            case BTOR_AND_NODE:
+            case BTOR_BV_AND_NODE:
               op        = is_bool ? "and" : "bvand";
               expect_bv = !is_bool;
               break;

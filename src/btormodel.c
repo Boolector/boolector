@@ -829,7 +829,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
                                   btor_node_slice_get_lower (real_cur));
           btor_bv_free (mm, e[0]);
           break;
-        case BTOR_AND_NODE:
+        case BTOR_BV_AND_NODE:
           result = btor_bv_and (mm, e[1], e[0]);
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);

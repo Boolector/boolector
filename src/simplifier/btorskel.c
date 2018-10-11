@@ -132,7 +132,7 @@ process_skeleton_tseitin (Btor *btor,
 
       switch (exp->kind)
       {
-        case BTOR_AND_NODE:
+        case BTOR_BV_AND_NODE:
           rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
           rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
 

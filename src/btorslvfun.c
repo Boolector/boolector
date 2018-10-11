@@ -1066,7 +1066,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
              * check the witnesses of inequality */
             break;
 
-          case BTOR_AND_NODE:
+          case BTOR_BV_AND_NODE:
 
             a = btor_node_is_synth (cur)
                     ? btor_aig_get_assignment (amgr, cur->av->aigs[0])
@@ -2788,7 +2788,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
                                   btor_node_slice_get_lower (real_cur));
           btor_bv_free (mm, e[0]);
           break;
-        case BTOR_AND_NODE:
+        case BTOR_BV_AND_NODE:
           result = btor_bv_and (mm, e[1], e[0]);
           btor_bv_free (mm, e[0]);
           btor_bv_free (mm, e[1]);

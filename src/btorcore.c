@@ -3597,7 +3597,7 @@ btor_synthesize_exp (Btor *btor,
         }
         switch (cur->kind)
         {
-          case BTOR_AND_NODE:
+          case BTOR_BV_AND_NODE:
             cur->av = btor_aigvec_and (avmgr, av0, av1);
             break;
           case BTOR_BV_EQ_NODE:

@@ -376,7 +376,7 @@ eval_candidate (Btor *btor,
                                   btor_node_slice_get_lower (real_cur));
           break;
 
-        case BTOR_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
+        case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
 
         case BTOR_BV_EQ_NODE: result = btor_bv_eq (mm, bv[0], bv[1]); break;
 
@@ -538,7 +538,7 @@ eval_exps (Btor *btor,
                                   btor_node_slice_get_lower (real_cur));
           break;
 
-        case BTOR_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
+        case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
 
         case BTOR_BV_EQ_NODE: result = btor_bv_eq (mm, bv[0], bv[1]); break;
 
@@ -1284,7 +1284,7 @@ init_ops (Btor *btor, Op *ops)
   INIT_OP (2, true, btor_exp_eq);
 
   /* bv ops */
-  if (btor->ops[BTOR_AND_NODE].cur > 0) INIT_OP (2, true, btor_exp_bv_and);
+  if (btor->ops[BTOR_BV_AND_NODE].cur > 0) INIT_OP (2, true, btor_exp_bv_and);
   if (btor->ops[BTOR_ADD_NODE].cur > 0)
   {
     INIT_OP (2, true, btor_exp_bv_add);

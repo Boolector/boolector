@@ -1431,7 +1431,7 @@ eval_exp (Btor *btor,
                                   btor_node_slice_get_lower (real_cur));
           break;
 
-        case BTOR_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
+        case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
 
         case BTOR_BV_EQ_NODE: result = btor_bv_eq (mm, bv[0], bv[1]); break;
 

@@ -34,9 +34,9 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
  * and BTOR_VAR_NODE are at the beginning,
  * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
  * FURTHER NOTE:
- * binary nodes: [BTOR_AND_NODE, ..., BTOR_LAMBDA_NODE]
+ * binary nodes: [BTOR_BV_AND_NODE, ..., BTOR_LAMBDA_NODE]
  * ternary nodes: [BTOR_BCOND_NODE]
- * commutative nodes: [BTOR_AND_NODE, ..., BTOR_MUL_NODE]
+ * commutative nodes: [BTOR_BV_AND_NODE, ..., BTOR_MUL_NODE]
  */
 enum BtorNodeKind
 {
@@ -50,7 +50,7 @@ enum BtorNodeKind
   BTOR_VAR_NODE     = 2,
   BTOR_PARAM_NODE   = 3, /* parameter for lambda expressions */
   BTOR_SLICE_NODE   = 4,
-  BTOR_AND_NODE     = 5,
+  BTOR_BV_AND_NODE  = 5,
   BTOR_BV_EQ_NODE   = 6, /* equality on bit vectors */
   BTOR_FUN_EQ_NODE  = 7, /* equality on arrays */
   BTOR_ADD_NODE     = 8,
@@ -262,13 +262,13 @@ btor_node_is_unary_kind (BtorNodeKind kind)
 static inline bool
 btor_node_is_binary_kind (BtorNodeKind kind)
 {
-  return kind >= BTOR_AND_NODE && kind <= BTOR_LAMBDA_NODE;
+  return kind >= BTOR_BV_AND_NODE && kind <= BTOR_LAMBDA_NODE;
 }
 
 static inline bool
 btor_node_is_binary_commutative_kind (BtorNodeKind kind)
 {
-  return kind >= BTOR_AND_NODE && kind <= BTOR_MUL_NODE;
+  return kind >= BTOR_BV_AND_NODE && kind <= BTOR_MUL_NODE;
 }
 
 static inline bool
@@ -355,7 +355,7 @@ static inline bool
 btor_node_is_bv_and (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_AND_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_AND_NODE;
 }
 
 static inline bool

@@ -214,7 +214,7 @@ btor_optimize_unconstrained (Btor *btor)
             break;
           case BTOR_ULT_NODE:
           case BTOR_CONCAT_NODE:
-          case BTOR_AND_NODE:
+          case BTOR_BV_AND_NODE:
           case BTOR_MUL_NODE:
           case BTOR_SLL_NODE:
           case BTOR_SRL_NODE:

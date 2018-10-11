@@ -44,7 +44,7 @@
 const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE] = "invalid", [BTOR_CONST_NODE] = "const",
     [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
-    [BTOR_SLICE_NODE] = "slice",     [BTOR_AND_NODE] = "and",
+    [BTOR_SLICE_NODE] = "slice",     [BTOR_BV_AND_NODE] = "and",
     [BTOR_BV_EQ_NODE] = "beq",       [BTOR_FUN_EQ_NODE] = "feq",
     [BTOR_ADD_NODE] = "add",         [BTOR_MUL_NODE] = "mul",
     [BTOR_ULT_NODE] = "ult",         [BTOR_SLL_NODE] = "sll",
@@ -2038,7 +2038,7 @@ new_node (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
       break;
 
     default:
-      assert (kind == BTOR_AND_NODE || kind == BTOR_ADD_NODE
+      assert (kind == BTOR_BV_AND_NODE || kind == BTOR_ADD_NODE
               || kind == BTOR_MUL_NODE || kind == BTOR_SLL_NODE
               || kind == BTOR_SRL_NODE || kind == BTOR_UDIV_NODE
               || kind == BTOR_UREM_NODE || kind == BTOR_UPDATE_NODE);
@@ -2316,7 +2316,7 @@ btor_node_create_bv_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e[0], e[1]));
-  return create_exp (btor, BTOR_AND_NODE, 2, e);
+  return create_exp (btor, BTOR_BV_AND_NODE, 2, e);
 }
 
 BtorNode *
