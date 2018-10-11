@@ -341,7 +341,7 @@ test_redor_exp (void)
 static void
 test_redxor_exp (void)
 {
-  unary_exp_test (btor_exp_redxor);
+  unary_exp_test (btor_exp_bv_redxor);
 }
 
 static void

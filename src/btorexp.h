@@ -97,7 +97,7 @@ BtorNode *btor_exp_bv_redor (Btor *btor, BtorNode *exp);
 /* XOR reduction.
  * width(result) = 1
  */
-BtorNode *btor_exp_redxor (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_redxor (Btor *btor, BtorNode *exp);
 
 /* AND reduction.
  * width(result) = 1

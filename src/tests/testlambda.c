@@ -340,7 +340,7 @@ test_lambda_param_redor (void)
 static void
 test_lambda_param_redxor (void)
 {
-  unary_param_exp_test (btor_exp_redxor);
+  unary_param_exp_test (btor_exp_bv_redxor);
 }
 
 static void
