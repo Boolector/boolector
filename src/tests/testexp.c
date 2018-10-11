@@ -714,7 +714,7 @@ test_umulo_exp (void)
 static void
 test_smulo_exp (void)
 {
-  mulo_exp_test (btor_exp_smulo);
+  mulo_exp_test (btor_exp_bv_smulo);
 }
 
 static void
