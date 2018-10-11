@@ -425,12 +425,12 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     if (btor_node_is_uf_array (node) || btor_node_is_fun_cond (node)
         || btor_node_is_update (node))
     {
-      fprintf (file, " %d", btor_node_get_fun_width (bdc->btor, node));
+      fprintf (file, " %d", btor_node_fun_get_width (bdc->btor, node));
       fprintf (file, " %d", btor_node_array_get_index_width (bdc->btor, node));
     }
     else if (btor_node_is_lambda (node))
     {
-      fprintf (file, " %d", btor_node_get_fun_width (bdc->btor, node));
+      fprintf (file, " %d", btor_node_fun_get_width (bdc->btor, node));
       fprintf (file, " %d", btor_node_bv_get_width (bdc->btor, node->e[0]));
     }
     else if (!btor_node_is_uf (node))
@@ -787,7 +787,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     if (bdc->version == 1)
     {
       if (btor_sort_is_fun (bdc->btor, btor_node_get_sort_id (node)))
-        len = btor_node_get_fun_width (bdc->btor, node);
+        len = btor_node_fun_get_width (bdc->btor, node);
       else
         len = btor_node_bv_get_width (bdc->btor, node);
       fprintf (file, "%d root %u %d\n", id, len, bdcid (bdc, node));

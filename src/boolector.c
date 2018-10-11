@@ -3384,7 +3384,7 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   if (btor_sort_is_fun (btor, btor_node_get_sort_id (exp)))
-    res = btor_node_get_fun_width (btor, exp);
+    res = btor_node_fun_get_width (btor, exp);
   else
     res = btor_node_bv_get_width (btor, exp);
   BTOR_TRAPI_RETURN_UINT (res);

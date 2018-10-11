@@ -1117,7 +1117,7 @@ btor_node_bv_get_width (Btor *btor, const BtorNode *exp)
 }
 
 uint32_t
-btor_node_get_fun_width (Btor *btor, const BtorNode *exp)
+btor_node_fun_get_width (Btor *btor, const BtorNode *exp)
 {
   assert (btor);
   assert (exp);
