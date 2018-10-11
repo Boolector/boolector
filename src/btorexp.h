@@ -175,7 +175,7 @@ BtorNode *btor_exp_bv_or (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array equality.
  * width(e0) = width(e1)
