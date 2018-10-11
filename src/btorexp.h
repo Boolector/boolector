@@ -312,7 +312,7 @@ BtorNode *btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_sub (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_sub (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are unsigned.
  * width(e0) = width(e1)

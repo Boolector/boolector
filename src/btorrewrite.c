@@ -3550,7 +3550,7 @@ apply_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   n01    = btor_node_copy (btor, e01);
   one    = btor_exp_one (btor, btor_node_get_sort_id (real_e0));
   tmp    = rewrite_mul_exp (btor, n00, n01);
-  sum    = btor_exp_sub (btor, tmp, one);
+  sum    = btor_exp_bv_sub (btor, tmp, one);
   result = rewrite_add_exp (btor, sum, e1);
   btor_node_release (btor, sum);
   btor_node_release (btor, tmp);
@@ -3593,7 +3593,7 @@ apply_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   n01    = btor_exp_bv_neg (btor, e01);
   one    = btor_exp_one (btor, btor_node_get_sort_id (real_e0));
   tmp    = rewrite_mul_exp (btor, n00, n01);
-  sum    = btor_exp_sub (btor, tmp, one);
+  sum    = btor_exp_bv_sub (btor, tmp, one);
   result = rewrite_add_exp (btor, sum, e1);
   btor_node_release (btor, sum);
   btor_node_release (btor, tmp);
@@ -6006,7 +6006,7 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
       assert (c0);
       assert (c1);
       n0 = btor_node_copy (btor, tmp1);
-      n1 = btor_exp_sub (btor, c0, c1);
+      n1 = btor_exp_bv_sub (btor, c0, c1);
       btor_node_release (btor, e0);
       btor_node_release (btor, e1);
       e0 = n0;

@@ -1533,9 +1533,9 @@ normalize_substitution (Btor *btor,
       && !btor_node_is_uf (real_left) && !btor_node_is_uf (real_right))
   {
     if (btor_rewrite_linear_term (btor, left, &fc, left_result, &tmp))
-      *right_result = btor_exp_sub (btor, right, tmp);
+      *right_result = btor_exp_bv_sub (btor, right, tmp);
     else if (btor_rewrite_linear_term (btor, right, &fc, left_result, &tmp))
-      *right_result = btor_exp_sub (btor, left, tmp);
+      *right_result = btor_exp_bv_sub (btor, left, tmp);
     else
       return false;
 

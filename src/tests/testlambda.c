@@ -710,8 +710,8 @@ test_lambda_param_ror (void)
 static void
 test_lambda_param_sub (void)
 {
-  binary_param_exp_test (0, btor_exp_sub);
-  binary_param_exp_test (1, btor_exp_sub);
+  binary_param_exp_test (0, btor_exp_bv_sub);
+  binary_param_exp_test (1, btor_exp_bv_sub);
 }
 
 static void

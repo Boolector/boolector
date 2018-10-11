@@ -126,7 +126,7 @@ create_range (Btor *btor,
   else if ((pos = btor_bv_power_of_two (offset)) > -1)
   {
     assert (pos > 0);
-    sub   = btor_exp_sub (btor, upper, param);
+    sub   = btor_exp_bv_sub (btor, upper, param);
     slice = btor_exp_bv_slice (btor, sub, pos - 1, 0);
     zero  = btor_exp_zero (btor, btor_node_get_sort_id (slice));
     eq    = btor_exp_eq (btor, slice, zero);
@@ -143,7 +143,7 @@ create_range (Btor *btor,
     zero = btor_exp_zero (btor, btor_node_get_sort_id (lower));
     off  = btor_exp_const (btor, offset);
     assert (btor_node_get_sort_id (off) == btor_node_get_sort_id (lower));
-    sub = btor_exp_sub (btor, upper, param);
+    sub = btor_exp_bv_sub (btor, upper, param);
     rem = btor_exp_urem (btor, sub, off);
     eq  = btor_exp_eq (btor, rem, zero);
     res = btor_exp_bv_and (btor, and, eq);
@@ -287,7 +287,7 @@ create_pattern_cpy (Btor *btor,
   read  = btor_exp_read (btor, dst_array, param);
   cond  = create_range (btor, lower, upper, param, offset);
 
-  sub      = btor_exp_sub (btor, param, dst_addr);
+  sub      = btor_exp_bv_sub (btor, param, dst_addr);
   add      = btor_exp_bv_add (btor, src_addr, sub);
   read_src = btor_exp_read (btor, src_array, add);
   ite      = btor_exp_cond (btor, cond, read_src, read);

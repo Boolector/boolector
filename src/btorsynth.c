@@ -1288,7 +1288,7 @@ init_ops (Btor *btor, Op *ops)
   if (btor->ops[BTOR_ADD_NODE].cur > 0)
   {
     INIT_OP (2, true, btor_exp_bv_add);
-    INIT_OP (2, false, btor_exp_sub);
+    INIT_OP (2, false, btor_exp_bv_sub);
   }
   if (btor->ops[BTOR_MUL_NODE].cur > 0) INIT_OP (2, true, btor_exp_bv_mul);
   if (btor->ops[BTOR_UDIV_NODE].cur > 0)
@@ -1319,7 +1319,7 @@ init_ops (Btor *btor, Op *ops)
   INIT_OP (2, false, btor_sgt_exp);
   INIT_OP (2, false, btor_ugte_exp);
   INIT_OP (2, false, btor_sgte_exp);
-  INIT_OP (2, false, btor_exp_sub);
+  INIT_OP (2, false, btor_exp_bv_sub);
   INIT_OP (2, false, btor_usubo_exp);
   INIT_OP (2, false, btor_ssubo_exp);
   INIT_OP (2, false, btor_exp_udiv);

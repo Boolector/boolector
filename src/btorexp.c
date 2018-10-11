@@ -1351,7 +1351,7 @@ btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1417,7 +1417,7 @@ btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   width       = btor_node_get_width (btor, e0);
   sign_e1     = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   sign_e2     = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
-  sub         = btor_exp_sub (btor, e0, e1);
+  sub         = btor_exp_bv_sub (btor, e0, e1);
   sign_result = btor_exp_bv_slice (btor, sub, width - 1, width - 1);
   and1        = btor_exp_bv_and (btor, btor_node_invert (sign_e1), sign_e2);
   or1         = btor_exp_bv_and (btor, and1, sign_result);
@@ -1772,7 +1772,7 @@ btor_exp_dec (Btor *btor, BtorNode *exp)
   assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
   one    = btor_exp_one (btor, btor_node_get_sort_id (exp));
-  result = btor_exp_sub (btor, exp, one);
+  result = btor_exp_bv_sub (btor, exp, one);
   btor_node_release (btor, one);
   return result;
 }

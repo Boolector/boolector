@@ -532,7 +532,7 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
 
   assert (exp3 == exp4);
   assert (exp4 != exp5);
-  if (func == btor_exp_sub || func == btor_exp_udiv || func == btor_exp_sdiv
+  if (func == btor_exp_bv_sub || func == btor_exp_udiv || func == btor_exp_sdiv
       || func == btor_exp_urem || func == btor_exp_srem
       || func == btor_exp_smod)
   {
@@ -613,7 +613,7 @@ test_sgte_exp (void)
 static void
 test_sub_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_sub);
+  binary_non_commutative_exp_test (btor_exp_bv_sub);
 }
 
 static void
