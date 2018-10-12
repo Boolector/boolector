@@ -2782,7 +2782,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       switch (real_cur->kind)
       {
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           result = btor_bv_slice (mm,
                                   e[0],
                                   btor_node_slice_get_upper (real_cur),

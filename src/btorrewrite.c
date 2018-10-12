@@ -5855,7 +5855,7 @@ find_top_add (Btor *btor, BtorNode *e)
   if (e->kind == BTOR_BV_ADD_NODE) return e;
   if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND) return 0;
   res = 0;
-  if (e->kind == BTOR_SLICE_NODE)
+  if (e->kind == BTOR_BV_SLICE_NODE)
   {
     BTOR_INC_REC_RW_CALL (btor);
     res = find_top_add (btor, e->e[0]);
@@ -5886,7 +5886,7 @@ rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
   {
     // TODO handle more operators ... (then here)
     //
-    assert (e->kind == BTOR_SLICE_NODE);
+    assert (e->kind == BTOR_BV_SLICE_NODE);
     tmp = rebuild_top_add (btor, e->e[0], c, r);
     res = rewrite_slice_exp (btor,
                              tmp,
@@ -6235,7 +6235,7 @@ rewrite_slice_exp (Btor *btor, BtorNode *e, uint32_t upper, uint32_t lower)
   assert (btor_dbg_precond_slice_exp (btor, e, upper, lower));
 
   result = check_rw_cache (
-      btor, BTOR_SLICE_NODE, btor_node_get_id (e), upper, lower);
+      btor, BTOR_BV_SLICE_NODE, btor_node_get_id (e), upper, lower);
 
   if (!result)
   {
@@ -6262,7 +6262,7 @@ rewrite_slice_exp (Btor *btor, BtorNode *e, uint32_t upper, uint32_t lower)
      * rule. */
     DONE:
       btor_rw_cache_add (btor->rw_cache,
-                         BTOR_SLICE_NODE,
+                         BTOR_BV_SLICE_NODE,
                          btor_node_get_id (e),
                          upper,
                          lower,

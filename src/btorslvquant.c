@@ -1424,7 +1424,7 @@ eval_exp (Btor *btor,
           result = btor_bv_copy (mm, a);
           break;
 
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           result = btor_bv_slice (mm,
                                   bv[0],
                                   btor_node_slice_get_upper (real_cur),

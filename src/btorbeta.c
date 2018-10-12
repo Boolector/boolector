@@ -345,7 +345,7 @@ beta_reduce (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           result = btor_exp_bv_slice (btor,
                                       e[0],
                                       btor_node_slice_get_upper (real_cur),
@@ -688,7 +688,7 @@ beta_reduce_partial_aux (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           result = btor_exp_bv_slice (btor,
                                       e[0],
                                       btor_node_slice_get_upper (real_cur),

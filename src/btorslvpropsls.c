@@ -723,7 +723,7 @@ btor_propsls_update_cone (Btor *btor,
       case BTOR_BV_UDIV_NODE: bv = btor_bv_udiv (mm, e[0], e[1]); break;
       case BTOR_BV_UREM_NODE: bv = btor_bv_urem (mm, e[0], e[1]); break;
       case BTOR_BV_CONCAT_NODE: bv = btor_bv_concat (mm, e[0], e[1]); break;
-      case BTOR_SLICE_NODE:
+      case BTOR_BV_SLICE_NODE:
         bv = btor_bv_slice (mm,
                             e[0],
                             btor_node_slice_get_upper (cur),
@@ -2348,7 +2348,9 @@ res_rec_conf (Btor *btor,
       case BTOR_BV_CONCAT_NODE:
         BTOR_PROP_SOLVER (btor)->stats.inv_concat -= 1;
         break;
-      case BTOR_SLICE_NODE: BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1; break;
+      case BTOR_BV_SLICE_NODE:
+        BTOR_PROP_SOLVER (btor)->stats.inv_slice -= 1;
+        break;
       default:
         assert (btor_node_is_bv_cond (exp));
         /* do not decrease, we do not call cons function in conflict case */
@@ -4333,7 +4335,7 @@ btor_propsls_select_move_prop (Btor *btor,
           select_path   = select_path_concat;
           compute_value = b ? inv_concat_bv : cons_concat_bv;
           break;
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           select_path   = select_path_slice;
           compute_value = b ? inv_slice_bv : cons_slice_bv;
           break;

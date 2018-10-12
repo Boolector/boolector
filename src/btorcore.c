@@ -2422,7 +2422,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_PARAM_NODE:
     case BTOR_UF_NODE:
       return btor_node_copy (btor, btor_simplify_exp (btor, exp));
-    case BTOR_SLICE_NODE:
+    case BTOR_BV_SLICE_NODE:
       return btor_exp_bv_slice (btor,
                                 exp->e[0],
                                 btor_node_slice_get_upper (exp),

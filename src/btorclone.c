@@ -1769,7 +1769,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
             btor_sort_release (clone, sort);
           }
           break;
-        case BTOR_SLICE_NODE:
+        case BTOR_BV_SLICE_NODE:
           cur_clone = btor_exp_bv_slice (clone,
                                          e[0],
                                          btor_node_slice_get_upper (cur),

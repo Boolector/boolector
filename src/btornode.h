@@ -49,7 +49,7 @@ enum BtorNodeKind
   BTOR_CONST_NODE     = 1,
   BTOR_VAR_NODE       = 2,
   BTOR_PARAM_NODE     = 3, /* parameter for lambda expressions */
-  BTOR_SLICE_NODE     = 4,
+  BTOR_BV_SLICE_NODE  = 4,
   BTOR_BV_AND_NODE    = 5,
   BTOR_BV_EQ_NODE     = 6, /* equality on bit vectors */
   BTOR_FUN_EQ_NODE    = 7, /* equality on arrays */
@@ -256,7 +256,7 @@ btor_node_is_synth (const BtorNode *node)
 static inline bool
 btor_node_is_unary_kind (BtorNodeKind kind)
 {
-  return kind == BTOR_SLICE_NODE;
+  return kind == BTOR_BV_SLICE_NODE;
 }
 
 static inline bool
@@ -397,7 +397,7 @@ static inline bool
 btor_node_is_bv_slice (const BtorNode *exp)
 {
   assert (exp);
-  return btor_node_real_addr (exp)->kind == BTOR_SLICE_NODE;
+  return btor_node_real_addr (exp)->kind == BTOR_BV_SLICE_NODE;
 }
 
 static inline bool

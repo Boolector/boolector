@@ -44,7 +44,7 @@
 const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE] = "invalid", [BTOR_CONST_NODE] = "const",
     [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
-    [BTOR_SLICE_NODE] = "slice",     [BTOR_BV_AND_NODE] = "and",
+    [BTOR_BV_SLICE_NODE] = "slice",  [BTOR_BV_AND_NODE] = "and",
     [BTOR_BV_EQ_NODE] = "beq",       [BTOR_FUN_EQ_NODE] = "feq",
     [BTOR_BV_ADD_NODE] = "add",      [BTOR_BV_MUL_NODE] = "mul",
     [BTOR_BV_ULT_NODE] = "ult",      [BTOR_BV_SLL_NODE] = "sll",
@@ -353,7 +353,7 @@ compute_hash_exp (Btor *btor, BtorNode *exp, uint32_t table_size)
                ->data.as_int;
   else if (btor_node_is_quantifier (exp))
     hash = btor_hashptr_table_get (exp->btor->quantifiers, exp)->data.as_int;
-  else if (exp->kind == BTOR_SLICE_NODE)
+  else if (exp->kind == BTOR_BV_SLICE_NODE)
     hash = hash_slice_exp (exp->e[0],
                            btor_node_slice_get_upper (exp),
                            btor_node_slice_get_lower (exp));
@@ -1442,7 +1442,7 @@ find_slice_exp (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   while (cur)
   {
     assert (btor_node_is_regular (cur));
-    if (cur->kind == BTOR_SLICE_NODE && cur->e[0] == e0
+    if (cur->kind == BTOR_BV_SLICE_NODE && cur->e[0] == e0
         && btor_node_slice_get_upper (cur) == upper
         && btor_node_slice_get_lower (cur) == lower)
       break;
@@ -1463,7 +1463,7 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
   uint32_t hash;
   BtorNode *cur, **result;
 
-  assert (kind != BTOR_SLICE_NODE);
+  assert (kind != BTOR_BV_SLICE_NODE);
   assert (kind != BTOR_CONST_NODE);
 
   sort_bv_exp (btor, kind, e);
@@ -1788,7 +1788,7 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   BtorBVSliceNode *exp = 0;
 
   BTOR_CNEW (btor->mm, exp);
-  set_kind (btor, (BtorNode *) exp, BTOR_SLICE_NODE);
+  set_kind (btor, (BtorNode *) exp, BTOR_BV_SLICE_NODE);
   exp->bytes = sizeof *exp;
   exp->arity = 1;
   exp->upper = upper;

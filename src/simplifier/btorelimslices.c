@@ -140,7 +140,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     {
       cur = btor_iter_parent_next (&it);
       assert (btor_node_is_regular (cur));
-      if (cur->kind == BTOR_SLICE_NODE)
+      if (cur->kind == BTOR_BV_SLICE_NODE)
       {
         s1 = new_slice (btor,
                         btor_node_slice_get_upper (cur),

@@ -58,7 +58,7 @@ btor_rw_cache_get (BtorRwCache *rwc,
 #ifndef NDEBUG
   assert (!nid0 || is_valid_node (rwc->btor, nid0));
   /* For slice nodes nid1 and nid2 correspond to the upper/lower indices. */
-  if (kind != BTOR_SLICE_NODE)
+  if (kind != BTOR_BV_SLICE_NODE)
   {
     assert (!nid1 || is_valid_node (rwc->btor, nid1));
     assert (!nid2 || is_valid_node (rwc->btor, nid2));
@@ -89,7 +89,7 @@ btor_rw_cache_add (BtorRwCache *rwc,
   assert (is_valid_node (rwc->btor, result));
   assert (!nid0 || is_valid_node (rwc->btor, nid0));
   /* For slice nodes nid1 and nid2 correspond to the upper/lower indices. */
-  if (kind != BTOR_SLICE_NODE)
+  if (kind != BTOR_BV_SLICE_NODE)
   {
     assert (!nid1 || is_valid_node (rwc->btor, nid1));
     assert (!nid2 || is_valid_node (rwc->btor, nid2));
@@ -100,7 +100,7 @@ btor_rw_cache_add (BtorRwCache *rwc,
    * nodes that let's the cache grow to several GB in some cases. For now, we
    * will disable caching of slice nodes until we find a better solution.
    * Note: Calling btor_rw_cache_gc(...) does not help here. */
-  if (kind == BTOR_SLICE_NODE)
+  if (kind == BTOR_BV_SLICE_NODE)
   {
     return;
   }
@@ -210,7 +210,7 @@ btor_rw_cache_gc (BtorRwCache *rwc)
 
     remove = !is_valid_node (btor, t->n[0]);
 
-    if (!remove && kind != BTOR_SLICE_NODE)
+    if (!remove && kind != BTOR_BV_SLICE_NODE)
     {
       if (t->n[1])
       {

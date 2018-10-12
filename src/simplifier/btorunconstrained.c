@@ -194,7 +194,7 @@ btor_optimize_unconstrained (Btor *btor)
 
         switch (cur->kind)
         {
-          case BTOR_SLICE_NODE:
+          case BTOR_BV_SLICE_NODE:
           case BTOR_APPLY_NODE:
             if (uc[0])
             {

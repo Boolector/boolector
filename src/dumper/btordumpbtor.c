@@ -350,7 +350,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_BV_UDIV_NODE: op = "udiv"; break;
     case BTOR_BV_ULT_NODE: op = "ult"; break;
     case BTOR_BV_UREM_NODE: op = "urem"; break;
-    case BTOR_SLICE_NODE: op = "slice"; break;
+    case BTOR_BV_SLICE_NODE: op = "slice"; break;
     case BTOR_UF_NODE:
       op = btor_node_is_uf_array (node) ? "array" : "uf";
       break;
@@ -517,7 +517,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       fprintf (file, " %d", bdcid (bdc, node->e[i]));
 
   /* print slice limits/var symbols */
-  if (node->kind == BTOR_SLICE_NODE)
+  if (node->kind == BTOR_BV_SLICE_NODE)
     fprintf (file,
              " %d %d",
              btor_node_slice_get_upper (node),
