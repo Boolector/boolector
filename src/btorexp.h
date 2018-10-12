@@ -336,14 +336,14 @@ BtorNode *btor_exp_bv_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 / e1 leads to an overflow if both are signed.
  * For example INT_MIN / -1.
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned modulo.
  * width(e0) = width(e1)

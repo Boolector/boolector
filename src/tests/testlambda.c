@@ -738,15 +738,15 @@ test_lambda_param_udiv (void)
 static void
 test_lambda_param_sdiv (void)
 {
-  binary_param_exp_test (0, btor_exp_sdiv);
-  binary_param_exp_test (1, btor_exp_sdiv);
+  binary_param_exp_test (0, btor_exp_bv_sdiv);
+  binary_param_exp_test (1, btor_exp_bv_sdiv);
 }
 
 static void
 test_lambda_param_sdivo (void)
 {
-  binary_param_exp_test (0, btor_exp_sdivo);
-  binary_param_exp_test (1, btor_exp_sdivo);
+  binary_param_exp_test (0, btor_exp_bv_sdivo);
+  binary_param_exp_test (1, btor_exp_bv_sdivo);
 }
 
 static void
