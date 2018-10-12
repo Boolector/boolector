@@ -530,12 +530,13 @@ is_urem_exp (Btor *btor,
 
   if (btor_node_is_inverted (mul) || !btor_node_is_bv_mul (mul)) return false;
 
-  if (!btor_node_is_inverted (mul->e[0]) && btor_node_is_udiv (mul->e[0]))
+  if (!btor_node_is_inverted (mul->e[0]) && btor_node_is_bv_udiv (mul->e[0]))
   {
     udiv = mul->e[0];
     y    = mul->e[0];
   }
-  else if (!btor_node_is_inverted (mul->e[1]) && btor_node_is_udiv (mul->e[1]))
+  else if (!btor_node_is_inverted (mul->e[1])
+           && btor_node_is_bv_udiv (mul->e[1]))
   {
     udiv = mul->e[1];
     y    = mul->e[0];
@@ -5416,7 +5417,7 @@ applies_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
          && !btor_node_is_inverted (e1) && !btor_node_is_inverted (e2)
          && e1->kind == e2->kind
          && (btor_node_is_bv_add (e1) || btor_node_is_bv_and (e1)
-             || btor_node_is_bv_mul (e1) || btor_node_is_udiv (e1)
+             || btor_node_is_bv_mul (e1) || btor_node_is_bv_udiv (e1)
              || btor_node_is_urem (e1))
          && e1->e[0] == e2->e[0];
 }
@@ -5449,7 +5450,7 @@ applies_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
          && !btor_node_is_inverted (e1) && !btor_node_is_inverted (e2)
          && e1->kind == e2->kind
          && (btor_node_is_bv_add (e1) || btor_node_is_bv_and (e1)
-             || btor_node_is_bv_mul (e1) || btor_node_is_udiv (e1)
+             || btor_node_is_bv_mul (e1) || btor_node_is_bv_udiv (e1)
              || btor_node_is_urem (e1))
          && e1->e[1] == e2->e[1];
 }
@@ -6650,7 +6651,7 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     assert (!result);
     if (!result)
     {
-      result = btor_node_create_udiv (btor, e0, e1);
+      result = btor_node_create_bv_udiv (btor, e0, e1);
     }
     else
     {

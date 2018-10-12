@@ -51,7 +51,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_srl (btor, e[0], e[1]);
     case BTOR_UDIV_NODE:
       assert (arity == 2);
-      return btor_exp_udiv (btor, e[0], e[1]);
+      return btor_exp_bv_udiv (btor, e[0], e[1]);
     case BTOR_UREM_NODE:
       assert (arity == 2);
       return btor_exp_urem (btor, e[0], e[1]);
@@ -1436,7 +1436,7 @@ btor_exp_bv_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1450,7 +1450,7 @@ btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_UDIV_NODE, e0, e1);
   else
-    result = btor_node_create_udiv (btor, e0, e1);
+    result = btor_node_create_bv_udiv (btor, e0, e1);
 
   assert (result);
   return result;
@@ -1484,7 +1484,7 @@ btor_exp_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   /* normalize e0 and e1 if necessary */
   cond_e1  = btor_exp_cond (btor, sign_e1, neg_e1, e0);
   cond_e2  = btor_exp_cond (btor, sign_e2, neg_e2, e1);
-  udiv     = btor_exp_udiv (btor, cond_e1, cond_e2);
+  udiv     = btor_exp_bv_udiv (btor, cond_e1, cond_e2);
   neg_udiv = btor_exp_bv_neg (btor, udiv);
   /* sign result if necessary */
   result = btor_exp_cond (btor, xor, neg_udiv, udiv);

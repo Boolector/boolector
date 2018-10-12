@@ -330,7 +330,7 @@ BtorNode *btor_exp_bv_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed divider.
  * width(e0) = width(e1)

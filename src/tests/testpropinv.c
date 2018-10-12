@@ -190,7 +190,7 @@ static void
 test_propinv_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (udiv, btor_exp_udiv);
+  TEST_PROP_INV_COMPLETE_BINARY (udiv, btor_exp_bv_udiv);
 #endif
 }
 
@@ -388,7 +388,7 @@ test_propinv_complete_slice_bv (void)
     if (eidx)                                                                 \
     {                                                                         \
       ce    = btor_exp_const (g_btor, bve);                                   \
-      cudiv = btor_exp_udiv (g_btor, ce, e[1]);                               \
+      cudiv = btor_exp_bv_udiv (g_btor, ce, e[1]);                            \
       res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 1);                     \
       assert (res);                                                           \
       assert (!btor_bv_is_umulo (g_mm, res, bvudiv));                         \
@@ -408,7 +408,7 @@ test_propinv_complete_slice_bv (void)
     else                                                                      \
     {                                                                         \
       ce    = btor_exp_const (g_btor, bve);                                   \
-      cudiv = btor_exp_udiv (g_btor, e[0], ce);                               \
+      cudiv = btor_exp_bv_udiv (g_btor, e[0], ce);                            \
       res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 0);                     \
       assert (res);                                                           \
       btor_bv_free (g_mm, res);                                               \
@@ -1075,7 +1075,7 @@ prop_inv_conf_udiv_bv (uint32_t bw)
   BtorBitVector *res, *bve, *bvudiv, *bvmax, *zero, *tmp, *tmp2;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (udiv, btor_exp_udiv);
+  TEST_PROP_INV_CONF_BINARY_INIT (udiv, btor_exp_bv_udiv);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);
