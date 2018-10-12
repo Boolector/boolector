@@ -3409,7 +3409,7 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_ABORT_IS_BV (e_array);
   BTOR_ABORT (btor_node_fun_get_arity (btor, e_array) > 1,
               "'n_array' is a function with arity > 1");
-  res = btor_node_get_index_width (btor, e_array);
+  res = btor_node_array_get_index_width (btor, e_array);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_index_width, BTOR_CLONED_EXP (e_array));

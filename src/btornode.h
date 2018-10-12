@@ -634,7 +634,7 @@ uint32_t btor_node_bv_get_width (Btor *btor, const BtorNode *exp);
 /* Get the bit width of the array elements / function return value. */
 uint32_t btor_node_get_fun_width (Btor *btor, const BtorNode *exp);
 /* Get the index width of an array expression */
-uint32_t btor_node_get_index_width (Btor *btor, const BtorNode *e_array);
+uint32_t btor_node_array_get_index_width (Btor *btor, const BtorNode *e_array);
 
 /*------------------------------------------------------------------------*/
 

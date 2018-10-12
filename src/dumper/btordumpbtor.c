@@ -426,7 +426,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         || btor_node_is_update (node))
     {
       fprintf (file, " %d", btor_node_get_fun_width (bdc->btor, node));
-      fprintf (file, " %d", btor_node_get_index_width (bdc->btor, node));
+      fprintf (file, " %d", btor_node_array_get_index_width (bdc->btor, node));
     }
     else if (btor_node_is_lambda (node))
     {

@@ -266,9 +266,9 @@ test_array_exp (void)
   assert (btor_node_get_fun_width (g_btor, exp1) == 32);
   assert (btor_node_get_fun_width (g_btor, exp2) == 32);
   assert (btor_node_get_fun_width (g_btor, exp3) == 32);
-  assert (btor_node_get_index_width (g_btor, exp1) == 8);
-  assert (btor_node_get_index_width (g_btor, exp2) == 8);
-  assert (btor_node_get_index_width (g_btor, exp3) == 8);
+  assert (btor_node_array_get_index_width (g_btor, exp1) == 8);
+  assert (btor_node_array_get_index_width (g_btor, exp2) == 8);
+  assert (btor_node_array_get_index_width (g_btor, exp3) == 8);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp2);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
@@ -798,7 +798,7 @@ test_read_exp (void)
 
   assert (exp4 == exp3);
   assert (btor_node_get_fun_width (g_btor, exp1) == 32);
-  assert (btor_node_get_index_width (g_btor, exp1) == 8);
+  assert (btor_node_array_get_index_width (g_btor, exp1) == 8);
   assert (btor_node_bv_get_width (g_btor, exp2) == 8);
   assert (btor_node_bv_get_width (g_btor, exp3) == 32);
   assert (btor_node_bv_get_width (g_btor, exp4) == 32);

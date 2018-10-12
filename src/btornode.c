@@ -1129,7 +1129,7 @@ btor_node_get_fun_width (Btor *btor, const BtorNode *exp)
 }
 
 uint32_t
-btor_node_get_index_width (Btor *btor, const BtorNode *e_array)
+btor_node_array_get_index_width (Btor *btor, const BtorNode *e_array)
 {
   assert (btor);
   assert (e_array);
