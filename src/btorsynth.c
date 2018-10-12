@@ -1299,7 +1299,7 @@ init_ops (Btor *btor, Op *ops)
   if (btor->ops[BTOR_UREM_NODE].cur > 0)
   {
     INIT_OP (2, false, btor_exp_bv_urem);
-    INIT_OP (2, false, btor_exp_srem);
+    INIT_OP (2, false, btor_exp_bv_srem);
     INIT_OP (2, false, btor_exp_smod);
   }
 #if 0
@@ -1326,7 +1326,7 @@ init_ops (Btor *btor, Op *ops)
   INIT_OP (2, false, btor_exp_bv_sdiv);
   INIT_OP (2, false, btor_sdivo_exp);
   INIT_OP (2, false, btor_exp_bv_urem);
-  INIT_OP (2, false, btor_exp_srem);
+  INIT_OP (2, false, btor_exp_bv_srem);
   INIT_OP (2, false, btor_exp_smod);
   INIT_OP (2, false, btor_concat_exp);
 #endif
