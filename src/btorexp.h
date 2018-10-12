@@ -349,7 +349,7 @@ BtorNode *btor_exp_bv_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = width(e0) = width(e1)
  */
-BtorNode *btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_urem (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo.
  * width(e0) = width(e1)

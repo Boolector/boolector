@@ -54,7 +54,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_udiv (btor, e[0], e[1]);
     case BTOR_UREM_NODE:
       assert (arity == 2);
-      return btor_exp_urem (btor, e[0], e[1]);
+      return btor_exp_bv_urem (btor, e[0], e[1]);
     case BTOR_CONCAT_NODE:
       assert (arity == 2);
       return btor_exp_concat (btor, e[0], e[1]);
@@ -1525,7 +1525,7 @@ btor_exp_bv_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -1539,7 +1539,7 @@ btor_exp_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_UREM_NODE, e0, e1);
   else
-    result = btor_node_create_urem (btor, e0, e1);
+    result = btor_node_create_bv_urem (btor, e0, e1);
 
   assert (result);
   return result;
@@ -1570,7 +1570,7 @@ btor_exp_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
   /* normalize e0 and e1 if necessary */
   cond_e0  = btor_exp_cond (btor, sign_e0, neg_e0, e0);
   cond_e1  = btor_exp_cond (btor, sign_e1, neg_e1, e1);
-  urem     = btor_exp_urem (btor, cond_e0, cond_e1);
+  urem     = btor_exp_bv_urem (btor, cond_e0, cond_e1);
   neg_urem = btor_exp_bv_neg (btor, urem);
   /* sign result if necessary */
   /* result is negative if e0 is negative */
@@ -1618,7 +1618,7 @@ btor_exp_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
   /* normalize e0 and e1 if necessary */
   cond_e0    = btor_exp_cond (btor, sign_e0, neg_e0, e0);
   cond_e1    = btor_exp_cond (btor, sign_e1, neg_e1, e1);
-  urem       = btor_exp_urem (btor, cond_e0, cond_e1);
+  urem       = btor_exp_bv_urem (btor, cond_e0, cond_e1);
   urem_zero  = btor_exp_eq (btor, urem, zero);
   neg_urem   = btor_exp_bv_neg (btor, urem);
   add1       = btor_exp_bv_add (btor, neg_urem, e1);

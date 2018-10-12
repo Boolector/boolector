@@ -179,7 +179,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
     case BTOR_SLL_NODE: res = btor_exp_bv_sll (btor, e[0], e[1]); break;
     case BTOR_SRL_NODE: res = btor_exp_bv_srl (btor, e[0], e[1]); break;
     case BTOR_UDIV_NODE: res = btor_exp_bv_udiv (btor, e[0], e[1]); break;
-    case BTOR_UREM_NODE: res = btor_exp_urem (btor, e[0], e[1]); break;
+    case BTOR_UREM_NODE: res = btor_exp_bv_urem (btor, e[0], e[1]); break;
     case BTOR_CONCAT_NODE: res = btor_exp_concat (btor, e[0], e[1]); break;
     case BTOR_ARGS_NODE: res = btor_exp_args (btor, e, node->arity); break;
     case BTOR_UPDATE_NODE:

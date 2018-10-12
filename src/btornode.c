@@ -2399,7 +2399,7 @@ btor_node_create_bv_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_node_create_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_node_create_bv_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, e0);

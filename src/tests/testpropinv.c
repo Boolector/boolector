@@ -198,7 +198,7 @@ static void
 test_propinv_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (urem, btor_exp_urem);
+  TEST_PROP_INV_COMPLETE_BINARY (urem, btor_exp_bv_urem);
 #endif
 }
 
@@ -1160,7 +1160,7 @@ prop_inv_conf_urem_bv (uint32_t bw)
   BtorBitVector *res, *bve, *bvurem, *bvmax, *zero, *two, *tmp, *tmp2;
   BtorSolver *slv = 0;
 
-  TEST_PROP_INV_CONF_BINARY_INIT (urem, btor_exp_urem);
+  TEST_PROP_INV_CONF_BINARY_INIT (urem, btor_exp_bv_urem);
 
   zero  = btor_bv_new (g_mm, bw);
   bvmax = btor_bv_ones (g_mm, bw);
@@ -1176,7 +1176,7 @@ PROP_INV_CONF_UREM_TESTS:
     tmp   = btor_bv_dec (g_mm, bvmax);
     bve   = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, zero, tmp);
     ce    = btor_exp_const (g_btor, bve);
-    curem = btor_exp_urem (g_btor, ce, e[1]);
+    curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
     assert (btor_bv_is_zero (res));
@@ -1206,7 +1206,7 @@ PROP_INV_CONF_UREM_TESTS:
     bve = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, zero, tmp);
     btor_bv_free (g_mm, tmp);
     ce    = btor_exp_const (g_btor, bve);
-    curem = btor_exp_urem (g_btor, ce, e[1]);
+    curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
     btor_bv_free (g_mm, res);
@@ -1238,7 +1238,7 @@ PROP_INV_CONF_UREM_TESTS:
     btor_bv_free (g_mm, tmp);
     btor_bv_free (g_mm, tmp2);
     ce    = btor_exp_const (g_btor, bve);
-    curem = btor_exp_urem (g_btor, ce, e[1]);
+    curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
     btor_bv_free (g_mm, res);
@@ -1265,7 +1265,7 @@ PROP_INV_CONF_UREM_TESTS:
     tmp   = btor_bv_inc (g_mm, zero);
     bve   = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvmax);
     ce    = btor_exp_const (g_btor, bve);
-    curem = btor_exp_urem (g_btor, e[0], ce);
+    curem = btor_exp_bv_urem (g_btor, e[0], ce);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 0);
     assert (res);
     assert (!btor_bv_compare (res, bvurem));
@@ -1292,7 +1292,7 @@ PROP_INV_CONF_UREM_TESTS:
     bvurem = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvmax);
     bve    = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvurem);
     ce     = btor_exp_const (g_btor, bve);
-    curem  = btor_exp_urem (g_btor, e[0], ce);
+    curem  = btor_exp_bv_urem (g_btor, e[0], ce);
     res    = inv_urem_bv (g_btor, urem, bvurem, bve, 0);
     assert (res);
     btor_bv_free (g_mm, res);

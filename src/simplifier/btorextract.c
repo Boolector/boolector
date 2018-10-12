@@ -144,7 +144,7 @@ create_range (Btor *btor,
     off  = btor_exp_const (btor, offset);
     assert (btor_node_get_sort_id (off) == btor_node_get_sort_id (lower));
     sub = btor_exp_bv_sub (btor, upper, param);
-    rem = btor_exp_urem (btor, sub, off);
+    rem = btor_exp_bv_urem (btor, sub, off);
     eq  = btor_exp_eq (btor, rem, zero);
     res = btor_exp_bv_and (btor, and, eq);
 
