@@ -1300,7 +1300,7 @@ init_ops (Btor *btor, Op *ops)
   {
     INIT_OP (2, false, btor_exp_bv_urem);
     INIT_OP (2, false, btor_exp_bv_srem);
-    INIT_OP (2, false, btor_exp_smod);
+    INIT_OP (2, false, btor_exp_bv_smod);
   }
 #if 0
   INIT_OP (2, true,  btor_ne_exp);
@@ -1327,7 +1327,7 @@ init_ops (Btor *btor, Op *ops)
   INIT_OP (2, false, btor_sdivo_exp);
   INIT_OP (2, false, btor_exp_bv_urem);
   INIT_OP (2, false, btor_exp_bv_srem);
-  INIT_OP (2, false, btor_exp_smod);
+  INIT_OP (2, false, btor_exp_bv_smod);
   INIT_OP (2, false, btor_concat_exp);
 #endif
   INIT_OP (3, false, btor_exp_cond);

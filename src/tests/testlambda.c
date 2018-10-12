@@ -766,8 +766,8 @@ test_lambda_param_srem (void)
 static void
 test_lambda_param_smod (void)
 {
-  binary_param_exp_test (0, btor_exp_smod);
-  binary_param_exp_test (1, btor_exp_smod);
+  binary_param_exp_test (0, btor_exp_bv_smod);
+  binary_param_exp_test (1, btor_exp_bv_smod);
 }
 
 static void
