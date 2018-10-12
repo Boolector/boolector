@@ -717,15 +717,15 @@ test_lambda_param_sub (void)
 static void
 test_lambda_param_usubo (void)
 {
-  binary_param_exp_test (0, btor_exp_usubo);
-  binary_param_exp_test (1, btor_exp_usubo);
+  binary_param_exp_test (0, btor_exp_bv_usubo);
+  binary_param_exp_test (1, btor_exp_bv_usubo);
 }
 
 static void
 test_lambda_param_ssubo (void)
 {
-  binary_param_exp_test (0, btor_exp_ssubo);
-  binary_param_exp_test (1, btor_exp_ssubo);
+  binary_param_exp_test (0, btor_exp_bv_ssubo);
+  binary_param_exp_test (1, btor_exp_bv_ssubo);
 }
 
 static void

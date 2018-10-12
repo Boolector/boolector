@@ -619,13 +619,13 @@ test_sub_exp (void)
 static void
 test_usubo_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_usubo);
+  binary_non_commutative_exp_test (btor_exp_bv_usubo);
 }
 
 static void
 test_ssubo_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_ssubo);
+  binary_non_commutative_exp_test (btor_exp_bv_ssubo);
 }
 
 static void

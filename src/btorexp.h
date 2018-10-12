@@ -318,13 +318,13 @@ BtorNode *btor_exp_bv_sub (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_usubo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_usubo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are signed.
  * width(e0) = width(e1)
  * width(result) = 1
  */
-BtorNode *btor_exp_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned divider.
  * width(e0) = width(e1)
