@@ -374,8 +374,8 @@ btor_dumpsmt_dump_sort_node (BtorNode *exp, FILE *file)
     s_cid = btor_sort_fun_get_codomain (btor, s_fid);
     fprintf (file,
              "(Array (_ BitVec %d) (_ BitVec %d))",
-             btor_sort_bitvec_get_width (btor, s_did),
-             btor_sort_bitvec_get_width (btor, s_cid));
+             btor_sort_bv_get_width (btor, s_did),
+             btor_sort_bv_get_width (btor, s_cid));
   }
   else
   {

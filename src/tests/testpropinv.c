@@ -30,7 +30,7 @@ static BtorRNG *g_rng;
   do                                               \
   {                                                \
     bw   = TEST_PROP_INV_COMPLETE_BW;              \
-    sort = btor_sort_bitvec (g_btor, bw);          \
+    sort = btor_sort_bv (g_btor, bw);          \
     e[0] = btor_exp_var (g_btor, sort, 0);         \
     e[1] = btor_exp_var (g_btor, sort, 0);         \
     btor_sort_release (g_btor, sort);              \
@@ -42,10 +42,10 @@ static BtorRNG *g_rng;
   {                                               \
     bw   = TEST_PROP_INV_COMPLETE_BW;             \
     sbw  = btor_util_log_2 (bw);                  \
-    sort = btor_sort_bitvec (g_btor, bw);         \
+    sort = btor_sort_bv (g_btor, bw);         \
     e[0] = btor_exp_var (g_btor, sort, 0);        \
     btor_sort_release (g_btor, sort);             \
-    sort = btor_sort_bitvec (g_btor, sbw);        \
+    sort = btor_sort_bv (g_btor, sbw);        \
     e[1] = btor_exp_var (g_btor, sort, 0);        \
     btor_sort_release (g_btor, sort);             \
     exp = expfun (g_btor, e[0], e[1]);            \
@@ -221,7 +221,7 @@ test_propinv_complete_slice_bv (void)
   BtorSortId sort;
 
   bw   = TEST_PROP_INV_COMPLETE_BW;
-  sort = btor_sort_bitvec (g_btor, bw);
+  sort = btor_sort_bv (g_btor, bw);
   e    = btor_exp_var (g_btor, sort, 0);
   btor_sort_release (g_btor, sort);
 
@@ -262,7 +262,7 @@ test_propinv_complete_slice_bv (void)
 #define TEST_PROP_INV_CONF_BINARY_INIT(fun, expfun) \
   do                                                \
   {                                                 \
-    sort = btor_sort_bitvec (g_btor, bw);           \
+    sort = btor_sort_bv (g_btor, bw);           \
     e[0] = btor_exp_var (g_btor, sort, 0);          \
     e[1] = btor_exp_var (g_btor, sort, 0);          \
     btor_sort_release (g_btor, sort);               \
@@ -272,10 +272,10 @@ test_propinv_complete_slice_bv (void)
 #define TEST_PROP_INV_CONF_SHIFT_INIT(fun, expfun)          \
   do                                                        \
   {                                                         \
-    sort = btor_sort_bitvec (g_btor, bw);                   \
+    sort = btor_sort_bv (g_btor, bw);                   \
     e[0] = btor_exp_var (g_btor, sort, 0);                  \
     btor_sort_release (g_btor, sort);                       \
-    sort = btor_sort_bitvec (g_btor, btor_util_log_2 (bw)); \
+    sort = btor_sort_bv (g_btor, btor_util_log_2 (bw)); \
     e[1] = btor_exp_var (g_btor, sort, 0);                  \
     btor_sort_release (g_btor, sort);                       \
     fun = expfun (g_btor, e[0], e[1]);                      \
@@ -1351,8 +1351,8 @@ PROP_INV_CONF_CONCAT_TESTS:
   {
     bws[0]   = btor_rng_pick_rand (&g_btor->rng, 1, bw - 1);
     bws[1]   = bw - bws[0];
-    sorts[0] = btor_sort_bitvec (g_btor, bw);
-    sorts[1] = btor_sort_bitvec (g_btor, bw);
+    sorts[0] = btor_sort_bv (g_btor, bw);
+    sorts[1] = btor_sort_bv (g_btor, bw);
     e[0]     = btor_exp_var (g_btor, sorts[0], 0);
     e[1]     = btor_exp_var (g_btor, sorts[1], 0);
     concat   = btor_exp_bv_concat (g_btor, e[0], e[1]);

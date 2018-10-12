@@ -63,7 +63,7 @@ test_normquant_inv_exists (void)
   BtorNode *exists, *eqx, *eqy, *x[2], *y[2], *expected, *result;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   x[0]   = btor_exp_param (g_btor, sort, "x0");
   x[1]   = btor_exp_param (g_btor, sort, "x1");
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
@@ -100,7 +100,7 @@ test_normquant_inv_forall (void)
   BtorNode *forall, *eqx, *eqy, *x[2], *y[2], *expected, *result;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   x[0]   = btor_exp_param (g_btor, sort, 0);
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
@@ -139,7 +139,7 @@ test_normquant_inv_exists_nested (void)
   BtorNode *result;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   x[0]   = btor_exp_param (g_btor, sort, 0);
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
@@ -180,7 +180,7 @@ test_normquant_inv_exists_nested2 (void)
   BtorNode *result;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   x[0]   = btor_exp_param (g_btor, sort, 0);
   x[1]   = btor_exp_param (g_btor, sort, 0);
   eqx    = btor_exp_eq (g_btor, x[0], x[1]);
@@ -280,7 +280,7 @@ test_normquant_inv_and_exists (void)
   BtorNode *result;
   BtorSortId sort;
 
-  sort    = btor_sort_bitvec (g_btor, 32);
+  sort    = btor_sort_bv (g_btor, 32);
   x       = btor_exp_param (g_btor, sort, 0);
   y[0]    = btor_exp_param (g_btor, sort, 0);
   y[1]    = btor_exp_param (g_btor, sort, 0);
@@ -349,7 +349,7 @@ test_normquant_normalize_negated_quant (void)
   BtorNode *result;
   BtorSortId sort;
 
-  sort    = btor_sort_bitvec (g_btor, 32);
+  sort    = btor_sort_bv (g_btor, 32);
   x       = btor_exp_param (g_btor, sort, "x");
   y       = btor_exp_param (g_btor, sort, "y");
   zero    = btor_exp_zero (g_btor, sort);
@@ -383,7 +383,7 @@ test_normquant_expand_quant (void)
 
   btor_opt_set (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
-  sort    = btor_sort_bitvec (g_btor, 32);
+  sort    = btor_sort_bv (g_btor, 32);
   x       = btor_exp_param (g_btor, sort, "x");
   redandx = btor_exp_bv_redand (g_btor, x);
   forall  = btor_exp_forall (g_btor, x, redandx);
@@ -438,7 +438,7 @@ test_normquant_elim_ite1 (void)
   BtorNode *result;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   v      = btor_exp_var (g_btor, sort, "v");
   v0     = btor_exp_var (g_btor, sort, "v0");
   v1     = btor_exp_var (g_btor, sort, "v1");
@@ -529,7 +529,7 @@ test_normquant_elim_ite2 (void)
   BtorNode *result, *uf, *V[2], *forallX;
   BtorSortId sort;
 
-  sort   = btor_sort_bitvec (g_btor, 32);
+  sort   = btor_sort_bv (g_btor, 32);
   v0     = btor_exp_var (g_btor, sort, "v0");
   v1     = btor_exp_var (g_btor, sort, "v1");
   x      = btor_exp_param (g_btor, sort, "x");

@@ -112,13 +112,13 @@ btor_exp_zero (Btor *btor, BtorSortId sort)
 {
   assert (btor);
   assert (sort);
-  assert (btor_sort_is_bitvec (btor, sort));
+  assert (btor_sort_is_bv (btor, sort));
 
   uint32_t width;
   BtorNode *result;
   BtorBitVector *bv;
 
-  width  = btor_sort_bitvec_get_width (btor, sort);
+  width  = btor_sort_bv_get_width (btor, sort);
   bv     = btor_bv_new (btor->mm, width);
   result = btor_exp_const (btor, bv);
   btor_bv_free (btor->mm, bv);
@@ -130,13 +130,13 @@ btor_exp_ones (Btor *btor, BtorSortId sort)
 {
   assert (btor);
   assert (sort);
-  assert (btor_sort_is_bitvec (btor, sort));
+  assert (btor_sort_is_bv (btor, sort));
 
   uint32_t width;
   BtorNode *result;
   BtorBitVector *bv;
 
-  width  = btor_sort_bitvec_get_width (btor, sort);
+  width  = btor_sort_bv_get_width (btor, sort);
   bv     = btor_bv_ones (btor->mm, width);
   result = btor_exp_const (btor, bv);
   btor_bv_free (btor->mm, bv);
@@ -148,13 +148,13 @@ btor_exp_one (Btor *btor, BtorSortId sort)
 {
   assert (btor);
   assert (sort);
-  assert (btor_sort_is_bitvec (btor, sort));
+  assert (btor_sort_is_bv (btor, sort));
 
   uint32_t width;
   BtorNode *result;
   BtorBitVector *bv;
 
-  width  = btor_sort_bitvec_get_width (btor, sort);
+  width  = btor_sort_bv_get_width (btor, sort);
   bv     = btor_bv_one (btor->mm, width);
   result = btor_exp_const (btor, bv);
   btor_bv_free (btor->mm, bv);
@@ -166,13 +166,13 @@ btor_exp_int (Btor *btor, int32_t i, BtorSortId sort)
 {
   assert (btor);
   assert (sort);
-  assert (btor_sort_is_bitvec (btor, sort));
+  assert (btor_sort_is_bv (btor, sort));
 
   uint32_t width;
   BtorNode *result;
   BtorBitVector *bv;
 
-  width  = btor_sort_bitvec_get_width (btor, sort);
+  width  = btor_sort_bv_get_width (btor, sort);
   bv     = btor_bv_int64_to_bv (btor->mm, i, width);
   result = btor_exp_const (btor, bv);
   btor_bv_free (btor->mm, bv);
@@ -184,13 +184,13 @@ btor_exp_unsigned (Btor *btor, uint32_t u, BtorSortId sort)
 {
   assert (btor);
   assert (sort);
-  assert (btor_sort_is_bitvec (btor, sort));
+  assert (btor_sort_is_bv (btor, sort));
 
   uint32_t width;
   BtorNode *result;
   BtorBitVector *bv;
 
-  width  = btor_sort_bitvec_get_width (btor, sort);
+  width  = btor_sort_bv_get_width (btor, sort);
   bv     = btor_bv_uint64_to_bv (btor->mm, u, width);
   result = btor_exp_const (btor, bv);
   btor_bv_free (btor->mm, bv);
@@ -205,7 +205,7 @@ btor_exp_true (Btor *btor)
   BtorSortId sort;
   BtorNode *result;
 
-  sort   = btor_sort_bitvec (btor, 1);
+  sort   = btor_sort_bv (btor, 1);
   result = btor_exp_one (btor, sort);
   btor_sort_release (btor, sort);
   return result;
@@ -219,7 +219,7 @@ btor_exp_false (Btor *btor)
   BtorSortId sort;
   BtorNode *result;
 
-  sort   = btor_sort_bitvec (btor, 1);
+  sort   = btor_sort_bv (btor, 1);
   result = btor_exp_zero (btor, sort);
   btor_sort_release (btor, sort);
   return result;
@@ -750,7 +750,7 @@ btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width)
   else
   {
     assert (width > 0);
-    sort = btor_sort_bitvec (btor, width);
+    sort = btor_sort_bv (btor, width);
     zero = btor_exp_zero (btor, sort);
     btor_sort_release (btor, sort);
     result = btor_exp_bv_concat (btor, zero, exp);
@@ -776,7 +776,7 @@ btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width)
   else
   {
     assert (width > 0);
-    sort = btor_sort_bitvec (btor, width);
+    sort = btor_sort_bv (btor, width);
     zero = btor_exp_zero (btor, sort);
     ones = btor_exp_ones (btor, sort);
     btor_sort_release (btor, sort);
@@ -952,7 +952,7 @@ btor_exp_bv_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   width = btor_node_bv_get_width (btor, e0);
   if (width == 1)
   {
-    sort   = btor_sort_bitvec (btor, 1);
+    sort   = btor_sort_bv (btor, 1);
     result = btor_exp_zero (btor, sort);
     btor_sort_release (btor, sort);
     return result;
@@ -1386,7 +1386,7 @@ btor_exp_bv_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   uext_e1 = btor_exp_bv_uext (btor, e0, 1);
   uext_e2 = btor_exp_bv_uext (btor, btor_node_invert (e1), 1);
   assert (width < INT32_MAX);
-  sort = btor_sort_bitvec (btor, width + 1);
+  sort = btor_sort_bv (btor, width + 1);
   one  = btor_exp_one (btor, sort);
   btor_sort_release (btor, sort);
   add1   = btor_exp_bv_add (btor, uext_e2, one);

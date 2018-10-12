@@ -964,7 +964,7 @@ synthesize (Btor *btor,
   BTOR_INIT_STACK (mm, candidates.nexps_level);
   BTOR_PUSH_STACK (candidates.nexps_level, 0);
 
-  target_sort = btor_sort_bitvec (btor, value_out[0]->width);
+  target_sort = btor_sort_bv (btor, value_out[0]->width);
 
   /* generate target signature */
   tmp_value_out = value_out;

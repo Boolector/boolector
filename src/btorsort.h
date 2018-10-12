@@ -111,7 +111,7 @@ struct BtorSortUniqueTable
 
 BtorSortId btor_sort_bool (Btor *btor);
 
-BtorSortId btor_sort_bitvec (Btor *btor, uint32_t width);
+BtorSortId btor_sort_bv (Btor *btor, uint32_t width);
 
 BtorSortId btor_sort_array (Btor *btor,
                             BtorSortId index_id,
@@ -137,7 +137,7 @@ void btor_sort_release (Btor *btor, BtorSortId id);
 
 BtorSort *btor_sort_get_by_id (Btor *btor, BtorSortId id);
 
-uint32_t btor_sort_bitvec_get_width (Btor *btor, BtorSortId id);
+uint32_t btor_sort_bv_get_width (Btor *btor, BtorSortId id);
 
 uint32_t btor_sort_fun_get_arity (Btor *btor, BtorSortId id);
 uint32_t btor_sort_tuple_get_arity (Btor *btor, BtorSortId id);
@@ -152,7 +152,7 @@ bool btor_sort_is_valid (Btor *btor, BtorSortId id);
 
 bool btor_sort_is_bool (Btor *btor, BtorSortId id);
 
-bool btor_sort_is_bitvec (Btor *btor, BtorSortId id);
+bool btor_sort_is_bv (Btor *btor, BtorSortId id);
 
 bool btor_sort_is_array (Btor *btor, BtorSortId id);
 

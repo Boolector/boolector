@@ -268,14 +268,14 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
            compare_slices_qsort);
 
     s1     = sorted_slices[slices->count - 1];
-    sort   = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
+    sort   = btor_sort_bv (btor, s1->upper - s1->lower + 1);
     result = btor_exp_var (btor, sort, 0);
     btor_sort_release (btor, sort);
     delete_slice (btor, s1);
     for (i = (int32_t) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
-      sort       = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
+      sort       = btor_sort_bv (btor, s1->upper - s1->lower + 1);
       lambda_var = btor_exp_var (btor, sort, 0);
       btor_sort_release (btor, sort);
       temp = btor_exp_bv_concat (btor, result, lambda_var);

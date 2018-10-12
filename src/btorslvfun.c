@@ -474,7 +474,7 @@ create_function_inequality (Btor *btor, BtorNode *feq)
   while (btor_iter_tuple_sort_has_next (&it))
   {
     sort = btor_iter_tuple_sort_next (&it);
-    assert (btor_sort_is_bitvec (btor, sort));
+    assert (btor_sort_is_bv (btor, sort));
     var = btor_exp_var (btor, sort, 0);
     BTOR_PUSH_STACK (args, var);
   }

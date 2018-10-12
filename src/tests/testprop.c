@@ -82,8 +82,8 @@ prop_complete_binary_eidx (
   BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
   BtorSortId sort0, sort1;
 
-  sort0 = btor_sort_bitvec (g_btor, bw0);
-  sort1 = btor_sort_bitvec (g_btor, bw1);
+  sort0 = btor_sort_bv (g_btor, bw0);
+  sort1 = btor_sort_bv (g_btor, bw1);
   e[0]  = btor_exp_var (g_btor, sort0, 0);
   e[1]  = btor_exp_var (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
@@ -401,7 +401,7 @@ test_prop_complete_slice_bv (void)
 
   TEST_PROP_INIT;
   bw   = TEST_PROP_COMPLETE_BW;
-  sort = btor_sort_bitvec (g_btor, bw);
+  sort = btor_sort_bv (g_btor, bw);
 
   for (lo = 0; lo < bw; lo++)
   {

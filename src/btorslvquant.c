@@ -501,7 +501,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
         if (btor_node_is_param (real_cur))
         {
           sym    = btor_node_get_symbol (btor, real_cur);
-          sortid = btor_sort_bitvec (dual_btor,
+          sortid = btor_sort_bv (dual_btor,
                                      btor_node_bv_get_width (btor, real_cur));
           result = btor_exp_param (dual_btor, sortid, sym);
           btor_sort_release (dual_btor, sortid);
@@ -743,7 +743,7 @@ setup_solvers (BtorQuantSolver *slv,
        * existential variable 'cur'*/
       assert (btor_node_is_args (tmp));
 
-      cdsortid = btor_sort_bitvec (res->exists, width);
+      cdsortid = btor_sort_bv (res->exists, width);
       dsortid  = btor_clone_recursively_rebuild_sort (
           res->forall, res->exists, tmp->sort_id);
       funsortid = btor_sort_fun (res->exists, dsortid, cdsortid);
@@ -754,7 +754,7 @@ setup_solvers (BtorQuantSolver *slv,
     }
     else
     {
-      dsortid = btor_sort_bitvec (res->exists, width);
+      dsortid = btor_sort_bv (res->exists, width);
       var     = btor_exp_var (res->exists, dsortid, sym);
       btor_sort_release (res->exists, dsortid);
     }
@@ -878,7 +878,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
       {
         assert (!btor_node_param_is_exists_var (real_cur));
         assert (!btor_node_param_is_forall_var (real_cur));
-        sort = btor_sort_bitvec (
+        sort = btor_sort_bv (
             btor, btor_node_bv_get_width (real_cur->btor, real_cur));
         result = btor_exp_param (btor, sort, 0);
         btor_sort_release (btor, sort);
@@ -1100,7 +1100,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
 
   dsortid =
       btor_sort_tuple (btor, tup_sorts.start, BTOR_COUNT_STACK (tup_sorts));
-  cdsortid  = btor_sort_bitvec (btor, value->width);
+  cdsortid  = btor_sort_bv (btor, value->width);
   funsortid = btor_sort_fun (btor, dsortid, cdsortid);
   btor_sort_release (btor, dsortid);
   btor_sort_release (btor, cdsortid);
@@ -2154,7 +2154,7 @@ build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
         }
         else
         {
-          sort = btor_sort_bitvec (
+          sort = btor_sort_bv (
               btor, btor_node_bv_get_width (real_cur->btor, real_cur));
           result = btor_exp_param (btor, sort, 0);
           btor_sort_release (btor, sort);

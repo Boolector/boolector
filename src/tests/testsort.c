@@ -61,10 +61,10 @@ test_bitvec_sort (void)
 
   for (i = 1; i <= 128; i++)
   {
-    s0 = btor_sort_bitvec (g_btor, i);
+    s0 = btor_sort_bv (g_btor, i);
     for (j = 1; j <= 128; j++)
     {
-      s1 = btor_sort_bitvec (g_btor, j);
+      s1 = btor_sort_bv (g_btor, j);
       assert (i != j || s0 == s1);
       assert (i == j || s0 != s1);
       btor_sort_release (g_btor, s1);
@@ -83,17 +83,17 @@ test_array_sort (void)
 
   for (i = 1; i <= 16; i++)
   {
-    s0 = btor_sort_bitvec (g_btor, i);
+    s0 = btor_sort_bv (g_btor, i);
     for (j = 1; j <= 8; j++)
     {
-      s1 = btor_sort_bitvec (g_btor, j);
+      s1 = btor_sort_bv (g_btor, j);
       a0 = btor_sort_array (g_btor, s0, s1);
       for (k = 1; k <= 16; k++)
       {
-        s2 = btor_sort_bitvec (g_btor, k);
+        s2 = btor_sort_bv (g_btor, k);
         for (l = 1; l <= 8; l++)
         {
-          s3 = btor_sort_bitvec (g_btor, l);
+          s3 = btor_sort_bv (g_btor, l);
           a1 = btor_sort_array (g_btor, s2, s3);
           assert (!(i == k && j == l) || a0 == a1);
           assert ((i == k && j == l) || a0 != a1);
@@ -118,10 +118,10 @@ test_lst_sort (void)
   init_sort_test ();
   BtorSortId a, b, c, d, l0, l1, l2, l3, l4, l5, l6;
 
-  a = btor_sort_bitvec (g_btor, 2);
-  b = btor_sort_bitvec (g_btor, 7);
-  c = btor_sort_bitvec (g_btor, 1023);
-  d = btor_sort_bitvec (g_btor, 53);
+  a = btor_sort_bv (g_btor, 2);
+  b = btor_sort_bv (g_btor, 7);
+  c = btor_sort_bv (g_btor, 1023);
+  d = btor_sort_bv (g_btor, 53);
 
   l0 = btor_sort_lst (g_btor, a, b);
   l1 = btor_sort_lst (g_btor, l0, c);
@@ -169,8 +169,8 @@ test_fun_sort (void)
   init_sort_test ();
   BtorSortId a, b, c, s0[2], s1[2], f0, f1, f2, t0, t1, t2;
 
-  a     = btor_sort_bitvec (g_btor, 53);
-  b     = btor_sort_bitvec (g_btor, 1);
+  a     = btor_sort_bv (g_btor, 53);
+  b     = btor_sort_bv (g_btor, 1);
   c     = btor_sort_bool (g_btor);
   s0[0] = a;
   s0[1] = b;
@@ -206,8 +206,8 @@ test_tuple_sort (void)
   init_sort_test ();
   BtorSortId a, b, c, d, e[4], t0, t1;
 
-  a = btor_sort_bitvec (g_btor, 53);
-  b = btor_sort_bitvec (g_btor, 7);
+  a = btor_sort_bv (g_btor, 53);
+  b = btor_sort_bv (g_btor, 7);
   c = btor_sort_bool (g_btor);
   d = btor_sort_array (g_btor, b, a);
 

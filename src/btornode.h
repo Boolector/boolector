@@ -324,7 +324,7 @@ btor_node_is_bv_const (const BtorNode *exp)
 {
   assert (exp);
   exp = btor_node_real_addr (exp);
-  return btor_sort_is_bitvec (exp->btor, exp->sort_id)
+  return btor_sort_is_bv (exp->btor, exp->sort_id)
          && exp->kind == BTOR_CONST_NODE;
 }
 
@@ -333,7 +333,7 @@ btor_node_is_bv_var (const BtorNode *exp)
 {
   assert (exp);
   exp = btor_node_real_addr (exp);
-  return btor_sort_is_bitvec (exp->btor, exp->sort_id)
+  return btor_sort_is_bv (exp->btor, exp->sort_id)
          && exp->kind == BTOR_VAR_NODE;
 }
 

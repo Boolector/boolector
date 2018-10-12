@@ -33,8 +33,8 @@ init_lambda_test (void)
 {
   g_btor = btor_new ();
   if (g_rwreads) btor_opt_set (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  g_elem_sort  = btor_sort_bitvec (g_btor, g_elem_bw);
-  g_index_sort = btor_sort_bitvec (g_btor, g_index_bw);
+  g_elem_sort  = btor_sort_bv (g_btor, g_elem_bw);
+  g_index_sort = btor_sort_bv (g_btor, g_index_bw);
   g_array_sort = btor_sort_array (g_btor, g_index_sort, g_elem_sort);
 }
 
@@ -393,8 +393,8 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 
   lower      = g_elem_bw / 2 + 1;
   upper      = g_elem_bw - 1;
-  lower_sort = btor_sort_bitvec (g_btor, lower);
-  upper_sort = btor_sort_bitvec (g_btor, upper);
+  lower_sort = btor_sort_bv (g_btor, lower);
+  upper_sort = btor_sort_bv (g_btor, upper);
 
   var       = btor_exp_var (g_btor, lower_sort, "v1");
   param     = btor_exp_param (g_btor, lower_sort, "p1");
@@ -466,9 +466,9 @@ binary_param_exp_test (int32_t param_pos,
 
   x_bw = (param_pos == 0) ? v1_bw : v2_bw;
 
-  v1_sort = btor_sort_bitvec (g_btor, v1_bw);
-  v2_sort = btor_sort_bitvec (g_btor, v2_bw);
-  x_sort  = btor_sort_bitvec (g_btor, x_bw);
+  v1_sort = btor_sort_bv (g_btor, v1_bw);
+  v2_sort = btor_sort_bv (g_btor, v2_bw);
+  x_sort  = btor_sort_bv (g_btor, x_bw);
 
   v1       = btor_exp_var (g_btor, v1_sort, "v1");
   v2       = btor_exp_var (g_btor, v2_sort, "v2");
@@ -888,7 +888,7 @@ test_lambda_param_bcond1 (void)
 
   init_lambda_test ();
 
-  sort      = btor_sort_bitvec (g_btor, 1);
+  sort      = btor_sort_bv (g_btor, 1);
   v1        = btor_exp_var (g_btor, sort, "v1");
   x         = btor_exp_param (g_btor, sort, "x");
   v2        = btor_exp_var (g_btor, g_elem_sort, "v2");
@@ -924,7 +924,7 @@ test_lambda_param_bcond2 (void)
 
   init_lambda_test ();
 
-  sort      = btor_sort_bitvec (g_btor, 1);
+  sort      = btor_sort_bv (g_btor, 1);
   v1        = btor_exp_var (g_btor, sort, "v1");
   x         = btor_exp_param (g_btor, g_elem_sort, "x");
   v2        = btor_exp_var (g_btor, g_elem_sort, "v2");
@@ -960,7 +960,7 @@ test_lambda_param_bcond3 (void)
 
   init_lambda_test ();
 
-  sort      = btor_sort_bitvec (g_btor, 1);
+  sort      = btor_sort_bv (g_btor, 1);
   v1        = btor_exp_var (g_btor, sort, "v1");
   x         = btor_exp_param (g_btor, g_elem_sort, "x");
   v2        = btor_exp_var (g_btor, g_elem_sort, "v2");
@@ -1437,7 +1437,7 @@ test_lambda_hashing_1 (void)
 
   init_lambda_test ();
 
-  sort       = btor_sort_bitvec (g_btor, 32);
+  sort       = btor_sort_bv (g_btor, 32);
   array_sort = btor_sort_array (g_btor, sort, sort);
 
   a  = btor_exp_array (g_btor, array_sort, 0);
@@ -1465,7 +1465,7 @@ test_lambda_hashing_2 (void)
 
   init_lambda_test ();
 
-  sort       = btor_sort_bitvec (g_btor, 32);
+  sort       = btor_sort_bv (g_btor, 32);
   array_sort = btor_sort_array (g_btor, sort, sort);
 
   a0   = btor_exp_array (g_btor, array_sort, 0);
@@ -1502,7 +1502,7 @@ test_lambda_hashing_3 (void)
 
   init_lambda_test ();
 
-  sort = btor_sort_bitvec (g_btor, 32);
+  sort = btor_sort_bv (g_btor, 32);
 
   /* NOTE: order p0, v, p1 is important here */
   p0 = btor_exp_param (g_btor, sort, 0);
@@ -1535,7 +1535,7 @@ test_lambda_hashing_4 (void)
 
   init_lambda_test ();
 
-  sort = btor_sort_bitvec (g_btor, 32);
+  sort = btor_sort_bv (g_btor, 32);
 
   p0[0] = btor_exp_param (g_btor, sort, 0);
   p0[1] = btor_exp_param (g_btor, sort, 0);
@@ -1570,7 +1570,7 @@ test_quantifier_hashing_1 (void)
   BtorNode *x1, *y1, *eq1, *f1, *e1;
   BtorSortId sort;
 
-  sort = btor_sort_bitvec (g_btor, 32);
+  sort = btor_sort_bv (g_btor, 32);
   x0   = btor_exp_param (g_btor, sort, 0);
   y0   = btor_exp_param (g_btor, sort, 0);
   eq0  = btor_exp_eq (g_btor, x0, y0);
@@ -1611,7 +1611,7 @@ test_quantifier_hashing_2 (void)
   BtorNode *f10, *e10, *f11, *e11, *f12, *e12, *f13, *e13;
   BtorSortId sort;
 
-  sort = btor_sort_bitvec (g_btor, 32);
+  sort = btor_sort_bv (g_btor, 32);
   x0   = btor_exp_param (g_btor, sort, 0);
   x1   = btor_exp_param (g_btor, sort, 0);
   x2   = btor_exp_param (g_btor, sort, 0);

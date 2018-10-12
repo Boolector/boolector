@@ -2260,7 +2260,7 @@ btormbt_bv_fun (BtorMBT *mbt, int32_t nlevel)
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
       BTOR_PUSH_STACK (param_widths,
-                       btor_sort_bitvec_get_width (
+                       btor_sort_bv_get_width (
                            mbt->btor, sort->fun.domain->tuple.elements[i]->id));
     }
   }
@@ -2484,7 +2484,7 @@ btormbt_bv_uf (BtorMBT *mbt)
   while (btor_iter_tuple_sort_has_next (&it))
   {
     sortid = btor_iter_tuple_sort_next (&it);
-    width  = btor_sort_bitvec_get_width (mbt->btor, sortid);
+    width  = btor_sort_bv_get_width (mbt->btor, sortid);
     arg    = select_exp (mbt, BTORMBT_BB_T, 0);
     BTOR_PUSH_STACK (stack, modify_bv (mbt, arg, width));
   }

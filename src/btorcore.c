@@ -1393,7 +1393,7 @@ normalize_substitution (Btor *btor,
   if (btor_node_is_bv_var (exp))
   {
     assert (btor_node_bv_get_width (btor, exp) == 1);
-    sort = btor_sort_bitvec (btor, 1);
+    sort = btor_sort_bv (btor, 1);
     if (btor_node_is_inverted (exp))
     {
       *left_result  = btor_node_copy (btor, btor_node_real_addr (exp));
@@ -1459,10 +1459,10 @@ normalize_substitution (Btor *btor,
       leadings = btor_bv_get_num_leading_zeros (bits);
       if (leadings > 0)
       {
-        sort      = btor_sort_bitvec (btor, leadings);
+        sort      = btor_sort_bv (btor, leadings);
         const_exp = btor_exp_zero (btor, sort);
         btor_sort_release (btor, sort);
-        sort   = btor_sort_bitvec (btor,
+        sort   = btor_sort_bv (btor,
                                  btor_node_bv_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
@@ -1480,10 +1480,10 @@ normalize_substitution (Btor *btor,
       leadings = btor_bv_get_num_leading_ones (bits);
       if (leadings > 0)
       {
-        sort      = btor_sort_bitvec (btor, leadings);
+        sort      = btor_sort_bv (btor, leadings);
         const_exp = btor_exp_ones (btor, sort);
         btor_sort_release (btor, sort);
-        sort   = btor_sort_bitvec (btor,
+        sort   = btor_sort_bv (btor,
                                  btor_node_bv_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);

@@ -409,11 +409,11 @@ create_sort (Btor *btor, BtorSortUniqueTable *table, BtorSort *pattern)
 BtorSortId
 btor_sort_bool (Btor *btor)
 {
-  return btor_sort_bitvec (btor, 1);
+  return btor_sort_bv (btor, 1);
 }
 
 BtorSortId
-btor_sort_bitvec (Btor *btor, uint32_t width)
+btor_sort_bv (Btor *btor, uint32_t width)
 {
   assert (btor);
   assert (width > 0);
@@ -643,7 +643,7 @@ btor_sort_tuple (Btor *btor, BtorSortId *element_ids, size_t num_elements)
 }
 
 uint32_t
-btor_sort_bitvec_get_width (Btor *btor, BtorSortId id)
+btor_sort_bv_get_width (Btor *btor, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_sort_get_by_id (btor, id);
@@ -733,12 +733,11 @@ btor_sort_is_valid (Btor *btor, BtorSortId id)
 bool
 btor_sort_is_bool (Btor *btor, BtorSortId id)
 {
-  return btor_sort_is_bitvec (btor, id)
-         && btor_sort_bitvec_get_width (btor, id) == 1;
+  return btor_sort_is_bv (btor, id) && btor_sort_bv_get_width (btor, id) == 1;
 }
 
 bool
-btor_sort_is_bitvec (Btor *btor, BtorSortId id)
+btor_sort_is_bv (Btor *btor, BtorSortId id)
 {
   BtorSort *sort;
   sort = btor_sort_get_by_id (btor, id);
