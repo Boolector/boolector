@@ -1107,7 +1107,7 @@ btor_node_hash_by_id (const BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 uint32_t
-btor_node_get_width (Btor *btor, const BtorNode *exp)
+btor_node_bv_get_width (Btor *btor, const BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -1412,7 +1412,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   {
     assert (btor_node_is_regular (cur));
     if (btor_node_is_bv_const (cur)
-        && btor_node_get_width (btor, cur) == bits->width
+        && btor_node_bv_get_width (btor, cur) == bits->width
         && !btor_bv_compare (btor_node_const_get_bits (cur), bits))
       break;
     else
@@ -1782,7 +1782,7 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   assert (btor);
   assert (e0);
   assert (btor == btor_node_real_addr (e0)->btor);
-  assert (upper < btor_node_get_width (btor, e0));
+  assert (upper < btor_node_bv_get_width (btor, e0));
   assert (upper >= lower);
 
   BtorBVSliceNode *exp = 0;
@@ -2022,9 +2022,9 @@ new_node (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
       break;
 
     case BTOR_BV_CONCAT_NODE:
-      sort = btor_sort_bitvec (
-          btor,
-          btor_node_get_width (btor, e[0]) + btor_node_get_width (btor, e[1]));
+      sort = btor_sort_bitvec (btor,
+                               btor_node_bv_get_width (btor, e[0])
+                                   + btor_node_bv_get_width (btor, e[1]));
       break;
 
     case BTOR_FUN_EQ_NODE:
@@ -2267,7 +2267,7 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 
   assert (!btor_node_is_fun (exp));
   assert (upper >= lower);
-  assert (upper < btor_node_get_width (btor, exp));
+  assert (upper < btor_node_bv_get_width (btor, exp));
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0
       && btor_node_is_inverted (exp))

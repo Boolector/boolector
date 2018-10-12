@@ -331,7 +331,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   real_exp = btor_node_real_addr (exp);
 
   if (!real_exp->av)
-    return btor_bv_new (mm, btor_node_get_width (real_exp->btor, real_exp));
+    return btor_bv_new (mm, btor_node_bv_get_width (real_exp->btor, real_exp));
 
   amgr  = btor_get_aig_mgr (real_exp->btor);
   av    = real_exp->av;

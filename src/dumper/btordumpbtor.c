@@ -431,10 +431,10 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     else if (btor_node_is_lambda (node))
     {
       fprintf (file, " %d", btor_node_get_fun_width (bdc->btor, node));
-      fprintf (file, " %d", btor_node_get_width (bdc->btor, node->e[0]));
+      fprintf (file, " %d", btor_node_bv_get_width (bdc->btor, node->e[0]));
     }
     else if (!btor_node_is_uf (node))
-      fprintf (file, " %d", btor_node_get_width (bdc->btor, node));
+      fprintf (file, " %d", btor_node_bv_get_width (bdc->btor, node));
 
     if (btor_node_is_apply (node))
     {
@@ -691,7 +691,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     assert (btor_node_is_regular (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d input %u", id, btor_node_get_width (bdc->btor, node));
+    fprintf (file, "%d input %u", id, btor_node_bv_get_width (bdc->btor, node));
     if ((symbol = btor_node_get_symbol (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
@@ -705,7 +705,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     assert (btor_node_is_regular (node));
     assert (btor_node_is_bv_var (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d state %u", id, btor_node_get_width (bdc->btor, node));
+    fprintf (file, "%d state %u", id, btor_node_bv_get_width (bdc->btor, node));
     if ((symbol = btor_node_get_symbol (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
@@ -725,7 +725,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
       fprintf (file,
                "%d next %u %d %d\n",
                id,
-               btor_node_get_width (bdc->btor, bdcl->next),
+               btor_node_bv_get_width (bdc->btor, bdcl->next),
                bdcid (bdc, bdcl->state),
                bdcid (bdc, bdcl->next));
     }
@@ -736,7 +736,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
       fprintf (file,
                "%d init %u %d %d\n",
                id,
-               btor_node_get_width (bdc->btor, bdcl->init),
+               btor_node_bv_get_width (bdc->btor, bdcl->init),
                bdcid (bdc, bdcl->state),
                bdcid (bdc, bdcl->init));
     }
@@ -751,7 +751,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d output %u %d\n",
              id,
-             btor_node_get_width (bdc->btor, node),
+             btor_node_bv_get_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -763,7 +763,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d bad %u %d\n",
              id,
-             btor_node_get_width (bdc->btor, node),
+             btor_node_bv_get_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -775,7 +775,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d constraint %u %d\n",
              id,
-             btor_node_get_width (bdc->btor, node),
+             btor_node_bv_get_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -789,7 +789,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
       if (btor_sort_is_fun (bdc->btor, btor_node_get_sort_id (node)))
         len = btor_node_get_fun_width (bdc->btor, node);
       else
-        len = btor_node_get_width (bdc->btor, node);
+        len = btor_node_bv_get_width (bdc->btor, node);
       fprintf (file, "%d root %u %d\n", id, len, bdcid (bdc, node));
     }
     else

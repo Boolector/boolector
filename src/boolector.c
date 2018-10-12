@@ -89,9 +89,9 @@ translate_shift (Btor *btor,
   BtorSortId s;
   uint32_t width, l0, l1, p0, p1;
 
-  width = btor_node_get_width (btor, a0);
+  width = btor_node_bv_get_width (btor, a0);
 
-  assert (width == btor_node_get_width (btor, a1));
+  assert (width == btor_node_bv_get_width (btor, a1));
 
   l1 = 0;
   for (l0 = 1; l0 < width; l0 *= 2) l1++;
@@ -125,8 +125,8 @@ translate_shift (Btor *btor,
     u = btor_exp_bv_slice (btor, a1, width - 1, width - p1);
     l = btor_exp_bv_slice (btor, a1, l1 - 1, 0);
 
-    assert (btor_node_get_width (btor, u) == p1);
-    assert (btor_node_get_width (btor, l) == l1);
+    assert (btor_node_bv_get_width (btor, u) == p1);
+    assert (btor_node_bv_get_width (btor, l) == l1);
 
     if (p1 > 1)
       c = btor_exp_bv_redor (btor, u);
@@ -155,7 +155,7 @@ translate_shift (Btor *btor,
     else
       e0 = btor_exp_bv_uext (btor, a0, p0);
 
-    assert (btor_node_get_width (btor, e0) == l0);
+    assert (btor_node_bv_get_width (btor, e0) == l0);
 
     e = f (btor, e0, l);
     btor_node_release (btor, e0);
@@ -523,7 +523,7 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (btor_node_get_width (btor, exp) != 1,
+  BTOR_ABORT (btor_node_bv_get_width (btor, exp) != 1,
               "'exp' must have bit-width one");
   BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (exp)->sort_id),
               "'exp' must have bit-width one");
@@ -590,7 +590,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (btor_node_get_width (btor, exp) != 1,
+  BTOR_ABORT (btor_node_bv_get_width (btor, exp) != 1,
               "'exp' must have bit-width one");
   BTOR_ABORT (!btor_is_assumption_exp (btor, exp),
               "'exp' must be an assumption");
@@ -1596,7 +1596,7 @@ boolector_slice (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
   BTOR_ABORT (upper < lower, "'upper' must not be < 'lower'");
-  BTOR_ABORT ((uint32_t) upper >= btor_node_get_width (btor, exp),
+  BTOR_ABORT ((uint32_t) upper >= btor_node_bv_get_width (btor, exp),
               "'upper' must not be >= width of 'exp'");
   res = btor_exp_bv_slice (btor, exp, upper, lower);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -1666,8 +1666,8 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT (btor_node_get_width (btor, e0) != 1
-                  || btor_node_get_width (btor, e1) != 1,
+  BTOR_ABORT (btor_node_bv_get_width (btor, e0) != 1
+                  || btor_node_bv_get_width (btor, e1) != 1,
               "bit-width of 'e0' and 'e1' have be 1");
   res = btor_exp_implies (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -1696,8 +1696,8 @@ boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT (btor_node_get_width (btor, e0) != 1
-                  || btor_node_get_width (btor, e1) != 1,
+  BTOR_ABORT (btor_node_bv_get_width (btor, e0) != 1
+                  || btor_node_bv_get_width (btor, e1) != 1,
               "bit-width of 'e0' and 'e1' must not be unequal to 1");
   res = btor_exp_iff (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -2334,8 +2334,8 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
 
-  width = btor_node_get_width (btor, e0);
-  if (width == btor_node_get_width (btor, e1))
+  width = btor_node_bv_get_width (btor, e0);
+  if (width == btor_node_bv_get_width (btor, e1))
   {
     res = translate_shift (btor, e0, e1, btor_exp_bv_sll);
   }
@@ -2343,7 +2343,7 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   {
     BTOR_ABORT (!btor_util_is_power_of_2 (width),
                 "bit-width of 'e0' must be a power of 2");
-    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
                 "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
     res = btor_exp_bv_sll (btor, e0, e1);
   }
@@ -2373,8 +2373,8 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_get_width (btor, e0);
-  if (width == btor_node_get_width (btor, e1))
+  width = btor_node_bv_get_width (btor, e0);
+  if (width == btor_node_bv_get_width (btor, e1))
   {
     res = translate_shift (btor, e0, e1, btor_exp_bv_srl);
   }
@@ -2382,7 +2382,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   {
     BTOR_ABORT (!btor_util_is_power_of_2 (width),
                 "bit-width of 'e0' must be a power of 2");
-    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
                 "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
     res = btor_exp_bv_srl (btor, e0, e1);
   }
@@ -2412,8 +2412,8 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_get_width (btor, e0);
-  if (width == btor_node_get_width (btor, e1))
+  width = btor_node_bv_get_width (btor, e0);
+  if (width == btor_node_bv_get_width (btor, e1))
   {
     res = translate_shift (btor, e0, e1, btor_exp_bv_sra);
   }
@@ -2421,7 +2421,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   {
     BTOR_ABORT (!btor_util_is_power_of_2 (width),
                 "bit-width of 'e0' must be a power of 2");
-    BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+    BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
                 "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
     res = btor_exp_bv_sra (btor, e0, e1);
   }
@@ -2452,10 +2452,10 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
   BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_exp_bv_rol (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -2485,10 +2485,10 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
   BTOR_ABORT (!btor_util_is_power_of_2 (width),
               "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_get_width (btor, e1),
+  BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
               "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_exp_bv_ror (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -2758,9 +2758,9 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT (
-      btor_node_get_width (btor, e0) > INT32_MAX - btor_node_get_width (btor, e1),
-      "bit-width of result is too large");
+  BTOR_ABORT (btor_node_bv_get_width (btor, e0)
+                  > INT32_MAX - btor_node_bv_get_width (btor, e1),
+              "bit-width of result is too large");
   res = btor_exp_bv_concat (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2783,8 +2783,9 @@ boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (((uint32_t) (UINT32_MAX / n)) < btor_node_get_width (btor, exp),
-              "resulting bit-width of 'repeat' too large");
+  BTOR_ABORT (
+      ((uint32_t) (UINT32_MAX / n)) < btor_node_bv_get_width (btor, exp),
+      "resulting bit-width of 'repeat' too large");
   res = btor_exp_bv_repeat (btor, exp, n);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2897,7 +2898,7 @@ boolector_cond (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, e_if);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_else);
   BTOR_ABORT_IS_NOT_BV (e_cond);
-  BTOR_ABORT (btor_node_get_width (btor, e_cond) != 1,
+  BTOR_ABORT (btor_node_bv_get_width (btor, e_cond) != 1,
               "bit-width of 'e_cond' must be equal to 1");
   BTOR_ABORT (btor_node_get_sort_id (e_if) != btor_node_get_sort_id (e_else),
               "sorts of 'e_if' and 'e_else' branch must be equal");
@@ -3111,7 +3112,7 @@ boolector_forall (Btor *btor,
   BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of forall must be bit width 1, but has "
               "%u instead",
-              btor_node_get_width (btor, body));
+              btor_node_bv_get_width (btor, body));
 
   res = btor_exp_forall_n (btor, params, paramc, body);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -3159,7 +3160,7 @@ boolector_exists (Btor *btor,
   BTOR_ABORT (!btor_sort_is_bool (btor, btor_node_real_addr (body)->sort_id),
               "body of exists must be bit width 1, but has "
               "%u instead",
-              btor_node_get_width (btor, body));
+              btor_node_bv_get_width (btor, body));
 
   res = btor_exp_exists_n (btor, params, paramc, body);
   btor_node_inc_ext_ref_counter (btor, res);
@@ -3385,7 +3386,7 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   if (btor_sort_is_fun (btor, btor_node_get_sort_id (exp)))
     res = btor_node_get_fun_width (btor, exp);
   else
-    res = btor_node_get_width (btor, exp);
+    res = btor_node_bv_get_width (btor, exp);
   BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_width, BTOR_CLONED_EXP (exp));

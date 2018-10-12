@@ -362,7 +362,7 @@ eval_candidate (Btor *btor,
             assert (value_out);
             assert (!candidate);
             result = btor_bv_copy (mm, value_out);
-            assert (btor_node_get_width (real_cur->btor, real_cur)
+            assert (btor_node_bv_get_width (real_cur->btor, real_cur)
                     == value_out->width);
           }
           else
@@ -523,7 +523,7 @@ eval_exps (Btor *btor,
             {
               assert (value_out);
               result = btor_bv_copy (mm, value_out);
-              assert (btor_node_get_width (real_cur->btor, real_cur)
+              assert (btor_node_bv_get_width (real_cur->btor, real_cur)
                       == value_out->width);
             }
           }

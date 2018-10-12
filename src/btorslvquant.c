@@ -288,7 +288,7 @@ flat_model_generate (BtorGroundSolvers *gslv)
         if (!bv)
         {
           free_bv = true;
-          bv      = btor_bv_new (mm, btor_node_get_width (f_solver, f_evar));
+          bv      = btor_bv_new (mm, btor_node_bv_get_width (f_solver, f_evar));
         }
       }
       else
@@ -502,7 +502,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
         {
           sym    = btor_node_get_symbol (btor, real_cur);
           sortid = btor_sort_bitvec (dual_btor,
-                                     btor_node_get_width (btor, real_cur));
+                                     btor_node_bv_get_width (btor, real_cur));
           result = btor_exp_param (dual_btor, sortid, sym);
           btor_sort_release (dual_btor, sortid);
         }
@@ -734,7 +734,7 @@ setup_solvers (BtorQuantSolver *slv,
   {
     cur = btor_iter_hashptr_next (&it);
     assert (btor_node_param_is_exists_var (cur));
-    width = btor_node_get_width (res->forall, cur);
+    width = btor_node_bv_get_width (res->forall, cur);
     sym   = btor_node_get_symbol (res->forall, cur);
 
     if ((tmp = btor_nodemap_mapped (res->forall_evar_deps, cur)))
@@ -879,7 +879,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
         assert (!btor_node_param_is_exists_var (real_cur));
         assert (!btor_node_param_is_forall_var (real_cur));
         sort = btor_sort_bitvec (
-            btor, btor_node_get_width (real_cur->btor, real_cur));
+            btor, btor_node_bv_get_width (real_cur->btor, real_cur));
         result = btor_exp_param (btor, sort, 0);
         btor_sort_release (btor, sort);
       }
@@ -1659,7 +1659,7 @@ synthesize (BtorGroundSolvers *gslv,
         continue;
 
       /* cut-off at boolean layer */
-      if (btor_node_get_width (gslv->forall, cur) == 1)
+      if (btor_node_bv_get_width (gslv->forall, cur) == 1)
       {
         BTOR_PUSH_STACK (constraints, cur);
         continue;
@@ -2155,7 +2155,7 @@ build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
         else
         {
           sort = btor_sort_bitvec (
-              btor, btor_node_get_width (real_cur->btor, real_cur));
+              btor, btor_node_bv_get_width (real_cur->btor, real_cur));
           result = btor_exp_param (btor, sort, 0);
           btor_sort_release (btor, sort);
         }

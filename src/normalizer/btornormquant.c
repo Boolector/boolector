@@ -306,7 +306,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
     /* polarities are only pushed along the boolean skeleton */
     if (!btor_node_is_bv_and (real_cur) && !btor_node_is_quantifier (real_cur)
         && !(btor_node_is_bv_eq (real_cur) && real_cur->quantifier_below
-             && btor_node_get_width (btor, real_cur) == 1))
+             && btor_node_bv_get_width (btor, real_cur) == 1))
       cur_pol = 1;
 
     id = real_cur->id * cur_pol;
@@ -330,7 +330,7 @@ fix_quantifier_polarities (Btor *btor, BtorNode *root)
       }
       /* represent boolean equality as with and/not */
       else if (btor_node_is_bv_eq (real_cur) && real_cur->quantifier_below
-               && btor_node_get_width (btor, real_cur->e[0]) == 1)
+               && btor_node_bv_get_width (btor, real_cur->e[0]) == 1)
       {
         /* Explicitely disable rewriting here, since we *never* want the
          * created 'iff' to be rewritten to an actual boolean equality.
@@ -601,7 +601,7 @@ check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
     cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
     if (btor_hashint_table_contains (cache, cur->id)
-        || btor_node_get_width (btor, cur) != 1)
+        || btor_node_bv_get_width (btor, cur) != 1)
       continue;
     btor_hashint_table_add (cache, cur->id);
 

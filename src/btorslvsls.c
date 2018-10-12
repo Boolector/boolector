@@ -201,7 +201,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 
     /* push children */
     if (btor_opt_get (btor, BTOR_OPT_SLS_JUST) && btor_node_is_bv_and (real_cur)
-        && btor_node_get_width (btor, real_cur) == 1)
+        && btor_node_bv_get_width (btor, real_cur) == 1)
     {
       bv = btor_model_get_bv (btor, real_cur);
       if (!btor_bv_is_zero (bv)) /* push all */
@@ -959,12 +959,12 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       {
         can = BTOR_PEEK_STACK (*candidates, r);
         assert (btor_node_is_regular (can));
-        if (btor_node_get_width (btor, can) == 1)
+        if (btor_node_bv_get_width (btor, can) == 1)
           neigh = btor_bv_flipped_bit (
               btor->mm, (BtorBitVector *) btor_model_get_bv (btor, can), 0);
         else
           neigh = btor_bv_new_random (
-              btor->mm, &btor->rng, btor_node_get_width (btor, can));
+              btor->mm, &btor->rng, btor_node_bv_get_width (btor, can));
 
         btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
       }
@@ -980,7 +980,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
               &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1));
       assert (btor_node_is_regular (can));
 
-      if (btor_node_get_width (btor, can) == 1)
+      if (btor_node_bv_get_width (btor, can) == 1)
       {
         neigh = btor_bv_flipped_bit (
             btor->mm, (BtorBitVector *) btor_model_get_bv (btor, can), 0);
@@ -998,7 +998,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       else
       {
         neigh = btor_bv_new_random (
-            btor->mm, &btor->rng, btor_node_get_width (btor, can));
+            btor->mm, &btor->rng, btor_node_bv_get_width (btor, can));
         btor_hashint_map_add (slv->max_cans, can->id)->as_ptr = neigh;
       }
 

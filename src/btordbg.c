@@ -167,7 +167,7 @@ btor_dbg_precond_slice_exp (Btor *btor,
   assert (!btor_node_real_addr (exp)->simplified);
   assert (!btor_node_is_fun (exp));
   assert (upper >= lower);
-  assert (upper < btor_node_get_width (btor, exp));
+  assert (upper < btor_node_bv_get_width (btor, exp));
   assert (btor_node_real_addr (exp)->btor == btor);
   return true;
 }
@@ -225,8 +225,8 @@ btor_dbg_precond_concat_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (!btor_node_real_addr (e1)->simplified);
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
-  assert (btor_node_get_width (btor, e0)
-          <= INT32_MAX - btor_node_get_width (btor, e1));
+  assert (btor_node_bv_get_width (btor, e0)
+          <= INT32_MAX - btor_node_bv_get_width (btor, e1));
   assert (btor_node_real_addr (e0)->btor == btor);
   assert (btor_node_real_addr (e1)->btor == btor);
   return true;
@@ -242,10 +242,10 @@ btor_dbg_precond_shift_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (!btor_node_real_addr (e1)->simplified);
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
-  assert (btor_node_get_width (btor, e0) > 1);
-  assert (btor_util_is_power_of_2 (btor_node_get_width (btor, e0)));
-  assert (btor_util_log_2 (btor_node_get_width (btor, e0))
-          == btor_node_get_width (btor, e1));
+  assert (btor_node_bv_get_width (btor, e0) > 1);
+  assert (btor_util_is_power_of_2 (btor_node_bv_get_width (btor, e0)));
+  assert (btor_util_log_2 (btor_node_bv_get_width (btor, e0))
+          == btor_node_bv_get_width (btor, e1));
   assert (btor_node_real_addr (e0)->btor == btor);
   assert (btor_node_real_addr (e1)->btor == btor);
   return true;
@@ -329,7 +329,7 @@ btor_dbg_precond_cond_exp (Btor *btor,
   assert (e_if);
   assert (e_else);
   assert (!btor_node_real_addr (e_cond)->simplified);
-  assert (btor_node_get_width (btor, e_cond) == 1);
+  assert (btor_node_bv_get_width (btor, e_cond) == 1);
 
   BtorNode *real_e_if, *real_e_else;
 

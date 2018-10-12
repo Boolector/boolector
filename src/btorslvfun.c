@@ -1051,7 +1051,8 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
       }
 
       if (!cur->parameterized && !btor_node_is_fun (cur)
-          && !btor_node_is_args (cur) && btor_node_get_width (btor, cur) == 1)
+          && !btor_node_is_args (cur)
+          && btor_node_bv_get_width (btor, cur) == 1)
       {
         switch (cur->kind)
         {

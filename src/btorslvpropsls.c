@@ -142,7 +142,7 @@ compute_sls_score_node (Btor *btor,
   assert (fun_model);
   assert (score);
   assert (exp);
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
 
   double res, s0, s1;
   BtorNode *real_exp;
@@ -312,7 +312,7 @@ compute_sls_score_node (Btor *btor,
   /* ------------------------------------------------------------------------ */
   else
   {
-    assert (btor_node_get_width (btor, real_exp) == 1);
+    assert (btor_node_bv_get_width (btor, real_exp) == 1);
 #ifndef NBTORLOG
     if (btor_opt_get (btor, BTOR_OPT_LOGLEVEL) >= 2)
     {
@@ -357,7 +357,7 @@ recursively_compute_sls_score_node (Btor *btor,
 
   res = 0.0;
   assert (btor_node_is_bv_eq (exp) || btor_node_is_bv_ult (exp)
-          || btor_node_get_width (btor, exp) == 1);
+          || btor_node_bv_get_width (btor, exp) == 1);
 
   if (btor_hashint_map_contains (score, btor_node_get_id (exp)))
     return btor_hashint_map_get (score, btor_node_get_id (exp))->as_dbl;
@@ -389,7 +389,7 @@ recursively_compute_sls_score_node (Btor *btor,
       assert (d->as_int == 0);
       d->as_int = 1;
 
-      if (btor_node_get_width (btor, real_cur) != 1) continue;
+      if (btor_node_bv_get_width (btor, real_cur) != 1) continue;
 
       res = compute_sls_score_node (btor, bv_model, fun_model, score, cur);
 
@@ -464,7 +464,7 @@ btor_propsls_compute_sls_scores (Btor *btor,
     {
       assert (d->as_int == 0);
       d->as_int = 1;
-      if (btor_node_get_width (btor, real_cur) != 1) continue;
+      if (btor_node_bv_get_width (btor, real_cur) != 1) continue;
       (void) recursively_compute_sls_score_node (
           btor, bv_model, fun_model, score, cur);
       (void) recursively_compute_sls_score_node (
@@ -662,7 +662,7 @@ btor_propsls_update_cone (Btor *btor,
     }
 
     /* update score */
-    if (score && btor_node_get_width (btor, exp) == 1)
+    if (score && btor_node_bv_get_width (btor, exp) == 1)
     {
       assert (btor_hashint_map_contains (score, btor_node_get_id (exp)));
       btor_hashint_map_get (score, btor_node_get_id (exp))->as_dbl =
@@ -785,7 +785,7 @@ btor_propsls_update_cone (Btor *btor,
       cur = BTOR_PEEK_STACK (cone, i);
       assert (btor_node_is_regular (cur));
 
-      if (btor_node_get_width (btor, cur) != 1) continue;
+      if (btor_node_bv_get_width (btor, cur) != 1) continue;
 
       id = btor_node_get_id (cur);
       if (!btor_hashint_map_contains (score, id))
@@ -918,7 +918,7 @@ select_path_and (Btor *btor,
     {
       eidx = select_path_random (btor, and);
     }
-    else if (btor_node_get_width (btor, and) == 1)
+    else if (btor_node_bv_get_width (btor, and) == 1)
     {
       /* choose 0-branch if exactly one branch is 0, else choose randomly */
       for (i = 0; i < and->arity; i++)
@@ -3980,7 +3980,7 @@ inv_slice_bv (Btor *btor,
   upper = btor_node_slice_get_upper (slice);
   lower = btor_node_slice_get_lower (slice);
 
-  res = btor_bv_new (mm, btor_node_get_width (btor, e));
+  res = btor_bv_new (mm, btor_node_bv_get_width (btor, e));
 
   /* keep previous value for don't care bits or set randomly with prob
    * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */

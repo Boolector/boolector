@@ -87,7 +87,8 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
   BtorBitVector *res;
   BtorAIGVec *av;
 
-  if (!exp->av) return btor_bv_new (mm, btor_node_get_width (exp->btor, exp));
+  if (!exp->av)
+    return btor_bv_new (mm, btor_node_bv_get_width (exp->btor, exp));
 
   av    = exp->av;
   width = av->width;

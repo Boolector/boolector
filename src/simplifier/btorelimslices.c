@@ -158,7 +158,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     }
 
     /* add full slice */
-    s1 = new_slice (btor, btor_node_get_width (btor, var) - 1, 0);
+    s1 = new_slice (btor, btor_node_bv_get_width (btor, var) - 1, 0);
     assert (!btor_hashptr_table_get (slices, s1));
     btor_hashptr_table_add (slices, s1);
 

@@ -1186,7 +1186,7 @@ is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return btor_node_get_width (btor, exp) == 1
+  return btor_node_bv_get_width (btor, exp) == 1
          && btor_node_real_addr (exp)->parents > 0;
 }
 
@@ -1214,7 +1214,7 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   //  assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
 
   BtorNode *rep;
 
@@ -1392,7 +1392,7 @@ normalize_substitution (Btor *btor,
   /* boolean BV_NODE, force assignment (right_result) w.r.t. phase */
   if (btor_node_is_bv_var (exp))
   {
-    assert (btor_node_get_width (btor, exp) == 1);
+    assert (btor_node_bv_get_width (btor, exp) == 1);
     sort = btor_sort_bitvec (btor, 1);
     if (btor_node_is_inverted (exp))
     {
@@ -1462,8 +1462,8 @@ normalize_substitution (Btor *btor,
         sort      = btor_sort_bitvec (btor, leadings);
         const_exp = btor_exp_zero (btor, sort);
         btor_sort_release (btor, sort);
-        sort =
-            btor_sort_bitvec (btor, btor_node_get_width (btor, var) - leadings);
+        sort   = btor_sort_bitvec (btor,
+                                 btor_node_bv_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
         tmp = btor_exp_bv_concat (btor, const_exp, lambda);
@@ -1483,8 +1483,8 @@ normalize_substitution (Btor *btor,
         sort      = btor_sort_bitvec (btor, leadings);
         const_exp = btor_exp_ones (btor, sort);
         btor_sort_release (btor, sort);
-        sort =
-            btor_sort_bitvec (btor, btor_node_get_width (btor, var) - leadings);
+        sort   = btor_sort_bitvec (btor,
+                                 btor_node_bv_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
         tmp = btor_exp_bv_concat (btor, const_exp, lambda);
@@ -1501,7 +1501,7 @@ normalize_substitution (Btor *btor,
 
   /* in the boolean case a != b is the same as a == ~b */
   if (btor_node_is_inverted (exp) && btor_node_is_bv_eq (exp)
-      && btor_node_get_width (btor, btor_node_real_addr (exp)->e[0]) == 1)
+      && btor_node_bv_get_width (btor, btor_node_real_addr (exp)->e[0]) == 1)
   {
     left  = btor_node_real_addr (exp)->e[0];
     right = btor_node_real_addr (exp)->e[1];
@@ -1591,7 +1591,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
   assert (!btor_node_real_addr (exp)->parameterized);
 
   BtorBitVector *bits;
@@ -1723,7 +1723,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
   assert (!btor_node_is_fun (exp));
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
   assert (!btor_node_real_addr (exp)->parameterized);
   mm   = btor->mm;
   mark = btor_hashint_table_new (mm);
@@ -1773,7 +1773,7 @@ btor_assert_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
   assert (!btor_node_is_fun (exp));
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
   assert (!btor_node_real_addr (exp)->parameterized);
 
   add_constraint (btor, exp);
@@ -1784,7 +1784,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
 
   int32_t res, sign, val;
   BtorSATMgr *smgr;
@@ -1893,7 +1893,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_node_real_addr (exp)->btor == btor);
   assert (!btor_node_is_fun (exp));
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
   assert (!btor_node_real_addr (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
   mark = btor_hashint_table_new (btor->mm);
@@ -3468,13 +3468,13 @@ btor_synthesize_exp (Btor *btor,
                || btor_node_is_fun_eq (cur))
       {
         assert (!cur->parameterized);
-        cur->av = btor_aigvec_var (avmgr, btor_node_get_width (btor, cur));
+        cur->av = btor_aigvec_var (avmgr, btor_node_bv_get_width (btor, cur));
 
         if (btor_node_is_bv_var (cur) && backannotation
             && (name = btor_node_get_symbol (btor, cur)))
         {
           len = strlen (name) + 40;
-          if (btor_node_get_width (btor, cur) > 1)
+          if (btor_node_bv_get_width (btor, cur) > 1)
           {
             indexed_name = btor_mem_malloc (mm, len);
             for (i = 0; i < cur->av->width; i++)
@@ -3488,7 +3488,7 @@ btor_synthesize_exp (Btor *btor,
           }
           else
           {
-            assert (btor_node_get_width (btor, cur) == 1);
+            assert (btor_node_bv_get_width (btor, cur) == 1);
             b = btor_hashptr_table_add (backannotation, cur->av->aigs[0]);
             assert (b->key == cur->av->aigs[0]);
             b->data.as_str = btor_mem_strdup (mm, name);
@@ -3766,7 +3766,7 @@ btor_add_again_assumptions (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    assert (btor_node_get_width (btor, cur) == 1);
+    assert (btor_node_bv_get_width (btor, cur) == 1);
     assert (!btor_node_real_addr (cur)->simplified);
     aig = exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
@@ -4147,7 +4147,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
-  assert (btor_node_get_width (btor, exp) == 1);
+  assert (btor_node_bv_get_width (btor, exp) == 1);
   assert (!btor_node_real_addr (exp)->parameterized);
 
   amgr = btor_get_aig_mgr (btor);

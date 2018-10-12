@@ -647,7 +647,7 @@ BtorNode *
 btor_exp_bv_repeat (Btor *btor, BtorNode *exp, uint32_t n)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
-  assert (((uint32_t) UINT32_MAX / n) >= btor_node_get_width (btor, exp));
+  assert (((uint32_t) UINT32_MAX / n) >= btor_node_bv_get_width (btor, exp));
 
   BtorNode *result, *tmp;
   uint32_t i;
@@ -704,7 +704,7 @@ btor_exp_bv_redxor (Btor *btor, BtorNode *exp)
   exp = btor_simplify_exp (btor, exp);
   assert (btor_dbg_precond_regular_unary_bv_exp (btor, exp));
 
-  width = btor_node_get_width (btor, exp);
+  width = btor_node_bv_get_width (btor, exp);
 
   result = btor_exp_bv_slice (btor, exp, 0, 0);
   for (i = 1; i < width; i++)
@@ -780,7 +780,7 @@ btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width)
     zero = btor_exp_zero (btor, sort);
     ones = btor_exp_ones (btor, sort);
     btor_sort_release (btor, sort);
-    exp_width = btor_node_get_width (btor, exp);
+    exp_width = btor_node_bv_get_width (btor, exp);
     neg       = btor_exp_bv_slice (btor, exp, exp_width - 1, exp_width - 1);
     cond      = btor_exp_cond (btor, neg, ones, zero);
     result    = btor_exp_bv_concat (btor, cond, exp);
@@ -825,7 +825,7 @@ btor_exp_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  assert (btor_node_get_width (btor, e0) == 1);
+  assert (btor_node_bv_get_width (btor, e0) == 1);
   return btor_node_invert (btor_exp_bv_and (btor, e0, btor_node_invert (e1)));
 }
 
@@ -838,7 +838,7 @@ btor_exp_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
-  assert (btor_node_get_width (btor, e0) == 1);
+  assert (btor_node_bv_get_width (btor, e0) == 1);
   return btor_exp_eq (btor, e0, e1);
 }
 
@@ -867,7 +867,7 @@ btor_exp_bv_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width   = btor_node_get_width (btor, e0);
+  width   = btor_node_bv_get_width (btor, e0);
   uext_e1 = btor_exp_bv_uext (btor, e0, 1);
   uext_e2 = btor_exp_bv_uext (btor, e1, 1);
   add     = btor_exp_bv_add (btor, uext_e1, uext_e2);
@@ -892,7 +892,7 @@ btor_exp_bv_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width       = btor_node_get_width (btor, e0);
+  width       = btor_node_bv_get_width (btor, e0);
   sign_e1     = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   sign_e2     = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   add         = btor_exp_bv_add (btor, e0, e1);
@@ -949,7 +949,7 @@ btor_exp_bv_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
   if (width == 1)
   {
     sort   = btor_sort_bitvec (btor, 1);
@@ -1009,7 +1009,7 @@ btor_exp_bv_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
   if (width == 1) return btor_exp_bv_and (btor, e0, e1);
   if (width == 2)
   {
@@ -1118,7 +1118,7 @@ btor_exp_bv_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
   if (width == 1) return btor_exp_bv_and (btor, e0, btor_node_invert (e1));
   s0                 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   s1                 = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
@@ -1295,7 +1295,7 @@ btor_exp_bv_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_shift_exp (btor, e0, e1));
 
-  width   = btor_node_get_width (btor, e0);
+  width   = btor_node_bv_get_width (btor, e0);
   sign_e1 = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   srl1    = btor_exp_bv_srl (btor, e0, e1);
   srl2    = btor_exp_bv_srl (btor, btor_node_invert (e0), e1);
@@ -1382,7 +1382,7 @@ btor_exp_bv_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width   = btor_node_get_width (btor, e0);
+  width   = btor_node_bv_get_width (btor, e0);
   uext_e1 = btor_exp_bv_uext (btor, e0, 1);
   uext_e2 = btor_exp_bv_uext (btor, btor_node_invert (e1), 1);
   assert (width < INT32_MAX);
@@ -1414,7 +1414,7 @@ btor_exp_bv_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width       = btor_node_get_width (btor, e0);
+  width       = btor_node_bv_get_width (btor, e0);
   sign_e1     = btor_exp_bv_slice (btor, e0, width - 1, width - 1);
   sign_e2     = btor_exp_bv_slice (btor, e1, width - 1, width - 1);
   sub         = btor_exp_bv_sub (btor, e0, e1);
@@ -1470,7 +1470,7 @@ btor_exp_bv_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
 
   if (width == 1)
     return btor_node_invert (btor_exp_bv_and (btor, btor_node_invert (e0), e1));
@@ -1512,7 +1512,7 @@ btor_exp_bv_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  int_min = int_min_exp (btor, btor_node_get_width (btor, e0));
+  int_min = int_min_exp (btor, btor_node_bv_get_width (btor, e0));
   ones    = btor_exp_ones (btor, btor_node_get_sort_id (e1));
   eq1     = btor_exp_eq (btor, e0, int_min);
   eq2     = btor_exp_eq (btor, e1, ones);
@@ -1559,7 +1559,7 @@ btor_exp_bv_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width = btor_node_get_width (btor, e0);
+  width = btor_node_bv_get_width (btor, e0);
 
   if (width == 1) return btor_exp_bv_and (btor, e0, btor_node_invert (e1));
 
@@ -1603,7 +1603,7 @@ btor_exp_bv_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_dbg_precond_regular_binary_bv_exp (btor, e0, e1));
 
-  width     = btor_node_get_width (btor, e0);
+  width     = btor_node_bv_get_width (btor, e0);
   zero      = btor_exp_zero (btor, btor_node_get_sort_id (e0));
   e0_zero   = btor_exp_eq (btor, zero, e0);
   sign_e0   = btor_exp_bv_slice (btor, e0, width - 1, width - 1);

@@ -1731,7 +1731,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
           }
           else
           {
-            sort = btor_sort_bitvec (clone, btor_node_get_width (btor, cur));
+            sort = btor_sort_bitvec (clone, btor_node_bv_get_width (btor, cur));
             cur_clone = btor_exp_var (clone, sort, symbol);
             btor_sort_release (clone, sort);
           }
@@ -1747,7 +1747,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
           }
           else
           {
-            sort = btor_sort_bitvec (clone, btor_node_get_width (btor, cur));
+            sort = btor_sort_bitvec (clone, btor_node_bv_get_width (btor, cur));
             cur_clone = btor_exp_param (clone, sort, symbol);
             btor_sort_release (clone, sort);
           }

@@ -457,7 +457,7 @@ static bool
 is_true_cond (BtorNode *cond)
 {
   assert (cond);
-  assert (btor_node_get_width (btor_node_real_addr (cond)->btor, cond) == 1);
+  assert (btor_node_bv_get_width (btor_node_real_addr (cond)->btor, cond) == 1);
 
   if (btor_node_is_inverted (cond)
       && !btor_bv_get_bit (btor_node_const_get_bits (cond), 0))
@@ -488,7 +488,7 @@ is_bit_mask (BtorNode * exp, uint32_t * upper, uint32_t * lower)
 
   bits = btor_node_const_get_bits (real_exp);
   inv = btor_node_is_inverted (exp);
-  len = btor_node_get_width (real_exp->btor, real_exp);
+  len = btor_node_bv_get_width (real_exp->btor, real_exp);
   for (i = 0; i < len; i++)
     {
       bit = btor_bv_get_bit (bits, i);
@@ -676,7 +676,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
   real_e1   = btor_node_real_addr (e1);
   invert_b0 = btor_node_is_inverted (e0);
   b0        = btor_node_const_get_bits (real_e0);
-  width_e0  = btor_node_get_width (btor, real_e0);
+  width_e0  = btor_node_bv_get_width (btor, real_e0);
 
   if (invert_b0) b0 = btor_bv_not (mm, b0);
   sc = btor_bv_is_special_const (b0);
@@ -946,8 +946,8 @@ apply_special_const_rhs_binary_exp (Btor *btor,
   real_e1   = btor_node_real_addr (e1);
   invert_b1 = btor_node_is_inverted (e1);
   b1        = btor_node_const_get_bits (real_e1);
-  width_e0  = btor_node_get_width (btor, real_e0);
-  width_e1  = btor_node_get_width (btor, real_e1);
+  width_e0  = btor_node_bv_get_width (btor, real_e0);
+  width_e1  = btor_node_bv_get_width (btor, real_e1);
 
   if (invert_b1) b1 = btor_bv_not (mm, b1);
   sc = btor_bv_is_special_const (b1);
@@ -1296,7 +1296,7 @@ rewrite_linear_term_bounded (Btor *btor,
   {
     *lhs_ptr    = btor_node_copy (btor, term);
     *rhs_ptr    = btor_exp_zero (btor, btor_node_get_sort_id (term));
-    *factor_ptr = btor_bv_one (btor->mm, btor_node_get_width (btor, term));
+    *factor_ptr = btor_bv_one (btor->mm, btor_node_bv_get_width (btor, term));
   }
   else
     return false;
@@ -1353,7 +1353,7 @@ static inline bool
 applies_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
-  return btor_node_get_width (btor, exp) == upper - lower + 1;
+  return btor_node_bv_get_width (btor, exp) == upper - lower + 1;
 }
 
 static inline BtorNode *
@@ -1435,7 +1435,7 @@ applies_concat_lower_slice (Btor *btor,
 {
   (void) btor;
   return btor_node_is_bv_concat (exp) && lower == 0
-         && btor_node_get_width (btor, btor_node_real_addr (exp)->e[1])
+         && btor_node_bv_get_width (btor, btor_node_real_addr (exp)->e[1])
                 == upper - lower + 1;
 }
 
@@ -1467,8 +1467,8 @@ applies_concat_upper_slice (Btor *btor,
 {
   return btor_node_is_bv_concat (exp)
          && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) < 3
-         && upper == btor_node_get_width (btor, exp) - 1
-         && btor_node_get_width (btor, btor_node_real_addr (exp)->e[0])
+         && upper == btor_node_bv_get_width (btor, exp) - 1
+         && btor_node_bv_get_width (btor, btor_node_real_addr (exp)->e[0])
                 == upper - lower + 1;
 }
 
@@ -1505,8 +1505,8 @@ applies_concat_rec_upper_slice (Btor *btor,
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && btor_node_is_bv_concat (exp)
-         && lower
-                >= btor_node_get_width (btor, btor_node_real_addr (exp)->e[1]);
+         && lower >= btor_node_bv_get_width (btor,
+                                             btor_node_real_addr (exp)->e[1]);
 }
 
 static inline BtorNode *
@@ -1521,7 +1521,7 @@ apply_concat_rec_upper_slice (Btor *btor,
   BtorNode *result, *real_exp;
 
   real_exp = btor_node_real_addr (exp);
-  len      = btor_node_get_width (btor, real_exp->e[1]);
+  len      = btor_node_bv_get_width (btor, real_exp->e[1]);
   BTOR_INC_REC_RW_CALL (btor);
   result = rewrite_slice_exp (btor,
                               btor_node_cond_invert (exp, real_exp->e[0]),
@@ -1548,7 +1548,8 @@ applies_concat_rec_lower_slice (Btor *btor,
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && btor_node_is_bv_concat (exp)
-         && upper < btor_node_get_width (btor, btor_node_real_addr (exp)->e[1]);
+         && upper < btor_node_bv_get_width (btor,
+                                            btor_node_real_addr (exp)->e[1]);
 }
 
 static inline BtorNode *
@@ -1587,8 +1588,8 @@ applies_concat_rec_slice (Btor *btor,
   return btor_node_is_bv_concat (exp)
          && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
-         && upper
-                >= btor_node_get_width (btor, btor_node_real_addr (exp)->e[1]);
+         && upper >= btor_node_bv_get_width (btor,
+                                             btor_node_real_addr (exp)->e[1]);
 }
 
 static inline BtorNode *
@@ -1604,7 +1605,7 @@ apply_concat_rec_slice (Btor *btor,
   BtorNode *result, *real_exp, *tmp;
 
   real_exp = btor_node_real_addr (exp);
-  len      = btor_node_get_width (btor, real_exp->e[1]);
+  len      = btor_node_bv_get_width (btor, real_exp->e[1]);
   BTOR_INC_REC_RW_CALL (btor);
   tmp = rewrite_slice_exp (
       btor, btor_node_cond_invert (exp, real_exp->e[0]), upper - len, 0);
@@ -1692,7 +1693,7 @@ applies_zero_lower_slice (Btor *btor,
   (void) upper;
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
-         && upper < btor_node_get_width (btor, exp) / 2
+         && upper < btor_node_bv_get_width (btor, exp) / 2
          && (btor_node_is_bv_mul (exp) || btor_node_is_bv_add (exp));
   //	     || btor_node_is_bv_and (exp));
 }
@@ -2403,8 +2404,8 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   real_e0 = btor_node_real_addr (e0);
 
   BTOR_INC_REC_RW_CALL (btor);
-  upper = btor_node_get_width (btor, real_e0) - 1;
-  lower = upper - btor_node_get_width (btor, real_e0->e[0]) + 1;
+  upper = btor_node_bv_get_width (btor, real_e0) - 1;
+  lower = upper - btor_node_bv_get_width (btor, real_e0->e[0]) + 1;
 
   tmp1 = rewrite_slice_exp (btor, e0, upper, lower);
   tmp2 = rewrite_slice_exp (btor, e1, upper, lower);
@@ -2513,7 +2514,7 @@ applies_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e0) == 1;
+         && btor_node_bv_get_width (btor, e0) == 1;
 }
 
 static inline BtorNode *
@@ -2858,7 +2859,7 @@ applies_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_and (real_e0)
          && btor_node_is_bv_and (real_e1) && btor_node_is_inverted (e0)
          && btor_node_is_inverted (e1)
-         && btor_node_get_width (btor, real_e0) == 1
+         && btor_node_bv_get_width (btor, real_e0) == 1
          && btor_node_is_inverted (real_e0->e[0])
                 != btor_node_is_inverted (real_e0->e[1])
          && btor_node_is_inverted (real_e1->e[0])
@@ -3343,7 +3344,7 @@ applies_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e0) == 1;
+         && btor_node_bv_get_width (btor, e0) == 1;
 }
 
 static inline BtorNode *
@@ -3619,7 +3620,7 @@ static inline bool
 applies_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && e0 == e1
-         && btor_node_get_width (btor, e0) >= 2;
+         && btor_node_bv_get_width (btor, e0) >= 2;
 }
 
 static inline BtorNode *
@@ -3728,7 +3729,7 @@ applies_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e0) == 1;
+         && btor_node_bv_get_width (btor, e0) == 1;
 }
 
 static inline BtorNode *
@@ -3911,7 +3912,7 @@ applies_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e0) == 1;
+         && btor_node_bv_get_width (btor, e0) == 1;
 }
 
 static inline BtorNode *
@@ -3950,7 +3951,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorSortId sort;
 
   n = btor_bv_power_of_two (btor_node_const_get_bits (e1));
-  l = btor_node_get_width (btor, e0);
+  l = btor_node_bv_get_width (btor, e0);
   assert (l > n);
 
   BTOR_INC_REC_RW_CALL (btor);
@@ -3960,7 +3961,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   btor_sort_release (btor, sort);
   result = rewrite_concat_exp (btor, pad, slice);
   BTOR_DEC_REC_RW_CALL (btor);
-  assert (btor_node_get_width (btor, result) == l);
+  assert (btor_node_bv_get_width (btor, result) == l);
   btor_node_release (btor, pad);
   btor_node_release (btor, slice);
   return result;
@@ -4053,7 +4054,7 @@ applies_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e0) == 1;
+         && btor_node_bv_get_width (btor, e0) == 1;
 }
 
 static inline BtorNode *
@@ -4325,7 +4326,7 @@ applies_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_const (e1)
-         && btor_node_get_width (btor, e1) <= 32;
+         && btor_node_bv_get_width (btor, e1) <= 32;
 }
 
 static inline BtorNode *
@@ -4348,13 +4349,13 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
   shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
   if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
-  assert (shiftlen < btor_node_get_width (btor, real_e0));
+  assert (shiftlen < btor_node_bv_get_width (btor, real_e0));
   BTOR_INC_REC_RW_CALL (btor);
   sort = btor_sort_bitvec (btor, shiftlen);
   pad  = btor_exp_zero (btor, sort);
   btor_sort_release (btor, sort);
   slice = rewrite_slice_exp (
-      btor, e0, btor_node_get_width (btor, real_e0) - shiftlen - 1, 0);
+      btor, e0, btor_node_bv_get_width (btor, real_e0) - shiftlen - 1, 0);
   result = rewrite_concat_exp (btor, slice, pad);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, pad);
@@ -4375,7 +4376,7 @@ applies_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_const (e1)
-         && btor_node_get_width (btor, e1) <= 32;
+         && btor_node_bv_get_width (btor, e1) <= 32;
 }
 
 static inline BtorNode *
@@ -4398,13 +4399,13 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
   if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
-  assert (shiftlen < btor_node_get_width (btor, real_e0));
+  assert (shiftlen < btor_node_bv_get_width (btor, real_e0));
   BTOR_INC_REC_RW_CALL (btor);
   sort = btor_sort_bitvec (btor, shiftlen);
   pad  = btor_exp_zero (btor, sort);
   btor_sort_release (btor, sort);
   slice = rewrite_slice_exp (
-      btor, e0, btor_node_get_width (btor, real_e0) - 1, shiftlen);
+      btor, e0, btor_node_bv_get_width (btor, real_e0) - 1, shiftlen);
   result = rewrite_concat_exp (btor, pad, slice);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, pad);
@@ -5276,7 +5277,7 @@ applies_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   (void) e0;
   (void) e2;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && btor_node_get_width (btor, e1) == 1;
+         && btor_node_bv_get_width (btor, e1) == 1;
 }
 
 static inline BtorNode *
@@ -5319,7 +5320,7 @@ apply_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   BtorNode *result, *tmp;
 
   BTOR_INC_REC_RW_CALL (btor);
-  tmp    = btor_exp_bv_uext (btor, e0, btor_node_get_width (btor, e1) - 1);
+  tmp    = btor_exp_bv_uext (btor, e0, btor_node_bv_get_width (btor, e1) - 1);
   result = rewrite_add_exp (btor, e2, tmp);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, tmp);
@@ -5351,7 +5352,7 @@ apply_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 
   BTOR_INC_REC_RW_CALL (btor);
   tmp = btor_exp_bv_uext (
-      btor, btor_node_invert (e0), btor_node_get_width (btor, e1) - 1);
+      btor, btor_node_invert (e0), btor_node_bv_get_width (btor, e1) - 1);
   result = rewrite_add_exp (btor, e1, tmp);
   BTOR_DEC_REC_RW_CALL (btor);
   btor_node_release (btor, tmp);

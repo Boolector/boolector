@@ -776,9 +776,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         case BTOR_BV_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_BV_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (btor_node_get_width (sdc->btor, real_exp) > 1);
-          pad = btor_node_get_width (sdc->btor, real_exp)
-                - btor_node_get_width (sdc->btor, real_exp->e[1]);
+          assert (btor_node_bv_get_width (sdc->btor, real_exp) > 1);
+          pad = btor_node_bv_get_width (sdc->btor, real_exp)
+                - btor_node_bv_get_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad, depth + 1);
           PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 1, 0, depth + 1);
           break;
@@ -1375,7 +1375,7 @@ dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (sdc);
   assert (exp);
-  assert (btor_node_get_width (sdc->btor, exp) == 1);
+  assert (btor_node_bv_get_width (sdc->btor, exp) == 1);
 
   open_sexp (sdc);
   fputs ("assert ", sdc->file);
@@ -1476,7 +1476,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
       continue;
     }
     else if ((btor_node_is_bv_and (cur) || btor_node_is_bv_cond (cur))
-             && btor_node_get_width (sdc->btor, cur) == 1)
+             && btor_node_bv_get_width (sdc->btor, cur) == 1)
     {
       is_bool = true;
       for (j = 0; j < cur->arity; j++)
