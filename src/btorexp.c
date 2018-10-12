@@ -644,7 +644,7 @@ btor_exp_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_repeat (Btor *btor, BtorNode *exp, uint32_t n)
+btor_exp_bv_repeat (Btor *btor, BtorNode *exp, uint32_t n)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
   assert (((uint32_t) UINT32_MAX / n) >= btor_node_get_width (btor, exp));

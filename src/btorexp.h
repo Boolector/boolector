@@ -371,7 +371,7 @@ BtorNode *btor_exp_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
 /* Repetition.
  * width(result) = n * width(exp)
  */
-BtorNode *btor_exp_repeat (Btor *btor, BtorNode *exp, uint32_t n);
+BtorNode *btor_exp_bv_repeat (Btor *btor, BtorNode *exp, uint32_t n);
 
 /* Array read on array 'e_array' at position 'e_index'.
  * index_width(e_array) = width(e_index)

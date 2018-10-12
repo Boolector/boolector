@@ -2785,7 +2785,7 @@ boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n)
   BTOR_ABORT_IS_NOT_BV (exp);
   BTOR_ABORT (((uint32_t) (UINT32_MAX / n)) < btor_node_get_width (btor, exp),
               "resulting bit-width of 'repeat' too large");
-  res = btor_exp_repeat (btor, exp, n);
+  res = btor_exp_bv_repeat (btor, exp, n);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
