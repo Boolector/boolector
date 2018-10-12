@@ -302,7 +302,7 @@ static void
 test_prop_one_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, btor_exp_concat, btor_bv_concat, inv_concat_bv);
+  prop_complete_binary (1, btor_exp_bv_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 
@@ -384,7 +384,7 @@ static void
 test_prop_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, btor_exp_concat, btor_bv_concat, inv_concat_bv);
+  prop_complete_binary (2, btor_exp_bv_concat, btor_bv_concat, inv_concat_bv);
 #endif
 }
 

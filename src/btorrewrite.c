@@ -1431,7 +1431,7 @@ applies_concat_lower_slice (Btor *btor,
                             uint32_t lower)
 {
   (void) btor;
-  return btor_node_is_concat (exp) && lower == 0
+  return btor_node_is_bv_concat (exp) && lower == 0
          && btor_node_get_width (btor, btor_node_real_addr (exp)->e[1])
                 == upper - lower + 1;
 }
@@ -1462,7 +1462,7 @@ applies_concat_upper_slice (Btor *btor,
                             uint32_t upper,
                             uint32_t lower)
 {
-  return btor_node_is_concat (exp)
+  return btor_node_is_bv_concat (exp)
          && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) < 3
          && upper == btor_node_get_width (btor, exp) - 1
          && btor_node_get_width (btor, btor_node_real_addr (exp)->e[0])
@@ -1500,7 +1500,8 @@ applies_concat_rec_upper_slice (Btor *btor,
 {
   (void) upper;
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
-         && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_concat (exp)
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+         && btor_node_is_bv_concat (exp)
          && lower
                 >= btor_node_get_width (btor, btor_node_real_addr (exp)->e[1]);
 }
@@ -1542,7 +1543,8 @@ applies_concat_rec_lower_slice (Btor *btor,
 {
   (void) lower;
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
-         && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_concat (exp)
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+         && btor_node_is_bv_concat (exp)
          && upper < btor_node_get_width (btor, btor_node_real_addr (exp)->e[1]);
 }
 
@@ -1579,7 +1581,7 @@ applies_concat_rec_slice (Btor *btor,
                           uint32_t upper,
                           uint32_t lower)
 {
-  return btor_node_is_concat (exp)
+  return btor_node_is_bv_concat (exp)
          && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
          && upper
@@ -2534,7 +2536,7 @@ applies_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && btor_node_is_concat (e0) && e0->kind == e1->kind
+         && btor_node_is_bv_concat (e0) && e0->kind == e1->kind
          && e0->e[0] == e1->e[0];
 }
 
@@ -2561,7 +2563,7 @@ applies_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !btor_node_is_inverted (e0) && !btor_node_is_inverted (e1)
-         && btor_node_is_concat (e0) && e0->kind == e1->kind
+         && btor_node_is_bv_concat (e0) && e0->kind == e1->kind
          && e0->e[1] == e1->e[1];
 }
 
@@ -3216,7 +3218,8 @@ applies_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
   real_e1 = btor_node_real_addr (e1);
 
   result = btor->rec_rw_calls < BTOR_REC_RW_BOUND
-           && btor_node_is_concat (real_e0) && btor_node_is_concat (real_e1)
+           && btor_node_is_bv_concat (real_e0)
+           && btor_node_is_bv_concat (real_e1)
            && btor_node_get_sort_id (real_e0->e[0])
                   == btor_node_get_sort_id (real_e1->e[0]);
 
@@ -4095,7 +4098,7 @@ applies_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *real_e0;
   real_e0 = btor_node_real_addr (e0);
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_const (e1)
-         && btor_node_is_concat (real_e0)
+         && btor_node_is_bv_concat (real_e0)
          && btor_node_is_bv_const (real_e0->e[1]);
 }
 
@@ -4164,8 +4167,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
        btor_is_concat_simplifiable (e0->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
-      t = btor_exp_concat (btor, e0->e[1], e1);
-      e = btor_exp_concat (btor, e0->e[2], e1);
+      t = btor_exp_bv_concat (btor, e0->e[1], e1);
+      e = btor_exp_bv_concat (btor, e0->e[2], e1);
       result = btor_exp_cond (btor, e0->e[0], t, e);
       btor_node_release (btor, e);
       btor_node_release (btor, t);
@@ -4183,8 +4186,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
        btor_is_concat_simplifiable (real_e0->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
-      t = btor_exp_concat (btor, btor_node_invert (real_e0->e[1]), e1);
-      e = btor_exp_concat (btor, btor_node_invert (real_e0->e[2]), e1);
+      t = btor_exp_bv_concat (btor, btor_node_invert (real_e0->e[1]), e1);
+      e = btor_exp_bv_concat (btor, btor_node_invert (real_e0->e[2]), e1);
       result = btor_exp_cond (btor, real_e0->e[0], t, e);
       btor_node_release (btor, e);
       btor_node_release (btor, t);
@@ -4202,8 +4205,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
        btor_is_concat_simplifiable (e1->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
-      t = btor_exp_concat (btor, e0, e1->e[1]);
-      e = btor_exp_concat (btor, e0, e1->e[2]);
+      t = btor_exp_bv_concat (btor, e0, e1->e[1]);
+      e = btor_exp_bv_concat (btor, e0, e1->e[2]);
       result = btor_exp_cond (btor, e1->e[0], t, e);
       btor_node_release (btor, e);
       btor_node_release (btor, t);
@@ -4221,8 +4224,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
        btor_is_concat_simplifiable (real_e1->e[2])))
     {
       BTOR_INC_REC_RW_CALL (btor);
-      t = btor_exp_concat (btor, e0, btor_node_invert (real_e1->e[1]));
-      e = btor_exp_concat (btor, e0, btor_node_invert (real_e1->e[2]));
+      t = btor_exp_bv_concat (btor, e0, btor_node_invert (real_e1->e[1]));
+      e = btor_exp_bv_concat (btor, e0, btor_node_invert (real_e1->e[2]));
       result = btor_exp_cond (btor, real_e1->e[0], t, e);
       btor_node_release (btor, e);
       btor_node_release (btor, t);
@@ -5370,7 +5373,8 @@ applies_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   real_e2 = btor_node_real_addr (e2);
   result  = btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
            && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-           && btor_node_is_concat (real_e1) && btor_node_is_concat (real_e2);
+           && btor_node_is_bv_concat (real_e1)
+           && btor_node_is_bv_concat (real_e2);
 
   if (!result) return result;
 
@@ -6141,7 +6145,7 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
 
   /* normalize concats --> left-associative */
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-      && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_concat (e1))
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_bv_concat (e1))
   {
     BTOR_INIT_STACK (mm, po_stack);
     BTOR_PUSH_STACK (po_stack, e0);
@@ -6152,7 +6156,7 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
     {
       cur      = BTOR_POP_STACK (stack);
       real_cur = btor_node_real_addr (cur);
-      if (btor_node_is_concat (real_cur))
+      if (btor_node_is_bv_concat (real_cur))
       {
         BTOR_PUSH_STACK (stack, btor_node_cond_invert (cur, real_cur->e[1]));
         BTOR_PUSH_STACK (stack, btor_node_cond_invert (cur, real_cur->e[0]));
@@ -6170,7 +6174,7 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
     for (i = 2; i < BTOR_COUNT_STACK (po_stack) - 1; i++)
     {
       cur = BTOR_PEEK_STACK (po_stack, i);
-      assert (!btor_node_is_concat (cur));
+      assert (!btor_node_is_bv_concat (cur));
       tmp = rewrite_concat_exp (btor, concat, cur);
       btor_node_release (btor, concat);
       concat = tmp;
@@ -6752,7 +6756,7 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     assert (!result);
     if (!result)
     {
-      result = btor_node_create_concat (btor, e0, e1);
+      result = btor_node_create_bv_concat (btor, e0, e1);
     }
     else
     {

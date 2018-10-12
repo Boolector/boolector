@@ -57,7 +57,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
       return btor_exp_bv_urem (btor, e[0], e[1]);
     case BTOR_CONCAT_NODE:
       assert (arity == 2);
-      return btor_exp_concat (btor, e[0], e[1]);
+      return btor_exp_bv_concat (btor, e[0], e[1]);
     case BTOR_APPLY_NODE:
       assert (arity == 2);
       return btor_exp_apply (btor, e[0], e[1]);
@@ -623,7 +623,7 @@ btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);
@@ -637,7 +637,7 @@ btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     result = btor_rewrite_binary_exp (btor, BTOR_CONCAT_NODE, e0, e1);
   else
-    result = btor_node_create_concat (btor, e0, e1);
+    result = btor_node_create_bv_concat (btor, e0, e1);
 
   assert (result);
   return result;
@@ -656,7 +656,7 @@ btor_exp_repeat (Btor *btor, BtorNode *exp, uint32_t n)
   for (i = 1; i < n; i++)
   {
     tmp    = result;
-    result = btor_exp_concat (btor, tmp, exp);
+    result = btor_exp_bv_concat (btor, tmp, exp);
     btor_node_release (btor, tmp);
   }
   assert (result);
@@ -753,7 +753,7 @@ btor_exp_bv_uext (Btor *btor, BtorNode *exp, uint32_t width)
     sort = btor_sort_bitvec (btor, width);
     zero = btor_exp_zero (btor, sort);
     btor_sort_release (btor, sort);
-    result = btor_exp_concat (btor, zero, exp);
+    result = btor_exp_bv_concat (btor, zero, exp);
     btor_node_release (btor, zero);
   }
   return result;
@@ -783,7 +783,7 @@ btor_exp_bv_sext (Btor *btor, BtorNode *exp, uint32_t width)
     exp_width = btor_node_get_width (btor, exp);
     neg       = btor_exp_bv_slice (btor, exp, exp_width - 1, exp_width - 1);
     cond      = btor_exp_cond (btor, neg, ones, zero);
-    result    = btor_exp_concat (btor, cond, exp);
+    result    = btor_exp_bv_concat (btor, cond, exp);
     btor_node_release (btor, zero);
     btor_node_release (btor, ones);
     btor_node_release (btor, neg);

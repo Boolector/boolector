@@ -397,7 +397,7 @@ btor_node_is_bv_slice (const BtorNode *exp)
 }
 
 static inline bool
-btor_node_is_concat (const BtorNode *exp)
+btor_node_is_bv_concat (const BtorNode *exp)
 {
   assert (exp);
   return btor_node_real_addr (exp)->kind == BTOR_CONCAT_NODE;
@@ -722,7 +722,7 @@ BtorNode *btor_node_create_bv_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_bv_urem (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_node_create_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_node_create_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_node_create_cond (Btor *btor,
                                  BtorNode *e_cond,

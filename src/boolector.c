@@ -2761,7 +2761,7 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT (
       btor_node_get_width (btor, e0) > INT32_MAX - btor_node_get_width (btor, e1),
       "bit-width of result is too large");
-  res = btor_exp_concat (btor, e0, e1);
+  res = btor_exp_bv_concat (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

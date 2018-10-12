@@ -1466,7 +1466,7 @@ normalize_substitution (Btor *btor,
             btor_sort_bitvec (btor, btor_node_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
-        tmp = btor_exp_concat (btor, const_exp, lambda);
+        tmp = btor_exp_bv_concat (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_node_release (btor, const_exp);
         btor_node_release (btor, lambda);
@@ -1487,7 +1487,7 @@ normalize_substitution (Btor *btor,
             btor_sort_bitvec (btor, btor_node_get_width (btor, var) - leadings);
         lambda = btor_exp_var (btor, sort, 0);
         btor_sort_release (btor, sort);
-        tmp = btor_exp_concat (btor, const_exp, lambda);
+        tmp = btor_exp_bv_concat (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_node_release (btor, const_exp);
         btor_node_release (btor, lambda);

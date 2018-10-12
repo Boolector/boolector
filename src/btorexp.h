@@ -366,7 +366,7 @@ BtorNode *btor_exp_bv_smod (Btor *btor, BtorNode *e0, BtorNode *e1);
 /* Concatenation.
  * width(result) = width(e0) + width(e1)
  */
-BtorNode *btor_exp_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_exp_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Repetition.
  * width(result) = n * width(exp)

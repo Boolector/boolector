@@ -206,7 +206,7 @@ static void
 test_propinv_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (concat, btor_exp_concat);
+  TEST_PROP_INV_COMPLETE_BINARY (concat, btor_exp_bv_concat);
 #endif
 }
 
@@ -1355,7 +1355,7 @@ PROP_INV_CONF_CONCAT_TESTS:
     sorts[1] = btor_sort_bitvec (g_btor, bw);
     e[0]     = btor_exp_var (g_btor, sorts[0], 0);
     e[1]     = btor_exp_var (g_btor, sorts[1], 0);
-    concat   = btor_exp_concat (g_btor, e[0], e[1]);
+    concat   = btor_exp_bv_concat (g_btor, e[0], e[1]);
     bvconcat = btor_bv_new_random (g_mm, &g_btor->rng, bw);
     for (j = 0; j < 2; j++)
     {
@@ -1378,8 +1378,8 @@ PROP_INV_CONF_CONCAT_TESTS:
     }
     ce[0]      = btor_exp_const (g_btor, bve[0]);
     ce[1]      = btor_exp_const (g_btor, bve[1]);
-    cconcat[0] = btor_exp_concat (g_btor, ce[0], e[1]);
-    cconcat[1] = btor_exp_concat (g_btor, e[0], ce[1]);
+    cconcat[0] = btor_exp_bv_concat (g_btor, ce[0], e[1]);
+    cconcat[1] = btor_exp_bv_concat (g_btor, e[0], ce[1]);
     for (j = 0; j < 2; j++)
     {
       res = inv_concat_bv (g_btor, concat, bvconcat, bve[j ? 0 : 1], j);

@@ -278,7 +278,7 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       sort       = btor_sort_bitvec (btor, s1->upper - s1->lower + 1);
       lambda_var = btor_exp_var (btor, sort, 0);
       btor_sort_release (btor, sort);
-      temp = btor_exp_concat (btor, result, lambda_var);
+      temp = btor_exp_bv_concat (btor, result, lambda_var);
       btor_node_release (btor, result);
       result = temp;
       btor_node_release (btor, lambda_var);

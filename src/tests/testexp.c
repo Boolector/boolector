@@ -540,7 +540,7 @@ binary_non_commutative_exp_test (BtorNode *(*func) (Btor *,
     assert (btor_node_get_width (g_btor, exp4) == 32);
     assert (btor_node_get_width (g_btor, exp5) == 32);
   }
-  else if (func == btor_exp_concat)
+  else if (func == btor_exp_bv_concat)
   {
     assert (btor_node_get_width (g_btor, exp3) == 64);
     assert (btor_node_get_width (g_btor, exp4) == 64);
@@ -667,7 +667,7 @@ test_smod_exp (void)
 static void
 test_concat_exp (void)
 {
-  binary_non_commutative_exp_test (btor_exp_concat);
+  binary_non_commutative_exp_test (btor_exp_bv_concat);
 }
 
 static void

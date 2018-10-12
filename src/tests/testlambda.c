@@ -773,8 +773,8 @@ test_lambda_param_smod (void)
 static void
 test_lambda_param_concat (void)
 {
-  binary_param_exp_test (0, btor_exp_concat);
-  binary_param_exp_test (1, btor_exp_concat);
+  binary_param_exp_test (0, btor_exp_bv_concat);
+  binary_param_exp_test (1, btor_exp_bv_concat);
 }
 
 /* (lambda x . read(a, x)) (i) */
