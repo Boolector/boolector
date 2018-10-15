@@ -143,8 +143,8 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       if (cur->kind == BTOR_BV_SLICE_NODE)
       {
         s1 = new_slice (btor,
-                        btor_node_slice_get_upper (cur),
-                        btor_node_slice_get_lower (cur));
+                        btor_node_bv_slice_get_upper (cur),
+                        btor_node_bv_slice_get_lower (cur));
         assert (!btor_hashptr_table_get (slices, s1));
         btor_hashptr_table_add (slices, s1);
       }

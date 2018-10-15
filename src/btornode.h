@@ -670,8 +670,8 @@ void btor_node_lambda_delete_static_rho (Btor *btor, BtorNode *lambda);
 
 /*------------------------------------------------------------------------*/
 
-uint32_t btor_node_slice_get_upper (BtorNode *slice);
-uint32_t btor_node_slice_get_lower (BtorNode *slice);
+uint32_t btor_node_bv_slice_get_upper (BtorNode *slice);
+uint32_t btor_node_bv_slice_get_lower (BtorNode *slice);
 
 /*------------------------------------------------------------------------*/
 

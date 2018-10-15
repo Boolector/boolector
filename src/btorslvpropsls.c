@@ -726,8 +726,8 @@ btor_propsls_update_cone (Btor *btor,
       case BTOR_BV_SLICE_NODE:
         bv = btor_bv_slice (mm,
                             e[0],
-                            btor_node_slice_get_upper (cur),
-                            btor_node_slice_get_lower (cur));
+                            btor_node_bv_slice_get_upper (cur),
+                            btor_node_bv_slice_get_lower (cur));
         break;
       default:
         assert (btor_node_is_cond (cur));
@@ -3979,8 +3979,8 @@ inv_slice_bv (Btor *btor,
                       &btor->rng,
                       btor_opt_get (btor, BTOR_OPT_PROP_PROB_SLICE_KEEP_DC));
 
-  upper = btor_node_slice_get_upper (slice);
-  lower = btor_node_slice_get_lower (slice);
+  upper = btor_node_bv_slice_get_upper (slice);
+  lower = btor_node_bv_slice_get_lower (slice);
 
   res = btor_bv_new (mm, btor_node_bv_get_width (btor, e));
 

@@ -384,8 +384,8 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
       else if (btor_node_is_bv_slice (real_cur))
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       /* param of quantifier got substituted */
       else if (btor_node_is_quantifier (real_cur)
                && btor_hashint_map_contains (map, real_cur->e[0]->id))

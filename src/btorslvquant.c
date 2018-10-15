@@ -524,8 +524,8 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
       {
         result = btor_exp_bv_slice (dual_btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       /* invert quantifiers */
       else if (btor_node_is_forall (real_cur))
@@ -887,8 +887,8 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       /* universal/existential vars get substituted */
       else if (btor_node_is_quantifier (real_cur))
@@ -1427,8 +1427,8 @@ eval_exp (Btor *btor,
         case BTOR_BV_SLICE_NODE:
           result = btor_bv_slice (mm,
                                   bv[0],
-                                  btor_node_slice_get_upper (real_cur),
-                                  btor_node_slice_get_lower (real_cur));
+                                  btor_node_bv_slice_get_upper (real_cur),
+                                  btor_node_bv_slice_get_lower (real_cur));
           break;
 
         case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
@@ -1954,8 +1954,8 @@ instantiate_formula (BtorGroundSolvers *gslv,
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       /* universal variable got substituted by var in 'uvar_map' */
       else if (btor_node_is_forall (real_cur) || btor_node_is_exists (real_cur))
@@ -2164,8 +2164,8 @@ build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       /* universal/existential vars get substituted */
       else if (btor_node_is_quantifier (real_cur))

@@ -643,14 +643,14 @@ btor_util_node2string (BtorNode *exp)
 
   if (btor_node_is_bv_slice (real_exp))
   {
-    new_len += btor_util_num_digits (btor_node_slice_get_upper (exp)) + 1;
-    new_len += btor_util_num_digits (btor_node_slice_get_lower (exp)) + 1;
+    new_len += btor_util_num_digits (btor_node_bv_slice_get_upper (exp)) + 1;
+    new_len += btor_util_num_digits (btor_node_bv_slice_get_lower (exp)) + 1;
     BUFCONCAT (strbuf,
                cur_len,
                new_len,
                " %d %d",
-               btor_node_slice_get_upper (exp),
-               btor_node_slice_get_lower (exp));
+               btor_node_bv_slice_get_upper (exp),
+               btor_node_bv_slice_get_lower (exp));
   }
   else if ((btor_node_is_bv_var (real_exp) || btor_node_is_uf (real_exp)
             || btor_node_is_param (real_exp))

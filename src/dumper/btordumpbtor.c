@@ -520,8 +520,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   if (node->kind == BTOR_BV_SLICE_NODE)
     fprintf (file,
              " %d %d",
-             btor_node_slice_get_upper (node),
-             btor_node_slice_get_lower (node));
+             btor_node_bv_slice_get_upper (node),
+             btor_node_bv_slice_get_lower (node));
   else if (btor_node_is_bv_var (node) || btor_node_is_uf (node)
            || btor_node_is_param (node))
   {

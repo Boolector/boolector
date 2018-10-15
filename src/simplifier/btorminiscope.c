@@ -295,8 +295,8 @@ rebuild (Btor *btor, BtorNode *root, BtorPtrHashTable *pushed)
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       /* scope of quantifier changed */
       else if (btor_node_is_quantifier (real_cur)

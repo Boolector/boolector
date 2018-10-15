@@ -1417,8 +1417,8 @@ apply_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   BTOR_INC_REC_RW_CALL (btor);
   result = rewrite_slice_exp (btor,
                               btor_node_cond_invert (exp, real_exp->e[0]),
-                              btor_node_slice_get_lower (real_exp) + upper,
-                              btor_node_slice_get_lower (real_exp) + lower);
+                              btor_node_bv_slice_get_lower (real_exp) + upper,
+                              btor_node_bv_slice_get_lower (real_exp) + lower);
   BTOR_DEC_REC_RW_CALL (btor);
   return result;
 }
@@ -4140,8 +4140,8 @@ applies_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
          && btor_node_is_inverted (e0) == btor_node_is_inverted (e1)
          && btor_node_is_bv_slice (real_e0) && btor_node_is_bv_slice (real_e1)
          && real_e0->e[0] == real_e1->e[0]
-         && btor_node_slice_get_lower (real_e0)
-                == btor_node_slice_get_upper (real_e1) + 1;
+         && btor_node_bv_slice_get_lower (real_e0)
+                == btor_node_bv_slice_get_upper (real_e1) + 1;
 }
 
 static inline BtorNode *
@@ -4155,8 +4155,8 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_INC_REC_RW_CALL (btor);
   result = rewrite_slice_exp (btor,
                               real_e0->e[0],
-                              btor_node_slice_get_upper (real_e0),
-                              btor_node_slice_get_lower (e1));
+                              btor_node_bv_slice_get_upper (real_e0),
+                              btor_node_bv_slice_get_lower (e1));
   BTOR_DEC_REC_RW_CALL (btor);
   result = btor_node_cond_invert (e0, result);
   return result;
@@ -5890,8 +5890,8 @@ rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
     tmp = rebuild_top_add (btor, e->e[0], c, r);
     res = rewrite_slice_exp (btor,
                              tmp,
-                             btor_node_slice_get_upper (e),
-                             btor_node_slice_get_lower (e));
+                             btor_node_bv_slice_get_upper (e),
+                             btor_node_bv_slice_get_lower (e));
     btor_node_release (btor, tmp);
   }
   return res;

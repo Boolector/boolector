@@ -954,8 +954,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         fmt = "%d %d)";
         fprintf (sdc->file,
                  fmt,
-                 btor_node_slice_get_upper (real_exp),
-                 btor_node_slice_get_lower (real_exp));
+                 btor_node_bv_slice_get_upper (real_exp),
+                 btor_node_bv_slice_get_lower (real_exp));
       }
       else if (btor_node_is_quantifier (real_exp))
       {

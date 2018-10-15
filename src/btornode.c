@@ -355,8 +355,8 @@ compute_hash_exp (Btor *btor, BtorNode *exp, uint32_t table_size)
     hash = btor_hashptr_table_get (exp->btor->quantifiers, exp)->data.as_int;
   else if (exp->kind == BTOR_BV_SLICE_NODE)
     hash = hash_slice_exp (exp->e[0],
-                           btor_node_slice_get_upper (exp),
-                           btor_node_slice_get_lower (exp));
+                           btor_node_bv_slice_get_upper (exp),
+                           btor_node_bv_slice_get_lower (exp));
   else
     hash = hash_bv_exp (btor, exp->kind, exp->arity, exp->e);
   hash &= table_size - 1;
@@ -1285,14 +1285,14 @@ btor_node_lambda_delete_static_rho (Btor *btor, BtorNode *lambda)
 /*------------------------------------------------------------------------*/
 
 uint32_t
-btor_node_slice_get_upper (BtorNode *slice)
+btor_node_bv_slice_get_upper (BtorNode *slice)
 {
   assert (btor_node_is_bv_slice (slice));
   return ((BtorBVSliceNode *) btor_node_real_addr (slice))->upper;
 }
 
 uint32_t
-btor_node_slice_get_lower (BtorNode *slice)
+btor_node_bv_slice_get_lower (BtorNode *slice)
 {
   assert (btor_node_is_bv_slice (slice));
   return ((BtorBVSliceNode *) btor_node_real_addr (slice))->lower;
@@ -1443,8 +1443,8 @@ find_slice_exp (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   {
     assert (btor_node_is_regular (cur));
     if (cur->kind == BTOR_BV_SLICE_NODE && cur->e[0] == e0
-        && btor_node_slice_get_upper (cur) == upper
-        && btor_node_slice_get_lower (cur) == lower)
+        && btor_node_bv_slice_get_upper (cur) == upper
+        && btor_node_bv_slice_get_lower (cur) == lower)
       break;
     else
     {
@@ -1685,8 +1685,8 @@ compare_binder_exp (Btor *btor,
       {
         result = *find_slice_exp (btor,
                                   e[0],
-                                  btor_node_slice_get_upper (real_cur),
-                                  btor_node_slice_get_lower (real_cur));
+                                  btor_node_bv_slice_get_upper (real_cur),
+                                  btor_node_bv_slice_get_lower (real_cur));
       }
       else if (btor_node_is_param (real_cur))
       {

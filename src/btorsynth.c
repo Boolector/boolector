@@ -372,8 +372,8 @@ eval_candidate (Btor *btor,
         case BTOR_BV_SLICE_NODE:
           result = btor_bv_slice (mm,
                                   bv[0],
-                                  btor_node_slice_get_upper (real_cur),
-                                  btor_node_slice_get_lower (real_cur));
+                                  btor_node_bv_slice_get_upper (real_cur),
+                                  btor_node_bv_slice_get_lower (real_cur));
           break;
 
         case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;
@@ -534,8 +534,8 @@ eval_exps (Btor *btor,
         case BTOR_BV_SLICE_NODE:
           result = btor_bv_slice (mm,
                                   bv[0],
-                                  btor_node_slice_get_upper (real_cur),
-                                  btor_node_slice_get_lower (real_cur));
+                                  btor_node_bv_slice_get_upper (real_cur),
+                                  btor_node_bv_slice_get_lower (real_cur));
           break;
 
         case BTOR_BV_AND_NODE: result = btor_bv_and (mm, bv[0], bv[1]); break;

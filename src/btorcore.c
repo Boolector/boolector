@@ -2425,8 +2425,8 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_BV_SLICE_NODE:
       return btor_exp_bv_slice (btor,
                                 exp->e[0],
-                                btor_node_slice_get_upper (exp),
-                                btor_node_slice_get_lower (exp));
+                                btor_node_bv_slice_get_upper (exp),
+                                btor_node_bv_slice_get_lower (exp));
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_EXISTS_NODE:
     case BTOR_FORALL_NODE: return rebuild_binder_exp (btor, exp);
@@ -2912,8 +2912,8 @@ btor_substitute_nodes_node_map (Btor *btor,
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       else
       {
@@ -3567,8 +3567,8 @@ btor_synthesize_exp (Btor *btor,
         if (invert_av0) btor_aigvec_invert (avmgr, av0);
         cur->av = btor_aigvec_slice (avmgr,
                                      av0,
-                                     btor_node_slice_get_upper (cur),
-                                     btor_node_slice_get_lower (cur));
+                                     btor_node_bv_slice_get_upper (cur),
+                                     btor_node_bv_slice_get_lower (cur));
         if (invert_av0) btor_aigvec_invert (avmgr, av0);
       }
       else if (cur->arity == 2)

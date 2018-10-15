@@ -167,8 +167,8 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
     case BTOR_BV_SLICE_NODE:
       res = btor_exp_bv_slice (btor,
                                e[0],
-                               btor_node_slice_get_upper (node),
-                               btor_node_slice_get_lower (node));
+                               btor_node_bv_slice_get_upper (node),
+                               btor_node_bv_slice_get_lower (node));
       break;
     case BTOR_BV_AND_NODE: res = btor_exp_bv_and (btor, e[0], e[1]); break;
     case BTOR_BV_EQ_NODE:

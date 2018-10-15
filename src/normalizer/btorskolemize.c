@@ -143,8 +143,8 @@ btor_skolemize_node (Btor *btor,
       {
         result = btor_exp_bv_slice (btor,
                                     e[0],
-                                    btor_node_slice_get_upper (real_cur),
-                                    btor_node_slice_get_lower (real_cur));
+                                    btor_node_bv_slice_get_upper (real_cur),
+                                    btor_node_bv_slice_get_lower (real_cur));
       }
       else if (btor_node_is_exists (real_cur))
       {

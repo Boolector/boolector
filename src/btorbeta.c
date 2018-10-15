@@ -348,8 +348,8 @@ beta_reduce (Btor *btor,
         case BTOR_BV_SLICE_NODE:
           result = btor_exp_bv_slice (btor,
                                       e[0],
-                                      btor_node_slice_get_upper (real_cur),
-                                      btor_node_slice_get_lower (real_cur));
+                                      btor_node_bv_slice_get_upper (real_cur),
+                                      btor_node_bv_slice_get_lower (real_cur));
           btor_node_release (btor, e[0]);
           break;
         case BTOR_BV_AND_NODE:
@@ -691,8 +691,8 @@ beta_reduce_partial_aux (Btor *btor,
         case BTOR_BV_SLICE_NODE:
           result = btor_exp_bv_slice (btor,
                                       e[0],
-                                      btor_node_slice_get_upper (real_cur),
-                                      btor_node_slice_get_lower (real_cur));
+                                      btor_node_bv_slice_get_upper (real_cur),
+                                      btor_node_bv_slice_get_lower (real_cur));
           btor_node_release (btor, e[0]);
           break;
         case BTOR_BV_AND_NODE:
