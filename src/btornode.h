@@ -638,10 +638,10 @@ uint32_t btor_node_array_get_index_width (Btor *btor, const BtorNode *e_array);
 
 /*------------------------------------------------------------------------*/
 
-BtorBitVector *btor_node_const_get_bits (BtorNode *exp);
-BtorBitVector *btor_node_const_get_invbits (BtorNode *exp);
-void btor_node_const_set_bits (BtorNode *exp, BtorBitVector *bits);
-void btor_node_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
+BtorBitVector *btor_node_bv_const_get_bits (BtorNode *exp);
+BtorBitVector *btor_node_bv_const_get_invbits (BtorNode *exp);
+void btor_node_bv_const_set_bits (BtorNode *exp, BtorBitVector *bits);
+void btor_node_bv_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
 
 /*------------------------------------------------------------------------*/
 
@@ -691,7 +691,7 @@ BtorNode *btor_node_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_node_create_const (Btor *btor, const BtorBitVector *bits);
+BtorNode *btor_node_create_bv_const (Btor *btor, const BtorBitVector *bits);
 
 BtorNode *btor_node_create_var (Btor *btor,
                                 BtorSortId sort,

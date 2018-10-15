@@ -508,8 +508,8 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
         }
         else if (btor_node_is_bv_const (real_cur))
         {
-          result =
-              btor_exp_const (dual_btor, btor_node_const_get_bits (real_cur));
+          result = btor_exp_const (dual_btor,
+                                   btor_node_bv_const_get_bits (real_cur));
         }
         else
         {
@@ -872,7 +872,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
 
       if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_exp_const (btor, btor_node_const_get_bits (real_cur));
+        result = btor_exp_const (btor, btor_node_bv_const_get_bits (real_cur));
       }
       else if (btor_node_is_param (real_cur))
       {
@@ -1416,7 +1416,7 @@ eval_exp (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_CONST_NODE:
-          result = btor_bv_copy (mm, btor_node_const_get_bits (real_cur));
+          result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
         case BTOR_PARAM_NODE:
@@ -2130,7 +2130,7 @@ build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
 
       if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_exp_const (btor, btor_node_const_get_bits (real_cur));
+        result = btor_exp_const (btor, btor_node_bv_const_get_bits (real_cur));
       }
       else if (btor_node_is_param (real_cur))
       {

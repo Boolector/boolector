@@ -692,9 +692,10 @@ btor_propsls_update_cone (Btor *btor,
     {
       if (btor_node_is_bv_const (cur->e[j]))
       {
-        e[j] = btor_node_is_inverted (cur->e[j])
-                   ? btor_bv_copy (mm, btor_node_const_get_invbits (cur->e[j]))
-                   : btor_bv_copy (mm, btor_node_const_get_bits (cur->e[j]));
+        e[j] =
+            btor_node_is_inverted (cur->e[j])
+                ? btor_bv_copy (mm, btor_node_bv_const_get_invbits (cur->e[j]))
+                : btor_bv_copy (mm, btor_node_bv_const_get_bits (cur->e[j]));
       }
       else
       {

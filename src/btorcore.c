@@ -1154,7 +1154,7 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 
   if (btor_node_is_bv_const (exp))
   {
-    bits = btor_node_const_get_bits (exp);
+    bits = btor_node_bv_const_get_bits (exp);
     assert (bits->width == 1);
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
         || (!btor_node_is_inverted (exp) && !btor_bv_get_bit (bits, 0)))
@@ -1450,9 +1450,9 @@ normalize_substitution (Btor *btor,
     if (!btor_node_is_bv_const (right)) return false;
 
     if (btor_node_is_inverted (right))
-      bits = btor_bv_not (mm, btor_node_const_get_bits (right));
+      bits = btor_bv_not (mm, btor_node_bv_const_get_bits (right));
     else
-      bits = btor_bv_copy (mm, btor_node_const_get_bits (right));
+      bits = btor_bv_copy (mm, btor_node_bv_const_get_bits (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
@@ -1602,7 +1602,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 
   if (btor_node_is_bv_const (real_exp))
   {
-    bits = btor_node_const_get_bits (real_exp);
+    bits = btor_node_bv_const_get_bits (real_exp);
     assert (bits->width == 1);
     /* we do not add true/false */
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
@@ -3458,7 +3458,7 @@ btor_synthesize_exp (Btor *btor,
     {
       if (btor_node_is_bv_const (cur))
       {
-        cur->av = btor_aigvec_const (avmgr, btor_node_const_get_bits (cur));
+        cur->av = btor_aigvec_const (avmgr, btor_node_bv_const_get_bits (cur));
         BTORLOG (2, "  synthesized: %s", btor_util_node2string (cur));
         /* no need to call btor_aigvec_to_sat_tseitin here */
       }

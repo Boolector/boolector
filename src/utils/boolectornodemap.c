@@ -162,7 +162,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
   {
     case BTOR_VAR_NODE: res = btor_node_copy (btor, node); break;
     case BTOR_CONST_NODE:
-      res = btor_exp_const (btor, btor_node_const_get_bits (node));
+      res = btor_exp_const (btor, btor_node_bv_const_get_bits (node));
       break;
     case BTOR_BV_SLICE_NODE:
       res = btor_exp_bv_slice (btor,

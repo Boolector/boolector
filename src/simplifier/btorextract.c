@@ -14,9 +14,9 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
-#define BTOR_CONST_GET_BITS(c)                                \
-  btor_node_is_inverted (c) ? btor_node_const_get_invbits (c) \
-                            : btor_node_const_get_bits (c)
+#define BTOR_CONST_GET_BITS(c)                                   \
+  btor_node_is_inverted (c) ? btor_node_bv_const_get_invbits (c) \
+                            : btor_node_bv_const_get_bits (c)
 
 inline static void
 extract_base_addr_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)

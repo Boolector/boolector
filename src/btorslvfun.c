@@ -309,7 +309,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
     if (btor_node_is_synth (real_exp))
       bv = btor_bv_get_assignment (btor->mm, real_exp, false);
     else if (btor_node_is_bv_const (real_exp))
-      bv = btor_bv_copy (btor->mm, btor_node_const_get_bits (real_exp));
+      bv = btor_bv_copy (btor->mm, btor_node_bv_const_get_bits (real_exp));
     /* initialize var, apply, and feq nodes if they are not yet synthesized
      * and encoded (not in the BV skeleton yet, and thus unconstrained). */
     else if (btor_node_is_bv_var (real_exp) || btor_node_is_apply (real_exp)
@@ -2748,7 +2748,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       }
       else if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_bv_copy (mm, btor_node_const_get_bits (real_cur));
+        result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */

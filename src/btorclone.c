@@ -516,10 +516,10 @@ clone_exp (Btor *clone,
   /* ------------------- BTOR_VAR_NODE_STRUCT (all nodes) -----------------> */
   if (btor_node_is_bv_const (exp))
   {
-    bits = btor_bv_copy (mm, btor_node_const_get_bits (exp));
-    btor_node_const_set_bits (res, bits);
-    bits = btor_bv_copy (mm, btor_node_const_get_invbits (exp));
-    btor_node_const_set_invbits (res, bits);
+    bits = btor_bv_copy (mm, btor_node_bv_const_get_bits (exp));
+    btor_node_bv_const_set_bits (res, bits);
+    bits = btor_bv_copy (mm, btor_node_bv_const_get_invbits (exp));
+    btor_node_bv_const_set_invbits (res, bits);
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
@@ -1071,8 +1071,8 @@ clone_aux_btor (Btor *btor,
     allocated += cur->bytes;
     if (btor_node_is_bv_const (cur))
     {
-      allocated += MEM_BITVEC (btor_node_const_get_bits (cur));
-      allocated += MEM_BITVEC (btor_node_const_get_invbits (cur));
+      allocated += MEM_BITVEC (btor_node_bv_const_get_bits (cur));
+      allocated += MEM_BITVEC (btor_node_bv_const_get_invbits (cur));
     }
     if (!exp_layer_only)
     {
@@ -1718,7 +1718,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
       switch (cur->kind)
       {
         case BTOR_CONST_NODE:
-          cur_clone = btor_exp_const (clone, btor_node_const_get_bits (cur));
+          cur_clone = btor_exp_const (clone, btor_node_bv_const_get_bits (cur));
           break;
         case BTOR_VAR_NODE:
           b      = btor_hashptr_table_get (btor->node2symbol, cur);

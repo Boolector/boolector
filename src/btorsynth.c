@@ -349,7 +349,7 @@ eval_candidate (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_CONST_NODE:
-          result = btor_bv_copy (mm, btor_node_const_get_bits (real_cur));
+          result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
         case BTOR_PARAM_NODE:
@@ -504,7 +504,7 @@ eval_exps (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_CONST_NODE:
-          result = btor_bv_copy (mm, btor_node_const_get_bits (real_cur));
+          result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
         case BTOR_PARAM_NODE:

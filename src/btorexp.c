@@ -88,7 +88,7 @@ btor_exp_create (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
 BtorNode *
 btor_exp_const (Btor *btor, const BtorBitVector *bits)
 {
-  return btor_node_create_const (btor, bits);
+  return btor_node_create_bv_const (btor, bits);
 }
 
 static BtorNode *

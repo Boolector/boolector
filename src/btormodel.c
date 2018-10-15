@@ -723,7 +723,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
       }
       else if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_bv_copy (mm, btor_node_const_get_bits (real_cur));
+        result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       /* substitute param with its assignment */

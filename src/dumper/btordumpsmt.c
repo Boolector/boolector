@@ -715,14 +715,15 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           fputs ("false", sdc->file);
         else if (btor_node_is_inverted (exp))
         {
-          bits =
-              btor_bv_not (sdc->btor->mm, btor_node_const_get_bits (real_exp));
+          bits = btor_bv_not (sdc->btor->mm,
+                              btor_node_bv_const_get_bits (real_exp));
           dump_const_value_aux_smt (sdc, bits);
           btor_bv_free (sdc->btor->mm, bits);
         }
         else
         {
-          dump_const_value_aux_smt (sdc, btor_node_const_get_bits (real_exp));
+          dump_const_value_aux_smt (sdc,
+                                    btor_node_bv_const_get_bits (real_exp));
         }
 
         /* close zero extend */

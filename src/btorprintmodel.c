@@ -111,8 +111,8 @@ btor_print_node_model (Btor *btor,
   {
     assert (btor_node_is_bv_const (value));
     BtorBitVector *bv_value = btor_node_is_inverted (value)
-                                  ? btor_node_const_get_invbits (value)
-                                  : btor_node_const_get_bits (value);
+                                  ? btor_node_bv_const_get_invbits (value)
+                                  : btor_node_bv_const_get_bits (value);
     if (!strcmp (format, "btor"))
     {
       id = btor_node_get_btor_id (input);

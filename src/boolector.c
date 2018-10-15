@@ -3436,9 +3436,9 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   /* representations of bits of const nodes are maintained analogously
    * to bv assignment strings */
   if (!btor_node_is_inverted (exp))
-    bits = btor_bv_to_char (btor->mm, btor_node_const_get_bits (exp));
+    bits = btor_bv_to_char (btor->mm, btor_node_bv_const_get_bits (exp));
   else
-    bits = btor_bv_to_char (btor->mm, btor_node_const_get_invbits (real));
+    bits = btor_bv_to_char (btor->mm, btor_node_bv_const_get_invbits (real));
   bvass = btor_ass_new_bv (btor->bv_assignments, bits);
   btor_mem_freestr (btor->mm, bits);
   res = btor_ass_get_bv_str (bvass);
