@@ -1322,7 +1322,7 @@ boolector_constd (Btor *btor, BoolectorSort sort, const char *str)
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", str);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT " %s", sort, str);
   BTOR_ABORT_ARG_NULL (str);
   BTOR_ABORT (*str == '\0', "'str' must not be empty");
 
@@ -1619,6 +1619,12 @@ boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
+  BTOR_ABORT (width > UINT32_MAX - btor_node_bv_get_width (btor, exp),
+              "extending 'exp' (width %u) by %u bits exceeds maximum "
+              "bit-width of %u",
+              btor_node_bv_get_width (btor, exp),
+              width,
+              UINT32_MAX);
   res = btor_exp_bv_uext (btor, exp, width);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1640,6 +1646,12 @@ boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
+  BTOR_ABORT (width > UINT32_MAX - btor_node_bv_get_width (btor, exp),
+              "extending 'exp' (width %u) by %u bits exceeds maximum "
+              "bit-width of %u",
+              btor_node_bv_get_width (btor, exp),
+              width,
+              UINT32_MAX);
   res = btor_exp_bv_sext (btor, exp, width);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2759,7 +2771,7 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT (btor_node_bv_get_width (btor, e0)
-                  > INT32_MAX - btor_node_bv_get_width (btor, e1),
+                  > UINT32_MAX - btor_node_bv_get_width (btor, e1),
               "bit-width of result is too large");
   res = btor_exp_bv_concat (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);

@@ -826,6 +826,12 @@ NEXT:
       ret_ptr = boolector_const (btor, arg1_str);
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "constd"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      ret_ptr = boolector_constd (btor, get_sort (hmap, arg1_str), arg2_str);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "zero"))
     {
       PARSE_ARGS1 (tok, str);
