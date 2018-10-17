@@ -2840,7 +2840,7 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
   BTOR_ABORT_REFS_NOT_POS (e_index);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_array);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_index);
-  BTOR_ABORT_IS_BV (e_array);
+  BTOR_ABORT_IS_NOT_ARRAY (e_array);
   BTOR_ABORT_IS_NOT_BV (e_index);
   BTOR_ABORT (
       btor_sort_array_get_index (btor, btor_node_get_sort_id (e_array))
@@ -2879,7 +2879,7 @@ boolector_write (Btor *btor,
   BTOR_ABORT_BTOR_MISMATCH (btor, e_array);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_index);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_value);
-  BTOR_ABORT_IS_BV (e_array);
+  BTOR_ABORT_IS_NOT_ARRAY (e_array);
   BTOR_ABORT_IS_NOT_BV (e_index);
   BTOR_ABORT_IS_NOT_BV (e_value);
   BTOR_ABORT (
@@ -3448,7 +3448,7 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_TRAPI_UNFUN (e_array);
   BTOR_ABORT_REFS_NOT_POS (e_array);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_array);
-  BTOR_ABORT_IS_BV (e_array);
+  BTOR_ABORT_IS_NOT_ARRAY (e_array);
   BTOR_ABORT (btor_node_fun_get_arity (btor, e_array) > 1,
               "'n_array' is a function with arity > 1");
   res = btor_node_array_get_index_width (btor, e_array);
@@ -3935,7 +3935,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_ARG_NULL (size);
   BTOR_ABORT_REFS_NOT_POS (e_array);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_array);
-  BTOR_ABORT_IS_BV (e_array);
+  BTOR_ABORT_IS_NOT_ARRAY (e_array);
 
   fun_assignment (btor, e_array, indices, values, size, &ass);
 
@@ -4017,7 +4017,7 @@ boolector_uf_assignment (Btor *btor,
   BTOR_ABORT_ARG_NULL (size);
   BTOR_ABORT_REFS_NOT_POS (e_uf);
   BTOR_ABORT_BTOR_MISMATCH (btor, e_uf);
-  BTOR_ABORT_IS_BV (e_uf);
+  BTOR_ABORT_IS_NOT_FUN (e_uf);
 
   fun_assignment (btor, e_uf, args, values, size, &ass);
 

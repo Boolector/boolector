@@ -70,20 +70,28 @@ void btor_abort_warn (
                 #argnode);                                                 \
   } while (0)
 
-#define BTOR_ABORT_IS_BV(arg)                                            \
+#define BTOR_ABORT_IS_NOT_BV(arg)                                     \
+  do                                                                  \
+  {                                                                   \
+    BTOR_ABORT (!btor_sort_is_bv (btor, btor_node_get_sort_id (arg)), \
+                "'%s' must be a bit-vector\n",                        \
+                #arg);                                                \
+  } while (0)
+
+#define BTOR_ABORT_IS_NOT_ARRAY(arg)                                     \
   do                                                                     \
   {                                                                      \
-    BTOR_ABORT (btor_sort_is_bv (btor, btor_node_get_sort_id (arg)), \
-                "'%s' must not be a bit-vector\n",                       \
+    BTOR_ABORT (!btor_sort_is_array (btor, btor_node_get_sort_id (arg)), \
+                "'%s' must be an array\n",                               \
                 #arg);                                                   \
   } while (0)
 
-#define BTOR_ABORT_IS_NOT_BV(arg)                                         \
-  do                                                                      \
-  {                                                                       \
-    BTOR_ABORT (!btor_sort_is_bv (btor, btor_node_get_sort_id (arg)), \
-                "'%s' must be a bit-vector\n",                            \
-                #arg);                                                    \
+#define BTOR_ABORT_IS_NOT_FUN(arg)                                     \
+  do                                                                   \
+  {                                                                    \
+    BTOR_ABORT (!btor_sort_is_fun (btor, btor_node_get_sort_id (arg)), \
+                "'%s' must be a function\n",                           \
+                #arg);                                                 \
   } while (0)
 
 #define BTOR_ABORT_SORT_MISMATCH(argbw1, argbw2)                          \
