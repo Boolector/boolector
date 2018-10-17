@@ -1815,7 +1815,7 @@ boolector_xor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_xor (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1842,7 +1842,7 @@ boolector_xnor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_xnor (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1869,7 +1869,7 @@ boolector_and (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_and (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1896,7 +1896,7 @@ boolector_nand (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_nand (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1923,7 +1923,7 @@ boolector_or (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_or (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1950,7 +1950,7 @@ boolector_nor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_nor (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1977,7 +1977,7 @@ boolector_add (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_add (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2004,7 +2004,7 @@ boolector_uaddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_uaddo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2032,7 +2032,7 @@ boolector_saddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_saddo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2060,7 +2060,7 @@ boolector_mul (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_mul (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2087,7 +2087,7 @@ boolector_umulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_umulo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2116,7 +2116,7 @@ boolector_smulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_smulo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2144,7 +2144,7 @@ boolector_ult (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_ult (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2171,7 +2171,7 @@ boolector_slt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_slt (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2198,7 +2198,7 @@ boolector_ulte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_ulte (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2225,7 +2225,7 @@ boolector_slte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_slte (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2252,7 +2252,7 @@ boolector_ugt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_ugt (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2279,7 +2279,7 @@ boolector_sgt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_sgt (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2306,7 +2306,7 @@ boolector_ugte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_ugte (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2333,7 +2333,7 @@ boolector_sgte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_sgte (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2544,7 +2544,7 @@ boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_sub (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2569,7 +2569,7 @@ boolector_usubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_usubo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2597,7 +2597,7 @@ boolector_ssubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_ssubo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2623,7 +2623,7 @@ boolector_udiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS (e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_udiv (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2650,7 +2650,7 @@ boolector_sdiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_sdiv (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2677,7 +2677,7 @@ boolector_sdivo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_sdivo (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2705,7 +2705,7 @@ boolector_urem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_urem (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2732,7 +2732,7 @@ boolector_srem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_srem (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2759,7 +2759,7 @@ boolector_smod (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  BTOR_ABORT_BW_MISMATCH (e0, e1);
+  BTOR_ABORT_SORT_MISMATCH (e0, e1);
   res = btor_exp_bv_smod (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
