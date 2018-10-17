@@ -101,38 +101,6 @@ Btor *boolector_clone (Btor *btor);
 void boolector_delete (Btor *btor);
 
 /*!
-  Push new context levels.
-
-  :param btor: Boolector instance.
-  :param level: Number of context levels to create (must be a least 1).
-
-  .. note::
-    Assumptions added via boolector_assume are not affected by context level
-    changes and are only valid until the next boolector_sat call no matter at
-    what level they were assumed.
-
-  .. seealso::
-    boolector_assume
- */
-void boolector_push (Btor *btor, uint32_t level);
-
-/*!
-  Pop context levels.
-
-  :param btor: Boolector instance.
-  :param level: Number of context levels to pop (must be at least 1).
-
-  .. note::
-    Assumptions added via boolector_assume are not affected by context level
-    changes and are only valid until the next boolector_sat call no matter at
-    what level they were assumed.
-
-  .. seealso::
-    boolector_assume
- */
-void boolector_pop (Btor *btor, uint32_t level);
-
-/*!
    Set a termination callback.
 
    :param btor:  Boolector instance.
@@ -236,6 +204,40 @@ FILE *boolector_get_trapi (Btor *btor);
 /*------------------------------------------------------------------------*/
 
 /*!
+  Push new context levels.
+
+  :param btor: Boolector instance.
+  :param level: Number of context levels to create (must be a least 1).
+
+  .. note::
+    Assumptions added via boolector_assume are not affected by context level
+    changes and are only valid until the next boolector_sat call no matter at
+    what level they were assumed.
+
+  .. seealso::
+    boolector_assume
+ */
+void boolector_push (Btor *btor, uint32_t level);
+
+/*!
+  Pop context levels.
+
+  :param btor: Boolector instance.
+  :param level: Number of context levels to pop (must be at least 1).
+
+  .. note::
+    Assumptions added via boolector_assume are not affected by context level
+    changes and are only valid until the next boolector_sat call no matter at
+    what level they were assumed.
+
+  .. seealso::
+    boolector_assume
+ */
+void boolector_pop (Btor *btor, uint32_t level);
+
+/*------------------------------------------------------------------------*/
+
+/*!
   Add a constraint.
 
   Use this function to assert ``node``.  Added constraints can not be deleted
@@ -315,6 +317,8 @@ void boolector_fixate_assumptions (Btor *btor);
 */
 void boolector_reset_assumptions (Btor *btor);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Solve an input formula.
 
@@ -363,6 +367,8 @@ int32_t boolector_sat (Btor *btor);
 int32_t boolector_limited_sat (Btor *btor,
                                int32_t lod_limit,
                                int32_t sat_limit);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Simplify current input formula.
@@ -570,6 +576,81 @@ void boolector_release (Btor *btor, BoolectorNode *node);
 */
 void boolector_release_all (Btor *btor);
 
+/*------------------------------------------------------------------------*/
+
+/*!
+  Create constant true. This is represented by the bit-vector constant one
+  with bit width one.
+
+  :param btor: Boolector instance.
+  :return: Bit-vector constant one with bit width one.
+*/
+BoolectorNode *boolector_true (Btor *btor);
+
+/*!
+  Create bit-vector constant zero with bit width one.
+
+  :param btor: Boolector instance.
+  :return: Bit-vector constant zero with bit width one.
+*/
+BoolectorNode *boolector_false (Btor *btor);
+
+/*!
+  Create boolean implication.
+
+  The parameters ``n0`` and ``n1`` must have bit width one.
+
+  :param btor: Boolector instance.
+  :param n0: Bit-vector node representing the premise.
+  :param n1: Bit-vector node representing the conclusion.
+  :return: Implication n0 => n1 with bit width one.
+*/
+BoolectorNode *boolector_implies (Btor *btor,
+                                  BoolectorNode *n0,
+                                  BoolectorNode *n1);
+
+/*!
+  Create Boolean equivalence.
+
+  The parameters ``n0`` and ``n1`` must have bit width one.
+
+  :param btor: Boolector instance.
+  :param n0: First bit-vector operand.
+  :param n1: Second bit-vector operand.
+  :return: Equivalence n0 <=> n1 with bit width one.
+*/
+BoolectorNode *boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*------------------------------------------------------------------------*/
+
+/*!
+  Create bit-vector or array equality.
+
+  Both operands are either bit-vectors with the same bit width or arrays
+  of the same type.
+
+  :param btor: Boolector instance.
+  :param n0: First operand.
+  :param n1: Second operand.
+  :return: Bit-vector with bit width one.
+*/
+BoolectorNode *boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*!
+  Create bit-vector or array inequality.
+
+  Both operands are either bit-vectors with the same bit width or arrays
+  of the same type.
+
+  :param btor: Boolector instance.
+  :param n0: First operand.
+  :param n1: Second operand.
+  :return: Bit-vector with bit width one.
+*/
+BoolectorNode *boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*------------------------------------------------------------------------*/
+
 /*!
   Create bit-vector constant representing the bit-vector ``bits``.
 
@@ -616,14 +697,6 @@ BoolectorNode *boolector_consth (Btor *btor,
 BoolectorNode *boolector_zero (Btor *btor, BoolectorSort sort);
 
 /*!
-  Create bit-vector constant zero with bit width one.
-
-  :param btor: Boolector instance.
-  :return: Bit-vector constant zero with bit width one.
-*/
-BoolectorNode *boolector_false (Btor *btor);
-
-/*!
   Create bit-vector constant of sort ``sort``, where each bit is set to one.
 
   :param btor: Boolector instance.
@@ -631,15 +704,6 @@ BoolectorNode *boolector_false (Btor *btor);
   :return: Bit-vector constant -1 of sort ``sort``.
 */
 BoolectorNode *boolector_ones (Btor *btor, BoolectorSort sort);
-
-/*!
-  Create constant true. This is represented by the bit-vector constant one
-  with bit width one.
-
-  :param btor: Boolector instance.
-  :return: Bit-vector constant one with bit width one.
-*/
-BoolectorNode *boolector_true (Btor *btor);
 
 /*!
   Create bit-vector constant one of sort ``sort``.
@@ -679,6 +743,8 @@ BoolectorNode *boolector_unsigned_int (Btor *btor,
   :return: Bit-vector constant of sort ``sort``.
 */
 BoolectorNode *boolector_int (Btor *btor, int32_t i, BoolectorSort sort);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Create a bit-vector variable of sort ``sort`` and with symbol ``symbol``.
@@ -753,6 +819,8 @@ BoolectorNode *boolector_array (Btor *btor,
 BoolectorNode *boolector_uf (Btor *btor,
                              BoolectorSort sort,
                              const char *symbol);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Create the one's complement of bit-vector ``node``.
@@ -848,33 +916,6 @@ BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, uint32_t width);
   :return: A bit-vector extended by ``width`` bits.
 */
 BoolectorNode *boolector_sext (Btor *btor, BoolectorNode *node, uint32_t width);
-
-/*!
-  Create boolean implication.
-
-  The parameters ``n0`` and ``n1`` must have bit width one.
-
-  :param btor: Boolector instance.
-  :param n0: Bit-vector node representing the premise.
-  :param n1: Bit-vector node representing the conclusion.
-  :return: Implication n0 => n1 with bit width one.
-*/
-BoolectorNode *boolector_implies (Btor *btor,
-                                  BoolectorNode *n0,
-                                  BoolectorNode *n1);
-
-/*!
-  Create Boolean equivalence.
-
-  The parameters ``n0`` and ``n1`` must have bit width one.
-
-  :param btor: Boolector instance.
-  :param n0: First bit-vector operand.
-  :param n1: Second bit-vector operand.
-  :return: Equivalence n0 <=> n1 with bit width one.
-*/
-BoolectorNode *boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
-
 /*!
   Create a bit-vector *xor*.
 
@@ -950,32 +991,6 @@ BoolectorNode *boolector_or (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :return: Bit-vector with the same bit width as the operands.
 */
 BoolectorNode *boolector_nor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
-
-/*!
-  Create bit-vector or array equality.
-
-  Both operands are either bit-vectors with the same bit width or arrays
-  of the same type.
-
-  :param btor: Boolector instance.
-  :param n0: First operand.
-  :param n1: Second operand.
-  :return: Bit-vector with bit width one.
-*/
-BoolectorNode *boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
-
-/*!
-  Create bit-vector or array inequality.
-
-  Both operands are either bit-vectors with the same bit width or arrays
-  of the same type.
-
-  :param btor: Boolector instance.
-  :param n0: First operand.
-  :param n1: Second operand.
-  :return: Bit-vector with bit width one.
-*/
-BoolectorNode *boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*!
   Create bit-vector addition.
@@ -1426,6 +1441,8 @@ BoolectorNode *boolector_concat (Btor *btor,
  */
 BoolectorNode *boolector_repeat (Btor *btor, BoolectorNode *node, uint32_t n);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Create a read on array ``n_array`` at position ``n_index``.
 
@@ -1460,6 +1477,8 @@ BoolectorNode *boolector_write (Btor *btor,
                                 BoolectorNode *n_index,
                                 BoolectorNode *n_value);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Create an if-then-else.
 
@@ -1478,6 +1497,8 @@ BoolectorNode *boolector_cond (Btor *btor,
                                BoolectorNode *n_cond,
                                BoolectorNode *n_then,
                                BoolectorNode *n_else);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Create function parameter of sort ``sort``.
@@ -1540,6 +1561,8 @@ BoolectorNode *boolector_apply (Btor *btor,
                                 uint32_t argc,
                                 BoolectorNode *n_fun);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Create bit-vector expression that increments bit-vector ``node`` by one.
 
@@ -1557,6 +1580,8 @@ BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
   :return: Bit-vector with the same bit width as ``node`` decremented by one.
 */
 BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Create a universally quantified term.
@@ -1641,6 +1666,8 @@ BoolectorSort boolector_fun_get_domain_sort (Btor *btor,
 BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
                                                const BoolectorNode *node);
 
+/*------------------------------------------------------------------------*/
+
 // TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
@@ -1691,6 +1718,8 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
     Only nodes created before the boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Get the symbol of an expression.
@@ -1768,6 +1797,8 @@ void boolector_free_bits (Btor *btor, const char *bits);
 */
 uint32_t boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Determine if given node is a constant node.
 
@@ -1840,6 +1871,8 @@ bool boolector_is_uf (Btor *btor, BoolectorNode *node);
 */
 bool boolector_is_fun (Btor *btor, BoolectorNode *node);
 
+/*------------------------------------------------------------------------*/
+
 /*!
   Check if sorts of given arguments matches the function signature.
 
@@ -1854,6 +1887,8 @@ int32_t boolector_fun_sort_check (Btor *btor,
                                   BoolectorNode **arg_nodes,
                                   uint32_t argc,
                                   BoolectorNode *n_fun);
+
+/*------------------------------------------------------------------------*/
 
 /*!
   Generate an assignment string for bit-vector expression if
