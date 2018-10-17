@@ -611,7 +611,7 @@ btor_exp_bv_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_exp_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_exp_bv_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);
   assert (btor == btor_node_real_addr (e1)->btor);

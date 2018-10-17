@@ -528,8 +528,8 @@ test_lambda_param_xor (void)
 static void
 test_lambda_param_xnor (void)
 {
-  binary_param_exp_test (0, btor_exp_xnor);
-  binary_param_exp_test (1, btor_exp_xnor);
+  binary_param_exp_test (0, btor_exp_bv_xnor);
+  binary_param_exp_test (1, btor_exp_bv_xnor);
 }
 
 static void
