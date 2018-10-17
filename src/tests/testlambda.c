@@ -137,7 +137,7 @@ test_lambda_const_lambda_const (void)
   init_lambda_test ();
 
   x      = btor_exp_param (g_btor, g_index_sort, "x");
-  c      = btor_exp_zero (g_btor, g_elem_sort);
+  c      = btor_exp_bv_zero (g_btor, g_elem_sort);
   i      = btor_exp_var (g_btor, g_index_sort, "i");
   lambda = btor_exp_lambda (g_btor, x, c);
 

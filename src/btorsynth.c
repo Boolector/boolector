@@ -1072,7 +1072,7 @@ synthesize (Btor *btor,
   if (equal)
   {
     found_candidate = true;
-    exp             = btor_exp_const (btor, tmp_value_out[0]);
+    exp             = btor_exp_bv_const (btor, tmp_value_out[0]);
     add_exp (btor, 1, &candidates, exp);
     goto DONE;
   }
@@ -1085,7 +1085,7 @@ synthesize (Btor *btor,
   /* add the desired outputs as constants to level 1 */
   for (i = 0; i < nvalues; i++)
     {
-      exp = btor_exp_const (btor, tmp_value_out[i]);
+      exp = btor_exp_bv_const (btor, tmp_value_out[i]);
       add_exp (btor, 1, &candidates, exp);
     }
 #endif
@@ -1191,7 +1191,7 @@ DONE:
     if (equal)
     {
       found_candidate = true;
-      result          = btor_exp_const (btor, tmp_value_out[0]);
+      result          = btor_exp_bv_const (btor, tmp_value_out[0]);
     }
   }
 

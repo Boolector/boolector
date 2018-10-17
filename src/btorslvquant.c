@@ -508,7 +508,7 @@ mk_dual_formula (Btor *btor, Btor *dual_btor, BtorNode *root)
         }
         else if (btor_node_is_bv_const (real_cur))
         {
-          result = btor_exp_const (dual_btor,
+          result = btor_exp_bv_const (dual_btor,
                                    btor_node_bv_const_get_bits (real_cur));
         }
         else
@@ -872,7 +872,7 @@ build_refinement (Btor *btor, BtorNode *root, BtorNodeMap *map)
 
       if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_exp_const (btor, btor_node_bv_const_get_bits (real_cur));
+        result = btor_exp_bv_const (btor, btor_node_bv_const_get_bits (real_cur));
       }
       else if (btor_node_is_param (real_cur))
       {
@@ -988,7 +988,7 @@ refine_exists_solver (BtorGroundSolvers *gslv, BtorNodeMap *evar_map)
     var_fs = it.it.bucket->data.as_ptr;
     uvar   = btor_iter_nodemap_next (&it);
     bv     = btor_model_get_bv (f_solver, btor_simplify_exp (f_solver, var_fs));
-    c      = btor_exp_const (e_solver, (BtorBitVector *) bv);
+    c      = btor_exp_bv_const (e_solver, (BtorBitVector *) bv);
     btor_nodemap_map (map, uvar, c);
     btor_node_release (e_solver, c);
     btor_bv_add_to_tuple (f_solver->mm, ce, bv, i++);
@@ -1107,7 +1107,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   BTOR_RELEASE_STACK (tup_sorts);
 
   if (opt_synth_complete)
-    e_else = btor_exp_zero (btor, value->width);
+    e_else = btor_exp_bv_zero (btor, value->width);
   else
   {
     uf   = btor_exp_uf (btor, funsortid, 0);
@@ -1134,7 +1134,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
     assert (BTOR_COUNT_STACK (params) == args_tuple->arity);
     for (i = 0; i < args_tuple->arity; i++)
     {
-      c = btor_exp_const (btor, args_tuple->bv[i]);
+      c = btor_exp_bv_const (btor, args_tuple->bv[i]);
       assert (btor_node_real_addr (c)->sort_id
               == BTOR_PEEK_STACK (params, i)->sort_id);
       BTOR_PUSH_STACK (consts, c);
@@ -1161,7 +1161,7 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
       btor_node_release (btor, BTOR_POP_STACK (consts));
 
     /* create ITE */
-    e_if = btor_exp_const (btor, value);
+    e_if = btor_exp_bv_const (btor, value);
     ite  = btor_exp_cond (btor, cond, e_if, e_else);
 
     /* add to static rho */
@@ -1240,7 +1240,7 @@ mk_concrete_ite_model (BtorGroundSolvers *gslv,
     BTOR_PUSH_STACK (params, btor_iter_args_next (&ait));
 
   if (opt_synth_complete)
-    e_else = btor_exp_zero (btor, evar->sort_id);
+    e_else = btor_exp_bv_zero (btor, evar->sort_id);
   else
   {
     ufsortid = btor_sort_fun (btor, args->sort_id, evar->sort_id);
@@ -1265,7 +1265,7 @@ mk_concrete_ite_model (BtorGroundSolvers *gslv,
     {
       uvar = BTOR_PEEK_STACK (params, i);
       bv   = flat_model_get_value (model, uvar, ce);
-      c    = btor_exp_const (btor, bv);
+      c    = btor_exp_bv_const (btor, bv);
 
       eq = btor_exp_eq (btor, uvar, c);
       btor_node_release (btor, c);
@@ -1283,7 +1283,7 @@ mk_concrete_ite_model (BtorGroundSolvers *gslv,
     assert (cond);
 
     /* create ITE */
-    e_if = btor_exp_const (btor, value);
+    e_if = btor_exp_bv_const (btor, value);
     res  = btor_exp_cond (btor, cond, e_if, e_else);
 
     btor_node_release (btor, cond);
@@ -1809,7 +1809,7 @@ synthesize_model (BtorGroundSolvers *gslv, FlatModel *flat_model)
     else
     {
       bv               = flat_model_get_value (flat_model, evar, 0);
-      synth_res->value = btor_exp_const (f_solver, (BtorBitVector *) bv);
+      synth_res->value = btor_exp_bv_const (f_solver, (BtorBitVector *) bv);
     }
     assert (synth_res->value);
     btor_hashptr_table_add (synth_model, evar)->data.as_ptr = synth_res;
@@ -2130,7 +2130,7 @@ build_quant_inst_refinement (BtorGroundSolvers *gslv, BtorNodeMap *map)
 
       if (btor_node_is_bv_const (real_cur))
       {
-        result = btor_exp_const (btor, btor_node_bv_const_get_bits (real_cur));
+        result = btor_exp_bv_const (btor, btor_node_bv_const_get_bits (real_cur));
       }
       else if (btor_node_is_param (real_cur))
       {
@@ -2332,7 +2332,7 @@ synthesize_quant_inst (BtorGroundSolvers *gslv)
     else
     {
       bv = btor_model_get_bv (f_solver, btor_simplify_exp (f_solver, uconst));
-      c  = btor_exp_const (f_solver, (BtorBitVector *) bv);
+      c  = btor_exp_bv_const (f_solver, (BtorBitVector *) bv);
       btor_nodemap_map (map, uvar, c);
       btor_node_release (f_solver, c);
     }

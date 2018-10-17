@@ -87,7 +87,7 @@ prop_complete_binary_eidx (
   e[0]  = btor_exp_var (g_btor, sort0, 0);
   e[1]  = btor_exp_var (g_btor, sort1, 0);
   exp   = create_exp (g_btor, e[0], e[1]);
-  val   = btor_exp_const (g_btor, bvexp);
+  val   = btor_exp_bv_const (g_btor, bvexp);
   eq    = btor_exp_eq (g_btor, exp, val);
 
   idx = eidx ? 0 : 1;
@@ -415,7 +415,7 @@ test_prop_complete_slice_bv (void)
           exp      = btor_exp_bv_slice (g_btor, e, up, lo);
           bve      = btor_bv_uint64_to_bv (g_mm, i, bw);
           bvexp    = btor_bv_slice (g_mm, bve, up, lo);
-          val      = btor_exp_const (g_btor, bvexp);
+          val      = btor_exp_bv_const (g_btor, bvexp);
           eq       = btor_exp_eq (g_btor, exp, val);
           bvetmp   = btor_bv_new_random (g_mm, g_rng, bw);
           bvexptmp = btor_bv_slice (g_mm, bvetmp, up, lo);

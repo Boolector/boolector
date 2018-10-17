@@ -440,7 +440,7 @@ assume_inputs (Btor *btor,
 
     assert (btor_node_is_regular (cur_btor));
     bv       = get_bv_assignment (btor, cur_btor);
-    bv_const = btor_exp_const (clone, bv);
+    bv_const = btor_exp_bv_const (clone, bv);
     btor_bv_free (btor->mm, bv);
     bv_eq = btor_exp_eq (clone, cur_clone, bv_const);
     BTORLOG (1,

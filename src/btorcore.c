@@ -1397,12 +1397,12 @@ normalize_substitution (Btor *btor,
     if (btor_node_is_inverted (exp))
     {
       *left_result  = btor_node_copy (btor, btor_node_real_addr (exp));
-      *right_result = btor_exp_zero (btor, sort);
+      *right_result = btor_exp_bv_zero (btor, sort);
     }
     else
     {
       *left_result  = btor_node_copy (btor, exp);
-      *right_result = btor_exp_one (btor, sort);
+      *right_result = btor_exp_bv_one (btor, sort);
     }
     btor_sort_release (btor, sort);
     return true;
@@ -1460,7 +1460,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         sort      = btor_sort_bv (btor, leadings);
-        const_exp = btor_exp_zero (btor, sort);
+        const_exp = btor_exp_bv_zero (btor, sort);
         btor_sort_release (btor, sort);
         sort   = btor_sort_bv (btor,
                                  btor_node_bv_get_width (btor, var) - leadings);
@@ -1481,7 +1481,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         sort      = btor_sort_bv (btor, leadings);
-        const_exp = btor_exp_ones (btor, sort);
+        const_exp = btor_exp_bv_ones (btor, sort);
         btor_sort_release (btor, sort);
         sort   = btor_sort_bv (btor,
                                  btor_node_bv_get_width (btor, var) - leadings);
@@ -1544,7 +1544,7 @@ normalize_substitution (Btor *btor,
     btor_node_release (btor, tmp);
     ic = btor_bv_mod_inverse (btor->mm, fc);
     btor_bv_free (btor->mm, fc);
-    inv = btor_exp_const (btor, ic);
+    inv = btor_exp_bv_const (btor, ic);
     btor_bv_free (btor->mm, ic);
     tmp = btor_exp_bv_mul (btor, *right_result, inv);
     btor_node_release (btor, inv);
@@ -4336,13 +4336,13 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)
         {
-          model = btor_exp_const (clone, args_tuple->bv[i]);
+          model = btor_exp_bv_const (clone, args_tuple->bv[i]);
           BTOR_PUSH_STACK (consts, model);
         }
 
         args  = btor_exp_args (clone, consts.start, BTOR_COUNT_STACK (consts));
         apply = btor_exp_apply (clone, real_simp_clone, args);
-        model = btor_exp_const (clone, value);
+        model = btor_exp_bv_const (clone, value);
         eq    = btor_exp_eq (clone, apply, model);
         btor_assert_exp (clone, eq);
         btor_node_release (clone, eq);
@@ -4358,7 +4358,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       /* we need to invert the assignment if simplified is inverted */
       model =
-          btor_exp_const (clone,
+          btor_exp_bv_const (clone,
                           (BtorBitVector *) btor_model_get_bv (
                               btor, btor_node_cond_invert (simp_clone, simp)));
       BTORLOG (2,

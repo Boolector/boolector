@@ -60,9 +60,9 @@ test_const_exp (void)
   bv1  = btor_bv_char_to_bv (g_btor->mm, "00010011");
   bv2  = btor_bv_char_to_bv (g_btor->mm, "00010011");
   bv3  = btor_bv_char_to_bv (g_btor->mm, "0000000000010011");
-  exp1 = btor_exp_const (g_btor, bv1);
-  exp2 = btor_exp_const (g_btor, bv2);
-  exp3 = btor_exp_const (g_btor, bv3);
+  exp1 = btor_exp_bv_const (g_btor, bv1);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
+  exp3 = btor_exp_bv_const (g_btor, bv3);
   assert (exp1 == exp2);
   assert (exp2 != exp3);
   assert (btor_node_bv_get_width (g_btor, exp1) == 8);
@@ -88,10 +88,10 @@ test_zero_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bv (g_btor, 8);
-  exp1 = btor_exp_zero (g_btor, sort);
+  exp1 = btor_exp_bv_zero (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_new (g_btor->mm, 8);
-  exp2 = btor_exp_const (g_btor, bv2);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_node_bv_get_width (g_btor, exp1) == 8);
   assert (btor_node_bv_get_width (g_btor, exp2) == 8);
@@ -116,10 +116,10 @@ test_ones_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bv (g_btor, 8);
-  exp1 = btor_exp_ones (g_btor, sort);
+  exp1 = btor_exp_bv_ones (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_ones (g_btor->mm, 8);
-  exp2 = btor_exp_const (g_btor, bv2);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_node_bv_get_width (g_btor, exp1) == 8);
   assert (btor_node_bv_get_width (g_btor, exp2) == 8);
@@ -144,10 +144,10 @@ test_one_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bv (g_btor, 8);
-  exp1 = btor_exp_one (g_btor, sort);
+  exp1 = btor_exp_bv_one (g_btor, sort);
   btor_sort_release (g_btor, sort);
   bv2  = btor_bv_one (g_btor->mm, 8);
-  exp2 = btor_exp_const (g_btor, bv2);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
   assert (exp1 == exp2);
   assert (btor_node_bv_get_width (g_btor, exp1) == 8);
   assert (btor_node_bv_get_width (g_btor, exp2) == 8);
@@ -156,7 +156,7 @@ test_one_exp (void)
   assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp1)));
   assert (!btor_node_is_bv_const_one (g_btor, btor_node_invert (exp2)));
   bv3  = btor_bv_char_to_bv (g_btor->mm, "11111110");
-  exp3 = btor_exp_const (g_btor, bv3);
+  exp3 = btor_exp_bv_const (g_btor, bv3);
   assert (!btor_node_is_bv_const_one (g_btor, exp3));
   assert (btor_node_is_bv_const_one (g_btor, btor_node_invert (exp3)));
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
@@ -178,19 +178,19 @@ test_unsigned_to_exp (void)
   init_exp_test ();
 
   sort = btor_sort_bv (g_btor, 8);
-  exp1 = btor_exp_unsigned (g_btor, 32u, sort);
-  exp2 = btor_exp_unsigned (g_btor, 49u, sort);
-  exp3 = btor_exp_unsigned (g_btor, 3u, sort);
-  exp4 = btor_exp_unsigned (g_btor, 57u, sort);
+  exp1 = btor_exp_bv_unsigned (g_btor, 32u, sort);
+  exp2 = btor_exp_bv_unsigned (g_btor, 49u, sort);
+  exp3 = btor_exp_bv_unsigned (g_btor, 3u, sort);
+  exp4 = btor_exp_bv_unsigned (g_btor, 57u, sort);
   btor_sort_release (g_btor, sort);
   bv5  = btor_bv_char_to_bv (g_btor->mm, "00100000");
   bv6  = btor_bv_char_to_bv (g_btor->mm, "00110001");
   bv7  = btor_bv_char_to_bv (g_btor->mm, "00000011");
   bv8  = btor_bv_char_to_bv (g_btor->mm, "00111001");
-  exp5 = btor_exp_const (g_btor, bv5);
-  exp6 = btor_exp_const (g_btor, bv6);
-  exp7 = btor_exp_const (g_btor, bv7);
-  exp8 = btor_exp_const (g_btor, bv8);
+  exp5 = btor_exp_bv_const (g_btor, bv5);
+  exp6 = btor_exp_bv_const (g_btor, bv6);
+  exp7 = btor_exp_bv_const (g_btor, bv7);
+  exp8 = btor_exp_bv_const (g_btor, bv8);
 
   assert (exp1 == exp5);
   assert (exp2 == exp6);
@@ -829,7 +829,7 @@ test_cond_exp (void)
   exp2 = btor_exp_var (g_btor, sort, "v2");
   btor_sort_release (g_btor, sort);
   bv3  = btor_bv_char_to_bv (g_btor->mm, "00110111001101010001010100110100");
-  exp3 = btor_exp_const (g_btor, bv3);
+  exp3 = btor_exp_bv_const (g_btor, bv3);
   exp4 = btor_exp_cond (g_btor, exp1, exp2, exp3);
   exp5 = btor_exp_cond (g_btor, exp1, exp2, exp3);
   exp6 = btor_exp_cond (g_btor, exp1, exp3, exp2);

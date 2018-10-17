@@ -352,7 +352,7 @@ test_normquant_normalize_negated_quant (void)
   sort    = btor_sort_bv (g_btor, 32);
   x       = btor_exp_param (g_btor, sort, "x");
   y       = btor_exp_param (g_btor, sort, "y");
-  zero    = btor_exp_zero (g_btor, sort);
+  zero    = btor_exp_bv_zero (g_btor, sort);
   xugt0   = btor_exp_bv_ugt (g_btor, x, zero);
   yugtx   = btor_exp_bv_ugt (g_btor, y, x);
   existsy = btor_exp_exists (g_btor, y, yugtx);

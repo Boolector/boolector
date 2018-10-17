@@ -27,19 +27,19 @@ BtorNode *btor_exp_create (Btor *btor,
  * strlen(bits) > 0
  * width(result) = strlen(bits)
  */
-BtorNode *btor_exp_const (Btor *btor, const BtorBitVector *bits);
+BtorNode *btor_exp_bv_const (Btor *btor, const BtorBitVector *bits);
 
 /* Binary constant representing zero.
  */
-BtorNode *btor_exp_zero (Btor *btor, BtorSortId sort);
+BtorNode *btor_exp_bv_zero (Btor *btor, BtorSortId sort);
 
 /* Binary constant representing all ones.
  */
-BtorNode *btor_exp_ones (Btor *btor, BtorSortId sort);
+BtorNode *btor_exp_bv_ones (Btor *btor, BtorSortId sort);
 
 /* Binary constant representing 1.
  */
-BtorNode *btor_exp_one (Btor *btor, BtorSortId sort);
+BtorNode *btor_exp_bv_one (Btor *btor, BtorSortId sort);
 
 /* Constant respresenting TRUE
  * width(result) = 1
@@ -55,13 +55,13 @@ BtorNode *btor_exp_false (Btor *btor);
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
  */
-BtorNode *btor_exp_int (Btor *btor, int32_t i, BtorSortId sort);
+BtorNode *btor_exp_bv_int (Btor *btor, int32_t i, BtorSortId sort);
 
 /* Binary constant representing the unsigned integer.
  * The constant is obtained by either truncating bits
  * or by unsigned extension (padding with zeroes).
  */
-BtorNode *btor_exp_unsigned (Btor *btor, uint32_t u, BtorSortId sort);
+BtorNode *btor_exp_bv_unsigned (Btor *btor, uint32_t u, BtorSortId sort);
 
 /* Bit-vector variable.
  */

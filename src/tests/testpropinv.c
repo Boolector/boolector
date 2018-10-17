@@ -294,7 +294,7 @@ test_propinv_complete_slice_bv (void)
   {                                                                      \
     bve     = btor_bv_char_to_bv (g_mm, ve);                             \
     bv##fun = btor_bv_char_to_bv (g_mm, vshift);                         \
-    ce      = btor_exp_const (g_btor, bve);                              \
+    ce      = btor_exp_bv_const (g_btor, bve);                              \
     if (eidx)                                                            \
     {                                                                    \
       c##fun = expfun (g_btor, ce, e[1]);                                \
@@ -342,8 +342,8 @@ test_propinv_complete_slice_bv (void)
   {                                                                         \
     if (cinit)                                                              \
     {                                                                       \
-      ce[0]   = btor_exp_const (g_btor, bve);                               \
-      ce[1]   = btor_exp_const (g_btor, bve);                               \
+      ce[0]   = btor_exp_bv_const (g_btor, bve);                               \
+      ce[1]   = btor_exp_bv_const (g_btor, bve);                               \
       cmul[0] = btor_exp_bv_mul (g_btor, ce[0], e[1]);                      \
       cmul[1] = btor_exp_bv_mul (g_btor, e[0], ce[1]);                      \
     }                                                                       \
@@ -387,7 +387,7 @@ test_propinv_complete_slice_bv (void)
   {                                                                           \
     if (eidx)                                                                 \
     {                                                                         \
-      ce    = btor_exp_const (g_btor, bve);                                   \
+      ce    = btor_exp_bv_const (g_btor, bve);                                   \
       cudiv = btor_exp_bv_udiv (g_btor, ce, e[1]);                            \
       res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 1);                     \
       assert (res);                                                           \
@@ -407,7 +407,7 @@ test_propinv_complete_slice_bv (void)
     }                                                                         \
     else                                                                      \
     {                                                                         \
-      ce    = btor_exp_const (g_btor, bve);                                   \
+      ce    = btor_exp_bv_const (g_btor, bve);                                   \
       cudiv = btor_exp_bv_udiv (g_btor, e[0], ce);                            \
       res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 0);                     \
       assert (res);                                                           \
@@ -444,8 +444,8 @@ prop_inv_conf_and_bv (uint32_t bw)
   {
     bve[0]  = btor_bv_uint64_to_bv (g_mm, i, bw);
     bve[1]  = btor_bv_uint64_to_bv (g_mm, i, bw);
-    ce[0]   = btor_exp_const (g_btor, bve[0]);
-    ce[1]   = btor_exp_const (g_btor, bve[1]);
+    ce[0]   = btor_exp_bv_const (g_btor, bve[0]);
+    ce[1]   = btor_exp_bv_const (g_btor, bve[1]);
     cand[0] = btor_exp_bv_and (g_btor, ce[0], e[1]);
     cand[1] = btor_exp_bv_and (g_btor, e[0], ce[1]);
 
@@ -549,7 +549,7 @@ PROP_INV_CONF_ULT_TESTS:
   assert (res);
   assert (btor_bv_compare (res, zero) > 0);
   btor_bv_free (g_mm, res);
-  ce   = btor_exp_const (g_btor, bve);
+  ce   = btor_exp_bv_const (g_btor, bve);
   cult = btor_exp_bv_ult (g_btor, ce, e[1]);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 1);
   if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
@@ -569,7 +569,7 @@ PROP_INV_CONF_ULT_TESTS:
   assert (res);
   assert (btor_bv_compare (res, bvmax) < 0);
   btor_bv_free (g_mm, res);
-  ce   = btor_exp_const (g_btor, bve);
+  ce   = btor_exp_bv_const (g_btor, bve);
   cult = btor_exp_bv_ult (g_btor, e[0], ce);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 0);
   if (btor_opt_get (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
@@ -630,7 +630,7 @@ PROP_INV_CONF_SLL_TESTS:
   {
     bve = btor_bv_new_random (g_mm, &g_btor->rng, bw);
     if (!btor_bv_get_bit (bve, 0)) btor_bv_set_bit (bve, 0, 1);
-    ce   = btor_exp_const (g_btor, bve);
+    ce   = btor_exp_bv_const (g_btor, bve);
     csll = btor_exp_bv_sll (g_btor, ce, e[1]);
     res  = inv_sll_bv (g_btor, sll, bvsll, bve, 1);
     assert (res);
@@ -801,7 +801,7 @@ PROP_INV_CONF_SRL_TESTS:
   {
     bve = btor_bv_new_random (g_mm, &g_btor->rng, bw);
     if (!btor_bv_get_bit (bve, bw - 1)) btor_bv_set_bit (bve, bw - 1, 1);
-    ce   = btor_exp_const (g_btor, bve);
+    ce   = btor_exp_bv_const (g_btor, bve);
     csrl = btor_exp_bv_srl (g_btor, ce, e[1]);
     res  = inv_srl_bv (g_btor, srl, bvsrl, bve, 1);
     assert (res);
@@ -966,8 +966,8 @@ prop_inv_conf_mul_bv (uint32_t bw)
 PROP_INV_CONF_MUL_TESTS:
   /* bve = 0 but bvmul > 0 */
   bve     = btor_bv_new (g_mm, bw);
-  ce[0]   = btor_exp_const (g_btor, bve);
-  ce[1]   = btor_exp_const (g_btor, bve);
+  ce[0]   = btor_exp_bv_const (g_btor, bve);
+  ce[1]   = btor_exp_bv_const (g_btor, bve);
   cmul[0] = btor_exp_bv_mul (g_btor, ce[0], e[1]);
   cmul[1] = btor_exp_bv_mul (g_btor, e[0], ce[1]);
   for (k = 0; k < 10; k++)
@@ -1175,7 +1175,7 @@ PROP_INV_CONF_UREM_TESTS:
   {
     tmp   = btor_bv_dec (g_mm, bvmax);
     bve   = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, zero, tmp);
-    ce    = btor_exp_const (g_btor, bve);
+    ce    = btor_exp_bv_const (g_btor, bve);
     curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
@@ -1205,7 +1205,7 @@ PROP_INV_CONF_UREM_TESTS:
     tmp = btor_bv_dec (g_mm, bvurem);
     bve = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, zero, tmp);
     btor_bv_free (g_mm, tmp);
-    ce    = btor_exp_const (g_btor, bve);
+    ce    = btor_exp_bv_const (g_btor, bve);
     curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
@@ -1237,7 +1237,7 @@ PROP_INV_CONF_UREM_TESTS:
     bve  = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, tmp2);
     btor_bv_free (g_mm, tmp);
     btor_bv_free (g_mm, tmp2);
-    ce    = btor_exp_const (g_btor, bve);
+    ce    = btor_exp_bv_const (g_btor, bve);
     curem = btor_exp_bv_urem (g_btor, ce, e[1]);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 1);
     assert (res);
@@ -1264,7 +1264,7 @@ PROP_INV_CONF_UREM_TESTS:
   {
     tmp   = btor_bv_inc (g_mm, zero);
     bve   = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvmax);
-    ce    = btor_exp_const (g_btor, bve);
+    ce    = btor_exp_bv_const (g_btor, bve);
     curem = btor_exp_bv_urem (g_btor, e[0], ce);
     res   = inv_urem_bv (g_btor, urem, bvurem, bve, 0);
     assert (res);
@@ -1291,7 +1291,7 @@ PROP_INV_CONF_UREM_TESTS:
     tmp    = btor_bv_inc (g_mm, zero);
     bvurem = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvmax);
     bve    = btor_bv_new_random_range (g_mm, &g_btor->rng, bw, tmp, bvurem);
-    ce     = btor_exp_const (g_btor, bve);
+    ce     = btor_exp_bv_const (g_btor, bve);
     curem  = btor_exp_bv_urem (g_btor, e[0], ce);
     res    = inv_urem_bv (g_btor, urem, bvurem, bve, 0);
     assert (res);
@@ -1376,8 +1376,8 @@ PROP_INV_CONF_CONCAT_TESTS:
         }
       }
     }
-    ce[0]      = btor_exp_const (g_btor, bve[0]);
-    ce[1]      = btor_exp_const (g_btor, bve[1]);
+    ce[0]      = btor_exp_bv_const (g_btor, bve[0]);
+    ce[1]      = btor_exp_bv_const (g_btor, bve[1]);
     cconcat[0] = btor_exp_bv_concat (g_btor, ce[0], e[1]);
     cconcat[1] = btor_exp_bv_concat (g_btor, e[0], ce[1]);
     for (j = 0; j < 2; j++)
