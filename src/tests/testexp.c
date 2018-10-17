@@ -903,8 +903,8 @@ test_inc_exp (void)
   sort = btor_sort_bv (g_btor, 8);
 
   exp1 = btor_exp_var (g_btor, sort, "v1");
-  exp2 = btor_exp_inc (g_btor, exp1);
-  exp3 = btor_exp_inc (g_btor, exp1);
+  exp2 = btor_exp_bv_inc (g_btor, exp1);
+  exp3 = btor_exp_bv_inc (g_btor, exp1);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);
@@ -926,8 +926,8 @@ test_dec_exp (void)
   sort = btor_sort_bv (g_btor, 8);
 
   exp1 = btor_exp_var (g_btor, sort, "v1");
-  exp2 = btor_exp_dec (g_btor, exp1);
-  exp3 = btor_exp_dec (g_btor, exp1);
+  exp2 = btor_exp_bv_dec (g_btor, exp1);
+  exp3 = btor_exp_bv_dec (g_btor, exp1);
 
   assert (exp2 == exp3);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp3);

@@ -253,7 +253,7 @@ create_pattern_itoip1 (Btor *btor,
   read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
   ;
-  inc = btor_exp_inc (btor, param);
+  inc = btor_exp_bv_inc (btor, param);
   ite = btor_exp_cond (btor, cond, inc, read);
   res = btor_exp_lambda (btor, param, ite);
 
@@ -399,7 +399,7 @@ is_itoip1_pattern (BtorNode *index, BtorNode *value)
   bool res;
   BtorNode *inc;
 
-  inc = btor_exp_inc (btor_node_real_addr (index)->btor, index);
+  inc = btor_exp_bv_inc (btor_node_real_addr (index)->btor, index);
   res = inc == value;
   btor_node_release (btor_node_real_addr (index)->btor, inc);
   return res;

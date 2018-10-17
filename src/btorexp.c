@@ -1503,7 +1503,7 @@ btor_exp_bv_repeat (Btor *btor, BtorNode *exp, uint32_t n)
 }
 
 BtorNode *
-btor_exp_inc (Btor *btor, BtorNode *exp)
+btor_exp_bv_inc (Btor *btor, BtorNode *exp)
 {
   BtorNode *one, *result;
 
@@ -1517,7 +1517,7 @@ btor_exp_inc (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_exp_dec (Btor *btor, BtorNode *exp)
+btor_exp_bv_dec (Btor *btor, BtorNode *exp)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
 

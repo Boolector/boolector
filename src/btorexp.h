@@ -410,10 +410,10 @@ BtorNode *btor_exp_bv_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *btor_exp_bv_repeat (Btor *btor, BtorNode *exp, uint32_t n);
 
 /* Create bit-vector increment by one */
-BtorNode *btor_exp_inc (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_inc (Btor *btor, BtorNode *exp);
 
 /* Create bit-vector decrement by one */
-BtorNode *btor_exp_dec (Btor *btor, BtorNode *exp);
+BtorNode *btor_exp_bv_dec (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
