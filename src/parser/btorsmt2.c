@@ -285,10 +285,10 @@ typedef struct BtorSMT2Item
   BtorSMT2Coo coo;
   union
   {
-    int32_t num;
+    uint32_t num;
     struct
     {
-      int32_t idx0, idx1;
+      uint32_t idx0, idx1;
     };
   };
   union
@@ -3161,14 +3161,14 @@ parse_open_term_indexed_parametric (BtorSMT2Parser *parser,
 
   if (nargs == 1)
   {
-    if (!parse_int32_smt2 (parser, false, &item_open->num)) return 0;
+    if (!parse_uint32_smt2 (parser, false, &item_open->num)) return 0;
   }
   else
   {
     assert (nargs == 2);
-    if (!parse_int32_smt2 (parser, false, &item_open->idx0)) return 0;
+    if (!parse_uint32_smt2 (parser, false, &item_open->idx0)) return 0;
     firstcoo = parser->coo;
-    if (!parse_int32_smt2 (parser, false, &item_open->idx1)) return 0;
+    if (!parse_uint32_smt2 (parser, false, &item_open->idx1)) return 0;
     if (tag == BTOR_BV_EXTRACT_TAG_SMT2 && item_open->idx0 < item_open->idx1)
     {
       parser->perrcoo = firstcoo;
