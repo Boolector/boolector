@@ -264,10 +264,20 @@ BtorBitVector *btor_bv_ulte (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the logical shift left of bit-vectors 'a' by 'shift'. */
+BtorBitVector *btor_bv_sll_uint64 (BtorMemMgr *mm,
+                                   const BtorBitVector *a,
+                                   uint64_t shift);
+
 /* Create the logical shift left of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_sll (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
+
+/* Create the logical shift right of bit-vectors 'a' by 'shift'. */
+BtorBitVector *btor_bv_srl_uint64 (BtorMemMgr *mm,
+                                   const BtorBitVector *a,
+                                   uint64_t shift);
 
 /* Create the logical shift right of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_srl (BtorMemMgr *mm,

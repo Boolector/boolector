@@ -1928,8 +1928,8 @@ btor_bv_ulte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   return res;
 }
 
-static BtorBitVector *
-sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
+BtorBitVector *
+btor_bv_sll_uint64 (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
 {
   assert (mm);
   assert (a);
@@ -2008,13 +2008,8 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   if (shift_is_uint64 (mm, a, b, &ushift))
   {
-    return sll_bv (mm, a, ushift);
+    return btor_bv_sll_uint64 (mm, a, ushift);
   }
-#ifndef NDEBUG
-  BtorBitVector *width = btor_bv_uint64_to_bv (mm, a->width, b->width);
-  assert (btor_bv_compare (b, width) > 0);
-  btor_bv_free (mm, width);
-#endif
   return btor_bv_new (mm, a->width);
 }
 
@@ -2046,6 +2041,35 @@ btor_bv_sra (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_srl_uint64 (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
+{
+  assert (mm);
+  assert (a);
+
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, a->width);
+  if (shift >= a->width) return res;
+#ifdef BTOR_USE_GMP
+  mpz_fdiv_q_2exp (res->val, a->val, shift);
+#else
+  uint32_t skip, i, j, k;
+  BTOR_BV_TYPE v;
+  k = shift % BTOR_BV_TYPE_BW;
+  skip = shift / BTOR_BV_TYPE_BW;
+  v = 0;
+  for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)
+  {
+    v = (k == 0) ? a->bits[i] : v | (a->bits[i] >> k);
+    res->bits[j] = v;
+    v = (k == 0) ? a->bits[i] : a->bits[i] << (BTOR_BV_TYPE_BW - k);
+  }
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *
 btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);
@@ -2053,42 +2077,13 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (b);
   assert (a->width == b->width);
 
-#ifndef BTOR_USE_GMP
-  uint32_t skip, i, j, k;
-  BTOR_BV_TYPE v;
-#endif
   uint64_t ushift;
-  BtorBitVector *res;
-
-  res = btor_bv_new (mm, a->width);
 
   if (shift_is_uint64 (mm, a, b, &ushift))
   {
-    if (ushift >= a->width) return res;
-
-#ifdef BTOR_USE_GMP
-    mpz_fdiv_q_2exp (res->val, a->val, ushift);
-#else
-    k    = ushift % BTOR_BV_TYPE_BW;
-    skip = ushift / BTOR_BV_TYPE_BW;
-
-    v = 0;
-    for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)
-    {
-      v            = (k == 0) ? a->bits[i] : v | (a->bits[i] >> k);
-      res->bits[j] = v;
-      v = (k == 0) ? a->bits[i] : a->bits[i] << (BTOR_BV_TYPE_BW - k);
-    }
-    assert (rem_bits_zero_dbg (res));
-#endif
-    return res;
+    return btor_bv_srl_uint64 (mm, a, ushift);
   }
-#ifndef NDEBUG
-  BtorBitVector *width = btor_bv_uint64_to_bv (mm, a->width, b->width);
-  assert (btor_bv_compare (b, width) > 0);
-  btor_bv_free (mm, width);
-#endif
-  return res;
+  return btor_bv_new (mm, a->width);
 }
 
 BtorBitVector *
@@ -2126,7 +2121,7 @@ btor_bv_mul (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
         and = btor_bv_copy (mm, a);
       else
         and = btor_bv_new (mm, bw);
-      shift = sll_bv (mm, and, i);
+      shift = btor_bv_sll_uint64 (mm, and, i);
       add   = btor_bv_add (mm, res, shift);
       btor_bv_free (mm, and);
       btor_bv_free (mm, shift);
@@ -2185,7 +2180,7 @@ udiv_urem_bv (BtorMemMgr *mm,
 
     for (i = bw - 1; i >= 0; i--)
     {
-      tmp = sll_bv (mm, rem, 1);
+      tmp = btor_bv_sll_uint64 (mm, rem, 1);
       btor_bv_free (mm, rem);
       rem = tmp;
       btor_bv_set_bit (rem, 0, btor_bv_get_bit (a, i));
