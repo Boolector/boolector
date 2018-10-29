@@ -344,7 +344,7 @@ if __name__ == "__main__":
     # Set SAT solver (can only be done before the first Sat() call)
     # Lingeling is the default SAT solver
     #b.Set_sat_solver("MiniSAT")
-    
+
     # Assert formulas
     b.Assert(_cond0[1])
     b.Assert(_apply5 != _apply3)
@@ -363,9 +363,12 @@ if __name__ == "__main__":
     # Check sat with limits
 #    res = b.Sat(100, 10000)
 #    res = b.Sat(lod_limit=100, sat_limit=10000)
+    if res == b.SAT: print("result: SAT")
+    else           : print("result: UNSAT")
 
     # Get model or query assignments for nodes
     if res == b.SAT:
+        print("Model:")
         # Get model and print to stdout
         b.Print_model()
         # Get model and print to file 'model.out'
@@ -384,6 +387,8 @@ if __name__ == "__main__":
     bb.Assume(_cond0_matched[2])
     # Check sat
     res = bb.Sat()
+    if res == bb.SAT: print("result: SAT")
+    else            : print("result: UNSAT")
 
     if res == b.UNSAT:
         # Check if assumptions are failed
@@ -391,3 +396,22 @@ if __name__ == "__main__":
         bb.Failed(_cond0_matched[2])
 
     os.remove("dump.btor") 
+
+### Quantifiers
+    bbb = Boolector() 
+    _bvsort   = bbb.BitVecSort(128)
+    p0        = bbb.Param(_bvsort)
+    p1        = bbb.Param(_bvsort)
+    p2        = bbb.Param(_bvsort)
+    p3        = bbb.Param(_bvsort)
+    _exists   = bbb.Exists([p0], p0 != p1 or p0 > p2)
+    bbb.Assert(_exists)
+    #_forall   = bbb.Forall([p0, p1], p0 < p1)
+    _forall   = bbb.Forall([p1, p2], _exists)
+    bbb.Assert(_forall)
+    res       = bbb.Sat()
+    if res == bbb.SAT: print("result: SAT")
+    else             : print("result: UNSAT")
+    if res == bbb.SAT:
+        print("Model:")
+        # Get model and print to stdout

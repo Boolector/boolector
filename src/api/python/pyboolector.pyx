@@ -33,6 +33,7 @@ class BoolectorException(Exception):
     def __str__(self):
         return "[pybtor] {}".format(self.msg)
 
+################################################################################
 # utility functions
 
 cdef btorapi.BoolectorNode * _c_node(x):
@@ -125,6 +126,7 @@ def _check_precond_cond(cond, a, b):
         raise BoolectorException(
                   "At least one of the operands must be a bit vector")
 
+################################################################################
 # sort wrapper classes
 
 cdef class BoolectorSort:
@@ -169,6 +171,7 @@ cdef class _BoolectorBoolSort(BoolectorSort):
     """
     pass
 
+################################################################################
 # option wrapper classes
 
 cdef class BoolectorOptions:
@@ -276,6 +279,8 @@ cdef class BoolectorOpt:
         return "{}, [{}, {}], default: {}".format(self.lng,
                                                   self.min, self.max,
                                                   self.dflt)
+
+################################################################################
 # wrapper classes for BoolectorNode
 
 cdef class BoolectorNode:
@@ -584,6 +589,41 @@ cdef class BoolectorFunNode(BoolectorNode):
 cdef class _BoolectorParamNode(BoolectorBVNode):
     pass
 
+cdef class BoolectorQuantNode(BoolectorBVNode):
+    """
+    The class representing a Boolector quantified node.
+    """
+    cdef list _params
+    cdef bool is_existential
+
+    def __init__ (self, Boolector boolector, bool is_exists):
+        super().__init__(boolector)
+        self.is_existential = is_exists
+
+    def is_exists(self):
+        return self.is_existential
+
+    def is_forall(self):
+        return not self.is_existential
+
+cdef class BoolectorExistsNode(BoolectorQuantNode):
+    """
+    The class representing a Boolector existentially quantified node.
+    """
+
+    def __init__ (self, Boolector boolector):
+        super().__init__(boolector, True)
+
+cdef class BoolectorForallNode(BoolectorQuantNode):
+    """
+    The class representing a Boolector universally quantified node.
+    """
+
+    def __init__ (self, Boolector boolector):
+        super().__init__(boolector, False)
+
+
+################################################################################
 # wrapper class for Boolector itself
 
 cdef class Boolector:
@@ -2716,6 +2756,72 @@ cdef class Boolector:
         r._c_node = \
             btorapi.boolector_apply(self._c_btor, c_args, argc, fun._c_node)
         free(c_args)
+        return r
+
+    # Quantified Terms
+
+    def Exists(self, list params, BoolectorBVNode body):
+        """ Exists(params, body)
+
+            Create an existentially quantified term.
+
+            See :func:`~pyboolector.Boolector.Param`
+
+            :param params: A list of (existentially quantified) parameters.
+            :type params: list
+            :param body: Term existentially quantified over ``params``.
+            :type body:  :class:`~pyboolector.BoolectorNode`
+            :return:  A term ``body`` existentially quantified over ``params``.
+            :rtype: :class:`~pyboolector.BoolectorNode`
+        """
+        cdef uint32_t paramc = len(params)
+        cdef btorapi.BoolectorNode ** c_params = \
+            <btorapi.BoolectorNode **> \
+                malloc(paramc * sizeof(btorapi.BoolectorNode *))
+        # copy params into array
+        for i in range(paramc):
+            if not isinstance(params[i], _BoolectorParamNode):
+                raise BoolectorException(
+                          "Operand at position {} is not a parameter".format(i))
+            c_params[i] = _c_node(params[i])
+
+        r = BoolectorExistsNode(self)
+        r._params = params
+        r._c_node = btorapi.boolector_exists( \
+                self._c_btor, c_params, paramc, body._c_node)
+        free(c_params)
+        return r
+
+    def Forall(self, list params, BoolectorBVNode body):
+        """ Forall(params, body)
+
+            Create an universally quantified term.
+
+            See :func:`~pyboolector.Boolector.Param`
+
+            :param params: A list of (universally quantified) parameters.
+            :type params: list
+            :param body: Term universally quantified over ``params``.
+            :type body:  :class:`~pyboolector.BoolectorNode`
+            :return:  A term ``body`` universally quantified over ``params``.
+            :rtype: :class:`~pyboolector.BoolectorNode`
+        """
+        cdef uint32_t paramc = len(params)
+        cdef btorapi.BoolectorNode ** c_params = \
+            <btorapi.BoolectorNode **> \
+                malloc(paramc * sizeof(btorapi.BoolectorNode *))
+        # copy params into array
+        for i in range(paramc):
+            if not isinstance(params[i], _BoolectorParamNode):
+                raise BoolectorException(
+                          "Operand at position {} is not a parameter".format(i))
+            c_params[i] = _c_node(params[i])
+
+        r = BoolectorExistsNode(self)
+        r._params = params
+        r._c_node = btorapi.boolector_forall( \
+                self._c_btor, c_params, paramc, body._c_node)
+        free(c_params)
         return r
 
     # Sorts
