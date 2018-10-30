@@ -484,6 +484,7 @@ boolector_push (Btor *btor, uint32_t level)
     BTOR_PUSH_STACK (btor->assertions_trail,
                      BTOR_COUNT_STACK (btor->assertions));
   }
+  btor->num_push_pop++;
 }
 
 void
@@ -509,6 +510,7 @@ boolector_pop (Btor *btor, uint32_t level)
     btor_hashint_table_remove (btor->assertions_cache, btor_node_get_id (cur));
     btor_node_release (btor, cur);
   }
+  btor->num_push_pop++;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1516,6 +1518,47 @@ boolector_int (Btor *btor, int32_t i, BoolectorSort sort)
 
 /*------------------------------------------------------------------------*/
 
+/* Remove unique symbol prefix and return start address of original symbol
+ * without prefix. */
+static const char *
+remove_unique_symbol_prefix (Btor *btor, const char *symbol)
+{
+  if (symbol)
+  {
+    size_t len    = strlen (symbol);
+    size_t offset = 5 + btor_util_num_digits (btor->num_push_pop);
+    if (len > offset && !strncmp (symbol, "BTOR_", 5) && symbol[offset] == '@')
+    {
+      return symbol + offset + 1;
+    }
+  }
+  return symbol;
+}
+
+/* Create symbol that is unique in the current scope. Prefix symbols with
+ * BTOR_<num_push_pop>@<symbol> to make them unique in the current context. */
+static char *
+mk_unique_symbol (Btor *btor, const char *symbol)
+{
+  char *symb;
+  size_t len;
+  if (btor->num_push_pop)
+  {
+    len = strlen (symbol) + 1;
+    len += strlen ("BTOR_@");
+    len += btor_util_num_digits (btor->num_push_pop);
+    BTOR_CNEWN (btor->mm, symb, len);
+    sprintf (symb, "BTOR_%u@%s", btor->num_push_pop, symbol);
+  }
+  else
+  {
+    symb = btor_mem_strdup (btor->mm, symbol);
+  }
+  assert (!symbol
+          || !strcmp (symbol, remove_unique_symbol_prefix (btor, symb)));
+  return symb;
+}
+
 BoolectorNode *
 boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
 {
@@ -1529,12 +1572,13 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bv (btor, s),
               "'sort' is not a bit vector sort");
-  symb = (char *) symbol;
+  symb = mk_unique_symbol (btor, symbol);
   BTOR_TRAPI (BTOR_TRAPI_SORT_FMT " %s", sort, btor, symb);
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, (char *) symb),
-              "symbol '%s' is already in use",
+              "symbol '%s' is already in use in the current context",
               symb);
   res = btor_exp_var (btor, s, symb);
+  btor_mem_freestr (btor->mm, symb);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
@@ -1553,7 +1597,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   char *symb;
   BtorSortId s;
 
-  symb = (char *) symbol;
+  symb = mk_unique_symbol (btor, symbol);
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_fun (btor, s)
@@ -1563,9 +1607,10 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
               "'sort' is not an array sort");
   BTOR_TRAPI (BTOR_TRAPI_SORT_FMT " %s", sort, btor, symb);
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
-              "symbol '%s' is already in use",
+              "symbol '%s' is already in use in the current context",
               symb);
   res = btor_exp_array (btor, s, symb);
+  btor_mem_freestr (btor->mm, symb);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
@@ -1584,7 +1629,7 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
   BtorSortId s;
   char *symb;
 
-  symb = (char *) symbol;
+  symb = mk_unique_symbol (btor, symbol);
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_TRAPI (BTOR_TRAPI_SORT_FMT "%s", sort, btor, symb);
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
@@ -1596,10 +1641,11 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
               symbol ? symbol : "",
               symbol ? "'" : "");
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
-              "symbol '%s' is already in use",
+              "symbol '%s' is already in use in the current context",
               symb);
 
   res = btor_exp_uf (btor, s, symb);
+  btor_mem_freestr (btor->mm, symb);
   assert (btor_node_is_regular (res));
   btor_node_inc_ext_ref_counter (btor, res);
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
@@ -2958,16 +3004,17 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   char *symb;
   BtorSortId s;
 
-  symb = (char *) symbol;
+  symb = mk_unique_symbol (btor, symbol);
   BTOR_TRAPI (BTOR_TRAPI_SORT_FMT " %s", sort, btor, symb);
   s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_sort_is_bv (btor, s),
               "'sort' is not a bit vector sort");
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
-              "symbol '%s' is already in use",
+              "symbol '%s' is already in use in the current context",
               symb);
   res = btor_exp_param (btor, s, symb);
+  btor_mem_freestr (btor->mm, symb);
   btor_node_inc_ext_ref_counter (btor, res);
 
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3342,11 +3389,14 @@ boolector_match_node_by_id (Btor *btor, int32_t id)
 BoolectorNode *
 boolector_match_node_by_symbol (Btor *btor, const char *symbol)
 {
+  char *symb;
   BtorNode *res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (symbol);
   BTOR_TRAPI ("%s", symbol);
-  res = btor_node_match_by_symbol (btor, symbol);
+  symb = mk_unique_symbol (btor, symbol);
+  res  = btor_node_match_by_symbol (btor, symb);
+  btor_mem_freestr (btor->mm, symb);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -3387,7 +3437,7 @@ boolector_get_symbol (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  res = (const char *) btor_node_get_symbol (btor, exp);
+  res = remove_unique_symbol_prefix (btor, btor_node_get_symbol (btor, exp));
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_symbol, BTOR_CLONED_EXP (exp));
@@ -3398,6 +3448,7 @@ boolector_get_symbol (Btor *btor, BoolectorNode *node)
 void
 boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol)
 {
+  char *symb;
   BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -3407,7 +3458,9 @@ boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol)
   BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol);
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
-  btor_node_set_symbol (btor, exp, symbol);
+  symb = mk_unique_symbol (btor, symbol);
+  btor_node_set_symbol (btor, exp, symb);
+  btor_mem_freestr (btor->mm, symb);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_symbol, BTOR_CLONED_EXP (exp), symbol);
 #endif

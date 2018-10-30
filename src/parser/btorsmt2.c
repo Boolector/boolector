@@ -369,7 +369,6 @@ typedef struct BtorSMT2Parser
   BtorParseResult *res;
   BoolectorNodePtrStack sat_assuming_assumptions;
   uint32_t scope_level;
-  uint32_t num_scopes;
   struct
   {
     uint32_t size, count;
@@ -660,7 +659,6 @@ static void
 open_new_scope (BtorSMT2Parser *parser)
 {
   parser->scope_level++;
-  parser->num_scopes++;
 
   BTOR_MSG (parser->btor->msg,
             2,
@@ -696,24 +694,6 @@ close_current_scope (BtorSMT2Parser *parser)
             parser->scope_level,
             btor_util_time_stamp () - start);
   parser->scope_level--;
-}
-
-static char *
-create_symbol_current_scope (BtorSMT2Parser *parser, char *symbol)
-{
-  char *symb;
-  size_t len;
-  if (parser->scope_level)
-  {
-    len = strlen (symbol) + 1;
-    len += strlen ("BTOR@");
-    len += btor_util_num_digits (parser->num_scopes);
-    BTOR_CNEWN (parser->mem, symb, len);
-    sprintf (symb, "BTOR@%u%s", parser->num_scopes, symbol);
-  }
-  else
-    symb = btor_mem_strdup (parser->mem, symbol);
-  return symb;
 }
 
 static void
@@ -3726,7 +3706,7 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
   assert (skiptokens <= 2);
 
   int32_t tag;
-  uint32_t width;
+  uint32_t width = 0;
 
   if (skiptokens < 1 && !read_lpar_smt2 (parser, 0))
   {
@@ -3846,7 +3826,6 @@ parse_sort (BtorSMT2Parser *parser,
 static int32_t
 declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
 {
-  char *symbol;
   uint32_t i;
   int32_t tag;
   BoolectorSortStack args;
@@ -3920,9 +3899,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
     }
     else
     {
-      symbol   = create_symbol_current_scope (parser, fun->name);
-      fun->exp = boolector_var (parser->btor, sort, symbol);
-      btor_mem_freestr (parser->mem, symbol);
+      fun->exp = boolector_var (parser->btor, sort, fun->name);
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "declared '%s' as bit-vector at line %d column %d",
@@ -3956,10 +3933,8 @@ declare_fun_smt2 (BtorSMT2Parser *parser, bool isconst)
 
     s = boolector_fun_sort (
         parser->btor, args.start, BTOR_COUNT_STACK (args), sort);
-    symbol   = create_symbol_current_scope (parser, fun->name);
-    fun->exp = boolector_uf (parser->btor, s, symbol);
+    fun->exp = boolector_uf (parser->btor, s, fun->name);
     boolector_release_sort (parser->btor, s);
-    btor_mem_freestr (parser->mem, symbol);
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               2,
               "declared '%s' as uninterpreted function at line %d column %d",
@@ -3986,7 +3961,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg, *new_arg;
   BoolectorNodePtrStack args;
-  char *psym, *symbol;
+  char *psym;
   BoolectorSort sort, s;
 
   fun   = 0;
@@ -4161,9 +4136,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     else
     {
       fun->exp = tmp;
-      symbol   = create_symbol_current_scope (parser, fun->name);
-      boolector_set_symbol (parser->btor, fun->exp, symbol);
-      btor_mem_freestr (parser->mem, symbol);
+      boolector_set_symbol (parser->btor, fun->exp, fun->name);
       parser->need_functions = true;
     }
     while (!BTOR_EMPTY_STACK (args))

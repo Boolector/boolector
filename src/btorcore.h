@@ -157,6 +157,8 @@ struct Btor
   BtorIntHashTable *assertions_cache;
   /* saves the number of assertions on each push */
   BtorUIntStack assertions_trail;
+  /* Number of push/pop calls (used for unique symbol prefixes) */
+  uint32_t num_push_pop;
 
 #ifndef NDEBUG
   Btor *clone; /* shadow clone (debugging only) */
