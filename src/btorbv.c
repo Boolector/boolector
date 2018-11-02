@@ -1554,19 +1554,13 @@ btor_bv_sext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
   assert (bv);
   assert (len > 0);
 
-  uint32_t i;
-  BtorBitVector *res;
+  BtorBitVector *tmp, *res;
 
-  res = btor_bv_new (mm, bv->width + len);
-  memcpy (
-      res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  if (btor_bv_get_bit (bv, bv->width - 1))
-  {
-    i = (bv->width % BTOR_BV_TYPE_BW);
-    res->bits[res->len - bv->len] |= (((uint64_t) -1) >> i) << i;
-    for (i = 0; i < res->len - bv->len; i++) res->bits[i] = UINT32_MAX;
-  }
-
+  tmp = btor_bv_get_bit (bv, bv->width - 1) ? btor_bv_ones (mm, len)
+                                            : btor_bv_zero (mm, len);
+  res = btor_bv_concat (mm, tmp, bv);
+  btor_bv_free (mm, tmp);
+  assert (rem_bits_zero_dbg (res));
   return res;
 }
 
