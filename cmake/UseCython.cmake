@@ -1,11 +1,16 @@
-#.rst:
+#.rst
+# Define a function to create Cython modules.
+#
+# For more information on the Cython project, see http://cython.org/.
+# "Cython is a language that makes writing C extensions for the Python language
+# as easy as Python itself."
+#
+# This file defines a CMake function to build a Cython Python module.
+# To use it, first include this file.
+#
+#   include(UseCython)
 #
 # The following functions are defined:
-#
-# .. cmake:command:: add_cython_target
-#
-# Create a custom rule to generate the source code for a Python extension module
-# using cython.
 #
 #   add_cython_target(<Name> [<CythonInput>]
 #                     [EMBED_MAIN]
@@ -13,7 +18,8 @@
 #                     [PY2 | PY3]
 #                     [OUTPUT_VAR <OutputVar>])
 #
-# ``<Name>`` is the name of the new target, and ``<CythonInput>``
+# Create a custom rule to generate the source code for a Python extension module
+# using cython.  ``<Name>`` is the name of the new target, and ``<CythonInput>``
 # is the path to a cython source file.  Note that, despite the name, no new
 # targets are created by this function.  Instead, see ``OUTPUT_VAR`` for
 # retrieving the path to the generated source for subsequent targets.
@@ -26,7 +32,7 @@
 #
 # The Cython include search path is amended with any entries found in the
 # ``INCLUDE_DIRECTORIES`` property of the directory containing the
-# ``<CythonInput>`` file.  Use ``include_directories`` to add to the Cython
+# ``<CythonInput>`` file.  Use ``iunclude_directories`` to add to the Cython
 # include search path.
 #
 # Options:
@@ -56,16 +62,8 @@
 # ``<OutputVar>``
 #   The path of the generated source file.
 #
-# Cache variables that effect the behavior include:
 #
-# ``CYTHON_ANNOTATE``
-#   whether to create an annotated .html file when compiling
-#
-# ``CYTHON_FLAGS``
-#   additional flags to pass to the Cython compiler
-#
-# Example usage
-# ^^^^^^^^^^^^^
+# Example usage:
 #
 # .. code-block:: cmake
 #
@@ -77,6 +75,16 @@
 #
 #   add_library(cy_code MODULE ${cy_code})
 #   target_link_libraries(cy_code ...)
+#
+# Cache variables that effect the behavior include:
+#
+# ``CYTHON_ANNOTATE``
+#   whether to create an annotated .html file when compiling
+#
+# ``CYTHON_FLAGS``
+#   additional flags to pass to the Cython compiler
+#
+# See also FindCython.cmake
 #
 #=============================================================================
 # Copyright 2011 Kitware, Inc.
@@ -101,7 +109,6 @@ set(CYTHON_ANNOTATE OFF
 set(CYTHON_FLAGS "" CACHE STRING
     "Extra flags to the cython compiler.")
 mark_as_advanced(CYTHON_ANNOTATE CYTHON_FLAGS)
-string(REGEX REPLACE " " ";" CYTHON_FLAGS_LIST "${CYTHON_FLAGS}")
 
 find_package(PythonLibs REQUIRED)
 
@@ -138,9 +145,9 @@ function(add_cython_target _name)
 
   set(_embed_main FALSE)
 
-  if(";${languages};" MATCHES ";C;")
+  if("C" IN_LIST languages)
     set(_output_syntax "C")
-  elseif(";${languages};" MATCHES ";CXX;")
+  elseif("CXX" IN_LIST languages)
     set(_output_syntax "CXX")
   else()
     message(FATAL_ERROR "Either C or CXX must be enabled to use Cython")
@@ -332,10 +339,10 @@ function(add_cython_target _name)
   endif()
 
   set(no_docstrings_arg "")
-#  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR
-#     CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
-#    set(no_docstrings_arg "--no-docstrings")
-#  endif()
+  if(CMAKE_BUILD_TYPE STREQUAL "Release" OR
+     CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+    set(no_docstrings_arg "--no-docstrings")
+  endif()
 
   set(cython_debug_arg "")
   set(embed_pos_arg "")
@@ -364,7 +371,7 @@ function(add_cython_target _name)
                      ARGS ${cxx_arg} ${include_directory_arg} ${py_version_arg}
                           ${embed_arg} ${annotate_arg} ${no_docstrings_arg}
                           ${cython_debug_arg} ${embed_pos_arg}
-                          ${line_directives_arg} ${CYTHON_FLAGS_LIST} ${pyx_location}
+                          ${line_directives_arg} ${CYTHON_FLAGS} ${pyx_location}
                           --output-file ${generated_file}
                      DEPENDS ${_source_file}
                              ${pxd_dependencies}
