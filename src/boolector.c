@@ -4735,3 +4735,11 @@ boolector_version (Btor *btor)
   BTOR_ABORT_ARG_NULL (btor);
   return btor_version (btor);
 }
+
+const char *
+boolector_git_id (Btor *btor)
+{
+  /* do not trace, not necessary */
+  BTOR_ABORT_ARG_NULL (btor);
+  return btor_git_id (btor);
+}

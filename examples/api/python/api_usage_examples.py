@@ -5,6 +5,7 @@ from pyboolector import Boolector, BoolectorException
 if __name__ == "__main__":
     b = Boolector() 
     print ("Boolector version " + b.Version())
+    print ("Boolector id " + b.GitId())
     print ()
     print (b.Copyright())
 
