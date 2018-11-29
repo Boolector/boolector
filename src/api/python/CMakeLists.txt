@@ -29,5 +29,6 @@ add_library(pyboolector
             ${pyboolector} boolector_py.c pyboolector_abort.cpp)
 add_dependencies(pyboolector pyboolector_options)
 
-target_link_libraries(pyboolector boolector ${LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(pyboolector boolector ${PYTHON_LIBRARIES})
 python_extension_module(pyboolector)
+install(TARGETS pyboolector DESTINATION lib)
