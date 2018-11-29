@@ -62,4 +62,9 @@ btor_abort_warn (
   snprintf (buffer+i, BUFFER_LEN - i, "\n");
   if (abort)
     btor_abort_callback.abort_fun (buffer);
+  else
+  {
+    fprintf (stderr, "%s\n", buffer);
+    fflush (stderr);
+  }
 }

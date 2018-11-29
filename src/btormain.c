@@ -411,7 +411,8 @@ btormain_opt_has_str_arg (const char *opt, BtorOpt *btor_opts)
   for (mopt = 0; mopt < BTORMAIN_OPT_NUM_OPTS; mopt++)
   {
     mo = &g_app->options[mopt];
-    if ((mo->shrt && strcmp (mo->shrt, opt) == 0) || strcmp (mo->lng, opt) == 0)
+    if ((mo->shrt && strcmp (mo->shrt, opt) == 0)
+        || (mo->lng && strcmp (mo->lng, opt) == 0))
       return g_app->options[mopt].arg == BTOR_ARG_EXPECT_STR;
   }
   for (i = 0; i < BTOR_OPT_NUM_OPTS; i++)
@@ -829,7 +830,9 @@ print_help (BtorMainApp *app)
                true);
     if (s) btor_mem_freestr(app->mm, s);
   }
+#ifdef BTOR_USE_LINGELING
   PRINT_MAIN_OPT (app, &app->options[BTORMAIN_OPT_LGL_NOFORK]);
+#endif
 
   fprintf (out, "\n");
 
@@ -1284,7 +1287,7 @@ boolector_main (int32_t argc, char **argv)
           goto DONE;
         }
 
-        boolector_set_opt (btor, bopt, b->data.as_int);
+        boolector_set_opt (btor, bopt, ((BtorOptHelp *) b->data.as_ptr)->val);
       }
       else
       {
