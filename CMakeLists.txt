@@ -118,12 +118,20 @@ option(ONLY_CADICAL   "Only use CaDiCaL" OFF)
 option(ONLY_LINGELING "Only use Lingeling" OFF)
 option(ONLY_MINISAT   "Only use MiniSat" OFF)
 option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
+option(USE_PYTHON2    "Prefer Python 2.7" )
+option(USE_PYTHON3    "Prefer Python 3" )
 
 #-----------------------------------------------------------------------------#
 
 # Automatically build shared libraries if Python bindings are enabled.
 if(PYTHON)
-  find_package(PythonInterp REQUIRED)
+  if(USE_PYTHON2)
+    find_package(PythonInterp 2.7 REQUIRED)
+  elseif(USE_PYTHON3)
+    find_package(PythonInterp 3 REQUIRED)
+  else()
+    find_package(PythonInterp REQUIRED)
+  endif()
   # Explicitly check for a compatible version of Python libs.
   find_package(PythonLibs
     ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}
