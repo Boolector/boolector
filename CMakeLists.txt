@@ -140,6 +140,17 @@ if(PYTHON)
   endif()
 endif()
 
+if(ASAN)
+  # -fsanitize=address requires CMAKE_REQUIRED_FLAGS to be explicitely set,
+  # otherwise the -fsanitize=address check will fail while linking.
+  set(CMAKE_REQUIRED_FLAGS -fsanitize=address)
+  add_required_c_cxx_flag("-fsanitize=address")
+  unset(CMAKE_REQUIRED_FLAGS)
+  add_check_c_cxx_flag("-fno-omit-frame-pointer")
+  add_required_c_cxx_flag("-fsanitize-recover=address")
+  set(SHARED ON)
+endif()
+
 if(SHARED)
   set(BUILD_SHARED_LIBS ON)
 elseif(NOT PYTHON)
@@ -203,16 +214,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 #-----------------------------------------------------------------------------#
-
-if(ASAN)
-  # -fsanitize=address requires CMAKE_REQUIRED_FLAGS to be explicitely set,
-  # otherwise the -fsanitize=address check will fail while linking.
-  set(CMAKE_REQUIRED_FLAGS -fsanitize=address)
-  add_required_c_cxx_flag("-fsanitize=address")
-  unset(CMAKE_REQUIRED_FLAGS)
-  add_check_c_cxx_flag("-fno-omit-frame-pointer")
-  add_required_c_cxx_flag("-fsanitize-recover=address")
-endif()
 
 if(GCOV)
   include(CodeCoverage)

@@ -773,8 +773,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
         true,
         "SAT solver Lingeling not compiled in, using %s",
         oldval == BTOR_SAT_ENGINE_CADICAL
-            ? "Cadical"
-            : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+            ? "CaDiCaL"
+            : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSAT"));
     sat_engine = oldval;
   }
 #endif
@@ -783,10 +783,10 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   {
     BTOR_WARN (
         true,
-        "SAT solver Cadical not compiled in, using %s",
+        "SAT solver CaDiCaL not compiled in, using %s",
         oldval == BTOR_SAT_ENGINE_LINGELING
             ? "Lingeling"
-            : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+            : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSAT"));
     sat_engine = oldval;
   }
 #endif
@@ -797,8 +797,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
         sat_engine == BTOR_SAT_ENGINE_MINISAT,
         "SAT solver Minisat not compiled in, using %s",
         oldval == BTOR_SAT_ENGINE_CADICAL
-            ? "Cadical"
-            : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling" : "PicoSat"));
+            ? "CaDiCaL"
+            : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling" : "PicoSAT"));
     sat_engine = oldval;
   }
 #endif
@@ -807,9 +807,9 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   {
     BTOR_WARN (
         sat_engine == BTOR_SAT_ENGINE_PICOSAT,
-        "SAT solver Picosat not compiled in, using %s",
+        "SAT solver PicoSAT not compiled in, using %s",
         oldval == BTOR_SAT_ENGINE_CADICAL
-            ? "Cadical"
+            ? "CaDiCaL"
             : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling" : "MiniSat"));
     sat_engine = oldval;
   }
@@ -893,8 +893,8 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
           true,
           "SAT solver Lingeling not compiled in, using %s",
           oldval == BTOR_SAT_ENGINE_CADICAL
-              ? "Cadical"
-              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+              ? "CaDiCaL"
+              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSAT"));
       val = oldval;
     }
 #endif
@@ -903,10 +903,10 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
     {
       BTOR_WARN (
           true,
-          "SAT solver Cadical not compiled in, using %s",
+          "SAT solver CaDiCaL not compiled in, using %s",
           oldval == BTOR_SAT_ENGINE_LINGELING
               ? "Lingeling"
-              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSat"));
+              : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat" : "PicoSAT"));
       val = oldval;
     }
 #endif
@@ -916,9 +916,9 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
       BTOR_WARN (val == BTOR_SAT_ENGINE_MINISAT,
                  "SAT solver Minisat not compiled in, using %s",
                  oldval == BTOR_SAT_ENGINE_CADICAL
-                     ? "Cadical"
+                     ? "CaDiCaL"
                      : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling"
-                                                            : "PicoSat"));
+                                                            : "PicoSAT"));
       val = oldval;
     }
 #endif
@@ -926,9 +926,9 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
     if (val == BTOR_SAT_ENGINE_PICOSAT)
     {
       BTOR_WARN (val == BTOR_SAT_ENGINE_PICOSAT,
-                 "SAT solver Picosat not compiled in, using %s",
+                 "SAT solver PicoSAT not compiled in, using %s",
                  oldval == BTOR_SAT_ENGINE_CADICAL
-                     ? "Cadical"
+                     ? "CaDiCaL"
                      : (oldval == BTOR_SAT_ENGINE_LINGELING ? "Lingeling"
                                                             : "MiniSat"));
       val = oldval;

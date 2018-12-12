@@ -170,7 +170,7 @@ enum BtorOption
       * BTOR_SAT_ENGINE_MINISAT:
         `MiniSat <https://github.com/niklasso/minisat>`_
       * BTOR_SAT_ENGINE_PICOSAT:
-        `PicoSat <http://fmv.jku.at/picosat/>`_
+        `PicoSAT <http://fmv.jku.at/picosat/>`_
   */
   BTOR_OPT_SAT_ENGINE,
 
