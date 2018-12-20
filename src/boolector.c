@@ -304,6 +304,8 @@ boolector_print_value_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL (file);
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   btor_print_value_smt2 (btor, exp, symbol_str, file);
 #ifndef NDEBUG
@@ -3838,6 +3840,8 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
@@ -4171,6 +4175,8 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   btor_print_model (btor, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_model, format, file);

@@ -399,19 +399,14 @@ if __name__ == "__main__":
 
 ### Quantifiers
     bbb = Boolector() 
+    bbb.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, 1)
     _bvsort   = bbb.BitVecSort(128)
-    p0        = bbb.Param(_bvsort)
-    p1        = bbb.Param(_bvsort)
-    p2        = bbb.Param(_bvsort)
-    p3        = bbb.Param(_bvsort)
-    _exists   = bbb.Exists([p0], p0 != p1 or p0 > p2)
-    bbb.Assert(_exists)
-    #_forall   = bbb.Forall([p0, p1], p0 < p1)
-    _forall   = bbb.Forall([p1, p2], _exists)
+    x        = bbb.Param(_bvsort)
+    y        = bbb.Param(_bvsort)
+    z        = bbb.Param(_bvsort)
+    _exists   = bbb.Exists([x], x > z)
+    _forall   = bbb.Forall([y, z], _exists)
     bbb.Assert(_forall)
     res       = bbb.Sat()
     if res == bbb.SAT: print("result: SAT")
     else             : print("result: UNSAT")
-    if res == bbb.SAT:
-        print("Model:")
-        # Get model and print to stdout

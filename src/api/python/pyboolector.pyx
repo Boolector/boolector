@@ -2763,15 +2763,15 @@ cdef class Boolector:
     def Exists(self, list params, BoolectorBVNode body):
         """ Exists(params, body)
 
-            Create an existentially quantified term.
+            Create an existentially quantified formula.
 
             See :func:`~pyboolector.Boolector.Param`
 
             :param params: A list of (existentially quantified) parameters.
             :type params: list
-            :param body: Term existentially quantified over ``params``.
+            :param body: Formula existentially quantified over ``params``.
             :type body:  :class:`~pyboolector.BoolectorNode`
-            :return:  A term ``body`` existentially quantified over ``params``.
+            :return:  A formula ``body`` existentially quantified over ``params``.
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         cdef uint32_t paramc = len(params)
@@ -2795,15 +2795,15 @@ cdef class Boolector:
     def Forall(self, list params, BoolectorBVNode body):
         """ Forall(params, body)
 
-            Create an universally quantified term.
+            Create an universally quantified formula.
 
             See :func:`~pyboolector.Boolector.Param`
 
             :param params: A list of (universally quantified) parameters.
             :type params: list
-            :param body: Term universally quantified over ``params``.
+            :param body: Formula universally quantified over ``params``.
             :type body:  :class:`~pyboolector.BoolectorNode`
-            :return:  A term ``body`` universally quantified over ``params``.
+            :return:  A formula ``body`` universally quantified over ``params``.
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         cdef uint32_t paramc = len(params)
