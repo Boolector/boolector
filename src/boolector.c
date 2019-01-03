@@ -4311,7 +4311,7 @@ boolector_array_sort (Btor *btor, BoolectorSort index, BoolectorSort element)
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
-void
+BoolectorSort
 boolector_copy_sort (Btor *btor, BoolectorSort sort)
 {
   BTOR_ABORT_ARG_NULL (btor);
@@ -4324,6 +4324,7 @@ boolector_copy_sort (Btor *btor, BoolectorSort sort)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (copy_sort, sort);
 #endif
+  return BTOR_EXPORT_BOOLECTOR_SORT (sort);
 }
 
 void
