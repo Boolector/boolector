@@ -4323,7 +4323,7 @@ boolector_copy_sort (Btor *btor, BoolectorSort sort)
   inc_sort_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (copy_sort, sort);
+  BTOR_CHKCLONE_RES_SORT (res, copy_sort, sort);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
