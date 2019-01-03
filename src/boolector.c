@@ -4312,6 +4312,21 @@ boolector_array_sort (Btor *btor, BoolectorSort index, BoolectorSort element)
 }
 
 void
+boolector_copy_sort (Btor *btor, BoolectorSort sort)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort), btor);
+
+  BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  inc_sort_ext_ref_counter (btor, s);
+  (void) btor_sort_copy (btor, s);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (copy_sort, sort);
+#endif
+}
+
+void
 boolector_release_sort (Btor *btor, BoolectorSort sort)
 {
   BTOR_ABORT_ARG_NULL (btor);

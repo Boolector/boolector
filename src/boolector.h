@@ -2123,6 +2123,14 @@ BoolectorSort boolector_array_sort (Btor *btor,
                                     BoolectorSort element);
 
 /*!
+  Copy sort (increments reference counter).
+
+  :param btor: Boolector instance.
+  :param sort: Sort to be copied.
+*/
+void boolector_copy_sort (Btor *btor, BoolectorSort sort);
+
+/*!
   Release sort (decrements reference counter).
 
   :param btor: Boolector instance.
