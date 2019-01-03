@@ -4319,12 +4319,13 @@ boolector_copy_sort (Btor *btor, BoolectorSort sort)
 
   BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
-  inc_sort_ext_ref_counter (btor, s);
-  (void) btor_sort_copy (btor, s);
+  BtorSortId res = btor_sort_copy (btor, s);
+  inc_sort_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (copy_sort, sort);
+  BTOR_CHKCLONE_RES_SORT (copy_sort, sort);
 #endif
-  return BTOR_EXPORT_BOOLECTOR_SORT (sort);
+  return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
 void
