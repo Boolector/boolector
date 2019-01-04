@@ -398,7 +398,7 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
-include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
+include_directories(src src/include ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(src/tests)
 if(PYTHON)
@@ -413,3 +413,21 @@ add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
         | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+#-----------------------------------------------------------------------------#
+# Install config and configversion for Boolector to add support for
+# find_package(Boolector).
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  VERSION ${VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+# Install the config, configversion and custom find modules
+install(FILES
+  ${CMAKE_CURRENT_LIST_DIR}/cmake/BoolectorConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  DESTINATION lib/cmake/Boolector
+)

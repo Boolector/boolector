@@ -78,34 +78,47 @@ set(boolector_src_files
 
 add_library(boolector ${libboolector_src_files})
 target_link_libraries(boolector ${LIBRARIES})
+target_include_directories(boolector
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/boolector>)
 
-target_include_directories(boolector PUBLIC ${Btor2Tools_INCLUDE_DIR})
+target_include_directories(boolector PRIVATE ${Btor2Tools_INCLUDE_DIR})
 target_link_libraries(boolector ${Btor2Tools_LIBRARIES})
 
 if(Lingeling_FOUND)
-  target_include_directories(boolector PUBLIC ${Lingeling_INCLUDE_DIR})
+  target_include_directories(boolector PRIVATE ${Lingeling_INCLUDE_DIR})
   target_link_libraries(boolector ${Lingeling_LIBRARIES})
 endif()
 
 if(CaDiCaL_FOUND)
-  target_include_directories(boolector PUBLIC ${CaDiCaL_INCLUDE_DIR})
+  target_include_directories(boolector PRIVATE ${CaDiCaL_INCLUDE_DIR})
   target_link_libraries(boolector ${CaDiCaL_LIBRARIES})
 endif()
 
 if(PicoSAT_FOUND)
-  target_include_directories(boolector PUBLIC ${PicoSAT_INCLUDE_DIR})
+  target_include_directories(boolector PRIVATE ${PicoSAT_INCLUDE_DIR})
   target_link_libraries(boolector ${PicoSAT_LIBRARIES})
 endif()
 
 if(MiniSat_FOUND)
-  target_include_directories(boolector PUBLIC ${MiniSat_INCLUDE_DIR})
+  target_include_directories(boolector PRIVATE ${MiniSat_INCLUDE_DIR})
   target_link_libraries(boolector ${MiniSat_LIBRARIES})
 endif()
 
-install(TARGETS boolector DESTINATION lib)
+install(TARGETS boolector
+  EXPORT boolector-export
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+install(EXPORT boolector-export
+  FILE BoolectorTargets.cmake
+  NAMESPACE Boolector::
+  DESTINATION lib/cmake/Boolector)
 
 # Install header files
-install(FILES boolector.h btortypes.h DESTINATION include)
+install(DIRECTORY include/ DESTINATION include/boolector)
 
 #-----------------------------------------------------------------------------#
 # boolector
@@ -131,7 +144,8 @@ set(btormc_src_files
   btormcmain.c
 )
 add_executable (btormc ${btormc_src_files})
-target_link_libraries(btormc boolector)
+target_link_libraries(btormc boolector ${Btor2Tools_LIBRARIES})
+target_include_directories(btormc PRIVATE ${Btor2Tools_INCLUDE_DIR})
 install(TARGETS btormc DESTINATION bin)
 
 #-----------------------------------------------------------------------------#
