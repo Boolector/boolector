@@ -13,14 +13,8 @@ git:
 os:
   - linux
 
-addons:
-  apt:
-    packages:
-      - cython
-
 before_install:
   - eval "${MATRIX_EVAL}"
-
 
 before_script:
   - ./contrib/setup-btor2tools.sh
@@ -30,17 +24,16 @@ before_script:
 script:
   - $CC --version
   - |
-    if [ "$BTOR_CONFIG" = "--python" ]
+    if [[ "$BTOR_CONFIG" == *"--python"* ]]
     then
       if [ "$TRAVIS_OS_NAME" = "linux" ]
       then
-        sudo apt-get remove cython
         sudo pip install -U cython
       else
-        pip install cython
+        pip3 install cython
       fi
     fi
-  - ./configure.sh "${BTOR_CONFIG}"
+  - ./configure.sh ${BTOR_CONFIG}
   - cd build
   - make -j2
   - bin/test
@@ -63,7 +56,7 @@ matrix:
     - os: osx
       compiler: clang
       env:
-        -  MATRIX_EVAL="BTOR_CONFIG='--python'"
+        -  MATRIX_EVAL="BTOR_CONFIG='--python --py3'"
 
   fast_finish: true
 

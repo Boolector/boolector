@@ -304,6 +304,8 @@ boolector_print_value_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL (file);
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   btor_print_value_smt2 (btor, exp, symbol_str, file);
 #ifndef NDEBUG
@@ -3049,6 +3051,8 @@ boolector_fun (Btor *btor,
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
                 "'params[%u]' is not a parameter",
                 i);
+    BTOR_ABORT (btor_node_param_is_bound (params[i]),
+                "'params[%u]' already bound");
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
@@ -3164,6 +3168,24 @@ boolector_dec (Btor *btor, BoolectorNode *node)
 
 /*------------------------------------------------------------------------*/
 
+static bool
+params_distinct (Btor *btor, BtorNode *params[], uint32_t paramc)
+{
+  bool res                = true;
+  BtorIntHashTable *cache = btor_hashint_table_new (btor->mm);
+  for (uint32_t i = 0; i < paramc; i++)
+  {
+    if (btor_hashint_table_contains (cache, btor_node_get_id (params[i])))
+    {
+      res = false;
+      break;
+    }
+    btor_hashint_table_add (cache, btor_node_get_id (params[i]));
+  }
+  btor_hashint_table_delete (cache);
+  return res;
+}
+
 BoolectorNode *
 boolector_forall (Btor *btor,
                   BoolectorNode *param_nodes[],
@@ -3185,12 +3207,16 @@ boolector_forall (Btor *btor,
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
                 "'params[%u]' is not a parameter",
                 i);
+    BTOR_ABORT (btor_node_param_is_bound (params[i]),
+                "'params[%u]' already bound");
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
     BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
   BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (body));
   BTOR_TRAPI_PRINT ("\n");
+  BTOR_ABORT (!params_distinct (btor, params, paramc),
+              "given parameters are not distinct");
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
@@ -3233,12 +3259,16 @@ boolector_exists (Btor *btor,
     BTOR_ABORT (!params[i] || !btor_node_is_param (params[i]),
                 "'params[%u]' is not a parameter",
                 i);
+    BTOR_ABORT (btor_node_param_is_bound (params[i]),
+                "'params[%u]' already bound");
     BTOR_ABORT_REFS_NOT_POS (params[i]);
     BTOR_ABORT_BTOR_MISMATCH (btor, params[i]);
     BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
   }
   BTOR_TRAPI_PRINT (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (body));
   BTOR_TRAPI_PRINT ("\n");
+  BTOR_ABORT (!params_distinct (btor, params, paramc),
+              "given parameters are not distinct");
 
   BTOR_ABORT_REFS_NOT_POS (body);
   BTOR_ABORT_BTOR_MISMATCH (btor, body);
@@ -3810,6 +3840,8 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   BTOR_ABORT_ARG_NULL (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
@@ -4143,6 +4175,8 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
   btor_print_model (btor, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_model, format, file);
@@ -4273,6 +4307,23 @@ boolector_array_sort (Btor *btor, BoolectorSort index, BoolectorSort element)
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, array_sort, index, element);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_SORT (res);
+}
+
+BoolectorSort
+boolector_copy_sort (Btor *btor, BoolectorSort sort)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort), btor);
+
+  BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BtorSortId res = btor_sort_copy (btor, s);
+  inc_sort_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_SORT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_SORT (res, copy_sort, sort);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }

@@ -118,12 +118,20 @@ option(ONLY_CADICAL   "Only use CaDiCaL" OFF)
 option(ONLY_LINGELING "Only use Lingeling" OFF)
 option(ONLY_MINISAT   "Only use MiniSat" OFF)
 option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
+option(USE_PYTHON2    "Prefer Python 2.7" )
+option(USE_PYTHON3    "Prefer Python 3" )
 
 #-----------------------------------------------------------------------------#
 
 # Automatically build shared libraries if Python bindings are enabled.
 if(PYTHON)
-  find_package(PythonInterp REQUIRED)
+  if(USE_PYTHON2)
+    find_package(PythonInterp 2.7 REQUIRED)
+  elseif(USE_PYTHON3)
+    find_package(PythonInterp 3 REQUIRED)
+  else()
+    find_package(PythonInterp REQUIRED)
+  endif()
   # Explicitly check for a compatible version of Python libs.
   find_package(PythonLibs
     ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}
@@ -390,7 +398,7 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
-include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
+include_directories(src src/include ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(src/tests)
 if(PYTHON)
@@ -405,3 +413,21 @@ add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
         | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+#-----------------------------------------------------------------------------#
+# Install config and configversion for Boolector to add support for
+# find_package(Boolector).
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  VERSION ${VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+# Install the config, configversion and custom find modules
+install(FILES
+  ${CMAKE_CURRENT_LIST_DIR}/cmake/BoolectorConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  DESTINATION lib/cmake/Boolector
+)

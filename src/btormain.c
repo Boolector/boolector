@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -794,6 +794,12 @@ print_help (BtorMainApp *app)
 
   out = app->outfile;
 
+  fun = 0;
+  sls = 0;
+  prop = 0;
+  aigprop = 0;
+  quant = 0;
+
   fprintf (out, "usage: boolector [<option>...][<input>]\n");
   fprintf (out, "\n");
   fprintf (out, "where <option> is one of the following:\n");
@@ -845,7 +851,6 @@ print_help (BtorMainApp *app)
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
-  fun = sls = prop = quant = 0;
   for (o = boolector_first_opt (app->btor); boolector_has_opt (app->btor, o);
        o = boolector_next_opt (app->btor, o))
   {
