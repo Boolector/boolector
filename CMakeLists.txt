@@ -398,7 +398,7 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
-include_directories(src src/include ${CMAKE_CURRENT_BINARY_DIR}/src)
+include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(src/tests)
 if(PYTHON)

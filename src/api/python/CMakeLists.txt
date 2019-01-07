@@ -3,7 +3,7 @@ find_package(Cython REQUIRED)
 
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_LIST_DIR})               # btorapi.pxd
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include) # boolector.h
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../..) # boolector.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(generated_file "${CMAKE_CURRENT_BINARY_DIR}/pyboolector_options.pxd")
@@ -15,7 +15,7 @@ add_custom_target(
   COMMAND
     "${PYTHON_EXECUTABLE}"
     "${CMAKE_CURRENT_LIST_DIR}/mkoptions.py"
-    "${CMAKE_CURRENT_LIST_DIR}/../../include/btortypes.h"
+    "${CMAKE_CURRENT_LIST_DIR}/../../btortypes.h"
     "${generated_file}"
   DEPENDS
     mkoptions.py
