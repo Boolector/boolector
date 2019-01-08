@@ -26,8 +26,6 @@ void boolector_add_output (Btor *, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
-
 struct BtorBTOR2Parser
 {
   BtorMemMgr *mm;
