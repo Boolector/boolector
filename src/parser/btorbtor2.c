@@ -22,7 +22,11 @@
 
 void boolector_set_btor_id (Btor *, BoolectorNode *, int32_t);
 
+void boolector_add_output (Btor *, BoolectorNode *);
+
 /*------------------------------------------------------------------------*/
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 struct BtorBTOR2Parser
 {
@@ -356,9 +360,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         node = boolector_or (btor, e[0], e[1]);
         break;
 
-      case BTOR2_TAG_output:
-        fprintf (stderr, "warning: unsupported tag '%s'\n", line->name);
-        break;
+      case BTOR2_TAG_output: boolector_add_output (btor, e[0]); break;
 
       case BTOR2_TAG_read:
         assert (line->nargs == 2);

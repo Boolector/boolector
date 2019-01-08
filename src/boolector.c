@@ -314,6 +314,22 @@ boolector_print_value_smt2 (Btor *btor,
 #endif
 }
 
+void
+boolector_add_output (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_ARG_NULL (node);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_PUSH_STACK (btor->outputs, btor_node_copy (btor, exp));
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (add_output, BTOR_CLONED_EXP (exp));
+#endif
+}
+
 /*------------------------------------------------------------------------*/
 
 Btor *

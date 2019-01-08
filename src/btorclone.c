@@ -1307,6 +1307,12 @@ clone_aux_btor (Btor *btor,
   }
 
   BTORLOG_TIMESTAMP (delta);
+  btor_clone_node_ptr_stack (mm, &btor->outputs, &clone->outputs, emap, false);
+  BTORLOG (1, "  clone outputs: %.3f s", btor_util_time_stamp () - delta);
+  assert ((allocated += BTOR_SIZE_STACK (btor->outputs) * sizeof (BtorNode *))
+          == clone->mm->allocated);
+
+  BTORLOG_TIMESTAMP (delta);
   clone->parameterized =
       btor_hashptr_table_clone (mm,
                                 btor->parameterized,

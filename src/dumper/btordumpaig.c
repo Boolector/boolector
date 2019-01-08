@@ -47,8 +47,13 @@ btor_dumpaig_dump_aig (BtorAIGMgr *amgr,
   btor_dumpaig_dump_seq (amgr, is_binary, output, 1, &aig, 0, 0, 0, 0);
 }
 
-void
-btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
+static void
+dumpaig_dump_aux (Btor *btor,
+                  BtorNode *nodes[],
+                  size_t nnodes,
+                  bool is_binary,
+                  FILE *output,
+                  bool merge_roots)
 {
   assert (btor->lambdas->count == 0);
   assert (btor->ufs->count == 0);
@@ -82,22 +87,24 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   }
   else
   {
-    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
-    btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
     merged = BTOR_AIG_TRUE;
-    while (btor_iter_hashptr_has_next (&it))
+    for (size_t i = 0; i < nnodes; i++)
     {
-      av = btor_exp_to_aigvec (
-          btor, btor_iter_hashptr_next (&it), backannotation);
-      assert (av->width == 1);
+      av = btor_exp_to_aigvec (btor, nodes[i], backannotation);
       if (merge_roots)
       {
+        assert (av->width == 1);
         tmp = btor_aig_and (amgr, merged, av->aigs[0]);
         btor_aig_release (amgr, merged);
         merged = tmp;
       }
       else
-        BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[0]));
+      {
+        for (size_t j = 0; j < av->width; j++)
+        {
+          BTOR_PUSH_STACK (roots, btor_aig_copy (amgr, av->aigs[j]));
+        }
+      }
       btor_aigvec_release_delete (avmgr, av);
     }
     btor_opt_set (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
@@ -127,6 +134,47 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
     (void) btor_iter_hashptr_next (&it);
   }
   btor_hashptr_table_delete (backannotation);
+}
+
+void
+btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
+{
+  BtorPtrHashTableIterator it;
+  BtorNodePtrStack nodes;
+
+  const char *fmt_header = "c %s AIG dump\nc Boolector version %s\n";
+
+  BTOR_INIT_STACK (btor->mm, nodes);
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    BTOR_PUSH_STACK (nodes, btor_iter_hashptr_next (&it));
+  }
+
+  if (BTOR_COUNT_STACK (nodes))
+  {
+    dumpaig_dump_aux (btor,
+                      nodes.start,
+                      BTOR_COUNT_STACK (nodes),
+                      is_binary,
+                      output,
+                      merge_roots);
+    fprintf (output, fmt_header, "Formula", btor_version (btor));
+  }
+  BTOR_RELEASE_STACK (nodes);
+
+  /* print nodes marked as outputs in BTOR2 */
+  if (BTOR_COUNT_STACK (btor->outputs))
+  {
+    dumpaig_dump_aux (btor,
+                      btor->outputs.start,
+                      BTOR_COUNT_STACK (btor->outputs),
+                      is_binary,
+                      output,
+                      false);
+    fprintf (output, fmt_header, "BTOR2 outputs", btor_version (btor));
+  }
 }
 
 void
