@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2016-2017 Mathias Preiner.
- *  Copyright (C) 2017 Aina Niemetz.
+ *  Copyright (C) 2017-2018 Aina Niemetz.
  *  Copyright (C) 2017 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -623,6 +623,9 @@ check_quantifiers_in_bool_skeleton (Btor *btor, BtorNode *root)
 static BtorNode *
 normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 {
+  assert (btor);
+  assert (roots);
+
   BtorNode *root, *root_fixed, *tmp;
 
   tmp = elim_quantified_ite (btor, roots, num_roots);
@@ -642,6 +645,8 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 BtorNode *
 btor_normalize_quantifiers_node (Btor *btor, BtorNode *root)
 {
+  assert (btor);
+  assert (root);
   return normalize_quantifiers (btor, &root, 1);
 }
 
@@ -659,6 +664,11 @@ btor_normalize_quantifiers (Btor *btor)
   BtorPtrHashTableIterator it;
 
   mm = btor->mm;
+
+  if (btor->unsynthesized_constraints->count == 0)
+  {
+    return btor_exp_true (btor);
+  }
 
   /* we do not want simplification of constraints here as we need the
    * complete formula in nnf */

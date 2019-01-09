@@ -415,6 +415,18 @@ cdef extern from "boolector.h":
     BoolectorNode *boolector_dec (Btor * btor, BoolectorNode *node) \
       except +raise_py_error
 
+    BoolectorNode *boolector_forall (Btor *btor,
+                                     BoolectorNode *params[],
+                                     uint32_t paramc,
+                                     BoolectorNode *body) \
+      except +raise_py_error
+
+    BoolectorNode *boolector_exists (Btor *btor,
+                                     BoolectorNode *param[],
+                                     uint32_t paramc,
+                                     BoolectorNode *body) \
+      except +raise_py_error
+
     #Btor *boolector_get_btor (BoolectorNode * node) \
     #  except +raise_py_error
 

@@ -37,5 +37,5 @@ set(test_src_files
 )
 
 add_executable (testbtor ${test_src_files})
-target_link_libraries(testbtor boolector ${LIBRARIES})
+target_link_libraries(testbtor boolector m)
 set_target_properties(testbtor PROPERTIES OUTPUT_NAME test)

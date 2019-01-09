@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -411,7 +411,8 @@ btormain_opt_has_str_arg (const char *opt, BtorOpt *btor_opts)
   for (mopt = 0; mopt < BTORMAIN_OPT_NUM_OPTS; mopt++)
   {
     mo = &g_app->options[mopt];
-    if ((mo->shrt && strcmp (mo->shrt, opt) == 0) || strcmp (mo->lng, opt) == 0)
+    if ((mo->shrt && strcmp (mo->shrt, opt) == 0)
+        || (mo->lng && strcmp (mo->lng, opt) == 0))
       return g_app->options[mopt].arg == BTOR_ARG_EXPECT_STR;
   }
   for (i = 0; i < BTOR_OPT_NUM_OPTS; i++)
@@ -786,6 +787,12 @@ print_help (BtorMainApp *app)
 
   out = app->outfile;
 
+  fun = 0;
+  sls = 0;
+  prop = 0;
+  aigprop = 0;
+  quant = 0;
+
   fprintf (out, "usage: boolector [<option>...][<input>]\n");
   fprintf (out, "\n");
   fprintf (out, "where <option> is one of the following:\n");
@@ -829,13 +836,14 @@ print_help (BtorMainApp *app)
                true);
     if (s) btor_mem_freestr(app->mm, s);
   }
+#ifdef BTOR_USE_LINGELING
   PRINT_MAIN_OPT (app, &app->options[BTORMAIN_OPT_LGL_NOFORK]);
+#endif
 
   fprintf (out, "\n");
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
-  fun = sls = prop = quant = 0;
   for (o = boolector_first_opt (app->btor); boolector_has_opt (app->btor, o);
        o = boolector_next_opt (app->btor, o))
   {
@@ -1284,7 +1292,7 @@ boolector_main (int32_t argc, char **argv)
           goto DONE;
         }
 
-        boolector_set_opt (btor, bopt, b->data.as_int);
+        boolector_set_opt (btor, bopt, ((BtorOptHelp *) b->data.as_ptr)->val);
       }
       else
       {

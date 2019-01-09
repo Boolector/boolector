@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.3)
 
 #-----------------------------------------------------------------------------#
 
@@ -75,6 +75,21 @@ macro(add_required_c_cxx_flag flag)
   add_required_cxx_flag(${flag})
 endmacro()
 
+# 3-valued option IGNORE/OFF/ON
+macro(option3vl var description)
+  set(${var} IGNORE CACHE STRING "${description}")
+  # Provide drop down menu options in cmake-gui
+  set_property(CACHE ${var} PROPERTY STRINGS IGNORE ON OFF)
+endmacro()
+
+# Set option only if it still has initial value IGNORE (do not overwrite user
+# configurations)
+macro(set_option var value)
+  if(${var} STREQUAL "IGNORE")
+    set(${var} ${value})
+  endif()
+endmacro()
+
 #-----------------------------------------------------------------------------#
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -85,24 +100,79 @@ message(STATUS "BIN directory is '${CMAKE_BINARY_DIR}/bin'")
 
 #-----------------------------------------------------------------------------#
 
-option(ASAN       "Compile with ASAN support" OFF)
-option(CHECK      "Enable assertions even for optimized compilation" OFF)
-option(GCOV       "Compile with coverage support" OFF)
-option(GPROF      "Compile with profiling support" OFF)
-option(LOG        "Compile with logging support (default for Debug builds)" OFF)
-option(PYTHON     "Build Python API" OFF)
-option(SHARED     "Shared Library" OFF)
-option(TIME_STATS "Compile with time statistics" OFF)
+option3vl(ASAN       "Compile with ASAN support")
+option3vl(CHECK      "Enable assertions even for optimized compilation")
+option3vl(GCOV       "Compile with coverage support")
+option3vl(GPROF      "Compile with profiling support")
+option3vl(LOG        "Compile with logging support (default for Debug builds)")
+option3vl(PYTHON     "Build Python API")
+option3vl(SHARED     "Shared Library")
+option3vl(TIME_STATS "Compile with time statistics")
 
-option(USE_CADICAL    "Use and link with CaDiCaL" ON)
-option(USE_LINGELING  "Use and link with Lingeling (default)" ON)
-option(USE_MINISAT    "Use and link with MiniSat" ON)
-option(USE_PICOSAT    "Use and link with PicoSAT" ON)
+option3vl(USE_CADICAL    "Use and link with CaDiCaL")
+option3vl(USE_LINGELING  "Use and link with Lingeling (default)")
+option3vl(USE_MINISAT    "Use and link with MiniSat")
+option3vl(USE_PICOSAT    "Use and link with PicoSAT")
 
 option(ONLY_CADICAL   "Only use CaDiCaL" OFF)
 option(ONLY_LINGELING "Only use Lingeling" OFF)
 option(ONLY_MINISAT   "Only use MiniSat" OFF)
 option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
+option(USE_PYTHON2    "Prefer Python 2.7" )
+option(USE_PYTHON3    "Prefer Python 3" )
+
+#-----------------------------------------------------------------------------#
+
+# Automatically build shared libraries if Python bindings are enabled.
+if(PYTHON)
+  if(USE_PYTHON2)
+    find_package(PythonInterp 2.7 REQUIRED)
+  elseif(USE_PYTHON3)
+    find_package(PythonInterp 3 REQUIRED)
+  else()
+    find_package(PythonInterp REQUIRED)
+  endif()
+  # Explicitly check for a compatible version of Python libs.
+  find_package(PythonLibs
+    ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}
+    REQUIRED)
+
+  # Produce a python module that only links against system libraries. SAT
+  # solvers and libboolector should be included in the module itself.
+  if(NOT SHARED)
+    add_check_c_cxx_flag("-fPIC")
+    # Disable MiniSat since the static library is not compiled with -fPIC by
+    # default.
+    set_option(USE_MINISAT OFF)
+    set_option(USE_PICOSAT OFF)
+  endif()
+endif()
+
+if(ASAN)
+  # -fsanitize=address requires CMAKE_REQUIRED_FLAGS to be explicitely set,
+  # otherwise the -fsanitize=address check will fail while linking.
+  set(CMAKE_REQUIRED_FLAGS -fsanitize=address)
+  add_required_c_cxx_flag("-fsanitize=address")
+  unset(CMAKE_REQUIRED_FLAGS)
+  add_check_c_cxx_flag("-fno-omit-frame-pointer")
+  add_required_c_cxx_flag("-fsanitize-recover=address")
+  set(SHARED ON)
+endif()
+
+if(SHARED)
+  set(BUILD_SHARED_LIBS ON)
+elseif(NOT PYTHON)
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+endif()
+
+#-----------------------------------------------------------------------------#
+# Default values for 3-valued options
+
+set_option(USE_CADICAL ON)
+set_option(USE_LINGELING ON)
+set_option(USE_MINISAT ON)
+set_option(USE_PICOSAT ON)
 
 #-----------------------------------------------------------------------------#
 
@@ -122,7 +192,7 @@ foreach(flag ${FLAGS})
 endforeach()
 
 if(IS_WINDOWS_BUILD)
-  add_c_cxx_flag("-DBTOR_WINDOWS_BUILD")
+  add_definitions("-DBTOR_WINDOWS_BUILD")
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -140,27 +210,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_required_c_cxx_flag("-g")
   add_check_c_cxx_flag("-g3")
   add_check_c_cxx_flag("-ggdb")
-  set(LOG ON)
-  set(TIME_STATS ON)
+  set_option(LOG ON)
+  set_option(TIME_STATS ON)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_check_c_cxx_flag("-O3")
   if(NOT CHECK)
-    add_c_cxx_flag("-DNDEBUG")
+    add_definitions("-DNDEBUG")
   endif()
-  set(LOG OFF)
-  set(TIME_STATS OFF)
+  set_option(LOG OFF)
+  set_option(TIME_STATS OFF)
 endif()
 
 #-----------------------------------------------------------------------------#
-
-if(ASAN)
-  # we do not check if the compiler supports the flag here (we actually would
-  # like to require support here) since check_c(xx)_compiler_flag reports
-  # false negative
-  add_c_cxx_flag("-fsanitize=address")
-  add_check_c_cxx_flag("-fno-omit-frame-pointer")
-  add_required_c_cxx_flag("-fsanitize-recover=address")
-endif()
 
 if(GCOV)
   include(CodeCoverage)
@@ -176,16 +237,12 @@ if(GPROF)
 endif()
 
 if(NOT LOG)
-  add_c_cxx_flag("-DNBTORLOG")
-endif()
-
-if(PYTHON OR SHARED)
-  add_required_c_cxx_flag("-fPIC")
+  add_definitions("-DNBTORLOG")
 endif()
 
 include(CheckSignals)
 if(HAVE_SIGNALS)
-  add_c_cxx_flag("-DBTOR_HAVE_SIGNALS")
+  add_definitions("-DBTOR_HAVE_SIGNALS")
 endif()
 
 include(CheckTimeUtils)
@@ -194,7 +251,7 @@ if(NOT HAVE_TIME_UTILS)
 endif()
 
 if(TIME_STATS)
-  add_c_cxx_flag("-DBTOR_TIME_STATISTICS")
+  add_definitions("-DBTOR_TIME_STATISTICS")
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -223,31 +280,28 @@ endif()
 
 #-----------------------------------------------------------------------------#
 
-find_package(BTOR2 REQUIRED)
-message(STATUS "Found Btor2Tools headers: ${BTOR2_INCLUDE_DIR}")
-set(LIBRARIES ${LIBRARIES} ${BTOR2_LIBRARIES})
-include_directories(${BTOR2_INCLUDE_DIR})
+find_package(Btor2Tools REQUIRED)
 
 if(NOT IS_WINDOWS_BUILD)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads)
   if(Threads_FOUND)
     set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    add_c_cxx_flag("-DBTOR_HAVE_PTHREADS")
+    add_definitions("-DBTOR_HAVE_PTHREADS")
   endif()
 endif()
 
 if(USE_LINGELING)
-  find_package(LINGELING QUIET)
+  find_package(Lingeling)
 endif()
 if(USE_CADICAL)
-  find_package(CADICAL QUIET)
+  find_package(CaDiCaL)
 endif()
 if(USE_PICOSAT)
-  find_package(PICOSAT QUIET)
+  find_package(PicoSAT)
 endif()
 if(USE_MINISAT)
-  find_package(MINISAT QUIET)
+  find_package(MiniSat)
 endif()
 
 if(NOT USE_LINGELING
@@ -262,67 +316,84 @@ elseif(NOT LINGELING_FOUND
   message(FATAL_ERROR "No SAT solver found")
 endif()
 
-if(LINGELING_FOUND)
-  if(${LINGELING_INCLUDE_DIR} STREQUAL "LINGELING_INCLUDE_DIR-NOTFOUND")
+if(Lingeling_FOUND)
+  if(NOT Lingeling_INCLUDE_DIR)
     message(FATAL_ERROR "Lingeling headers not found")
   else()
-    include_directories(${LINGELING_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${LINGELING_LIBRARIES})
-    message(STATUS "Found Lingeling: ${LINGELING_LIBRARIES}")
-    message(STATUS "Found Lingeling headers: ${LINGELING_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_LINGELING")
+    add_definitions("-DBTOR_USE_LINGELING")
   endif()
-elseif(GIVEN_LINGELING_ROOT_DIR)
+elseif(GIVEN_Lingeling_ROOT_DIR)
   message(FATAL_ERROR "Lingeling not found")
 endif()
 
-if(CADICAL_FOUND)
-  if(${CADICAL_INCLUDE_DIR} STREQUAL "CADICAL_INCLUDE_DIR-NOTFOUND")
+if(CaDiCaL_FOUND)
+  if(NOT CaDiCaL_INCLUDE_DIR)
     message(FATAL_ERROR "CaDiCaL headers not found")
   else()
-    include_directories(${CADICAL_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${CADICAL_LIBRARIES})
-    message(STATUS "Found CaDiCaL: ${CADICAL_LIBRARIES}")
-    message(STATUS "Found CaDiCaL headers: ${CADICAL_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_CADICAL")
+    add_definitions("-DBTOR_USE_CADICAL")
   endif()
-elseif(GIVEN_CADICAL_ROOT_DIR)
+elseif(GIVEN_CaDiCaL_ROOT_DIR)
   message(FATAL_ERROR "CaDiCaL not found")
 endif()
 
-if(PICOSAT_FOUND)
-  if(${PICOSAT_INCLUDE_DIR} STREQUAL "PICOSAT_INCLUDE_DIR-NOTFOUND")
+if(PicoSAT_FOUND)
+  if(NOT PicoSAT_INCLUDE_DIR)
     message(FATAL_ERROR "PicoSAT headers not found")
   else()
-    include_directories(${PICOSAT_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${PICOSAT_LIBRARIES})
-    message(STATUS "Found PicoSAT: ${PICOSAT_LIBRARIES}")
-    message(STATUS "Found PicoSAT headers: ${PICOSAT_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_PICOSAT")
+    add_definitions("-DBTOR_USE_PICOSAT")
   endif()
-elseif(GIVEN_PICOSAT_ROOT_DIR)
+elseif(GIVEN_PicoSAT_ROOT_DIR)
   message(FATAL_ERROR "PicoSAT not found")
 endif()
 
-if(MINISAT_FOUND)
-  if(${MINISAT_INCLUDE_DIR} STREQUAL "MINISAT_INCLUDE_DIR-NOTFOUND")
+if(MiniSat_FOUND)
+  if(NOT MiniSat_INCLUDE_DIR)
     message(FATAL_ERROR "MiniSAT headers not found")
   else()
-    include_directories(${MINISAT_INCLUDE_DIR})
-    set(LIBRARIES ${LIBRARIES} ${MINISAT_LIBRARIES})
-    message(STATUS "Found MiniSAT: ${MINISAT_LIBRARIES}")
-    message(STATUS "Found MiniSAT headers: ${MINISAT_INCLUDE_DIR}")
-    add_c_cxx_flag("-DBTOR_USE_MINISAT")
+    add_definitions("-DBTOR_USE_MINISAT")
   endif()
-elseif(GIVEN_MINISAT_ROOT_DIR)
+elseif(GIVEN_MiniSat_ROOT_DIR)
   message(FATAL_ERROR "MiniSAT not found")
 endif()
 
 #-----------------------------------------------------------------------------#
+# Extract info from Git for btorconfig.h
 
-include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+find_package(Git)
 
+set(GIT_DIRTY "")
+set(GIT_SHA1 "")
+set(GIT_BRANCH "")
+
+if(GIT_FOUND)
+  # Get current git branch, result is != 0 if this is not a git repository
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} -C ${PROJECT_SOURCE_DIR} rev-parse --abbrev-ref HEAD
+    RESULT_VARIABLE GIT_RESULT
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if("${GIT_RESULT}" STREQUAL "0")
+    set(GIT_BRANCH "${GIT_BRANCH}-")
+    # Extract sha1 of HEAD
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} -C ${PROJECT_SOURCE_DIR} rev-parse HEAD
+      OUTPUT_VARIABLE GIT_SHA1
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    # Result is != 0 if worktree is dirty
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} -C ${PROJECT_SOURCE_DIR} diff --quiet
+      RESULT_VARIABLE GIT_RESULT
+    )
+    if(NOT "${GIT_RESULT}" STREQUAL "0")
+      set(GIT_DIRTY "-dirty")
+    endif()
+  endif()
+endif()
+
+# TODO: definitions added via add_definititions
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
@@ -342,3 +413,21 @@ add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
         | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+#-----------------------------------------------------------------------------#
+# Install config and configversion for Boolector to add support for
+# find_package(Boolector).
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  VERSION ${VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+# Install the config, configversion and custom find modules
+install(FILES
+  ${CMAKE_CURRENT_LIST_DIR}/cmake/BoolectorConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  DESTINATION lib/cmake/Boolector
+)
