@@ -1390,7 +1390,7 @@ boolector_main (int32_t argc, char **argv)
   if (g_verbosity)
   {
     if (inc) btormain_msg ("incremental mode through command line option");
-    btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_ID);
+    btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_GIT_ID);
     btormain_msg ("%s", BTOR_CFLAGS);
     btormain_msg ("released %s", BTOR_RELEASED);
     btormain_msg ("compiled %s", BTOR_COMPILED);
