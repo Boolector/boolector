@@ -3332,7 +3332,7 @@ boolector_get_btor (BoolectorNode *node)
 }
 
 int32_t
-boolector_get_id (Btor *btor, BoolectorNode *node)
+boolector_get_node_id (Btor *btor, BoolectorNode *node)
 {
   int32_t res;
   BtorNode *exp;
@@ -3346,7 +3346,7 @@ boolector_get_id (Btor *btor, BoolectorNode *node)
   res = btor_node_get_id (btor_node_real_addr (exp));
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_INT (res, get_id, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_INT (res, get_node_id, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }

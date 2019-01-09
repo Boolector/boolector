@@ -1336,7 +1336,7 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       if (!g_btorunt->skip)
       {
-        ret_int = boolector_get_id (btor, hmap_get (hmap, arg1_str));
+        ret_int = boolector_get_node_id (btor, hmap_get (hmap, arg1_str));
         exp_ret = RET_INT;
       }
       else

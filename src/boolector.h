@@ -1633,7 +1633,7 @@ Btor *boolector_get_btor (BoolectorNode *node);
   :param node: Boolector node.
   :return: Id of ``node``.
 */
-int32_t boolector_get_id (Btor *btor, BoolectorNode *node);
+int32_t boolector_get_node_id (Btor *btor, BoolectorNode *node);
 
 /*!
   Get the sort of given ``node``. The result does not have to be released.
