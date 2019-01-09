@@ -1331,7 +1331,7 @@ NEXT:
       else
         exp_ret = RET_SKIP;
     }
-    else if (!strcmp (tok, "get_id"))
+    else if (!strcmp (tok, "get_node_id"))
     {
       PARSE_ARGS1 (tok, str);
       if (!g_btorunt->skip)
