@@ -8,6 +8,8 @@
   values are now configured with strings denoting the particular modes that
   can be selected; -<opt>=help and --<opt>=help allow to print detailed help
   messages for these modes
++ fixed issue in SMT2 parser to correctly print echo commands
+  (thanks to Dominik Klumpp)
 
 news for release 3.0.0 since 2.4.1
 --------------------------------------------------------------------------------

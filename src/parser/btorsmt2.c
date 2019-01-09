@@ -4256,6 +4256,7 @@ echo_smt2 (BtorSMT2Parser *parser)
     return !perr_smt2 (parser, "expected string after 'echo'");
 
   fprintf (parser->outfile, "%s", parser->token.start);
+  fflush (parser->outfile);
   return skip_sexprs (parser, 1);
 }
 
