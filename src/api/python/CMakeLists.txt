@@ -30,5 +30,10 @@ add_library(pyboolector
 add_dependencies(pyboolector pyboolector_options)
 
 target_link_libraries(pyboolector boolector ${PYTHON_LIBRARIES})
+
+if(IS_WINDOWS_BUILD)
+  target_link_libraries(pyboolector -static gcc stdc++ winpthread -dynamic)
+endif()
+
 python_extension_module(pyboolector)
 install(TARGETS pyboolector DESTINATION lib)
