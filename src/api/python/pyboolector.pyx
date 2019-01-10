@@ -95,37 +95,6 @@ cdef uint32_t _get_argument_width(BoolectorFunNode fun, uint32_t pos):
             assert(isinstance(sort, _BoolectorBitVecSort))
             return (<_BoolectorBitVecSort> sort)._width
 
-def _check_precond_shift(BoolectorBVNode a, BoolectorBVNode b):
-    if not _is_power2(a.width):
-        raise BoolectorException(
-                  "Bit width of operand 'a' must be a power of 2")
-    if int(math.log(a.width, 2)) != b.width:
-        raise BoolectorException(
-                  "Bit width of operand 'b' must be equal to "\
-                  "log2(bit width of a)")
-
-def _check_precond_slice(BoolectorBVNode a, uint32_t upper, uint32_t lower):
-        if upper >= a.width:
-            raise BoolectorException(
-                      "Upper limit of slice must be lower than the bit width "\
-                      "of the bit vector")
-        if lower > upper:
-            raise BoolectorException("Lower limit must be within the bounds "\
-                                      "of [upper:0]")
-
-def _check_precond_cond(cond, a, b):
-    if isinstance(cond, int) and (cond > 1 or cond < 0):
-        raise BoolectorException(
-                  "'cond' needs to either boolean or an integer of 0 or 1")
-    if not (isinstance(a, BoolectorBVNode) or
-            isinstance(b, BoolectorBVNode)) and \
-       not (isinstance(a, BoolectorArrayNode) and
-            isinstance(b, BoolectorArrayNode)) and \
-       not (isinstance(a, BoolectorFunNode) and
-            isinstance(b, BoolectorFunNode)):
-        raise BoolectorException(
-                  "At least one of the operands must be a bit vector")
-
 ################################################################################
 # sort wrapper classes
 
@@ -1529,7 +1498,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
 
         """
-        _check_precond_slice(n, upper, lower)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_slice(self._c_btor, n._c_node,
                                             upper, lower)
@@ -2193,7 +2161,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sll(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2221,7 +2188,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_srl(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2244,7 +2210,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sra(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2267,7 +2232,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_rol(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2290,7 +2254,6 @@ cdef class Boolector:
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ror(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2651,7 +2614,6 @@ cdef class Boolector:
             :return:  Either ``a`` or ``b``.
             :rtype: :class:`~pyboolector.BoolectorNode`
         """
-        _check_precond_cond(cond, a, b)
         cond = self.Const(cond, width=1)
         if isinstance(a, BoolectorBVNode) or isinstance(b, BoolectorBVNode):
             r = BoolectorBVNode(self)
