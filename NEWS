@@ -10,6 +10,9 @@
   messages for these modes
 + fixed issue in SMT2 parser to correctly print echo commands
   (thanks to Dominik Klumpp)
++ patches and documentation for building Boolector on Windows
++ new API calls
+  - boolector_copy_sort
 
 news for release 3.0.0 since 2.4.1
 --------------------------------------------------------------------------------
