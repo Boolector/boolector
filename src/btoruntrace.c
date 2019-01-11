@@ -1589,6 +1589,13 @@ NEXT:
           btor, get_sort (hmap, arg1_str), get_sort (hmap, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "copy_sort"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = (void *) (size_t) boolector_copy_sort (
+          btor, get_sort (hmap, arg1_str));
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "fun_sort"))
     {
       while ((tok = strtok (0, " ")))
