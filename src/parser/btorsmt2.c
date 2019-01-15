@@ -4704,7 +4704,6 @@ read_command_smt2 (BtorSMT2Parser *parser)
         boolector_dump_smt2_node (
             parser->btor, parser->outfile, failed_assumptions[i]);
       }
-      free (failed_assumptions);
       failed_assumptions = 0;
       fputc (')', parser->outfile);
       fflush (parser->outfile);
