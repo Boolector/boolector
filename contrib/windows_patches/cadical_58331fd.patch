@@ -1,0 +1,103 @@
+diff --git a/src/resources.cpp b/src/resources.cpp
+--- a/src/resources.cpp
++++ b/src/resources.cpp
+@@ -9,7 +9,9 @@
+ 
+ extern "C" {
+ #include <sys/time.h>
++#ifdef NWINDOWS
+ #include <sys/resource.h>
++#endif
+ #include <sys/types.h>
+ #include <unistd.h>
+ #include <string.h>
+@@ -24,12 +26,16 @@ namespace CaDiCaL {
+ // of Unix not all fields are meaningful (or even existing).
+ 
+ double process_time () {
++#ifdef NWINDOWS
+   struct rusage u;
+   double res;
+   if (getrusage (RUSAGE_SELF, &u)) return 0;
+   res = u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;  // user time
+   res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec; // + system time
+   return res;
++#else
++  return 0;
++#endif
+ }
+ 
+ // This seems to work on Linux (man page says since Linux 2.6.32).
+diff --git a/src/signal.cpp b/src/signal.cpp
+index a38e577..3985d93 100644
+--- a/src/signal.cpp
++++ b/src/signal.cpp
+@@ -6,7 +6,13 @@
+ #include <csignal>
+ #include <cassert>
+ 
+-int CaDiCaL::Solver::contract_violation_signal = SIGUSR1;
++#ifdef NWINDOWS
++#define VSIG SIGUR1
++#else
++#define VSIG SIGINT
++#endif
++
++int CaDiCaL::Solver::contract_violation_signal = VSIG;
+ 
+ /*------------------------------------------------------------------------*/
+ 
+@@ -29,8 +35,12 @@ SIGNAL(SIGINT) \
+ SIGNAL(SIGSEGV) \
+ SIGNAL(SIGABRT) \
+ SIGNAL(SIGTERM) \
++
++#ifdef NWINDOWS
+ SIGNAL(SIGBUS) \
+ 
++#endif
++
+ #define SIGNAL(SIG) \
+ static void (*SIG ## _handler)(int);
+ SIGNALS
+@@ -38,6 +48,7 @@ SIGNALS
+ static void (*SIGALRM_handler)(int);
+ 
+ void Signal::reset () {
++#ifdef NWINDOWS
+ #define SIGNAL(SIG) \
+   (void) signal (SIG, SIG ## _handler); \
+   SIG ## _handler = 0;
+@@ -47,16 +58,19 @@ SIGNALS
+     (void) signal (SIGALRM, SIGALRM_handler),
+     SIGALRM_handler = 0,
+     alarmset = false;
++#endif
+   solver = 0;
+   catchedsig = 0;
+ }
+ 
+ const char * Signal::name (int sig) {
++#ifdef NWINDOWS
+ #define SIGNAL(SIG) \
+   if (sig == SIG) return # SIG;
+   SIGNALS
+ #undef SIGNAL
+   if (sig == SIGALRM) return "SIGALRM";
++#endif
+   return "UNKNOWN";
+ }
+ 
+@@ -89,10 +103,12 @@ SIGNALS
+ }
+ 
+ void Signal::alarm (int seconds) {
++#ifdef NWINDOWS
+   assert (!alarmset);
+   SIGALRM_handler = signal (SIGALRM, Signal::catchsig);
+   alarmset = true;
+   ::alarm (seconds);
++#endif
+ }
+ 
+ };

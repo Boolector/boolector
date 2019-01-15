@@ -80,7 +80,7 @@ add_library(boolector ${libboolector_src_files})
 target_link_libraries(boolector ${LIBRARIES})
 target_include_directories(boolector
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include/boolector>)
 
 target_include_directories(boolector PRIVATE ${Btor2Tools_INCLUDE_DIR})
@@ -118,7 +118,7 @@ install(EXPORT boolector-export
   DESTINATION lib/cmake/Boolector)
 
 # Install header files
-install(DIRECTORY include/ DESTINATION include/boolector)
+install(FILES boolector.h btortypes.h DESTINATION include/boolector)
 
 #-----------------------------------------------------------------------------#
 # boolector
