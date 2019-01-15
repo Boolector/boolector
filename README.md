@@ -111,6 +111,12 @@ The documentation is then generated into `doc/_build/html`.
 Make sure to build Boolector with Python bindings, else the documentation of
 its Python API will not be included.
 
+### Windows 32-bit on Windows 64-bit
+
+For build and installation instructions of a Boolector Windows 32-bit build
+on a Windows 64-bit system, see file [COMPILING_WIN32.md](
+    https://github.com/Boolector/boolector/blob/master/COMPILING_WIN32.md).
+
 Usage
 -------------------------------------------------------------------------------
 
