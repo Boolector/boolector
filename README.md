@@ -18,11 +18,17 @@ The documentation of its API can be found
 [here](https://boolector.github.io/docs).
 
 
+Website
+-------------------------------------------------------------------------------
+
+More information about Boolector is available at: https://boolector.github.io
+
 Download
 -------------------------------------------------------------------------------
 
-  The latest version of Boolector can be found on GitHub:
-  https://github.com/boolector/boolector
+The latest version of Boolector is available on GitHub:
+https://github.com/boolector/boolector
+
 
 Prerequisites
 -------------------------------------------------------------------------------
