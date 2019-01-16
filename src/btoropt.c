@@ -1648,7 +1648,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
     assert (oldval <= 3);
 
     /* If the rewrite level changes we need to reset the rewrite cache. */
-    if (val != oldval)
+    if (val != oldval && btor->rw_cache)
     {
       btor_rw_cache_reset (btor->rw_cache);
     }

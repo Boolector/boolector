@@ -174,6 +174,7 @@ btor_rw_cache_delete (BtorRwCache *rwc)
 void
 btor_rw_cache_reset (BtorRwCache *rwc)
 {
+  assert (rwc);
   assert (rwc->btor->mm);
   assert (rwc->cache);
 
