@@ -230,21 +230,6 @@ configure_sat_mgr (Btor *btor)
     }
   }
 
-#ifdef BTOR_USE_CADICAL
-  /* default to CaDiCaL if we have non-incremental QF_BV */
-  if (!smgr->inc_required
-      && btor_opt_get (btor, BTOR_OPT_SAT_ENGINE) != BTOR_SAT_ENGINE_CADICAL
-      && btor_opt_get (btor, BTOR_OPT_DEFAULT_TO_CADICAL))
-  {
-    BTOR_MSG (btor->msg, 1, "no functions found, defaulting to CaDiCaL");
-    btor_sat_reset (smgr);
-    btor_opt_set (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_CADICAL);
-    btor_sat_enable_solver (smgr);
-    btor_sat_init (smgr);
-    smgr->inc_required = false;
-  }
-#endif
-
   BTOR_ABORT (
       smgr->inc_required && !btor_sat_mgr_has_incremental_support (smgr),
       "selected SAT solver '%s' does not support incremental mode",

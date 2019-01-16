@@ -2614,7 +2614,6 @@ btormbt_state_new (BtorMBT *mbt)
 static void *
 btormbt_state_opt (BtorMBT *mbt)
 {
-  bool inc = true;
   uint32_t i;
   BtorMBTBtorOpt *btoropt, *btoropt_engine;
   BtorUIntStack stack;
@@ -2746,15 +2745,6 @@ btormbt_state_opt (BtorMBT *mbt)
   BTORMBT_LOG (
       1, "opt: set boolector option '%s' to '%d'", btoropt->name, btoropt->val);
 
-  // currently, CaDiCaL only support non-incremental calls
-  if (boolector_get_opt (mbt->btor, BTOR_OPT_SAT_ENGINE)
-      == BTOR_SAT_ENGINE_CADICAL)
-  {
-    mbt->round.logic = BTORMBT_LOGIC_QF_BV;
-    BTORMBT_LOG (1, "opt: force logic to '%s'", "QF_BV");
-    inc = false;
-  }
-
   if (mbt->optfuzz)
   {
     /* set output format for dumping */
@@ -2856,19 +2846,14 @@ btormbt_state_opt (BtorMBT *mbt)
      * btoropt->val */
 
     /* set boolector option */
-    if (btoropt->kind != BTOR_OPT_INCREMENTAL || btoropt->val != 1 || inc)
-    {
-      boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
-      BTORMBT_LOG (1,
-                   "opt: set boolector option '%s' to '%u'",
-                   btoropt->name,
-                   btoropt->val);
-    }
+    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
+    BTORMBT_LOG (1,
+                 "opt: set boolector option '%s' to '%u'",
+                 btoropt->name,
+                 btoropt->val);
 
     /* set some mbt specific options */
-    // NOTE: inc flag required since CaDiCaL does not yet support incremental
-    // mode
-    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1 && inc)
+    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
     {
       mbt->round.inc = true;
       mbt->round.max_ninc =

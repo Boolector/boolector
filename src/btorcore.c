@@ -3845,29 +3845,6 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
     }
 
     inputs = map_inputs_check_model (btor, mclone);
-
-    // NOTE: cadical does not support incremental mode, which is required for
-    // checking the model. we need to switch to lingeling.
-#ifdef BTOR_USE_CADICAL
-    if (btor_opt_get (mclone, BTOR_OPT_SAT_ENGINE) == BTOR_SAT_ENGINE_CADICAL)
-    {
-#ifdef BTOR_USE_LINGELING
-      btor_opt_set (mclone, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
-#else
-      btor_delete_substitutions (mclone);
-      BtorPtrHashTableIterator it;
-      btor_iter_hashptr_init (&it, inputs);
-      while (btor_iter_hashptr_has_next (&it))
-      {
-        btor_node_release (btor, (BtorNode *) it.bucket->data.as_ptr);
-        btor_node_release (mclone, btor_iter_hashptr_next (&it));
-      }
-      btor_hashptr_table_delete (inputs);
-      btor_delete (mclone);
-      mclone = 0;
-#endif
-    }
-#endif
   }
 #endif
 

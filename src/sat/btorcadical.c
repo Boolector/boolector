@@ -30,11 +30,10 @@ add (BtorSATMgr *smgr, int32_t lit)
   ccadical_add (smgr->solver, lit);
 }
 
-static int32_t
-sat (BtorSATMgr *smgr, int32_t limit)
+static void
+assume (BtorSATMgr *smgr, int32_t lit)
 {
-  (void) limit;
-  return ccadical_sat (smgr->solver);
+  ccadical_assume (smgr->solver, lit);
 }
 
 static int32_t
@@ -50,19 +49,32 @@ deref (BtorSATMgr *smgr, int32_t lit)
 }
 
 static void
-reset (BtorSATMgr *smgr)
-{
-  ccadical_reset (smgr->solver);
-  smgr->solver = 0;
-}
-
-static void
 enable_verbosity (BtorSATMgr *smgr, int32_t level)
 {
   if (level <= 1)
     ccadical_set_option (smgr->solver, "quiet", 1);
   else if (level >= 2)
     ccadical_set_option (smgr->solver, "verbose", level - 2);
+}
+
+static int32_t
+failed (BtorSATMgr *smgr, int32_t lit)
+{
+  return ccadical_failed (smgr->solver, lit);
+}
+
+static void
+reset (BtorSATMgr *smgr)
+{
+  ccadical_reset (smgr->solver);
+  smgr->solver = 0;
+}
+
+static int32_t
+sat (BtorSATMgr *smgr, int32_t limit)
+{
+  (void) limit;
+  return ccadical_sat (smgr->solver);
 }
 
 static void
@@ -90,10 +102,10 @@ btor_sat_enable_cadical (BtorSATMgr *smgr)
 
   BTOR_CLR (&smgr->api);
   smgr->api.add              = add;
-  smgr->api.assume           = 0;
+  smgr->api.assume           = assume;
   smgr->api.deref            = deref;
   smgr->api.enable_verbosity = enable_verbosity;
-  smgr->api.failed           = 0;
+  smgr->api.failed           = failed;
   smgr->api.fixed            = 0;
   smgr->api.inc_max_var      = 0;
   smgr->api.init             = init;

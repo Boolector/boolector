@@ -1208,16 +1208,6 @@ btor_opt_init_opts (Btor *btor)
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
-            BTOR_OPT_DEFAULT_TO_CADICAL,
-            true,
-            true,
-            "default-cadical",
-            0,
-            0,
-            0,
-            1,
-            "default to CaDiCaL for non-incremental QF_BV");
-  init_opt (btor,
             BTOR_OPT_SORT_EXP,
             true,
             true,
