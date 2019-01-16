@@ -163,7 +163,7 @@ if(SHARED)
   set(BUILD_SHARED_LIBS ON)
 elseif(NOT PYTHON)
   set(BUILD_SHARED_LIBS OFF)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
 #-----------------------------------------------------------------------------#
