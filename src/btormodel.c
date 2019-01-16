@@ -718,7 +718,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
        * it doesn't have one) */
       if (btor_node_is_bv_var (real_cur) || btor_node_is_fun_eq (real_cur))
       {
-        result = btor_bv_get_assignment (mm, real_cur, true);
+        result = btor_bv_get_assignment (mm, real_cur);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (btor_node_is_bv_const (real_cur))
@@ -932,7 +932,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
 
         case BTOR_UF_NODE:
           assert (btor_node_is_apply (cur_parent));
-          result = btor_bv_get_assignment (mm, cur_parent, true);
+          result = btor_bv_get_assignment (mm, cur_parent);
           break;
 
         case BTOR_UPDATE_NODE:
