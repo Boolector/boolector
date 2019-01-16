@@ -23,8 +23,8 @@ find_path(MiniSat_INCLUDE_DIR
 find_library(MiniSat_LIBRARIES
   NAMES minisat
   PATHS
-    "${MiniSat_ROOT_DIR}/build/dynamic/lib"
     "${MiniSat_ROOT_DIR}/build/release/lib"
+    "${MiniSat_ROOT_DIR}/build/dynamic/lib"
   NO_DEFAULT_PATH
   )
 
