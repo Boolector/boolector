@@ -3,30 +3,8 @@
 # MiniSat_INCLUDE_DIR - the MiniSat include directory
 # MiniSat_LIBRARIES - Libraries needed to use MiniSat
 
-if(MiniSat_ROOT_DIR)
-  message(STATUS "MiniSAT root directory: ${MiniSat_ROOT_DIR}")
-  set(GIVEN_MiniSat_ROOT_DIR TRUE)
-elseif(EXISTS ${PROJECT_SOURCE_DIR}/deps/minisat)
-  set(MiniSat_ROOT_DIR ${PROJECT_SOURCE_DIR}/deps/minisat)
-  set(GIVEN_MiniSat_ROOT_DIR FALSE)
-else()
-  set(MiniSat_ROOT_DIR ${PROJECT_SOURCE_DIR}/../minisat)
-  set(GIVEN_MiniSat_ROOT_DIR FALSE)
-endif()
-
-find_path(MiniSat_INCLUDE_DIR
-  NAMES minisat/simp/SimpSolver.h
-  PATHS "${MiniSat_ROOT_DIR}"
-  NO_DEFAULT_PATH
-  )
-
-find_library(MiniSat_LIBRARIES
-  NAMES minisat
-  PATHS
-    "${MiniSat_ROOT_DIR}/build/release/lib"
-    "${MiniSat_ROOT_DIR}/build/dynamic/lib"
-  NO_DEFAULT_PATH
-  )
+find_path(MiniSat_INCLUDE_DIR NAMES minisat/simp/SimpSolver.h)
+find_library(MiniSat_LIBRARIES NAMES minisat)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MiniSat
