@@ -4081,15 +4081,18 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
-  funass =
-      btor_ass_get_fun ((const char **) indices, (const char **) values, size);
-  (void) funass;
+  if (size)
+  {
+    funass =
+        btor_ass_get_fun ((const char **) indices, (const char **) values, size);
+    (void) funass;
 #ifndef NDEBUG
-  char **cindices, **cvalues;
-  cindices = funass->cloned_indices;
-  cvalues  = funass->cloned_values;
+    char **cindices, **cvalues;
+    cindices = funass->cloned_indices;
+    cvalues  = funass->cloned_values;
 #endif
-  btor_ass_release_fun (btor->fun_assignments, indices, values, size);
+    btor_ass_release_fun (btor->fun_assignments, indices, values, size);
+  }
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cindices, cvalues, size);
 #endif
