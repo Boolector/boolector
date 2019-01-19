@@ -1,13 +1,8 @@
 #!/bin/bash
 
-SETUP_DIR=$1
-if [ -z "$SETUP_DIR" ]; then
-  SETUP_DIR="./deps"
-fi
+source "$(dirname "$0")/setup-utils.sh"
 
-mkdir -p ${SETUP_DIR}
-
-PICOSAT_DIR=${SETUP_DIR}/picosat
+PICOSAT_DIR=${DEPS_DIR}/picosat
 
 # Download and build PicoSAT
 mkdir ${PICOSAT_DIR}
@@ -23,4 +18,7 @@ case "$(uname -s)" in
      ;;
 esac
 ./configure.sh --shared ${EXTRA_FLAGS}
-make -j2
+make -j${NPROC}
+install_lib libpicosat.a
+install_lib libpicosat.so
+install_include picosat.h

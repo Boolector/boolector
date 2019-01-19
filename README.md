@@ -18,11 +18,17 @@ The documentation of its API can be found
 [here](https://boolector.github.io/docs).
 
 
+Website
+-------------------------------------------------------------------------------
+
+More information about Boolector is available at: https://boolector.github.io
+
 Download
 -------------------------------------------------------------------------------
 
-  The latest version of Boolector can be found on GitHub:
-  https://github.com/boolector/boolector
+The latest version of Boolector is available on GitHub:
+https://github.com/boolector/boolector
+
 
 Prerequisites
 -------------------------------------------------------------------------------
@@ -110,6 +116,12 @@ make html
 The documentation is then generated into `doc/_build/html`.
 Make sure to build Boolector with Python bindings, else the documentation of
 its Python API will not be included.
+
+### Windows 32-bit on Windows 64-bit
+
+For build and installation instructions of a Boolector Windows 32-bit build
+on a Windows 64-bit system, see file [COMPILING_WIN32.md](
+    https://github.com/Boolector/boolector/blob/master/COMPILING_WIN32.md).
 
 Usage
 -------------------------------------------------------------------------------

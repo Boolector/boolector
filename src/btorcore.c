@@ -1997,13 +1997,11 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       assert (btor_node_is_inverted (cur) || !btor_node_is_bv_and (cur));
       lit = exp_to_cnf_lit (btor, cur);
       if (lit == smgr->true_lit) continue;
-      if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
-      if (btor_sat_failed (smgr, lit))
+      if (lit == -smgr->true_lit || btor_sat_failed (smgr, lit))
       {
       ASSUMPTION_FAILED:
-        BTOR_RELEASE_STACK (work_stack);
-        BTOR_RELEASE_STACK (assumptions);
         res = true;
+        break;
       }
     }
     BTOR_RELEASE_STACK (work_stack);

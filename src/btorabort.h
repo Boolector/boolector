@@ -78,12 +78,10 @@ void btor_abort_warn (
                 #arg);                                                \
   } while (0)
 
-#define BTOR_ABORT_IS_NOT_ARRAY(arg)                                     \
-  do                                                                     \
-  {                                                                      \
-    BTOR_ABORT (!btor_sort_is_array (btor, btor_node_get_sort_id (arg)), \
-                "'%s' must be an array\n",                               \
-                #arg);                                                   \
+#define BTOR_ABORT_IS_NOT_ARRAY(arg)                                         \
+  do                                                                         \
+  {                                                                          \
+    BTOR_ABORT (!btor_node_is_array (arg), "'%s' must be an array\n", #arg); \
   } while (0)
 
 #define BTOR_ABORT_IS_NOT_FUN(arg)                                     \

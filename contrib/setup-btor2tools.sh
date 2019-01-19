@@ -1,13 +1,8 @@
 #!/bin/bash
 
-SETUP_DIR=$1
-if [ -z "$SETUP_DIR" ]; then
-  SETUP_DIR="./deps"
-fi
+source "$(dirname "$0")/setup-utils.sh"
 
-mkdir -p ${SETUP_DIR}
-
-BTOR2TOOLS_DIR=${SETUP_DIR}/btor2tools
+BTOR2TOOLS_DIR=${DEPS_DIR}/btor2tools
 
 # Download and build btor2tools
 git clone --depth 1 https://github.com/Boolector/btor2tools.git ${BTOR2TOOLS_DIR}
@@ -26,4 +21,6 @@ case "$(uname -s)" in
      ;;
 esac
 ./configure.sh -fPIC
-make -j2
+make -j${NPROC}
+install_lib build/libbtor2parser.a
+install_include src/btor2parser/btor2parser.h btor2parser

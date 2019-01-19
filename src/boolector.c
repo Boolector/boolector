@@ -4081,6 +4081,8 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
+  if (!size) { return; }
+
   funass =
       btor_ass_get_fun ((const char **) indices, (const char **) values, size);
   (void) funass;

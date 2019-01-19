@@ -313,12 +313,10 @@ btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
-btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
+btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp)
 {
   assert (mm);
   assert (exp);
-  assert (init_x_values || btor_node_real_addr (exp)->av);
-  assert (init_x_values == 0 || init_x_values == 1);
 
   uint32_t i, j, width;
   int32_t bit;
@@ -342,7 +340,6 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   for (i = 0, j = width - 1; i < width; i++, j--)
   {
     bit = btor_aig_get_assignment (amgr, av->aigs[j]);
-    if (init_x_values && bit == 0) bit = -1;
     if (inv) bit *= -1;
     assert (bit == -1 || bit == 1);
     btor_bv_set_bit (res, i, bit == 1 ? 1 : 0);
