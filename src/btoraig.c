@@ -1472,10 +1472,19 @@ btor_aig_get_assignment (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr);
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
-  if (BTOR_REAL_ADDR_AIG (aig)->cnf_id == 0) return 0;
-  if (BTOR_IS_INVERTED_AIG (aig))
-    return -btor_sat_deref (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-  return btor_sat_deref (amgr->smgr, aig->cnf_id);
+
+  /* Note: If an AIG is not yet encoded to SAT or if the SAT solver returns
+   * undefined for a variable, we implicitly initialize it with false (-1). */
+  int32_t val = -1;
+  if (BTOR_REAL_ADDR_AIG (aig)->cnf_id > 0)
+  {
+    val = btor_sat_deref (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+    if (val == 0)
+    {
+      val = -1;
+    }
+  }
+  return BTOR_IS_INVERTED_AIG (aig) ? -val : val;
 }
 
 int32_t

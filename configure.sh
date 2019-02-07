@@ -103,7 +103,7 @@ msg () {
 
 #--------------------------------------------------------------------------#
 
-[ ! -e src/boolector.h ] && die "$0 not called from Boolector base directory"
+[ ! -e src/boolector.c ] && die "$0 not called from Boolector base directory"
 
 while [ $# -gt 0 ]
 do

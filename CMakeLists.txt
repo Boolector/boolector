@@ -10,6 +10,7 @@ string(TIMESTAMP TIME)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_PREFIX_PATH "${PROJECT_SOURCE_DIR}/deps/install")
 
 #-----------------------------------------------------------------------------#
 
@@ -163,7 +164,7 @@ if(SHARED)
   set(BUILD_SHARED_LIBS ON)
 elseif(NOT PYTHON)
   set(BUILD_SHARED_LIBS OFF)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -413,3 +414,21 @@ add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
         | xz > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.xz
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+#-----------------------------------------------------------------------------#
+# Install config and configversion for Boolector to add support for
+# find_package(Boolector).
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  VERSION ${VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+# Install the config, configversion and custom find modules
+install(FILES
+  ${CMAKE_CURRENT_LIST_DIR}/cmake/BoolectorConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
+  DESTINATION lib/cmake/Boolector
+)

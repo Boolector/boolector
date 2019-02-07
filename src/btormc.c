@@ -1065,8 +1065,6 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
   }
   else
   {
-    assert (indices);
-    assert (values);
     for (i = 0; i < size; i++)
     {
       printf ("%d [%s] %s", id, indices[i], values[i]);

@@ -20,6 +20,7 @@ before_script:
   - ./contrib/setup-btor2tools.sh
   - ./contrib/setup-cadical.sh
   - ./contrib/setup-lingeling.sh
+  - ./contrib/setup-picosat.sh
 
 script:
   - $CC --version

@@ -1633,7 +1633,7 @@ Btor *boolector_get_btor (BoolectorNode *node);
   :param node: Boolector node.
   :return: Id of ``node``.
 */
-int32_t boolector_get_id (Btor *btor, BoolectorNode *node);
+int32_t boolector_get_node_id (Btor *btor, BoolectorNode *node);
 
 /*!
   Get the sort of given ``node``. The result does not have to be released.
@@ -2121,6 +2121,15 @@ BoolectorSort boolector_fun_sort (Btor *btor,
 BoolectorSort boolector_array_sort (Btor *btor,
                                     BoolectorSort index,
                                     BoolectorSort element);
+
+/*!
+  Copy sort (increments reference counter).
+
+  :param btor: Boolector instance.
+  :param sort: Sort to be copied.
+  :return: Sort ``sort`` with reference counter incremented.
+*/
+BoolectorSort boolector_copy_sort (Btor *btor, BoolectorSort sort);
 
 /*!
   Release sort (decrements reference counter).

@@ -1331,12 +1331,12 @@ NEXT:
       else
         exp_ret = RET_SKIP;
     }
-    else if (!strcmp (tok, "get_id"))
+    else if (!strcmp (tok, "get_node_id"))
     {
       PARSE_ARGS1 (tok, str);
       if (!g_btorunt->skip)
       {
-        ret_int = boolector_get_id (btor, hmap_get (hmap, arg1_str));
+        ret_int = boolector_get_node_id (btor, hmap_get (hmap, arg1_str));
         exp_ret = RET_INT;
       }
       else
@@ -1587,6 +1587,13 @@ NEXT:
       PARSE_ARGS2 (tok, str, str);
       ret_ptr = (void *) (size_t) boolector_array_sort (
           btor, get_sort (hmap, arg1_str), get_sort (hmap, arg2_str));
+      exp_ret = RET_VOIDPTR;
+    }
+    else if (!strcmp (tok, "copy_sort"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = (void *) (size_t) boolector_copy_sort (
+          btor, get_sort (hmap, arg1_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))

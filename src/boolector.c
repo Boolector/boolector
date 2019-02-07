@@ -314,6 +314,22 @@ boolector_print_value_smt2 (Btor *btor,
 #endif
 }
 
+void
+boolector_add_output (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_ARG_NULL (node);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_PUSH_STACK (btor->outputs, btor_node_copy (btor, exp));
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (add_output, BTOR_CLONED_EXP (exp));
+#endif
+}
+
 /*------------------------------------------------------------------------*/
 
 Btor *
@@ -3316,7 +3332,7 @@ boolector_get_btor (BoolectorNode *node)
 }
 
 int32_t
-boolector_get_id (Btor *btor, BoolectorNode *node)
+boolector_get_node_id (Btor *btor, BoolectorNode *node)
 {
   int32_t res;
   BtorNode *exp;
@@ -3330,7 +3346,7 @@ boolector_get_id (Btor *btor, BoolectorNode *node)
   res = btor_node_get_id (btor_node_real_addr (exp));
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_INT (res, get_id, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_INT (res, get_node_id, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
@@ -4065,6 +4081,8 @@ boolector_free_array_assignment (Btor *btor,
   BTOR_ABORT (size && !values, "size > 0 but 'values' are zero");
   BTOR_ABORT (!size && indices, "non zero 'indices' but 'size == 0'");
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
+  if (!size) { return; }
+
   funass =
       btor_ass_get_fun ((const char **) indices, (const char **) values, size);
   (void) funass;
@@ -4307,6 +4325,23 @@ boolector_array_sort (Btor *btor, BoolectorSort index, BoolectorSort element)
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, array_sort, index, element);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_SORT (res);
+}
+
+BoolectorSort
+boolector_copy_sort (Btor *btor, BoolectorSort sort)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT (sort), btor);
+
+  BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BtorSortId res = btor_sort_copy (btor, s);
+  inc_sort_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_SORT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_SORT (res, copy_sort, sort);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }

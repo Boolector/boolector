@@ -683,6 +683,7 @@ btor_new (void)
   BTOR_INIT_STACK (btor->mm, btor->nodes_id_table);
   BTOR_PUSH_STACK (btor->nodes_id_table, 0);
   BTOR_INIT_STACK (btor->mm, btor->functions_with_model);
+  BTOR_INIT_STACK (btor->mm, btor->outputs);
 
   btor_opt_init_opts (btor);
 
@@ -949,6 +950,10 @@ btor_delete (Btor *btor)
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
     btor_node_release (btor, BTOR_PEEK_STACK (btor->functions_with_model, i));
   BTOR_RELEASE_STACK (btor->functions_with_model);
+
+  for (i = 0; i < BTOR_COUNT_STACK (btor->outputs); i++)
+    btor_node_release (btor, BTOR_PEEK_STACK (btor->outputs, i));
+  BTOR_RELEASE_STACK (btor->outputs);
 
   BTOR_INIT_STACK (mm, stack);
   /* copy lambdas and push onto stack since btor->lambdas does not hold a
@@ -1992,13 +1997,11 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       assert (btor_node_is_inverted (cur) || !btor_node_is_bv_and (cur));
       lit = exp_to_cnf_lit (btor, cur);
       if (lit == smgr->true_lit) continue;
-      if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
-      if (btor_sat_failed (smgr, lit))
+      if (lit == -smgr->true_lit || btor_sat_failed (smgr, lit))
       {
       ASSUMPTION_FAILED:
-        BTOR_RELEASE_STACK (work_stack);
-        BTOR_RELEASE_STACK (assumptions);
         res = true;
+        break;
       }
     }
     BTOR_RELEASE_STACK (work_stack);

@@ -430,7 +430,7 @@ cdef extern from "boolector.h":
     #Btor *boolector_get_btor (BoolectorNode * node) \
     #  except +raise_py_error
 
-    #uint32_t boolector_get_id (Btor * btor, BoolectorNode * node) \
+    #uint32_t boolector_get_node_id (Btor * btor, BoolectorNode * node) \
     #  except +raise_py_error
 
     #BoolectorNode *boolector_match_node_by_id (Btor * btor, int32_t id) \
