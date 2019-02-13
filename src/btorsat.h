@@ -53,6 +53,7 @@ struct BtorSATMgr
     void *state;
   } term;
 
+  bool have_restore;
   struct
   {
     void (*add) (BtorSATMgr *, int32_t); /* required */

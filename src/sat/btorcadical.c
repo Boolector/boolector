@@ -146,6 +146,10 @@ btor_sat_enable_cadical (BtorSATMgr *smgr)
     smgr->api.inc_max_var = inc_max_var;
     smgr->api.melt        = melt;
   }
+  else
+  {
+    smgr->have_restore = true;
+  }
 
   return true;
 }

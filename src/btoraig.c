@@ -108,6 +108,7 @@ release_cnf_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (aig->cnf_id > 0);
   assert ((size_t) aig->cnf_id < BTOR_SIZE_STACK (amgr->cnfid2aig));
   assert (amgr->cnfid2aig.start[aig->cnf_id] == aig->id);
+  if (amgr->smgr->have_restore) return;
   amgr->cnfid2aig.start[aig->cnf_id] = 0;
   btor_sat_mgr_release_cnf_id (amgr->smgr, aig->cnf_id);
   aig->cnf_id = 0;
