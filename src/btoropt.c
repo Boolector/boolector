@@ -1299,6 +1299,16 @@ btor_opt_init_opts (Btor *btor)
             1,
             "fork lingeling");
   init_opt (btor,
+            BTOR_OPT_SAT_ENGINE_CADICAL_FREEZE,
+            true,
+            true,
+            "sat-engine-cadical-freeze",
+            0,
+            0,
+            0,
+            1,
+            "use CaDiCaL's freeze/melt API");
+  init_opt (btor,
             BTOR_OPT_INCREMENTAL_RW,
             true,
             true,
