@@ -2377,6 +2377,14 @@ const char *boolector_copyright (Btor *btor);
 */
 const char *boolector_version (Btor *btor);
 
+/*!
+  Get Boolector's git id string.
+
+  :param btor: Boolector instance.
+  :return: A string with Boolector's git id.
+*/
+const char *boolector_git_id (Btor *btor);
+
 /*------------------------------------------------------------------------*/
 #if __cplusplus
 }

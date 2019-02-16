@@ -261,6 +261,14 @@ btor_version (const Btor *btor)
   return BTOR_VERSION;
 }
 
+const char *
+btor_git_id (const Btor *btor)
+{
+  assert (btor);
+  (void) btor;
+  return BTOR_GIT_ID;
+}
+
 BtorAIGMgr *
 btor_get_aig_mgr (const Btor *btor)
 {

@@ -591,3 +591,6 @@ cdef extern from "boolector.h":
 
     const char * boolector_version (Btor * btor) \
       except +raise_py_error
+
+    const char * boolector_git_id (Btor * btor) \
+      except +raise_py_error

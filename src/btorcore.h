@@ -247,6 +247,9 @@ void btor_delete (Btor *btor);
 /* Gets version. */
 const char *btor_version (const Btor *btor);
 
+/* Gets id. */
+const char *btor_git_id (const Btor *btor);
+
 /* Set termination callback. */
 void btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state);
 
