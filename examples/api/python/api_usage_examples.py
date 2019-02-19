@@ -411,3 +411,9 @@ if __name__ == "__main__":
     res       = bbb.Sat()
     if res == bbb.SAT: print("result: SAT")
     else             : print("result: UNSAT")
+
+### Check tracing API
+    os.environ["BTORAPITRACE"] = "btor.trace"
+    bbbb = Boolector()
+    print("Available Boolector options:")
+    print("\n".join(["  " + str(o) for o in b.Options()]))

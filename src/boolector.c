@@ -1092,7 +1092,7 @@ boolector_has_opt (Btor *btor, BtorOption opt)
 {
   bool res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%s", opt == BTOR_OPT_NUM_OPTS ? "BTOR_OPT_NUM_OPTS" : btor_opt_get_lng (btor, opt));
   res = btor_opt_is_valid (btor, opt);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
