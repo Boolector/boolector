@@ -11,12 +11,14 @@ wget http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
 mv picosat-965/* .
 rmdir picosat-965
-case "$(uname -s)" in
-   CYGWIN*|MINGW32*|MSYS*)
-     patch -p1 < ../../contrib/windows_patches/picosat-965.patch
-     EXTRA_FLAGS="--optimize --no-stats --no-trace"
-     ;;
-esac
+
+if is_windows; then
+  component="PicoSAT"
+  last_patch_date="20190110"
+  test_apply_patch "${component}" "${last_patch_date}"
+  EXTRA_FLAGS="--optimize --no-stats --no-trace"
+fi
+
 ./configure.sh --shared ${EXTRA_FLAGS}
 make -j${NPROC} libpicosat.a libpicosat.so
 install_lib libpicosat.a
