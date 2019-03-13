@@ -1234,7 +1234,7 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT (btor_node_bv_get_width (btor, e0) != 1
                   || btor_node_bv_get_width (btor, e1) != 1,
-              "bit-width of 'e0' and 'e1' have be 1");
+              "bit-width of 'e0' and 'e1' must be 1");
   res = btor_exp_implies (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
