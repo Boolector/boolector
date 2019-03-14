@@ -300,6 +300,7 @@ typedef struct BtorSMT2Item
 } BtorSMT2Item;
 
 BTOR_DECLARE_STACK (BtorSMT2Item, BtorSMT2Item);
+BTOR_DECLARE_STACK (BtorSMT2NodePtr, BtorSMT2Node *);
 BTOR_DECLARE_STACK (BtorPtr, Btor *);
 BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
 
@@ -536,18 +537,32 @@ enlarge_symbol_table_smt2 (BtorSMT2Parser *parser)
 {
   uint32_t old_size        = parser->symbol.size;
   uint32_t new_size        = old_size ? 2 * old_size : 1;
-  BtorSMT2Node **old_table = parser->symbol.table, *p, *next, **q;
+  BtorSMT2Node **old_table = parser->symbol.table, *p, **q;
+  BtorSMT2NodePtrStack chain;
   uint32_t h, i;
   BTOR_CNEWN (parser->mem, parser->symbol.table, new_size);
   parser->symbol.size = new_size;
+
+  /* Note: A symbol can occur multiple times in the collision chain due to
+   *       shadowing of symbols in binders. Thus, it's important that the
+   *       order of the symbols stays the same. Otherwise, find_symbol_smt2
+   *       won't find the correct symbol for the current scope. */
+  BTOR_INIT_STACK (parser->mem, chain);
   for (i = 0; i < old_size; i++)
-    for (p = old_table[i]; p; p = next)
+  {
+    for (p = old_table[i]; p; p = p->next)
     {
-      next    = p->next;
+      BTOR_PUSH_STACK (chain, p);
+    }
+    while (!BTOR_EMPTY_STACK (chain))
+    {
+      p       = BTOR_POP_STACK (chain);
       h       = hash_name_smt2 (parser, p->name);
       p->next = *(q = parser->symbol.table + h);
       *q      = p;
     }
+  }
+  BTOR_RELEASE_STACK (chain);
   BTOR_DELETEN (parser->mem, old_table, old_size);
 }
 
