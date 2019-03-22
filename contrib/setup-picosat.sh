@@ -18,7 +18,7 @@ case "$(uname -s)" in
      ;;
 esac
 ./configure.sh --shared ${EXTRA_FLAGS}
-make -j${NPROC}
+make -j${NPROC} libpicosat.a libpicosat.so
 install_lib libpicosat.a
 install_lib libpicosat.so
 install_include picosat.h
