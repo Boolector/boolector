@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -806,6 +806,48 @@ test_ones_bitvec (void)
     BTOR_CNEWN (g_mm, s, i + 1);
     memset (s, '1', i);
     sbv = btor_bv_to_char (g_mm, bv);
+    assert (!strcmp (s, sbv));
+    btor_bv_free (g_mm, bv);
+    BTOR_DELETEN (g_mm, s, i + 1);
+    btor_mem_freestr (g_mm, sbv);
+  }
+}
+
+static void
+test_min_signed_bitvec (void)
+{
+  int32_t i;
+  char *s, *sbv;
+  BtorBitVector *bv;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv = btor_bv_min_signed (g_mm, i);
+    BTOR_CNEWN (g_mm, s, i + 1);
+    memset (s, '0', i);
+    s[0] = '1';
+    sbv  = btor_bv_to_char (g_mm, bv);
+    assert (!strcmp (s, sbv));
+    btor_bv_free (g_mm, bv);
+    BTOR_DELETEN (g_mm, s, i + 1);
+    btor_mem_freestr (g_mm, sbv);
+  }
+}
+
+static void
+test_max_signed_bitvec (void)
+{
+  int32_t i;
+  char *s, *sbv;
+  BtorBitVector *bv;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv = btor_bv_max_signed (g_mm, i);
+    BTOR_CNEWN (g_mm, s, i + 1);
+    memset (s, '1', i);
+    s[0] = '0';
+    sbv  = btor_bv_to_char (g_mm, bv);
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
@@ -1979,6 +2021,8 @@ run_bitvec_tests (int32_t argc, char **argv)
 
   BTOR_RUN_TEST (one_bitvec);
   BTOR_RUN_TEST (ones_bitvec);
+  BTOR_RUN_TEST (min_signed_bitvec);
+  BTOR_RUN_TEST (max_signed_bitvec);
 
   BTOR_RUN_TEST (not_bitvec);
   BTOR_RUN_TEST (neg_bitvec);
