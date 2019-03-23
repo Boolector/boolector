@@ -827,6 +827,7 @@ test_min_signed_bitvec (void)
     memset (s, '0', i);
     s[0] = '1';
     sbv  = btor_bv_to_char (g_mm, bv);
+    assert (btor_bv_is_min_signed (bv));
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
@@ -848,6 +849,7 @@ test_max_signed_bitvec (void)
     memset (s, '1', i);
     s[0] = '0';
     sbv  = btor_bv_to_char (g_mm, bv);
+    assert (btor_bv_is_max_signed (bv));
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);

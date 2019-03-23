@@ -718,6 +718,40 @@ btor_bv_is_one (const BtorBitVector *bv)
   return true;
 }
 
+bool
+btor_bv_is_min_signed (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i;
+
+  if (bv->bits[0] != (1u << ((bv->width % BTOR_BV_TYPE_BW) - 1))) return false;
+  for (i = 1; i < bv->len; i++)
+    if (bv->bits[i] != 0) return false;
+  return true;
+}
+
+bool
+btor_bv_is_max_signed (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i, msc;
+
+  msc = (BTOR_BV_TYPE_BW - (bv->width % BTOR_BV_TYPE_BW) + 1);
+  if (msc == BTOR_BV_TYPE_BW)
+  {
+    if (bv->bits[0] != 0) return false;
+  }
+  else if (bv->bits[0] != (~0u >> msc))
+  {
+    return false;
+  }
+  for (i = 1; i < bv->len; i++)
+    if (bv->bits[i] != ~0u) return false;
+  return true;
+}
+
 int64_t
 btor_bv_power_of_two (const BtorBitVector *bv)
 {

@@ -109,6 +109,8 @@ bool btor_bv_is_false (const BtorBitVector *bv);
 bool btor_bv_is_zero (const BtorBitVector *bv);
 bool btor_bv_is_ones (const BtorBitVector *bv);
 bool btor_bv_is_one (const BtorBitVector *bv);
+bool btor_bv_is_min_signed (const BtorBitVector *bv);
+bool btor_bv_is_max_signed (const BtorBitVector *bv);
 
 /* return p for bv = 2^p, and -1 if bv is not a power of 2 */
 int64_t btor_bv_power_of_two (const BtorBitVector *bv);
