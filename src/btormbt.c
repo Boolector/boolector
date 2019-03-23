@@ -243,6 +243,8 @@ typedef enum BtorMBTOperator
   ZERO,
   FALSE,
   ONES,
+  MIN_SIGNED,
+  MAX_SIGNED,
   TRUE,
   ONE,
   UINT,
@@ -1490,6 +1492,8 @@ btormbt_const (BtorMBT *mbt)
     case ZERO: node = boolector_zero (mbt->btor, s); break;
     case FALSE: node = boolector_false (mbt->btor); break;
     case ONES: node = boolector_ones (mbt->btor, s); break;
+    case MIN_SIGNED: node = boolector_min_signed (mbt->btor, s); break;
+    case MAX_SIGNED: node = boolector_max_signed (mbt->btor, s); break;
     case TRUE: node = boolector_true (mbt->btor); break;
     case ONE: node = boolector_one (mbt->btor, s); break;
     case UINT: node = boolector_unsigned_int (mbt->btor, val, s); break;
