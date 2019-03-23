@@ -862,6 +862,18 @@ NEXT:
       ret_ptr = boolector_one (btor, get_sort (hmap, arg1_str));
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "min_signed"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = boolector_min_signed (btor, get_sort (hmap, arg1_str));
+      exp_ret = RET_VOIDPTR;
+    }
+    else if (!strcmp (tok, "max_signed"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = boolector_max_signed (btor, get_sort (hmap, arg1_str));
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "unsigned_int"))
     {
       PARSE_ARGS2 (tok, int, str);

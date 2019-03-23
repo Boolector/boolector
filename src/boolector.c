@@ -1493,6 +1493,46 @@ boolector_one (Btor *btor, BoolectorSort sort)
 }
 
 BoolectorNode *
+boolector_min_signed (Btor *btor, BoolectorSort sort)
+{
+  BtorNode *res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bv (btor, s), "'sort' is not a bit vector sort");
+  res = btor_exp_bv_min_signed (btor, s);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, min_signed, sort);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_max_signed (Btor *btor, BoolectorSort sort)
+{
+  BtorNode *res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bv (btor, s), "'sort' is not a bit vector sort");
+  res = btor_exp_bv_max_signed (btor, s);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, max_signed, sort);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_unsigned_int (Btor *btor, uint32_t u, BoolectorSort sort)
 {
   BtorNode *res;

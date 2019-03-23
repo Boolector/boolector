@@ -715,6 +715,26 @@ BoolectorNode *boolector_ones (Btor *btor, BoolectorSort sort);
 BoolectorNode *boolector_one (Btor *btor, BoolectorSort sort);
 
 /*!
+  Create bit-vector minimum signed value constant of sort ``sort``.
+
+  :param btor: Boolector instance.
+  :param sort: Sort of constant.
+  :return: Bit-vector constant representing the minimum signed value
+           of sort ``sort``.
+*/
+BoolectorNode *boolector_min_signed (Btor *btor, BoolectorSort sort);
+
+/*!
+  Create bit-vector maximum signed value constant of sort ``sort``.
+
+  :param btor: Boolector instance.
+  :param sort: Sort of constant.
+  :return: Bit-vector constant representing the minimum signed value
+           of sort ``sort``.
+*/
+BoolectorNode *boolector_max_signed (Btor *btor, BoolectorSort sort);
+
+/*!
   Create bit-vector constant representing the unsigned integer ``u`` of sort
   ``sort``.
 
