@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -159,6 +159,74 @@ test_one_exp (void)
   exp3 = btor_exp_bv_const (g_btor, bv3);
   assert (!btor_node_is_bv_const_one (g_btor, exp3));
   assert (btor_node_is_bv_const_one (g_btor, btor_node_invert (exp3)));
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
+  btor_node_release (g_btor, exp1);
+  btor_node_release (g_btor, exp2);
+  btor_node_release (g_btor, exp3);
+  btor_bv_free (g_btor->mm, bv2);
+  btor_bv_free (g_btor->mm, bv3);
+  finish_exp_test ();
+}
+
+static void
+test_min_signed_exp (void)
+{
+  BtorNode *exp1, *exp2, *exp3;
+  BtorBitVector *bv2, *bv3;
+  BtorSortId sort;
+
+  init_exp_test ();
+
+  sort = btor_sort_bv (g_btor, 8);
+  exp1 = btor_exp_bv_min_signed (g_btor, sort);
+  btor_sort_release (g_btor, sort);
+  bv2  = btor_bv_min_signed (g_btor->mm, 8);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
+  assert (exp1 == exp2);
+  assert (btor_node_bv_get_width (g_btor, exp1) == 8);
+  assert (btor_node_bv_get_width (g_btor, exp2) == 8);
+  assert (btor_node_is_bv_const_min_signed (g_btor, exp1));
+  assert (btor_node_is_bv_const_min_signed (g_btor, exp2));
+  assert (!btor_node_is_bv_const_min_signed (g_btor, btor_node_invert (exp1)));
+  assert (!btor_node_is_bv_const_min_signed (g_btor, btor_node_invert (exp2)));
+  bv3  = btor_bv_char_to_bv (g_btor->mm, "01111111");
+  exp3 = btor_exp_bv_const (g_btor, bv3);
+  assert (!btor_node_is_bv_const_min_signed (g_btor, exp3));
+  assert (btor_node_is_bv_const_min_signed (g_btor, btor_node_invert (exp3)));
+  btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
+  btor_node_release (g_btor, exp1);
+  btor_node_release (g_btor, exp2);
+  btor_node_release (g_btor, exp3);
+  btor_bv_free (g_btor->mm, bv2);
+  btor_bv_free (g_btor->mm, bv3);
+  finish_exp_test ();
+}
+
+static void
+test_max_signed_exp (void)
+{
+  BtorNode *exp1, *exp2, *exp3;
+  BtorBitVector *bv2, *bv3;
+  BtorSortId sort;
+
+  init_exp_test ();
+
+  sort = btor_sort_bv (g_btor, 8);
+  exp1 = btor_exp_bv_max_signed (g_btor, sort);
+  btor_sort_release (g_btor, sort);
+  bv2  = btor_bv_max_signed (g_btor->mm, 8);
+  exp2 = btor_exp_bv_const (g_btor, bv2);
+  assert (exp1 == exp2);
+  assert (btor_node_bv_get_width (g_btor, exp1) == 8);
+  assert (btor_node_bv_get_width (g_btor, exp2) == 8);
+  assert (btor_node_is_bv_const_max_signed (g_btor, exp1));
+  assert (btor_node_is_bv_const_max_signed (g_btor, exp2));
+  assert (!btor_node_is_bv_const_max_signed (g_btor, btor_node_invert (exp1)));
+  assert (!btor_node_is_bv_const_max_signed (g_btor, btor_node_invert (exp2)));
+  bv3  = btor_bv_char_to_bv (g_btor->mm, "10000000");
+  exp3 = btor_exp_bv_const (g_btor, bv3);
+  assert (!btor_node_is_bv_const_max_signed (g_btor, exp3));
+  assert (btor_node_is_bv_const_max_signed (g_btor, btor_node_invert (exp3)));
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp1);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
@@ -946,6 +1014,8 @@ run_exp_tests (int32_t argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (zero_exp);
   BTOR_RUN_TEST_CHECK_LOG (ones_exp);
   BTOR_RUN_TEST_CHECK_LOG (one_exp);
+  BTOR_RUN_TEST_CHECK_LOG (min_signed_exp);
+  BTOR_RUN_TEST_CHECK_LOG (max_signed_exp);
   BTOR_RUN_TEST_CHECK_LOG (unsigned_to_exp);
   BTOR_RUN_TEST_CHECK_LOG (var_exp);
   BTOR_RUN_TEST_CHECK_LOG (array_exp);

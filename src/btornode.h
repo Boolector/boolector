@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -515,6 +515,9 @@ btor_node_is_array_or_bv_eq (const BtorNode *exp)
 /*------------------------------------------------------------------------*/
 
 bool btor_node_is_bv_const_one (Btor *btor, BtorNode *exp);
+
+bool btor_node_is_bv_const_min_signed (Btor *btor, BtorNode *exp);
+bool btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp);
 
 bool btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res);
 
