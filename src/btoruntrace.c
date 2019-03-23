@@ -1403,7 +1403,7 @@ NEXT:
     else if (!strcmp (tok, "free_bits"))
     {
       PARSE_ARGS1 (tok, str);
-      boolector_free_bv_assignment (btor, hmap_get (hmap, arg1_str));
+      boolector_free_bits (btor, hmap_get (hmap, arg1_str));
     }
     else if (!strcmp (tok, "get_fun_arity"))
     {
