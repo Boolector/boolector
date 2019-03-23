@@ -580,7 +580,7 @@ run_test_case (int32_t argc,
   nl ();
 }
 
-void
+int32_t
 finish_tests (void)
 {
   nl ();
@@ -604,4 +604,6 @@ finish_tests (void)
           g_compared_succ,
           g_compared,
           terminal.std);
+
+  return g_compared != g_compared_succ;
 }

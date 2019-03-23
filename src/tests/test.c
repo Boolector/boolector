@@ -156,6 +156,5 @@ main (int32_t argc, char **argv)
   BTOR_RUN_TESTS (sort);
   BTOR_RUN_TESTS (int_hash_table);
   BTOR_RUN_TESTS (int_hash_map);
-  finish_tests ();
-  return 0;
+  return finish_tests ();
 }

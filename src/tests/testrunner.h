@@ -52,6 +52,6 @@ void run_test_case (int32_t argc,
                     char *name,
                     bool check_log_file);
 
-void finish_tests (void);
+int32_t finish_tests (void);
 
 #endif
