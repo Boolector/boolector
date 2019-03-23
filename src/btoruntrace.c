@@ -111,6 +111,7 @@ btorunt_new (void)
     btor_hashptr_table_add (res->btor_opts, lng)->data.as_ptr = opt;
   }
   res->line = 1;
+  boolector_delete(tmpbtor);
   return res;
 }
 
