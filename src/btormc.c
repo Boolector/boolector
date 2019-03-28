@@ -510,7 +510,7 @@ btor_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   assert (boolector_get_btor (init) == btor);
   /* Note: We allow constants to initialize arrays */
   assert (boolector_get_width (btor, node) == boolector_get_width (btor, init));
-  assert (!boolector_is_array (btor, node)
+  assert (!(boolector_is_array (btor, node) && !boolector_is_const (btor, init))
           || boolector_get_sort (btor, node)
                  == boolector_get_sort (btor, init));
 
@@ -814,7 +814,7 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
       dst = boolector_nodemap_substitute_node (mc->forward, map, state->init);
       dst = boolector_copy (mc->forward, dst);
       // special case: const initialization (constant array)
-      if (boolector_is_array (btor, src) && boolector_is_const (btor, src))
+      if (boolector_is_array (btor, src) && boolector_is_const (btor, state->init))
       {
         BoolectorSort si =
             boolector_bitvec_sort (fwd, boolector_get_index_width (btor, src));
