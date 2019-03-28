@@ -386,7 +386,7 @@ parse (FILE *file)
   size_t i;
   int32_t ch;
   bool delete;
-  uint32_t j, len, buffer_len, val;
+  uint32_t len, buffer_len, val;
   char *buffer, *tok, *basename;
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
@@ -535,10 +535,8 @@ NEXT:
     if (strcmp (tok, "new") && strcmp (tok, "get_btor"))
     {
       exp_str = parse_str_arg (tok);
-      len     = strlen (exp_str);
-      for (j = 0; j < len; j++) btor_str[j] = exp_str[j];
-      btor_str[j] = 0;
-      btor        = hmap_get (hmap, btor_str);
+      snprintf (btor_str, BTOR_STR_LEN, "%s", exp_str);
+      btor = hmap_get (hmap, btor_str);
       assert (btor);
     }
     if (!strcmp (tok, "chkclone"))
