@@ -1194,6 +1194,9 @@ check_last_forward_frame (BtorMC *mc)
               mc->call_backs.reached_at_bound.state, i, k);
         }
       }
+
+      if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
+        print_witness (mc, k);
     }
     else
     {
@@ -1208,9 +1211,6 @@ check_last_forward_frame (BtorMC *mc)
     if (btor_mc_get_opt (mc, BTOR_MC_OPT_BTOR_STATS))
       boolector_print_stats (mc->forward);
   }
-
-  if (satisfied && btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
-    print_witness (mc, k);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             1,
