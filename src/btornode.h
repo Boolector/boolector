@@ -514,7 +514,9 @@ btor_node_is_array_or_bv_eq (const BtorNode *exp)
 
 /*------------------------------------------------------------------------*/
 
+bool btor_node_is_bv_const_zero (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_one (Btor *btor, BtorNode *exp);
+bool btor_node_is_bv_const_ones (Btor *btor, BtorNode *exp);
 
 bool btor_node_is_bv_const_min_signed (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp);
