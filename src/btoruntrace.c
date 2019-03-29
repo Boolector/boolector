@@ -818,6 +818,63 @@ NEXT:
       PARSE_ARGS0 (tok);
       boolector_release_all (btor);
     }
+    else if (!strcmp (tok, "is_bv_const_zero"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool = boolector_is_bv_const_zero (btor, hmap_get (hmap, arg1_str));
+        exp_ret  = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "is_bv_const_one"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool = boolector_is_bv_const_one (btor, hmap_get (hmap, arg1_str));
+        exp_ret  = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "is_bv_const_ones"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool = boolector_is_bv_const_ones (btor, hmap_get (hmap, arg1_str));
+        exp_ret  = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "is_bv_const_min_signed"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool =
+            boolector_is_bv_const_min_signed (btor, hmap_get (hmap, arg1_str));
+        exp_ret = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "is_bv_const_max_signed"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_bool =
+            boolector_is_bv_const_max_signed (btor, hmap_get (hmap, arg1_str));
+        exp_ret = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
     /* expressions */
     else if (!strcmp (tok, "const"))
     {
