@@ -8,9 +8,11 @@
  */
 
 #include "simplifier/btorelimapplies.h"
+
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
+#include "btorlog.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
@@ -24,7 +26,8 @@ eliminate_update_nodes (Btor *btor)
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-    if (!cur || !btor_node_is_update (cur)) continue;
+    if (!cur || !btor_node_is_update (cur) || btor_node_is_simplified (cur))
+      continue;
     subst = btor_exp_lambda_write (btor, cur->e[0], cur->e[1]->e[0], cur->e[2]);
     btor_insert_substitution (btor, cur, subst, 0);
     btor_node_release (btor, subst);
@@ -44,6 +47,8 @@ btor_eliminate_applies (Btor *btor)
   BtorNodeIterator it;
   BtorPtrHashTableIterator h_it;
   BtorPtrHashTable *cache;
+  BtorPtrHashTable *substs;
+  BtorIntHashTable *app_cache;
 
   eliminate_update_nodes (btor);
 
@@ -54,6 +59,7 @@ btor_eliminate_applies (Btor *btor)
   cache = btor_hashptr_table_new (btor->mm,
                                   (BtorHashPtr) btor_node_pair_hash,
                                   (BtorCmpPtr) btor_node_pair_compare);
+  app_cache = btor_hashint_table_new (btor->mm);
 
   /* NOTE: in some cases substitute_and_rebuild creates applies that can be
    * beta-reduced. this can happen when parameterized applies become not
@@ -61,8 +67,13 @@ btor_eliminate_applies (Btor *btor)
    */
   do
   {
+    BTORLOG (1, "start apply elimination (round %u)", round);
+
     num_applies = 0;
-    btor_init_substitutions (btor);
+
+    substs = btor_hashptr_table_new (btor->mm,
+                                     (BtorHashPtr) btor_node_hash_by_id,
+                                     (BtorCmpPtr) btor_node_compare_by_id);
 
     /* collect function applications */
     btor_iter_hashptr_init (&h_it, btor->lambdas);
@@ -75,14 +86,19 @@ btor_eliminate_applies (Btor *btor)
       {
         app = btor_iter_apply_parent_next (&it);
 
+        if (btor_node_is_simplified (app)) continue;
+
+        if (btor_hashint_table_contains (app_cache, btor_node_get_id (app)))
+          continue;
+
         /* If we have quantifiers, we always want to eliminate lambdas. */
         if (btor->quantifiers->count == 0 && app->parameterized) continue;
 
         num_applies++;
         subst = btor_beta_reduce_full (btor, app, cache);
-        assert (!btor_hashptr_table_get (btor->substitutions, app));
-        btor_insert_substitution (btor, app, subst, false);
-        btor_node_release (btor, subst);
+        assert (!btor_hashptr_table_get (substs, app));
+        btor_hashptr_table_add (substs, app)->data.as_ptr = subst;
+        btor_hashint_table_add (app_cache, btor_node_get_id (app));
       }
     }
 
@@ -93,10 +109,20 @@ btor_eliminate_applies (Btor *btor)
               num_applies,
               round);
 
-    btor_substitute_and_rebuild (btor, btor->substitutions);
-    btor_delete_substitutions (btor);
+    btor_substitute_and_rebuild (btor, substs);
+
+    btor_iter_hashptr_init (&h_it, substs);
+    while (btor_iter_hashptr_has_next (&h_it))
+    {
+      btor_node_release (btor, btor_iter_hashptr_next_data (&h_it)->as_ptr);
+    }
+    btor_hashptr_table_delete (substs);
+
+    BTORLOG (1, "end apply elimination (round %u)", round);
     round++;
   } while (num_applies > 0);
+
+  btor_hashint_table_delete (app_cache);
 
 #ifndef NDEBUG
   btor_iter_hashptr_init (&h_it, btor->lambdas);
@@ -108,7 +134,8 @@ btor_eliminate_applies (Btor *btor)
     while (btor_iter_apply_parent_has_next (&it))
     {
       app = btor_iter_apply_parent_next (&it);
-      assert (app->parameterized);
+      assert (app->parameterized
+              || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
     }
   }
 #endif

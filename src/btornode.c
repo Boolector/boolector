@@ -985,7 +985,8 @@ btor_node_set_to_proxy (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (btor_node_is_regular (exp));
   assert (btor == exp->btor);
-  assert (exp->simplified);
+  assert (btor_node_is_simplified (exp));
+  assert (!btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
 
   uint32_t i;
   BtorNode *e[3];
@@ -2165,7 +2166,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
 
   uint32_t i;
   uint32_t binder_hash;
-  BtorNode **lookup, *simp_e[3];
+  BtorNode **lookup, *simp_e[3], *simp;
   BtorIntHashTable *params = 0;
 
   for (i = 0; i < arity; i++)
@@ -2232,6 +2233,13 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
     if (params) btor_hashint_table_delete (params);
   }
   assert (btor_node_is_regular (*lookup));
+  if (btor_node_is_simplified (*lookup))
+  {
+    assert (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+    simp = btor_node_copy (btor, btor_node_get_simplified (btor, *lookup));
+    btor_node_release (btor, *lookup);
+    return simp;
+  }
   return *lookup;
 }
 

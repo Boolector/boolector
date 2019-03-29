@@ -160,6 +160,94 @@ btor_dbg_check_assumptions_simp_free (const Btor *btor)
   return true;
 }
 
+bool
+btor_dbg_check_nodes_simp_free (Btor *btor, BtorNode *nodes[], size_t nnodes)
+{
+  size_t i;
+  int32_t id;
+  BtorNode *cur;
+  BtorPtrHashTableIterator it;
+  BtorIntHashTable *cache;
+  BtorPtrHashTable *rho;
+  BtorNodePtrStack visit;
+  bool opt_nondestr_subst;
+
+  BTOR_INIT_STACK (btor->mm, visit);
+  cache              = btor_hashint_table_new (btor->mm);
+  opt_nondestr_subst = btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST) == 1;
+
+  for (i = 0; i < nnodes; i++)
+  {
+    BTOR_PUSH_STACK (visit, nodes[i]);
+    BTORLOG (3, "  root: %s", btor_util_node2string (nodes[i]));
+  }
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
+    id  = btor_node_get_id (cur);
+    BTORLOG (3, "check simp free: %s", btor_util_node2string (cur));
+    if (opt_nondestr_subst && btor_node_is_synth (cur))
+    {
+      continue;
+    }
+    if (btor_node_is_simplified (cur))
+    {
+      BTORLOG (3,
+               "  simplified: %s",
+               btor_util_node2string (
+                   btor_pointer_chase_simplified_exp (btor, cur)));
+    }
+    assert (!btor_node_is_simplified (cur));
+
+    if (btor_hashint_table_contains (cache, id)) continue;
+
+    if (btor_node_is_lambda (cur)
+        && (rho = btor_node_lambda_get_static_rho (cur)))
+    {
+      btor_iter_hashptr_init (&it, rho);
+      while (btor_iter_hashptr_has_next (&it))
+      {
+        BTOR_PUSH_STACK (visit, it.bucket->data.as_ptr);
+        BTOR_PUSH_STACK (visit, btor_iter_hashptr_next (&it));
+      }
+    }
+
+    btor_hashint_table_add (cache, id);
+    for (i = 0; i < cur->arity; i++)
+    {
+      BTOR_PUSH_STACK (visit, cur->e[i]);
+    }
+  }
+
+  BTOR_RELEASE_STACK (visit);
+  btor_hashint_table_delete (cache);
+  return true;
+}
+
+bool
+btor_dbg_check_constraints_simp_free (Btor *btor)
+{
+  BtorNode *cur;
+  BtorNodePtrStack nodes;
+  BtorPtrHashTableIterator it;
+
+  BTOR_INIT_STACK (btor->mm, nodes);
+
+  btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = btor_iter_hashptr_next (&it);
+    BTOR_PUSH_STACK (nodes, cur);
+  }
+
+  btor_dbg_check_nodes_simp_free (btor, nodes.start, BTOR_COUNT_STACK (nodes));
+  BTOR_RELEASE_STACK (nodes);
+  return true;
+}
+
 /*------------------------------------------------------------------------*/
 /* exp                                                                    */
 /*------------------------------------------------------------------------*/

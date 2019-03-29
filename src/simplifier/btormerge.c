@@ -110,7 +110,16 @@ btor_merge_lambdas (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     lambda = btor_iter_hashptr_next (&it);
+    assert (!btor_node_is_simplified (lambda)
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+    lambda = btor_node_get_simplified (btor, lambda);
     assert (btor_node_is_regular (lambda));
+
+    if (!btor_node_is_lambda (lambda))
+    {
+      assert (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+      continue;
+    }
 
     /* found top lambda */
     parent = btor_node_real_addr (lambda->first_parent);
@@ -129,6 +138,9 @@ btor_merge_lambdas (Btor *btor)
   {
     lambda = BTOR_POP_STACK (stack);
     assert (btor_node_is_regular (lambda));
+    assert (!btor_node_is_simplified (lambda)
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+    lambda = btor_node_get_simplified (btor, lambda);
 
     if (btor_hashint_table_contains (mark_lambda, lambda->id)) continue;
 

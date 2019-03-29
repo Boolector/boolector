@@ -17,7 +17,9 @@
 Btor *btor_clone_btor (Btor *btor);
 
 /* Clone the expression layer of an existing boolector instance. */
-Btor *btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map);
+Btor *btor_clone_exp_layer (Btor *btor,
+                            BtorNodeMap **exp_map,
+                            bool clone_simplified);
 
 /* Clone the expression layer and no btor->slv */
 Btor *btor_clone_formula (Btor *btor);

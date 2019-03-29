@@ -10,9 +10,11 @@
  */
 
 #include "simplifier/btorunconstrained.h"
+
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
+#include "btorlog.h"
 #include "btormsg.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
@@ -47,11 +49,10 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
   assert (!btor_hashint_table_contains (uc, exp->id));
   btor_hashint_table_add (uc, exp->id);
 
-  BTOR_MSG (btor->msg,
-            2,
-            "found uc (%c) term %s",
-            exp->parameterized ? 'p' : 'n',
-            btor_util_node2string (exp));
+  BTORLOG (2,
+           "found uc (%c) term %s",
+           exp->parameterized ? 'p' : 'n',
+           btor_util_node2string (exp));
 
   if (exp->parameterized)
   {
@@ -101,6 +102,8 @@ btor_optimize_unconstrained (Btor *btor)
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 
+  BTORLOG (1, "start unconstrained optimization");
+
   start = btor_util_time_stamp ();
   mm    = btor->mm;
   BTOR_INIT_STACK (mm, stack);
@@ -120,11 +123,14 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = btor_iter_hashptr_next (&it);
     assert (btor_node_is_regular (cur));
+
+    if (btor_node_is_simplified (cur)) continue;
+
     if (cur->parents == 1)
     {
       cur_parent = btor_node_real_addr (cur->first_parent);
       btor_hashint_table_add (ucs, cur->id);
-      BTOR_MSG (btor->msg, 2, "found uc input %s", btor_util_node2string (cur));
+      BTORLOG (2, "found uc input %s", btor_util_node2string (cur));
       // TODO (ma): why not just collect ufs and vars?
       if (btor_node_is_uf (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
@@ -136,6 +142,11 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = BTOR_POP_STACK (stack);
     assert (btor_node_is_regular (cur));
+    assert (!btor_node_is_simplified (cur)
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+
+    if (btor_node_is_simplified (cur)) continue;
+
     if (!btor_hashint_map_contains (mark, cur->id))
     {
       btor_hashint_map_add (mark, cur->id);
@@ -265,6 +276,7 @@ btor_optimize_unconstrained (Btor *btor)
 
   delta = btor_util_time_stamp () - start;
   btor->time.ucopt += delta;
+  BTORLOG (1, "end unconstrained optimization");
   BTOR_MSG (btor->msg,
             1,
             "detected %u unconstrained terms in %.3f seconds",

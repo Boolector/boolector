@@ -823,7 +823,8 @@ btor_model_recursively_compute_assignment (Btor *btor,
     cur_parent = BTOR_POP_STACK (work_stack);
     cur        = BTOR_POP_STACK (work_stack);
     real_cur   = btor_node_real_addr (cur);
-    assert (!real_cur->simplified);
+    // TODO(ma): check if this is an issue for nondestructive subst
+    // assert (!btor_node_is_simplified (real_cur));
 
     if (btor_hashint_map_contains (bv_model, real_cur->id)
         || btor_hashint_map_contains (param_model_cache, real_cur->id))
@@ -858,7 +859,8 @@ btor_model_recursively_compute_assignment (Btor *btor,
        * it doesn't have one) */
       if (btor_node_is_bv_var (real_cur) || btor_node_is_fun_eq (real_cur))
       {
-        result = btor_bv_get_assignment (mm, real_cur);
+        result = btor_bv_get_assignment (
+            mm, btor_pointer_chase_simplified_exp (btor, real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (btor_node_is_bv_const (real_cur))
@@ -1072,7 +1074,8 @@ btor_model_recursively_compute_assignment (Btor *btor,
 
         case BTOR_UF_NODE:
           assert (btor_node_is_apply (cur_parent));
-          result = btor_bv_get_assignment (mm, cur_parent);
+          result = btor_bv_get_assignment (
+              mm, btor_pointer_chase_simplified_exp (btor, cur_parent));
           break;
 
         case BTOR_UPDATE_NODE:
@@ -1252,7 +1255,21 @@ btor_model_generate (Btor *btor,
       if (!cur || btor_node_is_args (cur) || btor_node_is_proxy (cur)
           || cur->parameterized)
         continue;
-      BTOR_PUSH_STACK (nodes, cur);
+      /* Note: Always push the simplified pointer here. If this is not done,
+       * simplified nodes are pushed onto the stack that may disappear after
+       * calling btor_node_get_simplified (...).
+       *
+       * For example:
+       *
+       * a->b->c
+       *
+       * 'b' is only referenced by 'a', but 'a' and 'b' get pushed onto the
+       * stack. If btor_node_get_simplified is called on 'a' it follows the
+       * simplified pointers to 'c' and frees 'b'.
+       */
+      assert (!btor_node_is_simplified (cur)
+              || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+      BTOR_PUSH_STACK (nodes, btor_node_get_simplified (btor, cur));
     }
   }
   else /* push nodes reachable from roots only */

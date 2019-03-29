@@ -491,7 +491,8 @@ clone_exp (Btor *clone,
            BtorNodePtrStack *rhos,
            BtorNodePtrStack *static_rhos,
            BtorNodeMap *exp_map,
-           bool exp_layer_only)
+           bool exp_layer_only,
+           bool clone_simplified)
 {
   assert (clone);
   assert (exp);
@@ -538,7 +539,14 @@ clone_exp (Btor *clone,
   BTOR_PUSH_STACK_IF (exp->next, *nodes, &res->next);
 
   assert (!btor_node_is_simplified (exp) || !btor_node_is_invalid (exp->simplified));
-  BTOR_PUSH_STACK_IF (exp->simplified, *nodes, &res->simplified);
+  if (clone_simplified || btor_node_is_proxy (exp))
+  {
+    BTOR_PUSH_STACK_IF (exp->simplified, *nodes, &res->simplified);
+  }
+  else
+  {
+    res->simplified = 0;
+  }
 
   res->btor = clone;
 
@@ -661,7 +669,8 @@ clone_nodes_id_table (Btor *btor,
                       BtorNodePtrStack *res,
                       BtorNodeMap *exp_map,
                       bool exp_layer_only,
-                      BtorNodePtrStack *rhos)
+                      BtorNodePtrStack *rhos,
+                      bool clone_simplified)
 {
   assert (btor);
   assert (clone);
@@ -705,7 +714,8 @@ clone_nodes_id_table (Btor *btor,
                                        rhos,
                                        &static_rhos,
                                        exp_map,
-                                       exp_layer_only)
+                                       exp_layer_only,
+                                       clone_simplified)
                           : 0;
       assert (!exp || res->start[i]->id > 0);
       assert (!exp || (size_t) res->start[i]->id == i);
@@ -856,7 +866,8 @@ static Btor *
 clone_aux_btor (Btor *btor,
                 BtorNodeMap **exp_map,
                 bool exp_layer_only,
-                bool clone_slv)
+                bool clone_slv,
+                bool clone_simplified)
 {
   assert (btor);
   assert (exp_layer_only
@@ -1059,8 +1070,13 @@ clone_aux_btor (Btor *btor,
 
   BTOR_INIT_STACK (btor->mm, rhos);
   BTORLOG_TIMESTAMP (delta);
-  clone_nodes_id_table (
-      btor, clone, &clone->nodes_id_table, emap, exp_layer_only, &rhos);
+  clone_nodes_id_table (btor,
+                        clone,
+                        &clone->nodes_id_table,
+                        emap,
+                        exp_layer_only,
+                        &rhos,
+                        clone_simplified);
   BTORLOG (
       2, "  clone nodes id table: %.3f s", (btor_util_time_stamp () - delta));
 #ifndef NDEBUG
@@ -1542,21 +1558,25 @@ btor_clone_btor (Btor *btor)
 {
   assert (btor);
   return clone_aux_btor (
-      btor, 0, !btor_sat_mgr_has_clone_support (btor_get_sat_mgr (btor)), true);
+      btor,
+      0,
+      !btor_sat_mgr_has_clone_support (btor_get_sat_mgr (btor)),
+      true,
+      true);
 }
 
 Btor *
-btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map)
+btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map, bool clone_simplified)
 {
   assert (btor);
-  return clone_aux_btor (btor, exp_map, true, true);
+  return clone_aux_btor (btor, exp_map, true, true, clone_simplified);
 }
 
 Btor *
 btor_clone_formula (Btor *btor)
 {
   assert (btor);
-  return clone_aux_btor (btor, 0, true, false);
+  return clone_aux_btor (btor, 0, true, false, true);
 }
 
 BtorSortId

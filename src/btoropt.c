@@ -1350,6 +1350,16 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "enable zero_lower_slice rewrite");
+  init_opt (btor,
+            BTOR_OPT_NONDESTR_SUBST,
+            true,
+            true,
+            "nondestr-subst",
+            0,
+            0,
+            0,
+            1,
+            "enable non-destructive term substitutions");
 }
 
 void
@@ -1707,7 +1717,7 @@ btor_opt_log_opts (Btor *btor)
 
   for (opt = btor_opt_first (btor); btor_opt_is_valid (btor, opt);
        opt = btor_opt_next (btor, opt))
-    BTORLOG (2,
+    BTORLOG (3,
              "set option '%s' to %u",
              btor_opt_get_lng (btor, opt),
              btor_opt_get (btor, opt));

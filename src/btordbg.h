@@ -38,6 +38,12 @@ bool btor_dbg_check_constraints_not_const (const Btor* btor);
 
 bool btor_dbg_check_assumptions_simp_free (const Btor* btor);
 
+bool btor_dbg_check_constraints_simp_free (Btor* btor);
+
+bool btor_dbg_check_nodes_simp_free (Btor* btor,
+                                     BtorNode* nodes[],
+                                     size_t nnodes);
+
 /*------------------------------------------------------------------------*/
 /* exp                                                                    */
 /*------------------------------------------------------------------------*/

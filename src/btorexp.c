@@ -1731,9 +1731,11 @@ btor_exp_lambda (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (btor_node_is_regular (e_param));
   assert (btor == e_param->btor);
   assert (btor_node_is_param (e_param));
-  assert (!btor_node_real_addr (e_param)->simplified);
   assert (e_exp);
   assert (btor == btor_node_real_addr (e_exp)->btor);
+
+  e_param = btor_simplify_exp (btor, e_param);
+  e_exp   = btor_simplify_exp (btor, e_exp);
 
   BtorNode *result;
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)

@@ -10,8 +10,10 @@
  */
 
 #include "simplifier/btorelimslices.h"
+
 #include "btorcore.h"
 #include "btorexp.h"
+#include "btorlog.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
@@ -119,12 +121,17 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
   start = btor_util_time_stamp ();
   count = 0;
 
+  BTORLOG (1, "start slice elimination");
+
   mm = btor->mm;
   BTOR_INIT_STACK (mm, vars);
   for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
   {
+    if (b_var->data.flag) continue;
     var = (BtorNode *) b_var->key;
     BTOR_PUSH_STACK (vars, var);
+    /* mark as processed, required for non-destructive substiution */
+    b_var->data.flag = true;
   }
 
   while (!BTOR_EMPTY_STACK (vars))
@@ -299,5 +306,6 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
   delta = btor_util_time_stamp () - start;
   btor->time.slicing += delta;
+  BTORLOG (1, "end slice elimination");
   BTOR_MSG (btor->msg, 1, "sliced %u variables in %1.f seconds", count, delta);
 }

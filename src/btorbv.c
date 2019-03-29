@@ -426,6 +426,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp)
 {
   assert (mm);
   assert (exp);
+  assert (!btor_node_is_simplified (exp));
 
   BtorBitVector *res;
 

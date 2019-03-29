@@ -343,14 +343,15 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   if (btor->unsynthesized_constraints->count == 0) return 0;
 
   start = btor_util_time_stamp ();
-  clone = btor_clone_exp_layer (btor, exp_map);
+  clone = btor_clone_exp_layer (btor, exp_map, false);
   assert (!clone->synthesized_constraints->count);
+  assert (clone->embedded_constraints->count == 0);
   assert (clone->unsynthesized_constraints->count);
 
   btor_opt_set (clone, BTOR_OPT_MODEL_GEN, 0);
   btor_opt_set (clone, BTOR_OPT_INCREMENTAL, 1);
-  btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
-  btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
+  //  btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
+  //  btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
   assert (!btor_sat_is_initialized (btor_get_sat_mgr (clone)));
@@ -430,7 +431,8 @@ assume_inputs (Btor *btor,
     btor_bv_free (btor->mm, bv);
     bv_eq = btor_exp_eq (clone, cur_clone, bv_const);
     BTORLOG (1,
-             "assume input: %s (%s)",
+             "assume input: %s (%s = %s)",
+             btor_util_node2string (bv_eq),
              btor_util_node2string (cur_btor),
              btor_util_node2string (bv_const));
     btor_assume_exp (clone, bv_eq);
@@ -958,7 +960,10 @@ search_initial_applies_bv_skeleton (Btor *btor,
 
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
+      cur = BTOR_POP_STACK (stack);
+      assert (!btor_node_is_simplified (cur)
+              || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+      cur = btor_node_real_addr (btor_pointer_chase_simplified_exp (btor, cur));
 
       if (btor_hashint_table_contains (cache, cur->id)) continue;
 
@@ -1155,6 +1160,9 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 static bool
 equal_bv_assignments (BtorNode *exp0, BtorNode *exp1)
 {
+  assert (!btor_node_is_simplified (exp0));
+  assert (!btor_node_is_simplified (exp1));
+
   bool equal;
   Btor *btor;
   BtorBitVector *bv0, *bv1;
@@ -1175,6 +1183,8 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
   assert (btor_node_is_regular (e1));
   assert (btor_node_is_args (e0));
   assert (btor_node_is_args (e1));
+  assert (!btor_node_is_simplified (e0));
+  assert (!btor_node_is_simplified (e1));
 
   bool equal;
   BtorBitVector *bv0, *bv1;
@@ -1271,13 +1281,16 @@ collect_premisses (Btor *btor,
   {
     assert (btor_node_is_regular (to));
     assert (btor_node_is_fun (to));
+    assert (!btor_node_is_simplified (from->e[0])
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
 
-    cur = from->e[0];
+    cur = btor_node_get_simplified (btor, from->e[0]);
 
     for (;;)
     {
       assert (btor_node_is_regular (cur));
       assert (btor_node_is_fun (cur));
+      assert (!btor_node_is_simplified (cur));
 
       if (cur == to) break;
 
@@ -1343,6 +1356,9 @@ collect_premisses (Btor *btor,
 static BtorNode *
 mk_equal_args (Btor *btor, BtorNode *args1, BtorNode *args2)
 {
+  assert (!btor_node_is_simplified (args1));
+  assert (!btor_node_is_simplified (args2));
+
   BtorNode *arg1, *arg2, *eq, *tmp, *res = 0;
   BtorArgsIterator it1, it2;
 
@@ -1492,6 +1508,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app1, BtorNode *app2)
     btor_node_release (btor, con);
   }
 
+  assert (lemma != btor->true_exp);
   if (!btor_hashptr_table_get (slv->lemmas, lemma))
   {
     btor_hashptr_table_add (slv->lemmas, btor_node_copy (btor, lemma));
@@ -1546,7 +1563,11 @@ push_applies_for_propagation (Btor *btor,
   BTOR_PUSH_STACK (visit, exp);
   do
   {
-    cur = btor_node_real_addr (BTOR_POP_STACK (visit));
+    cur = BTOR_POP_STACK (visit);
+    assert (!btor_node_is_simplified (cur)
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+
+    cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
     assert (!cur->parameterized);
     assert (!btor_node_is_fun (cur));
 
@@ -1561,6 +1582,7 @@ push_applies_for_propagation (Btor *btor,
     {
       BTOR_PUSH_STACK (*prop_stack, cur);
       BTOR_PUSH_STACK (*prop_stack, cur->e[0]);
+      BTORLOG (2, "push apply: %s", btor_util_node2string (cur));
       continue;
     }
 
@@ -1645,7 +1667,8 @@ propagate (Btor *btor,
   BTORLOG (1, "*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*prop_stack))
   {
-    fun = BTOR_POP_STACK (*prop_stack);
+    fun =
+        btor_pointer_chase_simplified_exp (btor, BTOR_POP_STACK (*prop_stack));
     assert (btor_node_is_regular (fun));
     assert (btor_node_is_fun (fun));
     assert (!btor_node_is_simplified (fun));
@@ -1653,6 +1676,7 @@ propagate (Btor *btor,
     app = BTOR_POP_STACK (*prop_stack);
     assert (btor_node_is_regular (app));
     assert (btor_node_is_apply (app));
+    assert (!btor_node_is_simplified (app));
 
     conflict = false;
     restart  = true;
@@ -1671,6 +1695,9 @@ propagate (Btor *btor,
     args = app->e[1];
     assert (btor_node_is_regular (args));
     assert (btor_node_is_args (args));
+    assert (!btor_node_is_simplified (args)
+            || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+    args = btor_node_get_simplified (btor, args);
 
     push_applies_for_propagation (btor, args, prop_stack, apply_search_cache);
 
@@ -1710,7 +1737,7 @@ propagate (Btor *btor,
             restart = false;
           slv->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
-          conflict = true;
+          // conflict = true;
           /* stop at first conflict */
           if (restart) break;
         }
@@ -2006,8 +2033,9 @@ add_extensionality_lemmas (Btor *btor)
   btor_iter_hashptr_init (&it, btor->feqs);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_iter_hashptr_next (&it);
-    assert (btor_node_is_fun_eq (cur));
+    cur =
+        btor_pointer_chase_simplified_exp (btor, btor_iter_hashptr_next (&it));
+    if (!btor_node_is_fun_eq (cur)) continue;
     BTOR_PUSH_STACK (feqs, cur);
   }
 
@@ -2289,6 +2317,7 @@ check_and_resolve_conflicts (Btor *btor,
     assert (!app->propagated);
     BTOR_PUSH_STACK (prop_stack, app);
     BTOR_PUSH_STACK (prop_stack, app->e[0]);
+    BTORLOG (2, "push apply: %s", btor_util_node2string (app));
   }
 
   propagate (btor, &prop_stack, cleanup_table, apply_search_cache);
