@@ -1429,6 +1429,105 @@ boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+/*------------------------------------------------------------------------*/
+
+bool
+boolector_is_bv_const_zero (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_zero (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_zero, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_one (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_one (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_one, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_ones (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_ones (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_ones, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_max_signed (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_max_signed (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_max_signed, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_min_signed (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_min_signed (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_min_signed, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 BoolectorNode *
 boolector_zero (Btor *btor, BoolectorSort sort)
 {

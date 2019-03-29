@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2013-2018 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
@@ -1489,13 +1489,37 @@ btormbt_const (BtorMBT *mbt)
       }
       BTOR_DELETEN (mbt->mm, bits, width + 1);
       break;
-    case ZERO: node = boolector_zero (mbt->btor, s); break;
-    case FALSE: node = boolector_false (mbt->btor); break;
-    case ONES: node = boolector_ones (mbt->btor, s); break;
-    case MIN_SIGNED: node = boolector_min_signed (mbt->btor, s); break;
-    case MAX_SIGNED: node = boolector_max_signed (mbt->btor, s); break;
-    case TRUE: node = boolector_true (mbt->btor); break;
-    case ONE: node = boolector_one (mbt->btor, s); break;
+    case ZERO:
+      node = boolector_zero (mbt->btor, s);
+      assert (boolector_is_bv_const_zero (mbt->btor, node));
+      break;
+    case FALSE:
+      node = boolector_false (mbt->btor);
+      assert (boolector_is_bv_const_zero (mbt->btor, node));
+      assert (boolector_is_bv_const_max_signed (mbt->btor, node));
+      break;
+    case ONES:
+      node = boolector_ones (mbt->btor, s);
+      assert (boolector_is_bv_const_ones (mbt->btor, node));
+      break;
+    case MIN_SIGNED:
+      node = boolector_min_signed (mbt->btor, s);
+      assert (boolector_is_bv_const_min_signed (mbt->btor, node));
+      break;
+    case MAX_SIGNED:
+      node = boolector_max_signed (mbt->btor, s);
+      assert (boolector_is_bv_const_max_signed (mbt->btor, node));
+      break;
+    case TRUE:
+      node = boolector_true (mbt->btor);
+      assert (boolector_is_bv_const_one (mbt->btor, node));
+      assert (boolector_is_bv_const_ones (mbt->btor, node));
+      assert (boolector_is_bv_const_min_signed (mbt->btor, node));
+      break;
+    case ONE:
+      node = boolector_one (mbt->btor, s);
+      assert (boolector_is_bv_const_one (mbt->btor, node));
+      break;
     case UINT: node = boolector_unsigned_int (mbt->btor, val, s); break;
     default: assert (op == INT); node = boolector_int (mbt->btor, val, s);
   }
