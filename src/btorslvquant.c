@@ -2803,6 +2803,7 @@ print_model_quant_solver (BtorQuantSolver *slv, const char *format, FILE *file)
   {
     if (slv->gslv->forall_synth_model)
     {
+      format = "smt2";  /* Force SMT2 models */
       fprintf (
           file, "(model%s", slv->gslv->forall_synth_model->count ? "\n" : " ");
 

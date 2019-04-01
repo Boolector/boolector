@@ -4332,8 +4332,6 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
-  BTOR_ABORT (btor->quantifiers->count,
-              "models are currently not supported with quantifiers");
   btor_print_model (btor, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_model, format, file);
