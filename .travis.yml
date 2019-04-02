@@ -7,7 +7,7 @@ compiler:
   - clang
 
 git:
-  depth: 1
+  depth: 100
   quiet: true
 
 os:
