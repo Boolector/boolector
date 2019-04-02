@@ -25,7 +25,7 @@ struct BtorAIGMap;
 struct BtorAIGVec
 {
   uint32_t width;  /* width of the AIG vector (cf. bit-width) */
-  BtorAIG *aigs[]; /* vector of AIGs (LSB is at index 0) */
+  BtorAIG *aigs[]; /* vector of AIGs (MSB is at index 0) */
 };
 
 typedef struct BtorAIGVec BtorAIGVec;
