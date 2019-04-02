@@ -265,7 +265,8 @@ beta_reduce (Btor *btor,
         continue;
       }
       /* stop at nodes that do not need to be rebuilt */
-      else if (!real_cur->lambda_below && !real_cur->parameterized)
+      else if ((!real_cur->lambda_below && !real_cur->parameterized)
+               || btor_node_is_update (real_cur))
       {
         BTOR_PUSH_STACK (arg_stack, btor_node_copy (btor, cur));
         continue;

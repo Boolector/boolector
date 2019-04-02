@@ -412,15 +412,27 @@ btor_opt_init_opts (Btor *btor)
             1,
             "add ackermann constraints");
   init_opt (btor,
-            BTOR_OPT_BETA_REDUCE_ALL,
+            BTOR_OPT_BETA_REDUCE,
             false,
-            true,
-            "beta-reduce-all",
-            "bra",
-            0,
-            0,
-            1,
+            false,
+            "beta-reduce",
+            "br",
+            BTOR_BETA_REDUCE_DFLT,
+            BTOR_BETA_REDUCE_MIN,
+            BTOR_BETA_REDUCE_MAX,
             "eagerly eliminate lambda expressions");
+  opts = btor_hashptr_table_new (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  add_opt_help (mm, opts, "none", BTOR_BETA_REDUCE_NONE, "do not beta-reduce");
+  add_opt_help (
+      mm, opts, "fun", BTOR_BETA_REDUCE_FUN, "only beta-reduce functions");
+  add_opt_help (mm,
+                opts,
+                "all",
+                BTOR_BETA_REDUCE_ALL,
+                "beta-reduce functions and array-writes");
+  btor->options[BTOR_OPT_BETA_REDUCE].options = opts;
+
   init_opt (btor,
             BTOR_OPT_ELIMINATE_SLICES,
             false,

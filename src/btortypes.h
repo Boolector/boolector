@@ -263,12 +263,12 @@ enum BtorOption
   BTOR_OPT_ACKERMANN,
 
   /*!
-    * **BTOR_OPT_BETA_REDUCE_ALL**
+    * **BTOR_OPT_BETA_REDUCE**
 
       Enable (``value``: 1) or disable (``value``: 0) the eager elimination of
       lambda expressions via beta reduction.
   */
-  BTOR_OPT_BETA_REDUCE_ALL,
+  BTOR_OPT_BETA_REDUCE,
 
   /*!
     * **BTOR_OPT_ELIMINATE_SLICES**
@@ -857,6 +857,14 @@ enum BtorOption
   BTOR_OPT_NUM_OPTS,
 };
 typedef enum BtorOption BtorOption;
+
+enum BtorOptBetaReduceMode
+{
+  BTOR_BETA_REDUCE_NONE,
+  BTOR_BETA_REDUCE_FUN,
+  BTOR_BETA_REDUCE_ALL,
+};
+typedef enum BtorOptBetaReduceMode BtorOptBetaReduceMode;
 
 /* Callback function to be executed on abort, primarily intended to be used for
  * plugging in exception handling. */

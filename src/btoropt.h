@@ -213,6 +213,10 @@ enum BtorOptIncrementalSMT1
 #define BTOR_INCREMENTAL_SMT1_DFLT BTOR_INCREMENTAL_SMT1_BASIC
 typedef enum BtorOptIncrementalSMT1 BtorOptIncrementalSMT1;
 
+#define BTOR_BETA_REDUCE_MIN BTOR_BETA_REDUCE_NONE
+#define BTOR_BETA_REDUCE_MAX BTOR_BETA_REDUCE_ALL
+#define BTOR_BETA_REDUCE_DFLT BTOR_BETA_REDUCE_NONE
+
 /*------------------------------------------------------------------------*/
 
 void btor_opt_init_opts (Btor *btor);

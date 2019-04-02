@@ -849,7 +849,7 @@ print_help (BtorMainApp *app)
   {
     if (app->btor->options[o].internal) continue;
 
-    if (o == BTOR_OPT_AUTO_CLEANUP || o == BTOR_OPT_BETA_REDUCE_ALL
+    if (o == BTOR_OPT_AUTO_CLEANUP || o == BTOR_OPT_BETA_REDUCE
         || o == BTOR_OPT_INCREMENTAL || o == BTOR_OPT_INPUT_FORMAT
         || o == BTOR_OPT_ENGINE || o == BTOR_OPT_REWRITE_LEVEL
         || o == BTOR_OPT_SORT_EXP

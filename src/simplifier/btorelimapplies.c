@@ -50,7 +50,10 @@ btor_eliminate_applies (Btor *btor)
   BtorPtrHashTable *substs;
   BtorIntHashTable *app_cache;
 
-  eliminate_update_nodes (btor);
+  if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE) == BTOR_BETA_REDUCE_ALL)
+  {
+    eliminate_update_nodes (btor);
+  }
 
   if (btor->lambdas->count == 0) return;
 

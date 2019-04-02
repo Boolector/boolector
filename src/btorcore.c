@@ -656,7 +656,7 @@ btor_print_stats (Btor *btor)
               btor->time.merge,
               percent (btor->time.merge, btor->time.simplify));
 
-  if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL))
+  if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE))
     BTOR_MSG (btor->msg,
               1,
               "    %.2f seconds apply elimination (%.0f%%)",
@@ -3607,7 +3607,7 @@ btor_simplify (Btor *btor)
       continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL))
+    if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE))
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
@@ -4133,7 +4133,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   /* eliminate lambdas (define-fun) in the QF_BV case */
   if (btor->ufs->count == 0 && btor->feqs->count == 0
       && btor->lambdas->count > 0)
-    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_FUN);
 
   // FIXME (ma): not sound with slice elimination. see red-vsl.proof3106.smt2
   /* disabling slice elimination is better on QF_ABV and BV */
@@ -4143,7 +4143,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   if (btor->quantifiers->count > 0)
   {
     btor_opt_set (btor, BTOR_OPT_UCOPT, 0);
-    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_ALL);
   }
 
   /* FIXME: disable options that potentially slow down incremental mode */
@@ -4170,21 +4170,21 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
           && btor->feqs->count == 0)
       {
         assert (btor->lambdas->count == 0
-                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL));
+                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
         btor->slv = btor_new_sls_solver (btor);
       }
       else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
                && btor->feqs->count == 0)
       {
         assert (btor->lambdas->count == 0
-                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL));
+                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
         btor->slv = btor_new_prop_solver (btor);
       }
       else if (engine == BTOR_ENGINE_AIGPROP && btor->ufs->count == 0
                && btor->feqs->count == 0)
       {
         assert (btor->lambdas->count == 0
-                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL));
+                || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
         btor->slv = btor_new_aigprop_solver (btor);
       }
       else if ((engine == BTOR_ENGINE_QUANT && btor->quantifiers->count > 0)
@@ -4603,7 +4603,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   /* apply variable substitution until fixpoint */
   while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
 
-  btor_opt_set (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
+  btor_opt_set (clone, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_ALL);
   ret = btor_simplify (clone);
 
   // btor_print_model (btor, "btor", stdout);

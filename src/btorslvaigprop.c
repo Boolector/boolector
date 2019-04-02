@@ -211,7 +211,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   }
 
   BTOR_ABORT (btor->ufs->count != 0
-                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                  || (!btor_opt_get (btor, BTOR_OPT_BETA_REDUCE)
                       && btor->lambdas->count != 0),
               "aigprop engine supports QF_BV only");
 
