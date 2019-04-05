@@ -16,6 +16,7 @@
 #include "btordbg.h"
 
 #include <limits.h>
+#include "btorlog.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
@@ -59,7 +60,14 @@ btor_dbg_check_unique_table_children_proxy_free (const Btor *btor)
   for (i = 0; i < btor->nodes_unique_table.size; i++)
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
       for (j = 0; j < cur->arity; j++)
-        if (btor_node_is_proxy (cur->e[j])) return false;
+        if (btor_node_is_proxy (cur->e[j]))
+        {
+          BTORLOG (1,
+                   "found proxy node in unique table: %s (parent: %s)",
+                   btor_util_node2string (cur->e[j]),
+                   btor_util_node2string (cur));
+          return false;
+        }
   return true;
 }
 
