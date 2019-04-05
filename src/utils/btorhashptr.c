@@ -101,6 +101,7 @@ btor_hashptr_table_clone (BtorMemMgr *mm,
     cloned_key = ckey (mm, key_map, key);
     assert (cloned_key);
     cloned_b = btor_hashptr_table_add (res, cloned_key);
+    cloned_b->data.flag = b->data.flag;
     if (!cdata)
       assert (b->data.as_ptr == 0);
     else
