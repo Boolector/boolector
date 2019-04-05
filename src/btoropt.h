@@ -219,16 +219,16 @@ void btor_opt_init_opts (Btor *btor);
 void btor_opt_clone_opts (Btor *btor, Btor *clone);
 void btor_opt_delete_opts (Btor *btor);
 
-bool btor_opt_is_valid (Btor *btor, const BtorOption opt);
+bool btor_opt_is_valid (const Btor *btor, const BtorOption opt);
 
-uint32_t btor_opt_get (Btor *btor, const BtorOption opt);
-uint32_t btor_opt_get_min (Btor *btor, const BtorOption opt);
-uint32_t btor_opt_get_max (Btor *btor, const BtorOption opt);
-uint32_t btor_opt_get_dflt (Btor *btor, const BtorOption opt);
-const char *btor_opt_get_lng (Btor *btor, const BtorOption opt);
-const char *btor_opt_get_shrt (Btor *btor, const BtorOption opt);
-const char *btor_opt_get_desc (Btor *btor, const BtorOption opt);
-const char *btor_opt_get_valstr (Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get (const Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_min (const Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_max (const Btor *btor, const BtorOption opt);
+uint32_t btor_opt_get_dflt (const Btor *btor, const BtorOption opt);
+const char *btor_opt_get_lng (const Btor *btor, const BtorOption opt);
+const char *btor_opt_get_shrt (const Btor *btor, const BtorOption opt);
+const char *btor_opt_get_desc (const Btor *btor, const BtorOption opt);
+const char *btor_opt_get_valstr (const Btor *btor, const BtorOption opt);
 
 void btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val);
 void btor_opt_set_str (Btor *btor, const BtorOption opt, const char *str);
