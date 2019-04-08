@@ -603,6 +603,12 @@ void btor_node_dec_ext_ref_counter (Btor *btor, BtorNode *e);
  * NOTE: 'exp' must be already simplified */
 void btor_node_set_to_proxy (Btor *btor, BtorNode *exp);
 
+static inline bool
+btor_node_is_simplified (const BtorNode *exp)
+{
+  return btor_node_real_addr (exp)->simplified != 0;
+}
+
 /*------------------------------------------------------------------------*/
 
 /* Set parsed id (BTOR format only, needed for model output). */

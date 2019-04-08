@@ -537,7 +537,7 @@ clone_exp (Btor *clone,
   assert (!exp->next || !btor_node_is_invalid (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, *nodes, &res->next);
 
-  assert (!exp->simplified || !btor_node_is_invalid (exp->simplified));
+  assert (!btor_node_is_simplified (exp) || !btor_node_is_invalid (exp->simplified));
   BTOR_PUSH_STACK_IF (exp->simplified, *nodes, &res->simplified);
 
   res->btor = clone;

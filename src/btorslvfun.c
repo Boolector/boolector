@@ -1648,7 +1648,7 @@ propagate (Btor *btor,
     fun = BTOR_POP_STACK (*prop_stack);
     assert (btor_node_is_regular (fun));
     assert (btor_node_is_fun (fun));
-    assert (!fun->simplified);
+    assert (!btor_node_is_simplified (fun));
     assert (!BTOR_EMPTY_STACK (*prop_stack));
     app = BTOR_POP_STACK (*prop_stack);
     assert (btor_node_is_regular (app));
@@ -2513,7 +2513,7 @@ sat_fun_solver (BtorFunSolver *slv)
     for (i = 0; i < BTOR_COUNT_STACK (slv->cur_lemmas); i++)
     {
       lemma = BTOR_PEEK_STACK (slv->cur_lemmas, i);
-      assert (!btor_node_real_addr (lemma)->simplified);
+      assert (!btor_node_is_simplified (lemma));
       // TODO (ma): use btor_assert_exp?
       if (slv->assume_lemmas)
         btor_assume_exp (btor, lemma);
@@ -2834,7 +2834,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   {
     cur      = BTOR_POP_STACK (work_stack);
     real_cur = btor_node_real_addr (cur);
-    assert (!real_cur->simplified);
+    assert (!btor_node_is_simplified (real_cur));
 
     d = btor_hashint_map_get (mark, real_cur->id);
 
