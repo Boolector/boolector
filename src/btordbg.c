@@ -106,7 +106,7 @@ btor_dbg_check_hash_table_simp_free (BtorPtrHashTable *table)
   BtorPtrHashTableIterator it;
   btor_iter_hashptr_init (&it, table);
   while (btor_iter_hashptr_has_next (&it))
-    if (btor_node_real_addr (btor_iter_hashptr_next (&it))->simplified)
+    if (btor_node_is_simplified (btor_iter_hashptr_next (&it)))
       return false;
   return true;
 }
@@ -155,7 +155,7 @@ btor_dbg_check_assumptions_simp_free (const Btor *btor)
   BtorPtrHashTableIterator it;
   btor_iter_hashptr_init (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
-    if (btor_node_real_addr (btor_iter_hashptr_next (&it))->simplified)
+    if (btor_node_is_simplified (btor_iter_hashptr_next (&it)))
       return false;
   return true;
 }
@@ -172,7 +172,7 @@ btor_dbg_precond_slice_exp (Btor *btor,
 {
   assert (btor);
   assert (exp);
-  assert (!btor_node_real_addr (exp)->simplified);
+  assert (!btor_node_is_simplified (exp));
   assert (!btor_node_is_fun (exp));
   assert (upper >= lower);
   assert (upper < btor_node_bv_get_width (btor, exp));
@@ -192,7 +192,7 @@ btor_dbg_precond_regular_unary_bv_exp (Btor *btor, const BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (!btor_node_real_addr (exp)->simplified);
+  assert (!btor_node_is_simplified (exp));
   assert (!btor_node_is_fun (exp));
   assert (btor_node_real_addr (exp)->btor == btor);
   return true;
@@ -214,8 +214,8 @@ btor_dbg_precond_eq_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (real_e1);
   assert (real_e0->btor == btor);
   assert (real_e1->btor == btor);
-  assert (!real_e0->simplified);
-  assert (!real_e1->simplified);
+  assert (!btor_node_is_simplified (real_e0));
+  assert (!btor_node_is_simplified (real_e1));
   assert (btor_node_get_sort_id (real_e0) == btor_node_get_sort_id (real_e1));
   assert (real_e0->is_array == real_e1->is_array);
   assert (!btor_node_is_fun (real_e0)
@@ -229,8 +229,8 @@ btor_dbg_precond_concat_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (btor);
   assert (e0);
   assert (e1);
-  assert (!btor_node_real_addr (e0)->simplified);
-  assert (!btor_node_real_addr (e1)->simplified);
+  assert (!btor_node_is_simplified (e0));
+  assert (!btor_node_is_simplified (e1));
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
   assert (btor_node_bv_get_width (btor, e0)
@@ -246,8 +246,8 @@ btor_dbg_precond_shift_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (btor);
   assert (e0);
   assert (e1);
-  assert (!btor_node_real_addr (e0)->simplified);
-  assert (!btor_node_real_addr (e1)->simplified);
+  assert (!btor_node_is_simplified (e0));
+  assert (!btor_node_is_simplified (e1));
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
   assert (btor_node_bv_get_width (btor, e0) > 1);
@@ -267,8 +267,8 @@ btor_dbg_precond_regular_binary_bv_exp (Btor *btor,
   assert (btor);
   assert (e0);
   assert (e1);
-  assert (!btor_node_real_addr (e0)->simplified);
-  assert (!btor_node_real_addr (e1)->simplified);
+  assert (!btor_node_is_simplified (e0));
+  assert (!btor_node_is_simplified (e1));
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
   assert (btor_node_get_sort_id (e0) == btor_node_get_sort_id (e1));
@@ -287,8 +287,8 @@ btor_dbg_precond_read_exp (Btor *btor,
   assert (e_index);
   assert (btor_node_is_regular (e_array));
   assert (btor_node_is_fun (e_array));
-  assert (!e_array->simplified);
-  assert (!btor_node_real_addr (e_index)->simplified);
+  assert (!btor_node_is_simplified (e_array));
+  assert (!btor_node_is_simplified (e_index));
   assert (!btor_node_is_fun (e_index));
   assert (btor_sort_array_get_index (btor, btor_node_get_sort_id (e_array))
           == btor_node_get_sort_id (e_index));
@@ -310,9 +310,9 @@ btor_dbg_precond_write_exp (Btor *btor,
   assert (e_value);
   assert (btor_node_is_regular (e_array));
   assert (btor_node_is_fun (e_array));
-  assert (!e_array->simplified);
-  assert (!btor_node_real_addr (e_index)->simplified);
-  assert (!btor_node_real_addr (e_value)->simplified);
+  assert (!btor_node_is_simplified (e_array));
+  assert (!btor_node_is_simplified (e_index));
+  assert (!btor_node_is_simplified (e_value));
   assert (!btor_node_is_fun (e_index));
   assert (!btor_node_is_fun (e_value));
   assert (btor_sort_array_get_index (btor, btor_node_get_sort_id (e_array))
@@ -336,7 +336,7 @@ btor_dbg_precond_cond_exp (Btor *btor,
   assert (e_cond);
   assert (e_if);
   assert (e_else);
-  assert (!btor_node_real_addr (e_cond)->simplified);
+  assert (!btor_node_is_simplified (e_cond));
   assert (btor_node_bv_get_width (btor, e_cond) == 1);
 
   BtorNode *real_e_if, *real_e_else;
@@ -344,8 +344,8 @@ btor_dbg_precond_cond_exp (Btor *btor,
   real_e_if   = btor_node_real_addr (e_if);
   real_e_else = btor_node_real_addr (e_else);
 
-  assert (!real_e_if->simplified);
-  assert (!real_e_else->simplified);
+  assert (!btor_node_is_simplified (real_e_if));
+  assert (!btor_node_is_simplified (real_e_else));
   assert (btor_node_get_sort_id (real_e_if)
           == btor_node_get_sort_id (real_e_else));
   assert (btor_node_real_addr (e_cond)->btor == btor);
