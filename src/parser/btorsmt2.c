@@ -2443,7 +2443,7 @@ close_term (BtorSMT2Parser *parser)
     }
     if (!check_arg_sorts_match_smt2 (parser, item_cur, nargs)) return 0;
     exp = boolector_eq (btor, item_cur[1].exp, item_cur[2].exp);
-    for (i = 3; i < nargs; i++)
+    for (i = 3; i <= nargs; i++)
     {
       tmp = boolector_eq (btor, item_cur[i - 1].exp, item_cur[i].exp);
       old = exp;
