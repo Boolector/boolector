@@ -732,3 +732,4 @@ invalidmodel2 -xl=0 -ml=0 -rwl=2 -o invalidmodel2.log invalidmodel2.smt2
 invalidmodel3 -o invalidmodel3.log invalidmodel3.btor
 regr-distinct -o regr-distinct.log regr-distinct.smt2
 regsmtparselet -o regsmtparselet.log regsmtparselet.smt2
+smt2pushpop0 -o smt2pushpop0.log smt2pushpop0.smt2 -i

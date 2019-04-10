@@ -1405,44 +1405,33 @@ read_symbol (BtorSMT2Parser *parser, const char *errmsg, BtorSMT2Node **resptr)
 }
 
 static int32_t
-str2int32_smt2 (BtorSMT2Parser *parser,
-                bool posonly,
-                const char *str,
-                int32_t *resptr)
+str2uint32_smt2 (BtorSMT2Parser *parser,
+                 bool allow_zero,
+                 const char *str,
+                 uint32_t *resptr)
 {
-  int32_t res;
+  uint64_t res;
   int32_t ch, digit;
   const char *p;
   res = 0;
   assert (sizeof (int32_t) == 4);
   for (p = str; (ch = *p); p++)
   {
-    if (res > INT32_MAX / 10 || ch < '0' || ch > '9')
+    if (res > UINT32_MAX / 10 || ch < '0' || ch > '9')
     INVALID:
       return !perr_smt2 (parser, "invalid 32-bit integer '%s'", str);
     assert ('0' <= ch && ch <= '9');
     if (res) res *= 10;
     digit = ch - '0';
-    if (INT32_MAX - digit < res) goto INVALID;
+    if (UINT32_MAX - digit < res) goto INVALID;
     res += digit;
   }
-  if (posonly && !res)
+  if (!allow_zero && !res)
     return !perr_smt2 (
         parser, "expected positive non-zero 32-bit integer at '%s'", str);
-  *resptr = res;
+  assert (res <= UINT32_MAX);
+  *resptr = (uint32_t) res;
   return 1;
-}
-
-static int32_t
-str2uint32_smt2 (BtorSMT2Parser *parser,
-                 bool posonly,
-                 const char *str,
-                 uint32_t *resptr)
-{
-  int32_t res, rint = 0;
-  res     = str2int32_smt2 (parser, posonly, str, &rint);
-  *resptr = (uint32_t) rint;
-  return res;
 }
 
 static BtorSMT2Item *
@@ -1514,20 +1503,6 @@ prev_item_was_lpar_smt2 (BtorSMT2Parser *parser)
   return !perr_smt2 (parser, "expected '(' before '%s'", parser->token.start);
 }
 
-static int32_t
-parse_int32_smt2 (BtorSMT2Parser *parser, bool posonly, int32_t *resptr)
-{
-  int32_t tag = read_token_smt2 (parser);
-  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
-  if (tag == EOF)
-    return !perr_smt2 (parser,
-                       "expected decimal constant but reached end-of-file");
-  if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
-    return !perr_smt2 (
-        parser, "expected decimal constant at '%s'", parser->token.start);
-  return str2int32_smt2 (parser, posonly, parser->token.start, resptr);
-}
-
 static bool
 is_boolean_exp_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 {
@@ -1537,12 +1512,17 @@ is_boolean_exp_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 }
 
 static int32_t
-parse_uint32_smt2 (BtorSMT2Parser *parser, bool posonly, uint32_t *resptr)
+parse_uint32_smt2 (BtorSMT2Parser *parser, bool allow_zero, uint32_t *resptr)
 {
-  int32_t res, rint = 0;
-  res     = parse_int32_smt2 (parser, posonly, &rint);
-  *resptr = (uint32_t) rint;
-  return res;
+  int32_t tag = read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !perr_smt2 (parser,
+                       "expected decimal constant but reached end-of-file");
+  if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
+    return !perr_smt2 (
+        parser, "expected decimal constant at '%s'", parser->token.start);
+  return str2uint32_smt2 (parser, allow_zero, parser->token.start, resptr);
 }
 
 static bool
@@ -3156,14 +3136,14 @@ parse_open_term_indexed_parametric (BtorSMT2Parser *parser,
 
   if (nargs == 1)
   {
-    if (!parse_uint32_smt2 (parser, false, &item_open->num)) return 0;
+    if (!parse_uint32_smt2 (parser, true, &item_open->num)) return 0;
   }
   else
   {
     assert (nargs == 2);
-    if (!parse_uint32_smt2 (parser, false, &item_open->idx0)) return 0;
+    if (!parse_uint32_smt2 (parser, true, &item_open->idx0)) return 0;
     firstcoo = parser->coo;
-    if (!parse_uint32_smt2 (parser, false, &item_open->idx1)) return 0;
+    if (!parse_uint32_smt2 (parser, true, &item_open->idx1)) return 0;
     if (tag == BTOR_BV_EXTRACT_TAG_SMT2 && item_open->idx0 < item_open->idx1)
     {
       parser->perrcoo = firstcoo;
@@ -3266,7 +3246,7 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
     constr = btor_util_dec_to_bin_str (parser->mem, parser->token.start + 2);
     coo    = parser->coo;
     coo.y += 2;
-    if (parse_uint32_smt2 (parser, true, &width))
+    if (parse_uint32_smt2 (parser, false, &width))
     {
       width2 = strlen (constr);
       if (width2 > width)
