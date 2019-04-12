@@ -77,18 +77,6 @@ static const char *slowtests[] = {
     "hd10",
     "hd14",
     "problem_130",
-    "propinv_complete_add_bv",
-    "propinv_complete_and_bv",
-    "propinv_complete_eq_bv",
-    "propinv_complete_ult_bv",
-    "propinv_complete_sll_bv",
-    "propinv_complete_srl_bv",
-    "propinv_complete_mul_bv",
-    "propinv_complete_udiv_bv",
-    "propinv_complete_urem_bv",
-    "propinv_complete_concat_bv",
-    "propinv_complete_slice_bv",
-
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
