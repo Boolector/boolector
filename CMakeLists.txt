@@ -144,6 +144,8 @@ if(PYTHON)
     add_check_c_cxx_flag("-fPIC")
     # Disable MiniSat since the static library is not compiled with -fPIC by
     # default.
+    message(STATUS "Disabling MiniSat and PicoSAT for static Python builds. "
+            "Use --shared if you need one of these solvers.")
     set_option(USE_MINISAT OFF)
     set_option(USE_PICOSAT OFF)
   endif()
