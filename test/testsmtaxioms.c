@@ -14,13 +14,12 @@
 
 #include "testsmtaxioms.h"
 #include "boolector.h"
+#include "btorconfig.h"
 #include "testrunner.h"
 #include "utils/btorstack.h"
 
 #include <assert.h>
 #include <stdio.h>
-
-#define BTOR_TEST_SMTAXIOM_TEMP_OUTFILE_NAME "smtaxiomout.tmp"
 
 static Btor *g_btor;
 static BtorMemMgr *g_mm;
@@ -60,6 +59,7 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
   int32_t parse_res, parse_status;
   char *parse_err;
   size_t len_name, len_buffer;
+  char outfilename[] = "btortmp-XXXXXX";
 
   g_btor = boolector_new ();
   if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
@@ -68,13 +68,13 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
   BTOR_NEWN (g_mm, name, len_name);
   sprintf (name, "smtaxiom%s%d", p, i);
 
-  len_buffer = strlen (btor_log_dir) + strlen (name) + 4 + 1;
+  len_buffer = strlen (btor_out_dir) + strlen (name) + 4 + 1;
   BTOR_NEWN (g_mm, buffer, len_buffer);
-  sprintf (buffer, "%s%s.smt", btor_log_dir, name);
+  sprintf (buffer, "%s%s.smt", btor_out_dir, name);
 
   fin = fopen (buffer, "r");
   assert (fin != NULL);
-  g_fout = fopen (BTOR_TEST_SMTAXIOM_TEMP_OUTFILE_NAME, "w");
+  g_fout = mk_temp_file (outfilename, "w");
   assert (g_fout != NULL);
   parse_res =
       boolector_parse (g_btor, fin, buffer, g_fout, &parse_err, &parse_status);

@@ -46,10 +46,11 @@ run_testcases_tests (int32_t argc, char **argv)
   char *s, *tmp, *token;
   int32_t ch, len;
   FILE *file;
+  const char* path;
 
   len = strlen (btor_test_dir) + 20;
   BTOR_NEWN (g_mm, s, len);
-  sprintf (s, "%stestcases", btor_test_dir);
+  snprintf (s, len, "%stestcases", btor_test_dir);
   assert ((file = fopen (s, "r")));
   BTOR_DELETEN (g_mm, s, len);
 
@@ -87,9 +88,10 @@ run_testcases_tests (int32_t argc, char **argv)
     {
       if ((s = strchr (token, '.')))
       {
-        len = strlen (btor_log_dir) + strlen (token) + 1;
+        path = strstr (token, ".log") ? btor_log_dir : btor_out_dir;
+        len = strlen (path) + strlen (token) + 1;
         BTOR_NEWN (g_mm, tmp, len);
-        sprintf (tmp, "%s%s", btor_log_dir, token);
+        snprintf (tmp, len, "%s%s", path, token);
       }
       else
       {

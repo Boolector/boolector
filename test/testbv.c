@@ -652,7 +652,7 @@ unary_bitvec (uint64_t (*int_func) (uint64_t, uint32_t),
   BtorBitVector *bv, *res;
   uint64_t a, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -754,7 +754,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
   BtorBitVector *bv1, *bv2, *res;
   uint64_t a1, a2, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1004,7 +1004,7 @@ concat_bitvec (int32_t num_tests, uint32_t bit_width)
   BtorBitVector *bv1, *bv2, *res;
   uint64_t a1, a2, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1042,7 +1042,7 @@ slice_bitvec (uint32_t num_tests, uint32_t bit_width)
   char *sbv, *sres;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1088,7 +1088,7 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
   char *sbv, *sres;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1146,7 +1146,7 @@ flipped_bit_bitvec (uint32_t num_tests, uint32_t bit_width)
   uint32_t i, j, pos;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1180,7 +1180,7 @@ flipped_bit_range_bitvec (uint32_t num_tests, uint32_t bit_width)
   uint32_t i, j, up, lo;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {

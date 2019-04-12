@@ -399,9 +399,12 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
+# Enable CTest
+enable_testing()
+
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
-add_subdirectory(src/tests)
+add_subdirectory(test)
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()

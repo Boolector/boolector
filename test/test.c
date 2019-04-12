@@ -70,6 +70,8 @@
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
   "                     (default: run 'fast' and 'normal' testcases)\n"      \
+  "    -e, --exact      exact pattern match\n"                               \
+  "    -q, --quiet      don't print output\n\n"                              \
   "  patterns:\n"                                                            \
   "    a valid pattern is a substring of an existing test case out of the\n" \
   "    following test case sets:\n"                                          \
@@ -84,6 +86,8 @@ main (int32_t argc, char **argv)
 {
   int32_t i;
   bool skip_broken        = true;
+  bool exact_match        = false;
+  bool quiet              = false;
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
 
   for (i = 1; i < argc; i++)
@@ -101,9 +105,17 @@ main (int32_t argc, char **argv)
     {
       skip_broken = false;
     }
+    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--exact"))
+    {
+      exact_match = true;
+    }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {
       speed = BTOR_FAST_TEST_CASE;
+    }
+    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+    {
+      quiet = true;
     }
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--slow"))
     {
@@ -120,7 +132,7 @@ main (int32_t argc, char **argv)
     }
   }
 
-  init_tests (speed, skip_broken);
+  init_tests (speed, skip_broken, exact_match, quiet);
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
   BTOR_RUN_TESTS (stack);
