@@ -435,7 +435,7 @@ parse (BtorMC *mc, FILE *infile, const char *infile_name, bool checkall)
         n = boolector_nand (btor, e[0], e[1]);
         break;
 
-      case BTOR2_TAG_ne:
+      case BTOR2_TAG_neq:
         assert (l->nargs == 2);
         n = boolector_ne (btor, e[0], e[1]);
         break;
