@@ -252,6 +252,8 @@ if(TIME_STATS)
   add_definitions("-DBTOR_TIME_STATISTICS")
 endif()
 
+include(CheckNoExportDynamic)
+
 #-----------------------------------------------------------------------------#
 
 if(ONLY_CADICAL)
