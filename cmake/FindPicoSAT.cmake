@@ -4,7 +4,11 @@
 # PicoSAT_LIBRARIES - Libraries needed to use PicoSAT
 
 find_path(PicoSAT_INCLUDE_DIR NAMES picosat.h)
-find_library(PicoSAT_LIBRARIES NAMES picosat)
+if(NOT SHARED)
+  find_library(PicoSAT_LIBRARIES NAMES libpicosat.a picosat)
+else()
+  find_library(PicoSAT_LIBRARIES NAMES picosat)
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PicoSAT
