@@ -1196,16 +1196,6 @@ btor_opt_init_opts (Btor *btor)
             1,
             "make base case of concrete model constant instead of undef.");
   init_opt (btor,
-            BTOR_OPT_QUANT_FIXSYNTH,
-            false,
-            true,
-            "quant:fixsynth",
-            0,
-            1,
-            0,
-            1,
-            "update current model w.r.t. synthesized skolem function");
-  init_opt (btor,
             BTOR_OPT_QUANT_SYNTH_QI,
             false,
             true,
@@ -1340,6 +1330,16 @@ btor_opt_init_opts (Btor *btor)
             UINT32_MAX,
             "interpret sorts introduced with declare-sort as bit-vectors of "
             "given width");
+  init_opt (btor,
+            BTOR_OPT_QUANT_FIXSYNTH,
+            true,
+            true,
+            "quant:fixsynth",
+            0,
+            1,
+            0,
+            1,
+            "update current model w.r.t. synthesized skolem function");
 }
 
 void
