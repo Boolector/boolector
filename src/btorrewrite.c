@@ -1692,7 +1692,8 @@ applies_zero_lower_slice (Btor *btor,
                           uint32_t lower)
 {
   (void) upper;
-  return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+  return btor_opt_get (btor, BTOR_OPT_RW_ZERO_LOWER_SLICE)
+         && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
          && upper < btor_node_bv_get_width (btor, exp) / 2
          && (btor_node_is_bv_mul (exp) || btor_node_is_bv_add (exp));

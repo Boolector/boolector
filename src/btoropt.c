@@ -1340,6 +1340,16 @@ btor_opt_init_opts (Btor *btor)
             0,
             1,
             "update current model w.r.t. synthesized skolem function");
+  init_opt (btor,
+            BTOR_OPT_RW_ZERO_LOWER_SLICE,
+            true,
+            true,
+            "rw-zero-lower-slice",
+            0,
+            0,
+            0,
+            1,
+            "enable zero_lower_slice rewrite");
 }
 
 void
