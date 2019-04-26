@@ -731,7 +731,7 @@ mul (uint64_t x, uint64_t y, uint32_t bw)
 static uint64_t
 udiv (uint64_t x, uint64_t y, uint32_t bw)
 {
-  if (y == 0) return UINT32_MAX % (uint64_t) pow (2, bw);
+  if (y == 0) return UINT64_MAX % (uint64_t) pow (2, bw);
   return (x / y) % (uint64_t) pow (2, bw);
 }
 
@@ -748,7 +748,8 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
                                               const BtorBitVector *,
                                               const BtorBitVector *),
                uint32_t num_tests,
-               uint32_t bit_width)
+               uint32_t bit_width,
+               bool force_second_bv_zero)
 {
   uint32_t i;
   BtorBitVector *bv1, *bv2, *res;
@@ -759,7 +760,14 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
   for (i = 0; i < num_tests; i++)
   {
     bv1  = random_bv (bit_width);
-    bv2  = random_bv (bit_width);
+    if (force_second_bv_zero)
+    {
+      bv2  = btor_bv_uint64_to_bv (g_mm, 0, bit_width);
+    }
+    else
+    {
+      bv2  = random_bv (bit_width);
+    }
     res  = bitvec_func (g_mm, bv1, bv2);
     a1   = btor_bv_to_uint64 (bv1);
     a2   = btor_bv_to_uint64 (bv2);
@@ -896,104 +904,114 @@ test_dec_bitvec (void)
 static void
 test_add_bitvec (void)
 {
-  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (add, btor_bv_add, BTOR_TEST_BITVEC_TESTS, 33, false);
 }
 
 static void
 test_sub_bitvec (void)
 {
-  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (sub, btor_bv_sub, BTOR_TEST_BITVEC_TESTS, 33, false);
 }
 
 static void
 test_and_bitvec (void)
 {
-  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 33);
-  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 64);
+  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 33, false);
+  binary_bitvec (and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 64, false);
 }
 
 static void
 test_xor_bitvec (void)
 {
-  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 33);
-  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 64);
+  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 33, false);
+  binary_bitvec (xor, btor_bv_xor, BTOR_TEST_BITVEC_TESTS, 64, false);
 }
 
 static void
 test_eq_bitvec (void)
 {
-  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 33);
-  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 64);
+  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 33, false);
+  binary_bitvec (eq, btor_bv_eq, BTOR_TEST_BITVEC_TESTS, 64, false);
 }
 
 static void
 test_ult_bitvec (void)
 {
-  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 33);
-  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 64);
+  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 33, false);
+  binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 64, false);
 }
 
 static void
 test_sll_bitvec (void)
 {
-  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 2);
-  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 8);
-  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 16);
-  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 32);
+  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 2, false);
+  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 8, false);
+  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 16, false);
+  binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 32, false);
 }
 
 static void
 test_srl_bitvec (void)
 {
-  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 2);
-  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 8);
-  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 16);
-  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 32);
+  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 2, false);
+  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 8, false);
+  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 16, false);
+  binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 32, false);
 }
 
 static void
 test_mul_bitvec (void)
 {
-  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (mul, btor_bv_mul, BTOR_TEST_BITVEC_TESTS, 33, false);
 }
 
 static void
 test_udiv_bitvec (void)
 {
-  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 33, false);
+}
+
+static void
+test_udiv_bitvec_zero (void)
+{
+  /* perform divison tests with a divisor of zero */
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 1, true);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 7, true);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 31, true);
+  binary_bitvec (udiv, btor_bv_udiv, BTOR_TEST_BITVEC_TESTS, 33, true);
 }
 
 static void
 test_urem_bitvec (void)
 {
-  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 1);
-  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 7);
-  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 31);
-  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 1, false);
+  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 7, false);
+  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 31, false);
+  binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 33, false);
 }
 
 static void
@@ -2041,6 +2059,7 @@ run_bitvec_tests (int32_t argc, char **argv)
   BTOR_RUN_TEST (srl_bitvec);
   BTOR_RUN_TEST (mul_bitvec);
   BTOR_RUN_TEST (udiv_bitvec);
+  BTOR_RUN_TEST (udiv_bitvec_zero);
   BTOR_RUN_TEST (urem_bitvec);
   BTOR_RUN_TEST (concat_bitvec);
   BTOR_RUN_TEST (slice_bitvec);
