@@ -731,7 +731,7 @@ mul (uint64_t x, uint64_t y, uint32_t bw)
 static uint64_t
 udiv (uint64_t x, uint64_t y, uint32_t bw)
 {
-  if (y == 0) return UINT32_MAX % (uint64_t) pow (2, bw);
+  if (y == 0) return UINT64_MAX % (uint64_t) pow (2, bw);
   return (x / y) % (uint64_t) pow (2, bw);
 }
 
@@ -751,18 +751,32 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
                uint32_t bit_width)
 {
   uint32_t i;
-  BtorBitVector *bv1, *bv2, *res;
+  BtorBitVector *bv1, *bv2, *zero, *res;
   uint64_t a1, a2, ares, bres;
 
   tprintf (" %u", bit_width);
   fflush (stdout);
+  zero = btor_bv_new (g_mm, bit_width);
   for (i = 0; i < num_tests; i++)
   {
     bv1  = random_bv (bit_width);
     bv2  = random_bv (bit_width);
-    res  = bitvec_func (g_mm, bv1, bv2);
     a1   = btor_bv_to_uint64 (bv1);
     a2   = btor_bv_to_uint64 (bv2);
+    /* test for x = 0 explicitly */
+    res  = bitvec_func (g_mm, zero, bv2);
+    ares = int_func (0, a2, bit_width);
+    bres = btor_bv_to_uint64 (res);
+    assert (ares == bres);
+    btor_bv_free (g_mm, res);
+    /* test for y = 0 explicitly */
+    res  = bitvec_func (g_mm, bv1, zero);
+    ares = int_func (a1, 0, bit_width);
+    bres = btor_bv_to_uint64 (res);
+    assert (ares == bres);
+    btor_bv_free (g_mm, res);
+    /* test x, y random */
+    res  = bitvec_func (g_mm, bv1, bv2);
     ares = int_func (a1, a2, bit_width);
     bres = btor_bv_to_uint64 (res);
     assert (ares == bres);
@@ -770,6 +784,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
     btor_bv_free (g_mm, bv1);
     btor_bv_free (g_mm, bv2);
   }
+  btor_bv_free (g_mm, zero);
 }
 
 static void
