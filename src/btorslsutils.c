@@ -58,14 +58,15 @@ hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
   assert (bv2);
-  assert (bv1->width == bv2->width);
-  assert (bv1->len == bv2->len);
+  assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+  assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
 
-  uint32_t res;
+  uint32_t res, bw;
   BtorBitVector *bv, *bvdec = 0, *zero, *ones, *tmp;
 
-  zero = btor_bv_new (btor->mm, bv1->width);
-  ones = btor_bv_ones (btor->mm, bv1->width);
+  bw   = btor_bv_get_width (bv1);
+  zero = btor_bv_new (btor->mm, bw);
+  ones = btor_bv_ones (btor->mm, bw);
   bv   = btor_bv_xor (btor->mm, bv1, bv2);
   for (res = 0; !btor_bv_is_zero (bv); res++)
   {
@@ -90,10 +91,10 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
   assert (bv2);
-  assert (bv1->width == bv2->width);
-  assert (bv1->len == bv2->len);
+  assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+  assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
 
-  uint32_t i, j, res;
+  uint32_t i, j, res, bw;
   BtorBitVector *tmp;
 
   if (btor_bv_is_zero (bv2))
@@ -101,7 +102,8 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   else
   {
     tmp = btor_bv_copy (btor->mm, bv1);
-    for (res = 0, i = 0, j = tmp->width - 1; i < tmp->width; i++, j--)
+    bw  = btor_bv_get_width (tmp);
+    for (res = 0, i = 0, j = bw - 1; i < bw; i++, j--)
     {
       if (!btor_bv_get_bit (tmp, j)) continue;
       res += 1;
@@ -111,7 +113,7 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
     if (btor_bv_is_zero (bv2)) res += 1;
     btor_bv_free (btor->mm, tmp);
   }
-  assert (res <= bv1->width);
+  assert (res <= btor_bv_get_width (bv1));
   return res;
 }
 
@@ -120,14 +122,15 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 {
   assert (bv1);
   assert (bv2);
-  assert (bv1->width == bv2->width);
-  assert (bv1->len == bv2->len);
+  assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+  assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
 
-  uint32_t i, j, res;
+  uint32_t i, j, res, bw;
   BtorBitVector *tmp;
 
   tmp = btor_bv_copy (btor->mm, bv1);
-  for (res = 0, i = 0, j = tmp->width - 1; i < tmp->width; i++, j--)
+  bw  = btor_bv_get_width (tmp);
+  for (res = 0, i = 0, j = bw - 1; i < bw; i++, j--)
   {
     if (btor_bv_get_bit (tmp, j)) continue;
     res += 1;
@@ -275,7 +278,7 @@ btor_slsutils_compute_score_node (Btor *btor,
                 : BTOR_SLS_SCORE_CFACT
                       * (1.0
                          - hamming_distance (btor, bv0, bv1)
-                               / (double) bv0->width);
+                               / (double) btor_bv_get_width (bv0));
   }
   /* ------------------------------------------------------------------------ */
   /* ULT                                                                      */
@@ -308,12 +311,15 @@ btor_slsutils_compute_score_node (Btor *btor,
                 ? 1.0
                 : BTOR_SLS_SCORE_CFACT
                       * (1.0
-                         - min_flip_inv (btor, bv0, bv1) / (double) bv0->width);
+                         - min_flip_inv (btor, bv0, bv1)
+                               / (double) btor_bv_get_width (bv0));
     else
       res = btor_bv_compare (bv0, bv1) < 0
                 ? 1.0
                 : BTOR_SLS_SCORE_CFACT
-                      * (1.0 - min_flip (btor, bv0, bv1) / (double) bv0->width);
+                      * (1.0
+                         - min_flip (btor, bv0, bv1)
+                               / (double) btor_bv_get_width (bv0));
   }
   /* ------------------------------------------------------------------------ */
   /* other BOOLEAN                                                            */

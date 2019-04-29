@@ -4142,7 +4142,7 @@ generate_fun_model_str (
     /* build assignment string for all arguments */
     t   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
     len = t->arity;
-    for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
+    for (j = 0; j < t->arity; j++) len += btor_bv_get_width (t->bv[j]);
     BTOR_NEWN (btor->mm, arg, len);
     tmp = arg;
 

@@ -25,18 +25,18 @@ extern "C" {
     btor_bv_free (d_mm, bv1);                           \
   } while (0)
 
-#define TEST_BV_CHECK_CHAR_TO_BV(bv, i)       \
-  do                                          \
-  {                                           \
-    s = btor_bv_to_char (d_mm, bv);           \
-    ASSERT_EQ (strlen (s), bv->width);        \
-    for (k = 0; k < i; k++)                   \
-    {                                         \
-      b = s[i - k - 1] == '0' ? 0 : 1;        \
-      ASSERT_EQ (b, btor_bv_get_bit (bv, k)); \
-    }                                         \
-    btor_mem_freestr (d_mm, s);               \
-    btor_bv_free (d_mm, bv);                  \
+#define TEST_BV_CHECK_CHAR_TO_BV(bv, i)             \
+  do                                                \
+  {                                                 \
+    s = btor_bv_to_char (d_mm, bv);                 \
+    ASSERT_EQ (strlen (s), btor_bv_get_width (bv)); \
+    for (k = 0; k < i; k++)                         \
+    {                                               \
+      b = s[i - k - 1] == '0' ? 0 : 1;              \
+      ASSERT_EQ (b, btor_bv_get_bit (bv, k));       \
+    }                                               \
+    btor_mem_freestr (d_mm, s);                     \
+    btor_bv_free (d_mm, bv);                        \
   } while (0)
 
 class TestBv : public TestBtor
@@ -50,22 +50,7 @@ class TestBv : public TestBtor
   {
     TestBtor::SetUp ();
     d_mm = d_btor->mm;
-    rng  = &d_btor->rng;
-  }
-
-  BtorBitVector *random_bv (uint32_t bw)
-  {
-    uint32_t i;
-    BtorBitVector *res;
-    res = btor_bv_new (d_mm, bw);
-
-    for (i = 0; i < res->len; i++) res->bits[i] = (BTOR_BV_TYPE) rand ();
-
-    if (bw != BTOR_BV_TYPE_BW * res->len)
-      res->bits[0] &= ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
-                       >> (BTOR_BV_TYPE_BW - 1 - (bw % BTOR_BV_TYPE_BW)));
-
-    return res;
+    d_rng = &d_btor->rng;
   }
 
   void bv_to_hex_char_bitvec (FILE *g_logfile, const char *c)
@@ -183,7 +168,7 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      bv   = random_bv (bit_width);
+      bv   = btor_bv_new_random (d_mm, d_rng, bit_width);
       res  = bitvec_func (d_mm, bv);
       a    = btor_bv_to_uint64 (bv);
       ares = int_func (a, bit_width);
@@ -208,8 +193,8 @@ class TestBv : public TestBtor
     zero = btor_bv_new (d_mm, bit_width);
     for (i = 0; i < num_tests; i++)
     {
-      bv1 = random_bv (bit_width);
-      bv2 = random_bv (bit_width);
+      bv1 = btor_bv_new_random (d_mm, d_rng, bit_width);
+      bv2 = btor_bv_new_random (d_mm, d_rng, bit_width);
       a1  = btor_bv_to_uint64 (bv1);
       a2  = btor_bv_to_uint64 (bv2);
       /* test for x = 0 explicitly */
@@ -245,12 +230,12 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      bw1 = btor_rng_pick_rand (rng, 1, bit_width - 1);
+      bw1 = btor_rng_pick_rand (d_rng, 1, bit_width - 1);
       bw2 = bit_width - bw1;
-      bv1 = random_bv (bw1);
-      bv2 = random_bv (bw2);
+      bv1 = btor_bv_new_random (d_mm, d_rng, bw1);
+      bv2 = btor_bv_new_random (d_mm, d_rng, bw2);
       res = btor_bv_concat (d_mm, bv1, bv2);
-      ASSERT_EQ (res->width, bw1 + bw2);
+      ASSERT_EQ (btor_bv_get_width (res), bw1 + bw2);
       a1   = btor_bv_to_uint64 (bv1);
       a2   = btor_bv_to_uint64 (bv2);
       ares = (a1 << bw2) | a2;
@@ -270,7 +255,7 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      bv    = random_bv (bit_width);
+      bv    = btor_bv_new_random (d_mm, d_rng, bit_width);
       lower = rand () % bit_width;
       upper = rand () % (bit_width - lower) + lower;
       ASSERT_GE (upper, lower);
@@ -278,7 +263,7 @@ class TestBv : public TestBtor
       ASSERT_LT (lower, bit_width);
 
       res = btor_bv_slice (d_mm, bv, upper, lower);
-      ASSERT_EQ (res->width, upper - lower + 1);
+      ASSERT_EQ (btor_bv_get_width (res), upper - lower + 1);
       sres = btor_bv_to_char (d_mm, res);
       sbv  = btor_bv_to_char (d_mm, bv);
 
@@ -304,11 +289,11 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      len = btor_rng_pick_rand (rng, 1, bit_width - 1);
-      bv  = random_bv (bit_width - len);
+      len = btor_rng_pick_rand (d_rng, 1, bit_width - 1);
+      bv  = btor_bv_new_random (d_mm, d_rng, bit_width - len);
 
       res = ext_func (d_mm, bv, len);
-      ASSERT_EQ (bv->width + len, res->width);
+      ASSERT_EQ (btor_bv_get_width (bv) + len, btor_bv_get_width (res));
       sres = btor_bv_to_char (d_mm, res);
       sbv  = btor_bv_to_char (d_mm, bv);
 
@@ -331,8 +316,8 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      pos = btor_rng_pick_rand (rng, 0, bit_width - 1);
-      bv  = random_bv (bit_width);
+      pos = btor_rng_pick_rand (d_rng, 0, bit_width - 1);
+      bv  = btor_bv_new_random (d_mm, d_rng, bit_width);
       res = btor_bv_flipped_bit (d_mm, bv, pos);
       ASSERT_EQ (btor_bv_get_bit (bv, pos), !btor_bv_get_bit (res, pos));
       for (j = 0; j < bit_width; j++)
@@ -352,11 +337,11 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      lo = btor_rng_pick_rand (rng, 0, bit_width - 1);
+      lo = btor_rng_pick_rand (d_rng, 0, bit_width - 1);
       up = lo == bit_width - 1
                ? bit_width - 1
-               : btor_rng_pick_rand (rng, lo + 1, bit_width - 1);
-      bv  = random_bv (bit_width);
+               : btor_rng_pick_rand (d_rng, lo + 1, bit_width - 1);
+      bv  = btor_bv_new_random (d_mm, d_rng, bit_width);
       res = btor_bv_flipped_bit_range (d_mm, bv, up, lo);
       for (j = lo; j <= up; j++)
         ASSERT_EQ (btor_bv_get_bit (bv, j), !btor_bv_get_bit (res, j));
@@ -396,7 +381,7 @@ class TestBv : public TestBtor
   }
 
   BtorMemMgr *d_mm;
-  BtorRNG *rng;
+  BtorRNG *d_rng;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -406,15 +391,15 @@ TEST_F (TestBv, new)
   BtorBitVector *bv;
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW);
-  ASSERT_EQ (bv->len, 1u);
+  ASSERT_EQ (btor_bv_get_len (bv), 1u);
   btor_bv_free (d_mm, bv);
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW - 1);
-  ASSERT_EQ (bv->len, 1u);
+  ASSERT_EQ (btor_bv_get_len (bv), 1u);
   btor_bv_free (d_mm, bv);
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW + 1);
-  ASSERT_EQ (bv->len, 2u);
+  ASSERT_EQ (btor_bv_get_len (bv), 2u);
   btor_bv_free (d_mm, bv);
 }
 
@@ -426,18 +411,18 @@ TEST_F (TestBv, new_random_range)
 
   for (bw = 1; bw <= 64; bw++)
   {
-    from = random_bv (bw);
+    from = btor_bv_new_random (d_mm, d_rng, bw);
     // from == to
-    bv  = btor_bv_new_random_range (d_mm, rng, bw, from, from);
+    bv  = btor_bv_new_random_range (d_mm, d_rng, bw, from, from);
     val = btor_bv_to_uint64 (bv);
     ASSERT_EQ (val, btor_bv_to_uint64 (from));
     btor_bv_free (d_mm, bv);
     // from < to
-    to = random_bv (bw);
+    to = btor_bv_new_random (d_mm, d_rng, bw);
     while (!btor_bv_compare (from, to))
     {
       btor_bv_free (d_mm, to);
-      to = random_bv (bw);
+      to = btor_bv_new_random (d_mm, d_rng, bw);
     }
     if (btor_bv_to_uint64 (to) < btor_bv_to_uint64 (from))
     {
@@ -445,7 +430,7 @@ TEST_F (TestBv, new_random_range)
       to   = from;
       from = tmp;
     }
-    bv  = btor_bv_new_random_range (d_mm, rng, bw, from, to);
+    bv  = btor_bv_new_random_range (d_mm, d_rng, bw, from, to);
     val = btor_bv_to_uint64 (bv);
     ASSERT_GE (val, btor_bv_to_uint64 (from));
     ASSERT_LE (val, btor_bv_to_uint64 (to));
@@ -475,7 +460,7 @@ TEST_F (TestBv, uint64_to_bv)
     for (j = 0; j < 5; j++)
     {
       l  = rand () % 32 + 1;
-      bv = random_bv (l);
+      bv = btor_bv_new_random (d_mm, d_rng, l);
       k  = btor_bv_to_uint64 (bv);
       btor_bv_free (d_mm, bv);
       bv = btor_bv_uint64_to_bv (d_mm, k, l);
@@ -799,7 +784,7 @@ TEST_F (TestBv, bv_to_char)
 
   for (i = 0; i < 20; i++)
   {
-    bv = btor_bv_new_random (d_mm, rng, 32);
+    bv = btor_bv_new_random (d_mm, d_rng, 32);
     TEST_BV_CHECK_CHAR_TO_BV (bv, 32);
   }
 

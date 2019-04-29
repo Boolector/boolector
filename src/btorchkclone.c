@@ -508,15 +508,16 @@ btor_chkclone_exp (Btor *btor,
 
   if (btor_node_is_bv_const (real_exp))
   {
-    assert (btor_node_bv_const_get_bits (real_exp)->width
-            == btor_node_bv_const_get_bits (real_cexp)->width);
+    assert (btor_bv_get_width (btor_node_bv_const_get_bits (real_exp))
+            == btor_bv_get_width (btor_node_bv_const_get_bits (real_cexp)));
     assert (btor_bv_compare (btor_node_bv_const_get_bits (real_exp),
                              btor_node_bv_const_get_bits (real_cexp))
             == 0);
     if (btor_node_bv_const_get_invbits (real_exp))
     {
-      assert (btor_node_bv_const_get_invbits (real_exp)->width
-              == btor_node_bv_const_get_invbits (real_cexp)->width);
+      assert (
+          btor_bv_get_width (btor_node_bv_const_get_invbits (real_exp))
+          == btor_bv_get_width (btor_node_bv_const_get_invbits (real_cexp)));
       assert (btor_bv_compare (btor_node_bv_const_get_invbits (real_exp),
                                btor_node_bv_const_get_invbits (real_cexp))
               == 0);

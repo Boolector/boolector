@@ -1239,7 +1239,7 @@ class TestPropInv : public TestBtor
       {
         bve[j] = btor_bv_slice (
             d_mm, bvconcat, j ? bws[1] - 1 : bw - 1, j ? 0 : bws[1]);
-        ASSERT_EQ (bve[j]->width, bws[j]);
+        ASSERT_EQ (btor_bv_get_width (bve[j]), bws[j]);
         tmp[j] = btor_bv_copy (d_mm, bve[j]);
         cnt    = 0;
         while (!cnt)

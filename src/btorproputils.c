@@ -209,7 +209,7 @@ select_path_ult (Btor *btor,
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
-      bvmax = btor_bv_ones (mm, bve[0]->width);
+      bvmax = btor_bv_ones (mm, btor_bv_get_width (bve[0]));
       if (btor_bv_is_one (bvult))
       {
         /* 1...1 < bve[1] */
@@ -251,6 +251,7 @@ select_path_sll (Btor *btor,
   assert (bve);
 
   int32_t eidx;
+  uint32_t bw_t;
   uint64_t i, j, shift;
 
   eidx = select_path_non_const (sll);
@@ -269,7 +270,8 @@ select_path_sll (Btor *btor,
           goto DONE;
         }
       /* bve[0] and bvsll (except for the bits shifted out) must match */
-      for (i = 0, j = shift; i < bvsll->width - j; i++)
+      for (i = 0, j = shift, bw_t = btor_bv_get_width (bvsll); i < bw_t - j;
+           i++)
         if (btor_bv_get_bit (bve[0], i) != btor_bv_get_bit (bvsll, j + i))
         {
           eidx = eidx == -1 ? 0 : -1;
@@ -309,6 +311,7 @@ select_path_srl (Btor *btor,
   assert (bve);
 
   int32_t eidx;
+  uint32_t bw_srl, bw_e;
   uint64_t i, j, shift;
 
   eidx = select_path_non_const (srl);
@@ -318,22 +321,26 @@ select_path_srl (Btor *btor,
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
+      bw_srl = btor_bv_get_width (bvsrl);
       shift = btor_bv_to_uint64 (bve[1]);
       /* bve[1] and number of MSB 0-bits in bvsrl must match */
       for (i = 0; i < shift; i++)
-        if (btor_bv_get_bit (bvsrl, bvsrl->width - 1 - i))
+        if (btor_bv_get_bit (bvsrl, bw_srl - 1 - i))
         {
           eidx = 1;
           goto DONE;
         }
       /* bve[0] and bvsrl (except for the bits shifted out) must match */
-      for (i = 0, j = shift; i < bvsrl->width - j; i++)
-        if (btor_bv_get_bit (bve[0], bve[0]->width - 1 - i)
-            != btor_bv_get_bit (bvsrl, bvsrl->width - 1 - (j + i)))
+      for (i = 0, j = shift; i < bw_srl - j; i++)
+      {
+        bw_e = btor_bv_get_width (bve[0]);
+        if (btor_bv_get_bit (bve[0], bw_e - 1 - i)
+            != btor_bv_get_bit (bvsrl, bw_srl - 1 - (j + i)))
         {
           eidx = eidx == -1 ? 0 : -1;
           break;
         }
+      }
     }
     if (eidx == -1) eidx = select_path_random (btor, srl);
   }
@@ -448,7 +455,7 @@ select_path_udiv (Btor *btor,
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
-      bvmax        = btor_bv_ones (mm, bve[0]->width);
+      bvmax        = btor_bv_ones (mm, btor_bv_get_width (bve[0]));
       cmp_udiv_max = btor_bv_compare (bvudiv, bvmax);
 
       /* bve[0] / bve[1] = 1...1 -> choose e[1]
@@ -528,7 +535,7 @@ select_path_urem (Btor *btor,
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
-      bvmax = btor_bv_ones (mm, bve[0]->width);
+      bvmax = btor_bv_ones (mm, btor_bv_get_width (bve[0]));
       sub   = btor_bv_sub (mm, bve[0], bvurem);
       tmp   = btor_bv_dec (mm, bve[0]);
 
@@ -597,6 +604,7 @@ select_path_concat (Btor *btor,
   assert (bve);
 
   int32_t eidx;
+  uint32_t bw_concat;
   BtorBitVector *tmp;
   BtorMemMgr *mm;
 
@@ -610,11 +618,12 @@ select_path_concat (Btor *btor,
     {
       /* bve[0] o bve[1] = bvconcat
        * -> bve[0] resp. bve[1] must match with bvconcat */
-      tmp = btor_bv_slice (
-          mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve[0]->width);
+      bw_concat = btor_bv_get_width (bvconcat);
+      tmp       = btor_bv_slice (
+          mm, bvconcat, bw_concat - 1, bw_concat - btor_bv_get_width (bve[0]));
       if (btor_bv_compare (tmp, bve[0])) eidx = 0;
       btor_bv_free (mm, tmp);
-      tmp = btor_bv_slice (mm, bvconcat, bve[1]->width - 1, 0);
+      tmp = btor_bv_slice (mm, bvconcat, btor_bv_get_width (bve[1]) - 1, 0);
       if (btor_bv_compare (tmp, bve[1])) eidx = eidx == -1 ? 1 : -1;
       btor_bv_free (mm, tmp);
     }
@@ -808,7 +817,7 @@ cons_add_bv (Btor *btor,
   assert (btor_node_is_regular (add));
   assert (bvadd);
   assert (bve);
-  assert (bve->width == bvadd->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvadd));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (add->e[eidx]));
 
@@ -823,7 +832,7 @@ cons_add_bv (Btor *btor,
 #endif
     BTOR_PROP_SOLVER (btor)->stats.props_cons += 1;
   }
-  return btor_bv_new_random (btor->mm, &btor->rng, bvadd->width);
+  return btor_bv_new_random (btor->mm, &btor->rng, btor_bv_get_width (bvadd));
 }
 
 static BtorBitVector *
@@ -838,11 +847,11 @@ cons_and_bv (Btor *btor,
   assert (btor_node_is_regular (and));
   assert (bvand);
   assert (bve);
-  assert (bve->width == bvand->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvand));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (and->e[eidx]));
 
-  uint32_t i;
+  uint32_t i, bw;
   BtorBitVector *res;
   BtorUIntStack dcbits;
   bool b;
@@ -866,7 +875,7 @@ cons_and_bv (Btor *btor,
   /* bve & res = bvand
    * -> all bits set in bvand must be set in res
    * -> all bits not set in bvand are chosen to be set randomly */
-  for (i = 0; i < bvand->width; i++)
+  for (i = 0, bw = btor_bv_get_width (bvand); i < bw; i++)
   {
     if (btor_bv_get_bit (bvand, i))
       btor_bv_set_bit (res, i, 1);
@@ -898,7 +907,7 @@ cons_eq_bv (Btor *btor,
   assert (eq);
   assert (btor_node_is_regular (eq));
   assert (bveq);
-  assert (bveq->width == 1);
+  assert (btor_bv_get_width (bveq) == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (eq->e[eidx]));
@@ -919,11 +928,12 @@ cons_eq_bv (Btor *btor,
                                btor_opt_get (btor, BTOR_OPT_PROP_PROB_EQ_FLIP)))
   {
     res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
-    btor_bv_flip_bit (res, btor_rng_pick_rand (&btor->rng, 0, res->width - 1));
+    btor_bv_flip_bit (
+        res, btor_rng_pick_rand (&btor->rng, 0, btor_bv_get_width (res) - 1));
   }
   else
   {
-    res = btor_bv_new_random (btor->mm, &btor->rng, bve->width);
+    res = btor_bv_new_random (btor->mm, &btor->rng, btor_bv_get_width (bve));
   }
   return res;
 }
@@ -939,7 +949,7 @@ cons_ult_bv (Btor *btor,
   assert (ult);
   assert (btor_node_is_regular (ult));
   assert (bvult);
-  assert (bvult->width == 1);
+  assert (btor_bv_get_width (bvult) == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (ult->e[eidx]));
@@ -960,7 +970,7 @@ cons_ult_bv (Btor *btor,
   }
 
   mm    = btor->mm;
-  bw    = bve->width;
+  bw    = btor_bv_get_width (bve);
   isult = !btor_bv_is_zero (bvult);
   zero  = btor_bv_new (mm, bw);
   bvmax = btor_bv_ones (mm, bw);
@@ -1003,8 +1013,10 @@ cons_sll_bv (Btor *btor,
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || bve->width == bvsll->width);
-  assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
+  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
+  assert (eidx
+          || btor_util_log_2 (btor_bv_get_width (bvsll))
+                 == btor_bv_get_width (bve));
   assert (!btor_node_is_bv_const (sll->e[eidx]));
 
   uint32_t i, s, bw, sbw, ctz_bvsll;
@@ -1023,7 +1035,7 @@ cons_sll_bv (Btor *btor,
   }
 
   mm  = btor->mm;
-  bw  = bvsll->width;
+  bw  = btor_bv_get_width (bvsll);
   sbw = btor_util_log_2 (bw);
 
   ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
@@ -1063,8 +1075,10 @@ cons_srl_bv (Btor *btor,
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || bve->width == bvsrl->width);
-  assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
+  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
+  assert (eidx
+          || btor_util_log_2 (btor_bv_get_width (bvsrl))
+                 == btor_bv_get_width (bve));
   assert (!btor_node_is_bv_const (srl->e[eidx]));
 
   uint32_t i, s, bw, sbw;
@@ -1083,7 +1097,7 @@ cons_srl_bv (Btor *btor,
   }
 
   mm  = btor->mm;
-  bw  = bvsrl->width;
+  bw  = btor_bv_get_width (bvsrl);
   sbw = btor_util_log_2 (bw);
 
   for (i = 0; i < bw; i++)
@@ -1123,7 +1137,7 @@ cons_mul_bv (Btor *btor,
   assert (btor_node_is_regular (mul));
   assert (bvmul);
   assert (bve);
-  assert (bve->width == bvmul->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvmul));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (mul->e[eidx]));
 
@@ -1144,7 +1158,7 @@ cons_mul_bv (Btor *btor,
   }
 
   mm  = btor->mm;
-  bw  = bvmul->width;
+  bw  = btor_bv_get_width (bvmul);
   res = btor_bv_new_random (mm, &btor->rng, bw);
   if (!btor_bv_is_zero (bvmul))
   {
@@ -1214,7 +1228,7 @@ cons_udiv_bv (Btor *btor,
   assert (btor_node_is_regular (udiv));
   assert (bvudiv);
   assert (bve);
-  assert (bve->width == bvudiv->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvudiv));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (udiv->e[eidx]));
 
@@ -1223,7 +1237,7 @@ cons_udiv_bv (Btor *btor,
   BtorMemMgr *mm;
 
   mm    = btor->mm;
-  bw    = bvudiv->width;
+  bw    = btor_bv_get_width (bvudiv);
   zero  = btor_bv_new (mm, bw);
   one   = btor_bv_one (mm, bw);
   bvmax = btor_bv_ones (mm, bw);
@@ -1306,7 +1320,7 @@ cons_urem_bv (Btor *btor,
   assert (btor_node_is_regular (urem));
   assert (bvurem);
   assert (bve);
-  assert (bve->width == bvurem->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvurem));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (urem->e[eidx]));
 
@@ -1325,7 +1339,7 @@ cons_urem_bv (Btor *btor,
     BTOR_PROP_SOLVER (btor)->stats.props_cons += 1;
   }
   mm    = btor->mm;
-  bw    = bvurem->width;
+  bw    = btor_bv_get_width (bvurem);
   bvmax = btor_bv_ones (mm, bw);
 
   if (eidx)
@@ -1376,7 +1390,7 @@ cons_concat_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (concat->e[eidx]));
 
-  int32_t idx;
+  int32_t idx, bw_t, bw_s;
   uint32_t r;
   BtorBitVector *res;
   const BtorBitVector *bvcur;
@@ -1390,6 +1404,8 @@ cons_concat_bv (Btor *btor,
   }
 
   idx = eidx ? 0 : 1;
+  bw_t = btor_bv_get_width (bvconcat);
+  bw_s = btor_bv_get_width (bve);
 
   /* If one operand is const, with BTOR_OPT_CONC_FLIP_PROB
    * either slice bits out of current assignment and flip max. one bit
@@ -1400,19 +1416,15 @@ cons_concat_bv (Btor *btor,
           &btor->rng, btor_opt_get (btor, BTOR_OPT_PROP_PROB_CONC_FLIP)))
   {
     bvcur = btor_model_get_bv (btor, concat);
-    res =
-        eidx ? btor_bv_slice (
-            btor->mm, bvcur, bvconcat->width - bve->width - 1, 0)
-             : btor_bv_slice (btor->mm, bvcur, bvconcat->width - 1, bve->width);
-    r = btor_rng_pick_rand (&btor->rng, 0, res->width);
+    res   = eidx ? btor_bv_slice (btor->mm, bvcur, bw_t - bw_s - 1, 0)
+               : btor_bv_slice (btor->mm, bvcur, bw_t - 1, bw_s);
+    r = btor_rng_pick_rand (&btor->rng, 0, btor_bv_get_width (res));
     if (r) btor_bv_flip_bit (res, r - 1);
   }
   else
   {
-    res = eidx ? btor_bv_slice (
-              btor->mm, bvconcat, bvconcat->width - bve->width - 1, 0)
-               : btor_bv_slice (
-                   btor->mm, bvconcat, bvconcat->width - 1, bve->width);
+    res = eidx ? btor_bv_slice (btor->mm, bvconcat, bw_t - bw_s - 1, 0)
+               : btor_bv_slice (btor->mm, bvconcat, bw_t - 1, bw_s);
   }
   return res;
 }
@@ -1629,7 +1641,7 @@ inv_add_bv (Btor *btor,
   assert (btor_node_is_regular (add));
   assert (bvadd);
   assert (bve);
-  assert (bve->width == bvadd->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvadd));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (add->e[eidx]));
 
@@ -1670,11 +1682,11 @@ inv_and_bv (Btor *btor,
   assert (btor_node_is_regular (and));
   assert (bvand);
   assert (bve);
-  assert (bve->width == bvand->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvand));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (and->e[eidx]));
 
-  uint32_t i;
+  uint32_t i, bw;
   int32_t bitand, bite;
   BtorNode *e;
   BtorBitVector *res;
@@ -1701,7 +1713,7 @@ inv_and_bv (Btor *btor,
   res = btor_bv_copy (mm, btor_model_get_bv (btor, and->e[eidx]));
   assert (res);
 
-  for (i = 0; i < bvand->width; i++)
+  for (i = 0, bw = btor_bv_get_width (bvand); i < bw; i++)
   {
     bitand = btor_bv_get_bit (bvand, i);
     bite   = btor_bv_get_bit (bve, i);
@@ -1766,7 +1778,7 @@ inv_eq_bv (Btor *btor,
   assert (eq);
   assert (btor_node_is_regular (eq));
   assert (bveq);
-  assert (bveq->width == 1);
+  assert (btor_bv_get_width (bveq) == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (eq->e[eidx]));
@@ -1795,8 +1807,9 @@ inv_eq_bv (Btor *btor,
       {
         if (res) btor_bv_free (btor->mm, res);
         res = btor_bv_copy (btor->mm, btor_model_get_bv (btor, eq->e[eidx]));
-        btor_bv_flip_bit (res,
-                          btor_rng_pick_rand (&btor->rng, 0, res->width - 1));
+        btor_bv_flip_bit (
+            res,
+            btor_rng_pick_rand (&btor->rng, 0, btor_bv_get_width (res) - 1));
       } while (!btor_bv_compare (res, bve));
     }
     else
@@ -1805,7 +1818,7 @@ inv_eq_bv (Btor *btor,
       do
       {
         if (res) btor_bv_free (mm, res);
-        res = btor_bv_new_random (mm, &btor->rng, bve->width);
+        res = btor_bv_new_random (mm, &btor->rng, btor_bv_get_width (bve));
       } while (!btor_bv_compare (res, bve));
     }
   }
@@ -1839,7 +1852,7 @@ inv_ult_bv (Btor *btor,
   assert (ult);
   assert (btor_node_is_regular (ult));
   assert (bvult);
-  assert (bvult->width == 1);
+  assert (btor_bv_get_width (bvult) == 1);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (ult->e[eidx]));
@@ -1865,11 +1878,11 @@ inv_ult_bv (Btor *btor,
   e  = ult->e[eidx ? 0 : 1];
   assert (e);
 
-  zero  = btor_bv_new (mm, bve->width);
-  one   = btor_bv_one (mm, bve->width);
-  bvmax = btor_bv_ones (mm, bve->width);
+  bw    = btor_bv_get_width (bve);
+  zero  = btor_bv_new (mm, bw);
+  one   = btor_bv_one (mm, bw);
+  bvmax = btor_bv_ones (mm, bw);
   isult = !btor_bv_is_zero (bvult);
-  bw    = bve->width;
 
   res = 0;
 
@@ -1955,11 +1968,13 @@ inv_sll_bv (Btor *btor,
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || bve->width == bvsll->width);
-  assert (eidx || btor_util_log_2 (bvsll->width) == bve->width);
+  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
+  assert (eidx
+          || btor_util_log_2 (btor_bv_get_width (bvsll))
+                 == btor_bv_get_width (bve));
   assert (!btor_node_is_bv_const (sll->e[eidx]));
 
-  uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw;
+  uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw, bw_t, bw_s;
   BtorNode *e;
   BtorBitVector *res, *tmp, *bvmax;
   BtorMemMgr *mm;
@@ -1978,6 +1993,7 @@ inv_sll_bv (Btor *btor,
   mm = btor->mm;
   e  = sll->e[eidx ? 0 : 1];
   assert (e);
+  bw_t = btor_bv_get_width (bvsll);
 
   res = 0;
 
@@ -1989,7 +2005,7 @@ inv_sll_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    sbw = btor_util_log_2 (bvsll->width);
+    sbw = btor_util_log_2 (bw_t);
 
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsll))
     {
@@ -2012,7 +2028,7 @@ inv_sll_bv (Btor *btor,
       {
         shift = ctz_bvsll - ctz_bve;
 
-        if (shift > bvsll->width - 1)
+        if (shift > bw_t - 1)
         {
           /* CONFLICT: do not allow shift by bw ----------------------------- */
           assert (btor_bv_is_zero (bvsll));
@@ -2036,7 +2052,9 @@ inv_sll_bv (Btor *btor,
         }
         else
         {
-          for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
+          for (i = 0, j = shift, bw_s = btor_bv_get_width (bve), res = 0;
+               i < bw_s - j;
+               i++)
           {
             /* CONFLICT: shifted bits must match ---------------------------- */
             if (btor_bv_get_bit (bve, i) != btor_bv_get_bit (bvsll, j + i))
@@ -2072,8 +2090,9 @@ inv_sll_bv (Btor *btor,
 
     res = btor_bv_srl (mm, bvsll, bve);
     for (i = 0; i < shift; i++)
-      btor_bv_set_bit (
-          res, res->width - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
+      btor_bv_set_bit (res,
+                       btor_bv_get_width (res) - 1 - i,
+                       btor_rng_pick_rand (&btor->rng, 0, 1));
   }
 #ifndef NDEBUG
   if (is_inv)
@@ -2103,11 +2122,13 @@ inv_srl_bv (Btor *btor,
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || bve->width == bvsrl->width);
-  assert (eidx || btor_util_log_2 (bvsrl->width) == bve->width);
+  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
+  assert (eidx
+          || btor_util_log_2 (btor_bv_get_width (bvsrl))
+                 == btor_bv_get_width (bve));
   assert (!btor_node_is_bv_const (srl->e[eidx]));
 
-  uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw;
+  uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw, bw_t, bw_s;
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp;
   BtorMemMgr *mm;
@@ -2126,6 +2147,7 @@ inv_srl_bv (Btor *btor,
   mm = btor->mm;
   e  = srl->e[eidx ? 0 : 1];
   assert (e);
+  bw_t = btor_bv_get_width (bvsrl);
 
   res = 0;
 
@@ -2137,7 +2159,7 @@ inv_srl_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    sbw = btor_util_log_2 (bvsrl->width);
+    sbw = btor_util_log_2 (bw_t);
 
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsrl))
     {
@@ -2161,7 +2183,7 @@ inv_srl_bv (Btor *btor,
       {
         shift = clz_bvsrl - clz_bve;
 
-        if (shift > bvsrl->width - 1)
+        if (shift > bw_t - 1)
         {
           /* CONFLICT: do not allow shift by bw ----------------------------- */
           assert (btor_bv_is_zero (bvsrl));
@@ -2185,10 +2207,12 @@ inv_srl_bv (Btor *btor,
         }
         else
         {
-          for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
+          for (i = 0, j = shift, bw_s = btor_bv_get_width (bve), res = 0;
+               i < bw_s - j;
+               i++)
           {
-            if (btor_bv_get_bit (bve, bve->width - 1 - i)
-                != btor_bv_get_bit (bvsrl, bvsrl->width - 1 - (j + i)))
+            if (btor_bv_get_bit (bve, bw_s - 1 - i)
+                != btor_bv_get_bit (bvsrl, bw_t - 1 - (j + i)))
             {
               /* CONFLICT: shifted bits must match -------------------------- */
               goto BVSRL_CONF;
@@ -2253,7 +2277,7 @@ inv_mul_bv (Btor *btor,
   assert (btor_node_is_regular (mul));
   assert (bvmul);
   assert (bve);
-  assert (bve->width == bvmul->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvmul));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (mul->e[eidx]));
 
@@ -2277,7 +2301,7 @@ inv_mul_bv (Btor *btor,
   mm = btor->mm;
   e  = mul->e[eidx ? 0 : 1];
   assert (e);
-  bw = bvmul->width;
+  bw = btor_bv_get_width (bvmul);
 
   res = 0;
 
@@ -2372,7 +2396,7 @@ inv_mul_bv (Btor *btor,
            * ---------------------------------------------------------------- */
           tmp = btor_bv_slice (mm, bvmul, bw - 1, ispow2_bve);
           res = btor_bv_uext (mm, tmp, ispow2_bve);
-          assert (res->width == bw);
+          assert (btor_bv_get_width (res) == bw);
           for (i = 0; i < (uint32_t) ispow2_bve; i++)
             btor_bv_set_bit (
                 res, bw - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
@@ -2398,12 +2422,12 @@ inv_mul_bv (Btor *btor,
            * ---------------------------------------------------------------- */
           tmp = btor_bv_slice (mm, bvmul, bw - 1, j);
           res = btor_bv_uext (mm, tmp, j);
-          assert (res->width == bw);
+          assert (btor_bv_get_width (res) == bw);
           btor_bv_free (mm, tmp);
 
           tmp  = btor_bv_slice (mm, bve, bw - 1, j);
           tmp2 = btor_bv_uext (mm, tmp, j);
-          assert (tmp2->width == bw);
+          assert (btor_bv_get_width (tmp2) == bw);
           assert (btor_bv_get_bit (tmp2, 0));
           inv = btor_bv_mod_inverse (mm, tmp2);
           btor_bv_free (mm, tmp);
@@ -2448,7 +2472,7 @@ inv_udiv_bv (Btor *btor,
   assert (btor_node_is_regular (udiv));
   assert (bvudiv);
   assert (bve);
-  assert (bve->width == bvudiv->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvudiv));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (udiv->e[eidx]));
 
@@ -2473,10 +2497,10 @@ inv_udiv_bv (Btor *btor,
   rng = &btor->rng;
   e   = udiv->e[eidx ? 0 : 1];
   assert (e);
-  bw = bve->width;
+  bw = btor_bv_get_width (bve);
 
-  one   = btor_bv_one (mm, bve->width);
-  bvmax = btor_bv_ones (mm, bvudiv->width); /* 2^bw - 1 */
+  one   = btor_bv_one (mm, bw);
+  bvmax = btor_bv_ones (mm, bw); /* 2^bw - 1 */
 
   res = 0;
 
@@ -2669,7 +2693,7 @@ inv_udiv_bv (Btor *btor,
             up = tmp;
           }
 
-          res = btor_bv_new_random_range (mm, &btor->rng, bve->width, lo, up);
+          res = btor_bv_new_random_range (mm, &btor->rng, bw, lo, up);
 
           btor_bv_free (mm, up);
           btor_bv_free (mm, lo);
@@ -2707,7 +2731,7 @@ inv_urem_bv (Btor *btor,
   assert (btor_node_is_regular (urem));
   assert (bvurem);
   assert (bve);
-  assert (bve->width == bvurem->width);
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvurem));
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (urem->e[eidx]));
 
@@ -2732,7 +2756,7 @@ inv_urem_bv (Btor *btor,
   e  = urem->e[eidx ? 0 : 1];
   assert (e);
 
-  bw = bvurem->width;
+  bw = btor_bv_get_width (bvurem);
 
   bvmax = btor_bv_ones (mm, bw); /* 2^bw - 1 */
   one   = btor_bv_one (mm, bw);
@@ -3046,6 +3070,7 @@ inv_concat_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!btor_node_is_bv_const (concat->e[eidx]));
 
+  uint32_t bw_t, bw_s;
   BtorNode *e;
   BtorBitVector *res, *tmp;
   BtorMemMgr *mm;
@@ -3064,6 +3089,8 @@ inv_concat_bv (Btor *btor,
   mm = btor->mm;
   e  = concat->e[eidx ? 0 : 1];
   assert (e);
+  bw_t = btor_bv_get_width (bvconcat);
+  bw_s = btor_bv_get_width (bve);
 
   res = 0;
 
@@ -3074,8 +3101,7 @@ inv_concat_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    tmp = btor_bv_slice (
-        mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve->width);
+    tmp = btor_bv_slice (mm, bvconcat, bw_t - 1, bw_t - bw_s);
     if (btor_bv_compare (tmp, bve))
     {
     BVCONCAT_CONF:
@@ -3088,7 +3114,7 @@ inv_concat_bv (Btor *btor,
     }
     else
     {
-      res = btor_bv_slice (mm, bvconcat, bvconcat->width - bve->width - 1, 0);
+      res = btor_bv_slice (mm, bvconcat, bw_t - bw_s - 1, 0);
     }
   }
   /* ------------------------------------------------------------------------
@@ -3098,7 +3124,7 @@ inv_concat_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   else
   {
-    tmp = btor_bv_slice (mm, bvconcat, bve->width - 1, 0);
+    tmp = btor_bv_slice (mm, bvconcat, bw_s - 1, 0);
     if (btor_bv_compare (tmp, bve))
     {
       /* CONFLICT: bve bits do not match bvconcat --------------------------- */
@@ -3106,7 +3132,7 @@ inv_concat_bv (Btor *btor,
     }
     else
     {
-      res = btor_bv_slice (mm, bvconcat, bvconcat->width - 1, bve->width);
+      res = btor_bv_slice (mm, bvconcat, bw_t - 1, bw_s);
     }
   }
   btor_bv_free (mm, tmp);
@@ -3139,7 +3165,7 @@ inv_slice_bv (Btor *btor,
   assert (!btor_node_is_bv_const (slice->e[0]));
   (void) eidx;
 
-  uint32_t i, upper, lower, rlower, rupper, rboth;
+  uint32_t i, upper, lower, rlower, rupper, rboth, bw_x;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -3184,7 +3210,8 @@ inv_slice_bv (Btor *btor,
 
   /* keep previous value for don't care bits or set randomly with prob
    * BTOR_OPT_PROP_PROB_SLICE_KEEP_DC */
-  for (i = upper + 1; i < res->width; i++)
+  bw_x = btor_bv_get_width (res);
+  for (i = upper + 1; i < bw_x; i++)
     btor_bv_set_bit (res,
                      i,
                      bkeep ? btor_bv_get_bit (bve, i)
@@ -3193,7 +3220,7 @@ inv_slice_bv (Btor *btor,
   if (bflip)
   {
     rboth  = 0;
-    rupper = res->width - 1;
+    rupper = bw_x - 1;
     rlower = 0;
 
     if (lower)
@@ -3202,22 +3229,22 @@ inv_slice_bv (Btor *btor,
       rlower = btor_rng_pick_rand (&btor->rng, 0, lower - 1);
     }
 
-    if (upper + 1 < res->width)
+    if (upper + 1 < bw_x)
     {
       rboth += 2;
-      rupper = btor_rng_pick_rand (&btor->rng, upper + 1, res->width - 1);
+      rupper = btor_rng_pick_rand (&btor->rng, upper + 1, bw_x - 1);
     }
 
     switch (rboth)
     {
       case 3:
-        assert (rupper >= upper + 1 && rupper < res->width);
+        assert (rupper >= upper + 1 && rupper < bw_x);
         assert (rlower < lower);
         btor_bv_flip_bit (
             res, btor_rng_pick_with_prob (&btor->rng, 500) ? rupper : rlower);
         break;
       case 2:
-        assert (rupper >= upper + 1 && rupper < res->width);
+        assert (rupper >= upper + 1 && rupper < bw_x);
         btor_bv_flip_bit (res, rupper);
         break;
       case 1:

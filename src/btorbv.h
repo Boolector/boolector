@@ -21,23 +21,6 @@
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
 
-struct BtorBitVector
-{
-  uint32_t width; /* length of bit vector */
-  uint32_t len;   /* length of 'bits' array */
-
-  /* 'bits' represents the bit vector in 32-bit chunks, first bit of 32-bit bv
-   * in bits[0] is MSB, bit vector is 'filled' from LSB, hence spare bits (if
-   * any) come in front of the MSB and are zeroed out.
-   * E.g., for a bit vector of width 31, representing value 1:
-   *
-   *    bits[0] = 0 0000....1
-   *              ^ ^--- MSB
-   *              |--- spare bit
-   * */
-  BTOR_BV_TYPE bits[];
-};
-
 typedef struct BtorBitVector BtorBitVector;
 
 BTOR_DECLARE_STACK (BtorBitVectorPtr, BtorBitVector *);
@@ -95,6 +78,9 @@ char *btor_bv_to_dec_char (BtorMemMgr *mm, const BtorBitVector *bv);
 uint64_t btor_bv_to_uint64 (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
+
+uint32_t btor_bv_get_width (const BtorBitVector *bv);
+uint32_t btor_bv_get_len (const BtorBitVector *bv);
 
 /* index 0 is LSB, width - 1 is MSB */
 uint32_t btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos);

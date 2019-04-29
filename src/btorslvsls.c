@@ -536,8 +536,8 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
                       ? btor_hashint_map_get (slv->max_cans, can->id)->as_ptr
                       : 0;
 
-      if (pos == ass->width - 1) n_endpos += 1;
-      cpos = pos % ass->width;
+      if (pos == btor_bv_get_width (ass) - 1) n_endpos += 1;
+      cpos = pos % btor_bv_get_width (ass);
 
       btor_hashint_map_add (cans, can->id)->as_ptr =
           btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
@@ -564,7 +564,7 @@ static inline bool
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   size_t i, n_endpos;
-  uint32_t up, cup, clo, sls_strat;
+  uint32_t up, cup, clo, sls_strat, bw;
   bool done = false;
   double sc;
   BtorSLSMove *m;
@@ -604,17 +604,19 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
       clo = 0;
       cup = up;
-      if (up >= ass->width)
+      bw  = btor_bv_get_width (ass);
+
+      if (up >= bw)
       {
-        if ((up - 1) / 2 < ass->width) n_endpos += 1;
-        cup = ass->width - 1;
+        if ((up - 1) / 2 < bw) n_endpos += 1;
+        cup = bw - 1;
       }
 
       /* range from MSB rather than LSB with given prob */
       if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
-        clo = ass->width - 1 - cup;
-        cup = ass->width - 1;
+        clo = bw - 1 - cup;
+        cup = bw - 1;
       }
 
       btor_hashint_map_add (cans, can->id)->as_ptr =
@@ -643,7 +645,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   size_t i, n_endpos;
   int32_t ctmp;
-  uint32_t lo, clo, up, cup, seg, sls_strat;
+  uint32_t lo, clo, up, cup, seg, sls_strat, bw;
   bool done = false;
   double sc;
   BtorSLSMove *m;
@@ -686,21 +688,22 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
         clo = lo;
         cup = up;
+        bw  = btor_bv_get_width (ass);
 
-        if (up >= ass->width)
+        if (up >= bw)
         {
-          if (up - seg < ass->width) n_endpos += 1;
-          cup = ass->width - 1;
+          if (up - seg < bw) n_endpos += 1;
+          cup = bw - 1;
         }
 
-        if (lo >= ass->width - 1) clo = ass->width < seg ? 0 : ass->width - seg;
+        if (lo >= bw - 1) clo = bw < seg ? 0 : bw - seg;
 
         /* range from MSB rather than LSB with given prob */
         if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
         {
           ctmp = clo;
-          clo  = ass->width - 1 - cup;
-          cup  = ass->width - 1 - ctmp;
+          clo  = bw - 1 - cup;
+          cup  = bw - 1 - ctmp;
         }
 
         btor_hashint_map_add (cans, can->id)->as_ptr =
@@ -730,7 +733,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   double sc, rand_max_score = -1.0;
   size_t i, n_endpos;
-  uint32_t up, cup, clo, sls_strat;
+  uint32_t up, cup, clo, sls_strat, bw;
   bool done;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -766,21 +769,21 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
       clo = 0;
       cup = up;
-      if (up >= ass->width)
+      bw  = btor_bv_get_width (ass);
+      if (up >= bw)
       {
-        if ((up - 1) / 2 < ass->width) n_endpos += 1;
-        cup = ass->width - 1;
+        if ((up - 1) / 2 < bw) n_endpos += 1;
+        cup = bw - 1;
       }
 
       /* range from MSB rather than LSB with given prob */
       if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
-        clo = ass->width - 1 - cup;
-        cup = ass->width - 1;
+        clo = bw - 1 - cup;
+        cup = bw - 1;
       }
       btor_hashint_map_add (cans, can->id)->as_ptr =
-          btor_bv_new_random_bit_range (
-              btor->mm, &btor->rng, ass->width, cup, clo);
+          btor_bv_new_random_bit_range (btor->mm, &btor->rng, bw, cup, clo);
     }
 
     sc = try_move (btor, bv_model, score, cans, &done);
@@ -1030,7 +1033,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  uint32_t i, r, up, lo;
+  uint32_t i, r, up, lo, bw;
   BtorSLSMoveKind mk;
   BtorNodePtrStack cans, *pcans;
   BtorNode *can;
@@ -1072,13 +1075,13 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
     ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     assert (ass);
 
-    r = btor_rng_pick_rand (
-        &btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + ass->width - 1);
+    bw = btor_bv_get_width (ass);
+    r  = btor_rng_pick_rand (&btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + bw - 1);
 
-    if (r < ass->width)
+    if (r < bw)
       mk = BTOR_SLS_MOVE_FLIP;
     else
-      mk = (BtorSLSMoveKind) r - ass->width + 1;
+      mk = (BtorSLSMoveKind) r - bw + 1;
     assert (mk >= 0);
 
     if ((!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_SEGMENT)
@@ -1095,20 +1098,18 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
       case BTOR_SLS_MOVE_DEC: neigh = btor_bv_dec (btor->mm, ass); break;
       case BTOR_SLS_MOVE_NOT: neigh = btor_bv_not (btor->mm, ass); break;
       case BTOR_SLS_MOVE_FLIP_RANGE:
-        up = btor_rng_pick_rand (
-            &btor->rng, ass->width > 1 ? 1 : 0, ass->width - 1);
+        up    = btor_rng_pick_rand (&btor->rng, bw > 1 ? 1 : 0, bw - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, 0);
         break;
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
-        lo = btor_rng_pick_rand (&btor->rng, 0, ass->width - 1);
-        up = btor_rng_pick_rand (
-            &btor->rng, lo < ass->width - 1 ? lo + 1 : lo, ass->width - 1);
+        lo = btor_rng_pick_rand (&btor->rng, 0, bw - 1);
+        up = btor_rng_pick_rand (&btor->rng, lo < bw - 1 ? lo + 1 : lo, bw - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, lo);
         break;
       default:
         assert (mk == BTOR_SLS_MOVE_FLIP);
         neigh = btor_bv_flipped_bit (
-            btor->mm, ass, btor_rng_pick_rand (&btor->rng, 0, ass->width - 1));
+            btor->mm, ass, btor_rng_pick_rand (&btor->rng, 0, bw - 1));
         break;
     }
 

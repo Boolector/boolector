@@ -47,7 +47,7 @@ btor_aigvec_const (BtorAIGVecMgr *avmgr, const BtorBitVector *bits)
 
   BtorAIGVec *result;
   uint32_t i, width;
-  width = bits->width;
+  width = btor_bv_get_width (bits);
   assert (width > 0);
   result = new_aigvec (avmgr, width);
   for (i = 0; i < width; i++)

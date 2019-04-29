@@ -278,7 +278,7 @@ int_min_exp (Btor *btor, uint32_t width)
   BtorNode *result;
 
   bv = btor_bv_new (btor->mm, width);
-  btor_bv_set_bit (bv, bv->width - 1, 1);
+  btor_bv_set_bit (bv, width - 1, 1);
   result = btor_exp_bv_const (btor, bv);
   btor_bv_free (btor->mm, bv);
   return result;

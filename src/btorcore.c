@@ -1168,7 +1168,7 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   if (btor_node_is_bv_const (exp))
   {
     bits = btor_node_bv_const_get_bits (exp);
-    assert (bits->width == 1);
+    assert (btor_bv_get_width (bits) == 1);
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
         || (!btor_node_is_inverted (exp) && !btor_bv_get_bit (bits, 0)))
     {
@@ -1592,7 +1592,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   if (btor_node_is_bv_const (real_exp))
   {
     bits = btor_node_bv_const_get_bits (real_exp);
-    assert (bits->width == 1);
+    assert (btor_bv_get_width (bits) == 1);
     /* we do not add true/false */
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
         || (!btor_node_is_inverted (exp) && !btor_bv_get_bit (bits, 0)))

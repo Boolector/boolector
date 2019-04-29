@@ -1504,7 +1504,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   {
     assert (btor_node_is_regular (cur));
     if (btor_node_is_bv_const (cur)
-        && btor_node_bv_get_width (btor, cur) == bits->width
+        && btor_node_bv_get_width (btor, cur) == btor_bv_get_width (bits)
         && !btor_bv_compare (btor_node_bv_const_get_bits (cur), bits))
       break;
     else
@@ -1861,7 +1861,7 @@ new_const_exp_node (Btor *btor, BtorBitVector *bits)
   set_kind (btor, (BtorNode *) exp, BTOR_BV_CONST_NODE);
   exp->bytes = sizeof *exp;
   btor_node_set_sort_id ((BtorNode *) exp,
-                         btor_sort_bv (btor, bits->width));
+                         btor_sort_bv (btor, btor_bv_get_width (bits)));
   setup_node_and_add_to_id_table (btor, exp);
   btor_node_bv_const_set_bits ((BtorNode *) exp, btor_bv_copy (btor->mm, bits));
   btor_node_bv_const_set_invbits ((BtorNode *) exp,

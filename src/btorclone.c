@@ -850,8 +850,7 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   } while (0)
 #endif
 
-#define MEM_BITVEC(bv) \
-  ((bv) ? sizeof (*(bv)) + bv->len * sizeof (BTOR_BV_TYPE) : 0)
+#define MEM_BITVEC(bv) ((bv) ? btor_bv_size (bv) : 0)
 
 static Btor *
 clone_aux_btor (Btor *btor,

@@ -235,9 +235,9 @@ btor_dumpsmt_dump_const_value (Btor *btor,
   if (base == BTOR_OUTPUT_BASE_DEC)
   {
     val = btor_bv_to_dec_char (btor->mm, bits);
-    fprintf (file, "(_ bv%s %d)", val, bits->width);
+    fprintf (file, "(_ bv%s %d)", val, btor_bv_get_width (bits));
   }
-  else if (base == BTOR_OUTPUT_BASE_HEX && bits->width % 4 == 0)
+  else if (base == BTOR_OUTPUT_BASE_HEX && btor_bv_get_width (bits) % 4 == 0)
   {
     val = btor_bv_to_hex_char (btor->mm, bits);
     fprintf (file, "#x%s", val);
@@ -282,9 +282,9 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
                               btor_bv_copy (sdc->btor->mm, bits))
           ->data.as_str = val;
     }
-    fprintf (file, "(_ bv%s %d)", val, bits->width);
+    fprintf (file, "(_ bv%s %d)", val, btor_bv_get_width (bits));
   }
-  else if (base == BTOR_OUTPUT_BASE_HEX && bits->width % 4 == 0)
+  else if (base == BTOR_OUTPUT_BASE_HEX && btor_bv_get_width (bits) % 4 == 0)
   {
     if ((b = btor_hashptr_table_get (sdc->const_cache, bits)))
     {
