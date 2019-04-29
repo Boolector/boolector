@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2018 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -332,9 +332,9 @@ btor_slsutils_compute_score_node (Btor *btor,
       btor_mem_freestr (mm, a0);
     }
 #endif
-    res = ((BtorBitVector *) btor_model_get_bv_aux (
-               btor, bv_model, fun_model, exp))
-              ->bits[0];
+    res = btor_bv_get_bit (((BtorBitVector *) btor_model_get_bv_aux (
+                               btor, bv_model, fun_model, exp)),
+                           0);
   }
 
   BTORLOG (3, "      sls score : %f", res);
