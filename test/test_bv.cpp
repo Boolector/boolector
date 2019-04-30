@@ -114,6 +114,12 @@ class TestBv : public TestBtor
     return (((~(x & y)) << shift) >> shift);
   }
 
+  static uint64_t _or (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x | y;
+  }
+
   static uint64_t implies (uint64_t x, uint64_t y, uint32_t bw)
   {
     assert (bw == 1);
@@ -1055,6 +1061,15 @@ TEST_F (TestBv, nand)
   binary_bitvec (nand, btor_bv_nand, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, or)
+{
+  binary_bitvec (_or, btor_bv_or, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (_or, btor_bv_or, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (_or, btor_bv_or, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (_or, btor_bv_or, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (_or, btor_bv_or, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
 TEST_F (TestBv, implies)
 {
   binary_bitvec (implies, btor_bv_implies, BTOR_TEST_BITVEC_TESTS, 1);
@@ -1949,7 +1964,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
 // TODO btor_bv_get_bit
 // TODO btor_bv_set_bit
 // TODO btor_bv_flip_bit
-// TODO btor_bv_or
 // TODO btor_bv_nor
 // TODO btor_bv_xnor
 // TODO btor_bv_ne
