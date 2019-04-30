@@ -1122,6 +1122,7 @@ btor_bv_implies (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (b);
   assert (a->len == b->len);
   assert (a->width == b->width);
+  assert (a->width == 1);
 
   uint32_t i;
   BtorBitVector *res;

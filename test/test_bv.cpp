@@ -107,6 +107,13 @@ class TestBv : public TestBtor
     return x & y;
   }
 
+  static uint64_t implies (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    assert (bw == 1);
+    (void) bw;
+    return ((~x | y) << 63) >> 63;
+  }
+
   static uint64_t _xor (uint64_t x, uint64_t y, uint32_t bw)
   {
     (void) bw;
@@ -1030,6 +1037,11 @@ TEST_F (TestBv, and)
   binary_bitvec (_and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (_and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 33);
   binary_bitvec (_and, btor_bv_and, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, implies)
+{
+  binary_bitvec (implies, btor_bv_implies, BTOR_TEST_BITVEC_TESTS, 1);
 }
 
 TEST_F (TestBv, xor)
