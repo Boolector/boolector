@@ -84,41 +84,71 @@ BtorBitVector *btor_bv_copy (BtorMemMgr *mm, const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
+/* Return the size in bytes of the given bit-vector. */
 size_t btor_bv_size (const BtorBitVector *bv);
+
+/* Free memory allocated for the given bit-vector. */
 void btor_bv_free (BtorMemMgr *mm, BtorBitVector *bv);
+
+/**
+ * Compare bit-vectors 'a' and 'b'.
+ * Return 0 if 'a' and 'b' are equal, 1 if a > b, and -1 if a < b.
+ */
 int32_t btor_bv_compare (const BtorBitVector *a, const BtorBitVector *b);
+
+/* Return a hash value for the given bit-vector. */
 uint32_t btor_bv_hash (const BtorBitVector *bv);
 
+/* Print given bit-vector to stdout, terminated with a new line. */
 void btor_bv_print (const BtorBitVector *bv);
-void btor_bv_print_all (const BtorBitVector *bv);
+/* Print given bit-vector to stdout, without terminating new line. */
 void btor_bv_print_without_new_line (const BtorBitVector *bv);
+/* Print given bit-vector in 32 bit chunks to stdout. */
+void btor_bv_print_all (const BtorBitVector *bv);
 
+/* Convert given bit-vector to a binary string. */
 char *btor_bv_to_char (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Convert given bit-vector to a hexadecimal string. */
 char *btor_bv_to_hex_char (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Convert given bit-vector to a decimal string. */
 char *btor_bv_to_dec_char (BtorMemMgr *mm, const BtorBitVector *bv);
 
+/* Convert given bit-vector to an unsigned 64 bit integer. */
 uint64_t btor_bv_to_uint64 (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
+/* Get the bit-width of given bit-vector. */
 uint32_t btor_bv_get_width (const BtorBitVector *bv);
 
+/**
+ * Get the length of the bits array of the given bit-vector.
+ * This function returns 0 if compiled with GMP.
+ */
 uint32_t btor_bv_get_len (const BtorBitVector *bv);
 
-/* index 0 is LSB, width - 1 is MSB */
+/* Get value of bit at given index (index 0 is LSB, width - 1 is MSB). */
 uint32_t btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos);
-/* index 0 is LSB, width - 1 is MSB */
+/* Get value of bit at given index (index 0 is LSB, width - 1 is MSB). */
 void btor_bv_set_bit (BtorBitVector *bv, uint32_t pos, uint32_t value);
 
+/* Flip bit at given index. */
 void btor_bv_flip_bit (BtorBitVector *bv, uint32_t pos);
 
+/* Return true if given bit-vector represents true ('1'). */
 bool btor_bv_is_true (const BtorBitVector *bv);
+/* Return true if given bit-vector represents false ('0'). */
 bool btor_bv_is_false (const BtorBitVector *bv);
 
+/* Return true if given bit-vector represents 0 (all bits set to 0). */
 bool btor_bv_is_zero (const BtorBitVector *bv);
+/* Return true if given bit-vector represents ~0 (all bits set to 1). */
 bool btor_bv_is_ones (const BtorBitVector *bv);
+/* Return true if given bit-vector represents 1. */
 bool btor_bv_is_one (const BtorBitVector *bv);
+/* Return true if given bit-vector represents the min. signed value (10...0). */
 bool btor_bv_is_min_signed (const BtorBitVector *bv);
+/* Return true if given bit-vector represents the max. signed value (01...1). */
 bool btor_bv_is_max_signed (const BtorBitVector *bv);
 
 /* return p for bv = 2^p, and -1 if bv is not a power of 2 */
@@ -138,117 +168,162 @@ uint32_t btor_bv_get_num_leading_ones (const BtorBitVector *bv);
 
 #define btor_bv_zero(MM, BW) btor_bv_new (MM, BW)
 
+/* Create a bit-vector of given bit-width that represents 1. */
 BtorBitVector *btor_bv_one (BtorMemMgr *mm, uint32_t bw);
+/* Create a bit-vector of given bit-width that represents ~0. */
 BtorBitVector *btor_bv_ones (BtorMemMgr *mm, uint32_t bw);
+
+/**
+ * Create a bit-vector of given bit-width that represents the minimum signed
+ * value 10...0.
+ */
 BtorBitVector *btor_bv_min_signed (BtorMemMgr *mm, uint32_t bw);
+/**
+ * Create a bit-vector of given bit-width that represents the maximum signed
+ * value 01...1.
+ */
 BtorBitVector *btor_bv_max_signed (BtorMemMgr *mm, uint32_t bw);
 
+/* Create the negation (two's complement0 of the given bit-vector. */
 BtorBitVector *btor_bv_neg (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Create the bit-wise negation of the given bit-vector. */
 BtorBitVector *btor_bv_not (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Create the increment (+1) of the given bit-vector. */
 BtorBitVector *btor_bv_inc (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Create the decrement (-1) of the given bit-vector. */
 BtorBitVector *btor_bv_dec (BtorMemMgr *mm, const BtorBitVector *bv);
 
+/* Create a bit-vector representing the redor of given bit-vector. */
 BtorBitVector *btor_bv_redor (BtorMemMgr *mm, const BtorBitVector *bv);
+/* Create a bit-vector representing the redand of given bit-vector. */
 BtorBitVector *btor_bv_redand (BtorMemMgr *mm, const BtorBitVector *bv);
 
+/* Create the addition of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_add (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the subtraction of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_sub (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the bit-wise and of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_and (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the boolean implication of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_implies (BtorMemMgr *mm,
                                 const BtorBitVector *a,
                                 const BtorBitVector *b);
 
+/* Create the bit-wise nand of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_nand (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the bit-wise nor of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_nor (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the bit-wise or of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_or (BtorMemMgr *mm,
                            const BtorBitVector *a,
                            const BtorBitVector *b);
 
+/* Create the bit-wise xnor of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_xnor (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the bit-wise xor of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_xor (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the equality of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_eq (BtorMemMgr *mm,
                            const BtorBitVector *a,
                            const BtorBitVector *b);
 
+/* Create the disequality of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_ne (BtorMemMgr *mm,
                            const BtorBitVector *a,
                            const BtorBitVector *b);
 
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_ult (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_ulte (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the logical shift left of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_sll (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the logical shift right of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_srl (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the multiplication of of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_mul (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
+/* Create the unsigned divisionof of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_udiv (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the unsigned remainder of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_urem (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the if-then-else conditional c ? a : b. */
 BtorBitVector *btor_bv_ite (BtorMemMgr *mm,
                             const BtorBitVector *c,
                             const BtorBitVector *t,
                             const BtorBitVector *e);
 
+/* Create the concatenation of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_concat (BtorMemMgr *mm,
                                const BtorBitVector *a,
                                const BtorBitVector *b);
 
+/* Create the slice from bit index upper to lower of given the bit-vector. */
 BtorBitVector *btor_bv_slice (BtorMemMgr *mm,
                               const BtorBitVector *bv,
                               uint32_t upper,
                               uint32_t lower);
 
+/* Create the unsigned/zero extension by 'len' bits of the given bit-vector. */
 BtorBitVector *btor_bv_uext (BtorMemMgr *mm,
                              const BtorBitVector *bv0,
                              uint32_t len);
 
+/* Create the signed extension by 'len' bits of the given bit-vector. */
 BtorBitVector *btor_bv_sext (BtorMemMgr *mm,
                              const BtorBitVector *bv0,
                              uint32_t len);
 
+/* Create a copy of given bit-vector with the bit at given index flipped. */
 BtorBitVector *btor_bv_flipped_bit (BtorMemMgr *mm,
                                     const BtorBitVector *bv,
                                     uint32_t pos);
 
+/**
+ * Create a copy of given bit-vector with the bits at given index range
+ * (from upper index 'up' to lower index 'lo') flipped.
+ */
 BtorBitVector *btor_bv_flipped_bit_range (BtorMemMgr *mm,
                                           const BtorBitVector *bv,
                                           uint32_t up,
@@ -256,6 +331,7 @@ BtorBitVector *btor_bv_flipped_bit_range (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
+/* Return true if 'bv0' * 'bv1' produces an overflow. */
 bool btor_bv_is_umulo (BtorMemMgr *mm,
                        const BtorBitVector *bv0,
                        const BtorBitVector *bv1);
@@ -270,6 +346,13 @@ BtorBitVector * btor_bv_gcd_ext (Btor * btor,
 				 BtorBitVector ** fy);
 #endif
 
+/**
+ * Calculate modular inverse for given bit-vector by means of the Extended
+ * Euclidian Algorithm.
+ *
+ * Note that c must be odd (the greatest common divisor gcd (c, 2^bw) must be
+ * and is in this case always 1).
+ */
 BtorBitVector *btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/

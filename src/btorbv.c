@@ -1712,7 +1712,6 @@ btor_bv_flipped_bit (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t pos)
 
   res = btor_bv_copy (mm, bv);
   btor_bv_set_bit (res, pos, btor_bv_get_bit (res, pos) ? 0 : 1);
-  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
 
   return res;
@@ -1734,7 +1733,6 @@ btor_bv_flipped_bit_range (BtorMemMgr *mm,
   res = btor_bv_copy (mm, bv);
   for (i = lower; i <= upper; i++)
     btor_bv_set_bit (res, i, btor_bv_get_bit (res, i) ? 0 : 1);
-  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }
