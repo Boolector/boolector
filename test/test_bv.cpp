@@ -1918,3 +1918,30 @@ TEST_F (TestBv, test_get_num_leading_ones)
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
   btor_bv_free (d_mm, bv);
 }
+
+// TODO btor_bv_new_random
+// TODO btor_bv_new_random_bit_range
+// TODO btor_bv_dec_to_bv
+// TODO btor_bv_const
+// TODO btor_bv_constd
+// TODO btor_bv_consth
+// TODO btor_bv_get_assignment
+// TODO btor_bv_copy
+
+// TODO btor_bv_hash
+
+// TODO btor_bv_get_bit
+// TODO btor_bv_set_bit
+// TODO btor_bv_flip_bit
+// TODO btor_bv_nand
+// TODO btor_bv_or
+// TODO btor_bv_nor
+// TODO btor_bv_xnor
+// TODO btor_bv_ne
+// TODO btor_bv_ulte
+// TODO btor_bv_redor
+// TODO btor_bv_redand
+// TODO btor_bv_ite
+// TODO btor_bv_mod_inverse
+// TODO btor_bv_is_true
+// TODO btor_bv_is_false
