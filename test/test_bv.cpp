@@ -165,6 +165,12 @@ class TestBv : public TestBtor
     return x < y;
   }
 
+  static uint64_t ulte (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x <= y;
+  }
+
   static uint64_t sll (uint64_t x, uint64_t y, uint32_t bw)
   {
     assert (bw <= 64);
@@ -1149,6 +1155,15 @@ TEST_F (TestBv, ult)
   binary_bitvec (ult, btor_bv_ult, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, ulte)
+{
+  binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
 TEST_F (TestBv, sll)
 {
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 2);
@@ -2011,7 +2026,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
 // TODO btor_bv_get_bit
 // TODO btor_bv_set_bit
 // TODO btor_bv_flip_bit
-// TODO btor_bv_ulte
 // TODO btor_bv_redor
 // TODO btor_bv_redand
 // TODO btor_bv_ite
