@@ -25,39 +25,61 @@ typedef struct BtorBitVector BtorBitVector;
 
 BTOR_DECLARE_STACK (BtorBitVectorPtr, BtorBitVector *);
 
+/* Create a new bit-vector of given bit-width, initialized to zero. */
 BtorBitVector *btor_bv_new (BtorMemMgr *mm, uint32_t bw);
 
+/* Create a new random bit-vector of given bit-width. */
 BtorBitVector *btor_bv_new_random (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw);
 
+/* Create a new random bit-vector within the given value range. */
 BtorBitVector *btor_bv_new_random_range (BtorMemMgr *mm,
                                          BtorRNG *rng,
                                          uint32_t bw,
                                          const BtorBitVector *from,
                                          const BtorBitVector *to);
 
+/**
+ * Create a new bit-vecotr of given bit-width and randomly set bits within given
+ * index range. Bits outside of given index range are initialized with zero.
+ */
 BtorBitVector *btor_bv_new_random_bit_range (
     BtorMemMgr *mm, BtorRNG *rng, uint32_t bw, uint32_t up, uint32_t lo);
 
+/**
+ * Create bit-vector from given binary string.
+ * The bit-width of the resulting bit-vector is the length of the given string.
+ */
 BtorBitVector *btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment);
 
+/* Create bit-vector of given bit-width from given decimal string. */
 BtorBitVector *btor_bv_dec_to_bv (BtorMemMgr *mm,
                                   const char *decimal_string,
                                   uint32_t bw);
 
+/* Create bit-vector of given bit-width from given unsigned integer value. */
 BtorBitVector *btor_bv_uint64_to_bv (BtorMemMgr *mm,
                                      uint64_t value,
                                      uint32_t bw);
 
+/* Create bit-vector of given bit-width from given integer value. */
 BtorBitVector *btor_bv_int64_to_bv (BtorMemMgr *mm, int64_t value, uint32_t bw);
 
+/**
+ * Create bit-vector from given binary string.
+ * The bit-width of the resulting bit-vector is the length of the given string.
+ */
 BtorBitVector *btor_bv_const (BtorMemMgr *mm, const char *str, uint32_t bw);
 
+/* Create bit-vector of given bit-width from given decimal string. */
 BtorBitVector *btor_bv_constd (BtorMemMgr *mm, const char *str, uint32_t bw);
 
+/* Create bit-vector of given bit-width from given hexadecimal string. */
 BtorBitVector *btor_bv_consth (BtorMemMgr *mm, const char *str, uint32_t bw);
 
+/* Get AIG vector assignment of given node as bit-vector. */
 BtorBitVector *btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp);
 
+/* Create a (deep) copy of the given bit-vector. */
 BtorBitVector *btor_bv_copy (BtorMemMgr *mm, const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
@@ -80,6 +102,7 @@ uint64_t btor_bv_to_uint64 (const BtorBitVector *bv);
 /*------------------------------------------------------------------------*/
 
 uint32_t btor_bv_get_width (const BtorBitVector *bv);
+
 uint32_t btor_bv_get_len (const BtorBitVector *bv);
 
 /* index 0 is LSB, width - 1 is MSB */
