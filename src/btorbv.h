@@ -51,11 +51,6 @@ BtorBitVector *btor_bv_new_random_bit_range (
  */
 BtorBitVector *btor_bv_char_to_bv (BtorMemMgr *mm, const char *assignment);
 
-/* Create bit-vector of given bit-width from given decimal string. */
-BtorBitVector *btor_bv_dec_to_bv (BtorMemMgr *mm,
-                                  const char *decimal_string,
-                                  uint32_t bw);
-
 /* Create bit-vector of given bit-width from given unsigned integer value. */
 BtorBitVector *btor_bv_uint64_to_bv (BtorMemMgr *mm,
                                      uint64_t value,
