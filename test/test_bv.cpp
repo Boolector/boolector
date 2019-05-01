@@ -1603,6 +1603,27 @@ TEST_F (TestBv, consth)
   btor_bv_free (d_mm, bv);
 }
 
+TEST_F (TestBv, set_get_flip_bit)
+{
+  int32_t i;
+  uint32_t n, v, vv;
+  BtorBitVector *bv;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv = btor_bv_new_random (d_mm, d_rng, i);
+    n  = btor_rng_pick_rand (d_rng, 0, i - 1);
+    v  = btor_bv_get_bit (bv, n);
+    vv = btor_rng_pick_with_prob (d_rng, 500) ? 1 : 0;
+    btor_bv_set_bit (bv, n, vv);
+    assert (btor_bv_get_bit (bv, n) == vv);
+    assert (v == vv || btor_bv_get_bit (bv, n) == (((~v) << 31) >> 31));
+    btor_bv_flip_bit (bv, n);
+    assert (btor_bv_get_bit (bv, n) == (((~vv) << 31) >> 31));
+    btor_bv_free (d_mm, bv);
+  }
+}
+
 TEST_F (TestBv, one)
 {
   int32_t i;
@@ -2732,9 +2753,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
 
 // TODO btor_bv_hash
 
-// TODO btor_bv_get_bit
-// TODO btor_bv_set_bit
-// TODO btor_bv_flip_bit
 // TODO btor_bv_redor
 // TODO btor_bv_redand
 // TODO btor_bv_ite
