@@ -397,6 +397,24 @@ class TestBv : public TestBtor
     }
   }
 
+  void mod_inverse_bitvec (uint32_t num_tests, uint32_t bit_width)
+  {
+    uint32_t i;
+    BtorBitVector *bv, *bvinv, *mul;
+
+    for (i = 0; i < num_tests; i++)
+    {
+      bv = btor_bv_new_random (d_mm, d_rng, bit_width);
+      btor_bv_set_bit (bv, 0, 1);  // must be odd
+      bvinv = btor_bv_mod_inverse (d_mm, bv);
+      mul   = btor_bv_mul (d_mm, bv, bvinv);
+      assert (btor_bv_is_one (mul));
+      btor_bv_free (d_mm, mul);
+      btor_bv_free (d_mm, bv);
+      btor_bv_free (d_mm, bvinv);
+    }
+  }
+
   void flipped_bit_bitvec (uint32_t num_tests, uint32_t bit_width)
   {
     uint32_t i, j, pos;
@@ -2102,6 +2120,17 @@ TEST_F (TestBv, ite)
   ite_bitvec (BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, mod_inverse)
+{
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 2);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 3);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 4);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 5);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 6);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 7);
+}
+
 TEST_F (TestBv, flipped_bit)
 {
   flipped_bit_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
@@ -2917,5 +2946,3 @@ TEST_F (TestBv, test_get_num_leading_ones)
 }
 
 // TODO btor_bv_get_assignment
-
-// TODO btor_bv_mod_inverse
