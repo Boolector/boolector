@@ -1984,6 +1984,56 @@ TEST_F (TestBv, compare)
   }
 }
 
+TEST_F (TestBv, is_true)
+{
+  int32_t i;
+  BtorBitVector *bv1, *bv2;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_uint64_to_bv (
+        d_mm, btor_rng_pick_rand (d_rng, 1, (1 << i) - 1), i);
+    if (i > 1)
+    {
+      assert (!btor_bv_is_true (bv1));
+      assert (!btor_bv_is_true (bv2));
+    }
+    else
+    {
+      assert (btor_bv_is_true (bv1));
+      assert (btor_bv_is_true (bv2));
+    }
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+  }
+}
+
+TEST_F (TestBv, is_false)
+{
+  int32_t i;
+  BtorBitVector *bv1, *bv2;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_uint64_to_bv (
+        d_mm, btor_rng_pick_rand (d_rng, 1, (1 << i) - 1), i);
+    if (i > 1)
+    {
+      assert (!btor_bv_is_false (bv1));
+      assert (!btor_bv_is_false (bv2));
+    }
+    else
+    {
+      assert (btor_bv_is_false (bv1));
+      assert (!btor_bv_is_false (bv2));
+    }
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+  }
+}
+
 TEST_F (TestBv, is_one)
 {
   int32_t i;
@@ -2689,5 +2739,3 @@ TEST_F (TestBv, test_get_num_leading_ones)
 // TODO btor_bv_redand
 // TODO btor_bv_ite
 // TODO btor_bv_mod_inverse
-// TODO btor_bv_is_true
-// TODO btor_bv_is_false
