@@ -562,6 +562,20 @@ TEST_F (TestBv, new_random_bit_range)
   new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, copy)
+{
+  uint32_t bw;
+  BtorBitVector *bv1, *bv2;
+
+  for (bw = 1; bw <= 64; bw++)
+  {
+    bv1 = btor_bv_new_random (d_mm, d_rng, bw);
+    bv2 = btor_bv_copy (d_mm, bv1);
+    assert (!btor_bv_compare (bv1, bv2));
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+  }
+}
 /*------------------------------------------------------------------------*/
 
 TEST_F (TestBv, uint64_to_bv)
@@ -2839,7 +2853,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
 }
 
 // TODO btor_bv_get_assignment
-// TODO btor_bv_copy
 
 // TODO btor_bv_hash
 
