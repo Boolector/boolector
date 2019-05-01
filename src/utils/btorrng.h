@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -12,13 +12,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef BTOR_USE_GMP
+#include <gmp.h>
+#endif
+
 struct BtorRNG
 {
   uint32_t z, w;
+#ifdef BTOR_USE_GMP
+  bool is_init;
+  gmp_randstate_t gmp_state;
+#endif
 };
 typedef struct BtorRNG BtorRNG;
 
 void btor_rng_init (BtorRNG* rng, uint32_t seed);
+void btor_rng_delete (BtorRNG* rng);
 
 uint32_t btor_rng_rand (BtorRNG* rng);
 uint32_t btor_rng_pick_rand (BtorRNG* rng, uint32_t from, uint32_t to);

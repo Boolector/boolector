@@ -967,6 +967,7 @@ btormbt_delete_btormbt (BtorMBT *mbt)
   BtorMBTBtorOpt *opt;
 
   mm = mbt->mm;
+  btor_rng_delete (&mbt->round.rng);
   while (!BTOR_EMPTY_STACK (mbt->btor_opts))
   {
     opt = BTOR_POP_STACK (mbt->btor_opts);

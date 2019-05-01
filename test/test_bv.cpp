@@ -534,15 +534,21 @@ TEST_F (TestBv, new)
   BtorBitVector *bv;
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW);
+#ifndef BTOR_USE_GMP
   ASSERT_EQ (btor_bv_get_len (bv), 1u);
+#endif
   btor_bv_free (d_mm, bv);
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW - 1);
+#ifndef BTOR_USE_GMP
   ASSERT_EQ (btor_bv_get_len (bv), 1u);
+#endif
   btor_bv_free (d_mm, bv);
 
   bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW + 1);
+#ifndef BTOR_USE_GMP
   ASSERT_EQ (btor_bv_get_len (bv), 2u);
+#endif
   btor_bv_free (d_mm, bv);
 }
 

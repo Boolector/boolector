@@ -59,7 +59,9 @@ hamming_distance (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1);
   assert (bv2);
   assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+#ifndef BTOR_USE_GMP
   assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
+#endif
 
   uint32_t res, bw;
   BtorBitVector *bv, *bvdec = 0, *zero, *ones, *tmp;
@@ -92,7 +94,9 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1);
   assert (bv2);
   assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+#ifndef BTOR_USE_GMP
   assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
+#endif
 
   uint32_t i, j, res, bw;
   BtorBitVector *tmp;
@@ -123,7 +127,9 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1);
   assert (bv2);
   assert (btor_bv_get_width (bv1) == btor_bv_get_width (bv2));
+#ifndef BTOR_USE_GMP
   assert (btor_bv_get_len (bv1) == btor_bv_get_len (bv2));
+#endif
 
   uint32_t i, j, res, bw;
   BtorBitVector *tmp;

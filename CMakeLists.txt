@@ -120,6 +120,7 @@ option(ONLY_MINISAT   "Only use MiniSat" OFF)
 option(ONLY_PICOSAT   "Only use PicoSAT" OFF)
 option(USE_PYTHON2    "Prefer Python 2.7" )
 option(USE_PYTHON3    "Prefer Python 3" )
+option(USE_GMP        "Use GMP for bit-vector implementation" OFF)
 
 #-----------------------------------------------------------------------------#
 
@@ -288,6 +289,14 @@ if(NOT IS_WINDOWS_BUILD)
   if(Threads_FOUND)
     set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     add_definitions("-DBTOR_HAVE_PTHREADS")
+  endif()
+endif()
+
+if(USE_GMP)
+  find_package(GMP)
+  if(GMP_FOUND)
+    set(LIBRARIES ${LIBRARIES} ${GMP_LIBRARIES})
+    add_definitions("-DBTOR_USE_GMP")
   endif()
 endif()
 

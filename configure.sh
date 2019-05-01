@@ -12,6 +12,8 @@ log=no
 shared=no
 prefix=
 
+gmp=no
+
 btor2_dir=
 
 lingeling=unknown
@@ -60,6 +62,8 @@ where <option> is one of the following:
   --py2             prefer Python 2.7
   --py3             prefer Python 3
   --time-stats      compile with time statistics
+
+  --gmp             use gmp for bit-vector implementation
 
   --btor2tools-dir  the location of the btor2tools package (optional)
                     default: <boolector_root_dir>/../btor2tools
@@ -133,6 +137,8 @@ do
     --py3)        py3=yes;;
     --time-stats) timestats=yes;;
 
+    --gmp) gmp=yes;;
+
     --btor2tools-dir)
       shift
       [ $# -eq 0 ] && die "missing argument to $opt"
@@ -185,6 +191,8 @@ cmake_opts="$CMAKE_OPTS"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=ON"
 
 [ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
+
+[ $gmp = yes ] && cmake_opts="$cmake_opts -DUSE_GMP=ON"
 
 [ -n "$btor2_dir" ] && cmake_opts="$cmake_opts -DBtor2Tools_ROOT_DIR=$btor2_dir"
 

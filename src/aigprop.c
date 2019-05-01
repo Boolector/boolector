@@ -1107,6 +1107,7 @@ aigprop_delete_aigprop (AIGProp *aprop)
 {
   assert (aprop);
 
+  btor_rng_delete (&aprop->rng);
   if (aprop->unsatroots) btor_hashint_map_delete (aprop->unsatroots);
   if (aprop->score) btor_hashint_map_delete (aprop->score);
   if (aprop->model) btor_hashint_map_delete (aprop->model);

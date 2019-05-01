@@ -28,6 +28,22 @@ btor_rng_init (BtorRNG* rng, uint32_t seed)
   rng->z += 1;
   rng->w *= 2019164533u;
   rng->z *= 1000632769u;
+
+#ifdef BTOR_USE_GMP
+  if (rng->is_init) gmp_randclear (rng->gmp_state);
+  rng->is_init = true;
+  gmp_randinit_mt (rng->gmp_state);
+  gmp_randseed_ui (rng->gmp_state, btor_rng_rand (rng));
+#endif
+}
+
+void
+btor_rng_delete (BtorRNG* rng)
+{
+  (void) rng;
+#ifdef BTOR_USE_GMP
+  gmp_randclear (rng->gmp_state);
+#endif
 }
 
 uint32_t

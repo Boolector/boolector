@@ -98,7 +98,13 @@ uint32_t btor_bv_hash (const BtorBitVector *bv);
 void btor_bv_print (const BtorBitVector *bv);
 /* Print given bit-vector to stdout, without terminating new line. */
 void btor_bv_print_without_new_line (const BtorBitVector *bv);
-/* Print given bit-vector in 32 bit chunks to stdout. */
+/**
+ * Print 32 bit chunks of underlying bits array of given bit-vector to stdout.
+ * Superfluous bits and actual bits belonging to the bit-vector (in case that
+ * the underlying array allows to represent more than bv->width bits) are
+ * separated with a '|'. For debugging purposes only. Does not print anything
+ * if compiled with GMP.
+ */
 void btor_bv_print_all (const BtorBitVector *bv);
 
 /* Convert given bit-vector to a binary string. */
