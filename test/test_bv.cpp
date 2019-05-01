@@ -576,6 +576,31 @@ TEST_F (TestBv, copy)
     btor_bv_free (d_mm, bv2);
   }
 }
+
+/* This is not true in corner cases or if the RNG is not random enough.
+ * If this fails due to that we might want to consider a larger sample. */
+TEST_F (TestBv, hash)
+{
+  uint32_t bw, hash1, hash2, hash3;
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (bw = 32; bw <= 64; bw++)
+  {
+    bv1   = btor_bv_new_random (d_mm, d_rng, bw);
+    bv2   = btor_bv_new_random (d_mm, d_rng, bw);
+    bv3   = btor_bv_new_random (d_mm, d_rng, bw);
+    hash1 = btor_bv_hash (bv1);
+    hash2 = btor_bv_hash (bv2);
+    hash3 = btor_bv_hash (bv3);
+    assert (!btor_bv_compare (bv1, bv2) || hash1 != hash2
+            || !btor_bv_compare (bv1, bv3) || hash1 != hash3
+            || !btor_bv_compare (bv2, bv3) || hash2 != hash3);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+}
+
 /*------------------------------------------------------------------------*/
 
 TEST_F (TestBv, uint64_to_bv)
@@ -2853,8 +2878,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
 }
 
 // TODO btor_bv_get_assignment
-
-// TODO btor_bv_hash
 
 // TODO btor_bv_ite
 // TODO btor_bv_mod_inverse
