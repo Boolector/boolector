@@ -214,6 +214,11 @@ class TestBv : public TestBtor
     return (x % y) % (uint64_t) pow (2, bw);
   }
 
+  static uint64_t ite (uint64_t c, uint64_t t, uint64_t e, uint32_t bw)
+  {
+    (void) bw;
+    return c ? t : e;
+  }
   void unary_bitvec (uint64_t (*int_func) (uint64_t, uint32_t),
                      BtorBitVector *(*bitvec_func) (BtorMemMgr *,
                                                     const BtorBitVector *),
@@ -364,6 +369,31 @@ class TestBv : public TestBtor
       btor_mem_freestr (d_mm, sres);
       btor_bv_free (d_mm, res);
       btor_bv_free (d_mm, bv);
+    }
+  }
+
+  void ite_bitvec (uint32_t num_tests, uint32_t bit_width)
+  {
+    uint32_t i;
+    BtorBitVector *bvc, *bvt, *bve, *res;
+    uint64_t ac, at, ae, ares, bres;
+
+    for (i = 0; i < num_tests; i++)
+    {
+      bvc  = btor_bv_new_random (d_mm, d_rng, 1);
+      bvt  = btor_bv_new_random (d_mm, d_rng, bit_width);
+      bve  = btor_bv_new_random (d_mm, d_rng, bit_width);
+      res  = btor_bv_ite (d_mm, bvc, bvt, bve);
+      ac   = btor_bv_to_uint64 (bvc);
+      at   = btor_bv_to_uint64 (bvt);
+      ae   = btor_bv_to_uint64 (bve);
+      ares = ite (ac, at, ae, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      assert (ares == bres);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bvc);
+      btor_bv_free (d_mm, bvt);
+      btor_bv_free (d_mm, bve);
     }
   }
 
@@ -2063,6 +2093,15 @@ TEST_F (TestBv, sext)
   ext_bitvec (btor_bv_sext, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, ite)
+{
+  ite_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
+  ite_bitvec (BTOR_TEST_BITVEC_TESTS, 7);
+  ite_bitvec (BTOR_TEST_BITVEC_TESTS, 31);
+  ite_bitvec (BTOR_TEST_BITVEC_TESTS, 33);
+  ite_bitvec (BTOR_TEST_BITVEC_TESTS, 64);
+}
+
 TEST_F (TestBv, flipped_bit)
 {
   flipped_bit_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
@@ -2879,5 +2918,4 @@ TEST_F (TestBv, test_get_num_leading_ones)
 
 // TODO btor_bv_get_assignment
 
-// TODO btor_bv_ite
 // TODO btor_bv_mod_inverse
