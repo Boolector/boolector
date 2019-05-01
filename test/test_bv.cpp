@@ -81,6 +81,18 @@ class TestBv : public TestBtor
     return -x % (uint64_t) pow (2, bw);
   }
 
+  static uint64_t redand (uint64_t x, uint32_t bw)
+  {
+    uint64_t a = UINT64_MAX << bw;
+    return (x + a) == UINT64_MAX;
+  }
+
+  static uint64_t redor (uint64_t x, uint32_t bw)
+  {
+    (void) bw;
+    return x != 0;
+  }
+
   static uint64_t inc (uint64_t x, uint32_t bw)
   {
     return (x + 1) % (uint64_t) pow (2, bw);
@@ -1721,6 +1733,22 @@ TEST_F (TestBv, neg)
   unary_bitvec (neg, btor_bv_neg, BTOR_TEST_BITVEC_TESTS, 33);
 }
 
+TEST_F (TestBv, redand)
+{
+  unary_bitvec (redand, btor_bv_redand, BTOR_TEST_BITVEC_TESTS, 1);
+  unary_bitvec (redand, btor_bv_redand, BTOR_TEST_BITVEC_TESTS, 7);
+  unary_bitvec (redand, btor_bv_redand, BTOR_TEST_BITVEC_TESTS, 31);
+  unary_bitvec (redand, btor_bv_redand, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
+TEST_F (TestBv, redor)
+{
+  unary_bitvec (redor, btor_bv_redor, BTOR_TEST_BITVEC_TESTS, 1);
+  unary_bitvec (redor, btor_bv_redor, BTOR_TEST_BITVEC_TESTS, 7);
+  unary_bitvec (redor, btor_bv_redor, BTOR_TEST_BITVEC_TESTS, 31);
+  unary_bitvec (redor, btor_bv_redor, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
 TEST_F (TestBv, inc)
 {
   unary_bitvec (inc, btor_bv_inc, BTOR_TEST_BITVEC_TESTS, 1);
@@ -2753,7 +2781,5 @@ TEST_F (TestBv, test_get_num_leading_ones)
 
 // TODO btor_bv_hash
 
-// TODO btor_bv_redor
-// TODO btor_bv_redand
 // TODO btor_bv_ite
 // TODO btor_bv_mod_inverse
