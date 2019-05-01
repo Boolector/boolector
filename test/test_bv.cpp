@@ -49,7 +49,7 @@ class TestBv : public TestBtor
   void SetUp () override
   {
     TestBtor::SetUp ();
-    d_mm = d_btor->mm;
+    d_mm  = d_btor->mm;
     d_rng = &d_btor->rng;
   }
 
@@ -412,6 +412,43 @@ class TestBv : public TestBtor
     }
   }
 
+  void new_random_bit_range_bitvec (uint32_t num_tests, uint32_t bw)
+  {
+    uint32_t i, j, up, lo;
+    BtorBitVector *bv1, *bv2, *bv3;
+
+    for (i = 0; i < num_tests; i++)
+    {
+      lo  = btor_rng_pick_rand (d_rng, 0, bw - 1);
+      up  = lo == bw - 1 ? bw - 1 : btor_rng_pick_rand (d_rng, lo + 1, bw - 1);
+      bv1 = btor_bv_new_random_bit_range (d_mm, d_rng, bw, up, lo);
+      bv2 = btor_bv_new_random_bit_range (d_mm, d_rng, bw, up, lo);
+      bv3 = btor_bv_new_random_bit_range (d_mm, d_rng, bw, up, lo);
+      for (j = lo; j <= up; j++)
+      {
+        if (btor_bv_get_bit (bv1, j) != btor_bv_get_bit (bv2, j)
+            || btor_bv_get_bit (bv1, j) != btor_bv_get_bit (bv3, j)
+            || btor_bv_get_bit (bv2, j) != btor_bv_get_bit (bv3, j))
+          break;
+      }
+      for (j = 0; j < lo; j++)
+      {
+        assert (btor_bv_get_bit (bv1, j) == 0);
+        assert (btor_bv_get_bit (bv2, j) == 0);
+        assert (btor_bv_get_bit (bv3, j) == 0);
+      }
+      for (j = up + 1; j < bw; j++)
+      {
+        assert (btor_bv_get_bit (bv1, j) == 0);
+        assert (btor_bv_get_bit (bv2, j) == 0);
+        assert (btor_bv_get_bit (bv3, j) == 0);
+      }
+      btor_bv_free (d_mm, bv1);
+      btor_bv_free (d_mm, bv2);
+      btor_bv_free (d_mm, bv3);
+    }
+  }
+
   void is_umulo_bitvec (uint32_t bw)
   {
     BtorBitVector *bv0, *bv1;
@@ -514,6 +551,15 @@ TEST_F (TestBv, new_random_range)
     btor_bv_free (d_mm, to);
     btor_bv_free (d_mm, bv);
   }
+}
+
+TEST_F (TestBv, new_random_bit_range)
+{
+  new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
+  new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 7);
+  new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 31);
+  new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 33);
+  new_random_bit_range_bitvec (BTOR_TEST_BITVEC_TESTS, 64);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2792,7 +2838,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
   btor_bv_free (d_mm, bv);
 }
 
-// TODO btor_bv_new_random_bit_range
 // TODO btor_bv_get_assignment
 // TODO btor_bv_copy
 
