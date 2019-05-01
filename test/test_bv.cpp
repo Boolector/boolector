@@ -461,6 +461,24 @@ TEST_F (TestBv, new)
   btor_bv_free (d_mm, bv);
 }
 
+TEST_F (TestBv, new_random)
+{
+  uint32_t bw;
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (bw = 1; bw <= 64; bw++)
+  {
+    bv1 = btor_bv_new_random (d_mm, d_rng, bw);
+    bv2 = btor_bv_new_random (d_mm, d_rng, bw);
+    bv3 = btor_bv_new_random (d_mm, d_rng, bw);
+    assert (btor_bv_compare (bv1, bv2) || btor_bv_compare (bv1, bv3)
+            || btor_bv_compare (bv2, bv3));
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+}
+
 TEST_F (TestBv, new_random_range)
 {
   uint32_t bw;
@@ -2774,7 +2792,6 @@ TEST_F (TestBv, test_get_num_leading_ones)
   btor_bv_free (d_mm, bv);
 }
 
-// TODO btor_bv_new_random
 // TODO btor_bv_new_random_bit_range
 // TODO btor_bv_get_assignment
 // TODO btor_bv_copy
