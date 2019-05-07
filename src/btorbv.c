@@ -963,7 +963,6 @@ btor_bv_is_ones (const BtorBitVector *bv)
   uint32_t i, n;
 #ifdef BTOR_USE_GMP
   uint64_t m, max;
-  // printf("bv ");btor_bv_print (bv);
   mp_limb_t limb;
   if ((n = mpz_size (bv->val)) == 0) return false;  // zero
   max = mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX;
@@ -980,19 +979,14 @@ btor_bv_is_ones (const BtorBitVector *bv)
     return ((uint64_t) limb) == max;
   m = mp_bits_per_limb - bv->width % mp_bits_per_limb;
   return ((uint64_t) limb) == (max >> m);
-  #else
+#else
   for (i = bv->len - 1; i >= 1; i--)
     if (bv->bits[i] != UINT32_MAX) return false;
-  if (bv->width == BTOR_BV_TYPE_BW)
-    return bv->bits[0] == UINT32_MAX;
-  else
-  {
-    n = BTOR_BV_TYPE_BW - bv->width % BTOR_BV_TYPE_BW;
-    assert (n > 0);
-    if (bv->bits[0] != UINT32_MAX >> n) return false;
-  }
+  if (bv->width == BTOR_BV_TYPE_BW) return bv->bits[0] == UINT32_MAX;
+  n = BTOR_BV_TYPE_BW - bv->width % BTOR_BV_TYPE_BW;
+  assert (n > 0);
+  return bv->bits[0] == (UINT32_MAX >> n);
 #endif
-  return true;
 }
 
 bool
