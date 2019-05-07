@@ -1319,7 +1319,6 @@ btor_bv_redand (BtorMemMgr *mm, const BtorBitVector *bv)
 
   BtorBitVector *res;
 #ifdef BTOR_USE_GMP
-  // printf ("is ones %d\n", btor_bv_is_ones (bv));
   res = btor_bv_is_ones (bv) ? btor_bv_one (mm, 1) : btor_bv_zero (mm, 1);
 #else
   uint32_t i;
@@ -1352,13 +1351,19 @@ btor_bv_redor (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (mm);
   assert (bv);
 
-  BtorBitVector *res;
 #ifdef BTOR_USE_GMP
-  res =
-      mpz_cmp_ui (bv->val, 0) == 0 ? btor_bv_zero (mm, 1) : btor_bv_one (mm, 1);
+  mp_limb_t limb;
+  size_t i, n;
+  for (i = 0, n = mpz_size (bv->val); i < n; i++)
+  {
+    limb = mpz_getlimbn (bv->val, i);
+    if (((uint64_t) limb) != 0) return btor_bv_one (mm, 1);
+  }
+  return btor_bv_zero (mm, 1);
 #else
   uint32_t i;
   uint32_t bit;
+  BtorBitVector *res;
 
   res = btor_bv_new (mm, 1);
   assert (rem_bits_zero_dbg (res));
@@ -1369,8 +1374,8 @@ btor_bv_redor (BtorMemMgr *mm, const BtorBitVector *bv)
   btor_bv_set_bit (res, 0, bit);
 
   assert (rem_bits_zero_dbg (res));
-#endif
   return res;
+#endif
 }
 
 /*------------------------------------------------------------------------*/
