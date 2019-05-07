@@ -89,6 +89,11 @@ target_include_directories(boolector
 target_include_directories(boolector PRIVATE ${Btor2Tools_INCLUDE_DIR})
 target_link_libraries(boolector ${Btor2Tools_LIBRARIES})
 
+if(GMP_FOUND)
+  target_include_directories(boolector PRIVATE ${GMP_INCLUDE_DIR})
+  target_link_libraries(boolector ${GMP_LIBRARIES})
+endif()
+
 if(Lingeling_FOUND)
   target_include_directories(boolector PRIVATE ${Lingeling_INCLUDE_DIR})
   target_link_libraries(boolector ${Lingeling_LIBRARIES})
