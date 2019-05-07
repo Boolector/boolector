@@ -134,6 +134,7 @@ btor_bv_new_random (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
 #ifdef BTOR_USE_GMP
   res = btor_bv_new (mm, bw);
   mpz_urandomb (res->val, rng->gmp_state, bw);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
 #else
   res = btor_bv_new_random_bit_range (mm, rng, bw, bw - 1, 0);
 #endif
@@ -2362,10 +2363,6 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (bv);
   assert (btor_bv_get_bit (bv, 0)); /* bv must be odd */
 
-  BtorBitVector *res;
-  uint32_t i, bw;
-  BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r;
-
   /* a = 2^bw
    * b = bv
    * lx * a + ly * b = gcd (a, b) = 1
@@ -2373,27 +2370,77 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
    * -> ly * b = bv^-1 * bv = 1
    * -> ly is modular inverse of bv */
 
-  bw = bv->width;
-  a  = btor_bv_new (mm, bw + 1);
-  btor_bv_set_bit (a, a->width - 1, 1); /* 2^bw */
+  BtorBitVector *res;
+  uint32_t bw, ebw;
 
-  b = btor_bv_new (mm, bw + 1); /* extend to bw of a */
+  bw = bv->width;
+  ebw = bw + 1;
+
+#ifdef BTOR_USE_GMP
+  mpz_t a, b, y, ty, q, yq, r;
+
+  BTOR_NEW (mm, res);
+  res->width = bw;
+  mpz_init (res->val);
+
+  mpz_init (a);
+  mpz_setbit (a, bw);
+
+  mpz_init_set (b, bv->val);
+
+  mpz_init_set_ui (y, 1);
+  mpz_init (ty);
+  mpz_init (yq);
+
+  mpz_init (q);
+  mpz_init (r);
+
+  while (mpz_cmp_ui (b, 0))
+  {
+    mpz_cdiv_qr (q, r, a, b);
+    mpz_fdiv_r_2exp (q, q, ebw);
+    mpz_fdiv_r_2exp (r, r, ebw);
+
+    mpz_set (a, b);
+    mpz_set (b, r);
+    mpz_set (ty, y);
+    mpz_mul (yq, y, q);
+    mpz_sub (y, res->val, yq);
+    mpz_set (res->val, ty);
+  }
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+
+  mpz_clear (a);
+  mpz_clear (b);
+  mpz_clear (y);
+  mpz_clear (ty);
+  mpz_clear (yq);
+  mpz_clear (q);
+  mpz_clear (r);
+
+#ifndef NDEBUG
+  assert (res->width == bv->width);
+  mpz_init (ty);
+  mpz_mul (ty, bv->val, res->val);
+  assert (!mpz_cmp_ui (ty, 1));
+  mpz_clear (ty);
+#endif
+#else
+  uint32_t i;
+  BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r;
+
+  a = btor_bv_new (mm, ebw);
+  btor_bv_set_bit (a, bw, 1); /* 2^bw */
+
+  b = btor_bv_new (mm, ebw); /* extend to bw of a */
   for (i = 0; i < bw; i++) btor_bv_set_bit (b, i, btor_bv_get_bit (bv, i));
 
-  y  = btor_bv_one (mm, bw + 1);
-  ly = btor_bv_new (mm, bw + 1);
+  y  = btor_bv_one (mm, ebw);
+  ly = btor_bv_new (mm, ebw);
 
   while (!btor_bv_is_zero (b))
   {
-#ifdef BTOR_USE_GMP
-    q = btor_bv_new (mm, bw + 1);
-    r = btor_bv_new (mm, bw + 1);
-    mpz_cdiv_qr (q->val, r->val, a->val, b->val);
-    mpz_fdiv_r_2exp (q->val, q->val, bw + 1);
-    mpz_fdiv_r_2exp (r->val, r->val, bw + 1);
-#else
     udiv_urem_bv (mm, a, b, &q, &r);
-#endif
 
     btor_bv_free (mm, a);
 
@@ -2418,11 +2465,12 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (btor_bv_is_one (ty));
   btor_bv_free (mm, ty);
 #endif
-
   btor_bv_free (mm, ly);
   btor_bv_free (mm, y);
   btor_bv_free (mm, b);
   btor_bv_free (mm, a);
+#endif
+
   return res;
 }
 
