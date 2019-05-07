@@ -1345,7 +1345,10 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
     assert (!btor_node_is_simplified (cur)
             || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
-    cur = btor_pointer_chase_simplified_exp (btor, cur);
+    cur = btor_node_real_addr (btor_pointer_chase_simplified_exp (btor, cur));
+
+    if (real_left->id > cur->id) continue;
+
     if (!btor_hashint_table_contains (cache, cur->id))
     {
       btor_hashint_table_add (cache, cur->id);
