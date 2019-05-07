@@ -611,6 +611,10 @@ btor_print_stats (Btor *btor)
             "    %.2f seconds variable substitution (%.0f%%)",
             btor->time.subst,
             percent (btor->time.subst, btor->time.simplify));
+  BTOR_MSG (btor->msg, 1, "    %.2f seconds rewriting", btor->time.rewrite);
+  BTOR_MSG (
+      btor->msg, 1, "    %.2f seconds occurrence check", btor->time.occurrence);
+
   BTOR_MSG (btor->msg,
             1,
             "    %.2f seconds embedded substitution (%.0f%%)",
@@ -1330,10 +1334,11 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   BtorMemMgr *mm;
   BtorIntHashTable *cache;
 
-  is_cyclic = false;
-  mm        = btor->mm;
-  cache     = btor_hashint_table_new (mm);
-  real_left = btor_node_real_addr (left);
+  double start = btor_util_time_stamp ();
+  is_cyclic    = false;
+  mm           = btor->mm;
+  cache        = btor_hashint_table_new (mm);
+  real_left    = btor_node_real_addr (left);
   BTOR_INIT_QUEUE (mm, queue);
 
   cur = btor_node_real_addr (right);
@@ -1363,6 +1368,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   } while (!BTOR_EMPTY_QUEUE (queue));
   BTOR_RELEASE_QUEUE (queue);
   btor_hashint_table_delete (cache);
+  btor->time.occurrence += btor_util_time_stamp () - start;
   return is_cyclic;
 }
 

@@ -235,6 +235,8 @@ struct Btor
     double merge;
     double extract;
     double ack;
+    double rewrite;
+    double occurrence;
   } time;
 };
 
