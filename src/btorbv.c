@@ -2243,22 +2243,30 @@ btor_bv_is_umulo (BtorMemMgr *mm,
 #endif
 
   bool res = false;
-
-  BtorBitVector *aext, *bext, *mul, *o;
-
-  res = false;
+  uint32_t bw = a->width;
 
   if (a->width > 1)
   {
-    aext = btor_bv_uext (mm, a, a->width);
-    bext = btor_bv_uext (mm, b, b->width);
+#ifdef BTOR_USE_GMP
+    (void) mm;
+    mpz_t mul;
+    mpz_init (mul);
+    mpz_mul (mul, a->val, b->val);
+    mpz_fdiv_q_2exp (mul, mul, bw);
+    res = mpz_cmp_ui (mul, 0) != 0;
+    mpz_clear (mul);
+#else
+    BtorBitVector *aext, *bext, *mul, *o;
+    aext = btor_bv_uext (mm, a, bw);
+    bext = btor_bv_uext (mm, b, bw);
     mul  = btor_bv_mul (mm, aext, bext);
-    o    = btor_bv_slice (mm, mul, mul->width - 1, a->width);
+    o    = btor_bv_slice (mm, mul, mul->width - 1, bw);
     if (!btor_bv_is_zero (o)) res = true;
     btor_bv_free (mm, aext);
     btor_bv_free (mm, bext);
     btor_bv_free (mm, mul);
     btor_bv_free (mm, o);
+#endif
   }
   return res;
 }
