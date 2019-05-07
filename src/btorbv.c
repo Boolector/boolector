@@ -484,6 +484,7 @@ size_t
 btor_bv_size (const BtorBitVector *bv)
 {
   assert (bv);
+  (void) bv;
   size_t res;
 #ifdef BTOR_USE_GMP
   res = sizeof (BtorBitVector);
@@ -613,6 +614,7 @@ void
 btor_bv_print_all (const BtorBitVector *bv)
 {
   assert (bv);
+  (void) bv;
 
 #ifndef BTOR_USE_GMP
   int64_t i;
@@ -842,6 +844,7 @@ uint32_t
 btor_bv_get_len (const BtorBitVector *bv)
 {
   assert (bv);
+  (void) bv;
 #ifdef BTOR_USE_GMP
   return 0;
 #else
@@ -958,33 +961,25 @@ btor_bv_is_ones (const BtorBitVector *bv)
 
   uint32_t i, n;
 #ifdef BTOR_USE_GMP
-  uint32_t m;
+  uint64_t m, max;
   // printf("bv ");btor_bv_print (bv);
   mp_limb_t limb;
-  for (i = 0, n = mpz_size (bv->val) - 1; i < n; i++)
+  if ((n = mpz_size (bv->val)) == 0) return false;  // zero
+  max = mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX;
+  if (n > 1)
   {
-    limb = mpz_getlimbn (bv->val, i);
-    // printf ("i %u limb %lu == max %d\n",i, limb, limb == (mp_bits_per_limb ==
-    // 64 ? UINT64_MAX : UINT32_MAX));
-    if (limb != (mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX))
-      return false;
+    for (i = 0; i < n - 1; i++)
+    {
+      limb = mpz_getlimbn (bv->val, i);
+      if (((uint64_t) limb) != max) return false;
+    }
   }
+  limb = mpz_getlimbn (bv->val, n - 1);
   if (bv->width == (uint32_t) mp_bits_per_limb)
-  {
-    // printf ("## == max %d\n", limb == (mp_bits_per_limb == 64 ? UINT64_MAX :
-    // UINT32_MAX));
-    return limb == (mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX);
-  }
-  else
-  {
-    m    = mp_bits_per_limb - bv->width % mp_bits_per_limb;
-    limb = mpz_getlimbn (bv->val, n);
-    // printf ("i %u limb %lu == ? %d\n",n, limb, limb == (mp_bits_per_limb ==
-    // 64 ? UINT64_MAX : UINT32_MAX) >> m);
-    if (limb != (mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX) >> m)
-      return false;
-  }
-#else
+    return ((uint64_t) limb) == max;
+  m = mp_bits_per_limb - bv->width % mp_bits_per_limb;
+  return ((uint64_t) limb) == (max >> m);
+  #else
   for (i = bv->len - 1; i >= 1; i--)
     if (bv->bits[i] != UINT32_MAX) return false;
   if (bv->width == BTOR_BV_TYPE_BW)
