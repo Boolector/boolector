@@ -1207,11 +1207,10 @@ btor_bv_min_signed (BtorMemMgr *mm, uint32_t bw)
   assert (bw);
 
   BtorBitVector *res;
-#ifdef BTOR_USE_GMP
-  res = btor_bv_one (mm, bw);
-  mpz_mul_2exp (res->val, res->val, bw - 1);
-#else
   res = btor_bv_new (mm, bw);
+#ifdef BTOR_USE_GMP
+  mpz_setbit (res->val, bw - 1);
+#else
   btor_bv_set_bit (res, bw - 1, 1);
 #endif
   return res;
