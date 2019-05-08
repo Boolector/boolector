@@ -2430,6 +2430,7 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (res->width == bv->width);
   mpz_init (ty);
   mpz_mul (ty, bv->val, res->val);
+  mpz_fdiv_r_2exp (ty, ty, bw);
   assert (!mpz_cmp_ui (ty, 1));
   mpz_clear (ty);
 #endif

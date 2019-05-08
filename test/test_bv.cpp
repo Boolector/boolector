@@ -43,6 +43,7 @@ class TestBv : public TestBtor
 {
  protected:
   static constexpr uint32_t BTOR_TEST_BITVEC_NUM_BITS   = 65;
+  static constexpr uint32_t BTOR_TEST_BITVEC_MOD_INV_TESTS = 1000;
   static constexpr uint32_t BTOR_TEST_BITVEC_TESTS      = 100000;
   static constexpr uint32_t BTOR_TEST_BITVEC_PERF_TESTS = 1000000;
 
@@ -2128,13 +2129,11 @@ TEST_F (TestBv, ite)
 
 TEST_F (TestBv, mod_inverse)
 {
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 1);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 2);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 3);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 4);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 5);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 6);
-  mod_inverse_bitvec (BTOR_TEST_BITVEC_TESTS, 7);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_MOD_INV_TESTS, 1);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_MOD_INV_TESTS, 7);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_MOD_INV_TESTS, 31);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_MOD_INV_TESTS, 33);
+  mod_inverse_bitvec (BTOR_TEST_BITVEC_MOD_INV_TESTS, 64);
 }
 
 TEST_F (TestBv, flipped_bit)
