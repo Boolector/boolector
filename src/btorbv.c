@@ -2377,12 +2377,29 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
    * -> ly is modular inverse of bv */
 
   BtorBitVector *res;
-  uint32_t bw, ebw;
+  uint32_t bw;
 
   bw = bv->width;
-  ebw = bw + 1;
 
 #ifdef BTOR_USE_GMP
+  BTOR_NEW (mm, res);
+  res->width = bw;
+#if 1
+  if (bw == 1)
+  {
+    mpz_init_set_ui (res->val, 1);
+  }
+  else
+  {
+    mpz_t twobw;
+    mpz_init (twobw);
+    mpz_init (res->val);
+    mpz_setbit (twobw, bw);
+    mpz_invert (res->val, bv->val, twobw);
+    mpz_fdiv_r_2exp (res->val, res->val, bw);
+  }
+#else
+  uint32_t ebw = bw + 1;
   mpz_t a, b, y, ty, q, yq, r;
 
   BTOR_NEW (mm, res);
@@ -2425,8 +2442,10 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
   mpz_clear (yq);
   mpz_clear (q);
   mpz_clear (r);
+#endif
 
 #ifndef NDEBUG
+  mpz_t ty;
   assert (res->width == bv->width);
   mpz_init (ty);
   mpz_mul (ty, bv->val, res->val);
@@ -2437,6 +2456,7 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
 #else
   uint32_t i;
   BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r;
+  uint32_t ebw = bw + 1;
 
   a = btor_bv_new (mm, ebw);
   btor_bv_set_bit (a, bw, 1); /* 2^bw */
