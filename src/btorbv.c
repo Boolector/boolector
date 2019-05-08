@@ -2390,7 +2390,7 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
   mpz_init (res->val);
 
   mpz_init (a);
-  mpz_setbit (a, bw);
+  mpz_setbit (a, bw); /* 2^bw */
 
   mpz_init_set (b, bv->val);
 
@@ -2403,7 +2403,7 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
 
   while (mpz_cmp_ui (b, 0))
   {
-    mpz_cdiv_qr (q, r, a, b);
+    mpz_tdiv_qr (q, r, a, b);
     mpz_fdiv_r_2exp (q, q, ebw);
     mpz_fdiv_r_2exp (r, r, ebw);
 
@@ -2411,7 +2411,9 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
     mpz_set (b, r);
     mpz_set (ty, y);
     mpz_mul (yq, y, q);
-    mpz_sub (y, res->val, yq);
+    mpz_fdiv_r_2exp (yq, yq, ebw);
+    mpz_sub (y, res->val, yq);      /* y = ly - y * q */
+    mpz_fdiv_r_2exp (y, y, ebw);
     mpz_set (res->val, ty);
   }
   mpz_fdiv_r_2exp (res->val, res->val, bw);
