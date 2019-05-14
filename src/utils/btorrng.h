@@ -27,6 +27,7 @@ struct BtorRNG
 typedef struct BtorRNG BtorRNG;
 
 void btor_rng_init (BtorRNG* rng, uint32_t seed);
+void btor_rng_clone (BtorRNG* rng, BtorRNG* clone);
 void btor_rng_delete (BtorRNG* rng);
 
 uint32_t btor_rng_rand (BtorRNG* rng);
