@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -52,6 +52,7 @@ btor_rng_delete (BtorRNG* rng)
   (void) rng;
 #ifdef BTOR_USE_GMP
   gmp_randclear (rng->gmp_state);
+  rng->is_init = false;
 #endif
 }
 
