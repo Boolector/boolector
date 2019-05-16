@@ -939,6 +939,26 @@ set(cmp_testcases
 "getvalue1.smt2"
 "getvalue2.smt2"
 "getvalue3.smt2"
+"nondestr_subst1.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst10.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst11.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst12.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst13.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst14.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst15.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst16.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst17.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst18.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst19.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst2.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst20.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst3.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst4.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst5.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst6.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst7.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst8.smt2 -i --nondestr-subst -SE cadical"
+"nondestr_subst9.smt2 -i --nondestr-subst -SE cadical"
 "normalize_add_incomplete.btor -db"
 "normalize_and_incomplete.btor -db"
 "normalize_mul_incomplete.btor -db"
@@ -962,6 +982,8 @@ set(cmp_testcases
 "smtvar.smt2 -m"
 "smtxor.smt2 -m"
 )
+
+
 
 get_target_property(BOOLECTOR_BINARY_PATH boolector-bin RUNTIME_OUTPUT_DIRECTORY)
 set(BOOLECTOR_BINARY "${BOOLECTOR_BINARY_PATH}/boolector")
