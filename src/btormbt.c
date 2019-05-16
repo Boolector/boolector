@@ -810,6 +810,11 @@ btormbt_new_btormbt (void)
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
+  /* Pre-initialize with 0, seed is set per round. Initializing is mandatory
+   * to make sure it the GMP RNG is initialized correctly when copmiled
+   * with GMP. */
+  btor_rng_init (&mbt->round.rng, 0);
+
   BTOR_INIT_STACK (mm, mbt->btor_opts);
 
   /* retrieve all available boolector options */
