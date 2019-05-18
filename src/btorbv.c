@@ -2397,6 +2397,7 @@ btor_bv_mod_inverse (BtorMemMgr *mm, const BtorBitVector *bv)
     mpz_setbit (twobw, bw);
     mpz_invert (res->val, bv->val, twobw);
     mpz_fdiv_r_2exp (res->val, res->val, bw);
+    mpz_clear (twobw);
   }
 #else
   uint32_t ebw = bw + 1;
