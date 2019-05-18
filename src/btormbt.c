@@ -3839,6 +3839,7 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
 
+  btor_rng_delete (&mbt->round.rng);
   memset (&mbt->round, 0, sizeof (mbt->round));
 
   mbt->assumptions = btormbt_new_exp_stack (mbt->mm);
