@@ -1350,7 +1350,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
     assert (!btor_node_is_simplified (cur)
             || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
-    cur = btor_node_real_addr (btor_pointer_chase_simplified_exp (btor, cur));
+    cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
 
     if (real_left->id > cur->id) continue;
 
@@ -1845,7 +1845,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   /* Note: do not simplify constraint expression with btor_exp_simplify in order
    *       to prevent constraint expressions from not being added to
    *       btor->assumptions. */
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_node_get_simplified (btor, exp);
   BTORLOG (2, "assume: %s", btor_util_node2string (exp));
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
@@ -1864,7 +1864,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_node_get_simplified (btor, exp);
   return btor_hashptr_table_get (btor->assumptions, exp) ? true : false;
 }
 
@@ -1891,7 +1891,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_node_get_simplified (btor, exp);
   assert (btor_node_real_addr (exp)->btor == btor);
   assert (!btor_node_is_fun (exp));
   assert (btor_node_bv_get_width (btor, exp) == 1);
@@ -2225,7 +2225,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
+btor_node_get_simplified (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -2310,7 +2310,7 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   BtorNode *result;
 
-  result = btor_pointer_chase_simplified_exp (btor, exp);
+  result = btor_node_get_simplified (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (btor_opt_get (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS)
@@ -2347,7 +2347,7 @@ update_assumptions (Btor *btor)
       /* Note: do not simplify constraint expression in order to prevent
        * constraint expressions from not being added to btor->assumptions.
        */
-      simp = btor_pointer_chase_simplified_exp (btor, cur);
+      simp = btor_node_get_simplified (btor, cur);
       if (!btor_hashptr_table_get (ass, simp))
         btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
       btor_node_release (btor, cur);
@@ -2659,7 +2659,7 @@ substitute (Btor *btor,
 
       if (btor_node_is_simplified (cur))
       {
-        BTOR_PUSH_STACK (visit, btor_pointer_chase_simplified_exp (btor, cur));
+        BTOR_PUSH_STACK (visit, btor_node_get_simplified (btor, cur));
       }
 
       for (i = 0; i < cur->arity; i++)
@@ -2680,7 +2680,7 @@ substitute (Btor *btor,
         cur_subst = cur;
       }
 
-      cur_subst      = btor_pointer_chase_simplified_exp (btor, cur_subst);
+      cur_subst      = btor_node_get_simplified (btor, cur_subst);
       real_cur_subst = btor_node_real_addr (cur_subst);
 
       if (opt_nondestr_subst)
@@ -4539,7 +4539,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     assert (btor_node_is_regular (exp));
     assert (exp->btor == btor);
     /* Note: we do not want simplified constraints here */
-    simp = btor_pointer_chase_simplified_exp (btor, exp);
+    simp = btor_node_get_simplified (btor, exp);
     cur  = btor_iter_hashptr_next (&it);
     assert (btor_node_is_regular (cur));
     assert (cur->btor == clone);

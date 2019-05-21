@@ -330,7 +330,7 @@ void btor_synthesize_exp (Btor *btor,
                           BtorPtrHashTable *backannotation);
 
 /* Finds most simplified expression and shortens path to it */
-BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
+BtorNode *btor_node_get_simplified (Btor *btor, BtorNode *exp);
 
 void btor_release_all_ext_refs (Btor *btor);
 

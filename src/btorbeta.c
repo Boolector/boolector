@@ -219,7 +219,7 @@ beta_reduce (Btor *btor,
 
     /* we do not want the simplification of top level apply constraints */
     if (btor_node_real_addr (cur)->constraint && btor_node_is_apply (cur))
-      cur = btor_pointer_chase_simplified_exp (btor, cur);
+      cur = btor_node_get_simplified (btor, cur);
     else
       cur = btor_simplify_exp (btor, cur);
     real_cur = btor_node_real_addr (cur);

@@ -195,8 +195,7 @@ btor_dbg_check_nodes_simp_free (Btor *btor, BtorNode *nodes[], size_t nnodes)
     {
       BTORLOG (3,
                "  simplified: %s",
-               btor_util_node2string (
-                   btor_pointer_chase_simplified_exp (btor, cur)));
+               btor_util_node2string (btor_node_get_simplified (btor, cur)));
     }
     assert (!btor_node_is_simplified (cur));
 

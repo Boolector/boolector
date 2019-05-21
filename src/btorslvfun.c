@@ -510,7 +510,7 @@ add_function_inequality_constraints (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    cur = btor_pointer_chase_simplified_exp (btor, cur);
+    cur = btor_node_get_simplified (btor, cur);
     BTOR_PUSH_STACK (visit, cur);
   }
 
@@ -963,7 +963,7 @@ search_initial_applies_bv_skeleton (Btor *btor,
       cur = BTOR_POP_STACK (stack);
       assert (!btor_node_is_simplified (cur)
               || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
-      cur = btor_node_real_addr (btor_pointer_chase_simplified_exp (btor, cur));
+      cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
 
       if (btor_hashint_table_contains (cache, cur->id)) continue;
 
@@ -1667,8 +1667,7 @@ propagate (Btor *btor,
   BTORLOG (1, "*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*prop_stack))
   {
-    fun =
-        btor_pointer_chase_simplified_exp (btor, BTOR_POP_STACK (*prop_stack));
+    fun = btor_node_get_simplified (btor, BTOR_POP_STACK (*prop_stack));
     assert (btor_node_is_regular (fun));
     assert (btor_node_is_fun (fun));
     assert (!btor_node_is_simplified (fun));
@@ -2033,8 +2032,7 @@ add_extensionality_lemmas (Btor *btor)
   btor_iter_hashptr_init (&it, btor->feqs);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur =
-        btor_pointer_chase_simplified_exp (btor, btor_iter_hashptr_next (&it));
+    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     if (!btor_node_is_fun_eq (cur)) continue;
     BTOR_PUSH_STACK (feqs, cur);
   }

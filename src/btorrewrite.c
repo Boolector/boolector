@@ -136,8 +136,7 @@ check_rw_cache (
     if (result)
     {
       btor->rw_cache->num_get++;
-      result = btor_node_copy (
-          btor, btor_pointer_chase_simplified_exp (btor, result));
+      result = btor_node_copy (btor, btor_node_get_simplified (btor, result));
     }
   }
   return result;

@@ -442,7 +442,7 @@ btor_model_get_fun_aux (Btor *btor,
    * search (engines PROP, AIGPROP, SLS), assignment queries may be issued
    * when the current model is non satisfying (all intermediate models during
    * local search are non-satisfying). */
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_node_get_simplified (btor, exp);
 
   assert (btor_node_is_fun (exp));
   d = btor_hashint_map_get (fun_model, exp->id);
@@ -580,7 +580,7 @@ btor_model_get_bv_aux (Btor *btor,
    * search (engines PROP, AIGPROP, SLS), assignment queries may be issued
    * when the current model is non satisfying (all intermediate models during
    * local search are non-satisfying). */
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_node_get_simplified (btor, exp);
 
   /* Check if we already generated the assignment of exp
    * -> inverted if exp is inverted */
@@ -860,7 +860,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
       if (btor_node_is_bv_var (real_cur) || btor_node_is_fun_eq (real_cur))
       {
         result = btor_bv_get_assignment (
-            mm, btor_pointer_chase_simplified_exp (btor, real_cur));
+            mm, btor_node_get_simplified (btor, real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (btor_node_is_bv_const (real_cur))
@@ -1075,7 +1075,7 @@ btor_model_recursively_compute_assignment (Btor *btor,
         case BTOR_UF_NODE:
           assert (btor_node_is_apply (cur_parent));
           result = btor_bv_get_assignment (
-              mm, btor_pointer_chase_simplified_exp (btor, cur_parent));
+              mm, btor_node_get_simplified (btor, cur_parent));
           break;
 
         case BTOR_UPDATE_NODE:
@@ -1284,7 +1284,7 @@ btor_model_generate (Btor *btor,
     while (btor_iter_hashptr_has_next (&it))
     {
       cur = btor_iter_hashptr_next (&it);
-      cur = btor_pointer_chase_simplified_exp (btor, cur);
+      cur = btor_node_get_simplified (btor, cur);
       BTOR_PUSH_STACK (roots, cur);
     }
     collect_nodes (btor, roots.start, BTOR_COUNT_STACK (roots), &nodes);
