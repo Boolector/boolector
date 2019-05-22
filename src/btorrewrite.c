@@ -6112,23 +6112,27 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
     }
   }
 
+  // TODO(ma): this is probably redundant
   /* normalize adds and muls on demand */
   normalize_adds_muls_ands (btor, &e0, &e1);
 
   if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
-      && btor_opt_get (btor, BTOR_OPT_NORMALIZE_ADD)
       && (op0 = find_top_op (btor, e0)) && (op1 = find_top_op (btor, e1))
+      && btor_node_real_addr(op0)->kind == btor_node_real_addr(op1)->kind
       && btor_node_get_sort_id (op0) == btor_node_get_sort_id (op1))
   {
-    normalize_bin_comm_ass_exp (btor, op0, op1, &n0, &n1);
-    tmp1 = rebuild_top_op (btor, e0, op0, n0);
-    tmp2 = rebuild_top_op (btor, e1, op1, n1);
-    btor_node_release (btor, n0);
-    btor_node_release (btor, n1);
-    btor_node_release (btor, e0);
-    btor_node_release (btor, e1);
-    e0 = tmp1;
-    e1 = tmp2;
+    if (!btor_node_is_bv_and(op0) || btor_opt_get (btor, BTOR_OPT_NORMALIZE_ADD))
+    {
+      normalize_bin_comm_ass_exp (btor, op0, op1, &n0, &n1);
+      tmp1 = rebuild_top_op (btor, e0, op0, n0);
+      tmp2 = rebuild_top_op (btor, e1, op1, n1);
+      btor_node_release (btor, n0);
+      btor_node_release (btor, n1);
+      btor_node_release (btor, e0);
+      btor_node_release (btor, e1);
+      e0 = tmp1;
+      e1 = tmp2;
+    }
   }
 
   // TODO (ma): check if this is also applicable to mul nodes and maybe others?

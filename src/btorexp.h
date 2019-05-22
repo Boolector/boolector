@@ -205,6 +205,8 @@ BtorNode *btor_exp_bv_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
  */
 BtorNode *btor_exp_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1);
 
+BtorNode *btor_exp_bv_add_n (Btor *btor, BtorNode *args[], uint32_t argc);
+
 /**
  * Create bit-vector unsigned overflow check for add.
  * Result represents if adding two unsigned operands leads to an overflow.

@@ -27,6 +27,7 @@
 #include "simplifier/btorextract.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
+#include "simplifier/btornormadd.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
@@ -3613,6 +3614,11 @@ btor_simplify (Btor *btor)
     /* add ackermann constraints for all uninterpreted functions */
     if (btor_opt_get (btor, BTOR_OPT_ACKERMANN))
       btor_add_ackermann_constraints (btor);
+
+    if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+        && btor_opt_get (btor, BTOR_OPT_SIMP_NORMAMLIZE_ADDERS))
+      btor_normalize_adds (btor);
+
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 

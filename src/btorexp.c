@@ -719,6 +719,12 @@ btor_exp_bv_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
+btor_exp_bv_add_n (Btor *btor, BtorNode *args[], uint32_t argc)
+{
+  return create_bin_n_exp (btor, btor_exp_bv_add, args, argc);
+}
+
+BtorNode *
 btor_exp_bv_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor == btor_node_real_addr (e0)->btor);

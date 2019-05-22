@@ -1332,6 +1332,16 @@ btor_opt_init_opts (Btor *btor)
             "enable simplifications that rewrite already synthesized nodes "
             "in incremental mode");
   init_opt (btor,
+            BTOR_OPT_SIMP_NORMAMLIZE_ADDERS,
+            true,
+            true,
+            "simp-norm-adds",
+            0,
+            0,
+            0,
+            1,
+            "enable global adder normalization");
+  init_opt (btor,
             BTOR_OPT_DECLSORT_BV_WIDTH,
             true,
             false,

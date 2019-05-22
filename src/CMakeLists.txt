@@ -55,6 +55,7 @@ set(libboolector_src_files
   simplifier/btorextract.c
   simplifier/btormerge.c
   simplifier/btorminiscope.c
+  simplifier/btornormadd.c
   simplifier/btorskel.c
   simplifier/btorunconstrained.c
   utils/boolectornodemap.c
