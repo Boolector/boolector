@@ -177,6 +177,20 @@ translate_shift (Btor *btor,
   return res;
 }
 
+static BtorNode *
+rewrite_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorNode *res = 0;
+
+  /* e0 >> e0 == 0 */
+  if (e0 == e1)
+  {
+    res = btor_exp_bv_zero (btor, btor_node_get_sort_id (e0));
+  }
+
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 void
@@ -2654,7 +2668,11 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   width = btor_node_bv_get_width (btor, e0);
   if (width == btor_node_bv_get_width (btor, e1))
   {
-    res = translate_shift (btor, e0, e1, btor_exp_bv_srl);
+    /* Note: Due to the shift translation we might miss some rewrites and
+     *       therefore also apply rewriting before translating the shift. */
+    if (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
+      res = rewrite_srl (btor, e0, e1);
+    if (!res) res = translate_shift (btor, e0, e1, btor_exp_bv_srl);
   }
   else
   {

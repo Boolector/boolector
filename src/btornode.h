@@ -540,6 +540,18 @@ btor_node_is_array_or_bv_eq (const BtorNode *exp)
   return btor_node_is_fun_eq (exp) || btor_node_is_bv_eq (exp);
 }
 
+static inline bool
+btor_node_is_bv_sll (const BtorNode *exp)
+{
+  return btor_node_real_addr (exp)->kind == BTOR_BV_SLL_NODE;
+}
+
+static inline bool
+btor_node_is_bv_srl (const BtorNode *exp)
+{
+  return btor_node_real_addr (exp)->kind == BTOR_BV_SRL_NODE;
+}
+
 /*------------------------------------------------------------------------*/
 
 bool btor_node_is_bv_const_zero (Btor *btor, BtorNode *exp);
