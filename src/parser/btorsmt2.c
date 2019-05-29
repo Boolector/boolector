@@ -4221,7 +4221,7 @@ declare_sort_smt2 (BtorSMT2Parser *parser)
                        sort_alias->coo.y);
   }
 
-  if (!parse_uint32_smt2 (parser, false, &arity)) return 0;
+  if (!parse_uint32_smt2 (parser, true, &arity)) return 0;
   if (arity != 0)
     return !perr_smt2 (parser, "sort arity other than 0 not supported");
 
