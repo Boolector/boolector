@@ -332,6 +332,25 @@ boolector_print_value_smt2 (Btor *btor,
 }
 
 void
+boolector_var_mark_bool (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_ARG_NULL (node);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+
+  BtorPtrHashBucket *b = btor_hashptr_table_get (btor->inputs, exp);
+  assert (b);
+  b->data.flag = true;
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (var_mark_bool, BTOR_CLONED_EXP (exp));
+#endif
+}
+
+void
 boolector_add_output (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp;

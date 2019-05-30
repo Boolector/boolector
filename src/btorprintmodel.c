@@ -153,6 +153,7 @@ btor_print_bv_model (
   int32_t id;
   char *symbol;
   const BtorBitVector *ass;
+  BtorPtrHashBucket *b;
 
   ass    = btor_model_get_bv (btor, node);
   symbol = btor_node_get_symbol (btor, node);
@@ -177,9 +178,17 @@ btor_print_bv_model (
                id ? id : btor_node_get_id (node));
     }
 
-    btor_dumpsmt_dump_sort_node (node, file);
-    fprintf (file, " ");
-    btor_dumpsmt_dump_const_value (btor, ass, base, file);
+    b = btor_hashptr_table_get (btor->inputs, node);
+    if (b && b->data.flag)
+    {
+      fprintf (file, "Bool %s", btor_bv_is_true (ass) ? "true" : "false");
+    }
+    else
+    {
+      btor_dumpsmt_dump_sort_node (node, file);
+      fprintf (file, " ");
+      btor_dumpsmt_dump_const_value (btor, ass, base, file);
+    }
     fprintf (file, ")\n");
   }
 }
