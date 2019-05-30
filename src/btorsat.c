@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -12,6 +12,7 @@
 #include "btorsat.h"
 
 #include "sat/btorcadical.h"
+#include "sat/btorcms.h"
 #include "sat/btorlgl.h"
 #include "sat/btorminisat.h"
 #include "sat/btorpicosat.h"
@@ -307,6 +308,9 @@ btor_sat_enable_solver (BtorSATMgr *smgr)
 #endif
 #ifdef BTOR_USE_CADICAL
     case BTOR_SAT_ENGINE_CADICAL: btor_sat_enable_cadical (smgr); break;
+#endif
+#ifdef BTOR_USE_CMS
+    case BTOR_SAT_ENGINE_CMS: btor_sat_enable_cms (smgr); break;
 #endif
     default: BTOR_ABORT (1, "no sat solver configured");
   }

@@ -817,6 +817,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
     sat_engine = BTOR_SAT_ENGINE_MINISAT;
   else if (!strcasecmp (solver, "cadical"))
     sat_engine = BTOR_SAT_ENGINE_CADICAL;
+  else if (!strcasecmp (solver, "cms"))
+    sat_engine = BTOR_SAT_ENGINE_CMS;
   else
     BTOR_ABORT (1, "invalid sat engine '%s' selected", solver);
 

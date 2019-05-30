@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2016 Mathias Preiner.
- *  Copyright (C) 2016-2018 Aina Niemetz.
+ *  Copyright (C) 2016-2019 Aina Niemetz.
  *  Copyright (C) 2016 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -38,7 +38,7 @@ enum BtorOption
 {
   /* --------------------------------------------------------------------- */
   /*!
-    **General Options:**
+   **General Options:**
    */
   /* --------------------------------------------------------------------- */
   /*!
@@ -142,7 +142,7 @@ enum BtorOption
       | Set solver engine.
 
       * BTOR_ENGINE_FUN [default]:
-        the default engine for all combinations of QF_AUFBV, uses lemmas on 
+        the default engine for all combinations of QF_AUFBV, uses lemmas on
         demand for QF_AUFBV and eager bit-blasting for QF_BV
       * BTOR_ENGINE_SLS:
         the score-based local search QF_BV engine
@@ -165,6 +165,8 @@ enum BtorOption
 
       * BTOR_SAT_ENGINE_CADICAL:
         `CaDiCaL <https://fmv.jku.at/cadical>`_
+      * BTOR_SAT_ENGINE_CMS:
+        `CryptoMiniSat <https://github.com/msoos/cryptominisat>`_
       * BTOR_SAT_ENGINE_LINGELING:
         `Lingeling <https://fmv.jku.at/lingeling>`_
       * BTOR_SAT_ENGINE_MINISAT:
@@ -225,7 +227,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-    **Simplifier Options:**
+   **Simplifier Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -328,7 +330,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-    **Fun Engine Options:**
+   **Fun Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -421,7 +423,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-    **SLS Engine Options:**
+   **SLS Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -591,7 +593,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-    **Prop Engine Options**:
+   **Prop Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 
@@ -743,7 +745,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-    **AIGProp Engine Options**:
+   **AIGProp Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 

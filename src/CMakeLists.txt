@@ -45,6 +45,7 @@ set(libboolector_src_files
   parser/btorsmt.c
   parser/btorsmt2.c
   sat/btorcadical.c
+  sat/btorcms.cc
   sat/btorlgl.c
   sat/btorminisat.cc
   sat/btorpicosat.c
@@ -103,6 +104,11 @@ endif()
 if(CaDiCaL_FOUND)
   target_include_directories(boolector PRIVATE ${CaDiCaL_INCLUDE_DIR})
   target_link_libraries(boolector ${CaDiCaL_LIBRARIES})
+endif()
+
+if(CryptoMiniSat_FOUND)
+  target_include_directories(boolector PRIVATE ${CryptoMiniSat_INCLUDE_DIR})
+  target_link_libraries(boolector ${CryptoMiniSat_LIBRARIES})
 endif()
 
 if(PicoSAT_FOUND)

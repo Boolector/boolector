@@ -2731,6 +2731,8 @@ btormbt_state_opt (BtorMBT *mbt)
   {
     if (btoropt->val == BTOR_SAT_ENGINE_CADICAL)
       boolector_set_sat_solver (mbt->btor, "cadical");
+    if (btoropt->val == BTOR_SAT_ENGINE_CMS)
+      boolector_set_sat_solver (mbt->btor, "cms");
     else if (btoropt->val == BTOR_SAT_ENGINE_LINGELING)
       boolector_set_sat_solver (mbt->btor, "lingeling");
     else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)

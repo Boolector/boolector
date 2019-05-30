@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2018 Aina Niemetz.
+ *  Copyright (C) 2014-2019 Aina Niemetz.
  *  Copyright (C) 2014-2017 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -69,6 +69,7 @@ enum BtorOptSatEngine
   BTOR_SAT_ENGINE_PICOSAT,
   BTOR_SAT_ENGINE_MINISAT,
   BTOR_SAT_ENGINE_CADICAL,
+  BTOR_SAT_ENGINE_CMS,
   BTOR_SAT_ENGINE_MAX,
 };
 #ifdef BTOR_USE_CADICAL
@@ -79,6 +80,8 @@ enum BtorOptSatEngine
 #define BTOR_SAT_ENGINE_DFLT BTOR_SAT_ENGINE_PICOSAT
 #elif BTOR_USE_MINISAT
 #define BTOR_SAT_ENGINE_DFLT BTOR_SAT_ENGINE_MINISAT
+#elif BTOR_USE_CMS
+#define BTOR_SAT_ENGINE_DFLT BTOR_SAT_ENGINE_CMS
 #endif
 
 typedef enum BtorOptSatEngine BtorOptSatEngine;
