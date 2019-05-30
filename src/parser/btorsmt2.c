@@ -498,11 +498,19 @@ static uint32_t
 hash_name_smt2 (BtorSMT2Parser *parser, const char *name)
 {
   uint32_t res = 0, i = 0;
-  unsigned char ch;
-  const char *p;
-  for (p = name; (ch = *p); p++)
+  size_t len, pos     = 0;
+
+  /* Ignore pipes in quoted symbols. Symbol |x| and x should have the same hash
+   * value. */
+  len = strlen (name);
+  if (name[0] == '|' && name[len - 1] == '|')
   {
-    res += ch;
+    pos = 1;
+    len -= 1;
+  }
+  for (; pos < len; pos++)
+  {
+    res += name[pos];
     res *= btor_primes_smt2[i++];
     if (i == BTOR_NPRIMES_SMT2) i = 0;
   }
@@ -571,12 +579,44 @@ find_symbol_smt2 (BtorSMT2Parser *parser, const char *name)
 {
   unsigned h;
   BtorSMT2Node *s;
+  size_t len_name, len_s;
+  bool name_quoted, s_quoted;
 
   if (parser->symbol.size == 0) return 0;
 
+  len_name    = strlen (name);
+  name_quoted = name[0] == '|' && name[len_name - 1] == '|';
+
   h = hash_name_smt2 (parser, name);
-  for (s = parser->symbol.table[h]; s && strcmp (s->name, name); s = s->next)
-    ;
+  for (s = parser->symbol.table[h]; s; s = s->next)
+  {
+    len_s    = strlen (s->name);
+    s_quoted = s->name[0] == '|' && s->name[len_s - 1] == '|';
+
+    if (s_quoted == name_quoted)
+    {
+      if (!strcmp (s->name, name))
+      {
+        break;
+      }
+    }
+    /* Check if 's' is quoted but 'name' is not quoted. */
+    else if (s_quoted)
+    {
+      if (len_s - 2 == len_name && !strncmp (s->name + 1, name, len_name))
+      {
+        break;
+      }
+    }
+    /* Check if 'name' is quoted but 's' is not quoted. */
+    else if (name_quoted)
+    {
+      if (len_name - 2 == len_s && !strncmp (s->name, name + 1, len_s))
+      {
+        break;
+      }
+    }
+  }
   return s;
 }
 
@@ -1171,14 +1211,14 @@ RESTART:
   }
   else if (ch == '|')
   {
-    storech_smt2 (parser, ch);
+    pushch_smt2 (parser, ch);
     for (;;)
     {
       if ((ch = nextch_smt2 (parser)) == EOF)
         return !cerr_smt2 (parser, "unexpected", ch, "in quoted symbol");
+      pushch_smt2 (parser, ch);
       if (ch == '|')
       {
-        storech_smt2 (parser, ch);
         pushch_smt2 (parser, 0);
         if (!(node = find_symbol_smt2 (parser, parser->token.start)))
         {
@@ -1190,7 +1230,6 @@ RESTART:
         parser->last_node = node;
         return BTOR_SYMBOL_TAG_SMT2;
       }
-      pushch_smt2 (parser, ch);
     }
   }
   else if (ch == ':')
