@@ -1326,6 +1326,16 @@ btor_opt_init_opts (Btor *btor)
             1,
             "use CaDiCaL's freeze/melt API");
   init_opt (btor,
+            BTOR_OPT_SAT_ENGINE_N_THREADS,
+            true,
+            true,
+            "sat-engine-n-threads",
+            0,
+            1,
+            1,
+            UINT32_MAX,
+            "number of threads to use in the SAT solver");
+  init_opt (btor,
             BTOR_OPT_INCREMENTAL_RW,
             true,
             true,

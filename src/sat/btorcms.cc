@@ -20,6 +20,7 @@ extern "C" {
 
 #include "btorabort.h"
 #include "btorsat.h"
+#include "btoropt.h"
 #include "sat/btorcms.h"
 
 using namespace CMSat;
@@ -156,7 +157,10 @@ static void*
 init (BtorSATMgr* smgr)
 {
   (void) smgr;
+  uint32_t nthreads;
   BtorCMS* res = new BtorCMS ();
+  if ((nthreads = btor_opt_get(smgr->btor, BTOR_OPT_SAT_ENGINE_N_THREADS)) > 1)
+    res->set_num_threads(nthreads);
   return res;
 }
 
