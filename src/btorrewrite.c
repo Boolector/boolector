@@ -5745,9 +5745,13 @@ normalize_bin_comm_ass_exp (Btor *btor,
   BtorPtrHashBucket *b;
   BtorPtrHashTableIterator it;
   BtorIntHashTable *cache;
+  BtorHashTableData *d;
+  bool normalize_all = true;
 
   mm    = btor->mm;
   kind  = e0->kind;
+
+RESTART_NORMALIZE:
   left  = btor_hashptr_table_new (mm,
                                  (BtorHashPtr) btor_node_hash_by_id,
                                  (BtorCmpPtr) btor_node_compare_by_id);
@@ -5757,7 +5761,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   comm  = btor_hashptr_table_new (mm,
                                  (BtorHashPtr) btor_node_hash_by_id,
                                  (BtorCmpPtr) btor_node_compare_by_id);
-  cache = btor_hashint_table_new (mm);
+  cache = btor_hashint_map_new (mm);
 
   if (!btor_opt_get (btor, BTOR_OPT_NORMALIZE))
     goto RETURN_NO_RESULT;
@@ -5769,12 +5773,20 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!btor_node_is_inverted (cur) && cur->kind == kind)
     {
-      if (btor_hashint_table_contains (cache, cur->id))
+      d = btor_hashint_map_get (cache, cur->id);
+      if (!normalize_all && d)
       {
         BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
-      btor_hashint_table_add (cache, cur->id);
+      if (!d)
+        d = btor_hashint_map_add (cache, cur->id);
+      d->as_int += 1;
+      if (d && d->as_int > 32)
+      {
+        BTOR_RELEASE_STACK (stack);
+        goto RESTART_NORMALIZE_ALL;
+      }
       BTOR_PUSH_STACK (stack, cur->e[1]);
       BTOR_PUSH_STACK (stack, cur->e[0]);
     }
@@ -5787,8 +5799,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
         b->data.as_int++;
     }
   } while (!BTOR_EMPTY_STACK (stack));
-  btor_hashint_table_delete (cache);
-  cache = btor_hashint_table_new (mm);
+  btor_hashint_map_delete (cache);
+  cache = btor_hashint_map_new (mm);
 
   BTOR_PUSH_STACK (stack, e1);
   do
@@ -5796,12 +5808,20 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!btor_node_is_inverted (cur) && cur->kind == kind)
     {
-      if (btor_hashint_table_contains (cache, cur->id))
+      d = btor_hashint_map_get (cache, cur->id);
+      if (!normalize_all && d)
       {
         BTOR_RELEASE_STACK (stack);
         goto RETURN_NO_RESULT;
       }
-      btor_hashint_table_add (cache, cur->id);
+      if (!d)
+        d = btor_hashint_map_add (cache, cur->id);
+      d->as_int += 1;
+      if (d && d->as_int > 32)
+      {
+        BTOR_RELEASE_STACK (stack);
+        goto RESTART_NORMALIZE_ALL;
+      }
       BTOR_PUSH_STACK (stack, cur->e[1]);
       BTOR_PUSH_STACK (stack, cur->e[0]);
     }
@@ -5849,10 +5869,21 @@ normalize_bin_comm_ass_exp (Btor *btor,
     btor_hashptr_table_delete (left);
     btor_hashptr_table_delete (right);
     btor_hashptr_table_delete (comm);
-    btor_hashint_table_delete (cache);
+    btor_hashint_map_delete (cache);
     *e0_norm = btor_node_copy (btor, e0);
     *e1_norm = btor_node_copy (btor, e1);
     return;
+  }
+
+  if (normalize_all && (left->count > 0 || right->count > 0))
+  {
+RESTART_NORMALIZE_ALL:
+    normalize_all = false;
+    btor_hashptr_table_delete (left);
+    btor_hashptr_table_delete (right);
+    btor_hashptr_table_delete (comm);
+    btor_hashint_map_delete (cache);
+    goto RESTART_NORMALIZE;
   }
 
   if (kind == BTOR_BV_AND_NODE)
@@ -5994,7 +6025,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   btor_hashptr_table_delete (left);
   btor_hashptr_table_delete (right);
   btor_hashptr_table_delete (comm);
-  btor_hashint_table_delete (cache);
+  btor_hashint_map_delete (cache);
 }
 
 static BtorNode *
