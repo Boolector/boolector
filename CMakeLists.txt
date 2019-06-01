@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.3)
 #-----------------------------------------------------------------------------#
 
 project(boolector)
-set(VERSION "3.0.1-pre")
+set(VERSION "3.1.0-pre")
 string(TIMESTAMP TIME)
 
 #-----------------------------------------------------------------------------#
