@@ -3609,7 +3609,18 @@ btor_simplify (Btor *btor)
 
     /* rewrite/beta-reduce applies on lambdas */
     if (btor_opt_get (btor, BTOR_OPT_BETA_REDUCE))
+    {
+      /* If no UFs or function equalities are present, we eagerly eliminate all
+       * remaining lambdas. */
+      if (btor->ufs->count == 0 && btor->feqs->count == 0
+          && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL))
+      {
+        BTOR_MSG (btor->msg, 1,
+             "no UFs or function equalities, enable beta-reduction=all");
+        btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_ALL);
+      }
       btor_eliminate_applies (btor);
+    }
 
     /* add ackermann constraints for all uninterpreted functions */
     if (btor_opt_get (btor, BTOR_OPT_ACKERMANN))
@@ -4139,12 +4150,22 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   /* eliminate lambdas (define-fun) in the QF_BV case */
   if (btor->ufs->count == 0 && btor->feqs->count == 0
       && btor->lambdas->count > 0)
-    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_FUN);
+  {
+    BTOR_MSG(btor->msg, 1,
+             "no UFs or function equalities, enable beta-reduction=all");
+    btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_ALL);
+  }
 
   // FIXME (ma): not sound with slice elimination. see red-vsl.proof3106.smt2
   /* disabling slice elimination is better on QF_ABV and BV */
   if (btor->ufs->count > 0 || btor->quantifiers->count > 0)
+  {
+    BTOR_MSG(btor->msg, 1,
+             "found %s, disable slice elimination",
+             btor->ufs->count > 0 ? "UFs" : "quantifiers");
     btor_opt_set (btor, BTOR_OPT_ELIMINATE_SLICES, 0);
+  }
+
   /* set options for quantifiers */
   if (btor->quantifiers->count > 0)
   {
@@ -4153,6 +4174,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
   }
 
   /* FIXME: disable options that potentially slow down incremental mode */
+  // TODO: check this
   if (btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
       && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL_RW))
   {

@@ -2433,15 +2433,11 @@ sat_fun_solver (BtorFunSolver *slv)
 
   if ((btor_opt_get (btor, BTOR_OPT_FUN_PREPROP)
        || btor_opt_get (btor, BTOR_OPT_FUN_PRESLS))
-      && btor->ufs->count == 0 && btor->feqs->count == 0)
+      && btor->ufs->count == 0 && btor->feqs->count == 0
+      && btor->lambdas->count == 0)
   {
     BtorSolver *preslv;
     BtorOptEngine eopt;
-
-    if (btor->lambdas->count)
-    {
-      btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_FUN);
-    }
 
     if (btor_opt_get (btor, BTOR_OPT_FUN_PREPROP))
     {
