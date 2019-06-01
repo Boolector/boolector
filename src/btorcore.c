@@ -1228,17 +1228,13 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
   //  assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 1);
   assert (btor_node_bv_get_width (btor, exp) == 1);
 
-  BtorNode *rep;
+  exp = btor_simplify_exp (btor, exp);
 
-  rep = btor_simplify_exp (btor, exp);
-
-  return rep == btor_node_invert (rep)
-         /* special case: top-level constraint applies are not simplified to
-          * true/false (in order to not break dual prop) */
+  return btor_node_is_bv_const_zero (btor, exp)
          || btor_hashptr_table_get (btor->synthesized_constraints,
-                                    btor_node_invert (rep))
+                                    btor_node_invert (exp))
          || btor_hashptr_table_get (btor->unsynthesized_constraints,
-                                    btor_node_invert (rep));
+                                    btor_node_invert (exp));
 }
 
 static void
