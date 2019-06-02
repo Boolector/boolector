@@ -56,6 +56,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   BtorPtrHashTableIterator pit;
   BtorNode *root;
   btor_iter_hashptr_init (&pit, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&pit, btor->synthesized_constraints);
   btor_iter_hashptr_queue (&pit, btor->assumptions);
   while (btor_iter_hashptr_has_next (&pit))
   {
@@ -255,6 +256,9 @@ sat_prop_solver_aux (Btor *btor)
     if (btor_hashptr_table_get (btor->unsynthesized_constraints,
                                 btor_node_invert (root)))
       goto UNSAT;
+    if (btor_hashptr_table_get (btor->synthesized_constraints,
+                                btor_node_invert (root)))
+      goto UNSAT;
     if (btor_hashptr_table_get (btor->assumptions, btor_node_invert (root)))
       goto UNSAT;
   }
@@ -264,8 +268,8 @@ sat_prop_solver_aux (Btor *btor)
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);
     slv->roots = btor_hashint_map_new (btor->mm);
-    assert (btor->synthesized_constraints->count == 0);
     btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+    btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->assumptions);
     while (btor_iter_hashptr_has_next (&it))
     {
