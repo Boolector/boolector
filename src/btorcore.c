@@ -4199,6 +4199,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       {
         assert (btor->lambdas->count == 0
                 || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
+        BTOR_ABORT(btor->quantifiers->count,
+                   "Quantifiers not supported for -E sls");
         btor->slv = btor_new_sls_solver (btor);
       }
       else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
@@ -4206,6 +4208,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       {
         assert (btor->lambdas->count == 0
                 || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
+        BTOR_ABORT(btor->quantifiers->count,
+                   "Quantifiers not supported for -E prop");
         btor->slv = btor_new_prop_solver (btor);
       }
       else if (engine == BTOR_ENGINE_AIGPROP && btor->ufs->count == 0
@@ -4213,6 +4217,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       {
         assert (btor->lambdas->count == 0
                 || btor_opt_get (btor, BTOR_OPT_BETA_REDUCE));
+        BTOR_ABORT(btor->quantifiers->count,
+                   "Quantifiers not supported for -E aigprop");
         btor->slv = btor_new_aigprop_solver (btor);
       }
       else if ((engine == BTOR_ENGINE_QUANT && btor->quantifiers->count > 0)
