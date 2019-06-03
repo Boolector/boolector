@@ -83,7 +83,7 @@ cat > "$RUN_DEFAULT" << EOF
 python2.7 ./poolector.py \$1
 EOF
 
-echo "Poolector non incremental track configuration for QF_BV $YEAR" > "$DESCRIPTION"
+echo "Poolector non incremental track configuration $YEAR" > "$DESCRIPTION"
 chmod +x "$RUN_DEFAULT"
 tar -C "$dir" -zcf "$archive" .
 ls -l "$archive"

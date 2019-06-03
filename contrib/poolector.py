@@ -10,17 +10,14 @@ import os
 g_result = None
 
 DEFAULT_OPTIONS = ['--no-exit-codes', '-uc', '-br', 'fun',
-                   '--declsort-bv-width=16']
+                   '--declsort-bv-width=16',
+                   '--simp-norm-adds']
 
 CONFIGS = [
-  ['-SE', 'cadical'],
-  ['-SE', 'lingeling'],
+  ['-SE', 'cadical', '--fun:preprop', '--prop:nprops=10000'],
   ['-SE', 'cms'],
-  ['-SE', 'cadical', '--no-normalize'],
+  ['-SE', 'lingeling'],
   ['-E', 'sls'],
-  ['-E', 'prop'],
-  ['-rwl', '2'],
-  ['--simp-norm-adds'],
 ]
 
 def die(msg):
