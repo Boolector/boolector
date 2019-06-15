@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-from __future__ import with_statement
+#!/usr/bin/env python
 import sys, os, random, signal
 
 def dec2bin(dec, len):
@@ -8,7 +7,7 @@ def dec2bin(dec, len):
   return evalstring % int(binary)
 
 if len(sys.argv) != 4:
-  print "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file> <boolector-binary>"
+  print("Usage: ./btorcheckmodel <btor-file> <btor-output-model-file> <boolector-binary>")
   sys.exit(2)
 
 pid = os.getpid();
@@ -42,7 +41,7 @@ with open (sys.argv[1], "r") as fin:
 
     if words[1] == "root":
       if foundroot:
-        print "Multiple roots are not supported"
+        print("Multiple roots are not supported")
         sys.exit(2)
       foundroot=True
       id = int(words[0])
@@ -50,17 +49,17 @@ with open (sys.argv[1], "r") as fin:
     else:
       if words[1] == "array":
         if int(words[3]) > 8:
-          print "Arrays with index len > 8 are not supported"
+          print("Arrays with index len > 8 are not supported")
           sys.exit(2)
         arrays[words[0]]=words[2] + " " + words[3]
         arrayass[words[0]]={}
-        if constants.has_key(words[2]) == False:
+        if words[2] not in constants:
           randnr = random.randint(0, (2 ** int(words[2])) - 1)
           constants[words[2]]=dec2bin (randnr, int(words[2]))
       fout.write (origline) 
 
 if foundroot == False:
-  print "Root is missing"
+  print("Root is missing")
   sys.exit(2)
 
 fout.write (str(id) + " const 1 1\n")
@@ -71,7 +70,7 @@ with open (sys.argv[2], "r") as fin:
   origline = fin.readline()
 
   if origline.strip() != "sat":
-    print "Formula is not SAT"
+    print("Formula is not SAT")
     sys.exit(2)
 
   for origline in fin:
@@ -85,7 +84,7 @@ with open (sys.argv[2], "r") as fin:
       try:
         temp = int(modelid)
       except:
-        print "invalid identifier"
+        print("invalid identifier")
         sys.exit(2)
         ## modelid is an identifier, we have to get the id
         #ret = os.popen ("grep \"\<" + modelid + "\>\" " + sys.argv[1] + \
@@ -116,7 +115,7 @@ with open (sys.argv[2], "r") as fin:
       cpos = words[0].find("]")
 
       if cpos == -1:
-        print "Invalid format of model file"
+        print("Invalid format of model file")
         sys.exit(2)
 
       aid=line[0:opos]
@@ -124,7 +123,7 @@ with open (sys.argv[2], "r") as fin:
       try:
         temp = int(aid)
       except:
-        print "invalid identifier"
+        print("invalid identifier")
         sys.exit(2)
         ## aid is an identifier, we have to get the id
         #ret = os.popen ("grep \"\<" + aid + "\>\" " + sys.argv[1] + \
@@ -141,13 +140,13 @@ with open (sys.argv[2], "r") as fin:
       iass=line[opos + 1:cpos]
       iassl=len(iass)
       if iass.find("x") != -1:
-        print "Unexpected index assignment"
+        print("Unexpected index assignment")
         sys.exit(2)
 
       vass=words[1]
       vassl=len(vass)
       if vass.find("x") != -1:
-        print "Unexpected value assignment"
+        print("Unexpected value assignment")
         sys.exit(2)
       
       fout.write(str(id) + " const " + str(iassl) + " " + iass + "\n")
@@ -169,7 +168,7 @@ with open (sys.argv[2], "r") as fin:
       # remember assignment
       arrayass[aid][iass] = vass
 
-for key in arrays.iterkeys():
+for key in arrays:
   words = arrays[key].split()
   vlen = words[0]
   ilen = words[1]
@@ -178,7 +177,7 @@ for key in arrays.iterkeys():
   constant = constants[vlen]
   for i in looprange:
     binary = dec2bin (i, ilen)
-    if ass.has_key(binary) == False:
+    if binary not in ass:
       fout.write(str(id) + " const " + str(ilen) + " " + binary + "\n")
       iid = lastid = str(id)
       id = id + 1
@@ -204,12 +203,12 @@ fout.close()
 ret = os.popen (boolector + " -rwl 0 " + foutname)
 result = ret.readline().strip()
 if result == "sat":
-  print "Invalid"
+  print("Invalid")
   sys.exit(1)
 elif result != "unsat":
-  print "Unexpected result"
+  print("Unexpected result")
   sys.exit(2)
 
 cleanup()
-print "Valid"
+print("Valid")
 sys.exit(0)
