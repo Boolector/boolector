@@ -129,7 +129,7 @@ set_target_properties(boolector-bin
   PROPERTIES
     OUTPUT_NAME boolector
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-if(NOT SHARED AND NOT APPLE)
+if(NOT BUILD_SHARED_LIBS AND NOT APPLE)
   set_target_properties(boolector-bin
     PROPERTIES
       LINK_FLAGS "-static -Wl,--no-export-dynamic"

@@ -182,7 +182,7 @@ cmake_opts="$CMAKE_OPTS"
 [ $debug = yes ] && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=Debug"
 [ $check = yes ] && cmake_opts="$cmake_opts -DCHECK=ON"
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
-[ $shared = yes ] && cmake_opts="$cmake_opts -DSHARED=ON"
+[ $shared = yes ] && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=ON"
 
 [ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
 
