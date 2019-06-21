@@ -130,9 +130,13 @@ set_target_properties(boolector-bin
     OUTPUT_NAME boolector
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if(NOT BUILD_SHARED_LIBS AND NOT APPLE)
+  set(BTOR_STATIC_FLAGS "-static")
+  if(HAVE_NO_EXPORT_DYNAMIC)
+    set(BTOR_STATIC_FLAGS "${BTOR_STATIC_FLAGS} -Wl,--no-export-dynamic")
+  endif()
   set_target_properties(boolector-bin
     PROPERTIES
-      LINK_FLAGS "-static -Wl,--no-export-dynamic"
+      LINK_FLAGS ${BTOR_STATIC_FLAGS}
       LINK_SEARCH_START_STATIC ON LINK_SEARCH_END_STATIC ON)
 endif()
 install(TARGETS boolector-bin DESTINATION bin)
