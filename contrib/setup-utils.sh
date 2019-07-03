@@ -15,6 +15,7 @@ INSTALL_DIR="${DEPS_DIR}/install"
 INSTALL_LIB_DIR="${INSTALL_DIR}/lib"
 INSTALL_INCLUDE_DIR="${INSTALL_DIR}/include"
 INSTALL_BIN_DIR="${INSTALL_DIR}/bin"
+WINDOWS_PATCHES_DIR="$(pwd)/contrib/windows_patches"
 
 if type nproc > /dev/null 2>&1; then
   NPROC=$(nproc)
@@ -48,4 +49,55 @@ function install_include
 function install_bin
 {
   cp "$1" "${INSTALL_BIN_DIR}"
+}
+
+function is_windows
+{
+  #
+  # Helper function to check if we're running under Windows, returns false
+  # otherwise.
+  #
+  case "$(uname -s)" in
+    CYGWIN*|MINGW32*|MSYS*)
+      return
+      ;;
+  esac
+  false
+}
+
+function test_apply_patch
+{
+  #
+  # This is a function to help apply a patch, only if the patch applies
+  # cleanly.
+  #
+  # If the patch _does not_ apply cleanly, it prints a warning and exits
+  # (and therefore blocks compilation of the feature)!
+  #
+  local component="$1"
+  local last_patch_date="$2"
+  local patch_set="${WINDOWS_PATCHES_DIR}/${component}_${last_patch_date}.patch"
+  patch -p1 -N --dry-run --silent < "${patch_set}" 2>/dev/null
+  if [ $? -eq 0 ]; then
+    #
+    # Apply patch if the dry-run was successful.
+    #
+    patch -p1 -N < "${patch_set}"
+  else
+    #
+    # Otherwise, print an error and bomb-out!
+    #
+    echo "##############################################################"
+    echo "# ***Critical error***"
+    echo "#"
+    echo "#    Failed to patch ${component} to be Windows-compatible!"
+    echo "#"
+    echo "#    Please create an issue on GitHub.com:"
+    echo "#"
+    echo "#        https://github.com/Boolector/boolector/issues"
+    echo "#"
+    echo "#    Compilation *will not* continue!"
+    echo "##############################################################"
+    exit 1
+  fi
 }
