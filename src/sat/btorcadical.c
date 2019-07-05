@@ -65,6 +65,13 @@ enable_verbosity (BtorSATMgr *smgr, int32_t level)
     ccadical_set_option (smgr->solver, "verbose", level - 2);
 }
 
+static void
+setterm (BtorSATMgr *smgr)
+{
+  /* for CaDiCaL, state is the first argument (unlike, e.g., Lingeling) */
+  ccadical_set_terminate (smgr->solver, smgr->term.state, smgr->term.fun);
+}
+
 /*------------------------------------------------------------------------*/
 /* incremental API                                                        */
 /*------------------------------------------------------------------------*/
@@ -97,6 +104,8 @@ btor_sat_enable_cadical (BtorSATMgr *smgr)
   smgr->api.set_output       = 0;
   smgr->api.set_prefix       = 0;
   smgr->api.stats            = 0;
+  smgr->api.setterm          = setterm;
+
   return true;
 }
 /*------------------------------------------------------------------------*/
