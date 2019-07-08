@@ -220,12 +220,7 @@ btormain_init_opts (BtorMainApp *app)
                      BTOR_ARG_EXPECT_STR,
                      "set output file for dumping");
 
-  // BD: this must initialized even if BTOR_USE_LINGELING is not defined.
-  // Otherwise, there's a risk of seg fault in the loop that scans options
-  // because bmo->shrt and bmo->lng are garbage. There's also a seg fault
-  // on boolector --help.
-
-  // #ifdef BTOR_USE_LINGELING
+#ifdef BTOR_USE_LINGELING
   btormain_init_opt (app,
                      BTORMAIN_OPT_LGL_NOFORK,
                      true,
@@ -238,7 +233,7 @@ btormain_init_opts (BtorMainApp *app)
                      false,
                      BTOR_ARG_EXPECT_NONE,
                      "do not use 'fork/clone' for Lingeling");
-  // #endif
+#endif
 
   btormain_init_opt (app,
                      BTORMAIN_OPT_HEX,
