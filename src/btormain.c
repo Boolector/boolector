@@ -219,7 +219,6 @@ btormain_init_opts (BtorMainApp *app)
                      false,
                      BTOR_ARG_EXPECT_STR,
                      "set output file for dumping");
-
 #ifdef BTOR_USE_LINGELING
   btormain_init_opt (app,
                      BTORMAIN_OPT_LGL_NOFORK,
@@ -234,7 +233,6 @@ btormain_init_opts (BtorMainApp *app)
                      BTOR_ARG_EXPECT_NONE,
                      "do not use 'fork/clone' for Lingeling");
 #endif
-
   btormain_init_opt (app,
                      BTORMAIN_OPT_HEX,
                      true,
