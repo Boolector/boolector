@@ -217,8 +217,8 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 
 #define BTORMBT_LOG_STATUS(l, prefix)                                      \
   BTORMBT_LOG (l,                                                          \
-               prefix " (%d): bool %" PRId64 ", bv %" PRId64               \
-                      ", array %" PRId64 ", fun %" PRId64 ", uf %" PRId64, \
+               prefix                                                      \
+               " (%d): bool %zu, bv %zu, array %zu, fun %zu, uf %zu",      \
                g_btormbt->round.ops,                                       \
                BTOR_COUNT_STACK (g_btormbt->bo->exps),                     \
                BTOR_COUNT_STACK (g_btormbt->bv->exps),                     \
