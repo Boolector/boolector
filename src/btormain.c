@@ -1113,7 +1113,7 @@ boolector_main (int32_t argc, char **argv)
     {
       bmo = &g_app->options[bmopt];
       if ((po->isshrt && bmo->shrt && !strcmp (bmo->shrt, po->name.start))
-          || (!po->isshrt && !strcmp (bmo->lng, po->name.start)))
+          || (!po->isshrt && bmo->lng && !strcmp (bmo->lng, po->name.start)))
       {
         break;
       }

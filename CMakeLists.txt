@@ -107,7 +107,6 @@ option3vl(GCOV       "Compile with coverage support")
 option3vl(GPROF      "Compile with profiling support")
 option3vl(LOG        "Compile with logging support (default for Debug builds)")
 option3vl(PYTHON     "Build Python API")
-option3vl(SHARED     "Shared Library")
 option3vl(TIME_STATS "Compile with time statistics")
 
 option3vl(USE_CADICAL    "Use and link with CaDiCaL")
@@ -140,12 +139,13 @@ if(PYTHON)
 
   # Produce a python module that only links against system libraries. SAT
   # solvers and libboolector should be included in the module itself.
-  if(NOT SHARED)
+  if(NOT BUILD_SHARED_LIBS)
     add_check_c_cxx_flag("-fPIC")
     # Disable MiniSat since the static library is not compiled with -fPIC by
     # default.
+    message(STATUS "Disabling MiniSat for static Python builds. "
+                   "Use --shared if you need MiniSat.")
     set_option(USE_MINISAT OFF)
-    set_option(USE_PICOSAT OFF)
   endif()
 endif()
 
@@ -157,13 +157,10 @@ if(ASAN)
   unset(CMAKE_REQUIRED_FLAGS)
   add_check_c_cxx_flag("-fno-omit-frame-pointer")
   add_required_c_cxx_flag("-fsanitize-recover=address")
-  set(SHARED ON)
+  set(BUILD_SHARED_LIBS ON)
 endif()
 
-if(SHARED)
-  set(BUILD_SHARED_LIBS ON)
-elseif(NOT PYTHON)
-  set(BUILD_SHARED_LIBS OFF)
+if(NOT BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
@@ -254,6 +251,8 @@ endif()
 if(TIME_STATS)
   add_definitions("-DBTOR_TIME_STATISTICS")
 endif()
+
+include(CheckNoExportDynamic)
 
 #-----------------------------------------------------------------------------#
 
@@ -399,9 +398,12 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
+# Enable CTest
+enable_testing()
+
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
-add_subdirectory(src/tests)
+add_subdirectory(test)
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()

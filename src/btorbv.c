@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2017 Mathias Preiner.
- *  Copyright (C) 2015-2018 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *  Copyright (C) 2018 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -718,6 +718,40 @@ btor_bv_is_one (const BtorBitVector *bv)
   return true;
 }
 
+bool
+btor_bv_is_min_signed (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i;
+
+  if (bv->bits[0] != (1u << ((bv->width % BTOR_BV_TYPE_BW) - 1))) return false;
+  for (i = 1; i < bv->len; i++)
+    if (bv->bits[i] != 0) return false;
+  return true;
+}
+
+bool
+btor_bv_is_max_signed (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i, msc;
+
+  msc = (BTOR_BV_TYPE_BW - (bv->width % BTOR_BV_TYPE_BW) + 1);
+  if (msc == BTOR_BV_TYPE_BW)
+  {
+    if (bv->bits[0] != 0) return false;
+  }
+  else if (bv->bits[0] != (~0u >> msc))
+  {
+    return false;
+  }
+  for (i = 1; i < bv->len; i++)
+    if (bv->bits[i] != ~0u) return false;
+  return true;
+}
+
 int64_t
 btor_bv_power_of_two (const BtorBitVector *bv)
 {
@@ -825,6 +859,32 @@ btor_bv_ones (BtorMemMgr *mm, uint32_t bw)
   res = btor_bv_not (mm, tmp);
   btor_bv_free (mm, tmp);
 
+  return res;
+}
+
+BtorBitVector *
+btor_bv_min_signed (BtorMemMgr *mm, uint32_t bw)
+{
+  assert (mm);
+  assert (bw);
+
+  BtorBitVector *res;
+
+  res = btor_bv_new (mm, bw);
+  btor_bv_set_bit (res, bw - 1, 1);
+  return res;
+}
+
+BtorBitVector *
+btor_bv_max_signed (BtorMemMgr *mm, uint32_t bw)
+{
+  assert (mm);
+  assert (bw);
+
+  BtorBitVector *res;
+
+  res = btor_bv_ones (mm, bw);
+  btor_bv_set_bit (res, bw - 1, 0);
   return res;
 }
 

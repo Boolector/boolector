@@ -51,21 +51,21 @@ modelgensmt2_test (const char *fname, int32_t rwl)
 
   len = strlen (fname);
 
-  len_smt_fname = len + 6;
+  len_smt_fname = len + strlen (".smt2") + 1;
   BTOR_NEWN (g_mm, smt_fname, len_smt_fname);
-  sprintf (smt_fname, "%s.smt2", fname);
-  len_smt = strlen (btor_log_dir) + strlen (smt_fname) + 20;
+  snprintf (smt_fname, len_smt_fname, "%s.smt2", fname);
+  len_smt = strlen (btor_out_dir) + strlen (smt_fname) + 1;
   BTOR_NEWN (g_mm, s_smt, len_smt);
-  sprintf (s_smt, "%s%s", btor_log_dir, smt_fname);
+  snprintf (s_smt, len_smt, "%s%s", btor_out_dir, smt_fname);
   BTOR_PUSH_STACK (args, s_smt);
 
-  len_log_fname = len + 5;
+  len_log_fname = len + strlen (".log") + 1;
   BTOR_NEWN (g_mm, log_fname, len_log_fname);
-  sprintf (log_fname, "%s.log", fname);
+  snprintf (log_fname, len_log_fname, "%s.log", fname);
   BTOR_PUSH_STACK (args, "-o");
-  len_log = strlen (btor_log_dir) + strlen (log_fname) + 20;
+  len_log = strlen (btor_log_dir) + strlen (log_fname) + 1;
   BTOR_NEWN (g_mm, s_log, len_log);
-  sprintf (s_log, "%s%s", btor_log_dir, log_fname);
+  snprintf (s_log, len_log, "%s%s", btor_log_dir, log_fname);
   BTOR_PUSH_STACK (args, s_log);
 
   BTOR_PUSH_STACK (args, "-rwl=3");
@@ -76,19 +76,20 @@ modelgensmt2_test (const char *fname, int32_t rwl)
 
 #ifndef BTOR_WINDOWS_BUILD
   len_syscall_string =
-      len + 5 + len + 4
-      + strlen ("btorcheckmodelsmt2.sh   boolector > /dev/null")
-      + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2 + 1
-      + strlen (btor_bin_dir);
+      strlen (btor_contrib_dir) + strlen ("btorcheckmodelsmt2.sh") + 1
+      + strlen (btor_log_dir) + strlen (smt_fname) + 1 + strlen (btor_log_dir)
+      + strlen (log_fname) + 1 + strlen (btor_bin_dir)
+      + strlen ("boolector > /dev/null") + 1;
   BTOR_NEWN (g_mm, syscall_string, len_syscall_string);
-  sprintf (syscall_string,
-           "%sbtorcheckmodelsmt2.sh %s%s %s%s %sboolector > /dev/null",
-           btor_contrib_dir,
-           btor_log_dir,
-           smt_fname,
-           btor_log_dir,
-           log_fname,
-           btor_bin_dir);
+  snprintf (syscall_string,
+            len_syscall_string,
+            "%sbtorcheckmodelsmt2.sh %s%s %s%s %sboolector > /dev/null",
+            btor_contrib_dir,
+            btor_out_dir,
+            smt_fname,
+            btor_log_dir,
+            log_fname,
+            btor_bin_dir);
 
   ret_val = system (syscall_string);
   assert (ret_val == 0);

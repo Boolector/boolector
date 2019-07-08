@@ -53,19 +53,19 @@ modelgen_test (const char *fname, int32_t rwl)
 
   len_btor_fname = len + 6;
   BTOR_NEWN (g_mm, btor_fname, len_btor_fname);
-  sprintf (btor_fname, "%s.btor", fname);
-  len_btor = strlen (btor_log_dir) + strlen (btor_fname) + 20;
+  snprintf (btor_fname, len_btor_fname, "%s.btor", fname);
+  len_btor = strlen (btor_out_dir) + strlen (btor_fname) + 20;
   BTOR_NEWN (g_mm, s_btor, len_btor);
-  sprintf (s_btor, "%s%s", btor_log_dir, btor_fname);
+  snprintf (s_btor, len_btor, "%s%s", btor_out_dir, btor_fname);
   BTOR_PUSH_STACK (args, s_btor);
 
   len_log_fname = len + 5;
   BTOR_NEWN (g_mm, log_fname, len_log_fname);
-  sprintf (log_fname, "%s.log", fname);
+  snprintf (log_fname, len_log_fname, "%s.log", fname);
   BTOR_PUSH_STACK (args, "-o");
   len_log = strlen (btor_log_dir) + strlen (log_fname) + 20;
   BTOR_NEWN (g_mm, s_log, len_log);
-  sprintf (s_log, "%s%s", btor_log_dir, log_fname);
+  snprintf (s_log, len_log, "%s%s", btor_log_dir, log_fname);
   BTOR_PUSH_STACK (args, s_log);
 
   BTOR_PUSH_STACK (args, "-rwl=3");
@@ -76,17 +76,18 @@ modelgen_test (const char *fname, int32_t rwl)
 #ifndef BTOR_WINDOWS_BUILD
   len_syscall_string = len + 5 + len + 4
                        + strlen ("btorcheckmodel.py   boolector > /dev/null")
-                       + strlen (btor_contrib_dir) + strlen (btor_log_dir) * 2
-                       + 1 + strlen (btor_bin_dir);
+                       + strlen (btor_contrib_dir) + strlen (btor_out_dir)
+                       + strlen (btor_log_dir) + 1 + strlen (btor_bin_dir);
   BTOR_NEWN (g_mm, syscall_string, len_syscall_string);
-  sprintf (syscall_string,
-           "%sbtorcheckmodel.py %s%s %s%s %sboolector > /dev/null",
-           btor_contrib_dir,
-           btor_log_dir,
-           btor_fname,
-           btor_log_dir,
-           log_fname,
-           btor_bin_dir);
+  snprintf (syscall_string,
+            len_syscall_string,
+            "%sbtorcheckmodel.py %s%s %s%s %sboolector > /dev/null",
+            btor_contrib_dir,
+            btor_out_dir,
+            btor_fname,
+            btor_log_dir,
+            log_fname,
+            btor_bin_dir);
   ret_val = system (syscall_string);
   assert (ret_val == 0);
   BTOR_DELETEN (g_mm, syscall_string, len_syscall_string);

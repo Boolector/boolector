@@ -24,9 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME "arithin.tmp"
-#define BTOR_TEST_ARITHMETIC_TEMP_OUTFILE_NAME "arithout.tmp"
-
 #define BTOR_TEST_ARITHMETIC_LOW 1
 #define BTOR_TEST_ARITHMETIC_HIGH 4
 
@@ -49,8 +46,6 @@ u_arithmetic_test (int32_t (*func) (int32_t, int32_t),
   assert (low > 0);
   assert (low <= high);
 
-  FILE *fin        = NULL;
-  FILE *fout       = NULL;
   int32_t i        = 0;
   int32_t j        = 0;
   int32_t result   = 0;
@@ -59,6 +54,7 @@ u_arithmetic_test (int32_t (*func) (int32_t, int32_t),
   int32_t const_id = 0;
   int32_t parse_res, parse_status;
   char *parse_err;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -67,6 +63,9 @@ u_arithmetic_test (int32_t (*func) (int32_t, int32_t),
     {
       for (j = 0; j < max; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         result = func (i, j);
         if (result < max)
         {
@@ -75,7 +74,7 @@ u_arithmetic_test (int32_t (*func) (int32_t, int32_t),
           if (g_rwreads)
             boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
-          fin = fopen (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME, "w");
+          fin = mk_temp_file (infilename, "r+");
           assert (fin != NULL);
           fprintf (fin, "1 constd %d %d\n", num_bits, i);
           fprintf (fin, "2 constd %d %d\n", num_bits, j);
@@ -93,25 +92,16 @@ u_arithmetic_test (int32_t (*func) (int32_t, int32_t),
           }
           fprintf (fin, "%d eq 1 3 %d\n", const_id + 1, const_id);
           fprintf (fin, "%d root 1 %d\n", const_id + 2, const_id + 1);
-          fclose (fin);
-          fin = fopen (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME, "r");
-          assert (fin != NULL);
-          fout = fopen (BTOR_TEST_ARITHMETIC_TEMP_OUTFILE_NAME, "w");
-          assert (fout != NULL);
-          parse_res =
-              boolector_parse_btor (g_btor,
-                                    fin,
-                                    BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME,
-                                    fout,
-                                    &parse_err,
-                                    &parse_status);
+
+          rewind (fin);
+          fout      = mk_temp_file (outfilename, "w");
+          parse_res = boolector_parse_btor (
+              g_btor, fin, infilename, fout, &parse_err, &parse_status);
           assert (parse_res != BOOLECTOR_PARSE_ERROR);
           assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
           fclose (fin);
           fclose (fout);
           boolector_delete (g_btor);
-          assert (remove (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME) == 0);
-          assert (remove (BTOR_TEST_ARITHMETIC_TEMP_OUTFILE_NAME) == 0);
         }
       }
     }
@@ -130,8 +120,6 @@ s_arithmetic_test (int32_t (*func) (int32_t, int32_t),
   assert (low > 0);
   assert (low <= high);
 
-  FILE *fin              = NULL;
-  FILE *fout             = NULL;
   int32_t i              = 0;
   int32_t j              = 0;
   int32_t const1_id      = 0;
@@ -142,6 +130,7 @@ s_arithmetic_test (int32_t (*func) (int32_t, int32_t),
   int32_t max            = 0;
   int32_t parse_res, parse_status;
   char *parse_err;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -150,6 +139,9 @@ s_arithmetic_test (int32_t (*func) (int32_t, int32_t),
     {
       for (j = -max; j < max; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         result = func (i, j);
         if (result >= -max && result < max)
         {
@@ -158,7 +150,7 @@ s_arithmetic_test (int32_t (*func) (int32_t, int32_t),
           if (g_rwreads)
             boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
-          fin = fopen (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME, "w");
+          fin = mk_temp_file (infilename, "r+");
           assert (fin != NULL);
           if (i < 0)
           {
@@ -206,25 +198,16 @@ s_arithmetic_test (int32_t (*func) (int32_t, int32_t),
           fprintf (
               fin, "%d eq 1 %d %d\n", const3_id + 1, const2_id + 1, const3_id);
           fprintf (fin, "%d root 1 %d\n", const3_id + 2, const3_id + 1);
-          fclose (fin);
-          fin = fopen (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME, "r");
-          assert (fin != NULL);
-          fout = fopen (BTOR_TEST_ARITHMETIC_TEMP_OUTFILE_NAME, "w");
-          assert (fout != NULL);
-          parse_res =
-              boolector_parse_btor (g_btor,
-                                    fin,
-                                    BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME,
-                                    fout,
-                                    &parse_err,
-                                    &parse_status);
+
+          rewind (fin);
+          fout      = mk_temp_file (outfilename, "w");
+          parse_res = boolector_parse_btor (
+              g_btor, fin, infilename, fout, &parse_err, &parse_status);
           assert (parse_res != BOOLECTOR_PARSE_ERROR);
           assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
           fclose (fin);
           fclose (fout);
           boolector_delete (g_btor);
-          assert (remove (BTOR_TEST_ARITHMETIC_TEMP_INFILE_NAME) == 0);
-          assert (remove (BTOR_TEST_ARITHMETIC_TEMP_OUTFILE_NAME) == 0);
         }
       }
     }
@@ -377,7 +360,6 @@ run_all_tests (int32_t argc, char **argv)
 void
 run_arithmetic_tests (int32_t argc, char **argv)
 {
-  run_all_tests (argc, argv);
   run_all_tests (argc, argv);
 }
 

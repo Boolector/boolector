@@ -4,13 +4,13 @@ readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly OUTDIR=$DIR/out
 readonly MCWITNESSDIR=$DIR/mc-witnesses
 
-BTORMC=$DIR/../../bin/btormc
+BTORMC=$DIR/../../build/bin/btormc
 if [ ! -e $BTORMC ]
 then
   echo "[error] BtorMC not built"
   exit 1
 fi
-BTORSIM=$DIR/../../../btor2tools/bin/btorsim
+BTORSIM=$DIR/../../../deps/btor2tools/bin/btorsim
 if [ ! -e $BTORSIM ]
 then
   echo "[error] BtorSim not built"

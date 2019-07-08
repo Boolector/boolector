@@ -35,12 +35,16 @@ enum BtorTestCaseSpeed
 
 extern const char *btor_bin_dir;
 extern const char *btor_log_dir;
+extern const char *btor_out_dir;
 extern const char *btor_contrib_dir;
 extern const char *btor_test_dir;
 
 typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
 
-void init_tests (BtorTestCaseSpeed speed, bool skip_broken);
+void init_tests (BtorTestCaseSpeed speed,
+                 bool skip_broken,
+                 bool match_exact,
+                 bool quiet);
 
 void print_test_suite_name (const char *name);
 
@@ -52,6 +56,10 @@ void run_test_case (int32_t argc,
                     char *name,
                     bool check_log_file);
 
-void finish_tests (void);
+int32_t finish_tests (void);
+
+void tprintf (const char *format, ...);
+
+FILE *mk_temp_file (char *filename, const char *mode);
 
 #endif

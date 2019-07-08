@@ -1765,8 +1765,7 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, uint32_t nroots)
       btor_node_release (btor, tmp);
     }
     else if (btor->unsynthesized_constraints->count == 0
-             && btor->synthesized_constraints->count == 0
-             && btor->embedded_constraints->count == 0)
+             && btor->synthesized_constraints->count == 0)
     {
       tmp = btor_exp_true (btor);
       add_root_to_smt_dump_context (sdc, tmp);
@@ -1776,7 +1775,6 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, uint32_t nroots)
     {
       btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
       btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
-      btor_iter_hashptr_queue (&it, btor->embedded_constraints);
       while (btor_iter_hashptr_has_next (&it))
         add_root_to_smt_dump_context (sdc, btor_iter_hashptr_next (&it));
     }

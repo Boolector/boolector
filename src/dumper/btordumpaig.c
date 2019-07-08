@@ -142,7 +142,8 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   BtorPtrHashTableIterator it;
   BtorNodePtrStack nodes;
 
-  const char *fmt_header = "c %s AIG dump\nc Boolector version %s\n";
+  const char *fmt_header = "%s AIG dump\nc Boolector version %s\n";
+  int comment_section_started = 0;
 
   BTOR_INIT_STACK (btor->mm, nodes);
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
@@ -160,6 +161,8 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
                       is_binary,
                       output,
                       merge_roots);
+    fputs ("c\n", output);
+    comment_section_started = 1;
     fprintf (output, fmt_header, "Formula", btor_version (btor));
   }
   BTOR_RELEASE_STACK (nodes);
@@ -173,6 +176,7 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
                       is_binary,
                       output,
                       false);
+    if (!comment_section_started) fputs ("c\n", output);
     fprintf (output, fmt_header, "BTOR2 outputs", btor_version (btor));
   }
 }

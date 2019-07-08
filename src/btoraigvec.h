@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -25,7 +25,7 @@ struct BtorAIGMap;
 struct BtorAIGVec
 {
   uint32_t width;  /* width of the AIG vector (cf. bit-width) */
-  BtorAIG *aigs[]; /* vector of AIGs */
+  BtorAIG *aigs[]; /* vector of AIGs (MSB is at index 0) */
 };
 
 typedef struct BtorAIGVec BtorAIGVec;

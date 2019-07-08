@@ -1002,7 +1002,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (top_applies);
   assert (btor->unsynthesized_constraints->count == 0);
-  assert (btor->embedded_constraints->count == 0);
 
   uint32_t i, h;
   int32_t a, a0, a1;

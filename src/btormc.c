@@ -510,7 +510,7 @@ btor_mc_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   assert (boolector_get_btor (init) == btor);
   /* Note: We allow constants to initialize arrays */
   assert (boolector_get_width (btor, node) == boolector_get_width (btor, init));
-  assert (!boolector_is_array (btor, node)
+  assert (!(boolector_is_array (btor, node) && !boolector_is_const (btor, init))
           || boolector_get_sort (btor, node)
                  == boolector_get_sort (btor, init));
 
@@ -814,7 +814,7 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
       dst = boolector_nodemap_substitute_node (mc->forward, map, state->init);
       dst = boolector_copy (mc->forward, dst);
       // special case: const initialization (constant array)
-      if (boolector_is_array (btor, src) && boolector_is_const (btor, src))
+      if (boolector_is_array (btor, src) && boolector_is_const (btor, state->init))
       {
         BoolectorSort si =
             boolector_bitvec_sort (fwd, boolector_get_index_width (btor, src));
@@ -1194,6 +1194,9 @@ check_last_forward_frame (BtorMC *mc)
               mc->call_backs.reached_at_bound.state, i, k);
         }
       }
+
+      if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
+        print_witness (mc, k);
     }
     else
     {
@@ -1208,9 +1211,6 @@ check_last_forward_frame (BtorMC *mc)
     if (btor_mc_get_opt (mc, BTOR_MC_OPT_BTOR_STATS))
       boolector_print_stats (mc->forward);
   }
-
-  if (satisfied && btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
-    print_witness (mc, k);
 
   BTOR_MSG (boolector_get_btor_msg (btor),
             1,

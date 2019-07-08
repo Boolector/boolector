@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2015-2018 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *  Copyright (C) 2018 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -109,6 +109,8 @@ bool btor_bv_is_false (const BtorBitVector *bv);
 bool btor_bv_is_zero (const BtorBitVector *bv);
 bool btor_bv_is_ones (const BtorBitVector *bv);
 bool btor_bv_is_one (const BtorBitVector *bv);
+bool btor_bv_is_min_signed (const BtorBitVector *bv);
+bool btor_bv_is_max_signed (const BtorBitVector *bv);
 
 /* return p for bv = 2^p, and -1 if bv is not a power of 2 */
 int64_t btor_bv_power_of_two (const BtorBitVector *bv);
@@ -129,6 +131,8 @@ uint32_t btor_bv_get_num_leading_ones (const BtorBitVector *bv);
 
 BtorBitVector *btor_bv_one (BtorMemMgr *mm, uint32_t bw);
 BtorBitVector *btor_bv_ones (BtorMemMgr *mm, uint32_t bw);
+BtorBitVector *btor_bv_min_signed (BtorMemMgr *mm, uint32_t bw);
+BtorBitVector *btor_bv_max_signed (BtorMemMgr *mm, uint32_t bw);
 
 BtorBitVector *btor_bv_neg (BtorMemMgr *mm, const BtorBitVector *bv);
 BtorBitVector *btor_bv_not (BtorMemMgr *mm, const BtorBitVector *bv);

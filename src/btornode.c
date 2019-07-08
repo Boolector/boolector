@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -121,6 +121,29 @@ set_kind (Btor *btor, BtorNode *exp, BtorNodeKind kind)
 /*------------------------------------------------------------------------*/
 
 bool
+btor_node_is_bv_const_zero (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  bool result;
+  BtorNode *real_exp;
+  BtorBitVector *bits;
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_node_is_bv_const (exp)) return false;
+
+  real_exp = btor_node_real_addr (exp);
+  bits     = btor_node_bv_const_get_bits (real_exp);
+  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
+  result = btor_bv_is_zero (bits);
+  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
+
+  return result;
+}
+
+bool
 btor_node_is_bv_const_one (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -137,7 +160,76 @@ btor_node_is_bv_const_one (Btor *btor, BtorNode *exp)
   real_exp = btor_node_real_addr (exp);
   bits     = btor_node_bv_const_get_bits (real_exp);
   if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
-  result = btor_bv_is_special_const (bits) == BTOR_SPECIAL_CONST_BV_ONE;
+  result = btor_bv_is_one (bits);
+  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
+
+  return result;
+}
+
+bool
+btor_node_is_bv_const_ones (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  bool result;
+  BtorNode *real_exp;
+  BtorBitVector *bits;
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_node_is_bv_const (exp)) return false;
+
+  real_exp = btor_node_real_addr (exp);
+  bits     = btor_node_bv_const_get_bits (real_exp);
+  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
+  result = btor_bv_is_ones (bits);
+  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
+
+  return result;
+}
+
+bool
+btor_node_is_bv_const_min_signed (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  bool result;
+  BtorNode *real_exp;
+  BtorBitVector *bits;
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_node_is_bv_const (exp)) return false;
+
+  real_exp = btor_node_real_addr (exp);
+  bits     = btor_node_bv_const_get_bits (real_exp);
+  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
+  result = btor_bv_is_min_signed (bits);
+  if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
+
+  return result;
+}
+
+bool
+btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  bool result;
+  BtorNode *real_exp;
+  BtorBitVector *bits;
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_node_is_bv_const (exp)) return false;
+
+  real_exp = btor_node_real_addr (exp);
+  bits     = btor_node_bv_const_get_bits (real_exp);
+  if (btor_node_is_inverted (exp)) bits = btor_bv_not (btor->mm, bits);
+  result = btor_bv_is_max_signed (bits);
   if (btor_node_is_inverted (exp)) btor_bv_free (btor->mm, bits);
 
   return result;

@@ -23,7 +23,7 @@ static BtorRNG *g_rng;
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#define TEST_PROP_INV_COMPLETE_BW 8
+#define TEST_PROP_INV_COMPLETE_BW 4
 #define TEST_PROP_INV_COMPLETE_N_TESTS 10000
 
 #define TEST_PROP_INV_COMPLETE_BINARY_INIT(expfun) \

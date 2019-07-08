@@ -7,19 +7,13 @@ BTOR2TOOLS_DIR=${DEPS_DIR}/btor2tools
 # Download and build btor2tools
 git clone --depth 1 https://github.com/Boolector/btor2tools.git ${BTOR2TOOLS_DIR}
 cd ${BTOR2TOOLS_DIR}
-case "$(uname -s)" in
-   CYGWIN*|MINGW32*|MSYS*)
-     revision=8c150b3
-     echo ""
-     echo " *** WARNING: Building btor2tools on Windows relies on a specific"
-     echo " ***          revision (${revision})."
-     echo " ***          This version of Boolector may be built against an"
-     echo " ***          older version of btor2tools."
-     echo ""
-     git reset --hard "${revision}"
-     patch -p1 < ../../contrib/windows_patches/btor2tools_"${revision}".patch
-     ;;
-esac
+
+if is_windows; then
+  component="Btor2Tools"
+  last_patch_date="20190110"
+  test_apply_patch "${component}" "${last_patch_date}"
+fi
+
 ./configure.sh -fPIC
 make -j${NPROC}
 install_lib build/libbtor2parser.a

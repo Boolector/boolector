@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -652,6 +652,61 @@ BoolectorNode *boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 /*------------------------------------------------------------------------*/
 
 /*!
+  Determine if given node is a bit-vector constant representing zero.
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is a bit-vector constant representing zero, and
+           false otherwise.
+*/
+bool boolector_is_bv_const_zero (Btor *btor, BoolectorNode *node);
+
+/*!
+  Determine if given node is a bit-vector constant representing one.
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is a bit-vector constant representing one, and
+           false otherwise.
+*/
+bool boolector_is_bv_const_one (Btor *btor, BoolectorNode *node);
+
+/*!
+  Determine if given node is a bit-vector constant representing the maximum
+  unsigned value (all ones)..
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is a bit-vector constant with all ones, and false
+           otherwise.
+*/
+bool boolector_is_bv_const_ones (Btor *btor, BoolectorNode *node);
+
+/*!
+  Determine if given node is a bit-vector constant representing the maximum
+  signed value (01...1).
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is a bit-vector constant representing the maximum
+           signed value, and false otherwise.
+*/
+bool boolector_is_bv_const_max_signed (Btor *btor, BoolectorNode *node);
+
+/*!
+  Determine if given node is a bit-vector constant representing the minimum
+  signed value (10...0).
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: True if ``node`` is a bit-vector constant representing the minimum
+           signed value, and false otherwise.
+*/
+bool boolector_is_bv_const_min_signed (Btor *btor, BoolectorNode *node);
+
+/*------------------------------------------------------------------------*/
+
+/*!
   Create bit-vector constant representing the bit-vector ``bits``.
 
   :param btor: Boolector instance.
@@ -713,6 +768,26 @@ BoolectorNode *boolector_ones (Btor *btor, BoolectorSort sort);
   :return: Bit-vector constant one of sort ``sort``.
 */
 BoolectorNode *boolector_one (Btor *btor, BoolectorSort sort);
+
+/*!
+  Create bit-vector minimum signed value constant of sort ``sort``.
+
+  :param btor: Boolector instance.
+  :param sort: Sort of constant.
+  :return: Bit-vector constant representing the minimum signed value
+           of sort ``sort``.
+*/
+BoolectorNode *boolector_min_signed (Btor *btor, BoolectorSort sort);
+
+/*!
+  Create bit-vector maximum signed value constant of sort ``sort``.
+
+  :param btor: Boolector instance.
+  :param sort: Sort of constant.
+  :return: Bit-vector constant representing the minimum signed value
+           of sort ``sort``.
+*/
+BoolectorNode *boolector_max_signed (Btor *btor, BoolectorSort sort);
 
 /*!
   Create bit-vector constant representing the unsigned integer ``u`` of sort
@@ -2376,6 +2451,14 @@ const char *boolector_copyright (Btor *btor);
   :return: A string with Boolector's version.
 */
 const char *boolector_version (Btor *btor);
+
+/*!
+  Get Boolector's git id string.
+
+  :param btor: Boolector instance.
+  :return: A string with Boolector's git id.
+*/
+const char *boolector_git_id (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 #if __cplusplus

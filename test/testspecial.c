@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME "specialout.tmp"
-
 static char *g_btor_str = NULL;
 static FILE *g_fout     = NULL;
 static Btor *g_btor;
@@ -32,9 +30,11 @@ static BtorMemMgr *g_mm;
 void
 init_special_tests (void)
 {
+  size_t len;
   g_mm = btor_mem_mgr_new ();
-  BTOR_NEWN (g_mm, g_btor_str, strlen (btor_bin_dir) + 20);
-  sprintf (g_btor_str, "%sboolector", btor_bin_dir);
+  len = strlen (btor_bin_dir) + 20;
+  BTOR_NEWN (g_mm, g_btor_str, len);
+  snprintf (g_btor_str, len, "%sboolector", btor_bin_dir);
 }
 
 static void
@@ -45,17 +45,16 @@ run_test (char *name, int32_t expected)
   int32_t parse_res, parse_status;
   char *parse_err;
   size_t len;
+  char outfilename[] = "btortmp-XXXXXX";
 
   g_btor = boolector_new ();
   boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
-  len = strlen (btor_log_dir) + strlen (name) + 1;
+  len = strlen (btor_out_dir) + strlen (name) + 1;
   BTOR_NEWN (g_mm, full_name, len);
-  strcpy (full_name, btor_log_dir);
-  strcat (full_name, name);
+  snprintf (full_name, len, "%s%s", btor_out_dir, name);
   fin = fopen (full_name, "r");
   assert (fin != NULL);
-  g_fout = fopen (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME, "w");
-  assert (g_fout != NULL);
+  g_fout = mk_temp_file (outfilename, "w");
   parse_res = boolector_parse (
       g_btor, fin, full_name, g_fout, &parse_err, &parse_status);
   assert (parse_res != BOOLECTOR_PARSE_ERROR);
@@ -1289,7 +1288,7 @@ run_verbose_test (char *name, int32_t verbosity)
   int32_t res;
   size_t len, len_syscall_str;
 
-  len = strlen (btor_log_dir) + strlen (name) + 1;
+  len = strlen (btor_out_dir) + strlen (name) + 1;
   BTOR_NEWN (g_mm, full_name, len);
 
   redirect_str = "> /dev/null";
@@ -1297,8 +1296,7 @@ run_verbose_test (char *name, int32_t verbosity)
   v2_str       = "-v -v";
   v3_str       = "-v -v -v";
 
-  strcpy (full_name, btor_log_dir);
-  strcat (full_name, name);
+  snprintf (full_name, len, "%s%s", btor_out_dir, name);
 
   switch (verbosity)
   {
@@ -1313,8 +1311,13 @@ run_verbose_test (char *name, int32_t verbosity)
   len_syscall_str = strlen (g_btor_str) + 1 + strlen (full_name) + 1
                     + strlen (v_str) + 1 + strlen (redirect_str) + 1;
   BTOR_NEWN (g_mm, syscall_str, len_syscall_str);
-  sprintf (
-      syscall_str, "%s %s %s %s", g_btor_str, full_name, v_str, redirect_str);
+  snprintf (syscall_str,
+            len_syscall_str,
+            "%s %s %s %s",
+            g_btor_str,
+            full_name,
+            v_str,
+            redirect_str);
   /* we are not interested in the output,
    * we just want to run 'verbosity' code
    * A system call is used, as verbose messages
@@ -1553,7 +1556,7 @@ run_special_tests (int32_t argc, char **argv)
 void
 finish_special_tests (void)
 {
-  assert (!g_fout || remove (BTOR_TEST_SPECIAL_TEMP_OUTFILE_NAME) == 0);
+  assert (!g_fout);
   BTOR_DELETEN (g_mm, g_btor_str, strlen (btor_bin_dir) + 20);
   btor_mem_mgr_delete (g_mm);
 }

@@ -23,16 +23,10 @@
 #include <limits.h>
 #include <stdio.h>
 
-#define BTOR_TEST_SHIFT_TEMP_INFILE_NAME "shiftin.tmp"
-#define BTOR_TEST_SHIFT_TEMP_OUTFILE_NAME "shiftout.tmp"
-
 #define BTOR_TEST_SHIFT_LOW 2
 #define BTOR_TEST_SHIFT_HIGH 8
 
 static Btor *g_btor;
-static FILE *g_fin  = NULL;
-static FILE *g_fout = NULL;
-
 static BtorMemMgr *g_mm;
 
 void
@@ -77,6 +71,7 @@ shift_test (char *(*func) (int32_t, int32_t, int32_t),
   int32_t max      = 0;
   int32_t parse_res, parse_status;
   char *parse_err;
+  FILE *fin, *fout;
 
   btor_util_is_power_of_2 (low);
   btor_util_is_power_of_2 (high);
@@ -87,35 +82,32 @@ shift_test (char *(*func) (int32_t, int32_t, int32_t),
     {
       for (j = 0; j < num_bits; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         g_btor = boolector_new ();
         boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
         if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = func (i, j, num_bits);
-        g_fin  = fopen (BTOR_TEST_SHIFT_TEMP_INFILE_NAME, "w");
-        assert (g_fin != NULL);
-        fprintf (g_fin, "1 constd %d %d\n", num_bits, i);
-        fprintf (g_fin, "2 constd %d %d\n", btor_util_log_2 (num_bits), j);
-        fprintf (g_fin, "3 %s %d 1 2\n", func_name, num_bits);
-        fprintf (g_fin, "4 const %d %s\n", num_bits, result);
-        fprintf (g_fin, "5 eq 1 3 4\n");
-        fprintf (g_fin, "6 root 1 5\n");
-        fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_SHIFT_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_SHIFT_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (g_btor,
-                                          g_fin,
-                                          BTOR_TEST_SHIFT_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
+        fin    = mk_temp_file (infilename, "r+");
+        assert (fin != NULL);
+        fprintf (fin, "1 constd %d %d\n", num_bits, i);
+        fprintf (fin, "2 constd %d %d\n", btor_util_log_2 (num_bits), j);
+        fprintf (fin, "3 %s %d 1 2\n", func_name, num_bits);
+        fprintf (fin, "4 const %d %s\n", num_bits, result);
+        fprintf (fin, "5 eq 1 3 4\n");
+        fprintf (fin, "6 root 1 5\n");
+
+        rewind (fin);
+        fout      = mk_temp_file (outfilename, "w");
+        parse_res = boolector_parse_btor (
+            g_btor, fin, infilename, fout, &parse_err, &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         assert (boolector_sat (g_btor) == BOOLECTOR_SAT);
         btor_mem_freestr (g_mm, result);
-        fclose (g_fin);
-        fclose (g_fout);
+        fclose (fin);
+        fclose (fout);
         boolector_delete (g_btor);
       }
     }
@@ -260,13 +252,10 @@ void
 run_shift_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
-  run_all_tests (argc, argv);
 }
 
 void
 finish_shift_tests (void)
 {
-  assert (!g_fin || remove (BTOR_TEST_SHIFT_TEMP_INFILE_NAME) == 0);
-  assert (!g_fout || remove (BTOR_TEST_SHIFT_TEMP_OUTFILE_NAME) == 0);
   btor_mem_mgr_delete (g_mm);
 }

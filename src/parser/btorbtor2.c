@@ -323,7 +323,7 @@ parse_btor2_parser (BtorBTOR2Parser *parser,
         node = boolector_nand (btor, e[0], e[1]);
         break;
 
-      case BTOR2_TAG_ne:
+      case BTOR2_TAG_neq:
         assert (line->nargs == 2);
         node = boolector_ne (btor, e[0], e[1]);
         break;

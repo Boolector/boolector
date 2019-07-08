@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
- *  Copyright (C) 2016-2018 Aina Niemetz.
+ *  Copyright (C) 2016-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -237,6 +237,7 @@ class BtorIBV : public BitVector
   } state;
 
   Btor *btor;
+  BtorMemMgr *mm;
   BtorMC *btormc;
 
   bool gentrace;

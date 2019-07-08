@@ -548,10 +548,10 @@ lin3 -o lin3.log lin3.btor
 lin4 -o lin4.log lin4.btor
 twocomplementassub -o twocomplementassub.log twocomplementassub.btor
 regsubslapd149921red -o regsubslapd149921red.log regsubslapd149921red.btor
-inc -rwl 0 -o inc.log inc.btor
-inc -o inc.log inc.btor
-dec -rwl 0 -o dec.log dec.btor
-dec -o dec.log dec.btor
+inc_rwl0 -rwl 0 -o inc_rwl0.log inc.btor
+inc_rwl3 -o inc_rwl3.log inc.btor
+dec_rwl0 -rwl 0 -o dec_rwl0.log dec.btor
+dec_rwl3 -o dec_rwl3.log dec.btor
 regrembeddedconstraint1 -rwl 0 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
 regrembeddedconstraint1 -rwl 1 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
 regrembeddedconstraint1 -rwl 2 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
@@ -731,3 +731,5 @@ invalidmodel1 -o invalidmodel1.log invalidmodel1.smt2
 invalidmodel2 -xl=0 -ml=0 -rwl=2 -o invalidmodel2.log invalidmodel2.smt2
 invalidmodel3 -o invalidmodel3.log invalidmodel3.btor
 regr-distinct -o regr-distinct.log regr-distinct.smt2
+regsmtparselet -o regsmtparselet.log regsmtparselet.smt2
+smt2pushpop0 -o smt2pushpop0.log smt2pushpop0.smt2 -i

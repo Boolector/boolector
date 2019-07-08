@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -652,7 +652,7 @@ unary_bitvec (uint64_t (*int_func) (uint64_t, uint32_t),
   BtorBitVector *bv, *res;
   uint64_t a, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -731,7 +731,7 @@ mul (uint64_t x, uint64_t y, uint32_t bw)
 static uint64_t
 udiv (uint64_t x, uint64_t y, uint32_t bw)
 {
-  if (y == 0) return UINT32_MAX % (uint64_t) pow (2, bw);
+  if (y == 0) return UINT64_MAX % (uint64_t) pow (2, bw);
   return (x / y) % (uint64_t) pow (2, bw);
 }
 
@@ -751,18 +751,32 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
                uint32_t bit_width)
 {
   uint32_t i;
-  BtorBitVector *bv1, *bv2, *res;
+  BtorBitVector *bv1, *bv2, *zero, *res;
   uint64_t a1, a2, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
+  zero = btor_bv_new (g_mm, bit_width);
   for (i = 0; i < num_tests; i++)
   {
     bv1  = random_bv (bit_width);
     bv2  = random_bv (bit_width);
-    res  = bitvec_func (g_mm, bv1, bv2);
     a1   = btor_bv_to_uint64 (bv1);
     a2   = btor_bv_to_uint64 (bv2);
+    /* test for x = 0 explicitly */
+    res  = bitvec_func (g_mm, zero, bv2);
+    ares = int_func (0, a2, bit_width);
+    bres = btor_bv_to_uint64 (res);
+    assert (ares == bres);
+    btor_bv_free (g_mm, res);
+    /* test for y = 0 explicitly */
+    res  = bitvec_func (g_mm, bv1, zero);
+    ares = int_func (a1, 0, bit_width);
+    bres = btor_bv_to_uint64 (res);
+    assert (ares == bres);
+    btor_bv_free (g_mm, res);
+    /* test x, y random */
+    res  = bitvec_func (g_mm, bv1, bv2);
     ares = int_func (a1, a2, bit_width);
     bres = btor_bv_to_uint64 (res);
     assert (ares == bres);
@@ -770,6 +784,7 @@ binary_bitvec (uint64_t (*int_func) (uint64_t, uint64_t, uint32_t),
     btor_bv_free (g_mm, bv1);
     btor_bv_free (g_mm, bv2);
   }
+  btor_bv_free (g_mm, zero);
 }
 
 static void
@@ -806,6 +821,50 @@ test_ones_bitvec (void)
     BTOR_CNEWN (g_mm, s, i + 1);
     memset (s, '1', i);
     sbv = btor_bv_to_char (g_mm, bv);
+    assert (!strcmp (s, sbv));
+    btor_bv_free (g_mm, bv);
+    BTOR_DELETEN (g_mm, s, i + 1);
+    btor_mem_freestr (g_mm, sbv);
+  }
+}
+
+static void
+test_min_signed_bitvec (void)
+{
+  int32_t i;
+  char *s, *sbv;
+  BtorBitVector *bv;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv = btor_bv_min_signed (g_mm, i);
+    BTOR_CNEWN (g_mm, s, i + 1);
+    memset (s, '0', i);
+    s[0] = '1';
+    sbv  = btor_bv_to_char (g_mm, bv);
+    assert (btor_bv_is_min_signed (bv));
+    assert (!strcmp (s, sbv));
+    btor_bv_free (g_mm, bv);
+    BTOR_DELETEN (g_mm, s, i + 1);
+    btor_mem_freestr (g_mm, sbv);
+  }
+}
+
+static void
+test_max_signed_bitvec (void)
+{
+  int32_t i;
+  char *s, *sbv;
+  BtorBitVector *bv;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv = btor_bv_max_signed (g_mm, i);
+    BTOR_CNEWN (g_mm, s, i + 1);
+    memset (s, '1', i);
+    s[0] = '0';
+    sbv  = btor_bv_to_char (g_mm, bv);
+    assert (btor_bv_is_max_signed (bv));
     assert (!strcmp (s, sbv));
     btor_bv_free (g_mm, bv);
     BTOR_DELETEN (g_mm, s, i + 1);
@@ -960,7 +1019,7 @@ concat_bitvec (int32_t num_tests, uint32_t bit_width)
   BtorBitVector *bv1, *bv2, *res;
   uint64_t a1, a2, ares, bres;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -998,7 +1057,7 @@ slice_bitvec (uint32_t num_tests, uint32_t bit_width)
   char *sbv, *sres;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1044,7 +1103,7 @@ ext_bitvec (BtorBitVector *(*ext_func) (BtorMemMgr *,
   char *sbv, *sres;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1102,7 +1161,7 @@ flipped_bit_bitvec (uint32_t num_tests, uint32_t bit_width)
   uint32_t i, j, pos;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1136,7 +1195,7 @@ flipped_bit_range_bitvec (uint32_t num_tests, uint32_t bit_width)
   uint32_t i, j, up, lo;
   BtorBitVector *bv, *res;
 
-  printf (" %u", bit_width);
+  tprintf (" %u", bit_width);
   fflush (stdout);
   for (i = 0; i < num_tests; i++)
   {
@@ -1979,6 +2038,8 @@ run_bitvec_tests (int32_t argc, char **argv)
 
   BTOR_RUN_TEST (one_bitvec);
   BTOR_RUN_TEST (ones_bitvec);
+  BTOR_RUN_TEST (min_signed_bitvec);
+  BTOR_RUN_TEST (max_signed_bitvec);
 
   BTOR_RUN_TEST (not_bitvec);
   BTOR_RUN_TEST (neg_bitvec);

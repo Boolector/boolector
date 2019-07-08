@@ -696,6 +696,11 @@ cdef class Boolector:
             c_str = btorapi.boolector_version(self._c_btor)
             return _to_str(c_str)
 
+    def GitId(self):
+            cdef const char * c_str
+            c_str = btorapi.boolector_git_id(self._c_btor)
+            return _to_str(c_str)
+
     def Push(self, uint32_t levels = 1):
         """ Push(level)
 

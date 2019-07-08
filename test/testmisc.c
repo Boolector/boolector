@@ -25,14 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_TEST_MISC_TEMP_INFILE_NAME "miscin.tmp"
-#define BTOR_TEST_MISC_TEMP_OUTFILE_NAME "miscout.tmp"
-
 #define BTOR_TEST_MISC_LOW 1
 #define BTOR_TEST_MISC_HIGH 4
-
-static FILE *g_fin  = NULL;
-static FILE *g_fout = NULL;
 
 static BtorMemMgr *g_mm;
 
@@ -92,6 +86,7 @@ slice_test_misc (int32_t low, int32_t high, uint32_t rwl)
   char *result     = 0;
   int32_t num_bits = 0;
   const int32_t x  = 11;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -99,33 +94,32 @@ slice_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = i; j >= 0; j--)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         btor = boolector_new ();
         boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
         if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = slice (x, i, j, num_bits);
-        g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
-        assert (g_fin != NULL);
-        fprintf (g_fin, "1 constd %d %d\n", high, x);
-        fprintf (g_fin, "2 slice %d 1 %d %d\n", i - j + 1, i, j);
-        fprintf (g_fin, "3 const %d %s\n", i - j + 1, result);
-        fprintf (g_fin, "4 eq 1 2 3\n");
-        fprintf (g_fin, "5 root 1 4\n");
-        fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (btor,
-                                          g_fin,
-                                          BTOR_TEST_MISC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
+
+        fin = mk_temp_file (infilename, "r+");
+
+        fprintf (fin, "1 constd %d %d\n", high, x);
+        fprintf (fin, "2 slice %d 1 %d %d\n", i - j + 1, i, j);
+        fprintf (fin, "3 const %d %s\n", i - j + 1, result);
+        fprintf (fin, "4 eq 1 2 3\n");
+        fprintf (fin, "5 root 1 4\n");
+
+        rewind (fin);
+        fout      = mk_temp_file (outfilename, "w");
+        parse_res = boolector_parse_btor (
+            btor, fin, infilename, fout, &parse_err, &parse_status);
+
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         assert (boolector_sat (btor) == BOOLECTOR_SAT);
-        fclose (g_fin);
-        fclose (g_fout);
+        fclose (fin);
+        fclose (fout);
         btor_mem_freestr (g_mm, result);
         boolector_delete (btor);
       }
@@ -181,6 +175,7 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
   int32_t max      = 0;
   char *result     = 0;
   int32_t num_bits = 0;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -189,33 +184,30 @@ ext_test_misc (char *(*func) (int32_t, int32_t, int32_t),
     {
       for (j = 0; j < num_bits; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         btor = boolector_new ();
         boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
         if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = func (i, j, num_bits);
-        g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
-        assert (g_fin != NULL);
-        fprintf (g_fin, "1 constd %d %d\n", num_bits, i);
-        fprintf (g_fin, "2 %s %d 1 %d\n", func_name, num_bits + j, j);
-        fprintf (g_fin, "3 const %d %s\n", num_bits + j, result);
-        fprintf (g_fin, "4 eq 1 2 3\n");
-        fprintf (g_fin, "5 root 1 4\n");
-        fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (btor,
-                                          g_fin,
-                                          BTOR_TEST_MISC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
+        fin    = mk_temp_file (infilename, "r+");
+
+        fprintf (fin, "1 constd %d %d\n", num_bits, i);
+        fprintf (fin, "2 %s %d 1 %d\n", func_name, num_bits + j, j);
+        fprintf (fin, "3 const %d %s\n", num_bits + j, result);
+        fprintf (fin, "4 eq 1 2 3\n");
+        fprintf (fin, "5 root 1 4\n");
+
+        rewind (fin);
+        fout      = mk_temp_file (outfilename, "w");
+        parse_res = boolector_parse_btor (
+            btor, fin, infilename, fout, &parse_err, &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         assert (boolector_sat (btor) == BOOLECTOR_SAT);
-        fclose (g_fin);
-        fclose (g_fout);
+        fclose (fin);
+        fclose (fout);
         btor_mem_freestr (g_mm, result);
         boolector_delete (btor);
       }
@@ -260,6 +252,7 @@ concat_test_misc (int32_t low, int32_t high, uint32_t rwl)
   int32_t max      = 0;
   char *result     = 0;
   int32_t num_bits = 0;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -268,34 +261,31 @@ concat_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = 0; j < max; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         btor = boolector_new ();
         boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
         if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
         result = concat (i, j, num_bits);
-        g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
-        assert (g_fin != NULL);
-        fprintf (g_fin, "1 constd %d %d\n", num_bits, i);
-        fprintf (g_fin, "2 constd %d %d\n", num_bits, j);
-        fprintf (g_fin, "3 concat %d 1 2\n", num_bits << 1);
-        fprintf (g_fin, "4 const %d %s\n", num_bits << 1, result);
-        fprintf (g_fin, "5 eq 1 3 4\n");
-        fprintf (g_fin, "6 root 1 5\n");
-        fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (btor,
-                                          g_fin,
-                                          BTOR_TEST_MISC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
+        fin    = mk_temp_file (infilename, "r+");
+
+        fprintf (fin, "1 constd %d %d\n", num_bits, i);
+        fprintf (fin, "2 constd %d %d\n", num_bits, j);
+        fprintf (fin, "3 concat %d 1 2\n", num_bits << 1);
+        fprintf (fin, "4 const %d %s\n", num_bits << 1, result);
+        fprintf (fin, "5 eq 1 3 4\n");
+        fprintf (fin, "6 root 1 5\n");
+
+        rewind (fin);
+        fout      = mk_temp_file (outfilename, "w");
+        parse_res = boolector_parse_btor (
+            btor, fin, infilename, fout, &parse_err, &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         assert (boolector_sat (btor) == BOOLECTOR_SAT);
-        fclose (g_fin);
-        fclose (g_fout);
+        fclose (fin);
+        fclose (fout);
         btor_mem_freestr (g_mm, result);
         boolector_delete (btor);
       }
@@ -318,6 +308,7 @@ cond_test_misc (int32_t low, int32_t high, uint32_t rwl)
   int32_t max      = 0;
   int32_t result   = 0;
   int32_t num_bits = 0;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -328,35 +319,32 @@ cond_test_misc (int32_t low, int32_t high, uint32_t rwl)
       {
         for (k = 0; k <= 1; k++)
         {
+          char infilename[]  = "btortmp-XXXXXX";
+          char outfilename[] = "btortmp-XXXXXX";
+
           btor = boolector_new ();
           boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
           if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
           result = k ? i : j;
-          g_fin  = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
-          assert (g_fin != NULL);
-          fprintf (g_fin, "1 constd %d %d\n", num_bits, i);
-          fprintf (g_fin, "2 constd %d %d\n", num_bits, j);
-          fprintf (g_fin, "3 const 1 %d\n", k);
-          fprintf (g_fin, "4 cond %d 3 1 2\n", num_bits);
-          fprintf (g_fin, "5 constd %d %d\n", num_bits, result);
-          fprintf (g_fin, "6 eq 1 4 5\n");
-          fprintf (g_fin, "7 root 1 6\n");
-          fclose (g_fin);
-          g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "r");
-          assert (g_fin != NULL);
-          g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
-          assert (g_fout != NULL);
-          parse_res = boolector_parse_btor (btor,
-                                            g_fin,
-                                            BTOR_TEST_MISC_TEMP_INFILE_NAME,
-                                            g_fout,
-                                            &parse_err,
-                                            &parse_status);
+          fin    = mk_temp_file (infilename, "r+");
+
+          fprintf (fin, "1 constd %d %d\n", num_bits, i);
+          fprintf (fin, "2 constd %d %d\n", num_bits, j);
+          fprintf (fin, "3 const 1 %d\n", k);
+          fprintf (fin, "4 cond %d 3 1 2\n", num_bits);
+          fprintf (fin, "5 constd %d %d\n", num_bits, result);
+          fprintf (fin, "6 eq 1 4 5\n");
+          fprintf (fin, "7 root 1 6\n");
+
+          rewind (fin);
+          fout      = mk_temp_file (outfilename, "w");
+          parse_res = boolector_parse_btor (
+              btor, fin, infilename, fout, &parse_err, &parse_status);
           assert (parse_res != BOOLECTOR_PARSE_ERROR);
           assert (boolector_sat (btor) == BOOLECTOR_SAT);
-          fclose (g_fin);
-          fclose (g_fout);
+          fclose (fin);
+          fclose (fout);
           boolector_delete (btor);
         }
       }
@@ -377,6 +365,7 @@ read_test_misc (int32_t low, int32_t high, uint32_t rwl)
   int32_t j        = 0;
   int32_t max      = 0;
   int32_t num_bits = 0;
+  FILE *fin, *fout;
 
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -385,38 +374,35 @@ read_test_misc (int32_t low, int32_t high, uint32_t rwl)
     {
       for (j = 0; j < max; j++)
       {
+        char infilename[]  = "btortmp-XXXXXX";
+        char outfilename[] = "btortmp-XXXXXX";
+
         btor = boolector_new ();
         boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
         if (g_rwreads) boolector_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 
-        g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "w");
-        assert (g_fin != NULL);
-        fprintf (g_fin, "1 array %d 1\n", num_bits);
-        fprintf (g_fin, "2 const 1 0\n");
-        fprintf (g_fin, "3 const 1 1\n");
-        fprintf (g_fin, "4 constd %d %d\n", num_bits, i);
-        fprintf (g_fin, "5 constd %d %d\n", num_bits, j);
-        fprintf (g_fin, "6 read %d 1 2\n", num_bits);
-        fprintf (g_fin, "7 read %d 1 3\n", num_bits);
-        fprintf (g_fin, "8 eq 1 4 6\n");
-        fprintf (g_fin, "9 eq 1 5 7\n");
-        fprintf (g_fin, "10 and 1 8 9\n");
-        fprintf (g_fin, "11 root 1 10\n");
-        fclose (g_fin);
-        g_fin = fopen (BTOR_TEST_MISC_TEMP_INFILE_NAME, "r");
-        assert (g_fin != NULL);
-        g_fout = fopen (BTOR_TEST_MISC_TEMP_OUTFILE_NAME, "w");
-        assert (g_fout != NULL);
-        parse_res = boolector_parse_btor (btor,
-                                          g_fin,
-                                          BTOR_TEST_MISC_TEMP_INFILE_NAME,
-                                          g_fout,
-                                          &parse_err,
-                                          &parse_status);
+        fin = mk_temp_file (infilename, "r+");
+
+        fprintf (fin, "1 array %d 1\n", num_bits);
+        fprintf (fin, "2 const 1 0\n");
+        fprintf (fin, "3 const 1 1\n");
+        fprintf (fin, "4 constd %d %d\n", num_bits, i);
+        fprintf (fin, "5 constd %d %d\n", num_bits, j);
+        fprintf (fin, "6 read %d 1 2\n", num_bits);
+        fprintf (fin, "7 read %d 1 3\n", num_bits);
+        fprintf (fin, "8 eq 1 4 6\n");
+        fprintf (fin, "9 eq 1 5 7\n");
+        fprintf (fin, "10 and 1 8 9\n");
+        fprintf (fin, "11 root 1 10\n");
+
+        rewind (fin);
+        fout      = mk_temp_file (outfilename, "w");
+        parse_res = boolector_parse_btor (
+            btor, fin, infilename, fout, &parse_err, &parse_status);
         assert (parse_res != BOOLECTOR_PARSE_ERROR);
         assert (boolector_sat (btor) == BOOLECTOR_SAT);
-        fclose (g_fin);
-        fclose (g_fout);
+        fclose (fin);
+        fclose (fout);
         boolector_delete (btor);
       }
     }
@@ -480,13 +466,10 @@ void
 run_misc_tests (int32_t argc, char **argv)
 {
   run_all_tests (argc, argv);
-  run_all_tests (argc, argv);
 }
 
 void
 finish_misc_tests (void)
 {
-  assert (!g_fin || remove (BTOR_TEST_MISC_TEMP_INFILE_NAME) == 0);
-  assert (!g_fout || remove (BTOR_TEST_MISC_TEMP_OUTFILE_NAME) == 0);
   btor_mem_mgr_delete (g_mm);
 }

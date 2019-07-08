@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2016 Armin Biere.
  *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -494,7 +494,8 @@ boolector_push (Btor *btor, uint32_t level)
   BTOR_TRAPI ("%u", level);
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
               "incremental usage has not been enabled");
-  BTOR_ABORT (level < 1, "context level must be greater than 0");
+
+  if (level == 0) return;
 
   uint32_t i;
   for (i = 0; i < level; i++)
@@ -510,7 +511,6 @@ boolector_pop (Btor *btor, uint32_t level)
 {
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI ("%u", level);
-  BTOR_ABORT (level < 1, "context level must be greater than 0");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_INCREMENTAL),
               "incremental usage has not been enabled");
   BTOR_ABORT (level > BTOR_COUNT_STACK (btor->assertions_trail),
@@ -518,10 +518,14 @@ boolector_pop (Btor *btor, uint32_t level)
               level,
               BTOR_COUNT_STACK (btor->assertions_trail));
 
-  uint32_t i, pos = 0;
-  for (i = 0; i < level; i++) pos = BTOR_POP_STACK (btor->assertions_trail);
+  if (level == 0) return;
 
+  uint32_t i, pos;
   BtorNode *cur;
+
+  for (i = 0, pos = 0; i < level; i++)
+    pos = BTOR_POP_STACK (btor->assertions_trail);
+
   while (BTOR_COUNT_STACK (btor->assertions) > pos)
   {
     cur = BTOR_POP_STACK (btor->assertions);
@@ -1234,7 +1238,7 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IS_NOT_BV (e1);
   BTOR_ABORT (btor_node_bv_get_width (btor, e0) != 1
                   || btor_node_bv_get_width (btor, e1) != 1,
-              "bit-width of 'e0' and 'e1' have be 1");
+              "bit-width of 'e0' and 'e1' must be 1");
   res = btor_exp_implies (btor, e0, e1);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1429,6 +1433,105 @@ boolector_consth (Btor *btor, BoolectorSort sort, const char *str)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+/*------------------------------------------------------------------------*/
+
+bool
+boolector_is_bv_const_zero (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_zero (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_zero, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_one (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_one (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_one, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_ones (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_ones (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_ones, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_max_signed (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_max_signed (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_max_signed, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+bool
+boolector_is_bv_const_min_signed (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp;
+  bool res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  res = btor_node_is_bv_const_min_signed (btor, exp);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, is_bv_const_min_signed, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 BoolectorNode *
 boolector_zero (Btor *btor, BoolectorSort sort)
 {
@@ -1488,6 +1591,46 @@ boolector_one (Btor *btor, BoolectorSort sort)
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, one, sort);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_min_signed (Btor *btor, BoolectorSort sort)
+{
+  BtorNode *res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bv (btor, s), "'sort' is not a bit vector sort");
+  res = btor_exp_bv_min_signed (btor, s);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, min_signed, sort);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_max_signed (Btor *btor, BoolectorSort sort)
+{
+  BtorNode *res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_bv (btor, s), "'sort' is not a bit vector sort");
+  res = btor_exp_bv_max_signed (btor, s);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, max_signed, sort);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -4193,8 +4336,6 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
-  BTOR_ABORT (btor->quantifiers->count,
-              "models are currently not supported with quantifiers");
   btor_print_model (btor, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_model, format, file);
@@ -4734,4 +4875,12 @@ boolector_version (Btor *btor)
   /* do not trace, not necessary */
   BTOR_ABORT_ARG_NULL (btor);
   return btor_version (btor);
+}
+
+const char *
+boolector_git_id (Btor *btor)
+{
+  /* do not trace, not necessary */
+  BTOR_ABORT_ARG_NULL (btor);
+  return btor_git_id (btor);
 }

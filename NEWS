@@ -13,6 +13,13 @@
 + patches and documentation for building Boolector on Windows
 + new API calls
   - boolector_copy_sort
+  - boolector_min_signed
+  - boolector_max_signed
+  - boolector_is_bv_const_zero
+  - boolector_is_bv_const_one
+  - boolector_is_bv_const_ones
+  - boolector_is_bv_const_min_signed
+  - boolector_is_bv_const_max_signed
 
 news for release 3.0.0 since 2.4.1
 --------------------------------------------------------------------------------

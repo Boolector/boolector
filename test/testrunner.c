@@ -29,6 +29,7 @@
 
 const char *btor_bin_dir     = BTOR_BIN_DIR;
 const char *btor_log_dir     = BTOR_LOG_DIR;
+const char *btor_out_dir     = BTOR_OUT_DIR;
 const char *btor_contrib_dir = BTOR_CONTRIB_DIR;
 const char *btor_test_dir    = BTOR_TEST_DIR;
 
@@ -43,6 +44,8 @@ static int32_t g_num_tests;
 static int32_t g_num_skipped_tests;
 static int32_t g_compared;
 static int32_t g_compared_succ;
+static bool g_match_exact = false;
+static bool g_quiet       = false;
 
 static BtorMemMgr *g_mm = NULL;
 
@@ -63,31 +66,10 @@ static struct
  */
 
 static const char *slowtests[] = {
-    "smtaxiombvsmod7",
-    "smtaxiombvsmod8",
-    "smtaxiombvsdiv7",
-    "smtaxiombvsdiv8",
-    "smtaxiombvsrem7",
-    "smtaxiombvsrem8",
-    "factor4294967295_special",
     "inc_count8nondet",
     "binarysearch32s016",
     "fifo32ia04k05",
-    "mulassoc6",
-    "hd10",
-    "hd14",
     "problem_130",
-    "propinv_complete_add_bv",
-    "propinv_complete_and_bv",
-    "propinv_complete_eq_bv",
-    "propinv_complete_ult_bv",
-    "propinv_complete_sll_bv",
-    "propinv_complete_srl_bv",
-    "propinv_complete_mul_bv",
-    "propinv_complete_udiv_bv",
-    "propinv_complete_urem_bv",
-    "propinv_complete_concat_bv",
-    "propinv_complete_slice_bv",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -97,34 +79,6 @@ static const char *slowtests[] = {
  * take less than a second.
  */
 static const char *normaltests[] = {
-    "sll_shift",
-    "srl_shift",
-    "sra_shift",
-    "rol_shift",
-    "ror_shift",
-    "sll_shift",
-    "srl_shift",
-    "sra_shift",
-    "rol_shift",
-    "ror_shift",
-    "smtaxiombvsmod5",
-    "smtaxiombvsmod6",
-    "smtaxiombvsdiv5",
-    "smtaxiombvsdiv6",
-    "smtaxiombvsrem5",
-    "smtaxiombvsrem6",
-    "udiv8castdown6",
-    "udiv8castdown7",
-    "udiv16castdown8",
-    "mulassoc6",
-    "inc_lt8",
-    "hd4",
-    "hd9",
-    "hd11",
-    "headline1",
-    "headline6",
-    "headline7",
-    "headline8",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -165,7 +119,37 @@ static const char *brokentests[] = {
 };
 
 void
-init_tests (BtorTestCaseSpeed speed, bool skip_broken)
+tprintf (const char *format, ...)
+{
+  if (g_quiet) return;
+  va_list args;
+  va_start (args, format);
+  vprintf (format, args);
+  va_end (args);
+}
+
+FILE *
+mk_temp_file (char *filename, const char *mode)
+{
+  int32_t fd;
+  FILE *f;
+
+  if ((fd = mkstemp (filename)) == -1)
+  {
+    fprintf (stderr, "Failed to create temporary file '%s'\n", filename);
+    abort ();
+  }
+  unlink (filename);
+  f = fdopen (fd, mode);
+  assert (f);
+  return f;
+}
+
+void
+init_tests (BtorTestCaseSpeed speed,
+            bool skip_broken,
+            bool match_exact,
+            bool quiet)
 {
   g_skip_broken       = skip_broken;
   g_speed             = speed;
@@ -173,6 +157,8 @@ init_tests (BtorTestCaseSpeed speed, bool skip_broken)
   g_num_skipped_tests = 0;
   g_compared          = 0;
   g_compared_succ     = 0;
+  g_match_exact       = match_exact;
+  g_quiet             = quiet;
 
   if (isatty (1)) /* check for non bash terminals as well */
   {
@@ -195,6 +181,7 @@ init_tests (BtorTestCaseSpeed speed, bool skip_broken)
 static void
 nl (void)
 {
+  if (g_quiet) return;
   fputs (terminal.nl, stdout);
   fflush (stdout);
 }
@@ -203,7 +190,7 @@ void
 print_test_suite_name (const char *name)
 {
   assert (name != NULL);
-  printf ("Registered %s tests\n", name);
+  tprintf ("Registered %s tests\n", name);
 }
 
 static int32_t
@@ -289,17 +276,18 @@ check_log (char *logfile_name, char *outfile_name)
   }
   else
   {
-    printf ("  %s[ %sFAILED %s]%s\n",
-            terminal.blue,
-            terminal.red,
-            terminal.blue,
-            terminal.std);
+    tprintf ("  %s[ %sFAILED %s]%s\n",
+             terminal.blue,
+             terminal.red,
+             terminal.blue,
+             terminal.std);
   }
 }
 
 static bool
 match (const char *str, const char *pattern)
 {
+  if (g_match_exact) return strcmp (str, pattern) == 0;
   return strstr (str, pattern) != NULL;
 }
 
@@ -499,7 +487,8 @@ run_test_case (int32_t argc,
                bool check_log_file)
 {
   bool skip;
-  int32_t i, count, len, len_log;
+  int32_t i, count;
+  size_t len_log, len_out;
   char *logfile_name, *outfile_name;
   const char **p;
 
@@ -539,25 +528,24 @@ run_test_case (int32_t argc,
   if (skip)
   {
     g_num_skipped_tests++;
-    printf (" Skipping %s ", name);
+    tprintf (" Skipping %s ", name);
   }
   else
   {
-    printf (" Running %s ", name);
+    tprintf (" Running %s ", name);
 
     fflush (stdout);
     fflush (stdout); /* for assertion failures */
 
     if (check_log_file)
     {
-      len = 0;
       /* "log/" + name + ".log" or ".out" + \0 */
-      len     = 4 + strlen (name) + 4 + 1;
-      len_log = len + 4 + strlen (btor_log_dir);
+      len_log = strlen (btor_log_dir) + strlen (name) + strlen (".log") + 1;
+      len_out = strlen (btor_out_dir) + strlen (name) + strlen (".out") + 1;
       BTOR_NEWN (g_mm, logfile_name, len_log);
-      BTOR_NEWN (g_mm, outfile_name, len_log);
-      sprintf (logfile_name, "%s%s.log", btor_log_dir, name);
-      sprintf (outfile_name, "%s%s.out", btor_log_dir, name);
+      BTOR_NEWN (g_mm, outfile_name, len_out);
+      snprintf (logfile_name, len_log, "%s%s.log", btor_log_dir, name);
+      snprintf (outfile_name, len_out, "%s%s.out", btor_out_dir, name);
 
       g_logfile = fopen (logfile_name, "w");
       assert (g_logfile);
@@ -570,7 +558,7 @@ run_test_case (int32_t argc,
       fclose (g_logfile);
       check_log (logfile_name, outfile_name);
       BTOR_DELETEN (g_mm, logfile_name, len_log);
-      BTOR_DELETEN (g_mm, outfile_name, len_log);
+      BTOR_DELETEN (g_mm, outfile_name, len_out);
     }
   }
 
@@ -580,28 +568,30 @@ run_test_case (int32_t argc,
   nl ();
 }
 
-void
+int32_t
 finish_tests (void)
 {
   nl ();
 
-  printf ("%sFinished %d tests:\n%s",
-          (g_compared == g_compared_succ) ? terminal.green : terminal.red,
-          g_num_tests,
-          terminal.std);
+  tprintf ("%sFinished %d tests:\n%s",
+           (g_compared == g_compared_succ) ? terminal.green : terminal.red,
+           g_num_tests,
+           terminal.std);
   if (g_num_skipped_tests > 0)
-    printf ("  %sNumber of tests skipped: %d%s\n",
-            terminal.blue,
-            g_num_skipped_tests,
-            terminal.std);
-  printf ("  %sNumber of tests succeeded: %d%s\n",
-          terminal.green,
-          g_num_tests - g_num_skipped_tests,
-          terminal.std);
+    tprintf ("  %sNumber of tests skipped: %d%s\n",
+             terminal.blue,
+             g_num_skipped_tests,
+             terminal.std);
+  tprintf ("  %sNumber of tests succeeded: %d%s\n",
+           terminal.green,
+           g_num_tests - g_num_skipped_tests,
+           terminal.std);
 
-  printf ("  %sNumber of files successfully compared: %d/%d%s\n",
-          (g_compared == g_compared_succ) ? terminal.green : terminal.red,
-          g_compared_succ,
-          g_compared,
-          terminal.std);
+  tprintf ("  %sNumber of files successfully compared: %d/%d%s\n",
+           (g_compared == g_compared_succ) ? terminal.green : terminal.red,
+           g_compared_succ,
+           g_compared,
+           terminal.std);
+
+  return g_compared != g_compared_succ;
 }
