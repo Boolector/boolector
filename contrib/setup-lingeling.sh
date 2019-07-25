@@ -4,6 +4,8 @@ source "$(dirname "$0")/setup-utils.sh"
 
 LINGELING_DIR=${DEPS_DIR}/lingeling
 
+rm -rf ${LINGELING_DIR}
+
 # Download and build Lingeling
 git clone --depth 1 https://github.com/arminbiere/lingeling.git ${LINGELING_DIR}
 cd ${LINGELING_DIR}

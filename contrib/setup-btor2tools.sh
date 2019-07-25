@@ -4,6 +4,8 @@ source "$(dirname "$0")/setup-utils.sh"
 
 BTOR2TOOLS_DIR=${DEPS_DIR}/btor2tools
 
+rm -rf ${BTOR2TOOLS_DIR}
+
 # Download and build btor2tools
 git clone --depth 1 https://github.com/Boolector/btor2tools.git ${BTOR2TOOLS_DIR}
 cd ${BTOR2TOOLS_DIR}
