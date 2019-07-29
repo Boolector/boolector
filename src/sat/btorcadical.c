@@ -40,7 +40,13 @@ sat (BtorSATMgr *smgr, int32_t limit)
 static int32_t
 deref (BtorSATMgr *smgr, int32_t lit)
 {
-  return ccadical_deref (smgr->solver, lit);
+  int32_t val;
+  val = ccadical_deref (smgr->solver, lit);
+  if (val > 0)
+    return 1;
+  if (val < 0)
+    return -1;
+  return 0;
 }
 
 static void
