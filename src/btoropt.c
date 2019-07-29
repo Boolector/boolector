@@ -22,6 +22,17 @@
 
 /*------------------------------------------------------------------------*/
 
+const char *const g_btor_se_name[BTOR_SAT_ENGINE_MAX] = {
+    [BTOR_SAT_ENGINE_MIN]       = "invalid",
+    [BTOR_SAT_ENGINE_LINGELING] = "Lingeling",
+    [BTOR_SAT_ENGINE_PICOSAT]   = "PicoSAT",
+    [BTOR_SAT_ENGINE_MINISAT]   = "MiniSat",
+    [BTOR_SAT_ENGINE_CADICAL]   = "CaDiCaL",
+    [BTOR_SAT_ENGINE_CMS]       = "CryptoMiniSat",
+};
+
+/*------------------------------------------------------------------------*/
+
 static void
 init_opt (Btor *btor,
           BtorOption opt,
@@ -89,6 +100,16 @@ add_opt_help (
   btor_hashptr_table_add (opts, key)->data.as_ptr = hdata;
 }
 
+static int
+strcmpoptval (const char *a, const char *b)
+{
+  size_t len_a = strlen (a);
+  size_t len_b = strlen (b);
+  if (len_a < len_b) return -1;
+  if (len_a > len_b) return 1;
+  return strncmp (a, b, len_a);
+}
+
 void
 btor_opt_init_opts (Btor *btor)
 {
@@ -100,7 +121,7 @@ btor_opt_init_opts (Btor *btor)
   mm = btor->mm;
   BTOR_CNEWN (mm, btor->options, BTOR_OPT_NUM_OPTS);
   btor->str2opt = btor_hashptr_table_new (
-      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
 
   init_opt (btor,
             BTOR_OPT_MODEL_GEN,
@@ -133,7 +154,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_INCREMENTAL_SMT1_MAX,
             "incremental mode for SMT1");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "basic",
@@ -157,7 +178,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_INPUT_FORMAT_MAX - 1,
             "input file format");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (
       mm, opts, "none", BTOR_INPUT_FORMAT_NONE, "auto-detect input format");
   add_opt_help (
@@ -187,7 +208,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_OUTPUT_BASE_MAX - 1,
             "output number format");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "bin",
@@ -216,7 +237,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_OUTPUT_FORMAT_MAX - 1,
             "output file format");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "btor",
@@ -255,7 +276,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_ENGINE_MAX - 1,
             "enable specific engine");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "aigprop",
@@ -296,7 +317,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_SAT_ENGINE_MAX - 1,
             "enable specific SAT solver");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "cadical",
@@ -427,7 +448,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_BETA_REDUCE_MAX,
             "eagerly eliminate lambda expressions");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm, opts, "none", BTOR_BETA_REDUCE_NONE, "do not beta-reduce");
   add_opt_help (
       mm, opts, "fun", BTOR_BETA_REDUCE_FUN, "only beta-reduce functions");
@@ -554,7 +575,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_DP_QSORT_MAX - 1,
             "order in which to assume inputs in dual solver");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "just",
@@ -588,7 +609,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_JUST_HEUR_MAX - 1,
             "justification heuristic");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "left",
@@ -630,7 +651,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_FUN_EAGER_LEMMAS_MAX - 1,
             "eager lemma generation");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "none",
@@ -683,7 +704,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_SLS_STRAT_MAX - 1,
             "move strategy for sls");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "best",
@@ -917,7 +938,7 @@ btor_opt_init_opts (Btor *btor)
             BTOR_PROP_PATH_SEL_MAX - 1,
             "path selection mode");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "controlling",
@@ -1149,7 +1170,7 @@ btor_opt_init_opts (Btor *btor)
             //"3=1+2 combined,"
             //"4=enumlearn modulo formula");
   opts = btor_hashptr_table_new (
-      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
                 opts,
                 "none",
@@ -1623,66 +1644,31 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
   }
   else if (opt == BTOR_OPT_SAT_ENGINE)
   {
+    if (false
 #ifndef BTOR_USE_LINGELING
-    if (val == BTOR_SAT_ENGINE_LINGELING)
-    {
-      val = oldval;
-      BTOR_MSG (btor->msg,
-                1,
-                "SAT solver Lingeling not compiled in, using %s",
-                oldval == BTOR_SAT_ENGINE_CADICAL
-                    ? "Cadical"
-                    : (oldval == BTOR_SAT_ENGINE_CMS
-                           ? "CryptoMiniSat"
-                           : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat"
-                                                                : "PicoSAT")));
-    }
+        || val == BTOR_SAT_ENGINE_LINGELING
 #endif
 #ifndef BTOR_USE_CADICAL
-    if (val == BTOR_SAT_ENGINE_CADICAL)
-    {
-      val = oldval;
-      BTOR_MSG (btor->msg,
-                1,
-                "SAT solver Cadical not compiled in, using %s",
-                oldval == BTOR_SAT_ENGINE_LINGELING
-                    ? "Lingeling"
-                    : (oldval == BTOR_SAT_ENGINE_CMS
-                           ? "CryptoMiniSat"
-                           : (oldval == BTOR_SAT_ENGINE_MINISAT ? "MiniSat"
-                                                                : "PicoSAT")));
-    }
+        || val == BTOR_SAT_ENGINE_CADICAL
 #endif
 #ifndef BTOR_USE_MINISAT
-    if (val == BTOR_SAT_ENGINE_MINISAT)
-    {
-      val = oldval;
-      BTOR_MSG (btor->msg,
-                1,
-                "SAT solver Minisat not compiled in, using %s",
-                oldval == BTOR_SAT_ENGINE_CADICAL
-                    ? "Cadical"
-                    : (oldval == BTOR_SAT_ENGINE_CMS
-                           ? "CryptoMiniSat"
-                           : (oldval == BTOR_SAT_ENGINE_MINISAT ? "Lingeling"
-                                                                : "PicoSAT")));
-    }
+        || val == BTOR_SAT_ENGINE_MINISAT
 #endif
 #ifndef BTOR_USE_PICOSAT
-    if (val == BTOR_SAT_ENGINE_PICOSAT)
+        || val == BTOR_SAT_ENGINE_PICOSAT
+#endif
+#ifndef BTOR_USE_CMS
+        || val == BTOR_SAT_ENGINE_CMS
+#endif
+    )
     {
       val = oldval;
       BTOR_MSG (btor->msg,
                 1,
-                "SAT solver PicoSAT not compiled in, using %s",
-                oldval == BTOR_SAT_ENGINE_CADICAL
-                    ? "Cadical"
-                    : (oldval == BTOR_SAT_ENGINE_CMS
-                           ? "CryptoMiniSat"
-                           : (oldval == BTOR_SAT_ENGINE_MINISAT ? "Lingeling"
-                                                                : "MiniSat")));
+                "SAT solver %s not compiled in, using %s",
+                g_btor_se_name[val],
+                g_btor_se_name[oldval]);
     }
-#endif
   }
 #ifndef BTOR_USE_LINGELING
   else if (opt == BTOR_OPT_SAT_ENGINE_LGL_FORK)

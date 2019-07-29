@@ -2737,11 +2737,10 @@ btormbt_state_opt (BtorMBT *mbt)
       boolector_set_sat_solver (mbt->btor, "lingeling");
     else if (btoropt->val == BTOR_SAT_ENGINE_MINISAT)
       boolector_set_sat_solver (mbt->btor, "minisat");
+    else if (btoropt->val == BTOR_SAT_ENGINE_CMS)
+      boolector_set_sat_solver (mbt->btor, "cryptominisat");
     else
-    {
-      assert (btoropt->val == BTOR_SAT_ENGINE_PICOSAT);
       boolector_set_sat_solver (mbt->btor, "picosat");
-    }
   }
 
   BTORMBT_LOG (
@@ -4025,7 +4024,8 @@ main (int32_t argc, char **argv)
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
       btoropt->val = val;
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT) \
-    && !defined(BTOR_USE_MINISAT)
+    && !defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_CMS)    \
+    && !defined(BTOR_USE_CADICAL)
       if (btoropt->kind == BTOR_OPT_INCREMENTAL)
       {
         btormbt_error ("no SAT solver with incremental support compiled in");

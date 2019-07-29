@@ -28,8 +28,9 @@
 
 /*------------------------------------------------------------------------*/
 
-#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT) \
-    && !defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_CADICAL)
+#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT)  \
+    && !defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_CADICAL) \
+    && !defined(BTOR_USE_CMS)
 #error "no SAT solver configured"
 #endif
 

@@ -86,6 +86,8 @@ enum BtorOptSatEngine
 
 typedef enum BtorOptSatEngine BtorOptSatEngine;
 
+extern const char *const g_btor_se_name[BTOR_SAT_ENGINE_MAX];
+
 enum BtorOptEngine
 {
   BTOR_ENGINE_MIN,

@@ -82,7 +82,8 @@ BtorPtrHashTable *btor_hashptr_table_clone (BtorMemMgr *mm,
 
 void btor_hashptr_table_delete (BtorPtrHashTable *p2iht);
 
-BtorPtrHashBucket *btor_hashptr_table_get (BtorPtrHashTable *p2iht, void *key);
+BtorPtrHashBucket *btor_hashptr_table_get (BtorPtrHashTable *p2iht,
+                                           const void *key);
 
 BtorPtrHashBucket *btor_hashptr_table_add (BtorPtrHashTable *p2iht, void *key);
 

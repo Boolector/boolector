@@ -129,7 +129,7 @@ btor_hashptr_table_delete (BtorPtrHashTable *p2iht)
 }
 
 BtorPtrHashBucket *
-btor_hashptr_table_get (BtorPtrHashTable *p2iht, void *key)
+btor_hashptr_table_get (BtorPtrHashTable *p2iht, const void *key)
 {
   BtorPtrHashBucket *res, **p, *b;
   uint32_t i, h;
