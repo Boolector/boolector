@@ -9,12 +9,11 @@ PICOSAT_DIR=${DEPS_DIR}/picosat
 rm -rf ${PICOSAT_DIR}
 
 # Download and build PicoSAT
-mkdir ${PICOSAT_DIR}
-cd ${PICOSAT_DIR}
 wget http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
-mv picosat-965/* .
-rmdir picosat-965
+rm picosat-965.tar.gz
+mv picosat-965 ${PICOSAT_DIR}
+cd ${PICOSAT_DIR}
 
 if is_windows; then
   component="PicoSAT"

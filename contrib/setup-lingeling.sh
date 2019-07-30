@@ -5,11 +5,9 @@ set -e -o pipefail
 source "$(dirname "$0")/setup-utils.sh"
 
 LINGELING_DIR=${DEPS_DIR}/lingeling
+COMMIT_ID="03b4860d14016f42213ea271014f2f13d181f504"
 
-rm -rf ${LINGELING_DIR}
-
-# Download and build Lingeling
-git clone --depth 1 https://github.com/arminbiere/lingeling.git ${LINGELING_DIR}
+download_github "arminbiere/lingeling" "$COMMIT_ID" "$LINGELING_DIR"
 cd ${LINGELING_DIR}
 
 if is_windows; then

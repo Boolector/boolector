@@ -101,3 +101,19 @@ function test_apply_patch
     exit 1
   fi
 }
+
+function download_github
+{
+  local repo="$1"
+  local version="$2"
+  local location="$3"
+  local name=$(echo "$repo" | cut -d '/' -f 2)
+  local archive="$name-$version.tar.gz"
+
+  wget "https://github.com/$repo/archive/$version.tar.gz" -O "$archive"
+
+  rm -rf "${location}"
+  tar xfvz "$archive"
+  rm "$archive"
+  mv "$name-$version" "${location}"
+}

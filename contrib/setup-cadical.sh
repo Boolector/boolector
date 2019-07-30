@@ -5,11 +5,9 @@ set -e -o pipefail
 source "$(dirname "$0")/setup-utils.sh"
 
 CADICAL_DIR=${DEPS_DIR}/cadical
+COMMIT_ID="cb89cbfa16f47cb7bf1ec6ad9855e7b6d5203c18"
 
-rm -rf ${CADICAL_DIR}
-
-# Download and build CaDiCaL
-git clone --depth 1 https://github.com/arminbiere/cadical.git ${CADICAL_DIR}
+download_github "arminbiere/cadical" "$COMMIT_ID" "$CADICAL_DIR"
 cd ${CADICAL_DIR}
 
 if is_windows; then
