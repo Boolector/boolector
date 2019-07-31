@@ -20,7 +20,7 @@ before_script:
   - ./contrib/setup-btor2tools.sh
   - ./contrib/setup-cadical.sh
   - ./contrib/setup-lingeling.sh
-  - ./contrib/setup-picosat.sh
+  - if [ "$TRAVIS_OS_NAME" != "osx" ]; then ./contrib/setup-picosat.sh; fi
 
 script:
   - $CC --version
