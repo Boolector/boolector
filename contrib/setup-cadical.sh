@@ -12,7 +12,7 @@ cd ${CADICAL_DIR}
 
 if is_windows; then
   component="CaDiCaL"
-  last_patch_date="20190623"
+  last_patch_date="20190730"
   test_apply_patch "${component}" "${last_patch_date}"
   EXTRA_FLAGS="-q"
   #
