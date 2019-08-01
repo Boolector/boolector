@@ -27,7 +27,7 @@ g_node_map = {}
 g_sort_map = {}
 
 CONST_NODE_KINDS = ["const", "zero", "false", "ones", "true", "one",
-                    "unsigned_int", "int"]
+                    "unsigned_int", "int", "max_signed"]
 
 NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
               "unsigned_int", "int", "var", "array", "uf", "not", "neg",
@@ -42,11 +42,23 @@ NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
 SORT_KINDS = ["bool_sort", "bitvec_sort", "fun_sort", "array_sort",
               "tuple_sort"]
 
+VALID_KEYWORDS = [
+    'new', 'return', 'sat', 'assume', 'assert', 'failed', 'set_opt', 'has_opt',
+    'array_assignment', 'bv_assignment', 'uf_assignment',
+    'free_array_assignment', 'free_bv_assignment', 'free_uf_assignment',
+    'fixate_assumptions'
+]
+VALID_KEYWORDS.extend(CONST_NODE_KINDS)
+VALID_KEYWORDS.extend(NODE_KINDS)
+VALID_KEYWORDS.extend(SORT_KINDS)
+
 class LineTokens: 
     def __init__(self, id, line):
         tokens = line.split()
         self.id = id
-        self.kind = tokens[0] 
+        self.kind = tokens[0]
+        if self.kind not in VALID_KEYWORDS:
+            raise ValueError("invalid keyword '{}'".format(self.kind))
         if len(tokens) > 1:
             self.btor = tokens[1]
         else:
@@ -67,7 +79,8 @@ class LineTokens:
         return self.kind in SORT_KINDS
 
     def __str__(self):
-        return "{} {} {}".format(self.id, self.bw, self.children)
+        return "token:: id: {}, kind: {}, bw: {}, children: {}".format(
+                self.id, self.kind, self.bw, self.children)
 
 
 def _parse_options():
@@ -117,7 +130,8 @@ def _node_bw(tokens):
     tokens = t
     kind = tokens[0]
     bw = 0
-    if kind in ["var", "param", "zero", "one", "ones", "uf", "array"]:
+    if kind in ["var", "param", "zero", "one", "ones", "uf", "array",
+                "max_signed"]:
         bw = _sort_bw(tokens[1])
     elif kind in ["int", "unsigned_int"]:
         bw = _sort_bw(tokens[2])
@@ -171,18 +185,10 @@ def _node_bw(tokens):
             assert(not isinstance(bw, list))
     return bw
 
-def _is_node_id(s):
-    m = re.match('^e-?\d+', s)
-    return m is not None
-
-def _is_sort_id(s):
-    m = re.match('^s\d+', s)
-    return m is not None
-
 def _build_graph():
     global g_lines, g_line_tokens, g_id2line, g_node_map, g_sort_map
 
-    g_line_tokens = [] 
+    g_line_tokens = []
     g_node_map = {}
     g_sort_map = {}
     prev_ltok = None
@@ -194,19 +200,19 @@ def _build_graph():
             id = cur_ltok.tokens[1]
             if prev_ltok.is_node_kind():
                 g_node_map[id] = prev_ltok
-                assert(i > 0)
-                assert(g_line_tokens[i - 1].id == None)
+                assert i > 0
+                assert g_line_tokens[i - 1].id == None
                 g_line_tokens[i - 1].id = id
                 g_id2line[id] = i - 1
             elif prev_ltok.is_sort_kind():
                 g_sort_map[id] = prev_ltok.tokens
 
-        prev_ltok = LineTokens(None, line) 
+        prev_ltok = LineTokens(None, line)
         g_line_tokens.append(prev_ltok)
-    
-    for id,node in g_node_map.items():
-        assert(id != None)
-        assert(node.id == id)
+
+    for id, node in g_node_map.items():
+        assert id != None
+        assert node.id == id
 
 def _parse_trace(inputfile):
     global g_lines
