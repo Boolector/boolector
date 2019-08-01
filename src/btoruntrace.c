@@ -36,7 +36,7 @@
   "\n"                                                                     \
   "  -v, --verbosity              increase verbosity\n"                    \
   "  -e, --exit-on-abort        exit on boolector abort\n"                 \
-  "  -s, --skip-getters         skip 'getter' functions\n"                 \
+  "  -s, --skip                 skip checks for return values\n"           \
   "  -i, --ignore-sat-result    do not exit on mismatching sat result\n"   \
   "  -b <btoropt> <val>         set boolector option <btoropt> to <val>\n" \
   "                             (Note: overrides trace opt settings!)\n"   \
@@ -503,7 +503,7 @@ NEXT:
       else if (exp_ret == RET_BOOL)
       {
         bool exp_bool = parse_bool_arg ("return");
-        if (exp_bool != ret_bool)
+        if (exp_bool != ret_bool && !g_btorunt->skip)
           btorunt_error ("expected return value %s but got %s",
                          exp_bool ? "true" : "false",
                          ret_bool ? "true" : "false");
@@ -512,7 +512,7 @@ NEXT:
       {
         int32_t exp_int = parse_int_arg ("return");
         parse_check_last_arg ("return");
-        if (exp_int != ret_int)
+        if (exp_int != ret_int && !g_btorunt->skip)
           btorunt_error (
               "expected return value %d but got %d", exp_int, ret_int);
       }
@@ -520,7 +520,7 @@ NEXT:
       {
         uint32_t exp_uint = parse_uint_arg ("return");
         parse_check_last_arg ("return");
-        if (exp_uint != ret_uint)
+        if (exp_uint != ret_uint && !g_btorunt->skip)
           btorunt_error (
               "expected return value %d but got %d", exp_uint, ret_uint);
       }
@@ -528,7 +528,7 @@ NEXT:
       {
         exp_str = parse_str_arg ("return");
         parse_check_last_arg ("return");
-        if (strcmp (exp_str, ret_str))
+        if (strcmp (exp_str, ret_str) && !g_btorunt->skip)
           btorunt_error (
               "expected return string %s but got %s", exp_str, ret_str);
       }
@@ -540,7 +540,7 @@ NEXT:
           hmap_add (hmap, arg1_str, res1_pptr);
           hmap_add (hmap, arg2_str, res2_pptr);
         }
-        if (arg3_int != ret_int)
+        if (arg3_int != ret_int && !g_btorunt->skip)
           btorunt_error (
               "expected return value %d but got %d", arg3_int, ret_int);
       }
@@ -1993,7 +1993,7 @@ main (int32_t argc, char **argv)
       g_btorunt->verbosity = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--exit-on-abort"))
       g_btorunt->exit_on_abort = true;
-    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--skip-getters"))
+    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--skip"))
       g_btorunt->skip = true;
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
