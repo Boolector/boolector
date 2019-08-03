@@ -23,6 +23,7 @@ jobs:
   steps:
   - bash: |
       sudo apt-get install ccache -y
+      echo "##vso[task.prependpath]/usr/lib/ccache"
     displayName: 'Install ccache'
 
   - task: CacheBeta@0
@@ -61,9 +62,6 @@ jobs:
         btorConfig: ''
       debug:
         btorConfig: '-g'
-      python2:
-        needCython: true
-        btorConfig: '--python --py2'
       python3:
         needCython: true
         btorConfig: '--python --py3'
