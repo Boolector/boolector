@@ -4,23 +4,24 @@ trigger:
 jobs:
 - job: Linux
   pool:
-   vmImage: "ubuntu-16.04"
+   vmImage: 'ubuntu-16.04'
   strategy:
     matrix:
       production:
-        btorConfig: ""
+        btorConfig: ''
       debug:
-        btorConfig: "-g"
+        btorConfig: '-g'
       python2:
         needCython: true
-        btorConfig: "--python --py2"
+        btorConfig: '--python --py2'
       python3:
         needCython: true
-        btorConfig: "--python --py3"
+        btorConfig: '--python --py3'
 
   steps:
   - script: sudo pip install -U cython
-    condition: eq('$(needCython)', 'true')
+    condition: eq(variables.needCython, true)
+    displayName: 'Install Cython'
 
   - script: |
       ./contrib/setup-btor2tools.sh
@@ -32,39 +33,39 @@ jobs:
     displayName: 'Configure Boolector'
 
   - script: make -j $(nproc)
-    workingDirectory: "build"
+    workingDirectory: 'build'
     displayName: 'Build Boolector'
 
   - script: ctest -j$(nproc) --output-on-failure
-    workingDirectory: "build"
+    workingDirectory: 'build'
     displayName: 'Run tests'
 
   #strategy:
   #  matrix:
   #    linux_opt:
-  #      imageName: "ubuntu-16.04"
-  #      btorConfig: ""
+  #      imageName: 'ubuntu-16.04'
+  #      btorConfig: ''
   #    linux_debug:
-  #      imageName: "ubuntu-16.04"
-  #      btorConfig: "-g"
+  #      imageName: 'ubuntu-16.04'
+  #      btorConfig: '-g'
   #    linux_py2:
-  #      imageName: "ubuntu-16.04"
-  #      btorConfig: "--python --py2"
+  #      imageName: 'ubuntu-16.04'
+  #      btorConfig: '--python --py2'
   #    linux_py3:
-  #      imageName: "ubuntu-16.04"
-  #      btorConfig: "--python --py3"
+  #      imageName: 'ubuntu-16.04'
+  #      btorConfig: '--python --py3'
   #    mac_opt:
-  #      imageName: "macos-10.13"
-  #      btorConfig: ""
+  #      imageName: 'macos-10.13'
+  #      btorConfig: ''
   #    mac_debug:
-  #      imageName: "macos-10.13"
-  #      btorConfig: "-g"
+  #      imageName: 'macos-10.13'
+  #      btorConfig: '-g'
   #    mac_py2:
-  #      imageName: "macos-10.13"
-  #      btorConfig: "--python --py2"
+  #      imageName: 'macos-10.13'
+  #      btorConfig: '--python --py2'
   #    mac_py3:
-  #      imageName: "macos-10.13"
-  #      btorConfig: "--python --py3"
+  #      imageName: 'macos-10.13'
+  #      btorConfig: '--python --py3'
   #
   #pool:
   #  vmImage: $(imageName)
@@ -80,9 +81,9 @@ jobs:
   #  displayName: 'Configure Boolector'
   #
   #- script: make -j $(nproc)
-  #  workingDirectory: "build"
+  #  workingDirectory: 'build'
   #  displayName: 'Build Boolector'
   #
   #- script: ctest -j$(nproc) --output-on-failure
-  #  workingDirectory: "build"
+  #  workingDirectory: 'build'
   #  displayName: 'Run tests'
