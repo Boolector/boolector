@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e -o pipefail
 
 source "$(dirname "$0")/setup-utils.sh"
 
