@@ -12,6 +12,9 @@ jobs:
     matrix:
       production:
         btorConfig: ''
+      production_clang:
+        btorConfig: ''
+        btorConfigEnv: 'CC=clang CXX=clang++'
       debug:
         btorConfig: '-g'
       python2:
