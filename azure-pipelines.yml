@@ -2,36 +2,36 @@ trigger:
 - azure-pipelines
 
 jobs:
-  -job: linux
-   pool:
-     vmImage: "ubuntu-16.04"
-   strategy:
-     linux_opt:
-       btorConfig: ""
-     linux_debug:
-       btorConfig: "-g"
-     linux_py2:
-       btorConfig: "--python --py2"
-     linux_py3:
-       btorConfig: "--python --py3"
+- job: Linux
+  pool:
+   vmImage: "ubuntu-16.04"
+  strategy:
+    linux_opt:
+      btorConfig: ""
+    linux_debug:
+      btorConfig: "-g"
+    linux_py2:
+      btorConfig: "--python --py2"
+    linux_py3:
+      btorConfig: "--python --py3"
 
-   steps:
-   - script: |
-       ./contrib/setup-btor2tools.sh
-       ./contrib/setup-cadical.sh
-       ./contrib/setup-lingeling.sh
-     displayName: 'Setup dependencies'
+  steps:
+  - script: |
+      ./contrib/setup-btor2tools.sh
+      ./contrib/setup-cadical.sh
+      ./contrib/setup-lingeling.sh
+    displayName: 'Setup dependencies'
 
-   - script: ./configure.sh $(btorConfig)
-     displayName: 'Configure Boolector'
+  - script: ./configure.sh $(btorConfig)
+    displayName: 'Configure Boolector'
 
-   - script: make -j $(nproc)
-     workingDirectory: "build"
-     displayName: 'Build Boolector'
+  - script: make -j $(nproc)
+    workingDirectory: "build"
+    displayName: 'Build Boolector'
 
-   - script: ctest -j$(nproc) --output-on-failure
-     workingDirectory: "build"
-     displayName: 'Run tests'
+  - script: ctest -j$(nproc) --output-on-failure
+    workingDirectory: "build"
+    displayName: 'Run tests'
 
   #strategy:
   #  matrix:
