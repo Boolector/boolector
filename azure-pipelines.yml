@@ -1,50 +1,82 @@
 trigger:
 - azure-pipelines
 
-strategy:
-  matrix:
-    linux_opt:
-      imageName: "ubuntu-16.04"
-      btorConfig: ""
-    linux_debug:
-      imageName: "ubuntu-16.04"
-      btorConfig: "-g"
-    linux_py2:
-      imageName: "ubuntu-16.04"
-      btorConfig: "--python --py2"
-    linux_py3:
-      imageName: "ubuntu-16.04"
-      btorConfig: "--python --py3"
-    mac_opt:
-      imageName: "macos-10.13"
-      btorConfig: ""
-    mac_debug:
-      imageName: "macos-10.13"
-      btorConfig: "-g"
-    mac_py2:
-      imageName: "macos-10.13"
-      btorConfig: "--python --py2"
-    mac_py3:
-      imageName: "macos-10.13"
-      btorConfig: "--python --py3"
+jobs:
+  -job: linux
+   pool:
+     vmImage: "ubuntu-16.04"
+   strategy:
+     linux_opt:
+       btorConfig: ""
+     linux_debug:
+       btorConfig: "-g"
+     linux_py2:
+       btorConfig: "--python --py2"
+     linux_py3:
+       btorConfig: "--python --py3"
 
-pool:
-  vmImage: $(imageName)
+   steps:
+   - script: |
+       ./contrib/setup-btor2tools.sh
+       ./contrib/setup-cadical.sh
+       ./contrib/setup-lingeling.sh
+     displayName: 'Setup dependencies'
 
-steps:
-- script: |
-    ./contrib/setup-btor2tools.sh
-    ./contrib/setup-cadical.sh
-    ./contrib/setup-lingeling.sh
-  displayName: 'Setup dependencies'
+   - script: ./configure.sh $(btorConfig)
+     displayName: 'Configure Boolector'
 
-- script: ./configure.sh $(btorConfig)
-  displayName: 'Configure Boolector'
+   - script: make -j $(nproc)
+     workingDirectory: "build"
+     displayName: 'Build Boolector'
 
-- script: make -j $(nproc)
-  workingDirectory: "build"
-  displayName: 'Build Boolector'
+   - script: ctest -j$(nproc) --output-on-failure
+     workingDirectory: "build"
+     displayName: 'Run tests'
 
-- script: bin/test #ctest -j$(nproc)
-  workingDirectory: "build"
-  displayName: 'Run tests'
+  #strategy:
+  #  matrix:
+  #    linux_opt:
+  #      imageName: "ubuntu-16.04"
+  #      btorConfig: ""
+  #    linux_debug:
+  #      imageName: "ubuntu-16.04"
+  #      btorConfig: "-g"
+  #    linux_py2:
+  #      imageName: "ubuntu-16.04"
+  #      btorConfig: "--python --py2"
+  #    linux_py3:
+  #      imageName: "ubuntu-16.04"
+  #      btorConfig: "--python --py3"
+  #    mac_opt:
+  #      imageName: "macos-10.13"
+  #      btorConfig: ""
+  #    mac_debug:
+  #      imageName: "macos-10.13"
+  #      btorConfig: "-g"
+  #    mac_py2:
+  #      imageName: "macos-10.13"
+  #      btorConfig: "--python --py2"
+  #    mac_py3:
+  #      imageName: "macos-10.13"
+  #      btorConfig: "--python --py3"
+  #
+  #pool:
+  #  vmImage: $(imageName)
+  #
+  #steps:
+  #- script: |
+  #    ./contrib/setup-btor2tools.sh
+  #    ./contrib/setup-cadical.sh
+  #    ./contrib/setup-lingeling.sh
+  #  displayName: 'Setup dependencies'
+  #
+  #- script: ./configure.sh $(btorConfig)
+  #  displayName: 'Configure Boolector'
+  #
+  #- script: make -j $(nproc)
+  #  workingDirectory: "build"
+  #  displayName: 'Build Boolector'
+  #
+  #- script: ctest -j$(nproc) --output-on-failure
+  #  workingDirectory: "build"
+  #  displayName: 'Run tests'
