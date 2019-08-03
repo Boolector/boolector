@@ -9,19 +9,24 @@ strategy:
     linux_debug:
       imageName: "ubuntu-16.04"
       btorConfig: "-g"
-    linux_py:
+    linux_py2:
       imageName: "ubuntu-16.04"
-      btorConfig: "--python"
+      btorConfig: "--python --py2"
+    linux_py3:
+      imageName: "ubuntu-16.04"
+      btorConfig: "--python --py3"
     mac_opt:
       imageName: "macos-10.13"
       btorConfig: ""
     mac_debug:
       imageName: "macos-10.13"
       btorConfig: "-g"
-    mac_py:
+    mac_py2:
       imageName: "macos-10.13"
-      btorConfig: "--python"
-
+      btorConfig: "--python --py2"
+    mac_py3:
+      imageName: "macos-10.13"
+      btorConfig: "--python --py3"
 
 pool:
   vmImage: $(imageName)
@@ -36,11 +41,10 @@ steps:
 - script: ./configure.sh $(btorConfig)
   displayName: 'Configure Boolector'
 
-- script: |
-    cd build
-    echo $(nproc)
-    make -j $(nproc)
+- script: make -j $(nproc)
+  workingDirectory: "build"
   displayName: 'Build Boolector'
 
 - script: bin/test #ctest -j$(nproc)
+  workingDirectory: "build"
   displayName: 'Run tests'
