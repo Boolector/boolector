@@ -20,7 +20,7 @@ jobs:
 
   steps:
   - script: sudo pip install -U cython
-    condition: eq($(needCython), true)
+    condition: eq('$(needCython)', 'true')
 
   - script: |
       ./contrib/setup-btor2tools.sh
