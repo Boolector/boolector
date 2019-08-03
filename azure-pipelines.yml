@@ -6,14 +6,15 @@ jobs:
   pool:
    vmImage: "ubuntu-16.04"
   strategy:
-    linux_opt:
-      btorConfig: ""
-    linux_debug:
-      btorConfig: "-g"
-    linux_py2:
-      btorConfig: "--python --py2"
-    linux_py3:
-      btorConfig: "--python --py3"
+    matrix:
+      linux_opt:
+        btorConfig: ""
+      linux_debug:
+        btorConfig: "-g"
+      linux_py2:
+        btorConfig: "--python --py2"
+      linux_py3:
+        btorConfig: "--python --py3"
 
   steps:
   - script: |
