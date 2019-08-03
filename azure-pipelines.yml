@@ -3,10 +3,24 @@ trigger:
 
 strategy:
   matrix:
-    linux:
+    linux_opt:
       imageName: "ubuntu-16.04"
-    mac:
+      btorConfig: ""
+    linux_debug:
+      imageName: "ubuntu-16.04"
+      btorConfig: "-g"
+    linux_py:
+      imageName: "ubuntu-16.04"
+      btorConfig: "--python"
+    mac_opt:
       imageName: "macos-10.13"
+      btorConfig: ""
+    mac_debug:
+      imageName: "macos-10.13"
+      btorConfig: "-g"
+    mac_py:
+      imageName: "macos-10.13"
+      btorConfig: "--python"
 
 
 pool:
@@ -19,13 +33,14 @@ steps:
     ./contrib/setup-lingeling.sh
   displayName: 'Setup dependencies'
 
-- script: ./configure.sh -g
+- script: ./configure.sh $(btorConfig)
   displayName: 'Configure Boolector'
 
 - script: |
     cd build
+    echo $(nproc)
     make -j $(nproc)
   displayName: 'Build Boolector'
 
-- script: ctest -j$(nproc)
-  displayName: 'Run CTest'
+- script: bin/test #ctest -j$(nproc)
+  displayName: 'Run tests'
