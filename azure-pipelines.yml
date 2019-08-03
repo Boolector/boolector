@@ -1,6 +1,9 @@
 trigger:
 - azure-pipelines
 
+variables:
+  CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
 jobs:
 - job: Linux
   pool:
@@ -18,6 +21,16 @@ jobs:
         needCython: true
         btorConfig: '--python --py3'
   steps:
+  - bash: |
+      sudo apt-get install ccache -y
+    displayName: 'Install ccache'
+
+  - task: CacheBeta@0
+    inputs:
+        key: $(Agent.OS)
+        path: $(CCACHE_DIR)
+    displayName: ccache
+
   - script: sudo pip install -U cython
     condition: eq(variables.needCython, true)
     displayName: 'Install Cython'
