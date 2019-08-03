@@ -1,8 +1,16 @@
 trigger:
 - azure-pipelines
 
+strategy:
+  matrix:
+    linux:
+      imageName: "ubuntu-16.04"
+    mac:
+      imageName: "macos-10.13"
+
+
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: $(imageName)
 
 steps:
 - script: |
@@ -11,8 +19,7 @@ steps:
     ./contrib/setup-lingeling.sh
   displayName: 'Setup dependencies'
 
-- script: |
-    ./configure.sh
+- script: ./configure.sh -g
   displayName: 'Configure Boolector'
 
 - script: |
