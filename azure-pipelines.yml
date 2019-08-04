@@ -69,6 +69,17 @@ jobs:
         needCython: true
         btorConfig: '--python --py3'
   steps:
+  - bash: |
+      brew install --HEAD ccache
+      #      echo "##vso[task.prependpath]/usr/lib/ccache"
+    displayName: 'Install ccache'
+
+  - task: CacheBeta@0
+    inputs:
+        key: $(Agent.OS)
+        path: $(CCACHE_DIR)
+    displayName: ccache
+
   - script: sudo pip3 install cython
     condition: eq(variables.needCython, true)
     displayName: 'Install Cython'
