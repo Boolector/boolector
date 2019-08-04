@@ -71,7 +71,7 @@ jobs:
   steps:
   - bash: |
       brew install ccache
-      #      echo "##vso[task.prependpath]/usr/lib/ccache"
+      #      echo "##vso[task.prependpath]/usr/local/opt/ccache/libexec"
     displayName: 'Install ccache'
 
   - task: CacheBeta@0
