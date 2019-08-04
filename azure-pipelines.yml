@@ -70,7 +70,7 @@ jobs:
         btorConfig: '--python --py3'
   steps:
   - bash: |
-      brew install --HEAD ccache --with-libzstd-from-internet
+      brew install ccache
       #      echo "##vso[task.prependpath]/usr/lib/ccache"
     displayName: 'Install ccache'
 
