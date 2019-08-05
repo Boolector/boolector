@@ -63,6 +63,9 @@ jobs:
     matrix:
       production:
         btorConfig: ''
+      production_clang:
+        btorConfig: ''
+        btorConfigEnv: 'CC=clang CXX=clang++'
       debug:
         btorConfig: '-g'
       python3:
@@ -90,7 +93,7 @@ jobs:
       ./contrib/setup-lingeling.sh
     displayName: 'Setup dependencies'
 
-  - script: ./configure.sh $(btorConfig)
+  - script: $(btorConfigEnv) ./configure.sh $(btorConfig)
     displayName: 'Configure Boolector'
 
   - script: make -j $(nproc)
