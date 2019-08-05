@@ -12,17 +12,21 @@ jobs:
     matrix:
       production:
         btorConfig: ''
+        btorConfigEnv: ''
       production_clang:
         btorConfig: ''
         btorConfigEnv: 'CC=clang CXX=clang++'
       debug:
         btorConfig: '-g'
+        btorConfigEnv: ''
       python2:
         needCython: true
         btorConfig: '--python --py2'
+        btorConfigEnv: ''
       python3:
         needCython: true
         btorConfig: '--python --py3'
+        btorConfigEnv: ''
   steps:
   - bash: |
       sudo apt-get install ccache -y
@@ -63,14 +67,17 @@ jobs:
     matrix:
       production:
         btorConfig: ''
+        btorConfigEnv: ''
       production_clang:
         btorConfig: ''
         btorConfigEnv: 'CC=clang CXX=clang++'
       debug:
         btorConfig: '-g'
+        btorConfigEnv: ''
       python3:
         needCython: true
         btorConfig: '--python --py3'
+        btorConfigEnv: ''
   steps:
   - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
     displayName: 'Determine number of CPUs'
