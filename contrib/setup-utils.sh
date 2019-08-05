@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script defines common utility functions used by the contrib/setup-*.sh
 # scripts.

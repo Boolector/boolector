@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e -o pipefail
 
 ./contrib/setup-btor2tools.sh
 ./contrib/setup-cadical.sh
