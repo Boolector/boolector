@@ -2028,11 +2028,13 @@ close_term_bin_bv_left_associative (BtorSMT2Parser *parser,
           || item_cur->tag == BTOR_BV_AND_TAG_SMT2
           || item_cur->tag == BTOR_BV_OR_TAG_SMT2
           || item_cur->tag == BTOR_BV_XOR_TAG_SMT2
+          || item_cur->tag == BTOR_BV_XNOR_TAG_SMT2
           || item_cur->tag == BTOR_BV_ADD_TAG_SMT2
           || item_cur->tag == BTOR_BV_SUB_TAG_SMT2
           || item_cur->tag == BTOR_BV_MUL_TAG_SMT2);
 
   BoolectorNode *old, *exp;
+  bool is_xnor = false;
   uint32_t i;
 
   if (nargs < 2)
@@ -2053,6 +2055,13 @@ close_term_bin_bv_left_associative (BtorSMT2Parser *parser,
     return 0;
   }
 
+  /* (bvxnor a b c d) == (bvnot (bvxor a b c d)) */
+  if (fun == boolector_xnor)
+  {
+    is_xnor = true;
+    fun     = boolector_xor;
+  }
+
   for (i = 1, exp = 0; i <= nargs; i++)
   {
     if (exp)
@@ -2065,6 +2074,14 @@ close_term_bin_bv_left_associative (BtorSMT2Parser *parser,
       exp = boolector_copy (parser->btor, item_cur[i].exp);
   }
   assert (exp);
+
+  if (is_xnor)
+  {
+    old = exp;
+    exp = boolector_not (parser->btor, exp);
+    boolector_release (parser->btor, old);
+  }
+
   release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
 
   return 1;
@@ -2777,7 +2794,7 @@ close_term (BtorSMT2Parser *parser)
   /* BV: XNOR --------------------------------------------------------------- */
   else if (tag == BTOR_BV_XNOR_TAG_SMT2)
   {
-    if (!close_term_bin_bv_fun (
+    if (!close_term_bin_bv_left_associative (
             parser, item_open, item_cur, nargs, boolector_xnor))
     {
       return 0;
