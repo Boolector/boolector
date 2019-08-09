@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://travis-ci.org/Boolector/boolector.svg?branch=master)](https://travis-ci.org/Boolector/boolector)
+[![Build Status](https://dev.azure.com/Boolector/Boolector/_apis/build/status/Boolector.boolector?branchName=master)](https://dev.azure.com/Boolector/Boolector/_build/latest?definitionId=1&branchName=master)
 
 Boolector
 ===============================================================================
