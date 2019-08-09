@@ -302,6 +302,9 @@ boolector_print_value_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol_str);
   BTOR_ABORT_ARG_NULL (file);
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
+              "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT (btor->quantifiers->count,
@@ -3995,7 +3998,8 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4168,7 +4172,8 @@ boolector_array_assignment (Btor *btor,
 
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4252,7 +4257,8 @@ boolector_uf_assignment (Btor *btor,
 
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4332,7 +4338,8 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
   BTOR_ABORT (strcmp (format, "btor") && strcmp (format, "smt2"),
               "invalid model output format: %s",
               format);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
