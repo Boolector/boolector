@@ -4594,6 +4594,26 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
   return res;
 }
 
+uint32_t
+boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
+{
+  bool res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+
+  res = btor_sort_bv_get_width (btor, s);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, bitvec_sort_get_width, sort);
+#endif
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 /* Note: no need to trace parse function calls!! */
