@@ -2251,6 +2251,15 @@ bool boolector_is_bitvec_sort (Btor *btor, BoolectorSort sort);
  */
 bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
 
+/*!
+  Get the bit width of a bit-vector sort.
+
+  :param btor: Boolector instance.
+  :param node: Boolector sort.
+  :return: Bit width of ``sort``.
+*/
+uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
+
 /*------------------------------------------------------------------------*/
 
 /*!
