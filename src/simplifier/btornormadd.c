@@ -174,7 +174,7 @@ prep_leafs (Btor *btor, BtorPtrHashTable *t, BtorNodePtrStack *leafs)
 
   BtorPtrHashBucket *b;
   BtorPtrHashTableIterator it;
-  BtorNode *cur, *coeff, *leaf, *tmp;
+  BtorNode *cur, *coeff, *leaf;
   BtorSortId sort_id;
 
   sort_id        = btor_node_get_sort_id (t->first->key);
@@ -384,7 +384,6 @@ normalize_eq_adds (Btor *btor, BtorNode *eq)
 
   BtorPtrHashTable *lhs_leafs, *rhs_leafs;
   BtorNodePtrStack lhs, rhs;
-  BtorNode *lhs_c, *rhs_c;
   BtorSortId sort_id;
 
   sort_id = btor_node_get_sort_id (eq->e[0]);
@@ -417,6 +416,7 @@ normalize_eq_adds (Btor *btor, BtorNode *eq)
   prep_leafs (btor, rhs_leafs, &rhs);
 
 #if 0
+  BtorNode *lhs_c, *rhs_c;
   lhs_c = BTOR_TOP_STACK(lhs);
   rhs_c = BTOR_TOP_STACK(rhs);
 

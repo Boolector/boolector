@@ -317,7 +317,7 @@ typedef enum BtorMBTOperator
   BTORMBT_NUM_OPS
 } BtorMBTOperator;
 
-const char *const g_op2str[] = {
+const char *const g_op2str[BTORMBT_NUM_OPS] = {
     "param", "fun",     "uf",    "const", "zero",  "false", "ones",   "true",
     "one",   "uint",    "int",   "var",   "array", "not",   "neg",    "repeat",
     "slice", "inc",     "dec",   "uext",  "sext",  "redor", "redxor", "redand",

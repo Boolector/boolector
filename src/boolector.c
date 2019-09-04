@@ -2600,7 +2600,7 @@ BoolectorNode *
 boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
   uint32_t width;
-  BtorNode *e0, *e1, *res;
+  BtorNode *e0, *e1, *res = 0;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
   e1 = BTOR_IMPORT_BOOLECTOR_NODE (n1);
