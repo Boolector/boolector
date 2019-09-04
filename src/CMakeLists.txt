@@ -81,7 +81,7 @@ target_link_libraries(boolector ${LIBRARIES})
 target_include_directories(boolector
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/boolector>)
+    $<INSTALL_INTERFACE:include>)
 
 target_include_directories(boolector PRIVATE ${Btor2Tools_INCLUDE_DIR})
 target_link_libraries(boolector ${Btor2Tools_LIBRARIES})
