@@ -1356,9 +1356,6 @@ collect_premisses (Btor *btor,
 static BtorNode *
 mk_equal_args (Btor *btor, BtorNode *args1, BtorNode *args2)
 {
-  assert (!btor_node_is_simplified (args1));
-  assert (!btor_node_is_simplified (args2));
-
   BtorNode *arg1, *arg2, *eq, *tmp, *res = 0;
   BtorArgsIterator it1, it2;
 
