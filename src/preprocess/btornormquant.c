@@ -8,7 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "normalizer/btornormquant.h"
+#include "preprocess/btornormquant.h"
+
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btornode.h"

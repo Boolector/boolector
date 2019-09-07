@@ -13,7 +13,7 @@ extern "C" {
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btornode.h"
-#include "normalizer/btornormquant.h"
+#include "preprocess/btornormquant.h"
 }
 
 class TestNormQuant : public TestBtor

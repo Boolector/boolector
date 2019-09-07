@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorelimslices.h"
+#include "preprocess/btorelimslices.h"
 
 #include "btorcore.h"
 #include "btorexp.h"

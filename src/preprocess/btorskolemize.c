@@ -7,10 +7,12 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "normalizer/btorskolemize.h"
+#include "preprocess/btorskolemize.h"
+
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btornode.h"
+#include "btorsubst.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 

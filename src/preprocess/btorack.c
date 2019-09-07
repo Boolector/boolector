@@ -7,7 +7,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorack.h"
+#include "preprocess/btorack.h"
+
 #include "btorcore.h"
 #include "btorexp.h"
 #include "utils/btornodeiter.h"

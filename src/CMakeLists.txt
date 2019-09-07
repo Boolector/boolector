@@ -33,32 +33,36 @@ set(libboolector_src_files
   btorslvquant.c
   btorslvsls.c
   btorsort.c
+  btorsubst.c
   btorsynth.c
   btortrapi.c
   dumper/btordumpaig.c
   dumper/btordumpbtor.c
   dumper/btordumpsmt.c
-  normalizer/btornormquant.c
-  normalizer/btorskolemize.c
   parser/btorbtor.c
   parser/btorbtor2.c
   parser/btorsmt.c
   parser/btorsmt2.c
+  preprocess/btorack.c
+  preprocess/btorder.c
+  preprocess/btorelimapplies.c
+  preprocess/btorelimslices.c
+  preprocess/btorembed.c
+  preprocess/btorextract.c
+  preprocess/btormerge.c
+  preprocess/btorminiscope.c
+  preprocess/btornormadd.c
+  preprocess/btornormquant.c
+  preprocess/btorpreprocess.c
+  preprocess/btorskel.c
+  preprocess/btorskolemize.c
+  preprocess/btorunconstrained.c
+  preprocess/btorvarsubst.c
   sat/btorcadical.c
   sat/btorcms.cc
   sat/btorlgl.c
   sat/btorminisat.cc
   sat/btorpicosat.c
-  simplifier/btorack.c
-  simplifier/btorder.c
-  simplifier/btorelimapplies.c
-  simplifier/btorelimslices.c
-  simplifier/btorextract.c
-  simplifier/btormerge.c
-  simplifier/btorminiscope.c
-  simplifier/btornormadd.c
-  simplifier/btorskel.c
-  simplifier/btorunconstrained.c
   utils/boolectornodemap.c
   utils/btoraigmap.c
   utils/btorhashint.c

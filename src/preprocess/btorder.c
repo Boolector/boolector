@@ -7,7 +7,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorder.h"
+#include "preprocess/btorder.h"
+
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btornode.h"

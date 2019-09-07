@@ -7,7 +7,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorminiscope.h"
+#include "preprocess/btorminiscope.h"
+
 #include "btorexp.h"
 #include "btornode.h"
 #include "utils/btorhashint.h"

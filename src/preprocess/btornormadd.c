@@ -16,16 +16,17 @@
 //         x - 1 = ~(-x)
 //         -(x + 1) = ~x
 
-#include "simplifier/btornormadd.h"
+#include "preprocess/btornormadd.h"
+
+#include <stdbool.h>
 
 #include "btorcore.h"
 #include "btorexp.h"
+#include "btorsubst.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
-
-#include <stdbool.h>
 
 static void
 add_leaf_coeff (Btor *btor,
@@ -40,9 +41,9 @@ add_leaf_coeff (Btor *btor,
 
 #ifndef NDEBUG
   /* All constants are added into one constant at the beginning of leafs */
-  BtorNode *one = btor_exp_bv_one (btor, btor_node_get_sort_id(n));
-  assert (!btor_node_is_bv_const(n) || n == one);
-  btor_node_release(btor, one);
+  BtorNode *one = btor_exp_bv_one (btor, btor_node_get_sort_id (n));
+  assert (!btor_node_is_bv_const (n) || n == one);
+  btor_node_release (btor, one);
 #endif
 
   BtorPtrHashBucket *b;
@@ -65,7 +66,7 @@ inc_leaf_coeff (Btor *btor, BtorPtrHashTable *leafs, BtorNode *n)
 {
   BtorNode *one = btor_exp_bv_int (btor, 1, btor_node_get_sort_id (n));
   /* Constants are added as coeff of one */
-  if (btor_node_is_bv_const(n))
+  if (btor_node_is_bv_const (n))
   {
     add_leaf_coeff (btor, leafs, one, n);
   }
@@ -83,13 +84,13 @@ mul_get_coeff (BtorNode *n, BtorNode **res)
   if (!btor_node_is_bv_mul (n)) return 0;
   if (btor_node_is_bv_const (n->e[0]))
   {
-    assert (!btor_node_is_bv_const(n->e[1]));
+    assert (!btor_node_is_bv_const (n->e[1]));
     *res = n->e[1];
     return n->e[0];
   }
   if (btor_node_is_bv_const (n->e[1]))
   {
-    assert (!btor_node_is_bv_const(n->e[0]));
+    assert (!btor_node_is_bv_const (n->e[0]));
     *res = n->e[0];
     return n->e[1];
   }
@@ -108,7 +109,7 @@ collect_add_leafs (Btor *btor, BtorNode *n, BtorPtrHashTable *leafs)
   BtorNodePtrStack visit;
   BtorNode *cur, *coeff, *real_cur, *res;
 
-  //printf("*** collect\n");
+  // printf("*** collect\n");
   cache = btor_hashint_table_new (btor->mm);
   BTOR_INIT_STACK (btor->mm, visit);
   BTOR_PUSH_STACK (visit, n);
@@ -120,28 +121,27 @@ collect_add_leafs (Btor *btor, BtorNode *n, BtorPtrHashTable *leafs)
     res      = 0;
 
     if (btor_node_is_bv_add (real_cur)
-        && !btor_hashint_table_contains (cache, id)
-        && real_cur->parents == 1)
+        && !btor_hashint_table_contains (cache, id) && real_cur->parents == 1)
     {
       btor_hashint_table_add (cache, id);
 
       /* ~(x + y) = ~x + ~y + 1 */
-      if (btor_node_is_inverted(cur))
+      if (btor_node_is_inverted (cur))
       {
-        BTOR_PUSH_STACK (visit, btor_node_invert(real_cur->e[0]));
-        BTOR_PUSH_STACK (visit, btor_node_invert(real_cur->e[1]));
+        BTOR_PUSH_STACK (visit, btor_node_invert (real_cur->e[0]));
+        BTOR_PUSH_STACK (visit, btor_node_invert (real_cur->e[1]));
 
-        BtorNode *one = btor_exp_bv_one(btor, btor_node_get_sort_id(cur));
-        inc_leaf_coeff(btor, leafs, one);
-         //printf ("leaf (i): %s\n", btor_util_node2string (one));
-        btor_node_release(btor, one);
+        BtorNode *one = btor_exp_bv_one (btor, btor_node_get_sort_id (cur));
+        inc_leaf_coeff (btor, leafs, one);
+        // printf ("leaf (i): %s\n", btor_util_node2string (one));
+        btor_node_release (btor, one);
         continue;
       }
 
       /* only traverse along adders with one parent */
       if (real_cur->parents > 1)
       {
-         //printf ("leaf (p): %s\n", btor_util_node2string (cur));
+        // printf ("leaf (p): %s\n", btor_util_node2string (cur));
         inc_leaf_coeff (btor, leafs, cur);
         continue;
       }
@@ -151,15 +151,15 @@ collect_add_leafs (Btor *btor, BtorNode *n, BtorPtrHashTable *leafs)
     }
     else if ((coeff = mul_get_coeff (cur, &res)))
     {
-      assert(res);
-       //printf ("mul coeff: %s\n", btor_util_node2string(cur));
-       //printf ("coeff: %s\n", btor_util_node2string(coeff));
-       //printf ("leaf: %s\n", btor_util_node2string (res));
+      assert (res);
+      // printf ("mul coeff: %s\n", btor_util_node2string(cur));
+      // printf ("coeff: %s\n", btor_util_node2string(coeff));
+      // printf ("leaf: %s\n", btor_util_node2string (res));
       add_leaf_coeff (btor, leafs, res, coeff);
     }
     else
     {
-       //printf ("leaf: %s\n", btor_util_node2string (cur));
+      // printf ("leaf: %s\n", btor_util_node2string (cur));
       inc_leaf_coeff (btor, leafs, cur);
     }
   } while (!BTOR_EMPTY_STACK (visit));
@@ -180,17 +180,18 @@ prep_leafs (Btor *btor, BtorPtrHashTable *t, BtorNodePtrStack *leafs)
   sort_id        = btor_node_get_sort_id (t->first->key);
   BtorNode *zero = btor_exp_bv_zero (btor, sort_id);
 
-   //printf("*** prep\n");
+  // printf("*** prep\n");
   btor_iter_hashptr_init (&it, t);
   while (btor_iter_hashptr_has_next (&it))
   {
-    assert (!btor_node_is_bv_const(it.cur) || t->first->key == it.cur); 
+    assert (!btor_node_is_bv_const (it.cur) || t->first->key == it.cur);
     b     = it.bucket;
     coeff = b->data.as_ptr;
     cur   = btor_iter_hashptr_next (&it);
     assert (coeff);
 
-     //printf ("leaf: %s (%s)\n", btor_util_node2string (cur), btor_util_node2string(coeff));
+    // printf ("leaf: %s (%s)\n", btor_util_node2string (cur),
+    // btor_util_node2string(coeff));
 
     /* skip all nodes with coefficient zero */
     if (coeff == zero)
@@ -211,9 +212,9 @@ prep_leafs (Btor *btor, BtorPtrHashTable *t, BtorNodePtrStack *leafs)
     /* multiply with coefficient */
     leaf = btor_exp_bv_mul (btor, cur, coeff);
     BTOR_PUSH_STACK (*leafs, leaf);
-    //printf ("push %s\n", btor_util_node2string(leaf));
+    // printf ("push %s\n", btor_util_node2string(leaf));
 
-CLEANUP:
+  CLEANUP:
     btor_node_release (btor, coeff);
     b->data.as_ptr = 0;
     btor_hashptr_table_remove (t, cur, 0, 0);
@@ -237,21 +238,22 @@ normalize_coeffs (Btor *btor,
 
   BtorNode *zero = btor_exp_bv_zero (btor, sort_id);
 
-  assert (btor_node_is_bv_const(lhs->first->key));
+  assert (btor_node_is_bv_const (lhs->first->key));
 
-  //printf ("*** normalize coeffs\n");
+  // printf ("*** normalize coeffs\n");
   btor_iter_hashptr_init (&it, lhs);
-  //printf ("const leaf: %s (%s)\n", btor_util_node2string(it.cur), btor_util_node2string(it.bucket->data.as_ptr));
+  // printf ("const leaf: %s (%s)\n", btor_util_node2string(it.cur),
+  // btor_util_node2string(it.bucket->data.as_ptr));
   while (btor_iter_hashptr_has_next (&it))
   {
-    blhs = it.bucket;
-    cur   = btor_iter_hashptr_next (&it);
-    real_cur = btor_node_real_addr(cur);
+    blhs     = it.bucket;
+    cur      = btor_iter_hashptr_next (&it);
+    real_cur = btor_node_real_addr (cur);
 
-    if (btor_node_is_bv_const(cur) || blhs->data.as_ptr == zero)
-      continue;
+    if (btor_node_is_bv_const (cur) || blhs->data.as_ptr == zero) continue;
 
-    //printf ("leaf: %s (%s)\n", btor_util_node2string(cur), btor_util_node2string(blhs->data.as_ptr));
+      // printf ("leaf: %s (%s)\n", btor_util_node2string(cur),
+      // btor_util_node2string(blhs->data.as_ptr));
 
 #if 1
     /* c1 * ~x + c2 * x  -->  (c2 - c1) * x - c1 */
@@ -264,17 +266,19 @@ normalize_coeffs (Btor *btor,
       /* Apply only if there is an x */
       if (c2 != zero)
       {
-        //printf ("c1: %s\n", btor_util_node2string(c1));
-        //printf ("c2: %s\n", btor_util_node2string(c2));
+        // printf ("c1: %s\n", btor_util_node2string(c1));
+        // printf ("c2: %s\n", btor_util_node2string(c2));
         neg_coeff = btor_exp_bv_neg (btor, c1);
         add_leaf_coeff (btor, lhs, real_cur, neg_coeff);
-        //printf ("diff: %s\n", btor_util_node2string(btor_hashptr_table_get(lhs, real_cur)->data.as_ptr));
+        // printf ("diff: %s\n",
+        // btor_util_node2string(btor_hashptr_table_get(lhs,
+        // real_cur)->data.as_ptr));
         inc_leaf_coeff (btor, lhs, neg_coeff);
         btor_node_release (btor, neg_coeff);
 
         btor_node_release (btor, blhs->data.as_ptr);
         blhs->data.as_ptr = btor_node_copy (btor, zero);
-        //printf ("n1\n");
+        // printf ("n1\n");
         continue;
       }
     }
@@ -285,7 +289,7 @@ normalize_coeffs (Btor *btor,
     if ((brhs = btor_hashptr_table_get (rhs, cur)))
     {
       c1 = blhs->data.as_ptr;
-      c2   = brhs->data.as_ptr;
+      c2 = brhs->data.as_ptr;
 
       lt = btor_exp_bv_slte (btor, c1, c2);
       if (lt == btor->true_exp)
@@ -296,7 +300,7 @@ normalize_coeffs (Btor *btor,
 
         btor_node_release (btor, blhs->data.as_ptr);
         blhs->data.as_ptr = btor_node_copy (btor, zero);
-        //printf ("n2\n");
+        // printf ("n2\n");
       }
       btor_node_release (btor, lt);
       continue;
@@ -323,25 +327,25 @@ normalize_coeffs (Btor *btor,
 
 #if 1
     /* t1  + c * ~a + c = t2  --> t1 = t2 + c * a */
-    if (btor_node_is_inverted(cur))
+    if (btor_node_is_inverted (cur))
     {
       c1 = blhs->data.as_ptr;
       c2 = lhs->first->data.as_ptr;
 
-      lt = btor_exp_bv_sgte (btor, c2, c1);
+      lt         = btor_exp_bv_sgte (btor, c2, c1);
       bool is_lt = lt == btor->true_exp;
       btor_node_release (btor, lt);
       if (is_lt)
       {
         neg_coeff = btor_exp_bv_neg (btor, c1);
-        inc_leaf_coeff(btor, lhs, neg_coeff);
-        btor_node_release(btor, neg_coeff);
+        inc_leaf_coeff (btor, lhs, neg_coeff);
+        btor_node_release (btor, neg_coeff);
 
-        add_leaf_coeff(btor, rhs, real_cur, c1);
+        add_leaf_coeff (btor, rhs, real_cur, c1);
 
         btor_node_release (btor, blhs->data.as_ptr);
         blhs->data.as_ptr = btor_node_copy (btor, zero);
-        //printf ("n3\n");
+        // printf ("n3\n");
         continue;
       }
     }
@@ -353,7 +357,7 @@ normalize_coeffs (Btor *btor,
         && (brhs = btor_hashptr_table_get (rhs, real_cur)))
     {
       c1 = blhs->data.as_ptr;
-      c2   = brhs->data.as_ptr;
+      c2 = brhs->data.as_ptr;
 
       neg_coeff = btor_exp_bv_neg (btor, c1);
 
@@ -366,7 +370,7 @@ normalize_coeffs (Btor *btor,
 
         btor_node_release (btor, blhs->data.as_ptr);
         blhs->data.as_ptr = btor_node_copy (btor, zero);
-        //printf ("n4\n");
+        // printf ("n4\n");
       }
       btor_node_release (btor, lt);
       btor_node_release (btor, neg_coeff);
@@ -391,20 +395,20 @@ normalize_eq_adds (Btor *btor, BtorNode *eq)
   BTOR_INIT_STACK (btor->mm, lhs);
   BTOR_INIT_STACK (btor->mm, rhs);
 
-  lhs_leafs = btor_hashptr_table_new (btor->mm,
+  lhs_leafs      = btor_hashptr_table_new (btor->mm,
                                       (BtorHashPtr) btor_node_hash_by_id,
                                       (BtorCmpPtr) btor_node_compare_by_id);
-  rhs_leafs = btor_hashptr_table_new (btor->mm,
+  rhs_leafs      = btor_hashptr_table_new (btor->mm,
                                       (BtorHashPtr) btor_node_hash_by_id,
                                       (BtorCmpPtr) btor_node_compare_by_id);
-  BtorNode *one = btor_exp_bv_one(btor, sort_id);
-  BtorNode *zero = btor_exp_bv_zero(btor, sort_id);
+  BtorNode *one  = btor_exp_bv_one (btor, sort_id);
+  BtorNode *zero = btor_exp_bv_zero (btor, sort_id);
 
   /* constants are stored at the first position of the hash tables */
-  add_leaf_coeff(btor, lhs_leafs, one, zero);
-  add_leaf_coeff(btor, rhs_leafs, one, zero);
-  btor_node_release(btor, one);
-  btor_node_release(btor, zero);
+  add_leaf_coeff (btor, lhs_leafs, one, zero);
+  add_leaf_coeff (btor, rhs_leafs, one, zero);
+  btor_node_release (btor, one);
+  btor_node_release (btor, zero);
 
   collect_add_leafs (btor, eq->e[0], lhs_leafs);
   collect_add_leafs (btor, eq->e[1], rhs_leafs);
@@ -434,9 +438,11 @@ normalize_eq_adds (Btor *btor, BtorNode *eq)
   }
 #endif
 
-  BtorNode *add_lhs = btor_exp_bv_add_n (btor, lhs.start, BTOR_COUNT_STACK (lhs));
-  BtorNode *add_rhs = btor_exp_bv_add_n (btor, rhs.start, BTOR_COUNT_STACK (rhs));
-  BtorNode *result  = btor_exp_eq (btor, add_lhs, add_rhs);
+  BtorNode *add_lhs =
+      btor_exp_bv_add_n (btor, lhs.start, BTOR_COUNT_STACK (lhs));
+  BtorNode *add_rhs =
+      btor_exp_bv_add_n (btor, rhs.start, BTOR_COUNT_STACK (rhs));
+  BtorNode *result = btor_exp_eq (btor, add_lhs, add_rhs);
   btor_node_release (btor, add_rhs);
   btor_node_release (btor, add_lhs);
 
@@ -461,7 +467,7 @@ btor_normalize_adds (Btor *btor)
   BtorNodePtrStack visit;
   BtorNode *cur, *subst;
 
-  double start = btor_util_time_stamp();
+  double start = btor_util_time_stamp ();
   btor_init_substitutions (btor);
 
   cache = btor_hashint_table_new (btor->mm);
@@ -499,8 +505,5 @@ btor_normalize_adds (Btor *btor)
   btor_hashint_table_delete (cache);
 
   double delta = btor_util_time_stamp () - start;
-  BTOR_MSG (btor->msg,
-            1,
-            "normalized adds in %.3f seconds",
-            delta);
+  BTOR_MSG (btor->msg, 1, "normalized adds in %.3f seconds", delta);
 }

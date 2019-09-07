@@ -9,13 +9,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorunconstrained.h"
+#include "preprocess/btorunconstrained.h"
 
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
 #include "btorlog.h"
 #include "btormsg.h"
+#include "btorsubst.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
@@ -282,4 +283,7 @@ btor_optimize_unconstrained (Btor *btor)
             "detected %u unconstrained terms in %.3f seconds",
             num_ucs,
             delta);
+  assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+  assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+  assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 }

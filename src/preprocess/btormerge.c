@@ -7,12 +7,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btormerge.h"
+#include "preprocess/btormerge.h"
+
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
 #include "btorlog.h"
+#include "btorsubst.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"

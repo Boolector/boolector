@@ -7,10 +7,12 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorextract.h"
+#include "preprocess/btorextract.h"
+
 #include "btorbv.h"
 #include "btorcore.h"
 #include "btorexp.h"
+#include "btorsubst.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 

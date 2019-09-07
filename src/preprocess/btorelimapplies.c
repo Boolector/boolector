@@ -7,12 +7,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "simplifier/btorelimapplies.h"
+#include "preprocess/btorelimapplies.h"
 
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorlog.h"
+#include "btorsubst.h"
+#include "preprocess/btorpreprocess.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
@@ -57,9 +59,9 @@ btor_eliminate_applies (Btor *btor)
 
   if (btor->lambdas->count == 0) return;
 
-  start = btor_util_time_stamp ();
-  round = 1;
-  cache = btor_hashptr_table_new (btor->mm,
+  start     = btor_util_time_stamp ();
+  round     = 1;
+  cache     = btor_hashptr_table_new (btor->mm,
                                   (BtorHashPtr) btor_node_pair_hash,
                                   (BtorCmpPtr) btor_node_pair_compare);
   app_cache = btor_hashint_table_new (btor->mm);

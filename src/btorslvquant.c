@@ -8,6 +8,7 @@
  */
 
 #include "btorslvquant.h"
+
 #include "btorabort.h"
 #include "btorbeta.h"
 #include "btorbv.h"
@@ -18,10 +19,10 @@
 #include "btorprintmodel.h"
 #include "btorslvfun.h"
 #include "btorsynth.h"
-#include "normalizer/btornormquant.h"
-#include "normalizer/btorskolemize.h"
-#include "simplifier/btorder.h"
-#include "simplifier/btorminiscope.h"
+#include "preprocess/btorder.h"
+#include "preprocess/btorminiscope.h"
+#include "preprocess/btornormquant.h"
+#include "preprocess/btorskolemize.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"

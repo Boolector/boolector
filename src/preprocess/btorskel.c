@@ -10,7 +10,7 @@
  */
 
 #ifdef BTOR_USE_LINGELING
-#include "simplifier/btorskel.h"
+#include "preprocess/btorskel.h"
 
 #include "btorcore.h"
 #include "btordbg.h"
@@ -340,5 +340,9 @@ btor_process_skeleton (Btor *btor)
       "skeleton preprocessing produced %u new constraints in %.1f seconds",
       fixed,
       delta);
+
+  assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
+  assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+  assert (btor_dbg_check_unique_table_children_proxy_free (btor));
 }
 #endif

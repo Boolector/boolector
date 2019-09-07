@@ -295,9 +295,6 @@ int32_t btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit);
 BtorSATMgr *btor_get_sat_mgr (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr (const Btor *btor);
 
-/* Run rewriting engine */
-int32_t btor_simplify (Btor *btor);
-
 void btor_push (Btor *btor, uint32_t level);
 
 void btor_pop (Btor *btor, uint32_t level);
@@ -339,8 +336,6 @@ void btor_delete_substitutions (Btor *);
 void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, bool);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
-void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
-
 /* Create a new node with 'node' substituted by 'subst' in root. */
 BtorNode *btor_substitute_node (Btor *btor,
                                 BtorNode *root,
@@ -365,4 +360,6 @@ void btor_reset_incremental_usage (Btor *btor);
 void btor_add_again_assumptions (Btor *btor);
 void btor_process_unsynthesized_constraints (Btor *btor);
 void btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *constraint);
+void btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified);
+void btor_delete_varsubst_constraints (Btor *btor);
 #endif

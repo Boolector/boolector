@@ -12,6 +12,7 @@
 /*------------------------------------------------------------------------*/
 
 #include "boolector.h"
+
 #include "btorabort.h"
 #include "btorchkclone.h"
 #include "btorclone.h"
@@ -27,6 +28,7 @@
 #include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#include "preprocess/btorpreprocess.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
