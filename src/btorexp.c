@@ -116,6 +116,33 @@ btor_exp_array (Btor *btor, BtorSortId sort, const char *symbol)
 }
 
 BtorNode *
+btor_exp_const_array (Btor *btor, BtorSortId sort, BtorNode *value)
+{
+  assert (btor);
+  assert (sort);
+  assert (btor_sort_is_fun (btor, sort));
+  assert (
+      btor_sort_tuple_get_arity (btor, btor_sort_fun_get_domain (btor, sort))
+      == 1);
+  assert (btor_sort_array_get_element (btor, sort)
+          == btor_node_get_sort_id (value));
+  assert (value);
+  assert (btor_sort_is_bv (btor, btor_node_get_sort_id (value)));
+
+  BtorNode *exp, *param;
+  BtorSortId idxsort;
+
+  idxsort       = btor_sort_array_get_index (btor, sort);
+  param         = btor_exp_param (btor, idxsort, 0);
+  exp           = btor_exp_lambda (btor, param, value);
+  exp->is_array = 1;
+
+  btor_node_release (btor, param);
+
+  return exp;
+}
+
+BtorNode *
 btor_exp_uf (Btor *btor, BtorSortId sort, const char *symbol)
 {
   return btor_node_create_uf (btor, sort, symbol);

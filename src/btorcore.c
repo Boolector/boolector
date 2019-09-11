@@ -4301,6 +4301,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         value      = (BtorBitVector *) it.bucket->data.as_ptr;
         args_tuple = btor_iter_hashptr_next (&it);
 
+        if (args_tuple->arity == 0) continue;
+
         /* create condition */
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)

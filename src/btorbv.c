@@ -1911,12 +1911,10 @@ BtorBitVectorTuple *
 btor_bv_new_tuple (BtorMemMgr *mm, uint32_t arity)
 {
   assert (mm);
-  assert (arity > 0);
-
   BtorBitVectorTuple *res;
 
   BTOR_CNEW (mm, res);
-  BTOR_CNEWN (mm, res->bv, arity);
+  if (arity) BTOR_CNEWN (mm, res->bv, arity);
   res->arity = arity;
   return res;
 }
@@ -1942,9 +1940,12 @@ btor_bv_free_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
   assert (t);
 
   uint32_t i;
-  for (i = 0; i < t->arity; i++) btor_bv_free (mm, t->bv[i]);
 
-  btor_mem_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
+  if (t->arity)
+  {
+    for (i = 0; i < t->arity; i++) btor_bv_free (mm, t->bv[i]);
+    btor_mem_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
+  }
   btor_mem_free (mm, t, sizeof (BtorBitVectorTuple));
 }
 

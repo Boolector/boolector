@@ -1785,6 +1785,66 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
 }
 
 BoolectorNode *
+boolector_const_array (Btor *btor,
+                       BoolectorSort sort,
+                       BoolectorNode *value,
+                       const char *symbol)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+
+  BtorNode *res, *const_res, *val;
+  char *symb;
+  BtorSortId s;
+
+  val = BTOR_IMPORT_BOOLECTOR_NODE (value);
+
+  symb = mk_unique_symbol (btor, symbol);
+  s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_fun (btor, s)
+                  || btor_sort_tuple_get_arity (
+                         btor, btor_sort_fun_get_domain (btor, s))
+                         != 1,
+              "'sort' is not an array sort");
+  BTOR_TRAPI (
+      BTOR_TRAPI_SORT_FMT BTOR_TRAPI_NODE_FMT " %s", sort, btor, val, symb);
+  BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
+              "symbol '%s' is already in use in the current context",
+              symb);
+  BTOR_ABORT_ARG_NULL (val);
+  BTOR_ABORT_REFS_NOT_POS (val);
+  BTOR_ABORT_BTOR_MISMATCH (btor, val);
+  BTOR_ABORT_IS_NOT_BV (val);
+  BTOR_ABORT (
+      btor_node_get_sort_id (val) != btor_sort_array_get_element (btor, s),
+      "sort of 'value' does not match element sort of array");
+
+  /* Create a const array as lambda. Since we apply structural hashing for
+   * lambdas, the created node can already exist (in case const arrays with the
+   * same value have been created). Hence, we can't directly set the symbol of
+   * 'const_res', but instead create a fresh array variable and assert it to be
+   * equal to 'const_res' and return it to the user. */
+  const_res = btor_exp_const_array (btor, s, val);
+  res       = btor_exp_array (btor, s, symb);
+  btor_mem_freestr (btor->mm, symb);
+
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+  (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
+
+  /* Assert that 'res' and 'const_res' (lambda) are equal and return 'res'. */
+  BtorNode *eq = btor_exp_eq (btor, res, const_res);
+  btor_assert_exp (btor, eq);
+  btor_node_release (btor, eq);
+  btor_node_release (btor, const_res);
+
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, array, sort, symbol);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL (btor);

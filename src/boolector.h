@@ -868,6 +868,36 @@ BoolectorNode *boolector_array (Btor *btor,
                                 const char *symbol);
 
 /*!
+  Create a one-dimensional bit-vector array with sort ``sort`` initialized with
+  value ``value``.
+
+  An array variable's symbol is used as a simple means of identification,
+  either when printing a model via boolector_print_model, or generating file
+  dumps via boolector_dump_btor and boolector_dump_smt2.
+  A symbol must be unique but may be NULL in case that no symbol should be
+  assigned.
+
+  :param btor: Boolector instance.
+  :param sort: Array sort which maps bit-vectors to bit-vectors.
+  :param value: Value to initialize array.
+  :param symbol: Name of array variable.
+  :return: Bit-vector array of sort ``sort`` and with symbol ``symbol``.
+
+  .. note::
+    In contrast to composite expressions, which are maintained uniquely w.r.t.
+    to their kind, inputs (and consequently, bit width), array variables are
+    not.  Hence, each call to boolector_const_array with the same arguments
+    will return a fresh array variable.
+
+  .. seealso::
+    boolector_array
+ */
+BoolectorNode *boolector_const_array (Btor *btor,
+                                      BoolectorSort sort,
+                                      BoolectorNode *value,
+                                      const char *symbol);
+
+/*!
   Create an uninterpreted function with sort ``sort`` and with symbol
   ``symbol``.
   ``btor`` Boolector instance.
