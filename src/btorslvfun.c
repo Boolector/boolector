@@ -26,6 +26,7 @@
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorstack.h"
+#include "utils/btorunionfind.h"
 #include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
@@ -545,8 +546,9 @@ add_function_inequality_constraints (Btor *btor)
       BTOR_PUSH_STACK (feqs, cur);
       /* if the lambdas are not arrays, we cannot handle equalities */
       BTOR_ABORT (
-          (btor_node_is_lambda (cur->e[0]) && !cur->e[0]->is_array)
-              || (btor_node_is_lambda (cur->e[1]) && !cur->e[1]->is_array),
+          (btor_node_is_lambda (cur->e[0]) && !btor_node_is_array (cur->e[0]))
+              || (btor_node_is_lambda (cur->e[1])
+                  && !btor_node_is_array (cur->e[1])),
           "equality over non-array lambdas not supported yet");
     }
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
@@ -1885,11 +1887,11 @@ propagate (Btor *btor,
 /* generate hash table for function 'fun' consisting of all rho and static_rho
  * hash tables. */
 static BtorPtrHashTable *
-generate_table (Btor *btor, BtorNode *fun)
+generate_table (Btor *btor, BtorNode *fun, BtorNode **base_array)
 {
   uint32_t i;
   BtorMemMgr *mm;
-  BtorNode *cur, *value, *args;
+  BtorNode *cur, *value, *args, *cur_fun;
   BtorPtrHashTable *table, *rho, *static_rho;
   BtorNodePtrStack visit;
   BtorIntHashTable *cache;
@@ -1905,6 +1907,7 @@ generate_table (Btor *btor, BtorNode *fun)
   BTOR_INIT_STACK (mm, visit);
   BTOR_PUSH_STACK (visit, fun);
 
+  cur_fun = 0;
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = btor_node_real_addr (BTOR_POP_STACK (visit));
@@ -1922,6 +1925,7 @@ generate_table (Btor *btor, BtorNode *fun)
     {
       rho        = cur->rho;
       static_rho = 0;
+      cur_fun    = cur;
 
       if (btor_node_is_lambda (cur))
       {
@@ -1974,6 +1978,9 @@ generate_table (Btor *btor, BtorNode *fun)
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
 
+  assert (cur_fun);
+  *base_array = cur_fun;
+
   BTOR_RELEASE_STACK (visit);
   btor_hashint_table_delete (cache);
 
@@ -1992,10 +1999,11 @@ add_extensionality_lemmas (Btor *btor)
   BtorBitVector *evalbv;
   uint32_t num_lemmas = 0;
   BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
+  BtorNode *base0, *base1;
   BtorPtrHashTableIterator it;
   BtorPtrHashTable *table0, *table1, *conflicts;
   BtorPtrHashTableIterator hit;
-  BtorNodePtrStack feqs;
+  BtorNodePtrStack feqs, const_arrays;
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
   BtorFunSolver *slv;
@@ -2008,6 +2016,7 @@ add_extensionality_lemmas (Btor *btor)
   slv = BTOR_FUN_SOLVER (btor);
   mm  = btor->mm;
   BTOR_INIT_STACK (mm, feqs);
+  BTOR_INIT_STACK (mm, const_arrays);
 
   /* collect all reachable function equalities */
   btor_iter_hashptr_init (&it, btor->feqs);
@@ -2017,6 +2026,8 @@ add_extensionality_lemmas (Btor *btor)
     assert (btor_node_is_fun_eq (cur));
     BTOR_PUSH_STACK (feqs, cur);
   }
+
+  BtorUnionFind *ufind = btor_ufind_new (btor->mm);
 
   while (!BTOR_EMPTY_STACK (feqs))
   {
@@ -2030,8 +2041,16 @@ add_extensionality_lemmas (Btor *btor)
 
     if (skip) continue;
 
-    table0 = generate_table (btor, cur->e[0]);
-    table1 = generate_table (btor, cur->e[1]);
+    base0 = base1 = 0;
+    table0        = generate_table (btor, cur->e[0], &base0);
+    table1        = generate_table (btor, cur->e[1], &base1);
+
+    assert (base0);
+    assert (base1);
+
+    btor_ufind_merge (ufind, base0, base1);
+    BTOR_PUSH_STACK_IF (btor_node_is_const_array (base0), const_arrays, base0);
+    BTOR_PUSH_STACK_IF (btor_node_is_const_array (base1), const_arrays, base1);
 
     conflicts = btor_hashptr_table_new (mm,
                                         (BtorHashPtr) hash_args_assignment,
@@ -2096,6 +2115,47 @@ add_extensionality_lemmas (Btor *btor)
     btor_hashptr_table_delete (table1);
   }
   BTOR_RELEASE_STACK (feqs);
+
+  /* No conflicts found. Check if we have positive (chains of) equalities over
+   * constant arrays. */
+  if (num_lemmas == 0)
+  {
+    int32_t id;
+    BtorIntHashTable *cache = btor_hashint_map_new (btor->mm);
+    BtorNode *ca;
+    BtorHashTableData *d;
+    BtorBitVector *bv0, *bv1;
+    for (size_t i = 0; i < BTOR_COUNT_STACK (const_arrays); i++)
+    {
+      ca = BTOR_PEEK_STACK (const_arrays, i);
+      id = btor_node_get_id (btor_ufind_get_repr (ufind, ca));
+      assert (id > 0);
+
+      if ((d = btor_hashint_map_get (cache, id)))
+      {
+        bv0 = get_bv_assignment (btor, ca->e[1]);
+        bv1 = get_bv_assignment (btor, ((BtorNode *) d->as_ptr)->e[1]);
+        BTORLOG (1,
+                 "found equality over constant array: %s and %s\n",
+                 btor_util_node2string (d->as_ptr),
+                 btor_util_node2string (ca));
+        BTOR_ABORT (btor_bv_compare (bv0, bv1),
+                    "Found positive equality over two constant arrays, "
+                    "which is currently not supported.");
+        btor_bv_free (mm, bv0);
+        btor_bv_free (mm, bv1);
+      }
+      else
+      {
+        btor_hashint_map_add (cache, id)->as_ptr = ca;
+      }
+    }
+    btor_hashint_map_delete (cache);
+  }
+
+  BTOR_RELEASE_STACK (const_arrays);
+
+  btor_ufind_delete (ufind);
 
   delta = btor_util_time_stamp () - start;
   BTORLOG (
