@@ -65,6 +65,7 @@ set(libboolector_src_files
   utils/btoroptparse.c
   utils/btorpartgen.c
   utils/btorrng.c
+  utils/btorunionfind.c
   utils/btorutil.c
 )
 

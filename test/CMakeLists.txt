@@ -33,6 +33,7 @@ set(test_src_files
   testspecial.c
   teststack.c
   testtestcases.c
+  testunionfind.c
   testutil.c
 )
 
@@ -1825,6 +1826,11 @@ set(regressions
   udiv8castdown7
   udivtheorem1
   udivzero
+  ufind_test1
+  ufind_test2
+  ufind_test3
+  ufind_test4
+  ufind_test5
   ultsubst1
   ultsubst2
   ultsubst3
