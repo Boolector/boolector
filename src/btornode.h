@@ -432,6 +432,15 @@ btor_node_is_array (const BtorNode *exp)
 }
 
 static inline bool
+btor_node_is_const_array (const BtorNode *exp)
+{
+  assert (exp);
+  exp = btor_node_real_addr (exp);
+  return btor_node_is_array (exp) && exp->kind == BTOR_LAMBDA_NODE
+         && !btor_node_real_addr (exp->e[1])->parameterized;
+}
+
+static inline bool
 btor_node_is_forall (const BtorNode *exp)
 {
   assert (exp);

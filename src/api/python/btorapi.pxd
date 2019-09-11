@@ -183,6 +183,13 @@ cdef extern from "boolector.h":
         Btor * btor, BoolectorSort  sort, const char *symbol) \
       except +raise_py_error
 
+    BoolectorNode *boolector_const_array (
+        Btor * btor,
+        BoolectorSort  sort,
+        BoolectorNode * value,
+        const char *symbol) \
+      except +raise_py_error
+
     BoolectorNode *boolector_not (
         Btor * btor, BoolectorNode * node) \
       except +raise_py_error
