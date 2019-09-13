@@ -1668,7 +1668,6 @@ propagate (Btor *btor,
     app = BTOR_POP_STACK (*prop_stack);
     assert (btor_node_is_regular (app));
     assert (btor_node_is_apply (app));
-    assert (app->refs - app->ext_refs > 0);
 
     conflict = false;
     restart  = true;
@@ -2163,6 +2162,53 @@ add_extensionality_lemmas (Btor *btor)
   slv->time.check_extensionality += delta;
 }
 
+/* Find and collect all unreachable apply nodes. */
+static void
+push_unreachable_applies (Btor *btor, BtorNodePtrStack *init_apps)
+{
+  uint32_t i;
+  BtorNode *cur;
+  BtorIntHashTable *cache;
+  BtorPtrHashTableIterator it;
+  BtorNodePtrStack visit;
+
+  cache = btor_hashint_table_new (btor->mm);
+
+  BTOR_INIT_STACK (btor->mm, visit);
+
+  /* Cache reachable nodes. */
+  btor_iter_hashptr_init (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = btor_iter_hashptr_next (&it);
+    BTOR_PUSH_STACK (visit, cur);
+    while (!BTOR_EMPTY_STACK (visit))
+    {
+      cur = btor_node_real_addr (BTOR_POP_STACK (visit));
+      if (btor_hashint_table_contains (cache, cur->id)) continue;
+      btor_hashint_table_add (cache, cur->id);
+      for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
+    }
+  }
+  BTOR_RELEASE_STACK (visit);
+
+  /* Collect unreachable applies. */
+  for (size_t i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+
+    if (!cur || !btor_node_is_apply (cur)
+        || btor_hashint_table_contains (cache, cur->id))
+      continue;
+
+    BTORLOG (1, "unreachable apply: %s", btor_util_node2string (cur));
+    BTOR_PUSH_STACK (*init_apps, cur);
+  }
+
+  btor_hashint_table_delete (cache);
+}
+
 static void
 check_and_resolve_conflicts (Btor *btor,
                              Btor *clone,
@@ -2237,6 +2283,17 @@ check_and_resolve_conflicts (Btor *btor,
   }
   else
     search_initial_applies_bv_skeleton (btor, init_apps, init_apps_cache);
+
+  /* For non-extensional problems, our model generation is able to compute
+   * values for applies that are not reachable from assertions. However, for
+   * extensional problems this is not sufficient (extensionality axiom not
+   * checked). We therefore queue all unreachable applies to make sure that we
+   * compute the correct model values.
+   */
+  if (btor_opt_get (btor, BTOR_OPT_MODEL_GEN) == 2 && btor->feqs->count > 0)
+  {
+    push_unreachable_applies (btor, init_apps);
+  }
 
   for (i = BTOR_COUNT_STACK (*init_apps) - 1; i >= 0; i--)
   {
