@@ -957,6 +957,14 @@ NEXT:
       ret_ptr  = boolector_array (btor, get_sort (hmap, arg1_str), arg2_str);
       exp_ret  = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "const_array"))
+    {
+      PARSE_ARGS3 (tok, str, str, str);
+      arg3_str = !strcmp (arg3_str, "(null)") ? 0 : arg3_str;
+      ret_ptr  = boolector_const_array (
+          btor, get_sort (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_str);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "uf"))
     {
       PARSE_ARGS2 (tok, str, str);
