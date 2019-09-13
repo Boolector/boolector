@@ -42,23 +42,12 @@ btor_process_embedded_constraints (Btor *btor)
     cur = btor_node_copy (btor, btor_iter_hashptr_next (&it));
     assert (btor_node_real_addr (cur)->constraint);
     BTOR_PUSH_STACK (ec, cur);
-  }
-
-  // TODO(ma): Merge with above loop
-  /* Note: it may happen that new embedded constraints are inserted into
-   *       btor->embedded_constraints here. */
-  btor_iter_hashptr_init (&it, btor->embedded_constraints);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    cur = btor_iter_hashptr_next (&it);
-    assert (btor_node_real_addr (cur)->constraint);
-    /* embedded constraints have possibly lost their parents,
-     * e.g. top conjunction of constraints that are released */
     if (btor_node_real_addr (cur)->parents > 0)
     {
       btor->stats.ec_substitutions++;
     }
   }
+
   btor_substitute_and_rebuild (btor, btor->embedded_constraints);
 
   while (!BTOR_EMPTY_STACK (ec))
