@@ -1806,8 +1806,11 @@ boolector_const_array (Btor *btor,
                          btor, btor_sort_fun_get_domain (btor, s))
                          != 1,
               "'sort' is not an array sort");
-  BTOR_TRAPI (
-      BTOR_TRAPI_SORT_FMT BTOR_TRAPI_NODE_FMT " %s", sort, btor, val, symb);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT BTOR_TRAPI_NODE_FMT "%s",
+              sort,
+              btor,
+              BTOR_TRAPI_NODE_ID (val),
+              symb);
   BTOR_ABORT (symb && btor_hashptr_table_get (btor->symbols, symb),
               "symbol '%s' is already in use in the current context",
               symb);
