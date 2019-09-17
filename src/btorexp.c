@@ -1220,6 +1220,51 @@ btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+static BtorNode *
+exp_rotate (Btor *btor, BtorNode *exp, uint32_t nbits, bool is_left)
+{
+  assert (btor == btor_node_real_addr (exp)->btor);
+  BtorNode *left, *right, *res;
+  uint32_t width;
+
+  width = btor_node_bv_get_width (btor, exp);
+  assert (width > 0);
+  nbits %= width;
+
+  if (nbits)
+  {
+    if (is_left) nbits = width - nbits;
+
+    assert (1 <= nbits && nbits < width);
+
+    left  = btor_exp_bv_slice (btor, exp, nbits - 1, 0);
+    right = btor_exp_bv_slice (btor, exp, width - 1, nbits);
+
+    res = btor_exp_bv_concat (btor, left, right);
+
+    btor_node_release (btor, left);
+    btor_node_release (btor, right);
+  }
+  else
+  {
+    res = btor_node_copy (btor, exp);
+  }
+  assert (btor_node_bv_get_width (btor, res) == width);
+  return res;
+}
+
+BtorNode *
+btor_exp_bv_roli (Btor *btor, BtorNode *exp, uint32_t nbits)
+{
+  return exp_rotate (btor, exp, nbits, true);
+}
+
+BtorNode *
+btor_exp_bv_rori (Btor *btor, BtorNode *exp, uint32_t nbits)
+{
+  return exp_rotate (btor, exp, nbits, false);
+}
+
 BtorNode *
 btor_exp_bv_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 {

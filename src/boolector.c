@@ -2756,6 +2756,48 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 }
 
 BoolectorNode *
+boolector_roli (Btor *btor, BoolectorNode *n, uint32_t nbits)
+{
+  BtorNode *exp, *res;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (n);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u", nbits);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_ABORT_IS_NOT_BV (exp);
+  res = btor_exp_bv_roli (btor, exp, nbits);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, roli, BTOR_CLONED_EXP (exp), nbits);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_rori (Btor *btor, BoolectorNode *n, uint32_t nbits)
+{
+  BtorNode *exp, *res;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (n);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%u", nbits);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  BTOR_ABORT_IS_NOT_BV (exp);
+  res = btor_exp_bv_rori (btor, exp, nbits);
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, rori, BTOR_CLONED_EXP (exp), nbits);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
 boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
   BtorNode *e0, *e1, *res;

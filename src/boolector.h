@@ -1318,7 +1318,8 @@ BoolectorNode *boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*!
-  Create a rotate left.
+  Create a rotate left, with the number of bits to rotate by given as a
+  bit-vector.
 
   The bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
@@ -1331,7 +1332,8 @@ BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*!
-  Create a rotate right.
+  Create a rotate right, with the number of bits to rotate by given as a
+  bit-vector.
 
   The bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
@@ -1342,6 +1344,28 @@ BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :return: Bit-vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*!
+  Create a rotate left, with the number of bits to rotate by given as a
+  numeral (unsigned integer).
+
+  :param btor: Boolector instance.
+  :param n: Bit-vector operand.
+  :param nbits: Number of bits to rotate by.
+  :return: Bit-vector with the same bit width as ``n``.
+*/
+BoolectorNode *boolector_roli (Btor *btor, BoolectorNode *n, uint32_t nbits);
+
+/*!
+  Create a rotate right, with the number of bits to rotate by given as a
+  numeral (unsigned integer).
+
+  :param btor: Boolector instance.
+  :param n: Bit-vector operand.
+  :param nbits: Number of bits to rotate by.
+  :return: Bit-vector with the same bit width as ``n``.
+*/
+BoolectorNode *boolector_rori (Btor *btor, BoolectorNode *n, uint32_t nbits);
 
 /*!
   Create a bit-vector subtraction.

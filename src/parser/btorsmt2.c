@@ -1808,55 +1808,10 @@ check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
 }
 
 static BoolectorNode *
-translate_rotate_smt2 (Btor *btor,
-                       BoolectorNode *exp,
-                       uint32_t shift,
-                       uint32_t left)
-{
-  BoolectorNode *l, *r, *res;
-  uint32_t width;
-
-  width = boolector_get_width (btor, exp);
-  assert (width > 0);
-  shift %= width;
-
-  if (shift)
-  {
-    if (left) shift = width - shift;
-
-    assert (1 <= shift && shift < width);
-
-    l = boolector_slice (btor, exp, shift - 1, 0);
-    r = boolector_slice (btor, exp, width - 1, shift);
-
-    res = boolector_concat (btor, l, r);
-
-    boolector_release (btor, l);
-    boolector_release (btor, r);
-  }
-  else
-    res = boolector_copy (btor, exp);
-  assert (boolector_get_width (btor, res) == width);
-  return res;
-}
-
-static BoolectorNode *
-rotate_left_smt2 (Btor *btor, BoolectorNode *exp, int32_t shift)
-{
-  return translate_rotate_smt2 (btor, exp, shift, 1);
-}
-
-static BoolectorNode *
-rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int32_t shift)
-{
-  return translate_rotate_smt2 (btor, exp, shift, 0);
-}
-
-static BoolectorNode *
 translate_ext_rotate_smt2 (Btor *btor,
                            BoolectorNode *exp,
                            BoolectorNode *shift,
-                           int32_t left)
+                           bool is_left)
 {
   assert (boolector_is_const (btor, shift));
 
@@ -1871,7 +1826,8 @@ translate_ext_rotate_smt2 (Btor *btor,
 
   assert (shift_width < boolector_get_width (btor, exp));
 
-  return translate_rotate_smt2 (btor, exp, shift_width, left);
+  return is_left ? boolector_roli (btor, exp, shift_width)
+                 : boolector_rori (btor, exp, shift_width);
 }
 
 static int32_t parse_sort (BtorSMT2Parser *parser,
@@ -2189,7 +2145,7 @@ close_term_rotate_bv_fun (BtorSMT2Parser *parser,
                           uint32_t nargs,
                           BoolectorNode *(*fun) (Btor *,
                                                  BoolectorNode *,
-                                                 int32_t))
+                                                 uint32_t))
 {
   assert (parser);
   assert (item_open);
@@ -2882,7 +2838,7 @@ close_term (BtorSMT2Parser *parser)
   else if (tag == BTOR_BV_ROTATE_LEFT_TAG_SMT2)
   {
     if (!close_term_rotate_bv_fun (
-            parser, item_open, item_cur, nargs, rotate_left_smt2))
+            parser, item_open, item_cur, nargs, boolector_roli))
     {
       return 0;
     }
@@ -2891,7 +2847,7 @@ close_term (BtorSMT2Parser *parser)
   else if (tag == BTOR_BV_ROTATE_RIGHT_TAG_SMT2)
   {
     if (!close_term_rotate_bv_fun (
-            parser, item_open, item_cur, nargs, rotate_right_smt2))
+            parser, item_open, item_cur, nargs, boolector_rori))
     {
       return 0;
     }
