@@ -78,13 +78,29 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
 
-#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (uintptr_t) (aig)))
+static inline BtorAIG *
+btor_aig_invert (const BtorAIG *aig)
+{
+  return (BtorAIG *) (1ul ^ (uintptr_t) (aig));
+}
 
-#define BTOR_IS_INVERTED_AIG(aig) (1ul & (uintptr_t) (aig))
+static inline bool
+btor_aig_is_inverted (const BtorAIG *aig)
+{
+  return (1ul & (uintptr_t) (aig));
+}
 
-#define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (uintptr_t) (aig)))
+static inline BtorAIG *
+btor_aig_real_addr (const BtorAIG *aig)
+{
+  return (BtorAIG *) (~1ul & (uintptr_t) (aig));
+}
 
-#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (uintptr_t) (aig)))
+static inline bool
+btor_aig_is_regular (const BtorAIG *aig)
+{
+  return !(1ul & (uintptr_t) (aig));
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -125,7 +141,7 @@ btor_aig_get_id (const BtorAIG *aig)
 {
   assert (aig);
   assert (!btor_aig_is_const (aig));
-  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id;
+  return btor_aig_is_inverted (aig) ? -btor_aig_real_addr (aig)->id : aig->id;
 }
 
 static inline BtorAIG *
@@ -133,7 +149,7 @@ btor_aig_get_by_id (BtorAIGMgr *amgr, int32_t id)
 {
   assert (amgr);
 
-  return id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id))
+  return id < 0 ? btor_aig_invert (BTOR_PEEK_STACK (amgr->id2aig, -id))
                 : BTOR_PEEK_STACK (amgr->id2aig, id);
 }
 
@@ -142,7 +158,7 @@ btor_aig_get_cnf_id (const BtorAIG *aig)
 {
   if (btor_aig_is_true (aig)) return 1;
   if (btor_aig_is_false (aig)) return -1;
-  return BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id
+  return btor_aig_is_inverted (aig) ? -btor_aig_real_addr (aig)->cnf_id
                                     : aig->cnf_id;
 }
 
@@ -152,7 +168,7 @@ btor_aig_get_left_child (BtorAIGMgr *amgr, const BtorAIG *aig)
   assert (amgr);
   assert (aig);
   assert (!btor_aig_is_const (aig));
-  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[0]);
+  return btor_aig_get_by_id (amgr, btor_aig_real_addr (aig)->children[0]);
 }
 
 static inline BtorAIG *
@@ -161,7 +177,7 @@ btor_aig_get_right_child (BtorAIGMgr *amgr, const BtorAIG *aig)
   assert (amgr);
   assert (aig);
   assert (!btor_aig_is_const (aig));
-  return btor_aig_get_by_id (amgr, BTOR_REAL_ADDR_AIG (aig)->children[1]);
+  return btor_aig_get_by_id (amgr, btor_aig_real_addr (aig)->children[1]);
 }
 
 /*------------------------------------------------------------------------*/

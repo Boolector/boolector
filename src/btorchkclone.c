@@ -359,8 +359,8 @@ chkclone_opts (Btor *btor, Btor *clone)
       assert (!real_clone->field);                        \
       break;                                              \
     }                                                     \
-    assert (BTOR_IS_INVERTED_AIG (real_aig->field)        \
-            == BTOR_IS_INVERTED_AIG (real_clone->field)); \
+    assert (btor_aig_is_inverted (real_aig->field)        \
+            == btor_aig_is_inverted (real_clone->field)); \
     BTOR_CHKCLONE_AIGPID (field);                         \
   } while (0)
 
@@ -370,8 +370,8 @@ chkclone_aig (BtorAIG *aig, BtorAIG *clone)
   int32_t i;
   BtorAIG *real_aig, *real_clone;
 
-  real_aig   = BTOR_REAL_ADDR_AIG (aig);
-  real_clone = BTOR_REAL_ADDR_AIG (clone);
+  real_aig   = btor_aig_real_addr (aig);
+  real_clone = btor_aig_real_addr (clone);
   assert ((real_aig == BTOR_AIG_FALSE && real_clone == BTOR_AIG_FALSE)
           || real_aig != real_clone);
 

@@ -72,15 +72,15 @@ test_invert_aigvec (void)
   assert (width == 32);
   for (i = 0; i < width; i++)
   {
-    assert (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+    assert (!btor_aig_is_inverted (av1->aigs[i]));
     assert (btor_aig_is_var (av1->aigs[i]));
   }
   btor_aigvec_invert (avmgr, av1);
-  for (i = 0; i < width; i++) assert (BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+  for (i = 0; i < width; i++) assert (btor_aig_is_inverted (av1->aigs[i]));
   btor_aigvec_invert (avmgr, av1);
   for (i = 0; i < width; i++)
   {
-    assert (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+    assert (!btor_aig_is_inverted (av1->aigs[i]));
     assert (btor_aig_is_var (av1->aigs[i]));
   }
   assert (av2->aigs[0] == BTOR_AIG_TRUE);

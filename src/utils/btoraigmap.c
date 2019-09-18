@@ -40,12 +40,12 @@ btor_aigmap_mapped (BtorAIGMap *map, BtorAIG *aig)
   BtorPtrHashBucket *bucket;
   BtorAIG *real_aig, *res;
 
-  real_aig = BTOR_REAL_ADDR_AIG (aig);
+  real_aig = btor_aig_real_addr (aig);
   bucket   = btor_hashptr_table_get (map->table, real_aig);
   if (!bucket) return 0;
   assert (bucket->key == real_aig);
   res = bucket->data.as_ptr;
-  if (BTOR_IS_INVERTED_AIG (aig)) res = BTOR_INVERT_AIG (res);
+  if (btor_aig_is_inverted (aig)) res = btor_aig_invert (res);
   return res;
 }
 
@@ -58,11 +58,11 @@ btor_aigmap_map (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
 
   BtorPtrHashBucket *bucket;
 
-  if (BTOR_IS_INVERTED_AIG (src))
+  if (btor_aig_is_inverted (src))
   {
-    assert (BTOR_IS_INVERTED_AIG (dst));
-    src = BTOR_INVERT_AIG (src);
-    dst = BTOR_INVERT_AIG (dst);
+    assert (btor_aig_is_inverted (dst));
+    src = btor_aig_invert (src);
+    dst = btor_aig_invert (dst);
   }
   assert (!btor_hashptr_table_get (map->table, src));
   bucket = btor_hashptr_table_add (map->table, src);

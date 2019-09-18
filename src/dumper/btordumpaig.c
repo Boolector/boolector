@@ -26,14 +26,14 @@ aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 
   if (aig == BTOR_AIG_TRUE) return 1;
 
-  real_aig = BTOR_REAL_ADDR_AIG (aig);
+  real_aig = btor_aig_real_addr (aig);
 
   b = btor_hashptr_table_get (table, real_aig);
   assert (b);
 
   res = 2 * (uint32_t) b->data.as_int;
 
-  if (BTOR_IS_INVERTED_AIG (aig)) res ^= 1;
+  if (btor_aig_is_inverted (aig)) res ^= 1;
 
   return res;
 }
@@ -239,7 +239,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
   CONTINUE_WITHOUT_POP:
 
     assert (!btor_aig_is_const (aig));
-    aig = BTOR_REAL_ADDR_AIG (aig);
+    aig = btor_aig_real_addr (aig);
 
     if (aig->mark) continue;
 
@@ -303,7 +303,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
     CONTINUE_WITH_NON_ZERO_AIG:
 
       assert (!btor_aig_is_const (aig));
-      aig = BTOR_REAL_ADDR_AIG (aig);
+      aig = btor_aig_real_addr (aig);
 
       if (!aig->mark) continue;
 
@@ -329,7 +329,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
       assert (!aig->mark);
 
       assert (aig);
-      assert (BTOR_REAL_ADDR_AIG (aig) == aig);
+      assert (btor_aig_real_addr (aig) == aig);
       assert (btor_aig_is_and (aig));
 
       p              = btor_hashptr_table_add (table, aig);
@@ -354,7 +354,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
     aig = p->key;
 
     assert (aig);
-    assert (!BTOR_IS_INVERTED_AIG (aig));
+    assert (!btor_aig_is_inverted (aig));
 
     if (!btor_aig_is_var (aig)) break;
 
@@ -386,7 +386,7 @@ btor_dumpaig_dump_seq (BtorAIGMgr *amgr,
     aig = p->key;
 
     assert (aig);
-    assert (!BTOR_IS_INVERTED_AIG (aig));
+    assert (!btor_aig_is_inverted (aig));
     assert (btor_aig_is_and (aig));
 
     left  = btor_aig_get_left_child (amgr, aig);

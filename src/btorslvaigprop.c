@@ -69,8 +69,8 @@ get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_hashint_map_contains (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
-    return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
+  if (!btor_hashint_map_contains (aprop->model, btor_aig_real_addr (aig)->id))
+    return btor_aig_is_inverted (aig) ? 1 : -1;
   return aigprop_get_assignment_aig (aprop, aig);
 }
 
@@ -255,7 +255,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
     if (!btor_node_real_addr (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (btor_node_real_addr (root)->av->width == 1);
     aig = btor_node_real_addr (root)->av->aigs[0];
-    if (btor_node_is_inverted (root)) aig = BTOR_INVERT_AIG (aig);
+    if (btor_node_is_inverted (root)) aig = btor_aig_invert (aig);
     if (aig == BTOR_AIG_FALSE) goto UNSAT;
     if (aig == BTOR_AIG_TRUE) continue;
     if (!btor_hashint_table_contains (roots, btor_aig_get_id (aig)))

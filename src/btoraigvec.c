@@ -80,7 +80,7 @@ btor_aigvec_invert (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (av);
   assert (av->width > 0);
   width = av->width;
-  for (i = 0; i < width; i++) av->aigs[i] = BTOR_INVERT_AIG (av->aigs[i]);
+  for (i = 0; i < width; i++) av->aigs[i] = btor_aig_invert (av->aigs[i]);
 }
 
 BtorAIGVec *
@@ -148,14 +148,14 @@ lt_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   res  = BTOR_AIG_FALSE;
   for (j = 1, i = av1->width - 1; j <= av1->width; j++, i--)
   {
-    term0 = btor_aig_and (amgr, av1->aigs[i], BTOR_INVERT_AIG (av2->aigs[i]));
+    term0 = btor_aig_and (amgr, av1->aigs[i], btor_aig_invert (av2->aigs[i]));
 
-    tmp = btor_aig_and (amgr, BTOR_INVERT_AIG (term0), res);
+    tmp = btor_aig_and (amgr, btor_aig_invert (term0), res);
     btor_aig_release (amgr, term0);
     btor_aig_release (amgr, res);
     res = tmp;
 
-    term1 = btor_aig_and (amgr, BTOR_INVERT_AIG (av1->aigs[i]), av2->aigs[i]);
+    term1 = btor_aig_and (amgr, btor_aig_invert (av1->aigs[i]), av2->aigs[i]);
 
     tmp = btor_aig_or (amgr, term1, res);
     btor_aig_release (amgr, term1);
@@ -213,11 +213,11 @@ half_adder (BtorAIGMgr *amgr, BtorAIG *x, BtorAIG *y, BtorAIG **cout)
 {
   BtorAIG *res, *x_and_y, *not_x, *not_y, *not_x_and_not_y, *x_xnor_y;
   x_and_y         = btor_aig_and (amgr, x, y);
-  not_x           = BTOR_INVERT_AIG (x);
-  not_y           = BTOR_INVERT_AIG (y);
+  not_x           = btor_aig_invert (x);
+  not_y           = btor_aig_invert (y);
   not_x_and_not_y = btor_aig_and (amgr, not_x, not_y);
   x_xnor_y        = btor_aig_or (amgr, x_and_y, not_x_and_not_y);
-  res             = BTOR_INVERT_AIG (x_xnor_y);
+  res             = btor_aig_invert (x_xnor_y);
   *cout           = x_and_y;
   btor_aig_release (amgr, not_x_and_not_y);
   return res;
@@ -474,11 +474,11 @@ SC_GATE_S_aigvec (BtorAIGMgr *amgr,
   BtorAIG *T1, *T2;
   D_or_CI  = btor_aig_or (amgr, D, CI);
   D_and_CI = btor_aig_and (amgr, D, CI);
-  T1       = btor_aig_and (amgr, D_or_CI, BTOR_INVERT_AIG (D_and_CI));
+  T1       = btor_aig_and (amgr, D_or_CI, btor_aig_invert (D_and_CI));
   T2       = btor_aig_and (amgr, T1, Q);
   T2_or_R  = btor_aig_or (amgr, T2, R);
   T2_and_R = btor_aig_and (amgr, T2, R);
-  *S       = btor_aig_and (amgr, T2_or_R, BTOR_INVERT_AIG (T2_and_R));
+  *S       = btor_aig_and (amgr, T2_or_R, btor_aig_invert (T2_and_R));
   btor_aig_release (amgr, T1);
   btor_aig_release (amgr, T2);
   btor_aig_release (amgr, D_and_CI);
@@ -510,7 +510,7 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
   for (i = 0; i < size; i++) A[i] = Ain->aigs[size - 1 - i];
 
   BTOR_NEWN (mem, nD, size);
-  for (i = 0; i < size; i++) nD[i] = BTOR_INVERT_AIG (Din->aigs[size - 1 - i]);
+  for (i = 0; i < size; i++) nD[i] = btor_aig_invert (Din->aigs[size - 1 - i]);
 
   BTOR_NEWN (mem, S, size + 1);
   for (j = 0; j <= size; j++)
@@ -682,14 +682,14 @@ btor_aigvec_clone (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
     else
     {
       aig = av->aigs[i];
-      assert (BTOR_REAL_ADDR_AIG (aig)->id >= 0);
-      assert ((size_t) BTOR_REAL_ADDR_AIG (aig)->id
+      assert (btor_aig_real_addr (aig)->id >= 0);
+      assert ((size_t) btor_aig_real_addr (aig)->id
               < BTOR_COUNT_STACK (amgr->id2aig));
-      caig = BTOR_PEEK_STACK (amgr->id2aig, BTOR_REAL_ADDR_AIG (aig)->id);
+      caig = BTOR_PEEK_STACK (amgr->id2aig, btor_aig_real_addr (aig)->id);
       assert (caig);
       assert (!btor_aig_is_const (caig));
-      if (BTOR_IS_INVERTED_AIG (aig))
-        res->aigs[i] = BTOR_INVERT_AIG (caig);
+      if (btor_aig_is_inverted (aig))
+        res->aigs[i] = btor_aig_invert (caig);
       else
         res->aigs[i] = caig;
       assert (res->aigs[i]);

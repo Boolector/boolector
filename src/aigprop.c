@@ -59,10 +59,10 @@ aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   if (btor_aig_is_true (aig)) return 1;
   if (btor_aig_is_false (aig)) return -1;
 
-  id = btor_aig_get_id (BTOR_REAL_ADDR_AIG (aig));
+  id = btor_aig_get_id (btor_aig_real_addr (aig));
   assert (btor_hashint_map_get (aprop->model, id));
   res = btor_hashint_map_get (aprop->model, id)->as_int;
-  res = BTOR_IS_INVERTED_AIG (aig) ? -res : res;
+  res = btor_aig_is_inverted (aig) ? -res : res;
   return res;
 }
 
@@ -84,31 +84,31 @@ aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
     assert (a);                                                      \
     AIGPROPLOG (3,                                                   \
                 "        assignment aig0 (%s%d): %d",                \
-                BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
-                BTOR_REAL_ADDR_AIG (left)->id,                       \
+                btor_aig_is_inverted (left) ? "-" : "",              \
+                btor_aig_real_addr (left)->id,                       \
                 a < 0 ? 0 : 1);                                      \
     a = aigprop_get_assignment_aig (aprop, right);                   \
     assert (a);                                                      \
     AIGPROPLOG (3,                                                   \
                 "        assignment aig1 (%s%d): %d",                \
-                BTOR_IS_INVERTED_AIG (right) ? "-" : "",             \
-                BTOR_REAL_ADDR_AIG (right)->id,                      \
+                btor_aig_is_inverted (right) ? "-" : "",             \
+                btor_aig_real_addr (right)->id,                      \
                 a < 0 ? 0 : 1);                                      \
     AIGPROPLOG (3,                                                   \
                 "        score      aig0 (%s%d): %f%s",              \
-                BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
-                BTOR_REAL_ADDR_AIG (left)->id,                       \
+                btor_aig_is_inverted (left) ? "-" : "",              \
+                btor_aig_real_addr (left)->id,                       \
                 s0,                                                  \
                 s0 < 1.0 ? " (< 1.0)" : "");                         \
     AIGPROPLOG (3,                                                   \
                 "        score      aig1 (%s%d): %f%s",              \
-                BTOR_IS_INVERTED_AIG (right) ? "-" : "",             \
-                BTOR_REAL_ADDR_AIG (right)->id,                      \
+                btor_aig_is_inverted (right) ? "-" : "",             \
+                btor_aig_real_addr (right)->id,                      \
                 s1,                                                  \
                 s1 < 1.0 ? " (< 1.0)" : "");                         \
     AIGPROPLOG (3,                                                   \
                 "      * score cur (%s%d): %f%s",                    \
-                BTOR_IS_INVERTED_AIG (cur) ? "-" : "",               \
+                btor_aig_is_inverted (cur) ? "-" : "",               \
                 real_cur->id,                                        \
                 res,                                                 \
                 res < 1.0 ? " (< 1.0)" : "");                        \
@@ -145,7 +145,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_AIG (cur);
+    real_cur = btor_aig_real_addr (cur);
 
     if (btor_aig_is_const (real_cur)) continue;
 
@@ -179,7 +179,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
       AIGPROPLOG (3, "");
       AIGPROPLOG (3,
                   "  ** assignment cur (%s%d): %d",
-                  BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
+                  btor_aig_is_inverted (cur) ? "-" : "",
                   real_cur->id,
                   a < 0 ? 0 : 1);
 #endif
@@ -191,12 +191,12 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
         res = aigprop_get_assignment_aig (aprop, cur) < 0 ? 0.0 : 1.0;
         AIGPROPLOG (3,
                     "        * score cur (%s%d): %f",
-                    BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
+                    btor_aig_is_inverted (cur) ? "-" : "",
                     real_cur->id,
                     res);
         AIGPROPLOG (3,
                     "        * score cur (%s%d): %f",
-                    BTOR_IS_INVERTED_AIG (cur) ? "" : "-",
+                    btor_aig_is_inverted (cur) ? "" : "-",
                     real_cur->id,
                     res == 0.0 ? 1.0 : 0.0);
         btor_hashint_map_add (aprop->score, curid)->as_dbl = res;
@@ -248,9 +248,9 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
         assert (res >= 0.0 && res <= 1.0);
         btor_hashint_map_add (aprop->score, -real_cur->id)->as_dbl = res;
 #ifndef NDEBUG
-        AIGPROP_LOG_COMPUTE_SCORE_AIG (BTOR_INVERT_AIG (real_cur),
-                                       BTOR_INVERT_AIG (left),
-                                       BTOR_INVERT_AIG (right),
+        AIGPROP_LOG_COMPUTE_SCORE_AIG (btor_aig_invert (real_cur),
+                                       btor_aig_invert (left),
+                                       btor_aig_invert (right),
                                        sleft,
                                        sright,
                                        res);
@@ -301,7 +301,7 @@ compute_scores (AIGProp *aprop)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_AIG (cur);
+    real_cur = btor_aig_real_addr (cur);
 
     if (btor_aig_is_const (real_cur)) continue;
     if (btor_hashint_map_contains (aprop->score, btor_aig_get_id (cur)))
@@ -318,11 +318,11 @@ compute_scores (AIGProp *aprop)
         right = btor_aig_get_right_child (aprop->amgr, real_cur);
         if (!btor_aig_is_const (left)
             && !btor_hashint_table_contains (cache,
-                                             BTOR_REAL_ADDR_AIG (left)->id))
+                                             btor_aig_real_addr (left)->id))
           BTOR_PUSH_STACK (stack, left);
         if (!btor_aig_is_const (right)
             && !btor_hashint_table_contains (cache,
-                                             BTOR_REAL_ADDR_AIG (right)->id))
+                                             btor_aig_real_addr (right)->id))
           BTOR_PUSH_STACK (stack, right);
       }
     }
@@ -363,7 +363,7 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
-    real_cur = BTOR_REAL_ADDR_AIG (cur);
+    real_cur = btor_aig_real_addr (cur);
     assert (!btor_aig_is_const (real_cur));
     if (btor_hashint_map_contains (aprop->model, real_cur->id)) continue;
 
@@ -384,11 +384,11 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
         BTOR_PUSH_STACK (stack, cur);
         if (!btor_aig_is_const (left)
             && !btor_hashint_table_contains (cache,
-                                             BTOR_REAL_ADDR_AIG (left)->id))
+                                             btor_aig_real_addr (left)->id))
           BTOR_PUSH_STACK (stack, left);
         if (!btor_aig_is_const (right)
             && !btor_hashint_table_contains (cache,
-                                             BTOR_REAL_ADDR_AIG (right)->id))
+                                             btor_aig_real_addr (right)->id))
           BTOR_PUSH_STACK (stack, right);
       }
       else
@@ -471,7 +471,7 @@ update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   else if (btor_hashint_map_contains (aprop->unsatroots, -id))
   {
     btor_hashint_map_remove (aprop->unsatroots, -id, 0);
-    assert (aigprop_get_assignment_aig (aprop, BTOR_INVERT_AIG (aig)) == -1);
+    assert (aigprop_get_assignment_aig (aprop, btor_aig_invert (aig)) == -1);
     assert (assignment == -1);
   }
   else if (assignment == -1)
@@ -482,7 +482,7 @@ update_unsatroots_table (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   else
   {
     btor_hashint_map_add (aprop->unsatroots, -id);
-    assert (aigprop_get_assignment_aig (aprop, BTOR_INVERT_AIG (aig)) == 1);
+    assert (aigprop_get_assignment_aig (aprop, btor_aig_invert (aig)) == 1);
   }
 }
 
@@ -491,7 +491,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
 {
   assert (aprop);
   assert (aig);
-  assert (BTOR_IS_REGULAR_AIG (aig));
+  assert (btor_aig_is_regular (aig));
   assert (btor_aig_is_var (aig));
   assert (assignment == 1 || assignment == -1);
 
@@ -517,21 +517,21 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   {
     root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
     assert (!btor_aig_is_false (root));
-    if ((!BTOR_IS_INVERTED_AIG (root)
-         && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root)) == -1)
-        || (BTOR_IS_INVERTED_AIG (root)
-            && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root))
+    if ((!btor_aig_is_inverted (root)
+         && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root)) == -1)
+        || (btor_aig_is_inverted (root)
+            && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root))
                    == 1))
     {
       assert (btor_hashint_map_contains (aprop->unsatroots,
                                          btor_aig_get_id (root)));
     }
-    else if ((!BTOR_IS_INVERTED_AIG (root)
-              && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root))
+    else if ((!btor_aig_is_inverted (root)
+              && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root))
                      == 1)
-             || (BTOR_IS_INVERTED_AIG (root)
+             || (btor_aig_is_inverted (root)
                  && aigprop_get_assignment_aig (aprop,
-                                                BTOR_REAL_ADDR_AIG (root))
+                                                btor_aig_real_addr (root))
                         == -1))
     {
       assert (!btor_hashint_map_contains (aprop->unsatroots,
@@ -549,7 +549,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_AIG (cur));
+    assert (btor_aig_is_regular (cur));
     if (btor_hashint_table_contains (cache, cur->id)) continue;
     btor_hashint_table_add (cache, cur->id);
     if (cur != aig) BTOR_PUSH_STACK (cone, cur);
@@ -597,7 +597,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
   {
     cur = BTOR_PEEK_STACK (cone, i);
-    assert (BTOR_IS_REGULAR_AIG (cur));
+    assert (btor_aig_is_regular (cur));
     assert (btor_aig_is_and (cur));
     assert (btor_hashint_map_contains (aprop->model, cur->id));
 
@@ -629,7 +629,7 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
     for (i = 0; i < BTOR_COUNT_STACK (cone); i++)
     {
       cur = BTOR_PEEK_STACK (cone, i);
-      assert (BTOR_IS_REGULAR_AIG (cur));
+      assert (btor_aig_is_regular (cur));
       assert (btor_aig_is_and (cur));
       assert (btor_hashint_map_contains (aprop->score, cur->id));
       assert (btor_hashint_map_contains (aprop->score, -cur->id));
@@ -673,21 +673,21 @@ update_cone (AIGProp *aprop, BtorAIG *aig, int32_t assignment)
   while (btor_iter_hashint_has_next (&it))
   {
     root = btor_aig_get_by_id (aprop->amgr, btor_iter_hashint_next (&it));
-    if ((!BTOR_IS_INVERTED_AIG (root)
-         && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root)) == -1)
-        || (BTOR_IS_INVERTED_AIG (root)
-            && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root))
+    if ((!btor_aig_is_inverted (root)
+         && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root)) == -1)
+        || (btor_aig_is_inverted (root)
+            && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root))
                    == 1))
     {
       assert (btor_hashint_map_contains (aprop->unsatroots,
                                          btor_aig_get_id (root)));
     }
-    else if ((!BTOR_IS_INVERTED_AIG (root)
-              && aigprop_get_assignment_aig (aprop, BTOR_REAL_ADDR_AIG (root))
+    else if ((!btor_aig_is_inverted (root)
+              && aigprop_get_assignment_aig (aprop, btor_aig_real_addr (root))
                      == 1)
-             || (BTOR_IS_INVERTED_AIG (root)
+             || (btor_aig_is_inverted (root)
                  && aigprop_get_assignment_aig (aprop,
-                                                BTOR_REAL_ADDR_AIG (root))
+                                                btor_aig_real_addr (root))
                         == -1))
     {
       assert (!btor_hashint_map_contains (aprop->unsatroots,
@@ -772,8 +772,8 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   AIGPROPLOG (1, "");
   AIGPROPLOG (1,
               "*** select root: %s%d",
-              BTOR_IS_INVERTED_AIG (res) ? "-" : "",
-              BTOR_REAL_ADDR_AIG (res)->id);
+              btor_aig_is_inverted (res) ? "-" : "",
+              btor_aig_real_addr (res)->id);
   return res;
 }
 
@@ -800,18 +800,18 @@ select_move (AIGProp *aprop,
   cur    = root;
   asscur = 1;
 
-  if (btor_aig_is_var (BTOR_REAL_ADDR_AIG (cur)))
+  if (btor_aig_is_var (btor_aig_real_addr (cur)))
   {
-    *input      = BTOR_REAL_ADDR_AIG (cur);
-    *assignment = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
+    *input      = btor_aig_real_addr (cur);
+    *assignment = btor_aig_is_inverted (cur) ? -asscur : asscur;
   }
   else
   {
     for (;;)
     {
-      real_cur = BTOR_REAL_ADDR_AIG (cur);
+      real_cur = btor_aig_real_addr (cur);
       assert (btor_aig_is_and (real_cur));
-      asscur = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
+      asscur = btor_aig_is_inverted (cur) ? -asscur : asscur;
       c[0]   = btor_aig_get_by_id (aprop->amgr, real_cur->children[0]);
       c[1]   = btor_aig_get_by_id (aprop->amgr, real_cur->children[1]);
 
@@ -832,11 +832,11 @@ select_move (AIGProp *aprop,
         for (i = 0; i < 2; i++)
         {
           assert (btor_hashint_map_get (aprop->model,
-                                        BTOR_REAL_ADDR_AIG (c[i])->id));
+                                        btor_aig_real_addr (c[i])->id));
           d = btor_hashint_map_get (aprop->model,
-                                    BTOR_REAL_ADDR_AIG (c[i])->id);
+                                    btor_aig_real_addr (c[i])->id);
           assert (d);
-          ass[i] = BTOR_IS_INVERTED_AIG (c[i]) ? -d->as_int : d->as_int;
+          ass[i] = btor_aig_is_inverted (c[i]) ? -d->as_int : d->as_int;
         }
         if (ass[0] == -1 && ass[1] == 1)
           eidx = 0;
@@ -858,10 +858,10 @@ select_move (AIGProp *aprop,
       cur    = c[eidx];
       asscur = assnew;
 
-      if (btor_aig_is_var (BTOR_REAL_ADDR_AIG (cur)))
+      if (btor_aig_is_var (btor_aig_real_addr (cur)))
       {
-        *input      = BTOR_REAL_ADDR_AIG (cur);
-        *assignment = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
+        *input      = btor_aig_real_addr (cur);
+        *assignment = btor_aig_is_inverted (cur) ? -asscur : asscur;
         break;
       }
     }
@@ -890,8 +890,8 @@ move (AIGProp *aprop, uint32_t nmoves)
   int32_t a = aigprop_get_assignment_aig (aprop, input);
   AIGPROPLOG (1,
               "    * input: %s%d",
-              BTOR_IS_INVERTED_AIG (input) ? "-" : "",
-              BTOR_REAL_ADDR_AIG (input)->id);
+              btor_aig_is_inverted (input) ? "-" : "",
+              btor_aig_real_addr (input)->id);
   AIGPROPLOG (1, "      prev. assignment: %d", a);
   AIGPROPLOG (1, "      new   assignment: %d", assignment);
 #endif
@@ -944,7 +944,7 @@ aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots)
 
   while (!BTOR_EMPTY_STACK (stack))
   {
-    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    cur = btor_aig_real_addr (BTOR_POP_STACK (stack));
     assert (!btor_aig_is_const (cur));
 
     if ((d = btor_hashint_map_get (cache, cur->id)) && d->as_int == 1) continue;
