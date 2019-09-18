@@ -20,6 +20,8 @@
 #ifndef NDEBUG
 #include <float.h>
 #endif
+#include <stdbool.h>
+#include <stdint.h>
 
 /*------------------------------------------------------------------------*/
 

@@ -25,6 +25,7 @@ set(test_names
   parseerror
   prop
   propinv
+  rotate
   queue
   satmgr
   shift

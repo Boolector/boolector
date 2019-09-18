@@ -1221,7 +1221,7 @@ btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 static BtorNode *
-exp_rotate (Btor *btor, BtorNode *exp, uint32_t nbits, bool is_left)
+exp_bv_rotate (Btor *btor, BtorNode *exp, uint32_t nbits, bool is_left)
 {
   assert (btor == btor_node_real_addr (exp)->btor);
   BtorNode *left, *right, *res;
@@ -1256,13 +1256,13 @@ exp_rotate (Btor *btor, BtorNode *exp, uint32_t nbits, bool is_left)
 BtorNode *
 btor_exp_bv_roli (Btor *btor, BtorNode *exp, uint32_t nbits)
 {
-  return exp_rotate (btor, exp, nbits, true);
+  return exp_bv_rotate (btor, exp, nbits, true);
 }
 
 BtorNode *
 btor_exp_bv_rori (Btor *btor, BtorNode *exp, uint32_t nbits)
 {
-  return exp_rotate (btor, exp, nbits, false);
+  return exp_bv_rotate (btor, exp, nbits, false);
 }
 
 BtorNode *

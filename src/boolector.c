@@ -112,7 +112,9 @@ translate_shift (Btor *btor,
       btor_node_release (btor, tmp);
     }
     else
+    {
       res = btor_node_copy (btor, a0);
+    }
   }
   else
   {
@@ -131,9 +133,13 @@ translate_shift (Btor *btor,
     assert (btor_node_bv_get_width (btor, l) == l1);
 
     if (p1 > 1)
+    {
       c = btor_exp_bv_redor (btor, u);
+    }
     else
+    {
       c = btor_node_copy (btor, u);
+    }
 
     btor_node_release (btor, u);
 
@@ -151,11 +157,17 @@ translate_shift (Btor *btor,
     }
 
     if (!p0)
+    {
       e0 = btor_node_copy (btor, a0);
+    }
     else if (f == btor_exp_bv_sra)
+    {
       e0 = btor_exp_bv_sext (btor, a0, p0);
+    }
     else
+    {
       e0 = btor_exp_bv_uext (btor, a0, p0);
+    }
 
     assert (btor_node_bv_get_width (btor, e0) == l0);
 
@@ -189,6 +201,56 @@ rewrite_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   {
     res = btor_exp_bv_zero (btor, btor_node_get_sort_id (e0));
   }
+
+  return res;
+}
+
+static BtorNode *
+translate_rotate (Btor *btor, BtorNode *e0, BtorNode *e1, bool is_left)
+{
+  uint32_t width;
+  BtorNode *w, *nbits, *dbits, *cond, *zero, *lshift, *rshift, *rot;
+  BtorNode *res;
+  BtorSortId sort;
+
+  width = btor_node_bv_get_width (btor, e0);
+  assert (width > 0);
+
+  if (width == 1) return btor_node_copy (btor, e0);
+
+  /* actual number of bits to rotate is e1 % width */
+  sort  = btor_node_get_sort_id (e0);
+  w     = btor_exp_bv_unsigned (btor, width, sort);
+  nbits = btor_exp_bv_urem (btor, e1, w);
+  dbits = btor_exp_bv_sub (btor, w, nbits); /* width - nbits */
+
+  /* rotate left: (e0 << nbits) | (e0 >> (dbits))
+   * rotate right: (e0 >> nbits) | (e0 << (dbits)) */
+  if (is_left)
+  {
+    lshift = translate_shift (btor, e0, nbits, btor_exp_bv_sll);
+    rshift = translate_shift (btor, e0, dbits, btor_exp_bv_srl);
+  }
+  else
+  {
+    lshift = translate_shift (btor, e0, dbits, btor_exp_bv_sll);
+    rshift = translate_shift (btor, e0, nbits, btor_exp_bv_srl);
+  }
+  rot = btor_exp_bv_or (btor, lshift, rshift);
+
+  /* if nbits == 0 -> exp, else we have to rotate */
+  zero = btor_exp_bv_zero (btor, sort);
+  cond = btor_exp_eq (btor, nbits, zero);
+  res  = btor_exp_cond (btor, cond, e0, rot);
+
+  btor_node_release (btor, rot);
+  btor_node_release (btor, rshift);
+  btor_node_release (btor, lshift);
+  btor_node_release (btor, zero);
+  btor_node_release (btor, cond);
+  btor_node_release (btor, dbits);
+  btor_node_release (btor, nbits);
+  btor_node_release (btor, w);
 
   return res;
 }
@@ -2689,11 +2751,10 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
-// TODO (ma): allow width(n0) == width(n1)
 BoolectorNode *
 boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  uint32_t width;
+  uint32_t width0, width1;
   BtorNode *e0, *e1, *res;
 
   BTOR_ABORT_ARG_NULL (btor);
@@ -2708,12 +2769,20 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_bv_get_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (width),
-              "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
-              "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_exp_bv_rol (btor, e0, e1);
+  width0 = btor_node_bv_get_width (btor, e0);
+  width1 = btor_node_bv_get_width (btor, e1);
+  if (width0 != width1)
+  {
+    BTOR_ABORT (!btor_util_is_power_of_2 (width0),
+                "bit-width of 'e0' must be a power of 2");
+    BTOR_ABORT (btor_util_log_2 (width0) != btor_node_bv_get_width (btor, e1),
+                "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
+    res = btor_exp_bv_rol (btor, e0, e1);
+  }
+  else
+  {
+    res = translate_rotate (btor, e0, e1, true);
+  }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2722,11 +2791,10 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
-// TODO (ma): allow width(n0) == width(n1)
 BoolectorNode *
 boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  uint32_t width;
+  uint32_t width0, width1;
   BtorNode *e0, *e1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
@@ -2741,12 +2809,20 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BTOR_MISMATCH (btor, e1);
   BTOR_ABORT_IS_NOT_BV (e0);
   BTOR_ABORT_IS_NOT_BV (e1);
-  width = btor_node_bv_get_width (btor, e0);
-  BTOR_ABORT (!btor_util_is_power_of_2 (width),
-              "bit-width of 'e0' must be a power of 2");
-  BTOR_ABORT (btor_util_log_2 (width) != btor_node_bv_get_width (btor, e1),
-              "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
-  res = btor_exp_bv_ror (btor, e0, e1);
+  width0 = btor_node_bv_get_width (btor, e0);
+  width1 = btor_node_bv_get_width (btor, e1);
+  if (width0 != width1)
+  {
+    BTOR_ABORT (!btor_util_is_power_of_2 (width0),
+                "bit-width of 'e0' must be a power of 2");
+    BTOR_ABORT (btor_util_log_2 (width0) != btor_node_bv_get_width (btor, e1),
+                "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
+    res = btor_exp_bv_ror (btor, e0, e1);
+  }
+  else
+  {
+    res = translate_rotate (btor, e0, e1, false);
+  }
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

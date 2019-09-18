@@ -1321,7 +1321,8 @@ BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   Create a rotate left, with the number of bits to rotate by given as a
   bit-vector.
 
-  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  The parameters ``n0`` and ``n1`` must either have the same bit width or
+  the bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
@@ -1335,7 +1336,8 @@ BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   Create a rotate right, with the number of bits to rotate by given as a
   bit-vector.
 
-  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  The parameters ``n0`` and ``n1`` must either have the same bit width or
+  the bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
