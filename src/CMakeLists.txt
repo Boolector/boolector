@@ -7,6 +7,7 @@ set(libboolector_src_files
   btoraigvec.c
   btorass.c
   btorbeta.c
+  btorbitblast.c
   btorbv.c
   btorchkclone.c
   btorclone.c

@@ -2500,6 +2500,34 @@ const char *boolector_version (Btor *btor);
 const char *boolector_git_id (Btor *btor);
 
 /*------------------------------------------------------------------------*/
+/* AIG manager                                                            */
+/*------------------------------------------------------------------------*/
+
+typedef struct BoolectorAIGMgr BoolectorAIGMgr;
+
+typedef void (*BoolectorAIGVisitor) (
+    void *, bool, uint64_t, const char *, uint64_t, uint64_t);
+
+BoolectorAIGMgr *boolector_aig_new (Btor *btor);
+
+void boolector_aig_bitblast (BoolectorAIGMgr *mgr, BoolectorNode *node);
+
+void boolector_aig_visit (BoolectorAIGMgr *mgr,
+                          BoolectorNode *node,
+                          BoolectorAIGVisitor func,
+                          void *state);
+
+uint64_t *boolector_aig_get_bits (BoolectorAIGMgr *mgr, BoolectorNode *node);
+
+const char *boolector_aig_get_symbol (BoolectorAIGMgr *mgr, uint64_t aig);
+
+void boolector_aig_free_bits (BoolectorAIGMgr *mgr,
+                              uint64_t *bits,
+                              size_t nbits);
+
+void boolector_aig_delete (BoolectorAIGMgr *mgr);
+
+/*------------------------------------------------------------------------*/
 #if __cplusplus
 }
 #endif

@@ -13,6 +13,7 @@
 
 #include "boolector.h"
 #include "btorabort.h"
+#include "btorbitblast.h"
 #include "btorchkclone.h"
 #include "btorclone.h"
 #include "btorcore.h"
@@ -27,6 +28,7 @@
 #include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
@@ -4973,4 +4975,197 @@ boolector_git_id (Btor *btor)
   /* do not trace, not necessary */
   BTOR_ABORT_ARG_NULL (btor);
   return btor_git_id (btor);
+}
+
+/*------------------------------------------------------------------------*/
+
+struct BoolectorAIGMgr
+{
+  Btor *btor;
+  BtorAIGVecMgr *avmgr;
+  BtorPtrHashTable *node_to_aigvec;
+  BtorIntHashTable *aig_to_symbol;
+};
+
+BoolectorAIGMgr *
+boolector_aig_new (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+
+  BoolectorAIGMgr *mgr;
+
+  BTOR_CNEW (btor->mm, mgr);
+
+  mgr->btor  = btor;
+  mgr->avmgr = btor_aigvec_mgr_new (btor);
+  mgr->node_to_aigvec =
+      btor_hashptr_table_new (btor->mm,
+                              (BtorHashPtr) btor_node_hash_by_id,
+                              (BtorCmpPtr) btor_node_compare_by_id);
+  mgr->aig_to_symbol = btor_hashint_map_new (btor->mm);
+  return mgr;
+}
+
+static BtorAIGVec *
+aig_bitblast_node (BoolectorAIGMgr *mgr, BtorNode *exp)
+{
+  Btor *btor;
+  BtorNode *real_exp;
+  BtorAIGVec *av;
+  BtorPtrHashBucket *b;
+
+  btor     = mgr->btor;
+  real_exp = btor_node_real_addr (exp);
+
+  if (!(b = btor_hashptr_table_get (mgr->node_to_aigvec, real_exp)))
+  {
+    av = btor_bitblast_exp (
+        btor, mgr->avmgr, real_exp, mgr->node_to_aigvec, mgr->aig_to_symbol);
+    btor_aigvec_release_delete (mgr->avmgr, av);
+    b = btor_hashptr_table_get (mgr->node_to_aigvec, real_exp);
+  }
+  return b->data.as_ptr;
+}
+
+void
+boolector_aig_bitblast (BoolectorAIGMgr *mgr, BoolectorNode *node)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+  BTOR_ABORT_ARG_NULL (node);
+
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  (void) aig_bitblast_node (mgr, exp);
+}
+
+void
+boolector_aig_visit (BoolectorAIGMgr *mgr,
+                     BoolectorNode *node,
+                     BoolectorAIGVisitor func,
+                     void *state)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+  BTOR_ABORT_ARG_NULL (func);
+
+  Btor *btor;
+  BtorAIGVec *av;
+  BtorNode *exp, *real_exp;
+
+  exp      = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  real_exp = btor_node_real_addr (exp);
+
+  btor = mgr->btor;
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+
+  av = aig_bitblast_node (mgr, real_exp);
+  if (btor_node_is_inverted (exp))
+  {
+    av = btor_aigvec_not (mgr->avmgr, av);
+  }
+  else
+  {
+    av = btor_aigvec_copy (mgr->avmgr, av);
+  }
+
+  btor_aigvec_visit_aigs (mgr->avmgr, av, mgr->aig_to_symbol, func, state);
+
+  btor_aigvec_release_delete (mgr->avmgr, av);
+
+  // TODO: API tracing
+  //#ifndef NDEBUG
+  //  BTOR_CHKCLONE_RES_PTR (res, copy, BTOR_CLONED_EXP (exp));
+  //#endif
+}
+
+uint64_t *
+boolector_aig_get_bits (BoolectorAIGMgr *mgr, BoolectorNode *node)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+  BTOR_ABORT_ARG_NULL (node);
+
+  uint64_t *bits;
+  int32_t id;
+  uint32_t i, bw;
+  BtorNode *exp, *real_exp;
+  BtorAIGVec *av;
+  BtorAIG *aig;
+
+  exp      = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  real_exp = btor_node_real_addr (exp);
+
+  bw = btor_node_bv_get_width (mgr->btor, exp);
+  BTOR_CNEWN (mgr->btor->mm, bits, bw + 1);
+
+  av = aig_bitblast_node (mgr, real_exp);
+
+  for (i = 0; i < bw; i++)
+  {
+    aig = av->aigs[i];
+    if (btor_aig_is_true (aig) || btor_aig_is_false (aig))
+    {
+      bits[i] = (uint64_t) av->aigs[i];
+      assert (bits[i] == 0 || bits[i] == 1);
+    }
+    else
+    {
+      id      = btor_aig_get_id (av->aigs[i]);
+      bits[i] = id < 0 ? (-id << 1) + 1 : id << 1;
+    }
+  }
+  return bits;
+}
+
+const char *
+boolector_aig_get_symbol (BoolectorAIGMgr *mgr, uint64_t aig)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+
+  BtorHashTableData *d;
+
+  aig = aig & ~1; /* Remove LSB */
+
+  d = btor_hashint_map_get (mgr->aig_to_symbol, aig);
+
+  if (d) return d->as_str;
+  return 0;
+}
+
+void
+boolector_aig_free_bits (BoolectorAIGMgr *mgr, uint64_t *bits, size_t nbits)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+  BTOR_ABORT_ARG_NULL (bits);
+  BTOR_DELETEN (mgr->btor->mm, bits, nbits + 1);
+}
+
+void
+boolector_aig_delete (BoolectorAIGMgr *mgr)
+{
+  BTOR_ABORT_ARG_NULL (mgr);
+
+  BtorPtrHashTableIterator it;
+  BtorIntHashTableIterator iit;
+
+  btor_iter_hashint_init (&iit, mgr->aig_to_symbol);
+  while (btor_iter_hashint_has_next (&iit))
+  {
+    btor_mem_freestr (mgr->btor->mm,
+                      btor_iter_hashint_next_data (&iit)->as_str);
+  }
+
+  btor_iter_hashptr_init (&it, mgr->node_to_aigvec);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    btor_aigvec_release_delete (mgr->avmgr, it.bucket->data.as_ptr);
+    btor_node_release (mgr->btor, btor_iter_hashptr_next (&it));
+  }
+
+  btor_hashptr_table_delete (mgr->node_to_aigvec);
+  btor_hashint_map_delete (mgr->aig_to_symbol);
+
+  btor_aigvec_mgr_delete (mgr->avmgr);
+  BTOR_DELETE (mgr->btor->mm, mgr);
 }
