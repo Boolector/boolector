@@ -1349,12 +1349,24 @@ NEXT:
           btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
       exp_ret = RET_NODEPTR;
     }
+    else if (!strcmp (tok, "roli"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      ret_ptr = boolector_roli (btor, hmap_get (hmap, arg1_str), arg2_int);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "ror"))
     {
       PARSE_ARGS2 (tok, str, str);
       ret_ptr = boolector_ror (
           btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
       exp_ret = RET_NODEPTR;
+    }
+    else if (!strcmp (tok, "rori"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      ret_ptr = boolector_rori (btor, hmap_get (hmap, arg1_str), arg2_int);
+      exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "sub"))
     {
