@@ -926,3 +926,94 @@ btor_aigvec_get_aig_mgr (const BtorAIGVecMgr *avmgr)
 {
   return avmgr ? avmgr->amgr : 0;
 }
+
+static uint64_t
+aiger_lit (int64_t lit)
+{
+  if (lit == 0 || lit == 1) return lit;
+  return lit < 0 ? (-lit << 1) + 1 : lit << 1;
+}
+
+void
+btor_aigvec_visit_aigs (BtorAIGVecMgr *avmgr,
+                        BtorAIGVec *av,
+                        BtorIntHashTable *symbols,
+                        BtorAIGVecVisitor func,
+                        void *state)
+{
+  uint32_t i;
+  int32_t id, id_c0, id_c1;
+  BtorMemMgr *mm;
+  BtorAIGPtrStack visit;
+  BtorIntHashTable *cache;
+  BtorAIG *aig, *real_aig;
+  BtorAIGMgr *amgr;
+  BtorHashTableData *d;
+  const char *sym;
+
+  mm   = avmgr->btor->mm;
+  amgr = avmgr->amgr;
+
+  cache = btor_hashint_map_new (mm);
+  BTOR_INIT_STACK (mm, visit);
+
+  for (i = 0; i < av->width; i++)
+  {
+    BTOR_PUSH_STACK (visit, av->aigs[i]);
+    do
+    {
+      aig      = BTOR_POP_STACK (visit);
+      real_aig = btor_aig_real_addr (aig);
+      id_c0 = id_c1 = 0;
+
+      if (aig == BTOR_AIG_TRUE || aig == BTOR_AIG_FALSE)
+      {
+        id = (size_t) aig;
+      }
+      else
+      {
+        id = real_aig->id;
+        if (!real_aig->is_var)
+        {
+          id_c0 = real_aig->children[0];
+          id_c1 = real_aig->children[1];
+        }
+      }
+
+      d   = btor_hashint_map_get (symbols, id);
+      sym = d ? d->as_str : 0;
+
+      if (!(d = btor_hashint_map_get (cache, id)))
+      {
+        BTOR_PUSH_STACK (visit, aig);
+        d = btor_hashint_map_add (cache, id);
+        d->flag = false;
+        func (state,
+              false,
+              aiger_lit (id),
+              sym,
+              aiger_lit (id_c0),
+              aiger_lit (id_c1));
+        if (aig != BTOR_AIG_TRUE && aig != BTOR_AIG_FALSE && !real_aig->is_var)
+        {
+          assert (id_c0);
+          assert (id_c1);
+          BTOR_PUSH_STACK (visit, btor_aig_get_by_id (amgr, id_c0));
+          BTOR_PUSH_STACK (visit, btor_aig_get_by_id (amgr, id_c1));
+        }
+      }
+      else if (!d->flag)
+      {
+        func (state,
+              true,
+              aiger_lit (id),
+              sym,
+              aiger_lit (id_c0),
+              aiger_lit (id_c1));
+        d->flag = true;
+      }
+    } while (!BTOR_EMPTY_STACK (visit));
+  }
+  btor_hashint_map_delete (cache);
+  BTOR_RELEASE_STACK (visit);
+}

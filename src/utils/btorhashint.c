@@ -252,8 +252,6 @@ btor_hashint_table_size (BtorIntHashTable *t)
 size_t
 btor_hashint_table_add (BtorIntHashTable *t, int32_t key)
 {
-  assert (key);
-
   size_t pos;
 
   //  print_density (t, key);

@@ -16,6 +16,7 @@
 #include "btorbv.h"
 #include "btoropt.h"
 #include "btortypes.h"
+#include "utils/btorhashint.h"
 #include "utils/btormem.h"
 
 struct BtorAIGMap;
@@ -198,4 +199,17 @@ void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /** Release all AIGs of the given AIG vector and delete it. */
 void btor_aigvec_release_delete (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
+/* TODO:
+ * A visitor takes the state (void *), a flag indicating if post traversal,
+ * and 3 AIG node ids (node id, child0 id, child1 id). Note: child0 and child1
+ * will be 0 if node is an AIG variable. */
+typedef void (*BtorAIGVecVisitor) (
+    void *, bool, uint64_t, const char *, uint64_t, uint64_t);
+
+void btor_aigvec_visit_aigs (BtorAIGVecMgr *avmgr,
+                             BtorAIGVec *av,
+                             BtorIntHashTable *symbols,
+                             BtorAIGVecVisitor func,
+                             void *state);
 #endif
