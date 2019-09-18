@@ -591,6 +591,8 @@ void btor_node_release (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
+/* Get the id of the sort of the given node.
+ * Do not release the returned sort. */
 static inline BtorSortId
 btor_node_get_sort_id (const BtorNode *exp)
 {
@@ -598,6 +600,7 @@ btor_node_get_sort_id (const BtorNode *exp)
   return btor_node_real_addr (exp)->sort_id;
 }
 
+/* Set the sort id of the given node. */
 static inline void
 btor_node_set_sort_id (BtorNode *exp, BtorSortId id)
 {
