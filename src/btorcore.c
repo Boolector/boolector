@@ -1808,9 +1808,9 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
   }
   else
   {
-    if (BTOR_IS_INVERTED_AIG (aig))
+    if (btor_aig_is_inverted (aig))
     {
-      aig = BTOR_INVERT_AIG (aig);
+      aig = btor_aig_invert (aig);
       sign *= -1;
     }
 

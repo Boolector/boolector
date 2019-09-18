@@ -96,15 +96,15 @@ TEST_F (TestAigvec, invert)
   ASSERT_TRUE (width == 32);
   for (i = 0; i < width; i++)
   {
-    ASSERT_TRUE (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
-    ASSERT_TRUE (btor_aig_is_var (av1->aigs[i]));
+    ASSERT_TRUE (!btor_aig_is_inverted (av1->aigs[i]));
+    ASSERT_TRUE(btor_aig_is_var (av1->aigs[i]));
   }
   btor_aigvec_invert (avmgr, av1);
-  for (i = 0; i < width; i++) ASSERT_TRUE (BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+  for (i = 0; i < width; i++) ASSERT_TRUE (btor_aig_is_inverted (av1->aigs[i]));
   btor_aigvec_invert (avmgr, av1);
   for (i = 0; i < width; i++)
   {
-    ASSERT_TRUE (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+    ASSERT_TRUE (!btor_aig_is_inverted (av1->aigs[i]));
     ASSERT_TRUE (btor_aig_is_var (av1->aigs[i]));
   }
   ASSERT_TRUE (av2->aigs[0] == BTOR_AIG_TRUE);
