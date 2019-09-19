@@ -833,10 +833,8 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
       // special case: const initialization (constant array)
       if (boolector_is_array (btor, src) && boolector_is_const (btor, state->init))
       {
-        sym                = timed_symbol (mc, '#', src, f->time);
         BoolectorSort s    = copy_sort (btor, fwd, src);
-        BoolectorNode *tmp = boolector_const_array (fwd, s, dst, sym);
-        btor_mem_freestr (mc->mm, sym);
+        BoolectorNode *tmp = boolector_const_array (fwd, s, dst);
         boolector_release_sort (fwd, s);
         boolector_release (fwd, dst);
         dst = tmp;
