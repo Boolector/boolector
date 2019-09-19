@@ -1352,36 +1352,19 @@ cdef class Boolector:
                                             _ChPtr(symbol)._c_str)
         return r
 
-    def ConstArray(self, BoolectorSort sort, BoolectorNode value,
-                   str symbol = None):
-        """ ConstArray(sort, value, symbol = None)
+    def ConstArray(self, BoolectorSort sort, BoolectorNode value):
+        """ ConstArray(sort, value)
 
-            Create a one-dimensional bit-vector array with sort ``sort``
-            initialized with value ``value``.
-
-            An array variable's symbol is used as a simple means of
-            identfication, either when printing a model via
-            :func:`~pyboolector.Boolector.Print_model`,
-            or generating file dumps via
-            :func:`~pyboolector.Boolector.Dump`.
-            A symbol must be unique but may be None in case that no
-            symbol should be assigned.
+            Create a one-dimensional constant bit-vector array with sort
+            ``sort`` initialized with value ``value``.
 
             :param btor: Boolector instance.
             :param sort: Array sort which maps bit-vectors to bit-vectors.
             :param value: Value to initialize array.
-            :param symbol: Name of array variable.
-            :return: Bit-vector array of sort ``sort`` and with symbol ``symbol``.
-
-            .. note::
-                In contrast to composite expressions, which are
-                maintained uniquely w.r.t. to their kind, inputs (and
-                consequently, bit width), array variables are not.
-                Hence, each call to this function returns a fresh bit vector
-                array variable.
+            :return: Constant bit-vector array of sort ``sort``.
 
             .. seealso::
-              boolector_array
+              :func:`~pyboolector.Boolector.Array`
 
         """
         if not isinstance(sort, _BoolectorArraySort):
@@ -1391,8 +1374,7 @@ cdef class Boolector:
         r._sort = sort
         r._c_node = btorapi.boolector_const_array(self._c_btor,
                                                   sort._c_sort,
-                                                  value._c_node,
-                                                  _ChPtr(symbol)._c_str)
+                                                  value._c_node)
         return r
 
     def UF(self, BoolectorSort sort, str symbol = None):
