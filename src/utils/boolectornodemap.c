@@ -11,6 +11,7 @@
 #include "utils/boolectornodemap.h"
 
 #include "boolector.h"
+#include "btorabort.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "utils/btorhashint.h"
@@ -142,6 +143,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
   assert (btor);
   assert (n);
 
+  BtorSortId sort;
   BtorNode *src, *dst, *e[3], *node, *res = 0;
   uint32_t i;
 
@@ -160,7 +162,13 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
 
   switch (node->kind)
   {
-    case BTOR_VAR_NODE: res = btor_node_copy (btor, node); break;
+    case BTOR_UF_NODE:
+    case BTOR_VAR_NODE:
+      /* UFs and variables should always get substituted. */
+      BTOR_ABORT (btor != node->btor,
+                  "Not all leafs (UF, array, var) have been substituted");
+      res = btor_node_copy (btor, node);
+      break;
     case BTOR_CONST_NODE:
       res = btor_exp_bv_const (btor, btor_node_bv_const_get_bits (node));
       break;
@@ -180,21 +188,31 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
     case BTOR_BV_SRL_NODE: res = btor_exp_bv_srl (btor, e[0], e[1]); break;
     case BTOR_BV_UDIV_NODE: res = btor_exp_bv_udiv (btor, e[0], e[1]); break;
     case BTOR_BV_UREM_NODE: res = btor_exp_bv_urem (btor, e[0], e[1]); break;
-    case BTOR_BV_CONCAT_NODE: res = btor_exp_bv_concat (btor, e[0], e[1]); break;
+    case BTOR_BV_CONCAT_NODE:
+      res = btor_exp_bv_concat (btor, e[0], e[1]);
+      break;
     case BTOR_ARGS_NODE: res = btor_exp_args (btor, e, node->arity); break;
     case BTOR_UPDATE_NODE:
       res = btor_exp_update (btor, e[0], e[1], e[2]);
       break;
     case BTOR_APPLY_NODE:
-      assert (btor_node_is_array (e[0]));
       assert (btor_node_is_args (e[1]));
-      assert (e[1]->arity == 1);
+      BTOR_ABORT (!btor_node_is_array (e[0]) || e[1]->arity != 1,
+                  "BoolectorNodeMap only supports "
+                  "substitution of array reads.");
       res = btor_exp_read (btor, e[0], e[1]->e[0]);
       break;
     case BTOR_PARAM_NODE:
-    case BTOR_LAMBDA_NODE:  // FIXME
-    case BTOR_UF_NODE:      // FIXME
-      abort ();
+      sort = btor_sort_bv (btor, btor_node_bv_get_width (node->btor, node));
+      res  = btor_exp_param (btor, btor_node_get_sort_id (node), 0);
+      btor_sort_release (btor, sort);
+      break;
+    case BTOR_LAMBDA_NODE:
+      BTOR_ABORT (!btor_node_is_const_array (node),
+                  "BoolectorNodeMap only supports substitution of constant "
+                  "arrays, not lambdas in general.");
+      res           = btor_exp_lambda (btor, e[0], e[1]);
+      res->is_array = node->is_array;
       break;
     default:
       assert (btor_node_is_cond (node));
