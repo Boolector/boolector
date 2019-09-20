@@ -1789,7 +1789,7 @@ boolector_const_array (Btor *btor, BoolectorSort sort, BoolectorNode *value)
 {
   BTOR_ABORT_ARG_NULL (btor);
 
-  BtorNode *res, *const_res, *val;
+  BtorNode *res, *val;
   BtorSortId s;
 
   val = BTOR_IMPORT_BOOLECTOR_NODE (value);
@@ -1819,7 +1819,7 @@ boolector_const_array (Btor *btor, BoolectorSort sort, BoolectorNode *value)
   BTOR_TRAPI_RETURN_NODE (res);
 
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, const_array, sort);
+  BTOR_CHKCLONE_RES_PTR (res, const_array, sort, value);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
