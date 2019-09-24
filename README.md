@@ -1,8 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://dev.azure.com/Boolector/Boolector/_apis/build/status/Boolector.boolector?branchName=master)](https://dev.azure.com/Boolector/Boolector/_build/latest?definitionId=1&branchName=master)
 
-Boolector
-===============================================================================
+# Boolector
 
 Boolector is a Satisfiability Modulo Theories (SMT) solver for the theories
 of fixed-size bit-vectors, arrays and uninterpreted functions.
@@ -18,23 +17,20 @@ The documentation of its API can be found
 [here](https://boolector.github.io/docs).
 
 
-Website
--------------------------------------------------------------------------------
+## Website
 
 More information about Boolector is available at: https://boolector.github.io
 
-Download
--------------------------------------------------------------------------------
+## Download
 
 The latest version of Boolector is available on GitHub:
 https://github.com/boolector/boolector
 
 
-Prerequisites
--------------------------------------------------------------------------------
+## Prerequisites
 
 To build Boolector from source you need:
-  * cmake >= 2.8
+  * cmake >= 3.3
   * gcc/clang
   * g++/clang++
 
@@ -42,16 +38,16 @@ To build the python module `pyboolector` you further need:
   * Cython >= 0.22
 
 
-Build
--------------------------------------------------------------------------------
+## Build
 
 Boolector can be built with support for the SAT solvers
-[Lingeling](http://fmv.jku.at/lingeling),
 [CaDiCaL](https://github.com/arminbiere/cadical),
-[PicoSAT](http://fmv.jku.at/picosat) and
-[MiniSAT](https://github.com/niklasso/minisat).
+[CryptoMiniSat](https://github.com/msoos/cryptominisat),
+[Lingeling](http://fmv.jku.at/lingeling),
+[MiniSAT](https://github.com/niklasso/minisat), and
+[PicoSAT](http://fmv.jku.at/picosat).
 To build and setup these solvers you can use the scripts
-`setup-{cadical,lingeling,minisat,picosat}.sh` in the `contrib` directory.
+`setup-{cadical,cms,lingeling,minisat,picosat}.sh` in the `contrib` directory.
 Optionally, you can place any of these solvers in a directory on the same level
 as the Boolector source directory or provide a path to `configure.sh`.
 You can build Boolector with support for
@@ -117,14 +113,26 @@ The documentation is then generated into `doc/_build/html`.
 Make sure to build Boolector with Python bindings, else the documentation of
 its Python API will not be included.
 
+### Linking against Boolector in CMake projects
+
+Boolector's build system provides a CMake package configuration, which can be
+used by the `find_package()` command to provide information about Boolector's
+include directories, libraries and it's dependencies.
+
+After installing Boolector you can issue the following commands in your CMake
+project to link against Boolector.
+```
+find_package(Boolector)
+target_link_libraries(<your_target> Boolector::boolector)
+```
+
 ### Windows 32-bit on Windows 64-bit
 
 For build and installation instructions of a Boolector Windows 32-bit build
 on a Windows 64-bit system, see file [COMPILING_WIN32.md](
     https://github.com/Boolector/boolector/blob/master/COMPILING_WIN32.md).
 
-Usage
--------------------------------------------------------------------------------
+## Usage
 
 For a list of command line options, refer to `boolector -h`.
 
@@ -144,8 +152,7 @@ To run `api_usage_examples.py`, from Boolector's root directory issue:
 PYTHONPATH="build/lib" python examples/api/python/api_usage_examples.py
 ```
 
-Contributing
--------------------------------------------------------------------------------
+## Contributing
 
 Boolector is distributed under the MIT license
 (see [COPYING](https://github.com/Boolector/boolector/blob/master/COPYING)
