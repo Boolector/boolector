@@ -112,6 +112,26 @@ btor_dbg_check_hash_table_simp_free (BtorPtrHashTable *table)
 }
 
 bool
+btor_dbg_check_unique_table_rebuild (const Btor *btor)
+{
+  uint32_t i;
+  BtorNode *cur;
+
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
+    {
+      if (cur->rebuild)
+      {
+        BTORLOG (1,
+                 "found node with rebuild flag enabled: %s",
+                 btor_util_node2string (cur));
+        return false;
+      }
+    }
+  return true;
+}
+
+bool
 btor_dbg_check_all_hash_tables_simp_free (const Btor *btor)
 {
   if (!btor_dbg_check_hash_table_simp_free (btor->varsubst_constraints))

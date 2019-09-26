@@ -91,6 +91,8 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
     uint8_t apply_below : 1;      /* apply as sub expression ? */          \
     uint8_t propagated : 1;       /* is set during propagation */          \
     uint8_t is_array : 1;         /* function represents array ? */        \
+    uint8_t rebuild : 1;          /* indicates whether rebuild is required \
+                                     during substitution */                \
     uint8_t arity : 2;            /* arity of operator (at most 3) */      \
     uint8_t bytes;                /* allocated bytes */                    \
     int32_t id;                   /* unique expression id */               \

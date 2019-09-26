@@ -644,6 +644,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, uint32_t pos)
   if (btor_node_real_addr (child)->quantifier_below)
     parent->quantifier_below = 1;
 
+  if (btor_node_real_addr (child)->rebuild) parent->rebuild = 1;
+
   if (btor_node_real_addr (child)->apply_below) parent->apply_below = 1;
 
   btor_node_real_addr (child)->parents++;
