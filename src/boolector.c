@@ -4647,9 +4647,9 @@ boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
 
   res = btor_sort_bv_get_width (btor, s);
-  BTOR_TRAPI_RETURN_BOOL (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_BOOL (res, bitvec_sort_get_width, sort);
+  BTOR_CHKCLONE_RES_UINT (res, bitvec_sort_get_width, sort);
 #endif
   return res;
 }

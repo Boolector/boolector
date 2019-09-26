@@ -1723,6 +1723,18 @@ NEXT:
       else
         exp_ret = RET_SKIP;
     }
+    else if (!strcmp (tok, "bitvec_sort_get_width"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_int =
+            boolector_bitvec_sort_get_width (btor, get_sort (hmap, arg1_str));
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
     else if (!strcmp (tok, "get_sort"))
     {
       PARSE_ARGS1 (tok, str);
