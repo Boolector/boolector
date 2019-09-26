@@ -235,7 +235,7 @@ btor_substitute_var_exps (Btor *btor)
       cur = (BtorNode *) b->key;
       assert (btor_node_is_regular (cur));
       assert (btor_node_is_bv_var (cur) || btor_node_is_uf (cur));
-      right = (BtorNode *) b->data.as_ptr;
+      right = btor_node_get_simplified (btor, (BtorNode *) b->data.as_ptr);
       assert (!btor_node_is_simplified (right));
       btor_hashptr_table_add (substs, cur)->data.as_ptr = right;
       btor_hashptr_table_remove (varsubst_constraints, cur, 0, 0);

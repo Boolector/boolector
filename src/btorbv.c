@@ -426,7 +426,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp)
 {
   assert (mm);
   assert (exp);
-  assert (!btor_node_is_simplified (exp));
+  assert (!btor_node_is_proxy (exp));
 
   BtorBitVector *res;
 
@@ -437,6 +437,7 @@ btor_bv_get_assignment (BtorMemMgr *mm, BtorNode *exp)
   BtorAIGVec *av;
   BtorAIGMgr *amgr;
 
+  exp      = btor_node_get_simplified (btor_node_real_addr (exp)->btor, exp);
   real_exp = btor_node_real_addr (exp);
 
   if (!real_exp->av)

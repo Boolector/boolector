@@ -1160,8 +1160,8 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 static bool
 equal_bv_assignments (BtorNode *exp0, BtorNode *exp1)
 {
-  assert (!btor_node_is_simplified (exp0));
-  assert (!btor_node_is_simplified (exp1));
+  assert (!btor_node_is_proxy (exp0));
+  assert (!btor_node_is_proxy (exp1));
 
   bool equal;
   Btor *btor;
@@ -1183,8 +1183,8 @@ compare_args_assignments (BtorNode *e0, BtorNode *e1)
   assert (btor_node_is_regular (e1));
   assert (btor_node_is_args (e0));
   assert (btor_node_is_args (e1));
-  assert (!btor_node_is_simplified (e0));
-  assert (!btor_node_is_simplified (e1));
+  assert (!btor_node_is_proxy (e0));
+  assert (!btor_node_is_proxy (e1));
 
   bool equal;
   BtorBitVector *bv0, *bv1;
@@ -1672,7 +1672,6 @@ propagate (Btor *btor,
     app = BTOR_POP_STACK (*prop_stack);
     assert (btor_node_is_regular (app));
     assert (btor_node_is_apply (app));
-    assert (!btor_node_is_simplified (app));
 
     conflict = false;
     restart  = true;
@@ -2243,22 +2242,19 @@ check_and_resolve_conflicts (Btor *btor,
   BtorIntHashTableIterator iit;
 
   start           = btor_util_time_stamp ();
-  slv             = BTOR_FUN_SOLVER (btor);
   found_conflicts = false;
   mm              = btor->mm;
   slv             = BTOR_FUN_SOLVER (btor);
+  cleanup_table   = btor_hashptr_table_new (mm,
+                                          (BtorHashPtr) btor_node_hash_by_id,
+                                          (BtorCmpPtr) btor_node_compare_by_id);
 
   /* initialize new bit vector model, which will be constructed while
    * consistency checking. this also deletes the model from the previous run */
   btor_model_init_bv (btor, &btor->bv_model);
 
-  assert (!found_conflicts);
-  cleanup_table = btor_hashptr_table_new (mm,
-                                          (BtorHashPtr) btor_node_hash_by_id,
-                                          (BtorCmpPtr) btor_node_compare_by_id);
   BTOR_INIT_STACK (mm, prop_stack);
   BTOR_INIT_STACK (mm, top_applies);
-
   apply_search_cache = btor_hashint_table_new (mm);
 
   /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
@@ -2855,9 +2851,8 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BTOR_PUSH_STACK (work_stack, exp);
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    cur      = BTOR_POP_STACK (work_stack);
+    cur      = btor_node_get_simplified (btor, BTOR_POP_STACK (work_stack));
     real_cur = btor_node_real_addr (cur);
-    assert (!btor_node_is_simplified (real_cur));
 
     d = btor_hashint_map_get (mark, real_cur->id);
 
