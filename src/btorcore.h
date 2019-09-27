@@ -216,7 +216,6 @@ struct Btor
 
   struct
   {
-    double rewrite;
     double sat;
     double simplify;
     double subst;
