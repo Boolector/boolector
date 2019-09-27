@@ -4637,7 +4637,7 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
 uint32_t
 boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
 {
-  bool res;
+  uint32_t res;
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
