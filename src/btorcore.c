@@ -583,7 +583,6 @@ btor_print_stats (Btor *btor)
 
 #ifdef BTOR_TIME_STATISTICS
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "%.2f seconds rewriting", btor->time.rewrite);
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
   BTOR_MSG (btor->msg,
             1,
@@ -604,7 +603,8 @@ btor_print_stats (Btor *btor)
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds solving", btor->time.sat);
-  BTOR_MSG (btor->msg, 1, "  %.2f seconds preprocessing", btor->time.simplify);
+  BTOR_MSG (
+      btor->msg, 1, "  %.2f seconds rewriting engine", btor->time.simplify);
   BTOR_MSG (btor->msg,
             1,
             "    %.2f seconds variable substitution (%.0f%%)",

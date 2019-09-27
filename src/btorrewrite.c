@@ -7080,10 +7080,7 @@ btor_rewrite_slice_exp (Btor *btor,
   assert (btor);
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
-  double start     = btor_util_time_stamp ();
-  BtorNode *result = rewrite_slice_exp (btor, exp, upper, lower);
-  btor->time.rewrite += btor_util_time_stamp () - start;
-  return result;
+  return rewrite_slice_exp (btor, exp, upper, lower);
 }
 
 BtorNode *
@@ -7098,7 +7095,6 @@ btor_rewrite_binary_exp (Btor *btor,
   assert (e1);
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
-  double start = btor_util_time_stamp ();
   BtorNode *result;
 
   switch (kind)
@@ -7135,7 +7131,6 @@ btor_rewrite_binary_exp (Btor *btor,
       result = rewrite_lambda_exp (btor, e0, e1);
   }
 
-  btor->time.rewrite += btor_util_time_stamp () - start;
   return result;
 }
 
@@ -7152,8 +7147,5 @@ btor_rewrite_ternary_exp (
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
   (void) kind;
 
-  double start     = btor_util_time_stamp ();
-  BtorNode *result = rewrite_cond_exp (btor, e0, e1, e2);
-  btor->time.rewrite += btor_util_time_stamp () - start;
-  return result;
+  return rewrite_cond_exp (btor, e0, e1, e2);
 }
