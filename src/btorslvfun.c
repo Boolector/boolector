@@ -2198,7 +2198,7 @@ push_unreachable_applies (Btor *btor, BtorNodePtrStack *init_apps)
   {
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
 
-    if (!cur || !btor_node_is_apply (cur)
+    if (!cur || cur->parameterized || !btor_node_is_apply (cur)
         || btor_hashint_table_contains (cache, cur->id))
       continue;
 
