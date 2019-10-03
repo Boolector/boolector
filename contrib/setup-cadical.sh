@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e -o pipefail
 
 source "$(dirname "$0")/setup-utils.sh"
 
 CADICAL_DIR=${DEPS_DIR}/cadical
+
+rm -rf ${CADICAL_DIR}
 
 # Download and build CaDiCaL
 git clone --depth 1 https://github.com/arminbiere/cadical.git ${CADICAL_DIR}
@@ -10,7 +14,7 @@ cd ${CADICAL_DIR}
 
 if is_windows; then
   component="CaDiCaL"
-  last_patch_date="20190623"
+  last_patch_date="20190730"
   test_apply_patch "${component}" "${last_patch_date}"
   EXTRA_FLAGS="-q"
   #

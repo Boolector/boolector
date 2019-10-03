@@ -1352,6 +1352,31 @@ cdef class Boolector:
                                             _ChPtr(symbol)._c_str)
         return r
 
+    def ConstArray(self, BoolectorSort sort, BoolectorNode value):
+        """ ConstArray(sort, value)
+
+            Create a one-dimensional constant bit-vector array with sort
+            ``sort`` initialized with value ``value``.
+
+            :param btor: Boolector instance.
+            :param sort: Array sort which maps bit-vectors to bit-vectors.
+            :param value: Value to initialize array.
+            :return: Constant bit-vector array of sort ``sort``.
+
+            .. seealso::
+              :func:`~pyboolector.Boolector.Array`
+
+        """
+        if not isinstance(sort, _BoolectorArraySort):
+            raise BoolectorException(
+                    "Sort must be of sort '_BoolectorArraySort'")
+        r = BoolectorArrayNode(self)
+        r._sort = sort
+        r._c_node = btorapi.boolector_const_array(self._c_btor,
+                                                  sort._c_sort,
+                                                  value._c_node)
+        return r
+
     def UF(self, BoolectorSort sort, str symbol = None):
         """ UF(sort, symbol)
 

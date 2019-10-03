@@ -957,6 +957,13 @@ NEXT:
       ret_ptr  = boolector_array (btor, get_sort (hmap, arg1_str), arg2_str);
       exp_ret  = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "const_array"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      ret_ptr = boolector_const_array (
+          btor, get_sort (hmap, arg1_str), hmap_get (hmap, arg2_str));
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "uf"))
     {
       PARSE_ARGS2 (tok, str, str);
@@ -1712,6 +1719,18 @@ NEXT:
       {
         ret_bool = boolector_is_bitvec_sort (btor, get_sort (hmap, arg1_str));
         exp_ret  = RET_BOOL;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "bitvec_sort_get_width"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!g_btorunt->skip)
+      {
+        ret_int =
+            boolector_bitvec_sort_get_width (btor, get_sort (hmap, arg1_str));
+        exp_ret = RET_INT;
       }
       else
         exp_ret = RET_SKIP;

@@ -174,6 +174,33 @@ mc_release_assignments (BtorMC *mc)
 
 /*------------------------------------------------------------------------*/
 
+static BoolectorSort
+copy_sort (Btor *btor, Btor *fwd, BoolectorNode *node)
+{
+  BoolectorSort sort, res;
+
+  sort = boolector_get_sort (btor, node);
+
+  if (boolector_is_bitvec_sort (btor, sort))
+  {
+    res = boolector_bitvec_sort (fwd, boolector_get_width (btor, node));
+  }
+  else
+  {
+    assert (boolector_is_array_sort (btor, sort));
+    BoolectorSort si =
+        boolector_bitvec_sort (fwd, boolector_get_index_width (btor, node));
+    BoolectorSort se =
+        boolector_bitvec_sort (fwd, boolector_get_width (btor, node));
+    res = boolector_array_sort (fwd, si, se);
+    boolector_release_sort (fwd, si);
+    boolector_release_sort (fwd, se);
+  }
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 BtorMC *
 btor_mc_new (void)
 {
@@ -694,32 +721,22 @@ timed_symbol (BtorMC *mc, char ch, BoolectorNode *node, int32_t time)
 static BoolectorNode *
 new_var_or_array (BtorMC *mc, BoolectorNode *src, const char *symbol)
 {
-  uint32_t w;
   BoolectorNode *dst;
-  BoolectorSort s, se, si;
+  BoolectorSort sort;
   Btor *btor = mc->btor;
   Btor *fwd  = mc->forward;
 
+  sort = copy_sort (btor, fwd, src);
   if (boolector_is_var (btor, src))
   {
-    w   = boolector_get_width (btor, src);
-    s   = boolector_bitvec_sort (fwd, w);
-    dst = boolector_var (fwd, s, symbol);
-    boolector_release_sort (fwd, s);
+    dst = boolector_var (fwd, sort, symbol);
   }
   else
   {
     assert (boolector_is_array (btor, src));
-    w   = boolector_get_index_width (btor, src);
-    si  = boolector_bitvec_sort (fwd, w);
-    w   = boolector_get_width (btor, src);
-    se  = boolector_bitvec_sort (fwd, w);
-    s   = boolector_array_sort (fwd, si, se);
-    dst = boolector_array (fwd, s, symbol);
-    boolector_release_sort (fwd, si);
-    boolector_release_sort (fwd, se);
-    boolector_release_sort (fwd, s);
+    dst = boolector_array (fwd, sort, symbol);
   }
+  boolector_release_sort (fwd, sort);
   return dst;
 }
 
@@ -816,15 +833,10 @@ initialize_states_of_frame (BtorMC *mc, BoolectorNodeMap *map, BtorMCFrame *f)
       // special case: const initialization (constant array)
       if (boolector_is_array (btor, src) && boolector_is_const (btor, state->init))
       {
-        BoolectorSort si =
-            boolector_bitvec_sort (fwd, boolector_get_index_width (btor, src));
-        BoolectorNode *param = boolector_param (fwd, si, 0);
-        BoolectorNode *tmp   = boolector_fun (fwd, &param, 1, dst);
-        // FIXME: this is a workaround to explicitly mark tmp as array
-        ((BtorNode *) tmp)->is_array = 1;
-        boolector_release_sort (fwd, si);
+        BoolectorSort s    = copy_sort (btor, fwd, src);
+        BoolectorNode *tmp = boolector_const_array (fwd, s, dst);
+        boolector_release_sort (fwd, s);
         boolector_release (fwd, dst);
-        boolector_release (fwd, param);
         dst = tmp;
       }
     }

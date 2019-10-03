@@ -868,6 +868,22 @@ BoolectorNode *boolector_array (Btor *btor,
                                 const char *symbol);
 
 /*!
+  Create a one-dimensional constant bit-vector array with sort ``sort``
+  initialized with value ``value``.
+
+  :param btor: Boolector instance.
+  :param sort: Array sort which maps bit-vectors to bit-vectors.
+  :param value: Value to initialize array.
+  :return: Constant bit-vector array of sort ``sort``.
+
+  .. seealso::
+    boolector_array
+ */
+BoolectorNode *boolector_const_array (Btor *btor,
+                                      BoolectorSort sort,
+                                      BoolectorNode *value);
+
+/*!
   Create an uninterpreted function with sort ``sort`` and with symbol
   ``symbol``.
   ``btor`` Boolector instance.
@@ -2250,6 +2266,15 @@ bool boolector_is_bitvec_sort (Btor *btor, BoolectorSort sort);
   :return: True if ``sort`` is a function sort, and false otherwise.
  */
 bool boolector_is_fun_sort (Btor *btor, BoolectorSort sort);
+
+/*!
+  Get the bit width of a bit-vector sort.
+
+  :param btor: Boolector instance.
+  :param node: Boolector sort.
+  :return: Bit width of ``sort``.
+*/
+uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
 
 /*------------------------------------------------------------------------*/
 

@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e -o pipefail
 
 source "$(dirname "$0")/setup-utils.sh"
 
 PICOSAT_DIR=${DEPS_DIR}/picosat
+
+rm -rf ${PICOSAT_DIR}
 
 # Download and build PicoSAT
 mkdir ${PICOSAT_DIR}

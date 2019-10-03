@@ -32,6 +32,8 @@ BtorNode *btor_exp_param (Btor *btor, BtorSortId sort, const char *symbol);
 /* Create an array variable of given sort. */
 BtorNode *btor_exp_array (Btor *btor, BtorSortId sort, const char *symbol);
 
+BtorNode *btor_exp_const_array (Btor *btor, BtorSortId sort, BtorNode *value);
+
 /* Create an uninterpreted function of given sort. */
 BtorNode *btor_exp_uf (Btor *btor, BtorSortId sort, const char *symbol);
 

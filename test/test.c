@@ -42,6 +42,7 @@
 #include "testspecial.h"
 #include "teststack.h"
 #include "testtestcases.h"
+#include "testunionfind.h"
 #include "testutil.h"
 
 #ifdef NDEBUG
@@ -168,5 +169,6 @@ main (int32_t argc, char **argv)
   BTOR_RUN_TESTS (sort);
   BTOR_RUN_TESTS (int_hash_table);
   BTOR_RUN_TESTS (int_hash_map);
+  BTOR_RUN_TESTS (ufind);
   return finish_tests ();
 }

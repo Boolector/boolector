@@ -302,6 +302,9 @@ boolector_print_value_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol_str);
   BTOR_ABORT_ARG_NULL (file);
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
+              "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
   BTOR_ABORT (btor->quantifiers->count,
@@ -1777,6 +1780,46 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, sort, symbol);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_const_array (Btor *btor, BoolectorSort sort, BoolectorNode *value)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+
+  BtorNode *res, *val;
+  BtorSortId s;
+
+  val = BTOR_IMPORT_BOOLECTOR_NODE (value);
+
+  s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_fun (btor, s)
+                  || btor_sort_tuple_get_arity (
+                         btor, btor_sort_fun_get_domain (btor, s))
+                         != 1,
+              "'sort' is not an array sort");
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT BTOR_TRAPI_NODE_FMT,
+              sort,
+              btor,
+              BTOR_TRAPI_NODE_ID (val));
+  BTOR_ABORT_ARG_NULL (val);
+  BTOR_ABORT_REFS_NOT_POS (val);
+  BTOR_ABORT_BTOR_MISMATCH (btor, val);
+  BTOR_ABORT_IS_NOT_BV (val);
+  BTOR_ABORT (
+      btor_node_get_sort_id (val) != btor_sort_array_get_element (btor, s),
+      "sort of 'value' does not match element sort of array");
+
+  res = btor_exp_const_array (btor, s, val);
+
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, const_array, sort, value);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -3995,7 +4038,8 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4168,7 +4212,8 @@ boolector_array_assignment (Btor *btor,
 
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4252,7 +4297,8 @@ boolector_uf_assignment (Btor *btor,
 
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4332,7 +4378,8 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
   BTOR_ABORT (strcmp (format, "btor") && strcmp (format, "smt2"),
               "invalid model output format: %s",
               format);
-  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT,
+  BTOR_ABORT (btor->last_sat_result != BTOR_RESULT_SAT
+              || !btor->valid_assignments,
               "cannot retrieve model if input formula is not SAT");
   BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
               "model generation has not been enabled");
@@ -4583,6 +4630,26 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_BOOL (res, is_fun_sort, sort);
+#endif
+  return res;
+}
+
+uint32_t
+boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
+{
+  uint32_t res;
+  BtorSortId s;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT, sort, btor);
+  s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+
+  res = btor_sort_bv_get_width (btor, s);
+  BTOR_TRAPI_RETURN_UINT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_UINT (res, bitvec_sort_get_width, sort);
 #endif
   return res;
 }
