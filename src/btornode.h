@@ -28,11 +28,12 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 
-/* NOTE: DO NOT REORDER THE INDICES.
- * CERTAIN MACROS DEPEND ON ORDER.
- * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE
- * and BTOR_VAR_NODE are at the beginning,
- * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
+/* NOTE: DO NOT REORDER THE INDICES.  CERTAIN MACROS DEPEND ON ORDER.
+ *
+ * Some code also depends the order of this enum, in particular that
+ * BTOR_INVALID_NODE is the first entry.
+ * It also relies on that BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1.
+ *
  * FURTHER NOTE:
  * binary nodes: [BTOR_BV_AND_NODE, ..., BTOR_LAMBDA_NODE]
  * ternary nodes: [BTOR_BCOND_NODE]
@@ -40,13 +41,8 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
  */
 enum BtorNodeKind
 {
-  /* Even though the following is just for debugging purposes,
-   * we should not put '#ifndef NDEBUG' around.  This would
-   * make delta debugging of Heisenbugs in release mode more
-   * difficult.
-   */
-  BTOR_INVALID_NODE   = 0,
-  BTOR_CONST_NODE     = 1,
+  BTOR_INVALID_NODE   = 0, /* for debugging purposes only */
+  BTOR_BV_CONST_NODE  = 1,
   BTOR_VAR_NODE       = 2,
   BTOR_PARAM_NODE     = 3, /* parameter for lambda expressions */
   BTOR_BV_SLICE_NODE  = 4,
@@ -325,7 +321,7 @@ btor_node_is_bv_const (const BtorNode *exp)
   assert (exp);
   exp = btor_node_real_addr (exp);
   return btor_sort_is_bv (exp->btor, exp->sort_id)
-         && exp->kind == BTOR_CONST_NODE;
+         && exp->kind == BTOR_BV_CONST_NODE;
 }
 
 static inline bool

@@ -1415,7 +1415,7 @@ eval_exp (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
