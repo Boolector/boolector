@@ -1723,7 +1723,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
       }
       switch (cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           cur_clone = btor_exp_bv_const (clone, btor_node_bv_const_get_bits (cur));
           break;
         case BTOR_VAR_NODE:

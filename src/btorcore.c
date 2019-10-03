@@ -2394,7 +2394,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   switch (exp->kind)
   {
     case BTOR_PROXY_NODE:
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
     case BTOR_VAR_NODE:
     case BTOR_PARAM_NODE:
     case BTOR_UF_NODE:

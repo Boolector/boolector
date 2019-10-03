@@ -354,7 +354,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_UF_NODE:
       op = btor_node_is_uf_array (node) ? "array" : "uf";
       break;
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
       bits = btor_node_bv_const_get_bits (node);
       opt  = btor_opt_get (bdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
       if (btor_bv_is_zero (bits))

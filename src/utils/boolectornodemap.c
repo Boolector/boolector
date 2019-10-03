@@ -169,7 +169,7 @@ map_node_internal (Btor *btor, BoolectorNodeMap *map, BoolectorNode *n)
                   "Not all leafs (UF, array, var) have been substituted");
       res = btor_node_copy (btor, node);
       break;
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
       res = btor_exp_bv_const (btor, btor_node_bv_const_get_bits (node));
       break;
     case BTOR_BV_SLICE_NODE:

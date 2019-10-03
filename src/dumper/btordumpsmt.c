@@ -456,7 +456,7 @@ extract_store (BtorSMTDumpContext * sdc, BtorNode * exp,
 
 static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE]   = "invalid",
-    [BTOR_CONST_NODE]     = "const",
+    [BTOR_BV_CONST_NODE]  = "bvconst",
     [BTOR_VAR_NODE]       = "var",
     [BTOR_PARAM_NODE]     = "param",
     [BTOR_BV_SLICE_NODE]  = "extract",
