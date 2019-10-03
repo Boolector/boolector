@@ -526,7 +526,7 @@ bool btor_node_is_bv_const_ones (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_min_signed (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp);
 
-bool btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res);
+bool btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res);
 
 /*------------------------------------------------------------------------*/
 

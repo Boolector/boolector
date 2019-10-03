@@ -520,9 +520,9 @@ is_urem_exp (Btor *btor,
 {
   BtorNode *mul, *udiv, *x, *y;
 
-  if (btor_node_is_neg (btor, e0, &mul))
+  if (btor_node_bv_is_neg (btor, e0, &mul))
     x = e1;
-  else if (btor_node_is_neg (btor, e1, &mul))
+  else if (btor_node_bv_is_neg (btor, e1, &mul))
     x = e0;
   else
     return false;
@@ -1941,9 +1941,9 @@ applies_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_regular (e1)
          && btor_node_is_bv_add (e1)
          && ((btor_node_is_regular (e1->e[0])
-              && btor_node_is_neg (btor, e1->e[0], 0))
+              && btor_node_bv_is_neg (btor, e1->e[0], 0))
              || (btor_node_is_regular (e1->e[1])
-                 && btor_node_is_neg (btor, e1->e[1], 0)));
+                 && btor_node_bv_is_neg (btor, e1->e[1], 0)));
 }
 
 static inline BtorNode *
@@ -1954,11 +1954,11 @@ apply_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result;
   BtorNode *neg = 0, *other;
 
-  if (btor_node_is_neg (btor, e1->e[0], &neg))
+  if (btor_node_bv_is_neg (btor, e1->e[0], &neg))
     other = e1->e[1];
   else
   {
-    btor_node_is_neg (btor, e1->e[1], &neg);
+    btor_node_bv_is_neg (btor, e1->e[1], &neg);
     other = e1->e[0];
   }
   assert (neg);

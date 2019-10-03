@@ -370,13 +370,13 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
     assert (btor_node_bv_get_width (g_btor, exp3) == len);
     if (func == btor_exp_bv_neg)
     {
-      assert (btor_node_is_neg (g_btor, exp2, 0));
-      assert (btor_node_is_neg (g_btor, exp3, 0));
+      assert (btor_node_bv_is_neg (g_btor, exp2, 0));
+      assert (btor_node_bv_is_neg (g_btor, exp3, 0));
     }
     else
     {
-      assert (!btor_node_is_neg (g_btor, exp2, 0));
-      assert (!btor_node_is_neg (g_btor, exp3, 0));
+      assert (!btor_node_bv_is_neg (g_btor, exp2, 0));
+      assert (!btor_node_bv_is_neg (g_btor, exp3, 0));
     }
   }
   else
