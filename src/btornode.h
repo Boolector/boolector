@@ -63,8 +63,8 @@ enum BtorNodeKind
   BTOR_LAMBDA_NODE    = 19, /* lambda expression */
   BTOR_COND_NODE      = 20, /* conditional on bit vectors */
   BTOR_ARGS_NODE      = 21,
-  BTOR_UF_NODE        = 22,
   BTOR_UPDATE_NODE    = 23,
+  BTOR_UF_NODE        = 22,
   BTOR_PROXY_NODE     = 24, /* simplified expression without children */
   BTOR_NUM_OPS_NODE   = 25
 
@@ -270,7 +270,7 @@ btor_node_is_binary_commutative_kind (BtorNodeKind kind)
 static inline bool
 btor_node_is_ternary_kind (BtorNodeKind kind)
 {
-  return kind >= BTOR_COND_NODE;
+  return kind >= BTOR_COND_NODE && kind <= BTOR_UPDATE_NODE;
 }
 
 static inline bool
