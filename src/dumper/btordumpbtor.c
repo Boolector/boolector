@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -545,7 +545,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   {
     default:
     case BTOR_BOOL_SORT: kind = "bool"; break;
-    case BTOR_BITVEC_SORT: kind = "bv"; break;
+    case BTOR_BV_SORT: kind = "bv"; break;
     case BTOR_ARRAY_SORT: kind = "array"; break;
     case BTOR_FUN_SORT: kind = "fun"; break;
   }
@@ -555,7 +555,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
 
   fprintf (file, "%d sort %s", id, kind);
 
-  if (sort->kind == BTOR_BITVEC_SORT)
+  if (sort->kind == BTOR_BV_SORT)
     fprintf (file, " %d", sort->bitvec.width);
   else if (sort->kind == BTOR_ARRAY_SORT)
     fprintf (file,

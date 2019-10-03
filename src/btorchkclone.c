@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -975,7 +975,7 @@ btor_chkclone_sort (Btor *btor,
 
   switch (sort->kind)
   {
-    case BTOR_BITVEC_SORT:
+    case BTOR_BV_SORT:
       assert (sort->bitvec.width == csort->bitvec.width);
       break;
 

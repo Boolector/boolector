@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -314,15 +314,15 @@ btor_dumpsmt_dump_sort (BtorSort *sort, FILE *file)
   {
     case BTOR_BOOL_SORT: fputs ("Bool", file); break;
 
-    case BTOR_BITVEC_SORT:
+    case BTOR_BV_SORT:
       fmt = "(_ BitVec %d)";
       fprintf (file, fmt, sort->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
       fmt = "(Array (_ BitVec %d) (_ BitVec %d))";
-      assert (sort->array.index->kind == BTOR_BITVEC_SORT);
-      assert (sort->array.element->kind == BTOR_BITVEC_SORT);
+      assert (sort->array.index->kind == BTOR_BV_SORT);
+      assert (sort->array.element->kind == BTOR_BV_SORT);
       fprintf (file,
                fmt,
                sort->array.index->bitvec.width,

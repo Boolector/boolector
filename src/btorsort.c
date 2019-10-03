@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2012-2013 Armin Biere.
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -53,7 +53,7 @@ compute_hash_sort (const BtorSort *sort, uint32_t table_size)
         res = 0;
 	break;
 #endif
-    case BTOR_BITVEC_SORT: res = sort->bitvec.width; break;
+    case BTOR_BV_SORT: res = sort->bitvec.width; break;
 #if 0
       case BTOR_ARRAY_SORT:
         res = sort->array.index->id;
@@ -145,7 +145,7 @@ equal_sort (const BtorSort *a, const BtorSort *b)
         assert (a->kind == BTOR_BOOL_SORT);
         break;
 #endif
-    case BTOR_BITVEC_SORT:
+    case BTOR_BV_SORT:
       if (a->bitvec.width != b->bitvec.width) return 0;
       break;
 #if 0
@@ -344,8 +344,8 @@ create_sort (Btor *btor, BtorSortUniqueTable *table, BtorSort *pattern)
 	res->kind = BTOR_BOOL_SORT;
 	break;
 #endif
-    case BTOR_BITVEC_SORT:
-      res->kind         = BTOR_BITVEC_SORT;
+    case BTOR_BV_SORT:
+      res->kind         = BTOR_BV_SORT;
       res->bitvec.width = pattern->bitvec.width;
       break;
 #if 0
@@ -424,7 +424,7 @@ btor_sort_bv (Btor *btor, uint32_t width)
   table = &btor->sorts_unique_table;
 
   BTOR_CLR (&pattern);
-  pattern.kind         = BTOR_BITVEC_SORT;
+  pattern.kind         = BTOR_BV_SORT;
   pattern.bitvec.width = width;
   pos                  = find_sort (table, &pattern);
   assert (pos);
@@ -653,7 +653,7 @@ btor_sort_bv_get_width (Btor *btor, BtorSortId id)
   if (sort->kind == BTOR_BOOL_SORT)
     return 1;
 #endif
-  assert (sort->kind == BTOR_BITVEC_SORT);
+  assert (sort->kind == BTOR_BV_SORT);
   return sort->bitvec.width;
 }
 
@@ -742,7 +742,7 @@ btor_sort_is_bv (Btor *btor, BtorSortId id)
   BtorSort *sort;
   sort = btor_sort_get_by_id (btor, id);
   assert (sort);
-  return sort->kind == BTOR_BITVEC_SORT;
+  return sort->kind == BTOR_BV_SORT;
 }
 
 bool
