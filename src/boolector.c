@@ -4912,7 +4912,7 @@ boolector_copyright (Btor *btor)
   return "This software is\n"
          "Copyright (c) 2007-2009 Robert Brummayer\n"
          "Copyright (c) 2007-2018 Armin Biere\n"
-         "Copyright (c) 2012-2018 Aina Niemetz, Mathias Preiner\n"
+         "Copyright (c) 2012-2019 Aina Niemetz, Mathias Preiner\n"
 #ifdef BTOR_USE_LINGELING
          "\n"
          "This software is linked against Lingeling\n"
@@ -4931,7 +4931,7 @@ boolector_copyright (Btor *btor)
 #ifdef BTOR_USE_CADICAL
          "\n"
          "This software is linked against CaDiCaL\n"
-         "Copyright (c) 2016-2018 Armin Biere\n"
+         "Copyright (c) 2016-2019 Armin Biere\n"
 #endif
          "";
 }
