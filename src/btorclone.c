@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -304,9 +304,7 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
 	    cid = btor_sort_bool (clone);
 	    break;
 #endif
-      case BTOR_BITVEC_SORT:
-        cid = btor_sort_bv (clone, sort->bitvec.width);
-        break;
+      case BTOR_BV_SORT: cid = btor_sort_bv (clone, sort->bitvec.width); break;
 #if 0
 	  case BTOR_LST_SORT:
 	    cid = btor_sort_lst (clone, sort->lst.head->id, sort->lst.tail->id);
@@ -401,7 +399,7 @@ clone_sorts_unique_table (BtorMemMgr * mm,
 	    csort = btor_sort_bool (res);
 	    break;
 
-	  case BTOR_BITVEC_SORT:
+	  case BTOR_BV_SORT:
 	    csort = btor_sort_bv (res, sort->bitvec.len);
 	    break;
 
@@ -1607,8 +1605,7 @@ btor_clone_recursively_rebuild_sort (Btor *btor, Btor *clone, BtorSortId sort)
           for (i = 0; i < s->tuple.num_elements; i++)
             BTOR_PUSH_STACK (sort_stack, s->tuple.elements[i]);
           break;
-        default:
-          assert (s->kind == BTOR_BOOL_SORT || s->kind == BTOR_BITVEC_SORT);
+        default: assert (s->kind == BTOR_BOOL_SORT || s->kind == BTOR_BV_SORT);
       }
     }
     else if (!d->as_int)
@@ -1643,7 +1640,7 @@ btor_clone_recursively_rebuild_sort (Btor *btor, Btor *clone, BtorSortId sort)
           break;
         case BTOR_BOOL_SORT: r = btor_sort_bool (clone); break;
         default:
-          assert (s->kind == BTOR_BITVEC_SORT);
+          assert (s->kind == BTOR_BV_SORT);
           r = btor_sort_bv (clone, s->bitvec.width);
       }
       assert (r);

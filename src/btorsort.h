@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2012-2015 Armin Biere.
  *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2014-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -26,7 +26,7 @@ enum BtorSortKind
 {
   BTOR_INVALID_SORT = 0,
   BTOR_BOOL_SORT    = 1,
-  BTOR_BITVEC_SORT  = 2,
+  BTOR_BV_SORT      = 2,
   BTOR_ARRAY_SORT   = 3,
   BTOR_LST_SORT     = 4,
   BTOR_FUN_SORT     = 5,
