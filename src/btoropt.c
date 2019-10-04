@@ -1484,8 +1484,8 @@ const char *
 btor_opt_get_lng (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_opt_is_valid (btor, opt));
-
+  if (opt == BTOR_OPT_NUM_OPTS) return BTOR_OPT_NUM_OPTS_STR;
+  if (!btor_opt_is_valid (btor, opt)) return BTOR_OPT_INVALID_OPT_STR;
   return (const char *) btor->options[opt].lng;
 }
 

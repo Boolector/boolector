@@ -53,6 +53,9 @@ typedef struct BtorOptHelp BtorOptHelp;
 
 /* enum BtorOption is in btortypes.h */
 
+#define BTOR_OPT_NUM_OPTS_STR "end_of_options_marker"
+#define BTOR_OPT_INVALID_OPT_STR "invalid_option"
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_VERBOSITY_MAX 4
