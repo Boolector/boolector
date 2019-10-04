@@ -208,37 +208,38 @@ typedef struct BtorArgsNode BtorArgsNode;
 static inline BtorNode *
 btor_node_set_tag (BtorNode *node, uintptr_t tag)
 {
+  assert (tag <= 3);
   return (BtorNode *) (tag | (uintptr_t) node);
 }
 
 static inline BtorNode *
 btor_node_invert (const BtorNode *node)
 {
-  return (BtorNode *) (1ul ^ (uintptr_t) node);
+  return (BtorNode *) ((uintptr_t) 1 ^ (uintptr_t) node);
 }
 
 static inline BtorNode *
 btor_node_cond_invert (const BtorNode *cond, const BtorNode *node)
 {
-  return (BtorNode *) (((uintptr_t) cond & 1ul) ^ (uintptr_t) node);
+  return (BtorNode *) (((uintptr_t) cond & (uintptr_t) 1) ^ (uintptr_t) node);
 }
 
 static inline bool
 btor_node_is_inverted (const BtorNode *node)
 {
-  return (1ul & (uintptr_t) node) != 0;
+  return ((uintptr_t) 1 & (uintptr_t) node) != 0;
 }
 
 static inline BtorNode *
 btor_node_real_addr (const BtorNode *node)
 {
-  return (BtorNode *) (~3ul & (uintptr_t) node);
+  return (BtorNode *) (~(uintptr_t) 3 & (uintptr_t) node);
 }
 
 static inline bool
 btor_node_is_regular (const BtorNode *node)
 {
-  return (3ul & (uintptr_t) node) == 0;
+  return ((uintptr_t) 3 & (uintptr_t) node) == 0;
 }
 
 static inline bool
@@ -541,7 +542,7 @@ btor_node_get_id (const BtorNode *exp)
 static inline int32_t
 btor_node_get_tag (const BtorNode *exp)
 {
-  return (int32_t) (3ul & (uintptr_t) exp);
+  return (int32_t) ((uintptr_t) 3 & (uintptr_t) exp);
 }
 
 /*========================================================================*/
