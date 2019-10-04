@@ -852,7 +852,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s %u", btor_opt_get_lng (btor, opt), val);
+  BTOR_TRAPI ("%u %s %u", opt, btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   BTOR_ABORT (
       val < btor_opt_get_min (btor, opt) || val > btor_opt_get_max (btor, opt),
@@ -990,7 +990,7 @@ boolector_get_opt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1005,7 +1005,7 @@ boolector_get_opt_min (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_min (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1020,7 +1020,7 @@ boolector_get_opt_max (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_max (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1035,7 +1035,7 @@ boolector_get_opt_dflt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_dflt (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1050,7 +1050,7 @@ boolector_get_opt_lng (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_lng (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1065,7 +1065,7 @@ boolector_get_opt_shrt (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_shrt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1080,7 +1080,7 @@ boolector_get_opt_desc (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_desc (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1095,7 +1095,7 @@ boolector_has_opt (Btor *btor, BtorOption opt)
 {
   bool res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   res = btor_opt_is_valid (btor, opt);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
@@ -1123,7 +1123,7 @@ boolector_next_opt (Btor *btor, BtorOption opt)
 {
   BtorOption res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_next (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
