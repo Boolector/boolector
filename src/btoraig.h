@@ -74,17 +74,18 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_AIG_FALSE ((BtorAIG *) 0ul)
+#define BTOR_AIG_FALSE ((BtorAIG *) (uintptr_t) 0)
 
-#define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
+#define BTOR_AIG_TRUE ((BtorAIG *) (uintptr_t) 1)
 
-#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (uintptr_t) (aig)))
+#define BTOR_INVERT_AIG(aig) ((BtorAIG *) ((uintptr_t) 1 ^ (uintptr_t) (aig)))
 
-#define BTOR_IS_INVERTED_AIG(aig) (1ul & (uintptr_t) (aig))
+#define BTOR_IS_INVERTED_AIG(aig) ((uintptr_t) 1 & (uintptr_t) (aig))
 
-#define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (uintptr_t) (aig)))
+#define BTOR_REAL_ADDR_AIG(aig) \
+  ((BtorAIG *) ((~(uintptr_t) 1) & (uintptr_t) (aig)))
 
-#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (uintptr_t) (aig)))
+#define BTOR_IS_REGULAR_AIG(aig) (!((uintptr_t) 1 & (uintptr_t) (aig)))
 
 /*------------------------------------------------------------------------*/
 
