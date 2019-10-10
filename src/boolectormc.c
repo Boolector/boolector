@@ -224,6 +224,13 @@ boolector_mc_bmc (BtorMC *mc, int32_t mink, int32_t maxk)
   return btor_mc_bmc (mc, mink, maxk);
 }
 
+int32_t
+boolector_mc_kind (BtorMC *mc, int32_t mink, int32_t maxk)
+{
+  BTOR_ABORT_ARG_NULL (mc);
+  return btor_mc_kind (mc, mink, maxk);
+}
+
 /*------------------------------------------------------------------------*/
 
 char *

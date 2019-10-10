@@ -84,6 +84,8 @@ void boolector_mc_dump (BtorMC *mc, FILE *file);
 
 int32_t boolector_mc_bmc (BtorMC *, int32_t mink, int32_t maxk);
 
+int32_t boolector_mc_kind (BtorMC *, int32_t mink, int32_t maxk);
+
 /*------------------------------------------------------------------------*/
 
 /* Assumes that 'boolector_mc_set_opt (mc, BTOR_MC_OPT_TRACE_GEN, 1)'

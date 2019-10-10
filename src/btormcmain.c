@@ -944,7 +944,14 @@ main (int32_t argc, char **argv)
     {
       kmin = boolector_mc_get_opt (mc, BTOR_MC_OPT_MIN_K);
       kmax = boolector_mc_get_opt (mc, BTOR_MC_OPT_MAX_K);
-      (void) boolector_mc_bmc (mc, kmin, kmax);
+      if (boolector_mc_get_opt (mc, BTOR_MC_OPT_KINDUCTION))
+      {
+        (void) boolector_mc_kind (mc, kmin, kmax);
+      }
+      else
+      {
+        (void) boolector_mc_bmc (mc, kmin, kmax);
+      }
     }
   }
 

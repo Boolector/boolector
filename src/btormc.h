@@ -87,6 +87,7 @@ struct BtorMC
   BtorPtrHashTable *states;
   BoolectorNodePtrStack bad;
   BoolectorNodePtrStack constraints;
+  BoolectorNodePtrStack init_assumptions;
   BtorIntStack reached;
   uint32_t num_reached;
   struct
@@ -168,6 +169,8 @@ void btor_mc_dump (BtorMC *, FILE *);
 /*------------------------------------------------------------------------*/
 
 int32_t btor_mc_bmc (BtorMC *, int32_t mink, int32_t maxk);
+
+int32_t btor_mc_kind (BtorMC *, int32_t mink, int32_t maxk);
 
 /*------------------------------------------------------------------------*/
 
