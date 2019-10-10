@@ -43,6 +43,7 @@ enum BtorMCOption
   BTOR_MC_OPT_VERBOSITY,
   /* Enable k-induction engine */
   BTOR_MC_OPT_KINDUCTION,
+  BTOR_MC_OPT_SIMPLE_PATH,
   /* This MUST be the last entry! */
   BTOR_MC_OPT_NUM_OPTS,
 };
