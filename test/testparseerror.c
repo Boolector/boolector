@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014-2018 Aina Niemetz.
+ *  Copyright (C) 2014-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -60,9 +60,9 @@ run_smt_parse_error_test (void)
 
   BTOR_NEWN (g_mm, smt_fname, len_smt_fname);
   sprintf (smt_fname, "%s.%s", fname, smt_suffix);
-  len_smt = strlen (btor_log_dir) + strlen (smt_fname) + 20;
+  len_smt = strlen (btor_out_dir) + strlen (smt_fname) + 20;
   BTOR_NEWN (g_mm, s_smt, len_smt);
-  sprintf (s_smt, "%s%s", btor_log_dir, smt_fname);
+  sprintf (s_smt, "%s%s", btor_out_dir, smt_fname);
   BTOR_PUSH_STACK (args, s_smt);
 
   BTOR_NEWN (g_mm, log_fname, len_log_fname);
@@ -99,9 +99,10 @@ hassuffix (const char *str, const char *suffix)
 void
 run_parseerror_tests (int32_t argc, char **argv)
 {
-  DIR *dir = opendir (btor_log_dir);
+  DIR *dir = opendir (btor_out_dir);
   struct dirent *de;
   char *base = NULL;
+
   while ((de = readdir (dir)))
   {
     char *name = de->d_name, *dotptr;
@@ -112,9 +113,13 @@ run_parseerror_tests (int32_t argc, char **argv)
       g_name   = base;
       g_smtlib = 0;
       if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
+      {
         g_smtlib = 1;
+      }
       else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
+      {
         g_smtlib = 2;
+      }
 
       if (g_smtlib > 0)
         run_test_case (argc, argv, run_smt_parse_error_test, base, 1);
