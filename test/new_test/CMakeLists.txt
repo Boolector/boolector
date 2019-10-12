@@ -5,7 +5,7 @@ set(test_names
   aigvec
   arithmetic
   boolectornodemap
-  #testbv.c
+  bv
   #testcomp.c
   #testexp.c
   #testhash.c
