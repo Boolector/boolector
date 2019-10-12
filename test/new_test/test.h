@@ -40,8 +40,6 @@ class TestCommon : public ::testing::Test
 
     log_file_name = ss_log.str ();
     out_file_name = ss_out.str ();
-    std::cout << "log_file " << log_file_name << std::endl;
-    std::cout << "out_file " << out_file_name << std::endl;
     log_file = fopen (log_file_name.c_str (), "w");
   }
 
