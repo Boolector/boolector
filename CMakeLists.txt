@@ -398,12 +398,25 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/btorconfig.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/src/btorconfig.h)
 
-# Enable CTest
+#-----------------------------------------------------------------------------#
+# Regression tests
+
+# Get and configure google test
+include(cmake/googletest.cmake)
+fetch_googletest(
+    ${PROJECT_SOURCE_DIR}/cmake
+    ${PROJECT_BINARY_DIR}/googletest
+    )
+
 enable_testing()
+
+#-----------------------------------------------------------------------------#
+# Source directories
 
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(test/new_test)
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()
