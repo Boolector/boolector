@@ -6,7 +6,7 @@ set(test_names
   arithmetic
   boolectornodemap
   bv
-  #testcomp.c
+  comp
   #testexp.c
   #testhash.c
   #testinc.c
