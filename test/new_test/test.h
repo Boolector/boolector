@@ -15,22 +15,16 @@
 #include "gtest/gtest.h"
 
 extern "C" {
+#include "boolector.h"
 #include "btorconfig.h"
 #include "btorcore.h"
 }
 
-class TestBtor : public ::testing::Test
+class TestCommon : public ::testing::Test
 {
  protected:
-  void SetUp () override { btor = btor_new (); }
-
   void TearDown () override
   {
-    if (btor)
-    {
-      btor_delete (btor);
-    }
-
     if (log_file)
     {
       fclose (log_file);
@@ -71,6 +65,42 @@ class TestBtor : public ::testing::Test
   std::string log_file_name;
   std::string out_file_name;
   FILE* log_file = nullptr;
-  Btor* btor     = nullptr;
 };
+
+class TestBtor : public TestCommon
+{
+ protected:
+  void SetUp () override { btor = btor_new (); }
+
+  void TearDown () override
+  {
+    if (btor)
+    {
+      btor_delete (btor);
+    }
+
+    TestCommon::TearDown ();
+  }
+
+  Btor* btor = nullptr;
+};
+
+class TestBoolector : public TestCommon
+{
+ protected:
+  void SetUp () override { btor = boolector_new (); }
+
+  void TearDown () override
+  {
+    if (btor)
+    {
+      boolector_delete (btor);
+    }
+
+    TestCommon::TearDown ();
+  }
+
+  Btor* btor = nullptr;
+};
+
 #endif
