@@ -7,6 +7,7 @@
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
+
 #include "test.h"
 
 extern "C" {
