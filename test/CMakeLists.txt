@@ -1886,4 +1886,3 @@ set(regressions
 foreach(testcase ${units} ${regressions})
   add_test(${testcase} ${CMAKE_BINARY_DIR}/bin/test -q -e ${testcase})
 endforeach()
-
