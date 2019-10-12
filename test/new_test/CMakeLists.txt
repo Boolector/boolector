@@ -2,6 +2,40 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
 
 set(test_names
   aig
+  aigvec
+  #testarithmetic.c
+  #testboolectornodemap.c
+  #testbv.c
+  #testcomp.c
+  #testexp.c
+  #testhash.c
+  #testinc.c
+  #testinthash.c
+  #testinthashmap.c
+  #testlambda.c
+  #testlogic.c
+  #testmap.c
+  #testmc.c
+  #testmem.c
+  #testmisc.c
+  #testmodelgen.c
+  #testmodelgensmt2.c
+  #testnormquant.c
+  #testoverflow.c
+  #testparseerror.c
+  #testprop.c
+  #testpropinv.c
+  #testqueue.c
+  #testrunner.c
+  #testsat.c
+  #testshift.c
+  #testsmtaxioms.c
+  #testsort.c
+  #testspecial.c
+  #teststack.c
+  #testtestcases.c
+  #testunionfind.c
+  #testutil.c
 )
 
 foreach(test ${test_names})
