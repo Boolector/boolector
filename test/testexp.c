@@ -861,8 +861,6 @@ test_read_exp (void)
   index_sort = btor_sort_bv (g_btor, 8);
   array_sort = btor_sort_array (g_btor, index_sort, elem_sort);
 
-  init_exp_test ();
-
   exp1 = btor_exp_array (g_btor, array_sort, "array1");
   exp2 = btor_exp_var (g_btor, index_sort, "v1");
   exp3 = btor_exp_read (g_btor, exp1, exp2);
@@ -954,6 +952,7 @@ test_write_exp (void)
   assert (btor_node_bv_get_width (g_btor, exp7) == 1);
   btor_dumpbtor_dump_node (g_btor, g_logfile, exp7);
   btor_sort_release (g_btor, sort);
+  btor_sort_release (g_btor, array_sort);
   btor_node_release (g_btor, exp1);
   btor_node_release (g_btor, exp2);
   btor_node_release (g_btor, exp3);

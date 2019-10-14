@@ -7,7 +7,7 @@ set(test_names
   boolectornodemap
   bv
   comp
-  #testexp.c
+  exp
   #testhash.c
   #testinc.c
   #testinthash.c
