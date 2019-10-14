@@ -22,7 +22,6 @@ class TestBoolectorNodeMap : public TestBoolector
   {
     const char *symbol;
     (void) state;
-    assert (btor == btor);
     if (!boolector_is_var (btor, node)) return 0;
     symbol = boolector_get_symbol (btor, node);
     assert (symbol);
@@ -33,55 +32,55 @@ class TestBoolectorNodeMap : public TestBoolector
 
 TEST_F (TestBoolectorNodeMap, boolectornodemap0)
 {
-  BoolectorSort sort = boolector_bitvec_sort (btor, 32);
-  BoolectorNode *a   = boolector_var (btor, sort, "a");
-  BoolectorNode *b   = boolector_var (btor, sort, "b");
-  BoolectorNode *s   = boolector_sub (btor, a, b);
-  BoolectorNode *o   = boolector_one (btor, sort);
-  BoolectorNode *t   = boolector_unsigned_int (btor, 2, sort);
+  BoolectorSort sort = boolector_bitvec_sort (d_btor, 32);
+  BoolectorNode *a   = boolector_var (d_btor, sort, "a");
+  BoolectorNode *b   = boolector_var (d_btor, sort, "b");
+  BoolectorNode *s   = boolector_sub (d_btor, a, b);
+  BoolectorNode *o   = boolector_one (d_btor, sort);
+  BoolectorNode *t   = boolector_unsigned_int (d_btor, 2, sort);
 
-  BoolectorNodeMap *map = boolector_nodemap_new (btor);
+  BoolectorNodeMap *map = boolector_nodemap_new (d_btor);
   BoolectorNode *d;
   boolector_nodemap_map (map, a, t);
   boolector_nodemap_map (map, b, o);
-  d = boolector_nodemap_substitute_node (btor, map, s);
+  d = boolector_nodemap_substitute_node (d_btor, map, s);
   (void) d;
   ASSERT_EQ (d, o);
   boolector_nodemap_delete (map);
 
-  boolector_release (btor, a);
-  boolector_release (btor, b);
-  boolector_release (btor, o);
-  boolector_release (btor, s);
-  boolector_release (btor, t);
-  boolector_release_sort (btor, sort);
+  boolector_release (d_btor, a);
+  boolector_release (d_btor, b);
+  boolector_release (d_btor, o);
+  boolector_release (d_btor, s);
+  boolector_release (d_btor, t);
+  boolector_release_sort (d_btor, sort);
 }
 
 TEST_F (TestBoolectorNodeMap, boolectornodemap1)
 {
-  BoolectorSort sort = boolector_bitvec_sort (btor, 8);
-  BoolectorNode *a   = boolector_var (btor, sort, "11");
-  BoolectorNode *b   = boolector_var (btor, sort, "22");
-  BoolectorNode *c   = boolector_var (btor, sort, "33");
+  BoolectorSort sort = boolector_bitvec_sort (d_btor, 8);
+  BoolectorNode *a   = boolector_var (d_btor, sort, "11");
+  BoolectorNode *b   = boolector_var (d_btor, sort, "22");
+  BoolectorNode *c   = boolector_var (d_btor, sort, "33");
   BoolectorNode *s;
 
-  BoolectorNode *sum = boolector_add (btor, a, b);
-  s                  = boolector_add (btor, sum, c);
-  boolector_release (btor, sum);
+  BoolectorNode *sum = boolector_add (d_btor, a, b);
+  s                  = boolector_add (d_btor, sum, c);
+  boolector_release (d_btor, sum);
 
-  BoolectorNodeMap *map = boolector_nodemap_new (btor);
+  BoolectorNodeMap *map = boolector_nodemap_new (d_btor);
   BoolectorNode *d, *g;
   d = boolector_nodemap_extended_substitute_node (
-      btor, map, 0, boolectornodemap1_mapper, boolector_release, s);
+      d_btor, map, 0, boolectornodemap1_mapper, boolector_release, s);
   (void) d;
-  g = boolector_unsigned_int (btor, 66, sort);
+  g = boolector_unsigned_int (d_btor, 66, sort);
   ASSERT_EQ (d, g);
-  boolector_release (btor, g);
+  boolector_release (d_btor, g);
   boolector_nodemap_delete (map);
 
-  boolector_release (btor, a);
-  boolector_release (btor, b);
-  boolector_release (btor, c);
-  boolector_release (btor, s);
-  boolector_release_sort (btor, sort);
+  boolector_release (d_btor, a);
+  boolector_release (d_btor, b);
+  boolector_release (d_btor, c);
+  boolector_release (d_btor, s);
+  boolector_release_sort (d_btor, sort);
 }

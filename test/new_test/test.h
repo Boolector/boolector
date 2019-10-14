@@ -25,9 +25,10 @@ class TestCommon : public ::testing::Test
  protected:
   void TearDown () override
   {
-    if (log_file)
+    if (d_log_file)
     {
-      fclose (log_file);
+      fclose (d_log_file);
+      d_log_file = nullptr;
       check_log_file ();
     }
   }
@@ -38,16 +39,16 @@ class TestCommon : public ::testing::Test
     ss_log << BTOR_LOG_DIR << name << ".log";
     ss_out << BTOR_OUT_DIR << name << ".out";
 
-    log_file_name = ss_log.str ();
-    out_file_name = ss_out.str ();
-    log_file = fopen (log_file_name.c_str (), "w");
+    d_log_file_name = ss_log.str ();
+    d_out_file_name = ss_out.str ();
+    d_log_file      = fopen (d_log_file_name.c_str (), "w");
   }
 
   void check_log_file ()
   {
-    std::ifstream log_file (log_file_name,
-                            std::ifstream::binary | std::ifstream::ate);
-    std::ifstream out_file (out_file_name,
+    std::ifstream log_file (d_log_file_name,
+                              std::ifstream::binary | std::ifstream::ate);
+    std::ifstream out_file (d_out_file_name,
                             std::ifstream::binary | std::ifstream::ate);
 
     ASSERT_TRUE (!log_file.fail () && !out_file.fail ());
@@ -60,63 +61,65 @@ class TestCommon : public ::testing::Test
                     std::istreambuf_iterator<char> (out_file.rdbuf ())));
   }
 
-  std::string log_file_name;
-  std::string out_file_name;
-  FILE* log_file = nullptr;
+  std::string d_log_file_name;
+  std::string d_out_file_name;
+  FILE* d_log_file = nullptr;
 };
 
 class TestMm : public TestCommon
 {
  protected:
-  void SetUp () override { mm = btor_mem_mgr_new (); }
+  void SetUp () override { d_mm = btor_mem_mgr_new (); }
 
   void TearDown () override
   {
-    if (mm)
+    if (d_mm)
     {
-      btor_mem_mgr_delete (mm);
+      btor_mem_mgr_delete (d_mm);
+      d_mm = nullptr;
     }
 
     TestCommon::TearDown ();
   }
 
-  BtorMemMgr* mm = nullptr;
+  BtorMemMgr* d_mm = nullptr;
 };
 
 class TestBtor : public TestCommon
 {
  protected:
-  void SetUp () override { btor = btor_new (); }
+  void SetUp () override { d_btor = btor_new (); }
 
   void TearDown () override
   {
-    if (btor)
+    if (d_btor)
     {
-      btor_delete (btor);
+      btor_delete (d_btor);
+      d_btor = nullptr;
     }
 
     TestCommon::TearDown ();
   }
 
-  Btor* btor = nullptr;
+  Btor* d_btor = nullptr;
 };
 
 class TestBoolector : public TestCommon
 {
  protected:
-  void SetUp () override { btor = boolector_new (); }
+  void SetUp () override { d_btor = boolector_new (); }
 
   void TearDown () override
   {
-    if (btor)
+    if (d_btor)
     {
-      boolector_delete (btor);
+      boolector_delete (d_btor);
     }
 
     TestCommon::TearDown ();
   }
 
-  Btor* btor = nullptr;
+  Btor* d_btor = nullptr;
 };
 
 #endif
