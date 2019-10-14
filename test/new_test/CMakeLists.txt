@@ -10,7 +10,7 @@ set(test_names
   exp
   hash
   inc
-  #testinthash.c
+  inthash
   #testinthashmap.c
   #testlambda.c
   #testlogic.c
