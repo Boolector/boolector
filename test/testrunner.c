@@ -105,9 +105,6 @@ static const char *brokentests[] = {
     "dumpbtor2",
     "dumpsmt1",
     "dumpsmt2",
-    /* currently broken as we do not have reads/writes/aconds anymore */
-    "read_exp",
-    "write_exp",
     /* currently broken as we do not support lambda hashing yet */
     "lambda_param_write1",
     "lambda_param_write2",

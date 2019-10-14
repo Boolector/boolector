@@ -206,6 +206,7 @@ btor_dumpbtor_add_output_to_dump_context (BtorDumpContext *bdc,
 void
 btor_dumpbtor_add_root_to_dump_context (BtorDumpContext *bdc, BtorNode *root)
 {
+  assert (!btor_node_is_args (root));
   (void) btor_node_copy (bdc->btor, root);
   BTOR_PUSH_STACK (bdc->roots, root);
 }
@@ -640,6 +641,10 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 static void
 bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {
+  assert (bdc);
+  assert (start);
+  assert (file);
+
   BtorNode *node;
   uint32_t i;
 
@@ -668,8 +673,11 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
       assert (!BTOR_EMPTY_STACK (bdc->work));
       node = BTOR_POP_STACK (bdc->work);
       assert (btor_node_is_regular (node));
-      (void) bdcid (bdc, node);
-      bdcnode (bdc, node, file);
+      if (!btor_node_is_args (node))
+      {
+        (void) bdcid (bdc, node);
+        bdcnode (bdc, node, file);
+      }
     }
   }
 }
@@ -782,6 +790,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->roots); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->roots, i);
+    assert (!btor_node_is_args (node));
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     if (bdc->version == 1)
@@ -803,6 +812,7 @@ btor_dumpbtor_dump_node (Btor *btor, FILE *file, BtorNode *exp)
   assert (btor);
   assert (file);
   assert (exp);
+  assert (!btor_node_is_args (exp));
 
   BtorDumpContext *bdc;
 
