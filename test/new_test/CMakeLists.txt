@@ -9,7 +9,7 @@ set(test_names
   comp
   exp
   hash
-  #testinc.c
+  inc
   #testinthash.c
   #testinthashmap.c
   #testlambda.c
