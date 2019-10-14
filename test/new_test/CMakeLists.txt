@@ -11,7 +11,7 @@ set(test_names
   hash
   inc
   inthash
-  #testinthashmap.c
+  inthashmap
   #testlambda.c
   #testlogic.c
   #testmap.c
