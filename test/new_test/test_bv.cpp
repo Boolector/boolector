@@ -15,28 +15,28 @@ extern "C" {
 #include "btorbv.h"
 }
 
-#define TEST_BV_IS_UMULO_BITVEC(bw, v0, v1, res)      \
-  do                                                  \
-  {                                                   \
-    bv0 = btor_bv_uint64_to_bv (mm, v0, bw);          \
-    bv1 = btor_bv_uint64_to_bv (mm, v1, bw);          \
-    ASSERT_EQ (btor_bv_is_umulo (mm, bv0, bv1), res); \
-    btor_bv_free (mm, bv0);                           \
-    btor_bv_free (mm, bv1);                           \
+#define TEST_BV_IS_UMULO_BITVEC(bw, v0, v1, res)        \
+  do                                                    \
+  {                                                     \
+    bv0 = btor_bv_uint64_to_bv (d_mm, v0, bw);          \
+    bv1 = btor_bv_uint64_to_bv (d_mm, v1, bw);          \
+    ASSERT_EQ (btor_bv_is_umulo (d_mm, bv0, bv1), res); \
+    btor_bv_free (d_mm, bv0);                           \
+    btor_bv_free (d_mm, bv1);                           \
   } while (0)
 
 #define TEST_BV_CHECK_CHAR_TO_BV(bv, i)       \
   do                                          \
   {                                           \
-    s = btor_bv_to_char (mm, bv);             \
+    s = btor_bv_to_char (d_mm, bv);           \
     ASSERT_EQ (strlen (s), bv->width);        \
     for (k = 0; k < i; k++)                   \
     {                                         \
       b = s[i - k - 1] == '0' ? 0 : 1;        \
       ASSERT_EQ (b, btor_bv_get_bit (bv, k)); \
     }                                         \
-    btor_mem_freestr (mm, s);                 \
-    btor_bv_free (mm, bv);                    \
+    btor_mem_freestr (d_mm, s);               \
+    btor_bv_free (d_mm, bv);                  \
   } while (0)
 
 class TestBv : public TestBtor
@@ -49,15 +49,15 @@ class TestBv : public TestBtor
   void SetUp () override
   {
     TestBtor::SetUp ();
-    mm  = btor->mm;
-    rng = &btor->rng;
+    d_mm = d_btor->mm;
+    rng  = &d_btor->rng;
   }
 
   BtorBitVector *random_bv (uint32_t bw)
   {
     uint32_t i;
     BtorBitVector *res;
-    res = btor_bv_new (mm, bw);
+    res = btor_bv_new (d_mm, bw);
 
     for (i = 0; i < res->len; i++) res->bits[i] = (BTOR_BV_TYPE) rand ();
 
@@ -70,20 +70,20 @@ class TestBv : public TestBtor
 
   void bv_to_hex_char_bitvec (FILE *g_logfile, const char *c)
   {
-    BtorBitVector *bv = btor_bv_char_to_bv (mm, c);
-    char *h           = btor_bv_to_hex_char (mm, bv);
+    BtorBitVector *bv = btor_bv_char_to_bv (d_mm, c);
+    char *h           = btor_bv_to_hex_char (d_mm, bv);
     fprintf (g_logfile, "2'%s = 16'%s\n", c, h);
-    btor_mem_freestr (mm, h);
-    btor_bv_free (mm, bv);
+    btor_mem_freestr (d_mm, h);
+    btor_bv_free (d_mm, bv);
   }
 
   void bv_to_dec_char_bitvec (FILE *g_logfile, const char *c)
   {
-    BtorBitVector *bv = btor_bv_char_to_bv (mm, c);
-    char *d           = btor_bv_to_dec_char (mm, bv);
+    BtorBitVector *bv = btor_bv_char_to_bv (d_mm, c);
+    char *d           = btor_bv_to_dec_char (d_mm, bv);
     fprintf (g_logfile, "2'%s = 10'%s\n", c, d);
-    btor_mem_freestr (mm, d);
-    btor_bv_free (mm, bv);
+    btor_mem_freestr (d_mm, d);
+    btor_bv_free (d_mm, bv);
   }
 
   static uint64_t _not (uint64_t x, uint32_t bw)
@@ -184,13 +184,13 @@ class TestBv : public TestBtor
     for (i = 0; i < num_tests; i++)
     {
       bv   = random_bv (bit_width);
-      res  = bitvec_func (mm, bv);
+      res  = bitvec_func (d_mm, bv);
       a    = btor_bv_to_uint64 (bv);
       ares = int_func (a, bit_width);
       bres = btor_bv_to_uint64 (res);
       ASSERT_EQ (ares, bres);
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv);
     }
   }
 
@@ -205,7 +205,7 @@ class TestBv : public TestBtor
     BtorBitVector *bv1, *bv2, *zero, *res;
     uint64_t a1, a2, ares, bres;
 
-    zero = btor_bv_new (mm, bit_width);
+    zero = btor_bv_new (d_mm, bit_width);
     for (i = 0; i < num_tests; i++)
     {
       bv1 = random_bv (bit_width);
@@ -213,27 +213,27 @@ class TestBv : public TestBtor
       a1  = btor_bv_to_uint64 (bv1);
       a2  = btor_bv_to_uint64 (bv2);
       /* test for x = 0 explicitly */
-      res  = bitvec_func (mm, zero, bv2);
+      res  = bitvec_func (d_mm, zero, bv2);
       ares = int_func (0, a2, bit_width);
       bres = btor_bv_to_uint64 (res);
       ASSERT_EQ (ares, bres);
-      btor_bv_free (mm, res);
+      btor_bv_free (d_mm, res);
       /* test for y = 0 explicitly */
-      res  = bitvec_func (mm, bv1, zero);
+      res  = bitvec_func (d_mm, bv1, zero);
       ares = int_func (a1, 0, bit_width);
       bres = btor_bv_to_uint64 (res);
       ASSERT_EQ (ares, bres);
-      btor_bv_free (mm, res);
+      btor_bv_free (d_mm, res);
       /* test x, y random */
-      res  = bitvec_func (mm, bv1, bv2);
+      res  = bitvec_func (d_mm, bv1, bv2);
       ares = int_func (a1, a2, bit_width);
       bres = btor_bv_to_uint64 (res);
       ASSERT_EQ (ares, bres);
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv1);
-      btor_bv_free (mm, bv2);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv1);
+      btor_bv_free (d_mm, bv2);
     }
-    btor_bv_free (mm, zero);
+    btor_bv_free (d_mm, zero);
   }
 
   void concat_bitvec (int32_t num_tests, uint32_t bit_width)
@@ -249,16 +249,16 @@ class TestBv : public TestBtor
       bw2 = bit_width - bw1;
       bv1 = random_bv (bw1);
       bv2 = random_bv (bw2);
-      res = btor_bv_concat (mm, bv1, bv2);
+      res = btor_bv_concat (d_mm, bv1, bv2);
       ASSERT_EQ (res->width, bw1 + bw2);
       a1   = btor_bv_to_uint64 (bv1);
       a2   = btor_bv_to_uint64 (bv2);
       ares = (a1 << bw2) | a2;
       bres = btor_bv_to_uint64 (res);
       ASSERT_EQ (ares, bres);
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv1);
-      btor_bv_free (mm, bv2);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv1);
+      btor_bv_free (d_mm, bv2);
     }
   }
 
@@ -277,18 +277,18 @@ class TestBv : public TestBtor
       ASSERT_LT (upper, bit_width);
       ASSERT_LT (lower, bit_width);
 
-      res = btor_bv_slice (mm, bv, upper, lower);
+      res = btor_bv_slice (d_mm, bv, upper, lower);
       ASSERT_EQ (res->width, upper - lower + 1);
-      sres = btor_bv_to_char (mm, res);
-      sbv  = btor_bv_to_char (mm, bv);
+      sres = btor_bv_to_char (d_mm, res);
+      sbv  = btor_bv_to_char (d_mm, bv);
 
       ASSERT_EQ (strncmp (sbv + bit_width - upper - 1, sres, upper - lower + 1),
                  0);
 
-      btor_mem_freestr (mm, sbv);
-      btor_mem_freestr (mm, sres);
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv);
+      btor_mem_freestr (d_mm, sbv);
+      btor_mem_freestr (d_mm, sres);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv);
     }
   }
 
@@ -307,20 +307,20 @@ class TestBv : public TestBtor
       len = btor_rng_pick_rand (rng, 1, bit_width - 1);
       bv  = random_bv (bit_width - len);
 
-      res = ext_func (mm, bv, len);
+      res = ext_func (d_mm, bv, len);
       ASSERT_EQ (bv->width + len, res->width);
-      sres = btor_bv_to_char (mm, res);
-      sbv  = btor_bv_to_char (mm, bv);
+      sres = btor_bv_to_char (d_mm, res);
+      sbv  = btor_bv_to_char (d_mm, bv);
 
       ASSERT_EQ (strncmp (sbv, sres + len, bit_width - len), 0);
 
       for (j = 0; j < len; j++)
         ASSERT_EQ (sres[j], (ext_func == btor_bv_uext ? '0' : sbv[0]));
 
-      btor_mem_freestr (mm, sbv);
-      btor_mem_freestr (mm, sres);
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv);
+      btor_mem_freestr (d_mm, sbv);
+      btor_mem_freestr (d_mm, sres);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv);
     }
   }
 
@@ -333,15 +333,15 @@ class TestBv : public TestBtor
     {
       pos = btor_rng_pick_rand (rng, 0, bit_width - 1);
       bv  = random_bv (bit_width);
-      res = btor_bv_flipped_bit (mm, bv, pos);
+      res = btor_bv_flipped_bit (d_mm, bv, pos);
       ASSERT_EQ (btor_bv_get_bit (bv, pos), !btor_bv_get_bit (res, pos));
       for (j = 0; j < bit_width; j++)
       {
         if (j == pos) continue;
         ASSERT_EQ (btor_bv_get_bit (bv, j), btor_bv_get_bit (res, j));
       }
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv);
     }
   }
 
@@ -357,15 +357,15 @@ class TestBv : public TestBtor
                ? bit_width - 1
                : btor_rng_pick_rand (rng, lo + 1, bit_width - 1);
       bv  = random_bv (bit_width);
-      res = btor_bv_flipped_bit_range (mm, bv, up, lo);
+      res = btor_bv_flipped_bit_range (d_mm, bv, up, lo);
       for (j = lo; j <= up; j++)
         ASSERT_EQ (btor_bv_get_bit (bv, j), !btor_bv_get_bit (res, j));
       for (j = 0; j < lo; j++)
         ASSERT_EQ (btor_bv_get_bit (bv, j), btor_bv_get_bit (res, j));
       for (j = up + 1; j < bit_width; j++)
         ASSERT_EQ (btor_bv_get_bit (bv, j), btor_bv_get_bit (res, j));
-      btor_bv_free (mm, res);
-      btor_bv_free (mm, bv);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv);
     }
   }
 
@@ -395,7 +395,7 @@ class TestBv : public TestBtor
     }
   }
 
-  BtorMemMgr *mm;
+  BtorMemMgr *d_mm;
   BtorRNG *rng;
 };
 
@@ -405,17 +405,17 @@ TEST_F (TestBv, new)
 {
   BtorBitVector *bv;
 
-  bv = btor_bv_new (mm, BTOR_BV_TYPE_BW);
+  bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW);
   ASSERT_EQ (bv->len, 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_new (mm, BTOR_BV_TYPE_BW - 1);
+  bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW - 1);
   ASSERT_EQ (bv->len, 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_new (mm, BTOR_BV_TYPE_BW + 1);
+  bv = btor_bv_new (d_mm, BTOR_BV_TYPE_BW + 1);
   ASSERT_EQ (bv->len, 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, new_random_range)
@@ -428,15 +428,15 @@ TEST_F (TestBv, new_random_range)
   {
     from = random_bv (bw);
     // from == to
-    bv  = btor_bv_new_random_range (mm, rng, bw, from, from);
+    bv  = btor_bv_new_random_range (d_mm, rng, bw, from, from);
     val = btor_bv_to_uint64 (bv);
     ASSERT_EQ (val, btor_bv_to_uint64 (from));
-    btor_bv_free (mm, bv);
+    btor_bv_free (d_mm, bv);
     // from < to
     to = random_bv (bw);
     while (!btor_bv_compare (from, to))
     {
-      btor_bv_free (mm, to);
+      btor_bv_free (d_mm, to);
       to = random_bv (bw);
     }
     if (btor_bv_to_uint64 (to) < btor_bv_to_uint64 (from))
@@ -445,13 +445,13 @@ TEST_F (TestBv, new_random_range)
       to   = from;
       from = tmp;
     }
-    bv  = btor_bv_new_random_range (mm, rng, bw, from, to);
+    bv  = btor_bv_new_random_range (d_mm, rng, bw, from, to);
     val = btor_bv_to_uint64 (bv);
     ASSERT_GE (val, btor_bv_to_uint64 (from));
     ASSERT_LE (val, btor_bv_to_uint64 (to));
-    btor_bv_free (mm, from);
-    btor_bv_free (mm, to);
-    btor_bv_free (mm, bv);
+    btor_bv_free (d_mm, from);
+    btor_bv_free (d_mm, to);
+    btor_bv_free (d_mm, bv);
   }
 }
 
@@ -462,13 +462,13 @@ TEST_F (TestBv, uint64_to_bv)
   uint64_t i, j, k, l;
   BtorBitVector *bv;
 
-  bv = btor_bv_uint64_to_bv (mm, 0, 32);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 32);
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_uint64_to_bv (mm, UINT32_MAX, 32);
+  bv = btor_bv_uint64_to_bv (d_mm, UINT32_MAX, 32);
   ASSERT_EQ (btor_bv_to_uint64 (bv), UINT32_MAX);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   for (i = 0; i < 10; i++)
   {
@@ -477,10 +477,10 @@ TEST_F (TestBv, uint64_to_bv)
       l  = rand () % 32 + 1;
       bv = random_bv (l);
       k  = btor_bv_to_uint64 (bv);
-      btor_bv_free (mm, bv);
-      bv = btor_bv_uint64_to_bv (mm, k, l);
+      btor_bv_free (d_mm, bv);
+      bv = btor_bv_uint64_to_bv (d_mm, k, l);
       ASSERT_EQ (btor_bv_to_uint64 (bv), k);
-      btor_bv_free (mm, bv);
+      btor_bv_free (d_mm, bv);
     }
   }
 }
@@ -494,10 +494,10 @@ TEST_F (TestBv, uint64_to_bv_to_uint64)
   {
     x = ((uint64_t) rand ()) << 32;
     x |= (uint64_t) rand ();
-    a = btor_bv_uint64_to_bv (mm, x, 64);
+    a = btor_bv_uint64_to_bv (d_mm, x, 64);
     y = btor_bv_to_uint64 (a);
     ASSERT_EQ (x, y);
-    btor_bv_free (mm, a);
+    btor_bv_free (d_mm, a);
   }
 }
 
@@ -541,11 +541,11 @@ TEST_F (TestBv, int64_to_bv)
   for (i = 0; str_x[i]; i++)
   {
     s     = str_x[i];
-    a     = btor_bv_int64_to_bv (mm, x[i], strlen (s));
-    str_a = btor_bv_to_char (mm, a);
+    a     = btor_bv_int64_to_bv (d_mm, x[i], strlen (s));
+    str_a = btor_bv_to_char (d_mm, a);
     ASSERT_EQ (strcmp (str_a, s), 0);
-    btor_bv_free (mm, a);
-    btor_mem_freestr (mm, str_a);
+    btor_bv_free (d_mm, a);
+    btor_mem_freestr (d_mm, str_a);
   }
 }
 
@@ -555,221 +555,221 @@ TEST_F (TestBv, char_to_bv)
 {
   BtorBitVector *bv;
 
-  bv = btor_bv_char_to_bv (mm, "0");
+  bv = btor_bv_char_to_bv (d_mm, "0");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1");
+  bv = btor_bv_char_to_bv (d_mm, "1");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00");
+  bv = btor_bv_char_to_bv (d_mm, "00");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "01");
+  bv = btor_bv_char_to_bv (d_mm, "01");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10");
+  bv = btor_bv_char_to_bv (d_mm, "10");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11");
+  bv = btor_bv_char_to_bv (d_mm, "11");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 3u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000");
+  bv = btor_bv_char_to_bv (d_mm, "000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001");
+  bv = btor_bv_char_to_bv (d_mm, "001");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "010");
+  bv = btor_bv_char_to_bv (d_mm, "010");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "011");
+  bv = btor_bv_char_to_bv (d_mm, "011");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 3u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "100");
+  bv = btor_bv_char_to_bv (d_mm, "100");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 4u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "101");
+  bv = btor_bv_char_to_bv (d_mm, "101");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 5u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "110");
+  bv = btor_bv_char_to_bv (d_mm, "110");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 6u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111");
+  bv = btor_bv_char_to_bv (d_mm, "111");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 7u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000000001");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000000001");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000000010");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000000010");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000000100");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000000100");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 4u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000001000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000001000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 8u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000010000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000010000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 16u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000000100000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000000100000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 32u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000001000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000001000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 64u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000010000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000010000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 128u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000000100000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000000100000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 256u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000001000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000001000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 512u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000010000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000010000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1024u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000000100000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000000100000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2048u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000001000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000001000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 4096u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000010000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000010000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 8192u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000000100000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000000100000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 16384u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000001000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000001000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 32768u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000010000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000010000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 65536u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000000100000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000000100000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 131072u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000001000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000001000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 262144u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000010000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000010000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 524288u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000000100000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000000100000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1048576u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000001000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000001000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2097152u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000010000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000010000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 4194304u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000000100000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000000100000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 8388608u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000001000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000001000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 16777216u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000010000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000010000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 33554432u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00000100000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00000100000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 67108864u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00001000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00001000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 134217728u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00010000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00010000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 268435456u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00100000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "00100000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 536870912u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "01000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "01000000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1073741824u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 2147483648u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11111111111111111111111111111111");
+  bv = btor_bv_char_to_bv (d_mm, "11111111111111111111111111111111");
   ASSERT_EQ (btor_bv_to_uint64 (bv), UINT32_MAX);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "000000000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000000000000000000000000000000001");
+  bv = btor_bv_char_to_bv (d_mm, "000000000000000000000000000000001");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111111111111111111111111111111111");
+  bv = btor_bv_char_to_bv (d_mm, "111111111111111111111111111111111");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 8589934591u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0000000000000000000000000000000000");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000000000000000000000000000000001");
+  bv = btor_bv_char_to_bv (d_mm, "0000000000000000000000000000000001");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1111111111111111111111111111111111");
+  bv = btor_bv_char_to_bv (d_mm, "1111111111111111111111111111111111");
   ASSERT_EQ (btor_bv_to_uint64 (bv), 17179869183u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, bv_to_char)
@@ -783,42 +783,42 @@ TEST_F (TestBv, bv_to_char)
   {
     for (j = 0; j < (1u << i); j++)
     {
-      bv = btor_bv_uint64_to_bv (mm, j, i);
+      bv = btor_bv_uint64_to_bv (d_mm, j, i);
       TEST_BV_CHECK_CHAR_TO_BV (bv, i);
     }
   }
 
-  bv = btor_bv_uint64_to_bv (mm, UINT32_MAX, 32);
+  bv = btor_bv_uint64_to_bv (d_mm, UINT32_MAX, 32);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 32);
 
-  bv = btor_bv_uint64_to_bv (mm, 0, 32);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 32);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 32);
 
-  bv = btor_bv_uint64_to_bv (mm, 1, 32);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 32);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 32);
 
   for (i = 0; i < 20; i++)
   {
-    bv = btor_bv_new_random (mm, rng, 32);
+    bv = btor_bv_new_random (d_mm, rng, 32);
     TEST_BV_CHECK_CHAR_TO_BV (bv, 32);
   }
 
-  bv = btor_bv_uint64_to_bv (mm, 8589934591, 33);
+  bv = btor_bv_uint64_to_bv (d_mm, 8589934591, 33);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 33);
 
-  bv = btor_bv_uint64_to_bv (mm, 0, 33);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 33);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 33);
 
-  bv = btor_bv_uint64_to_bv (mm, 1, 33);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 33);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 33);
 
-  bv = btor_bv_uint64_to_bv (mm, 17179869183, 34);
+  bv = btor_bv_uint64_to_bv (d_mm, 17179869183, 34);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 34);
 
-  bv = btor_bv_uint64_to_bv (mm, 0, 34);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 34);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 34);
 
-  bv = btor_bv_uint64_to_bv (mm, 1, 34);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 34);
   TEST_BV_CHECK_CHAR_TO_BV (bv, 34);
 }
 
@@ -827,57 +827,57 @@ TEST_F (TestBv, bv_to_char)
 TEST_F (TestBv, bv_to_hex_char)
 {
   open_log_file ("bv_to_hex_char_bitvec");
-  bv_to_hex_char_bitvec (log_file, "1");
-  bv_to_hex_char_bitvec (log_file, "10");
-  bv_to_hex_char_bitvec (log_file, "11");
-  bv_to_hex_char_bitvec (log_file, "100");
-  bv_to_hex_char_bitvec (log_file, "101");
-  bv_to_hex_char_bitvec (log_file, "110");
-  bv_to_hex_char_bitvec (log_file, "111");
-  bv_to_hex_char_bitvec (log_file, "1000");
-  bv_to_hex_char_bitvec (log_file, "1001");
-  bv_to_hex_char_bitvec (log_file, "1010");
-  bv_to_hex_char_bitvec (log_file, "1011");
-  bv_to_hex_char_bitvec (log_file, "1100");
-  bv_to_hex_char_bitvec (log_file, "1101");
-  bv_to_hex_char_bitvec (log_file, "1110");
-  bv_to_hex_char_bitvec (log_file, "1111");
-  bv_to_hex_char_bitvec (log_file, "10000");
-  bv_to_hex_char_bitvec (log_file, "10001");
-  bv_to_hex_char_bitvec (log_file, "1111111111111111");
-  bv_to_hex_char_bitvec (log_file, "11111111111111111");
-  bv_to_hex_char_bitvec (log_file, "00001111111111111111");
-  bv_to_hex_char_bitvec (log_file, "000011111111111111111");
+  bv_to_hex_char_bitvec (d_log_file, "1");
+  bv_to_hex_char_bitvec (d_log_file, "10");
+  bv_to_hex_char_bitvec (d_log_file, "11");
+  bv_to_hex_char_bitvec (d_log_file, "100");
+  bv_to_hex_char_bitvec (d_log_file, "101");
+  bv_to_hex_char_bitvec (d_log_file, "110");
+  bv_to_hex_char_bitvec (d_log_file, "111");
+  bv_to_hex_char_bitvec (d_log_file, "1000");
+  bv_to_hex_char_bitvec (d_log_file, "1001");
+  bv_to_hex_char_bitvec (d_log_file, "1010");
+  bv_to_hex_char_bitvec (d_log_file, "1011");
+  bv_to_hex_char_bitvec (d_log_file, "1100");
+  bv_to_hex_char_bitvec (d_log_file, "1101");
+  bv_to_hex_char_bitvec (d_log_file, "1110");
+  bv_to_hex_char_bitvec (d_log_file, "1111");
+  bv_to_hex_char_bitvec (d_log_file, "10000");
+  bv_to_hex_char_bitvec (d_log_file, "10001");
+  bv_to_hex_char_bitvec (d_log_file, "1111111111111111");
+  bv_to_hex_char_bitvec (d_log_file, "11111111111111111");
+  bv_to_hex_char_bitvec (d_log_file, "00001111111111111111");
+  bv_to_hex_char_bitvec (d_log_file, "000011111111111111111");
 }
 
 TEST_F (TestBv, bv_to_dec_char)
 {
   open_log_file ("bv_to_dec_char_bitvec");
-  bv_to_dec_char_bitvec (log_file, "1");
-  bv_to_dec_char_bitvec (log_file, "10");
-  bv_to_dec_char_bitvec (log_file, "11");
-  bv_to_dec_char_bitvec (log_file, "100");
-  bv_to_dec_char_bitvec (log_file, "101");
-  bv_to_dec_char_bitvec (log_file, "110");
-  bv_to_dec_char_bitvec (log_file, "111");
-  bv_to_dec_char_bitvec (log_file, "1000");
-  bv_to_dec_char_bitvec (log_file, "1001");
-  bv_to_dec_char_bitvec (log_file, "1010");
-  bv_to_dec_char_bitvec (log_file, "1011");
-  bv_to_dec_char_bitvec (log_file, "1100");
-  bv_to_dec_char_bitvec (log_file, "1101");
-  bv_to_dec_char_bitvec (log_file, "1110");
-  bv_to_dec_char_bitvec (log_file, "1111");
-  bv_to_dec_char_bitvec (log_file, "10000");
-  bv_to_dec_char_bitvec (log_file, "10001");
-  bv_to_dec_char_bitvec (log_file, "10000000000000000");
-  bv_to_dec_char_bitvec (log_file,
+  bv_to_dec_char_bitvec (d_log_file, "1");
+  bv_to_dec_char_bitvec (d_log_file, "10");
+  bv_to_dec_char_bitvec (d_log_file, "11");
+  bv_to_dec_char_bitvec (d_log_file, "100");
+  bv_to_dec_char_bitvec (d_log_file, "101");
+  bv_to_dec_char_bitvec (d_log_file, "110");
+  bv_to_dec_char_bitvec (d_log_file, "111");
+  bv_to_dec_char_bitvec (d_log_file, "1000");
+  bv_to_dec_char_bitvec (d_log_file, "1001");
+  bv_to_dec_char_bitvec (d_log_file, "1010");
+  bv_to_dec_char_bitvec (d_log_file, "1011");
+  bv_to_dec_char_bitvec (d_log_file, "1100");
+  bv_to_dec_char_bitvec (d_log_file, "1101");
+  bv_to_dec_char_bitvec (d_log_file, "1110");
+  bv_to_dec_char_bitvec (d_log_file, "1111");
+  bv_to_dec_char_bitvec (d_log_file, "10000");
+  bv_to_dec_char_bitvec (d_log_file, "10001");
+  bv_to_dec_char_bitvec (d_log_file, "10000000000000000");
+  bv_to_dec_char_bitvec (d_log_file,
                          "1"
                          "00000000"
                          "00000000"
                          "00000000"
                          "00000000");
-  bv_to_dec_char_bitvec (log_file,
+  bv_to_dec_char_bitvec (d_log_file,
                          "1"
                          "00000000"
                          "00000000"
@@ -887,7 +887,7 @@ TEST_F (TestBv, bv_to_dec_char)
                          "00000000"
                          "00000000"
                          "00000000");
-  bv_to_dec_char_bitvec (log_file,
+  bv_to_dec_char_bitvec (d_log_file,
                          "1"
                          "00000000"
                          "00000000"
@@ -917,15 +917,15 @@ TEST_F (TestBv, one)
 
   for (i = 1; i < 32; i++)
   {
-    bv = btor_bv_one (mm, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv = btor_bv_one (d_mm, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '0', i - 1);
     s[i - 1] = '1';
-    sbv      = btor_bv_to_char (mm, bv);
+    sbv      = btor_bv_to_char (d_mm, bv);
     ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (mm, bv);
-    BTOR_DELETEN (mm, s, i + 1);
-    btor_mem_freestr (mm, sbv);
+    btor_bv_free (d_mm, bv);
+    BTOR_DELETEN (d_mm, s, i + 1);
+    btor_mem_freestr (d_mm, sbv);
   }
 }
 
@@ -937,14 +937,14 @@ TEST_F (TestBv, ones)
 
   for (i = 1; i < 32; i++)
   {
-    bv = btor_bv_ones (mm, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv = btor_bv_ones (d_mm, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '1', i);
-    sbv = btor_bv_to_char (mm, bv);
+    sbv = btor_bv_to_char (d_mm, bv);
     ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (mm, bv);
-    BTOR_DELETEN (mm, s, i + 1);
-    btor_mem_freestr (mm, sbv);
+    btor_bv_free (d_mm, bv);
+    BTOR_DELETEN (d_mm, s, i + 1);
+    btor_mem_freestr (d_mm, sbv);
   }
 }
 
@@ -956,16 +956,16 @@ TEST_F (TestBv, min_signed)
 
   for (i = 1; i < 32; i++)
   {
-    bv = btor_bv_min_signed (mm, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv = btor_bv_min_signed (d_mm, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '0', i);
     s[0] = '1';
-    sbv  = btor_bv_to_char (mm, bv);
+    sbv  = btor_bv_to_char (d_mm, bv);
     ASSERT_TRUE (btor_bv_is_min_signed (bv));
     ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (mm, bv);
-    BTOR_DELETEN (mm, s, i + 1);
-    btor_mem_freestr (mm, sbv);
+    btor_bv_free (d_mm, bv);
+    BTOR_DELETEN (d_mm, s, i + 1);
+    btor_mem_freestr (d_mm, sbv);
   }
 }
 
@@ -977,16 +977,16 @@ TEST_F (TestBv, max_signed)
 
   for (i = 1; i < 32; i++)
   {
-    bv = btor_bv_max_signed (mm, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv = btor_bv_max_signed (d_mm, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '1', i);
     s[0] = '0';
-    sbv  = btor_bv_to_char (mm, bv);
+    sbv  = btor_bv_to_char (d_mm, bv);
     ASSERT_TRUE (btor_bv_is_max_signed (bv));
     ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (mm, bv);
-    BTOR_DELETEN (mm, s, i + 1);
-    btor_mem_freestr (mm, sbv);
+    btor_bv_free (d_mm, bv);
+    BTOR_DELETEN (d_mm, s, i + 1);
+    btor_mem_freestr (d_mm, sbv);
   }
 }
 
@@ -1191,21 +1191,21 @@ TEST_F (TestBv, compare)
 
   for (i = 0; i < 15; i++)
   {
-    bv1 = btor_bv_uint64_to_bv (mm, i, 4);
-    bv2 = btor_bv_uint64_to_bv (mm, i, 4);
+    bv1 = btor_bv_uint64_to_bv (d_mm, i, 4);
+    bv2 = btor_bv_uint64_to_bv (d_mm, i, 4);
     ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
   }
 
   for (i = 0; i < 15 - 1; i++)
   {
-    bv1 = btor_bv_uint64_to_bv (mm, i, 4);
-    bv2 = btor_bv_uint64_to_bv (mm, i + 1, 4);
+    bv1 = btor_bv_uint64_to_bv (d_mm, i, 4);
+    bv2 = btor_bv_uint64_to_bv (d_mm, i + 1, 4);
     ASSERT_LT (btor_bv_compare (bv1, bv2), 0);
     ASSERT_GT (btor_bv_compare (bv2, bv1), 0);
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
   }
 
   for (i = 0, j = 0, k = 0; i < 15; i++)
@@ -1214,8 +1214,8 @@ TEST_F (TestBv, compare)
     do
       j = rand () % 16;
     while (j == k);
-    bv1 = btor_bv_uint64_to_bv (mm, j, 4);
-    bv2 = btor_bv_uint64_to_bv (mm, k, 4);
+    bv1 = btor_bv_uint64_to_bv (d_mm, j, 4);
+    bv2 = btor_bv_uint64_to_bv (d_mm, k, 4);
     if (j > k)
     {
       ASSERT_GT (btor_bv_compare (bv1, bv2), 0);
@@ -1226,8 +1226,8 @@ TEST_F (TestBv, compare)
       ASSERT_LT (btor_bv_compare (bv1, bv2), 0);
       ASSERT_GT (btor_bv_compare (bv2, bv1), 0);
     }
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
   }
 }
 
@@ -1239,21 +1239,21 @@ TEST_F (TestBv, is_one)
 
   for (i = 1; i < 32; i++)
   {
-    bv1 = btor_bv_one (mm, i);
-    bv2 = btor_bv_uint64_to_bv (mm, 1, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '0', i - 1);
     s[i - 1] = '1';
-    bv3      = btor_bv_char_to_bv (mm, s);
+    bv3      = btor_bv_char_to_bv (d_mm, s);
     ASSERT_TRUE (btor_bv_is_one (bv1));
     ASSERT_TRUE (btor_bv_is_one (bv2));
     ASSERT_TRUE (btor_bv_is_one (bv3));
     ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
     ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
-    btor_bv_free (mm, bv3);
-    BTOR_DELETEN (mm, s, i + 1);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+    BTOR_DELETEN (d_mm, s, i + 1);
   }
 }
 
@@ -1265,20 +1265,20 @@ TEST_F (TestBv, is_ones)
 
   for (i = 1; i < 32; i++)
   {
-    bv1 = btor_bv_ones (mm, i);
-    bv2 = btor_bv_uint64_to_bv (mm, UINT32_MAX, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_uint64_to_bv (d_mm, UINT32_MAX, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '1', i);
-    bv3 = btor_bv_char_to_bv (mm, s);
+    bv3 = btor_bv_char_to_bv (d_mm, s);
     ASSERT_TRUE (btor_bv_is_ones (bv1));
     ASSERT_TRUE (btor_bv_is_ones (bv2));
     ASSERT_TRUE (btor_bv_is_ones (bv3));
     ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
     ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
-    btor_bv_free (mm, bv3);
-    BTOR_DELETEN (mm, s, i + 1);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+    BTOR_DELETEN (d_mm, s, i + 1);
   }
 }
 
@@ -1290,20 +1290,20 @@ TEST_F (TestBv, is_zero)
 
   for (i = 1; i < 32; i++)
   {
-    bv1 = btor_bv_new (mm, i);
-    bv2 = btor_bv_uint64_to_bv (mm, 0, i);
-    BTOR_CNEWN (mm, s, i + 1);
+    bv1 = btor_bv_new (d_mm, i);
+    bv2 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '0', i);
-    bv3 = btor_bv_char_to_bv (mm, s);
+    bv3 = btor_bv_char_to_bv (d_mm, s);
     ASSERT_TRUE (btor_bv_is_zero (bv1));
     ASSERT_TRUE (btor_bv_is_zero (bv2));
     ASSERT_TRUE (btor_bv_is_zero (bv3));
     ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
     ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
-    btor_bv_free (mm, bv1);
-    btor_bv_free (mm, bv2);
-    btor_bv_free (mm, bv3);
-    BTOR_DELETEN (mm, s, i + 1);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+    BTOR_DELETEN (d_mm, s, i + 1);
   }
 }
 
@@ -1312,67 +1312,67 @@ TEST_F (TestBv, is_special_const)
   int32_t i;
   BtorBitVector *bv;
 
-  bv = btor_bv_char_to_bv (mm, "0");
+  bv = btor_bv_char_to_bv (d_mm, "0");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ZERO);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1");
+  bv = btor_bv_char_to_bv (d_mm, "1");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONE_ONES);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00");
+  bv = btor_bv_char_to_bv (d_mm, "00");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ZERO);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "01");
+  bv = btor_bv_char_to_bv (d_mm, "01");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONE);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10");
+  bv = btor_bv_char_to_bv (d_mm, "10");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_NONE);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11");
+  bv = btor_bv_char_to_bv (d_mm, "11");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONES);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000");
+  bv = btor_bv_char_to_bv (d_mm, "000");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ZERO);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001");
+  bv = btor_bv_char_to_bv (d_mm, "001");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONE);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   for (i = 2; i < 7; i++)
   {
-    bv = btor_bv_uint64_to_bv (mm, i, 3);
+    bv = btor_bv_uint64_to_bv (d_mm, i, 3);
     ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_NONE);
-    btor_bv_free (mm, bv);
+    btor_bv_free (d_mm, bv);
   }
 
-  bv = btor_bv_char_to_bv (mm, "111");
+  bv = btor_bv_char_to_bv (d_mm, "111");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONES);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000");
+  bv = btor_bv_char_to_bv (d_mm, "0000");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ZERO);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001");
+  bv = btor_bv_char_to_bv (d_mm, "0001");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONE);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   for (i = 2; i < 15; i++)
   {
-    bv = btor_bv_uint64_to_bv (mm, i, 4);
+    bv = btor_bv_uint64_to_bv (d_mm, i, 4);
     ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_NONE);
-    btor_bv_free (mm, bv);
+    btor_bv_free (d_mm, bv);
   }
 
-  bv = btor_bv_char_to_bv (mm, "1111");
+  bv = btor_bv_char_to_bv (d_mm, "1111");
   ASSERT_EQ (btor_bv_is_special_const (bv), BTOR_SPECIAL_CONST_BV_ONES);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, power_of_two)
@@ -1380,177 +1380,177 @@ TEST_F (TestBv, power_of_two)
   BtorBitVector *bv;
 
   bv = btor_bv_char_to_bv (
-      mm, "0000000000000000000000000000000000000000000000000000000000000000");
+      d_mm, "0000000000000000000000000000000000000000000000000000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000");
+  bv = btor_bv_char_to_bv (d_mm, "000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001");
+  bv = btor_bv_char_to_bv (d_mm, "001");
   ASSERT_EQ (btor_bv_power_of_two (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010");
+  bv = btor_bv_char_to_bv (d_mm, "0010");
   ASSERT_EQ (btor_bv_power_of_two (bv), 1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00100");
+  bv = btor_bv_char_to_bv (d_mm, "00100");
   ASSERT_EQ (btor_bv_power_of_two (bv), 2);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001000");
+  bv = btor_bv_char_to_bv (d_mm, "001000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 3);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010000");
+  bv = btor_bv_char_to_bv (d_mm, "0010000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 4);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000");
+  bv = btor_bv_char_to_bv (d_mm, "000100000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 5);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 6);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00010000000");
+  bv = btor_bv_char_to_bv (d_mm, "00010000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 7);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000000");
+  bv = btor_bv_char_to_bv (d_mm, "000100000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 8);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 9);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000010000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0000010000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 10);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 28);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "100000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "100000000000000000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 29);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "1000000000000000000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 30);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "01000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "01000000000000000000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), 30);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "110");
+  bv = btor_bv_char_to_bv (d_mm, "110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "1110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "1110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "11110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "11110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "1111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "1111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "1111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "1111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "11111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "11111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "111111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "111111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "1111111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "1111111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
 
-  btor_bv_free (mm, bv);
-  bv = btor_bv_char_to_bv (mm, "1111111111111110");
+  btor_bv_free (d_mm, bv);
+  bv = btor_bv_char_to_bv (d_mm, "1111111111111110");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "011");
+  bv = btor_bv_char_to_bv (d_mm, "011");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111");
+  bv = btor_bv_char_to_bv (d_mm, "111");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0011");
+  bv = btor_bv_char_to_bv (d_mm, "0011");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00101");
+  bv = btor_bv_char_to_bv (d_mm, "00101");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "101101");
+  bv = btor_bv_char_to_bv (d_mm, "101101");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010001");
+  bv = btor_bv_char_to_bv (d_mm, "0010001");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100111");
+  bv = btor_bv_char_to_bv (d_mm, "000100111");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1001000001");
+  bv = btor_bv_char_to_bv (d_mm, "1001000001");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11010000001");
+  bv = btor_bv_char_to_bv (d_mm, "11010000001");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000011");
+  bv = btor_bv_char_to_bv (d_mm, "000100000011");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000111");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000111");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000010000001111");
+  bv = btor_bv_char_to_bv (d_mm, "0000010000001111");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000010");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000010");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "100000000000000000000001000000");
+  bv = btor_bv_char_to_bv (d_mm, "100000000000000000000001000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1000000000000100000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "1000000000000100000000000000000");
   ASSERT_EQ (btor_bv_power_of_two (bv), -1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, small_positive_int)
@@ -1558,193 +1558,193 @@ TEST_F (TestBv, small_positive_int)
   BtorBitVector *bv;
 
   bv = btor_bv_char_to_bv (
-      mm, "0000000000000000000000000000000000000000000000000000000000000000");
+      d_mm, "0000000000000000000000000000000000000000000000000000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000");
+  bv = btor_bv_char_to_bv (d_mm, "000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001");
+  bv = btor_bv_char_to_bv (d_mm, "001");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010");
+  bv = btor_bv_char_to_bv (d_mm, "0010");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 2);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00100");
+  bv = btor_bv_char_to_bv (d_mm, "00100");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 4);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "001000");
+  bv = btor_bv_char_to_bv (d_mm, "001000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 8);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010000");
+  bv = btor_bv_char_to_bv (d_mm, "0010000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 16);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000");
+  bv = btor_bv_char_to_bv (d_mm, "000100000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 32);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 64);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00010000000");
+  bv = btor_bv_char_to_bv (d_mm, "00010000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 128);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000000");
+  bv = btor_bv_char_to_bv (d_mm, "000100000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 256);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 512);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000010000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0000010000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1024);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), (1 << 28));
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "100000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "100000000000000000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), (1 << 29));
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "1000000000000000000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), (1 << 30));
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "01000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "01000000000000000000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), (1 << 30));
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "110");
+  bv = btor_bv_char_to_bv (d_mm, "110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 6);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1110");
+  bv = btor_bv_char_to_bv (d_mm, "1110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 14);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11110");
+  bv = btor_bv_char_to_bv (d_mm, "11110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 30);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111110");
+  bv = btor_bv_char_to_bv (d_mm, "111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 62);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1111110");
+  bv = btor_bv_char_to_bv (d_mm, "1111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 126);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111111110");
+  bv = btor_bv_char_to_bv (d_mm, "111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 510);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1111111110");
+  bv = btor_bv_char_to_bv (d_mm, "1111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1022);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11111111110");
+  bv = btor_bv_char_to_bv (d_mm, "11111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 2046);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111111111110");
+  bv = btor_bv_char_to_bv (d_mm, "111111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 4094);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1111111111110");
+  bv = btor_bv_char_to_bv (d_mm, "1111111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 8190);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1111111111111110");
+  bv = btor_bv_char_to_bv (d_mm, "1111111111111110");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 65534);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "011");
+  bv = btor_bv_char_to_bv (d_mm, "011");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 3);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "111");
+  bv = btor_bv_char_to_bv (d_mm, "111");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 7);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0011");
+  bv = btor_bv_char_to_bv (d_mm, "0011");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 3);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00101");
+  bv = btor_bv_char_to_bv (d_mm, "00101");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 5);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "101101");
+  bv = btor_bv_char_to_bv (d_mm, "101101");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 45);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "00100001");
+  bv = btor_bv_char_to_bv (d_mm, "00100001");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 33);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100111");
+  bv = btor_bv_char_to_bv (d_mm, "000100111");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 39);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1001000001");
+  bv = btor_bv_char_to_bv (d_mm, "1001000001");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 577);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "11010000001");
+  bv = btor_bv_char_to_bv (d_mm, "11010000001");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1665);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "000100000011");
+  bv = btor_bv_char_to_bv (d_mm, "000100000011");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 259);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0001000000111");
+  bv = btor_bv_char_to_bv (d_mm, "0001000000111");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 519);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0000010000001111");
+  bv = btor_bv_char_to_bv (d_mm, "0000010000001111");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1039);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000010");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000010");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 268435458);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "100000000000000000000001000000");
+  bv = btor_bv_char_to_bv (d_mm, "100000000000000000000001000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 536870976);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "1000000000000100000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "1000000000000100000000000000000");
   ASSERT_EQ (btor_bv_small_positive_int (bv), 1073872896);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "10000000000000000000000000000000");
   ASSERT_LT (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "10000100000000000000000011100000");
+  bv = btor_bv_char_to_bv (d_mm, "10000100000000000000000011100000");
   ASSERT_LT (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010000000000000000000000000000000");
+  bv = btor_bv_char_to_bv (d_mm, "0010000000000000000000000000000000");
   ASSERT_LT (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
-  bv = btor_bv_char_to_bv (mm, "0010000000000100000000000011110000");
+  bv = btor_bv_char_to_bv (d_mm, "0010000000000100000000000011110000");
   ASSERT_LT (btor_bv_small_positive_int (bv), 0);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, get_num_trailing_zeros)
@@ -1752,59 +1752,59 @@ TEST_F (TestBv, get_num_trailing_zeros)
   BtorBitVector *bv;
 
   // 1000
-  bv = btor_bv_uint64_to_bv (mm, 8, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 8, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 3u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0100
-  bv = btor_bv_uint64_to_bv (mm, 4, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 4, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0010
-  bv = btor_bv_uint64_to_bv (mm, 2, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 2, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0001
-  bv = btor_bv_uint64_to_bv (mm, 1, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0000
-  bv = btor_bv_uint64_to_bv (mm, 0, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 4u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1111
-  bv = btor_bv_uint64_to_bv (mm, 15, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 15, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0110
-  bv = btor_bv_uint64_to_bv (mm, 6, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 6, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0111
-  bv = btor_bv_uint64_to_bv (mm, 7, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 7, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1010
-  bv = btor_bv_uint64_to_bv (mm, 10, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 10, 4);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0
-  bv = btor_bv_uint64_to_bv (mm, 0, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 1);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1
-  bv = btor_bv_uint64_to_bv (mm, 1, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 1);
   ASSERT_EQ (btor_bv_get_num_trailing_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, test_get_num_leading_zeros)
@@ -1812,59 +1812,59 @@ TEST_F (TestBv, test_get_num_leading_zeros)
   BtorBitVector *bv;
 
   // 1000
-  bv = btor_bv_uint64_to_bv (mm, 8, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 8, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0100
-  bv = btor_bv_uint64_to_bv (mm, 4, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 4, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0010
-  bv = btor_bv_uint64_to_bv (mm, 2, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 2, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0001
-  bv = btor_bv_uint64_to_bv (mm, 1, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 3u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0000
-  bv = btor_bv_uint64_to_bv (mm, 0, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 4u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1111
-  bv = btor_bv_uint64_to_bv (mm, 15, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 15, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0110
-  bv = btor_bv_uint64_to_bv (mm, 6, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 6, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0111
-  bv = btor_bv_uint64_to_bv (mm, 7, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 7, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1010
-  bv = btor_bv_uint64_to_bv (mm, 10, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 10, 4);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0
-  bv = btor_bv_uint64_to_bv (mm, 0, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 1);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1
-  bv = btor_bv_uint64_to_bv (mm, 1, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 1);
   ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }
 
 TEST_F (TestBv, test_get_num_leading_ones)
@@ -1872,52 +1872,52 @@ TEST_F (TestBv, test_get_num_leading_ones)
   BtorBitVector *bv;
 
   // 1000
-  bv = btor_bv_uint64_to_bv (mm, 8, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 8, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1100
-  bv = btor_bv_uint64_to_bv (mm, 12, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 12, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1110
-  bv = btor_bv_uint64_to_bv (mm, 14, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 14, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 3u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1111
-  bv = btor_bv_uint64_to_bv (mm, 15, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 15, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 4u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0000
-  bv = btor_bv_uint64_to_bv (mm, 0, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1011
-  bv = btor_bv_uint64_to_bv (mm, 11, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 11, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1101
-  bv = btor_bv_uint64_to_bv (mm, 13, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 13, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 2u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1001
-  bv = btor_bv_uint64_to_bv (mm, 9, 4);
+  bv = btor_bv_uint64_to_bv (d_mm, 9, 4);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 0
-  bv = btor_bv_uint64_to_bv (mm, 0, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 0, 1);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 0u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 
   // 1
-  bv = btor_bv_uint64_to_bv (mm, 1, 1);
+  bv = btor_bv_uint64_to_bv (d_mm, 1, 1);
   ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (mm, bv);
+  btor_bv_free (d_mm, bv);
 }

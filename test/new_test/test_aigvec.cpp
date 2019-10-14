@@ -20,24 +20,24 @@ class TestAigvec : public TestBtor
 
 TEST_F (TestAigvec, new_delete_aigvec_mgr)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   btor_aigvec_mgr_delete (avmgr);
 }
 
 TEST_F (TestAigvec, const)
 {
-  BtorBitVector *bits  = btor_bv_uint64_to_bv (btor->mm, 11, 4);  // "1011"
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorBitVector *bits  = btor_bv_uint64_to_bv (d_btor->mm, 11, 4);  // "1011"
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av       = btor_aigvec_const (avmgr, bits);
   ASSERT_TRUE (av->width == 4);
   btor_aigvec_release_delete (avmgr, av);
   btor_aigvec_mgr_delete (avmgr);
-  btor_bv_free (btor->mm, bits);
+  btor_bv_free (d_btor->mm, bits);
 }
 
 TEST_F (TestAigvec, var)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av       = btor_aigvec_var (avmgr, 32);
   ASSERT_TRUE (av->width == 32);
   btor_aigvec_release_delete (avmgr, av);
@@ -48,8 +48,8 @@ TEST_F (TestAigvec, invert)
 {
   int32_t i            = 0;
   int32_t width        = 0;
-  BtorBitVector *bits  = btor_bv_uint64_to_bv (btor->mm, 11, 4);  // "1011"
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorBitVector *bits  = btor_bv_uint64_to_bv (d_btor->mm, 11, 4);  // "1011"
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_const (avmgr, bits);
   width                = av1->width;
@@ -84,12 +84,12 @@ TEST_F (TestAigvec, invert)
   btor_aigvec_release_delete (avmgr, av1);
   btor_aigvec_release_delete (avmgr, av2);
   btor_aigvec_mgr_delete (avmgr);
-  btor_bv_free (btor->mm, bits);
+  btor_bv_free (d_btor->mm, bits);
 }
 
 TEST_F (TestAigvec, not)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_not (avmgr, av1);
   ASSERT_TRUE (av2->width == 32);
@@ -100,7 +100,7 @@ TEST_F (TestAigvec, not)
 
 TEST_F (TestAigvec, slice)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_slice (avmgr, av1, 17, 2);
   ASSERT_TRUE (av2->width == 16);
@@ -111,7 +111,7 @@ TEST_F (TestAigvec, slice)
 
 TEST_F (TestAigvec, and)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_and (avmgr, av1, av2);
@@ -124,7 +124,7 @@ TEST_F (TestAigvec, and)
 
 TEST_F (TestAigvec, ult)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_ult (avmgr, av1, av2);
@@ -137,7 +137,7 @@ TEST_F (TestAigvec, ult)
 
 TEST_F (TestAigvec, eq)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_eq (avmgr, av1, av2);
@@ -150,7 +150,7 @@ TEST_F (TestAigvec, eq)
 
 TEST_F (TestAigvec, add)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_add (avmgr, av1, av2);
@@ -163,7 +163,7 @@ TEST_F (TestAigvec, add)
 
 TEST_F (TestAigvec, sll)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
   BtorAIGVec *av3      = btor_aigvec_sll (avmgr, av1, av2);
@@ -176,7 +176,7 @@ TEST_F (TestAigvec, sll)
 
 TEST_F (TestAigvec, srl)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
   BtorAIGVec *av3      = btor_aigvec_srl (avmgr, av1, av2);
@@ -189,7 +189,7 @@ TEST_F (TestAigvec, srl)
 
 TEST_F (TestAigvec, mul)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_mul (avmgr, av1, av2);
@@ -202,7 +202,7 @@ TEST_F (TestAigvec, mul)
 
 TEST_F (TestAigvec, udiv)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_udiv (avmgr, av1, av2);
@@ -215,7 +215,7 @@ TEST_F (TestAigvec, udiv)
 
 TEST_F (TestAigvec, urem)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_urem (avmgr, av1, av2);
@@ -228,7 +228,7 @@ TEST_F (TestAigvec, urem)
 
 TEST_F (TestAigvec, concat)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 16);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_concat (avmgr, av1, av2);
@@ -241,7 +241,7 @@ TEST_F (TestAigvec, concat)
 
 TEST_F (TestAigvec, cond)
 {
-  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (btor);
+  BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 1);
   BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_var (avmgr, 32);

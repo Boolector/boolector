@@ -21,7 +21,7 @@ class TestAig : public TestBtor
                                                       BtorAIG *,
                                                       BtorAIG *) )
   {
-    BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+    BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
     BtorAIG *aig1    = btor_aig_var (amgr);
     BtorAIG *aig2    = btor_aig_var (amgr);
     BtorAIG *aig3    = func (amgr, aig1, aig2);
@@ -29,7 +29,7 @@ class TestAig : public TestBtor
     BtorAIG *aig5    = func (amgr, aig2, aig1);
     ASSERT_TRUE (aig3 == aig4);
     ASSERT_TRUE (aig4 == aig5);
-    btor_dumpaig_dump_aig (amgr, 0, log_file, aig5);
+    btor_dumpaig_dump_aig (amgr, 0, d_log_file, aig5);
     btor_aig_release (amgr, aig1);
     btor_aig_release (amgr, aig2);
     btor_aig_release (amgr, aig3);
@@ -41,33 +41,33 @@ class TestAig : public TestBtor
 
 TEST_F (TestAig, new_delete_aig_mgr)
 {
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
   btor_aig_mgr_delete (amgr);
 }
 
 TEST_F (TestAig, false)
 {
   open_log_file ("false_aig");
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
-  btor_dumpaig_dump_aig (amgr, 0, log_file, BTOR_AIG_FALSE);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
+  btor_dumpaig_dump_aig (amgr, 0, d_log_file, BTOR_AIG_FALSE);
   btor_aig_mgr_delete (amgr);
 }
 
 TEST_F (TestAig, true)
 {
   open_log_file ("true_aig");
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
-  btor_dumpaig_dump_aig (amgr, 0, log_file, BTOR_AIG_TRUE);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
+  btor_dumpaig_dump_aig (amgr, 0, d_log_file, BTOR_AIG_TRUE);
   btor_aig_mgr_delete (amgr);
 }
 
 TEST_F (TestAig, var)
 {
   open_log_file ("var_aig");
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
   BtorAIG *var     = btor_aig_var (amgr);
   ASSERT_TRUE (btor_aig_is_var (var));
-  btor_dumpaig_dump_aig (amgr, 0, log_file, var);
+  btor_dumpaig_dump_aig (amgr, 0, d_log_file, var);
   btor_aig_release (amgr, var);
   btor_aig_mgr_delete (amgr);
 }
@@ -75,10 +75,10 @@ TEST_F (TestAig, var)
 TEST_F (TestAig, not)
 {
   open_log_file ("not_aig");
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
   BtorAIG *var     = btor_aig_var (amgr);
   BtorAIG *_not    = btor_aig_not (amgr, var);
-  btor_dumpaig_dump_aig (amgr, 0, log_file, _not);
+  btor_dumpaig_dump_aig (amgr, 0, d_log_file, _not);
   btor_aig_release (amgr, var);
   btor_aig_release (amgr, _not);
   btor_aig_mgr_delete (amgr);
@@ -105,14 +105,14 @@ TEST_F (TestAig, eq)
 TEST_F (TestAig, cond)
 {
   open_log_file ("cond_aig");
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
   BtorAIG *aig1    = btor_aig_var (amgr);
   BtorAIG *aig2    = btor_aig_var (amgr);
   BtorAIG *aig3    = btor_aig_var (amgr);
   BtorAIG *aig4    = btor_aig_cond (amgr, aig1, aig2, aig3);
   BtorAIG *aig5    = btor_aig_cond (amgr, aig1, aig2, aig3);
   ASSERT_TRUE (aig4 == aig5);
-  btor_dumpaig_dump_aig (amgr, 0, log_file, aig5);
+  btor_dumpaig_dump_aig (amgr, 0, d_log_file, aig5);
   btor_aig_release (amgr, aig1);
   btor_aig_release (amgr, aig2);
   btor_aig_release (amgr, aig3);
@@ -123,7 +123,7 @@ TEST_F (TestAig, cond)
 
 TEST_F (TestAig, aig_to_sat)
 {
-  BtorAIGMgr *amgr = btor_aig_mgr_new (btor);
+  BtorAIGMgr *amgr = btor_aig_mgr_new (d_btor);
   BtorSATMgr *smgr = btor_aig_get_sat_mgr (amgr);
   BtorAIG *var1    = btor_aig_var (amgr);
   BtorAIG *var2    = btor_aig_var (amgr);

@@ -48,27 +48,27 @@ class TestComp : public TestBoolector
         {
           result = func (i, j);
 
-          if (btor) boolector_delete (btor);
-          btor = boolector_new ();
-          boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+          if (d_btor) boolector_delete (d_btor);
+          d_btor = boolector_new ();
+          boolector_set_opt (d_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 
-          BoolectorSort sort = boolector_bitvec_sort (btor, num_bits);
+          BoolectorSort sort = boolector_bitvec_sort (d_btor, num_bits);
           BoolectorNode *const1, *const2, *bfun;
 
-          const1 = boolector_unsigned_int (btor, i, sort);
-          const2 = boolector_unsigned_int (btor, j, sort);
-          bfun   = btorfun (btor, const1, const2);
-          boolector_assert (btor, bfun);
+          const1 = boolector_unsigned_int (d_btor, i, sort);
+          const2 = boolector_unsigned_int (d_btor, j, sort);
+          bfun   = btorfun (d_btor, const1, const2);
+          boolector_assert (d_btor, bfun);
 
-          sat_res = boolector_sat (btor);
+          sat_res = boolector_sat (d_btor);
           ASSERT_TRUE ((result && sat_res == BOOLECTOR_SAT)
                        || (!result && sat_res == BOOLECTOR_UNSAT));
-          boolector_release_sort (btor, sort);
-          boolector_release (btor, const1);
-          boolector_release (btor, const2);
-          boolector_release (btor, bfun);
-          boolector_delete (btor);
-          btor = nullptr;
+          boolector_release_sort (d_btor, sort);
+          boolector_release (d_btor, const1);
+          boolector_release (d_btor, const2);
+          boolector_release (d_btor, bfun);
+          boolector_delete (d_btor);
+          d_btor = nullptr;
         }
       }
     }
@@ -102,19 +102,19 @@ class TestComp : public TestBoolector
         {
           result = func (i, j);
 
-          if (btor) boolector_delete (btor);
-          btor = boolector_new ();
-          boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+          if (d_btor) boolector_delete (d_btor);
+          d_btor = boolector_new ();
+          boolector_set_opt (d_btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 
-          BoolectorSort sort = boolector_bitvec_sort (btor, num_bits);
+          BoolectorSort sort = boolector_bitvec_sort (d_btor, num_bits);
           BoolectorNode *const1, *const2, *bfun;
 
-          const1 = boolector_int (btor, i, sort);
-          const2 = boolector_int (btor, j, sort);
-          bfun   = btorfun (btor, const1, const2);
-          boolector_assert (btor, bfun);
+          const1 = boolector_int (d_btor, i, sort);
+          const2 = boolector_int (d_btor, j, sort);
+          bfun   = btorfun (d_btor, const1, const2);
+          boolector_assert (d_btor, bfun);
 
-          sat_res = boolector_sat (btor);
+          sat_res = boolector_sat (d_btor);
           ASSERT_TRUE (sat_res == BOOLECTOR_SAT || sat_res == BOOLECTOR_UNSAT);
           if (sat_res == BOOLECTOR_SAT)
           {
@@ -125,12 +125,12 @@ class TestComp : public TestBoolector
             ASSERT_EQ (sat_res, BOOLECTOR_UNSAT);
             ASSERT_TRUE (result == 0);
           }
-          boolector_release_sort (btor, sort);
-          boolector_release (btor, const1);
-          boolector_release (btor, const2);
-          boolector_release (btor, bfun);
-          boolector_delete (btor);
-          btor = nullptr;
+          boolector_release_sort (d_btor, sort);
+          boolector_release (d_btor, const1);
+          boolector_release (d_btor, const2);
+          boolector_release (d_btor, bfun);
+          boolector_delete (d_btor);
+          d_btor = nullptr;
         }
       }
     }
