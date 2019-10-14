@@ -8,7 +8,7 @@ set(test_names
   bv
   comp
   exp
-  #testhash.c
+  hash
   #testinc.c
   #testinthash.c
   #testinthashmap.c

@@ -65,6 +65,24 @@ class TestCommon : public ::testing::Test
   FILE* log_file = nullptr;
 };
 
+class TestMm : public TestCommon
+{
+ protected:
+  void SetUp () override { mm = btor_mem_mgr_new (); }
+
+  void TearDown () override
+  {
+    if (mm)
+    {
+      btor_mem_mgr_delete (mm);
+    }
+
+    TestCommon::TearDown ();
+  }
+
+  BtorMemMgr* mm = nullptr;
+};
+
 class TestBtor : public TestCommon
 {
  protected:
