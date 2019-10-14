@@ -12,7 +12,7 @@ set(test_names
   inc
   inthash
   inthashmap
-  #testlambda.c
+  lambda
   #testlogic.c
   #testmap.c
   #testmc.c
