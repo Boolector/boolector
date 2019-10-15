@@ -29,7 +29,7 @@ class TestCommon : public ::testing::Test
     {
       fclose (d_log_file);
       d_log_file = nullptr;
-      check_log_file ();
+      if (d_check_log_file) check_log_file ();
     }
   }
 
@@ -47,7 +47,7 @@ class TestCommon : public ::testing::Test
   void check_log_file ()
   {
     std::ifstream log_file (d_log_file_name,
-                              std::ifstream::binary | std::ifstream::ate);
+                            std::ifstream::binary | std::ifstream::ate);
     std::ifstream out_file (d_out_file_name,
                             std::ifstream::binary | std::ifstream::ate);
 
@@ -64,6 +64,7 @@ class TestCommon : public ::testing::Test
   std::string d_log_file_name;
   std::string d_out_file_name;
   FILE* d_log_file = nullptr;
+  bool d_check_log_file = true;
 };
 
 class TestMm : public TestCommon
