@@ -15,12 +15,12 @@ set(test_names
   lambda
   logic
   mc
-  nodemap
   mem
   misc
   #testmodelgen.c
   #testmodelgensmt2.c
-  #testnormquant.c
+  nodemap
+  normquant
   #testoverflow.c
   #testparseerror.c
   #testprop.c
