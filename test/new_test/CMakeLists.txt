@@ -27,7 +27,7 @@ set(test_names
   propinv
   queue
   #testrunner.c
-  #testsat.c
+  satmgr
   #testshift.c
   #testsmtaxioms.c
   #testsort.c
