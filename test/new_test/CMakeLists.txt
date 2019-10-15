@@ -14,8 +14,8 @@ set(test_names
   inthashmap
   lambda
   logic
+  mc
   nodemap
-  #testmc.c
   #testmem.c
   #testmisc.c
   #testmodelgen.c
