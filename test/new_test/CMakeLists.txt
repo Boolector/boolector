@@ -16,7 +16,7 @@ set(test_names
   logic
   mc
   nodemap
-  #testmem.c
+  mem
   #testmisc.c
   #testmodelgen.c
   #testmodelgensmt2.c
