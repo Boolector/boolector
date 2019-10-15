@@ -25,7 +25,7 @@ set(test_names
   #testparseerror.c
   prop
   propinv
-  #testqueue.c
+  queue
   #testrunner.c
   #testsat.c
   #testshift.c
