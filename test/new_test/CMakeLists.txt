@@ -23,7 +23,7 @@ set(test_names
   normquant
   overflow
   #testparseerror.c
-  #testprop.c
+  prop
   #testpropinv.c
   #testqueue.c
   #testrunner.c
