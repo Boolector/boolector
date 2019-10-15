@@ -24,7 +24,7 @@ set(test_names
   overflow
   #testparseerror.c
   prop
-  #testpropinv.c
+  propinv
   #testqueue.c
   #testrunner.c
   #testsat.c
