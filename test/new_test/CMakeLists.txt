@@ -21,7 +21,7 @@ set(test_names
   #testmodelgensmt2.c
   nodemap
   normquant
-  #testoverflow.c
+  overflow
   #testparseerror.c
   #testprop.c
   #testpropinv.c
