@@ -28,7 +28,7 @@ set(test_names
   queue
   #testrunner.c
   satmgr
-  #testshift.c
+  shift
   #testsmtaxioms.c
   #testsort.c
   #testspecial.c
