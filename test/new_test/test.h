@@ -156,7 +156,8 @@ class TestFile : public TestBoolector
     sat_res = boolector_sat (d_btor);
     if (d_get_model)
     {
-      boolector_print_model (d_btor, (char*) "btor", d_log_file);
+      boolector_print_model (
+          d_btor, (char*) d_model_format.c_str (), d_log_file);
     }
     if (expected != BOOLECTOR_UNKNOWN)
     {
@@ -167,6 +168,7 @@ class TestFile : public TestBoolector
   }
 
   bool d_get_model = false;
+  std::string d_model_format = "btor";
 };
 
 #endif
