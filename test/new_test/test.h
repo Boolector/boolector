@@ -147,6 +147,7 @@ class TestFile : public TestBoolector
 
     ss_in << BTOR_OUT_DIR << name;
     f_in = fopen (ss_in.str ().c_str (), "r");
+    assert (f_in);
 
     boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
     boolector_set_opt (d_btor, BTOR_OPT_INCREMENTAL, 1);

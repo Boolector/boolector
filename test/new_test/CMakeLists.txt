@@ -28,7 +28,7 @@ set(test_names
   queue
   satmgr
   shift
-  #testsmtaxioms.c
+  smtaxioms
   sort
   special
   stack
