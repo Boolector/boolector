@@ -17,7 +17,7 @@ set(test_names
   mc
   mem
   misc
-  #testmodelgen.c
+  modelgen
   #testmodelgensmt2.c
   nodemap
   normquant
