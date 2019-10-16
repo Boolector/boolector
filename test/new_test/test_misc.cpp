@@ -26,10 +26,10 @@ class TestMisc : public TestMm
 
   char *int_to_str (int32_t x, int32_t num_bits)
   {
-    char *result = NULL;
-    int32_t i    = 0;
     assert (x >= 0);
     assert (num_bits > 0);
+    char *result = nullptr;
+    int32_t i    = 0;
     result = (char *) btor_mem_malloc (d_mm, sizeof (char) * (num_bits + 1));
     for (i = num_bits - 1; i >= 0; i--)
     {
@@ -42,15 +42,15 @@ class TestMisc : public TestMm
 
   char *mk_slice (int32_t x, int32_t high, int32_t low, int32_t num_bits)
   {
-    char *temp      = NULL;
-    char *result    = NULL;
-    int32_t i       = 0;
-    int32_t counter = 0;
     assert (high < num_bits);
     assert (low >= 0);
     assert (low <= high);
+    char *temp      = nullptr;
+    char *result    = nullptr;
+    int32_t i       = 0;
+    int32_t counter = 0;
     temp = int_to_str (x, num_bits);
-    assert (temp != NULL);
+    assert (temp != nullptr);
     result  = int_to_str (0, high - low + 1);
     counter = high - low;
     for (i = low; i <= high; i++) result[counter--] = temp[num_bits - 1 - i];
@@ -106,21 +106,21 @@ class TestMisc : public TestMm
 
   char *uext (int32_t x, int32_t y, int32_t num_bits)
   {
-    char *result = NULL;
     assert (x >= 0);
     assert (y >= 0);
     assert (num_bits >= 1);
+    char *result = nullptr;
     result = int_to_str (x, num_bits + y);
     return result;
   }
 
   char *sext (int32_t x, int32_t y, int32_t num_bits)
   {
-    char *result = NULL;
-    int32_t i    = 0;
     assert (x >= 0);
     assert (y >= 0);
     assert (num_bits >= 1);
+    char *result = nullptr;
+    int32_t i    = 0;
     result = int_to_str (x, num_bits + y);
     if (result[y] == '1')
     {
@@ -192,9 +192,9 @@ class TestMisc : public TestMm
     assert (num_bits > 0);
     assert (num_bits <= INT32_MAX / 2);
 
-    char *x_string = NULL;
-    char *y_string = NULL;
-    char *result   = NULL;
+    char *x_string = nullptr;
+    char *y_string = nullptr;
+    char *result   = nullptr;
 
     x_string = int_to_str (x, num_bits);
     y_string = int_to_str (y, num_bits);
