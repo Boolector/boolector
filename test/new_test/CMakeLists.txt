@@ -30,7 +30,7 @@ set(test_names
   satmgr
   shift
   #testsmtaxioms.c
-  #testsort.c
+  sort
   #testspecial.c
   #teststack.c
   #testtestcases.c
