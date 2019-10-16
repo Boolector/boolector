@@ -21,13 +21,17 @@ class TestOverflow : public TestBtor
  protected:
   static constexpr uint32_t BTOR_TEST_OVERFLOW_LOW  = 1;
   static constexpr uint32_t BTOR_TEST_OVERFLOW_HIGH = 4;
-  static constexpr uint32_t UADD                    = 0;
-  static constexpr uint32_t SADD                    = 1;
-  static constexpr uint32_t USUB                    = 2;
-  static constexpr uint32_t SSUB                    = 3;
-  static constexpr uint32_t UMUL                    = 4;
-  static constexpr uint32_t SMUL                    = 5;
-  static constexpr uint32_t SDIV                    = 6;
+
+  enum Op
+  {
+    UADD,
+    SADD,
+    USUB,
+    SSUB,
+    UMUL,
+    SMUL,
+    SDIV
+  };
 
   int32_t add (int32_t x, int32_t y) { return x + y; }
 
@@ -41,7 +45,7 @@ class TestOverflow : public TestBtor
     return x / y;
   }
 
-  void u_overflow_test (uint32_t op, int32_t low, int32_t high, uint32_t rwl)
+  void u_overflow_test (Op op, int32_t low, int32_t high, uint32_t rwl)
   {
     assert (low > 0);
     assert (low <= high);
@@ -136,7 +140,7 @@ class TestOverflow : public TestBtor
     }
   }
 
-  void s_overflow_test (uint32_t op,
+  void s_overflow_test (Op op,
                         bool exclude_second_zero,
                         int32_t low,
                         int32_t high,
