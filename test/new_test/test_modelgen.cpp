@@ -18,6 +18,12 @@ extern "C" {
 class TestModelGen : public TestFile
 {
  protected:
+  void SetUp () override
+  {
+    TestFile::SetUp ();
+    d_check_log_file = false;
+  }
+
   void run_modelgen_test (const char* name, const char* ext, int32_t rwl)
   {
 #ifndef BTOR_WINDOWS_BUILD

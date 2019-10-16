@@ -127,12 +127,17 @@ class TestFile : public TestBoolector
 {
  protected:
   void run_test (const char* name,
-                 const char* ext,
                  int32_t expected,
                  uint32_t verbosity = 0u)
   {
-    open_log_file (name);
-    d_check_log_file = false;
+    if (!d_log_file)
+    {
+      std::string s(name);
+      size_t pos = s.rfind('.');
+      assert (pos != std::string::npos);
+      std::string base_name = s.substr(0, pos);
+      open_log_file (base_name);
+    }
 
     std::stringstream ss_in;
     FILE* f_in;
@@ -140,7 +145,7 @@ class TestFile : public TestBoolector
     char* parse_err;
     int32_t sat_res;
 
-    ss_in << BTOR_OUT_DIR << name << ext;
+    ss_in << BTOR_OUT_DIR << name;
     f_in = fopen (ss_in.str ().c_str (), "r");
 
     boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
@@ -152,7 +157,14 @@ class TestFile : public TestBoolector
                                  d_log_file,
                                  &parse_err,
                                  &parse_status);
-    ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
+    if (d_expect_parse_error)
+    {
+      ASSERT_EQ (parse_res, BOOLECTOR_PARSE_ERROR);
+    }
+    else
+    {
+      ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
+    }
     sat_res = boolector_sat (d_btor);
     if (d_get_model)
     {
@@ -167,6 +179,18 @@ class TestFile : public TestBoolector
     fclose (f_in);
   }
 
+  void run_test (const char* name,
+                 const char* ext,
+                 int32_t expected,
+                 uint32_t verbosity = 0u)
+  {
+    open_log_file (name);
+    std::stringstream ss;
+    ss << name << ext;
+    run_test (ss.str().c_str(), expected, verbosity);
+  }
+
+  bool d_expect_parse_error = false;
   bool d_get_model = false;
   std::string d_model_format = "btor";
 };

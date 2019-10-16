@@ -18,6 +18,12 @@ extern "C" {
 class TestSpecial : public TestFile
 {
  protected:
+  void SetUp () override
+  {
+    TestFile::SetUp ();
+    d_check_log_file = false;
+  }
+
   void run_sat_test (const char* name, const char* ext)
   {
     run_test (name, ext, BOOLECTOR_SAT);
