@@ -35,7 +35,7 @@ set(test_names
   stack
   #testtestcases.c
   unionfind
-  #testutil.c
+  util
 )
 
 foreach(test ${test_names})
