@@ -108,7 +108,6 @@ static const char *brokentests[] = {
     /* currently broken as we do not support lambda hashing yet */
     "lambda_param_write1",
     "lambda_param_write2",
-    "lambda_param_acond",
     /* currently broken since we don't allow to mix lambdas with arrays */
     "regrbetacache2",
 

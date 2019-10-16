@@ -123,4 +123,44 @@ class TestBoolector : public TestCommon
   Btor* d_btor = nullptr;
 };
 
+class TestFile : public TestBoolector
+{
+ protected:
+  void run_test (const char* name,
+                 const char* ext,
+                 int32_t expected,
+                 uint32_t verbosity = 0u)
+  {
+    open_log_file (name);
+    d_check_log_file = false;
+
+    std::stringstream ss_in;
+    FILE* f_in;
+    int32_t parse_res, parse_status;
+    char* parse_err;
+    int32_t sat_res;
+
+    ss_in << BTOR_OUT_DIR << name << ext;
+    f_in = fopen (ss_in.str ().c_str (), "r");
+
+    boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
+    boolector_set_opt (d_btor, BTOR_OPT_INCREMENTAL, 1);
+
+    parse_res = boolector_parse (d_btor,
+                                 f_in,
+                                 ss_in.str ().c_str (),
+                                 d_log_file,
+                                 &parse_err,
+                                 &parse_status);
+    ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
+    sat_res = boolector_sat (d_btor);
+    if (expected != BOOLECTOR_UNKNOWN)
+    {
+      ASSERT_EQ (sat_res, expected);
+    }
+
+    fclose (f_in);
+  }
+};
+
 #endif

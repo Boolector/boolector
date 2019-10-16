@@ -26,12 +26,11 @@ set(test_names
   prop
   propinv
   queue
-  #testrunner.c
   satmgr
   shift
   #testsmtaxioms.c
   sort
-  #testspecial.c
+  special
   stack
   #testtestcases.c
   unionfind
