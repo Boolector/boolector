@@ -75,7 +75,9 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
 
-#define BTOR_BV_NODE_STRUCT                                                \
+/*------------------------------------------------------------------------*/
+
+#define BTOR_NODE_STRUCT                                                   \
   struct                                                                   \
   {                                                                        \
     BtorNodeKind kind : 5;        /* kind of expression */                 \
@@ -116,57 +118,81 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
     BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
 
+#define BTOR_FP_ADDITIONAL_NODE_STRUCT                             \
+  struct                                                           \
+  {                                                                \
+    BtorNode *e[4];           /* expression children */            \
+    BtorNode *prev_parent[4]; /* prev in parent list of child i */ \
+    BtorNode *next_parent[4]; /* next in parent list of child i */ \
+  }
+
+/*------------------------------------------------------------------------*/
+
 struct BtorBVVarNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
 };
-
 typedef struct BtorBVVarNode BtorBVVarNode;
 
 struct BtorUFNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
 };
-
 typedef struct BtorUFNode BtorUFNode;
 
 struct BtorBVConstNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BtorBitVector *bits;
   BtorBitVector *invbits;
 };
-
 typedef struct BtorBVConstNode BtorBVConstNode;
 
 struct BtorBVSliceNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   uint32_t upper;
   uint32_t lower;
 };
-
 typedef struct BtorBVSliceNode BtorBVSliceNode;
 
 struct BtorBVNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
-
 typedef struct BtorBVNode BtorBVNode;
+
+/*------------------------------------------------------------------------*/
 
 struct BtorNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
+
+/*------------------------------------------------------------------------*/
+
+struct BtorFPVarNode
+{
+  BTOR_NODE_STRUCT;
+};
+typedef struct BtorFPVarNode BtorFPVarNode;
+
+struct BtorFPNode
+{
+  BTOR_NODE_STRUCT;
+  BTOR_FP_ADDITIONAL_NODE_STRUCT;
+};
+typedef struct BtorFPNode BtorFPNode;
+
+/*------------------------------------------------------------------------*/
 
 #define BTOR_BINDER_STRUCT                                   \
   struct                                                     \
   {                                                          \
-    BTOR_BV_NODE_STRUCT;                                     \
+    BTOR_NODE_STRUCT;                                        \
     BTOR_BV_ADDITIONAL_NODE_STRUCT;                          \
     BtorNode *body; /* short-cut for curried binder terms */ \
   }
@@ -175,7 +201,6 @@ struct BtorBinderNode
 {
   BTOR_BINDER_STRUCT;
 };
-
 typedef struct BtorBinderNode BtorBinderNode;
 
 struct BtorLambdaNode
@@ -183,24 +208,21 @@ struct BtorLambdaNode
   BTOR_BINDER_STRUCT;
   BtorPtrHashTable *static_rho;
 };
-
 typedef struct BtorLambdaNode BtorLambdaNode;
 
 struct BtorParamNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BtorNode *binder; /* exp that binds the param (lambda, forall, exists) */
   BtorNode *assigned_exp;
 };
-
 typedef struct BtorParamNode BtorParamNode;
 
 struct BtorArgsNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
-
 typedef struct BtorArgsNode BtorArgsNode;
 
 /*------------------------------------------------------------------------*/

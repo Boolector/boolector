@@ -34,7 +34,7 @@ set(test_names
   #testspecial.c
   stack
   #testtestcases.c
-  #testunionfind.c
+  unionfind
   #testutil.c
 )
 
