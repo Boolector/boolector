@@ -32,7 +32,7 @@ set(test_names
   #testsmtaxioms.c
   sort
   #testspecial.c
-  #teststack.c
+  stack
   #testtestcases.c
   #testunionfind.c
   #testutil.c
