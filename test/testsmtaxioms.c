@@ -68,9 +68,9 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
   BTOR_NEWN (g_mm, name, len_name);
   sprintf (name, "smtaxiom%s%d", p, i);
 
-  len_buffer = strlen (btor_out_dir) + strlen (name) + 4 + 1;
+  len_buffer = strlen (btor_out_dir) + strlen (name) + 5 + 1;
   BTOR_NEWN (g_mm, buffer, len_buffer);
-  sprintf (buffer, "%s%s.smt", btor_out_dir, name);
+  sprintf (buffer, "%s%s.smt2", btor_out_dir, name);
 
   fin = fopen (buffer, "r");
   assert (fin != NULL);
