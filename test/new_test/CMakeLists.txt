@@ -22,7 +22,7 @@ set(test_names
   nodemap
   normquant
   overflow
-  #testparseerror.c
+  parseerror
   prop
   propinv
   queue
