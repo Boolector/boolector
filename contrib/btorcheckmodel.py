@@ -67,12 +67,6 @@ lastand = id
 id = id + 1
 
 with open (sys.argv[2], "r") as fin:
-  origline = fin.readline()
-
-  if origline.strip() != "sat":
-    print("Formula is not SAT")
-    sys.exit(2)
-
   for origline in fin:
     line = origline.strip()
     words = line.split()

@@ -154,6 +154,10 @@ class TestFile : public TestBoolector
                                  &parse_status);
     ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
     sat_res = boolector_sat (d_btor);
+    if (d_get_model)
+    {
+      boolector_print_model (d_btor, (char*) "btor", d_log_file);
+    }
     if (expected != BOOLECTOR_UNKNOWN)
     {
       ASSERT_EQ (sat_res, expected);
@@ -161,6 +165,8 @@ class TestFile : public TestBoolector
 
     fclose (f_in);
   }
+
+  bool d_get_model = false;
 };
 
 #endif
