@@ -18,7 +18,7 @@ set(test_names
   mem
   misc
   modelgen
-  #testmodelgensmt2.c
+  modelgensmt2
   nodemap
   normquant
   overflow
