@@ -140,11 +140,8 @@ class TestOverflow : public TestBtor
     }
   }
 
-  void s_overflow_test (Op op,
-                        bool exclude_second_zero,
-                        int32_t low,
-                        int32_t high,
-                        uint32_t rwl)
+  void s_overflow_test (
+      Op op, bool exclude_second_zero, int32_t low, int32_t high, uint32_t rwl)
   {
     assert (low > 0);
     assert (low <= high);
