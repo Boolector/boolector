@@ -166,12 +166,31 @@ class TestFile : public TestBoolector
     {
       ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
     }
+
+    if (d_dump)
+    {
+      assert (d_log_file);
+      if (d_dump_format == "btor")
+      {
+        boolector_simplify (d_btor);
+        boolector_dump_btor (d_btor, d_log_file);
+      }
+      else
+      {
+        assert (d_dump_format == "smt2");
+        boolector_simplify (d_btor);
+        boolector_dump_smt2 (d_btor, d_log_file);
+      }
+    }
+
     sat_res = boolector_sat (d_btor);
+
     if (d_get_model)
     {
       boolector_print_model (
           d_btor, (char*) d_model_format.c_str (), d_log_file);
     }
+
     if (expected != BOOLECTOR_UNKNOWN)
     {
       ASSERT_EQ (sat_res, expected);
@@ -192,8 +211,12 @@ class TestFile : public TestBoolector
   }
 
   bool d_expect_parse_error = false;
+
   bool d_get_model = false;
   std::string d_model_format = "btor";
+
+  bool d_dump               = false;
+  std::string d_dump_format = "btor";
 };
 
 #endif

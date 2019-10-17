@@ -32,7 +32,7 @@ set(test_names
   sort
   special
   stack
-  #testtestcases.c
+  testcases
   unionfind
   util
 )
