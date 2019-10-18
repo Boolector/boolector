@@ -93,10 +93,6 @@ static const char *performancetests[] = {
 };
 
 static const char *brokentests[] = {
-    /* SMT2 files broken */
-    "modelgensmt28",
-    "modelgensmt210",
-    "modelgensmt215",
     /* broken due to sort mix-up (needs to be fixed (ma))*/
     "modelgensmt25",
     "modelgensmt26",
