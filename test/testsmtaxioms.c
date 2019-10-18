@@ -63,6 +63,7 @@ test_smtaxiom (int32_t argc, char **argv, char *p, int32_t i)
 
   g_btor = boolector_new ();
   if (g_rwreads) boolector_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
+  boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
 
   len_name = strlen (prefix) + strlen (p) + 10 + 1;
   BTOR_NEWN (g_mm, name, len_name);

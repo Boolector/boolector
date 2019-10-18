@@ -4,7 +4,6 @@
 (declare-fun a () (Array (_ BitVec 32) (_ BitVec 32)))
 (define-fun f ((i (_ BitVec 32))) (_ BitVec 32)
   (select (store a k i) i))
-
 (assert (= (f j) (_ bv0 32)))
 (check-sat)
 (exit)

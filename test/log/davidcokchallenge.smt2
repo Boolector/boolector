@@ -5,9 +5,7 @@
 ;;     if( ((size_t)-1) / a < b ){ errno = ENOMEM; return NULL; }
 ;;     return memset(malloc(a*b), 0, a*b);
 ;; }
-
 ;; The answer is unsat.
-
 (set-logic QF_BV)
 (declare-fun a () (_ BitVec 32))
 (declare-fun b () (_ BitVec 32))
@@ -18,3 +16,4 @@
               #x00000000)))
 (assert (bvuge (bvudiv #xffffffff a) b))
 (check-sat)
+(exit)

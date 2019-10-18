@@ -6,3 +6,4 @@
 (assert e3)
 (assert (not e11))
 (check-sat)
+(exit)

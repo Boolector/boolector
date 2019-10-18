@@ -57,7 +57,6 @@
            (S2_V3_!2459 (_ BitVec 32))
            (S2_V3_!2470 (_ BitVec 32))
            (S2_V3_!2480 (_ BitVec 32)))
-
             (let ((a!1 false)
             (a!2 false)
             (a!3 false)

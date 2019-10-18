@@ -6,3 +6,5 @@
 (assert (= b (let (($sign (bvashr x (_ bv31 32))))
                   (bvsub (bvxor x $sign) $sign))))
 (assert (distinct a b))
+(check-sat)
+(exit)
