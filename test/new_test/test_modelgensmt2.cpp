@@ -87,8 +87,7 @@ TEST_F (TestModelGenSMT2, modelgensmt27)
   run_modelgen_smt2_test ("modelgensmt27", ".smt2", 3);
 }
 
-// !!! SMT2 file broken
-TEST_F (TestModelGenSMT2, DISABLED_modelgensmt28)
+TEST_F (TestModelGenSMT2, modelgensmt28)
 {
   run_modelgen_smt2_test ("modelgensmt28", ".smt2", 0);
 }
@@ -98,8 +97,7 @@ TEST_F (TestModelGenSMT2, modelgensmt29)
   run_modelgen_smt2_test ("modelgensmt29", ".smt2", 3);
 }
 
-// !!! SMT2 file broken
-TEST_F (TestModelGenSMT2, DISABLED_modelgensmt210)
+TEST_F (TestModelGenSMT2, modelgensmt210)
 {
   run_modelgen_smt2_test ("modelgensmt210", ".smt2", 3);
 }
@@ -124,8 +122,7 @@ TEST_F (TestModelGenSMT2, modelgensmt214)
   run_modelgen_smt2_test ("modelgensmt214", ".smt2", 3);
 }
 
-// !!! SMT2 file broken
-TEST_F (TestModelGenSMT2, DISABLED_modelgensmt215)
+TEST_F (TestModelGenSMT2, modelgensmt215)
 {
   run_modelgen_smt2_test ("modelgensmt215", ".smt2", 3);
 }
