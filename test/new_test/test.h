@@ -53,8 +53,14 @@ class TestCommon : public ::testing::Test
 
     ASSERT_TRUE (!log_file.fail () && !out_file.fail ());
 
-    log_file.seekg (0, std::ifstream::beg);
-    out_file.seekg (0, std::ifstream::beg);
+    std::streampos log_file_size = log_file.tellg();
+    std::streampos out_file_size = out_file.tellg();
+    ASSERT_NE (log_file_size, 0);
+    ASSERT_NE (out_file_size, 0);
+    ASSERT_EQ (log_file_size, out_file_size);
+
+    log_file.seekg (0, log_file.beg);
+    out_file.seekg (0, out_file.beg);
     ASSERT_TRUE (
         std::equal (std::istreambuf_iterator<char> (log_file.rdbuf ()),
                     std::istreambuf_iterator<char> (),
@@ -161,6 +167,9 @@ class TestFile : public TestBoolector
     if (d_expect_parse_error)
     {
       ASSERT_EQ (sat_res, BOOLECTOR_PARSE_ERROR);
+      std::string err_msg = parse_err;
+      size_t pos = err_msg.find("log/");
+      fprintf (d_log_file, "%s\n", err_msg.substr(pos).c_str());
     }
     else
     {

@@ -48,7 +48,7 @@ udiv8castdown6 -o udiv8castdown6.log udiv8castdown6.btor
 udiv8castdown7 -o udiv8castdown7.log udiv8castdown7.btor
 udiv16castdown8 -o udiv16castdown8.log udiv16castdown8.btor
 lazyreadwritebug1 -o lazyreadwritebug1.log lazyreadwritebug1.btor
-arrayand arrayand.btor -o arrayand.log
+arrayanderr arrayanderr.btor -o arrayanderr.log
 arrayeqerr0 arrayeqerr0.btor -o arrayeqerr0.log
 arrayeqerr1 arrayeqerr1.btor -o arrayeqerr1.log
 arrayeqerr2 arrayeqerr2.btor -o arrayeqerr2.log
