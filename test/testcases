@@ -1,34 +1,29 @@
-regsmtparse0 regsmtparse0.smt -o regsmtparse0.log
-regsmtparse1 regsmtparse1.smt -o regsmtparse1.log
-regsmtparse2 regsmtparse2.smt -o regsmtparse2.log
-smttrue -m -o smttrue.log smttrue.smt
-smtfalse -m -o smtfalse.log smtfalse.smt
-smtvar -m -o smtvar.log smtvar.smt
-smtnotvar -m -o smtnotvar.log smtnotvar.smt
-smtandvar -m -o smtandvar.log smtandvar.smt
-smtxor -m -o smtxor.log smtxor.smt
-smtor -m -o smtor.log smtor.smt
-smtiff -m -o smtiff.log smtiff.smt
-smtflet -o smtflet.log smtflet.smt
-smtbv255 -o smtbv255.log smtbv255.smt
-smtshl1 -o smtshl1.log smtshl1.smt
-smtshl2 -o smtshl2.log smtshl2.smt
-smtshl3 -o smtshl3.log smtshl3.smt
-smtlshr1 -o smtlshr1.log smtlshr1.smt
-smtlshr2 -o smtlshr2.log smtlshr2.smt
-smtlshr3 -o smtlshr3.log smtlshr3.smt
-smtashr1 -o smtashr1.log smtashr1.smt
-smtashr2 -o smtashr2.log smtashr2.smt
-smtashr3 -o smtashr3.log smtashr3.smt
-smtbvbin -o smtbvbin.log smtbvbin.smt
-smtbvhex -o smtbvhex.log smtbvhex.smt
-smtrepeat -o smtrepeat.log smtrepeat.smt
-smtzeroextend -o smtzeroextend.log smtzeroextend.smt
-smtsignextend -o smtsignextend.log smtsignextend.smt
-smtrotate -o smtrotate.log smtrotate.smt
+smttrue -m -o smttrue.log smttrue.smt2
+smtfalse -m -o smtfalse.log smtfalse.smt2
+smtvar -m -o smtvar.log smtvar.smt2
+smtnotvar -m -o smtnotvar.log smtnotvar.smt2
+smtandvar -m -o smtandvar.log smtandvar.smt2
+smtxor -m -o smtxor.log smtxor.smt2
+smtor -m -o smtor.log smtor.smt2
+smtiff -m -o smtiff.log smtiff.smt2
+smtflet -o smtflet.log smtflet.smt2
+smtbv255 -o smtbv255.log smtbv255.smt2
+smtshl1 -o smtshl1.log smtshl1.smt2
+smtshl2 -o smtshl2.log smtshl2.smt2
+smtshl3 -o smtshl3.log smtshl3.smt2
+smtlshr1 -o smtlshr1.log smtlshr1.smt2
+smtlshr2 -o smtlshr2.log smtlshr2.smt2
+smtlshr3 -o smtlshr3.log smtlshr3.smt2
+smtashr1 -o smtashr1.log smtashr1.smt2
+smtashr2 -o smtashr2.log smtashr2.smt2
+smtashr3 -o smtashr3.log smtashr3.smt2
+smtrepeat -o smtrepeat.log smtrepeat.smt2
+smtzeroextend -o smtzeroextend.log smtzeroextend.smt2
+smtsignextend -o smtsignextend.log smtsignextend.smt2
+smtrotate -o smtrotate.log smtrotate.smt2
 uremudivaxiom4 -o uremudivaxiom4.log uremudivaxiom4.btor
 uremudivaxiom4no -o uremudivaxiom4no.log uremudivaxiom4no.btor
-regsmod1 -o regsmod1.log regsmod1.smt
+regsmod1 -o regsmod1.log regsmod1.smt2
 regr-5smod3 -o regr-5smod3.log regr-5smod3.btor -m -d
 regr-5srem3 -o regr-5srem3.log regr-5srem3.btor -m -d
 regr5smod-3 -o regr5smod-3.log regr5smod-3.btor -m -d
@@ -38,10 +33,10 @@ regr-6srem3 -o regr-6srem3.log regr-6srem3.btor -m -d
 regr6smod-3 -o regr6smod-3.log regr6smod-3.btor -m -d
 regr6srem-3 -o regr6srem-3.log regr6srem-3.btor -m -d
 gtewithsub -o gtewithsub.log gtewithsub.btor
-smtaxiommccarthy -o smtaxiommccarthy.log smtaxiommccarthy.smt
-mulassoc4 -o mulassoc4.log mulassoc4.smt
-mulassoc5 -o mulassoc5.log mulassoc5.smt
-mulassoc6 -o mulassoc6.log mulassoc6.smt
+smtaxiommccarthy -o smtaxiommccarthy.log smtaxiommccarthy.smt2
+mulassoc4 -o mulassoc4.log mulassoc4.smt2
+mulassoc5 -o mulassoc5.log mulassoc5.smt2
+mulassoc6 -o mulassoc6.log mulassoc6.smt2
 udiv8castdown4 -o udiv8castdown4.log udiv8castdown4.btor
 udiv8castdown5 -o udiv8castdown5.log udiv8castdown5.btor
 udiv8castdown6 -o udiv8castdown6.log udiv8castdown6.btor
@@ -57,35 +52,35 @@ dumpbtor2 -rwl 0 -db -o dumpbtor2.log dumpbtor2.btor
 dumpbtor3 -db -o dumpbtor3.log dumpbtor3.btor
 dumpsmt1 -rwl 0 -ds -o dumpsmt1.log dumpsmt1.btor
 dumpsmt2 -rwl 0 -ds -o dumpsmt2.log dumpsmt2.btor
-smtextarrayaxiom1uf -o smtextarrayaxiom1uf.log smtextarrayaxiom1uf.smt
-smtextarrayaxiom1 -o smtextarrayaxiom1.log smtextarrayaxiom1.smt
-smtextarray1sat0 -o smtextarray1sat0.log smtextarray1sat0.smt
-smtextarray1sat1 -o smtextarray1sat1.log smtextarray1sat1.smt
-smtextarrayaxiom2uf -o smtextarrayaxiom2uf.log smtextarrayaxiom2uf.smt
-smtextarrayaxiom2 -o smtextarrayaxiom2.log smtextarrayaxiom2.smt
-smtextarray2sat0 -o smtextarray2sat0.log smtextarray2sat0.smt
-smtextarray2sat1 -o smtextarray2sat1.log smtextarray2sat1.smt
-smtextarray2sat2 -o smtextarray2sat2.log smtextarray2sat2.smt
-smtextarray2sat3 -o smtextarray2sat3.log smtextarray2sat3.smt
-smtextarrayaxiom3uf -o smtextarrayaxiom3uf.log smtextarrayaxiom3uf.smt
-smtextarrayaxiom3 -o smtextarrayaxiom3.log smtextarrayaxiom3.smt
-smtextarray3sat0 -o smtextarray3sat0.log smtextarray3sat0.smt
-smtextarray3sat1 -o smtextarray3sat1.log smtextarray3sat1.smt
-smtextarray3sat2 -o smtextarray3sat2.log smtextarray3sat2.smt
-smtextarray3sat3 -o smtextarray3sat3.log smtextarray3sat3.smt
-smtextarray3sat4 -o smtextarray3sat4.log smtextarray3sat4.smt
-smtextarray3sat5 -o smtextarray3sat5.log smtextarray3sat5.smt
-smtextarray3sat6 -o smtextarray3sat6.log smtextarray3sat6.smt
-smtextarray3sat7 -o smtextarray3sat7.log smtextarray3sat7.smt
-smtextarrayaxiom4uf -o smtextarrayaxiom4uf.log smtextarrayaxiom4uf.smt
-smtextarrayaxiom4 -o smtextarrayaxiom4.log smtextarrayaxiom4.smt
+smtextarrayaxiom1uf -o smtextarrayaxiom1uf.log smtextarrayaxiom1uf.smt2
+smtextarrayaxiom1 -o smtextarrayaxiom1.log smtextarrayaxiom1.smt2
+smtextarray1sat0 -o smtextarray1sat0.log smtextarray1sat0.smt2
+smtextarray1sat1 -o smtextarray1sat1.log smtextarray1sat1.smt2
+smtextarrayaxiom2uf -o smtextarrayaxiom2uf.log smtextarrayaxiom2uf.smt2
+smtextarrayaxiom2 -o smtextarrayaxiom2.log smtextarrayaxiom2.smt2
+smtextarray2sat0 -o smtextarray2sat0.log smtextarray2sat0.smt2
+smtextarray2sat1 -o smtextarray2sat1.log smtextarray2sat1.smt2
+smtextarray2sat2 -o smtextarray2sat2.log smtextarray2sat2.smt2
+smtextarray2sat3 -o smtextarray2sat3.log smtextarray2sat3.smt2
+smtextarrayaxiom3uf -o smtextarrayaxiom3uf.log smtextarrayaxiom3uf.smt2
+smtextarrayaxiom3 -o smtextarrayaxiom3.log smtextarrayaxiom3.smt2
+smtextarray3sat0 -o smtextarray3sat0.log smtextarray3sat0.smt2
+smtextarray3sat1 -o smtextarray3sat1.log smtextarray3sat1.smt2
+smtextarray3sat2 -o smtextarray3sat2.log smtextarray3sat2.smt2
+smtextarray3sat3 -o smtextarray3sat3.log smtextarray3sat3.smt2
+smtextarray3sat4 -o smtextarray3sat4.log smtextarray3sat4.smt2
+smtextarray3sat5 -o smtextarray3sat5.log smtextarray3sat5.smt2
+smtextarray3sat6 -o smtextarray3sat6.log smtextarray3sat6.smt2
+smtextarray3sat7 -o smtextarray3sat7.log smtextarray3sat7.smt2
+smtextarrayaxiom4uf -o smtextarrayaxiom4uf.log smtextarrayaxiom4uf.smt2
+smtextarrayaxiom4 -o smtextarrayaxiom4.log smtextarrayaxiom4.smt2
 extarraywrite1 -o extarraywrite1.log extarraywrite1.btor
 extarraywrite2 -o extarraywrite2.log extarraywrite2.btor
-extarraywrite3 -o extarraywrite3.log extarraywrite3.smt
-extarraywrite3sat -o extarraywrite3sat.log extarraywrite3sat.smt
-smtarraycond1 -o smtarraycond1.log smtarraycond1.smt
-smtarraycond2 -o smtarraycond2.log smtarraycond2.smt
-smtarraycond3 -o smtarraycond3.log smtarraycond3.smt
+extarraywrite3 -o extarraywrite3.log extarraywrite3.smt2
+extarraywrite3sat -o extarraywrite3sat.log extarraywrite3sat.smt2
+smtarraycond1 -o smtarraycond1.log smtarraycond1.smt2
+smtarraycond2 -o smtarraycond2.log smtarraycond2.smt2
+smtarraycond3 -o smtarraycond3.log smtarraycond3.smt2
 rwpropindexplusconst1 -o rwpropindexplusconst1.log rwpropindexplusconst1.btor
 rwpropindexplusconst2 -o rwpropindexplusconst2.log rwpropindexplusconst2.btor
 rwpropindexplusconst3 -o rwpropindexplusconst3.log rwpropindexplusconst3.btor
@@ -449,11 +444,11 @@ rw208 -rwl 3 -o rw208.log rw208.btor
 rw209 -rwl 3 -o rw209.log rw209.btor
 rw210 -rwl 3 -o rw210.log rw210.btor
 rw211 -rwl 3 -o rw211.log rw211.btor
-rw212 -rwl 3 -o rw212.log rw212.smt
-rw213 -rwl 3 -o rw213.log rw213.smt
-rw214 -rwl 3 -o rw214.log rw214.smt
-rw215 -rwl 3 -o rw215.log rw215.smt
-rw216 -rwl 3 -o rw216.log rw216.smt
+rw212 -rwl 3 -o rw212.log rw212.smt2
+rw213 -rwl 3 -o rw213.log rw213.smt2
+rw214 -rwl 3 -o rw214.log rw214.smt2
+rw215 -rwl 3 -o rw215.log rw215.smt2
+rw216 -rwl 3 -o rw216.log rw216.smt2
 rw217 -rwl 3 -o rw217.log rw217.smt2
 rw218 -rwl 3 -o rw218.log rw218.smt2
 rw219 -rwl 3 -o rw219.log rw219.smt2
@@ -502,20 +497,20 @@ hd20 -o hd20.log hd20.btor
 hd21 -o hd21.log hd21.btor
 proxybug -o proxybug.log proxybug.btor
 prim8bugreduced -o prim8bugreduced.log prim8bugreduced.btor
-bubsort002un -o bubsort002un.log bubsort002un.smt
-selsort002un -o selsort002un.log selsort002un.smt
-swapmem002se -o swapmem002se.log swapmem002se.smt
-swapmem002ue -o swapmem002ue.log swapmem002ue.smt
-wchains002se -o wchains002se.log wchains002se.smt
-wchains002ue -o wchains002ue.log wchains002ue.smt
-dubreva002ue -o dubreva002ue.log dubreva002ue.smt
-binarysearch32s016 -o binarysearch32s016.log binarysearch32s016.smt
-countbits016 -o countbits016.log countbits016.smt
-fifo32bc04k05 -o fifo32bc04k05.log fifo32bc04k05.smt
-fifo32ia04k05 -o fifo32ia04k05.log fifo32ia04k05.smt
-fifo32in04k05 -o fifo32in04k05.log fifo32in04k05.smt
-nextpoweroftwo016 -o nextpoweroftwo016.log nextpoweroftwo016.smt
-memcpy02 -o memcpy02.log memcpy02.smt
+bubsort002un -o bubsort002un.log bubsort002un.smt2
+selsort002un -o selsort002un.log selsort002un.smt2
+swapmem002se -o swapmem002se.log swapmem002se.smt2
+swapmem002ue -o swapmem002ue.log swapmem002ue.smt2
+wchains002se -o wchains002se.log wchains002se.smt2
+wchains002ue -o wchains002ue.log wchains002ue.smt2
+dubreva002ue -o dubreva002ue.log dubreva002ue.smt2
+binarysearch32s016 -o binarysearch32s016.log binarysearch32s016.smt2
+countbits016 -o countbits016.log countbits016.smt2
+fifo32bc04k05 -o fifo32bc04k05.log fifo32bc04k05.smt2
+fifo32ia04k05 -o fifo32ia04k05.log fifo32ia04k05.smt2
+fifo32in04k05 -o fifo32in04k05.log fifo32in04k05.smt2
+nextpoweroftwo016 -o nextpoweroftwo016.log nextpoweroftwo016.smt2
+memcpy02 -o memcpy02.log memcpy02.smt2
 regrw8simp -o regrw8simp.log regrw8simp.btor
 regprim11simp -o regprim11simp.log regprim11simp.btor
 #regexit0basic -o regexit0basic.log regexit0basic.btor
@@ -549,8 +544,8 @@ twocomplementassub -o twocomplementassub.log twocomplementassub.btor
 regsubslapd149921red -o regsubslapd149921red.log regsubslapd149921red.btor
 inc_rwl0 -rwl 0 -o inc_rwl0.log inc.btor
 inc_rwl3 -o inc_rwl3.log inc.btor
-dec_rwl0 -rwl 0 -o dec_rwl0.log dec.btor
-dec_rwl3 -o dec_rwl3.log dec.btor
+dec_rwl0 -rwl 0 -o dec_rwl0.log dec_rwl0.btor
+dec_rwl3 -o dec_rwl3.log dec_rwl3.btor
 regrembeddedconstraint1 -rwl 0 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
 regrembeddedconstraint1 -rwl 1 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
 regrembeddedconstraint1 -rwl 2 -o regrembeddedconstraint1.log regrembeddedconstraint1.btor
@@ -687,7 +682,7 @@ regrdomabst1 -o regrdomabst1.log regrdomabst1.btor
 regrdomabst2 -o regrdomabst2.log regrdomabst2.btor
 regrdomabst3 -o regrdomabst3.log regrdomabst3.btor
 regrdomabst4 -o regrdomabst4.log regrdomabst4.btor
-problem_130 -m -o problem_130.log problem_130.smt
+problem_130 -m -o problem_130.log problem_130.smt2
 distri1 -o distri1.log distri1.btor
 distri2 -o distri2.log distri2.btor
 distri3 -o distri3.log distri3.btor
@@ -698,7 +693,7 @@ distri7 -o distri7.log distri7.btor
 distri8 -o distri8.log distri8.btor
 redor3 -o redor3.log redor3.btor
 redand3twice -o redand3twice.log redand3twice.btor
-painc -i -I 1 -o painc.log painc.smt
+painc -i -o painc.log painc.smt2
 sult -o sult.log sult.btor
 sult2 -o sult2.log sult2.btor
 concatslice1 -rwl 1 -db -o concatslice1.log concatslice1.btor

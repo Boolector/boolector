@@ -156,7 +156,6 @@ class TestFile : public TestBoolector
     assert (f_in);
 
     boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
-    boolector_set_opt (d_btor, BTOR_OPT_INCREMENTAL, 1);
 
     sat_res = boolector_parse (d_btor,
                                  f_in,
@@ -192,7 +191,7 @@ class TestFile : public TestBoolector
       }
     }
 
-    if (sat_res == BOOLECTOR_PARSE_UNKNOWN)
+    if (d_check_sat && sat_res == BOOLECTOR_PARSE_UNKNOWN)
     {
       sat_res = boolector_sat (d_btor);
       fprintf (d_log_file,
@@ -226,6 +225,8 @@ class TestFile : public TestBoolector
     ss << name << ext;
     run_test (ss.str().c_str(), expected, verbosity);
   }
+
+  bool d_check_sat = true;
 
   bool d_expect_parse_error = false;
 
