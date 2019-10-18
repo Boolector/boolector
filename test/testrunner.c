@@ -93,14 +93,8 @@ static const char *performancetests[] = {
 };
 
 static const char *brokentests[] = {
-    /* broken due to sort mix-up (needs to be fixed (ma))*/
-    "modelgensmt25",
-    "modelgensmt26",
-    "modelgensmt27",
     /* currently broken due to dumper support for args/apply */
     "dumpbtor2",
-    "dumpsmt1",
-    "dumpsmt2",
     /* currently broken as we do not support lambda hashing yet */
     "lambda_param_write1",
     "lambda_param_write2",

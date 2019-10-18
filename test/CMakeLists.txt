@@ -781,7 +781,8 @@ set(regressions
   csa4w42
   csa4w82
   davidcokchallenge2
-  dec
+  dec_rwl0
+  dec_rwl3
   distri1
   distri2
   distri3
@@ -1525,7 +1526,7 @@ set(regressions
   smt2perr163
   smt2perr164
   smt2perr173
-  smtandvar
+  #smtandvar
   smtarraycond1
   smtarraycond2
   smtarraycond3
@@ -1737,12 +1738,12 @@ set(regressions
   smtextarrayaxiom4uf
   smtfalse
   smtflet
-  smtiff
+  #smtiff
   smtlshr1
   smtlshr2
   smtlshr3
-  smtnotvar
-  smtor
+  #smtnotvar
+  #smtor
   smtrepeat
   smtrotate
   smtshl1
@@ -1751,8 +1752,8 @@ set(regressions
   smtsignextend
   smtsub0
   smttrue
-  smtvar
-  smtxor
+  #smtvar
+  #smtxor
   smtzeroextend
   sqrt11
   sqrt13
