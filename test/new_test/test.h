@@ -141,7 +141,7 @@ class TestFile : public TestBoolector
 
     std::stringstream ss_in;
     FILE* f_in;
-    int32_t parse_res, parse_status;
+    int32_t parse_status;
     char* parse_err;
     int32_t sat_res;
 
@@ -152,7 +152,7 @@ class TestFile : public TestBoolector
     boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
     boolector_set_opt (d_btor, BTOR_OPT_INCREMENTAL, 1);
 
-    parse_res = boolector_parse (d_btor,
+    sat_res = boolector_parse (d_btor,
                                  f_in,
                                  ss_in.str ().c_str (),
                                  d_log_file,
@@ -160,11 +160,11 @@ class TestFile : public TestBoolector
                                  &parse_status);
     if (d_expect_parse_error)
     {
-      ASSERT_EQ (parse_res, BOOLECTOR_PARSE_ERROR);
+      ASSERT_EQ (sat_res, BOOLECTOR_PARSE_ERROR);
     }
     else
     {
-      ASSERT_NE (parse_res, BOOLECTOR_PARSE_ERROR);
+      ASSERT_NE (sat_res, BOOLECTOR_PARSE_ERROR);
     }
 
     if (d_dump)
@@ -183,7 +183,10 @@ class TestFile : public TestBoolector
       }
     }
 
-    sat_res = boolector_sat (d_btor);
+    if (sat_res == BOOLECTOR_PARSE_UNKNOWN)
+    {
+      sat_res = boolector_sat (d_btor);
+    }
 
     if (d_get_model)
     {
