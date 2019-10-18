@@ -8,3 +8,5 @@
 (assert (= (bvxor (bvnot (_ bv0 4)) b0) (bvshl b0 (_ bv1 4))))
 (assert (= (bvxor b0 b1) (bvshl b1 (_ bv1 4))))
 (assert (not (and (= b0 u0) (= b1 u1))))
+(check-sat)
+(exit)

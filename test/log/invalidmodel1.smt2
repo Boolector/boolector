@@ -5,4 +5,5 @@
 (assert (= a (store b (_ bv0 4) (_ bv0 4))))
 (assert (= (_ bv0 4) (select a (_ bv3 4))))
 (assert (= b (store c (bvadd (select c (_ bv0 4)) (_ bv3 4)) (_ bv0 4))))
+(check-sat)
 (exit)

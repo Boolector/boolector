@@ -186,6 +186,11 @@ class TestFile : public TestBoolector
     if (sat_res == BOOLECTOR_PARSE_UNKNOWN)
     {
       sat_res = boolector_sat (d_btor);
+      fprintf (d_log_file,
+               "%s\n",
+               sat_res == BOOLECTOR_SAT
+                   ? "sat"
+                   : (sat_res == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
     }
 
     if (d_get_model)

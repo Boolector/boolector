@@ -1,6 +1,5 @@
 (set-logic QF_BV)
 (set-info :smt-lib-version 2.0)
-
 (declare-fun E_26193 ()(_ BitVec 8))
 (declare-fun E_26215 ()(_ BitVec 8))
 (declare-fun E_26214 ()(_ BitVec 1))
