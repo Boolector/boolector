@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -53,6 +53,19 @@ btor_aigvec_const (BtorAIGVecMgr *avmgr, const BtorBitVector *bits)
   for (i = 0; i < width; i++)
     result->aigs[i] =
         !btor_bv_get_bit (bits, width - 1 - i) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+  return result;
+}
+
+BtorAIGVec *
+btor_aigvec_zero (BtorAIGVecMgr *avmgr, uint32_t width)
+{
+  assert (avmgr);
+  assert (width);
+
+  BtorAIGVec *result;
+  uint32_t i;
+  result = new_aigvec (avmgr, width);
+  for (i = 0; i < width; i++) result->aigs[i] = BTOR_AIG_FALSE;
   return result;
 }
 

@@ -50,26 +50,37 @@ BtorAIGMgr *btor_aigvec_get_aig_mgr (const BtorAIGVecMgr *avmgr);
 
 /*------------------------------------------------------------------------*/
 
-/* Creates new AIG vector representing the constant specified by bits.
+/**
+ * Create an AIG vector representing the constant specified by bits.
  * width(result) = width(bits)
  */
 BtorAIGVec *btor_aigvec_const (BtorAIGVecMgr *avmgr, const BtorBitVector *bits);
 
-/* Creates new AIG vector representing a variable.
+/**
+ * Create an AIG vector representing 0 of given width.
+ * width > 0
+ * width(result) = width
+ */
+BtorAIGVec *btor_aigvec_zero (BtorAIGVecMgr *avmgr, uint32_t width);
+
+/**
+ * Create an AIG vector representing a variable.
  * width > 0
  * width(result) = width
  */
 BtorAIGVec *btor_aigvec_var (BtorAIGVecMgr *avmgr, uint32_t width);
 
-/* Inverts all AIGs of the AIG vector */
+/** Invert all AIGs of the given AIG vector */
 void btor_aigvec_invert (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Creates new AIG vector representing ones's complement of av.
+/**
+ * Create an AIG vector representing ones's complement of av.
  * width(result) = width(av)
  */
 BtorAIGVec *btor_aigvec_not (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Creates new AIG vector representing a slice of av.
+/**
+ * Create an AIG vector representing a slice of av.
  * upper < width(av)
  * lower >= 0
  * upper >= lower
@@ -79,40 +90,40 @@ BtorAIGVec *btor_aigvec_slice (BtorAIGVecMgr *avmgr,
                                BtorAIGVec *av,
                                uint32_t upper,
                                uint32_t lower);
-
-/* Creates new AIG vector representing av1 AND av2.
+/**
+ * Create an AIG vector representing av1 AND av2.
  * width(av1) = width(av2)
  * width(result) = width(av1) = width(av2)
  */
 BtorAIGVec *btor_aigvec_and (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 less than av2 (unsigned).
+/**
+ * Create an AIG vector representing av1 less than av2 (unsigned).
  * width(av1) = width(av2)
  * width(result) = 1
  */
 BtorAIGVec *btor_aigvec_ult (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 equal av2.
+/**
+ * Create an AIG vector representing av1 equal av2.
  * width(av1) = width(av2)
  * width(result) = 1
  */
 BtorAIGVec *btor_aigvec_eq (BtorAIGVecMgr *avmgr,
                             BtorAIGVec *av1,
                             BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 + av2.
+/**
+ * Create an AIG vector representing av1 + av2.
  * width(av1) = width(av2)
  * width(result) = width(av1) = width(av2)
  */
 BtorAIGVec *btor_aigvec_add (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 shift left logical by av2.
+/**
+ * Create an AIG vector representing av1 shift left logical by av2.
  * is_power_of_2(width(av1))
  * width(av2) = log2(width(av1))
  * width(result) = width(av1)
@@ -120,7 +131,8 @@ BtorAIGVec *btor_aigvec_add (BtorAIGVecMgr *avmgr,
 BtorAIGVec *btor_aigvec_sll (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-/* Creates new AIG vector representing av1 shift right logical by av2.
+/**
+ * Create an AIG vector representing av1 shift right logical by av2.
  * is_power_of_2(width(av1))
  * width(av2) = log2(width(av1))
  * width(result) = width(av1)
@@ -128,39 +140,39 @@ BtorAIGVec *btor_aigvec_sll (BtorAIGVecMgr *avmgr,
 BtorAIGVec *btor_aigvec_srl (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 * av2.
+/**
+ * Create an AIG vector representing av1 * av2.
  * width(av1) = width(av2)
  * width(result) = width(av1) = width(av2)
  */
 BtorAIGVec *btor_aigvec_mul (BtorAIGVecMgr *avmgr,
                              BtorAIGVec *av1,
                              BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 / av2 (unsigned).
+/**
+ * Create an AIG vector representing av1 / av2 (unsigned).
  * width(av1) = width(av2)
  * width(result) = width(av1) = width(av2)
  */
 BtorAIGVec *btor_aigvec_udiv (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av1,
                               BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av1 % av2 (unsigned).
+/**
+ * Create an AIG vector representing av1 % av2 (unsigned).
  * width(av1) = width(av2)
  * width(result) = width(av1) = width(av2)
  */
 BtorAIGVec *btor_aigvec_urem (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av1,
                               BtorAIGVec *av2);
-
-/* Creates new AIG vector representing the concatenation av1.av2.
+/**
+ * Create an AIG vector representing the concatenation av1.av2.
  * width(result) = width(av1) + width(av2)
  */
 BtorAIGVec *btor_aigvec_concat (BtorAIGVecMgr *avmgr,
                                 BtorAIGVec *av1,
                                 BtorAIGVec *av2);
-
-/* Creates new AIG vector representing av_cond ? av_if : av_else.
+/**
+ * Create an AIG vector representing av_cond ? av_if : av_else.
  * width(av_cond) = 1
  * width(av_if) = width(av_else)
  * width(result) = width(av_if) = width(av_else)
@@ -169,19 +181,21 @@ BtorAIGVec *btor_aigvec_cond (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av_cond,
                               BtorAIGVec *av_if,
                               BtorAIGVec *av_else);
-
-/* Creates new AIG vector representing a copy of av.
+/**
+ * Creates an AIG vector representing a copy of av.
  * width(result) = width(av)
  */
 BtorAIGVec *btor_aigvec_copy (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Clones an existing AIG vector.
- * All aigs referenced must already be cloned. */
+/**
+ * Clone the given AIG vector.
+ * All aigs referenced must already be cloned.
+ */
 BtorAIGVec *btor_aigvec_clone (BtorAIGVec *av, BtorAIGVecMgr *avmgr);
 
-/* Translates every AIG of the AIG vector into SAT in both phases  */
+/*i* Translate every AIG of the given AIG vector into SAT in both phases.  */
 void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Release all AIGs of the AIG vector and delete AIG vector from memory. */
+/** Release all AIGs of the given AIG vector and delete it. */
 void btor_aigvec_release_delete (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 #endif
