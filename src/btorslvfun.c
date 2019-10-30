@@ -163,6 +163,13 @@ incremental_required (Btor *btor)
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
 
+  /* If model generation is enabled for all nodes, we don't have to traverse
+   * the formula, but check if functions have been created. */
+  if (btor_opt_get (btor, BTOR_OPT_MODEL_GEN) > 1)
+  {
+    return btor->ufs->count > 0 || btor->lambdas->count > 0;
+  }
+
   BTOR_INIT_STACK (btor->mm, stack);
   cache = btor_hashint_table_new (btor->mm);
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
@@ -577,8 +584,6 @@ sat_aux_btor_dual_prop (Btor *btor)
   configure_sat_mgr (btor);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
-
-  if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);
