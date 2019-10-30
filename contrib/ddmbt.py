@@ -27,7 +27,7 @@ g_node_map = {}
 g_sort_map = {}
 
 CONST_NODE_KINDS = ["const", "zero", "false", "ones", "true", "one",
-                    "unsigned_int", "int", "max_signed"]
+                    "unsigned_int", "int", "min_signed", "max_signed"]
 
 NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
               "unsigned_int", "int", "var", "array", "uf", "not", "neg",
@@ -37,7 +37,7 @@ NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
               "ulte", "slte", "ugt", "sgt", "ugte", "sgte", "sll", "srl",
               "sra", "rol", "ror", "sub", "usubo", "ssubo", "udiv", "sdiv",
               "sdivo", "urem", "srem", "smod", "concat", "read", "write",
-              "cond", "param", "fun", "apply", "inc", "dec"]
+              "cond", "param", "fun", "apply", "inc", "dec", "repeat"]
 
 SORT_KINDS = ["bool_sort", "bitvec_sort", "fun_sort", "array_sort",
               "tuple_sort"]
@@ -46,7 +46,7 @@ VALID_KEYWORDS = [
     'new', 'return', 'sat', 'assume', 'assert', 'failed', 'set_opt', 'has_opt',
     'array_assignment', 'bv_assignment', 'uf_assignment',
     'free_array_assignment', 'free_bv_assignment', 'free_uf_assignment',
-    'fixate_assumptions', 'min_signed', 'fun_sort_check', 'set_sat_solver'
+    'fixate_assumptions', 'fun_sort_check', 'set_sat_solver', 'simplify'
 ]
 VALID_KEYWORDS.extend(CONST_NODE_KINDS)
 VALID_KEYWORDS.extend(NODE_KINDS)
@@ -73,7 +73,7 @@ class LineTokens:
             self.children = []
 
     def is_node_kind(self):
-        return self.kind in NODE_KINDS
+        return self.kind in NODE_KINDS or self.kind in CONST_NODE_KINDS
 
     def is_sort_kind(self):
         return self.kind in SORT_KINDS
@@ -131,7 +131,7 @@ def _node_bw(tokens):
     kind = tokens[0]
     bw = 0
     if kind in ["var", "param", "zero", "one", "ones", "uf", "array",
-                "max_signed"]:
+                "min_signed", "max_signed"]:
         bw = _sort_bw(tokens[1])
     elif kind in ["int", "unsigned_int"]:
         bw = _sort_bw(tokens[2])
@@ -162,8 +162,9 @@ def _node_bw(tokens):
             assert(len(cbw) == 1)
             bw = cbw[0]
         elif kind in ["sext", "uext"]:
-            assert(len(cbw) == 1)
             bw = cbw[0] + int(tokens[2])
+        elif kind == "repeat":
+            bw = cbw[0] * int(tokens[2])
         elif kind == "fun":
             bw = cbw
         elif kind == "apply":
