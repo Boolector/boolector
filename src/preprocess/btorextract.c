@@ -1170,7 +1170,7 @@ extract_lambdas (Btor *btor,
   while (btor_iter_hashptr_has_next (&it))
   {
     t     = it.bucket->data.as_ptr;
-    array = btor_iter_hashptr_next (&it);
+    array = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     assert (t);
     assert (array->is_array);
 
@@ -1213,11 +1213,14 @@ extract_lambdas (Btor *btor,
       subst     = btor_node_copy (btor, b->data.as_ptr);
       is_top_eq = false;
     }
-    else
+    else if (btor_node_is_uf_array (array))
     {
-      assert (btor_node_is_uf_array (array));
       subst     = btor_exp_array (btor, btor_node_get_sort_id (array), 0);
       is_top_eq = true;
+    }
+    else
+    {
+      continue;
     }
 
     index_value_map =
