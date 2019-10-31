@@ -4485,7 +4485,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_sll (btor, e0, e1));
 
-  uint32_t shiftlen;
+  uint32_t shiftlen, width;
   BtorBitVector *bits;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
   BtorSortId sort;
@@ -4496,21 +4496,31 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (is_const_zero_exp (btor, e1)) return btor_node_copy (btor, e0);
 
   bits = btor_node_bv_const_get_bits (real_e1);
+  width = btor_node_bv_get_width (btor, real_e0);
+  assert (btor_bv_get_width (bits) == width);
   if (btor_node_is_inverted (e1)) bits = btor_bv_not (btor->mm, bits);
   shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
-  if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
-  assert (shiftlen < btor_node_bv_get_width (btor, real_e0));
-  BTOR_INC_REC_RW_CALL (btor);
-  sort = btor_sort_bv (btor, shiftlen);
-  pad  = btor_exp_bv_zero (btor, sort);
-  btor_sort_release (btor, sort);
-  slice = rewrite_slice_exp (
-      btor, e0, btor_node_bv_get_width (btor, real_e0) - shiftlen - 1, 0);
-  result = rewrite_concat_exp (btor, slice, pad);
-  BTOR_DEC_REC_RW_CALL (btor);
-  btor_node_release (btor, pad);
-  btor_node_release (btor, slice);
+  if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
+  if (shiftlen >= width)
+  {
+    sort   = btor_sort_bv (btor, width);
+    result = btor_exp_bv_zero (btor, sort);
+    btor_sort_release (btor, sort);
+  }
+  else
+  {
+    BTOR_INC_REC_RW_CALL (btor);
+    sort = btor_sort_bv (btor, shiftlen);
+    pad  = btor_exp_bv_zero (btor, sort);
+    btor_sort_release (btor, sort);
+    slice = rewrite_slice_exp (
+        btor, e0, btor_node_bv_get_width (btor, real_e0) - shiftlen - 1, 0);
+    result = rewrite_concat_exp (btor, slice, pad);
+    BTOR_DEC_REC_RW_CALL (btor);
+    btor_node_release (btor, pad);
+    btor_node_release (btor, slice);
+  }
   assert (btor_node_get_sort_id (result) == btor_node_get_sort_id (real_e0));
   return result;
 }
@@ -4535,7 +4545,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_srl (btor, e0, e1));
 
-  uint32_t shiftlen;
+  uint32_t width, shiftlen;
   BtorBitVector *bits;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
   BtorSortId sort;
@@ -4546,23 +4556,51 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (is_const_zero_exp (btor, e1)) return btor_node_copy (btor, e0);
 
   bits = btor_node_bv_const_get_bits (real_e1);
+  width = btor_node_bv_get_width (btor, real_e0);
+  assert (btor_bv_get_width (bits) == width);
   if (btor_node_is_inverted (e1)) bits = btor_bv_not (btor->mm, bits);
   shiftlen = (uint32_t) btor_bv_to_uint64 (bits);
-  if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
   assert (shiftlen > 0);
-  assert (shiftlen < btor_node_bv_get_width (btor, real_e0));
-  BTOR_INC_REC_RW_CALL (btor);
-  sort = btor_sort_bv (btor, shiftlen);
-  pad  = btor_exp_bv_zero (btor, sort);
-  btor_sort_release (btor, sort);
-  slice = rewrite_slice_exp (
-      btor, e0, btor_node_bv_get_width (btor, real_e0) - 1, shiftlen);
-  result = rewrite_concat_exp (btor, pad, slice);
-  BTOR_DEC_REC_RW_CALL (btor);
-  btor_node_release (btor, pad);
-  btor_node_release (btor, slice);
+  if (btor_node_is_inverted (e1)) btor_bv_free (btor->mm, bits);
+  if (shiftlen >= width)
+  {
+    sort   = btor_sort_bv (btor, width);
+    result = btor_exp_bv_zero (btor, sort);
+    btor_sort_release (btor, sort);
+  }
+  else
+  {
+    BTOR_INC_REC_RW_CALL (btor);
+    sort = btor_sort_bv (btor, shiftlen);
+    pad  = btor_exp_bv_zero (btor, sort);
+    btor_sort_release (btor, sort);
+    slice = rewrite_slice_exp (
+        btor, e0, btor_node_bv_get_width (btor, real_e0) - 1, shiftlen);
+    result = rewrite_concat_exp (btor, pad, slice);
+    BTOR_DEC_REC_RW_CALL (btor);
+    btor_node_release (btor, pad);
+    btor_node_release (btor, slice);
+  }
   assert (btor_node_get_sort_id (result) == btor_node_get_sort_id (real_e0));
   return result;
+}
+
+/*
+ * e0 >> e0 == 0
+ * match:  e0_[bw] == e1_[bw]
+ * result: 0_[bw]
+ */
+static inline bool
+applies_same_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return e0 == e1;
+}
+
+static inline BtorNode *
+apply_same_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_same_srl (btor, e0, e1));
+  return btor_exp_bv_zero (btor, btor_node_get_sort_id (e0));
 }
 
 /* APPLY rules                                                                */

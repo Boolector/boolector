@@ -331,17 +331,144 @@ sll_n_bits_aigvec (BtorAIGVecMgr *avmgr,
   return result;
 }
 
-BtorAIGVec *
-btor_aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+static BtorAIGVec *
+translate_shift (BtorAIGVecMgr *avmgr,
+                 BtorAIGVec *av1,
+                 BtorAIGVec *av2,
+                 BtorAIGVec *(*fun) (BtorAIGVecMgr *,
+                                     BtorAIGVec *,
+                                     BtorAIGVec *) )
 {
-  BtorAIGVec *result, *temp;
-  uint32_t i, j, width;
+  assert (avmgr);
+  assert (av1);
+  assert (av2);
+  assert (av1->width);
+  assert (av2->width);
+
+  BtorAIGVec *res, *av_cond, *av_then, *av_else;
+  BtorAIGVec *tmp, *zero, *upper2, *lower2, *av1_new, *av2_new;
+  uint32_t width, pow2, width_shift, delta1, delta2;
+
+  width = av1->width;
+
+  if (btor_util_is_power_of_2 (width) && btor_util_log_2 (width) == av2->width)
+  {
+    return fun (avmgr, av1, av2);
+  }
+
+  /* When represented as AIG vectors, we require that the vector to be shifted
+   * has a power of 2 width, and the shift width is log2 of this width. The
+   * given vectors av1 and av2 have the same bit-width, which is not necessarily
+   * a power of 2. Hence the requirement for translation.
+   *
+   * First, we determine the smallest power of 2 that is greater/equal than
+   * the bit-width of the given AIG vectors such that width_shift = log2 (pow2).
+   */
+  for (pow2 = 1, width_shift = 0; pow2 < width; pow2 *= 2) width_shift++;
+  assert (pow2 == (1u << width_shift));
+
+  if (width == 1)
+  {
+    assert (pow2 == 1);
+    assert (width_shift == 0);
+
+    tmp = btor_aigvec_not (avmgr, av2);
+    res = btor_aigvec_and (avmgr, av1, tmp);
+    btor_aigvec_release_delete (avmgr, tmp);
+  }
+  else
+  {
+    assert (width >= 1);
+    assert (width <= pow2);
+
+    /* the delta (in # bits) for 'pow2' and 'width' */
+    delta1 = pow2 - width;
+    /* the delta (in # bits) for 'width' and 'width_shift' (= log2(pow2)) */
+    delta2 = width - width_shift;
+
+    assert (width_shift > 0);
+
+    upper2 = btor_aigvec_slice (avmgr, av2, width - 1, width - delta2);
+    lower2 = btor_aigvec_slice (avmgr, av2, width_shift - 1, 0);
+
+    assert (upper2->width == delta2);
+    assert (lower2->width == width_shift);
+
+    /**
+     * if shift width is >= bit-width, result is 0
+     * -> we translate given shift to
+     *        ite (shift width >= bit-width, 0, shift (av1_new, av2_new))
+     * where
+     *   - 'shift' is the given shift function (sll, srl) and
+     *   - 'av1_new' and 'av2_new' are the given vectors converted to the
+     *     required widths 'pow2' and 'width_shift'.
+     */
+
+    /* condition for ite */
+    if (delta2 > 1)
+    {
+      /* 0_[upper2->width] */
+      zero = btor_aigvec_zero (avmgr, delta2);
+      /* redor: ~(0_[upper2->width] = upper2) */
+      tmp     = btor_aigvec_eq (avmgr, zero, upper2);
+      av_cond = btor_aigvec_not (avmgr, tmp);
+      btor_aigvec_release_delete (avmgr, tmp);
+      btor_aigvec_release_delete (avmgr, zero);
+    }
+    else
+    {
+      av_cond = btor_aigvec_copy (avmgr, upper2);
+    }
+    btor_aigvec_release_delete (avmgr, upper2);
+
+    /* then branch for ite */
+    av_then = btor_aigvec_zero (avmgr, width);
+
+    /* else branch for ite */
+    if (!delta1)
+    {
+      av1_new = btor_aigvec_copy (avmgr, av1);
+    }
+    else
+    {
+      tmp     = btor_aigvec_zero (avmgr, delta1);
+      av1_new = btor_aigvec_concat (avmgr, tmp, av1);
+      btor_aigvec_release_delete (avmgr, tmp);
+    }
+    assert (av1_new->width == pow2);
+    av2_new = lower2;
+    av_else = fun (avmgr, av1_new, av2_new);
+    btor_aigvec_release_delete (avmgr, av1_new);
+    btor_aigvec_release_delete (avmgr, av2_new);
+    if (delta1 > 0)
+    {
+      tmp = btor_aigvec_slice (avmgr, av_else, width - 1, 0);
+      btor_aigvec_release_delete (avmgr, av_else);
+      av_else = tmp;
+    }
+
+    res = btor_aigvec_cond (avmgr, av_cond, av_then, av_else);
+
+    btor_aigvec_release_delete (avmgr, av_cond);
+    btor_aigvec_release_delete (avmgr, av_then);
+    btor_aigvec_release_delete (avmgr, av_else);
+  }
+  return res;
+}
+
+static BtorAIGVec *
+aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+{
   assert (avmgr);
   assert (av1);
   assert (av2);
   assert (av1->width > 1);
   assert (btor_util_is_power_of_2 (av1->width));
   assert (btor_util_log_2 (av1->width) == av2->width);
+
+  BtorAIGVec *result, *temp;
+  uint32_t i, j, width;
+
   width  = av2->width;
   result = sll_n_bits_aigvec (avmgr, av1, 1, av2->aigs[av2->width - 1]);
   for (j = 2, i = width - 2; j <= width; j++, i--)
@@ -352,6 +479,17 @@ btor_aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
     btor_aigvec_release_delete (avmgr, temp);
   }
   return result;
+}
+
+BtorAIGVec *
+btor_aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+{
+  assert (avmgr);
+  assert (av1);
+  assert (av2);
+  assert (av1->width > 1);
+  assert (av1->width == av2->width);
+  return translate_shift (avmgr, av1, av2, aigvec_sll);
 }
 
 static BtorAIGVec *
@@ -387,8 +525,8 @@ srl_n_bits_aigvec (BtorAIGVecMgr *avmgr,
   return result;
 }
 
-BtorAIGVec *
-btor_aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+static BtorAIGVec *
+aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   BtorAIGVec *result, *temp;
   uint32_t i, j, width;
@@ -408,6 +546,17 @@ btor_aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
     btor_aigvec_release_delete (avmgr, temp);
   }
   return result;
+}
+
+BtorAIGVec *
+btor_aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+{
+  assert (avmgr);
+  assert (av1);
+  assert (av2);
+  assert (av1->width > 1);
+  assert (av1->width == av2->width);
+  return translate_shift (avmgr, av1, av2, aigvec_srl);
 }
 
 static BtorAIGVec *

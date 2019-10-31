@@ -15,7 +15,7 @@ extern "C" {
 class TestRotate : public TestBoolector
 {
  protected:
-  void api_rot (uint32_t bw, uint32_t nbits, bool is_left)
+  void test_rot (uint32_t bw, uint32_t nbits, bool is_left)
   {
     bool ispow2;
     int32_t res;
@@ -76,172 +76,70 @@ class TestRotate : public TestBoolector
   }
 };
 
-TEST_F (TestRotate, rol_1_0)
-{
-  api_rot (1, 0, true);
-}
+TEST_F (TestRotate, rol_1_0) { test_rot (1, 0, true); }
 
-TEST_F (TestRotate, rol_2_0)
-{
-  api_rot (2, 0, true);
-}
+TEST_F (TestRotate, rol_2_0) { test_rot (2, 0, true); }
 
-TEST_F (TestRotate, rol_3_0)
-{
-  api_rot (3, 0, true);
-}
+TEST_F (TestRotate, rol_3_0) { test_rot (3, 0, true); }
 
-TEST_F (TestRotate, rol_5_0)
-{
-  api_rot (5, 0, true);
-}
+TEST_F (TestRotate, rol_5_0) { test_rot (5, 0, true); }
 
-TEST_F (TestRotate, rol_12_0)
-{
-  api_rot (12, 0, true);
-}
+TEST_F (TestRotate, rol_12_0) { test_rot (12, 0, true); }
 
-TEST_F (TestRotate, rol_32_0)
-{
-  api_rot (32, 0, true);
-}
+TEST_F (TestRotate, rol_32_0) { test_rot (32, 0, true); }
 
-TEST_F (TestRotate, rol_1_1)
-{
-  api_rot (1, 1, true);
-}
+TEST_F (TestRotate, rol_1_1) { test_rot (1, 1, true); }
 
-TEST_F (TestRotate, rol_2_1)
-{
-  api_rot (2, 1, true);
-}
+TEST_F (TestRotate, rol_2_1) { test_rot (2, 1, true); }
 
-TEST_F (TestRotate, rol_3_1)
-{
-  api_rot (3, 1, true);
-}
+TEST_F (TestRotate, rol_3_1) { test_rot (3, 1, true); }
 
-TEST_F (TestRotate, rol_5_1)
-{
-  api_rot (5, 1, true);
-}
+TEST_F (TestRotate, rol_5_1) { test_rot (5, 1, true); }
 
-TEST_F (TestRotate, rol_12_1)
-{
-  api_rot (12, 1, true);
-}
+TEST_F (TestRotate, rol_12_1) { test_rot (12, 1, true); }
 
-TEST_F (TestRotate, rol_32_1)
-{
-  api_rot (32, 1, true);
-}
+TEST_F (TestRotate, rol_32_1) { test_rot (32, 1, true); }
 
-TEST_F (TestRotate, rol_2_2)
-{
-  api_rot (2, 2, true);
-}
+TEST_F (TestRotate, rol_2_2) { test_rot (2, 2, true); }
 
-TEST_F (TestRotate, rol_3_3)
-{
-  api_rot (3, 3, true);
-}
+TEST_F (TestRotate, rol_3_3) { test_rot (3, 3, true); }
 
-TEST_F (TestRotate, rol_5_5)
-{
-  api_rot (5, 5, true);
-}
+TEST_F (TestRotate, rol_5_5) { test_rot (5, 5, true); }
 
-TEST_F (TestRotate, rol_12_12)
-{
-  api_rot (12, 12, true);
-}
+TEST_F (TestRotate, rol_12_12) { test_rot (12, 12, true); }
 
-TEST_F (TestRotate, rol_32_32)
-{
-  api_rot (32, 32, true);
-}
+TEST_F (TestRotate, rol_32_32) { test_rot (32, 32, true); }
 
-TEST_F (TestRotate, ror_1_0)
-{
-  api_rot (1, 0, false);
-}
+TEST_F (TestRotate, ror_1_0) { test_rot (1, 0, false); }
 
-TEST_F (TestRotate, ror_2_0)
-{
-  api_rot (2, 0, false);
-}
+TEST_F (TestRotate, ror_2_0) { test_rot (2, 0, false); }
 
-TEST_F (TestRotate, ror_3_0)
-{
-  api_rot (3, 0, false);
-}
+TEST_F (TestRotate, ror_3_0) { test_rot (3, 0, false); }
 
-TEST_F (TestRotate, ror_5_0)
-{
-  api_rot (5, 0, false);
-}
+TEST_F (TestRotate, ror_5_0) { test_rot (5, 0, false); }
 
-TEST_F (TestRotate, ror_12_0)
-{
-  api_rot (12, 0, false);
-}
+TEST_F (TestRotate, ror_12_0) { test_rot (12, 0, false); }
 
-TEST_F (TestRotate, ror_32_0)
-{
-  api_rot (32, 0, false);
-}
+TEST_F (TestRotate, ror_32_0) { test_rot (32, 0, false); }
 
-TEST_F (TestRotate, ror_1_1)
-{
-  api_rot (1, 1, false);
-}
+TEST_F (TestRotate, ror_1_1) { test_rot (1, 1, false); }
 
-TEST_F (TestRotate, ror_2_1)
-{
-  api_rot (2, 1, false);
-}
+TEST_F (TestRotate, ror_2_1) { test_rot (2, 1, false); }
 
-TEST_F (TestRotate, ror_3_1)
-{
-  api_rot (3, 1, false);
-}
+TEST_F (TestRotate, ror_3_1) { test_rot (3, 1, false); }
 
-TEST_F (TestRotate, ror_5_1)
-{
-  api_rot (5, 1, false);
-}
+TEST_F (TestRotate, ror_5_1) { test_rot (5, 1, false); }
 
-TEST_F (TestRotate, ror_12_1)
-{
-  api_rot (12, 1, false);
-}
+TEST_F (TestRotate, ror_12_1) { test_rot (12, 1, false); }
 
-TEST_F (TestRotate, ror_32_1)
-{
-  api_rot (32, 1, false);
-}
+TEST_F (TestRotate, ror_32_1) { test_rot (32, 1, false); }
 
-TEST_F (TestRotate, ror_2_2)
-{
-  api_rot (2, 2, false);
-}
+TEST_F (TestRotate, ror_2_2) { test_rot (2, 2, false); }
 
-TEST_F (TestRotate, ror_3_3)
-{
-  api_rot (3, 3, false);
-}
+TEST_F (TestRotate, ror_3_3) { test_rot (3, 3, false); }
 
-TEST_F (TestRotate, ror_5_5)
-{
-  api_rot (5, 5, false);
-}
+TEST_F (TestRotate, ror_5_5) { test_rot (5, 5, false); }
 
-TEST_F (TestRotate, ror_12_12)
-{
-  api_rot (12, 12, false);
-}
+TEST_F (TestRotate, ror_12_12) { test_rot (12, 12, false); }
 
-TEST_F (TestRotate, ror_32_32)
-{
-  api_rot (32, 32, false);
-}
+TEST_F (TestRotate, ror_32_32) { test_rot (32, 32, false); }

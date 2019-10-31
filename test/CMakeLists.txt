@@ -172,6 +172,8 @@ set(sat_testcases
 "regprim11simp.btor"
 "regrrwbinexpconcatzeroconst.btor"
 "regrw8simp.btor"
+"rol_same_bw.btor"
+"ror_same_bw.btor"
 "rw113.btor -rwl 0"
 "rw1.btor"
 "rw10.btor"
@@ -265,6 +267,7 @@ set(sat_testcases
 "sc12fuzzcheck2.smt2"
 "slicesubst1.btor -rwl 0"
 "slicesubst1.btor -rwl 2"
+"sll_same_bw.btor"
 "smt2pushpop0.smt2 -i"
 "smtashr1.smt2"
 "smtashr2.smt2"
@@ -299,6 +302,7 @@ set(sat_testcases
 "sqrt4295098369.btor"
 "sqrt49.btor"
 "sqrt9.btor"
+"srl_same_bw.btor"
 "substcyclic1.btor"
 "substitute1.btor"
 "substitute3.btor"
@@ -1000,6 +1004,7 @@ macro(add_test_case option testcase)
       ${option}
       ${BOOLECTOR_BINARY}
       ${tcase}
+      ${CMAKE_CURRENT_BINARY_DIR}
   )
   set_tests_properties(${TESTNAME} PROPERTIES LABELS "testcases")
 endmacro()

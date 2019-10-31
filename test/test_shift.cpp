@@ -1,8 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2019 Aina Niemetz
+ *  Copyright (C) 2019 Aina Niemetz
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -10,231 +8,200 @@
 
 #include "test.h"
 
+#include <bitset>
+
 extern "C" {
-#include "boolector.h"
+#include "btorbv.h"
 #include "utils/btorutil.h"
 }
 
-class TestShift : public TestMm
+class TestShift : public TestCommon
 {
  protected:
-  static constexpr uint32_t BTOR_TEST_SHIFT_LOW  = 2;
-  static constexpr uint32_t BTOR_TEST_SHIFT_HIGH = 8;
-
-  enum Op
+  void test_shift (uint32_t bw, const char *shift, bool left)
   {
-    SLL,
-    SRL,
-    SRA,
-    ROL,
-    ROR
-  };
+    assert (bw > 1);
+    assert (bw == strlen (shift));
 
-  char *int_to_str (int32_t x, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (num_bits > 0);
-    char *result = NULL;
-    int32_t i    = 0;
-    result = (char *) btor_mem_malloc (d_mm, sizeof (char) * (num_bits + 1));
-    for (i = num_bits - 1; i >= 0; i--)
+    int32_t res;
+    uint32_t bw_log2, ushift;
+    BoolectorSort sort, sort_log2;
+    BoolectorNode *shift0, *shift0_e1;
+    BoolectorNode *shift1;
+    BoolectorNode *shift2, *shift2_e1;
+    BoolectorNode *e0;
+    BoolectorNode *ne0, *ne1, *ne2;
+    BoolectorNode *zero, *two, *cond, *tmp;
+    Btor *btor;
+
+    BoolectorNode *(*shift_fun) (Btor *, BoolectorNode *, BoolectorNode *);
+    BoolectorNode *(*fun) (Btor *, BoolectorNode *, BoolectorNode *);
+
+    if (left)
     {
-      result[i] = x % 2 ? '1' : '0';
-      x >>= 1;
+      shift_fun = boolector_sll;
+      fun       = boolector_mul;
     }
-    result[num_bits] = '\0';
-    return result;
-  }
-
-  char *sll (int32_t x, int32_t y, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (y >= 0);
-    assert (num_bits > 1);
-    assert (y < num_bits);
-    int32_t i    = 0;
-    char *result = NULL;
-    result       = int_to_str (x, num_bits);
-    for (i = 0; i < num_bits - y; i++) result[i] = result[i + y];
-    for (i = num_bits - y; i < num_bits; i++) result[i] = '0';
-    return result;
-  }
-
-  char *srl (int32_t x, int32_t y, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (y >= 0);
-    assert (num_bits > 1);
-    assert (y < num_bits);
-    int32_t i    = 0;
-    char *result = NULL;
-    result       = int_to_str (x, num_bits);
-    for (i = num_bits - 1; i >= y; i--) result[i] = result[i - y];
-    for (i = 0; i < y; i++) result[i] = '0';
-    return result;
-  }
-
-  char *sra (int32_t x, int32_t y, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (y >= 0);
-    assert (num_bits > 1);
-    assert (y < num_bits);
-    int32_t i    = 0;
-    char *result = NULL;
-    char sign    = '0';
-    result       = int_to_str (x, num_bits);
-    sign         = result[0];
-    for (i = num_bits - 1; i >= y; i--) result[i] = result[i - y];
-    for (i = 0; i < y; i++) result[i] = sign;
-    return result;
-  }
-
-  char *rol (int32_t x, int32_t y, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (y >= 0);
-    assert (num_bits > 1);
-    assert (y < num_bits);
-    int32_t i    = 0;
-    int32_t j    = 0;
-    char temp    = '0';
-    char *result = NULL;
-    result       = int_to_str (x, num_bits);
-    for (i = 0; i < y; i++)
+    else
     {
-      temp = result[0];
-      for (j = 0; j < num_bits; j++) result[j] = result[j + 1];
-      result[num_bits - 1] = temp;
+      shift_fun = boolector_srl;
+      fun       = boolector_udiv;
     }
-    return result;
-  }
 
-  char *ror (int32_t x, int32_t y, int32_t num_bits)
-  {
-    assert (x >= 0);
-    assert (y >= 0);
-    assert (num_bits > 1);
-    assert (y < num_bits);
-    int32_t i    = 0;
-    int32_t j    = 0;
-    char temp    = '0';
-    char *result = NULL;
-    result       = int_to_str (x, num_bits);
-    for (i = 0; i < y; i++)
+    btor = boolector_new ();
+    boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
+    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
+
+    sort   = boolector_bitvec_sort (btor, bw);
+    e0     = boolector_var (btor, sort, "e0");
+    ushift = std::stol (shift, nullptr, 2);
+
+    shift0_e1 = boolector_const (btor, shift);
+    shift0    = shift_fun (btor, e0, shift0_e1);
+
+    shift1 = boolector_copy (btor, e0);
+    two    = boolector_unsigned_int (btor, 2u, sort);
+    for (uint32_t i = 0; i < ushift; ++i)
     {
-      temp = result[num_bits - 1];
-      for (j = num_bits - 1; j > 0; j--) result[j] = result[j - 1];
-      result[0] = temp;
+      BoolectorNode *tmp = fun (btor, shift1, two);
+      boolector_release (btor, shift1);
+      shift1 = tmp;
     }
-    return result;
-  }
+    zero = boolector_zero (btor, sort);
+    tmp  = boolector_unsigned_int (btor, bw, sort);
+    cond = boolector_ugte (btor, shift0_e1, tmp);
+    boolector_release (btor, tmp);
+    tmp = boolector_cond (btor, cond, zero, shift1);
+    boolector_release (btor, cond);
+    boolector_release (btor, shift1);
+    shift1 = tmp;
 
-  void shift_test (Op op, int32_t low, int32_t high, uint32_t rwl)
-  {
-    assert (low > 0);
-    assert (low <= high);
+    ne0 = boolector_ne (btor, shift0, shift1);
+    boolector_assert (btor, ne0);
 
-    BoolectorNode *(*btor_fun) (Btor *, BoolectorNode *, BoolectorNode *);
-
-    int32_t i        = 0;
-    int32_t j        = 0;
-    char *result     = 0;
-    int32_t num_bits = 0;
-    int32_t max      = 0;
-
-    btor_util_is_power_of_2 (low);
-    btor_util_is_power_of_2 (high);
-    for (num_bits = low; num_bits <= high; num_bits <<= 1)
+    if (btor_util_is_power_of_2 (bw))
     {
-      max = btor_util_pow_2 (num_bits);
-      for (i = 0; i < max; i++)
+      bw_log2 = btor_util_log_2 (bw);
+      if (bw_log2 && ushift < (1u << bw_log2))
       {
-        for (j = 0; j < num_bits; j++)
-        {
-          Btor *btor;
-          BoolectorSort sort1, sort2;
-          BoolectorNode *const1, *const2, *const3, *bfun, *eq;
-
-          btor = boolector_new ();
-          boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
-
-          switch (op)
-          {
-            case SLL:
-              btor_fun = boolector_sll;
-              result   = sll (i, j, num_bits);
-              break;
-            case SRL:
-              btor_fun = boolector_srl;
-              result   = srl (i, j, num_bits);
-              break;
-            case SRA:
-              btor_fun = boolector_sra;
-              result   = sra (i, j, num_bits);
-              break;
-            case ROL:
-              btor_fun = boolector_rol;
-              result   = rol (i, j, num_bits);
-              break;
-            default:
-              assert (op == ROR);
-              btor_fun = boolector_ror;
-              result   = ror (i, j, num_bits);
-          }
-
-          sort1  = boolector_bitvec_sort (btor, num_bits);
-          sort2  = boolector_bitvec_sort (btor, btor_util_log_2 (num_bits));
-          const1 = boolector_unsigned_int (btor, i, sort1);
-          const2 = boolector_unsigned_int (btor, j, sort2);
-          bfun   = btor_fun (btor, const1, const2);
-          ASSERT_EQ (boolector_get_sort (btor, bfun), sort1);
-          const3 = boolector_const (btor, result);
-          eq     = boolector_eq (btor, bfun, const3);
-          boolector_assert (btor, eq);
-
-          ASSERT_EQ (boolector_sat (btor), BOOLECTOR_SAT);
-          btor_mem_freestr (d_mm, result);
-          boolector_release_sort (btor, sort1);
-          boolector_release_sort (btor, sort2);
-          boolector_release (btor, const1);
-          boolector_release (btor, const2);
-          boolector_release (btor, const3);
-          boolector_release (btor, bfun);
-          boolector_release (btor, eq);
-          boolector_delete (btor);
-        }
+        sort_log2 = boolector_bitvec_sort (btor, bw_log2);
+        shift2_e1 = boolector_unsigned_int (btor, ushift, sort_log2);
+        shift2    = shift_fun (btor, e0, shift2_e1);
+        ne1       = boolector_ne (btor, shift2, shift0);
+        ne2       = boolector_ne (btor, shift2, shift1);
+        boolector_assert (btor, ne1);
+        boolector_assert (btor, ne2);
+        boolector_release (btor, ne1);
+        boolector_release (btor, ne2);
+        boolector_release (btor, shift2);
+        boolector_release (btor, shift2_e1);
+        boolector_release_sort (btor, sort_log2);
       }
     }
+
+    res = boolector_sat (btor);
+    if (res == BOOLECTOR_SAT)
+    {
+      const char *se0  = boolector_bv_assignment (btor, e0);
+      const char *s0   = boolector_bv_assignment (btor, shift0);
+      const char *s0e1 = boolector_bv_assignment (btor, shift0_e1);
+      const char *s1   = boolector_bv_assignment (btor, shift1);
+      printf ("e0 %s\n", se0);
+      printf ("s0e1 %s\n", s0e1);
+      printf ("s0 %s\n", s0);
+      printf ("s1 %s\n", s1);
+    }
+    assert (res == BOOLECTOR_UNSAT);
+
+    boolector_release (btor, ne0);
+    boolector_release (btor, zero);
+    boolector_release (btor, two);
+    boolector_release (btor, shift0);
+    boolector_release (btor, shift0_e1);
+    boolector_release (btor, shift1);
+    boolector_release (btor, e0);
+    boolector_release_sort (btor, sort);
+
+    boolector_delete (btor);
   }
 };
 
-TEST_F (TestShift, sll)
+TEST_F (TestShift, sll_2)
 {
-  shift_test (SLL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 1);
-  shift_test (SLL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 0);
+  for (uint32_t i = 0; i < (1u << 2); ++i)
+  {
+    test_shift (2, std::bitset<2> (i).to_string ().c_str (), true);
+  }
 }
 
-TEST_F (TestShift, srl)
+TEST_F (TestShift, sll_3)
 {
-  shift_test (SRL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 1);
-  shift_test (SRL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 0);
+  for (uint32_t i = 0; i < (1u << 3); ++i)
+  {
+    test_shift (3, std::bitset<3> (i).to_string ().c_str (), true);
+  }
 }
 
-TEST_F (TestShift, sra)
+TEST_F (TestShift, sll_4)
 {
-  shift_test (SRA, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 1);
-  shift_test (SRA, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 0);
+  for (uint32_t i = 0; i < (1u << 4); ++i)
+  {
+    test_shift (4, std::bitset<4> (i).to_string ().c_str (), true);
+  }
 }
 
-TEST_F (TestShift, rol)
+TEST_F (TestShift, sll_5)
 {
-  shift_test (ROL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 1);
-  shift_test (ROL, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 0);
+  for (uint32_t i = 0; i < (1u << 5); ++i)
+  {
+    test_shift (5, std::bitset<5> (i).to_string ().c_str (), true);
+  }
 }
 
-TEST_F (TestShift, ror)
+TEST_F (TestShift, sll_8)
 {
-  shift_test (ROR, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 1);
-  shift_test (ROR, BTOR_TEST_SHIFT_LOW, BTOR_TEST_SHIFT_HIGH, 0);
+  for (uint32_t i = 0; i < (1u << 8); ++i)
+  {
+    test_shift (8, std::bitset<8> (i).to_string ().c_str (), true);
+  }
+}
+
+TEST_F (TestShift, srl_2)
+{
+  for (uint32_t i = 0; i < (1u << 2); ++i)
+  {
+    test_shift (2, std::bitset<2> (i).to_string ().c_str (), false);
+  }
+}
+
+TEST_F (TestShift, srl_3)
+{
+  for (uint32_t i = 0; i < (1u << 3); ++i)
+  {
+    test_shift (3, std::bitset<3> (i).to_string ().c_str (), false);
+  }
+}
+
+TEST_F (TestShift, srl_4)
+{
+  for (uint32_t i = 0; i < (1u << 4); ++i)
+  {
+    test_shift (4, std::bitset<4> (i).to_string ().c_str (), false);
+  }
+}
+
+TEST_F (TestShift, srl_5)
+{
+  for (uint32_t i = 0; i < (1u << 5); ++i)
+  {
+    test_shift (5, std::bitset<5> (i).to_string ().c_str (), false);
+  }
+}
+
+TEST_F (TestShift, srl_8)
+{
+  for (uint32_t i = 0; i < (1u << 8); ++i)
+  {
+    test_shift (8, std::bitset<8> (i).to_string ().c_str (), false);
+  }
 }

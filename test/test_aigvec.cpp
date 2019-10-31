@@ -205,7 +205,7 @@ TEST_F (TestAigvec, sll)
 {
   BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
-  BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
+  BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_sll (avmgr, av1, av2);
   ASSERT_TRUE (av3->width == 32);
   btor_aigvec_release_delete (avmgr, av1);
@@ -218,7 +218,7 @@ TEST_F (TestAigvec, srl)
 {
   BtorAIGVecMgr *avmgr = btor_aigvec_mgr_new (d_btor);
   BtorAIGVec *av1      = btor_aigvec_var (avmgr, 32);
-  BtorAIGVec *av2      = btor_aigvec_var (avmgr, 5);
+  BtorAIGVec *av2      = btor_aigvec_var (avmgr, 32);
   BtorAIGVec *av3      = btor_aigvec_srl (avmgr, av1, av2);
   ASSERT_TRUE (av3->width == 32);
   btor_aigvec_release_delete (avmgr, av1);

@@ -1929,10 +1929,11 @@ btor_bv_ulte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 static BtorBitVector *
-sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint32_t shift)
+sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
 {
   assert (mm);
   assert (a);
+  assert (shift <= UINT32_MAX);
 
   BtorBitVector *res;
   uint32_t bw = a->width;
@@ -1971,11 +1972,25 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (mm);
   assert (a);
   assert (b);
-  assert (btor_util_log_2 (a->width) == b->width || a->width == b->width);
-#ifndef BTOR_USE_GMP
-  assert (btor_util_is_power_of_2 (a->width) || a->len == b->len);
-#endif
-  return sll_bv (mm, a, btor_bv_to_uint64 (b));
+  assert (a->width == b->width);
+
+  BtorBitVector *shift;
+  uint64_t ushift, zeroes;
+
+  if (b->width > 64)
+  {
+    zeroes = btor_bv_get_num_leading_zeros (b);
+    assert (zeroes >= b->width - 64);
+    shift = btor_bv_slice (mm, b, b->width - zeroes, 0);
+    assert (shift->width <= 64);
+    ushift = btor_bv_to_uint64 (shift);
+    btor_bv_free (mm, shift);
+  }
+  else
+  {
+    ushift = btor_bv_to_uint64 (b);
+  }
+  return sll_bv (mm, a, ushift);
 }
 
 BtorBitVector *
@@ -1984,25 +1999,36 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (mm);
   assert (a);
   assert (b);
-  assert (btor_util_log_2 (a->width) == b->width || a->width == b->width);
+  assert (a->width == b->width);
 
-  BtorBitVector *res;
-  uint64_t shift;
-  uint32_t bw = a->width;
+  uint32_t skip, i, j, k, zeroes;
+  uint64_t ushift;
+  BtorBitVector *res, *shift;
+  BTOR_BV_TYPE v;
 
-  res   = btor_bv_new (mm, bw);
-  shift = btor_bv_to_uint64 (b);
-  if (shift >= bw) return res;
+  res = btor_bv_new (mm, a->width);
+
+  if (b->width > 64)
+  {
+    zeroes = btor_bv_get_num_leading_zeros (b);
+    assert (zeroes >= b->width - 64);
+    shift = btor_bv_slice (mm, b, b->width - zeroes, 0);
+    assert (shift->width <= 64);
+    ushift = btor_bv_to_uint64 (shift);
+    btor_bv_free (mm, shift);
+  }
+  else
+  {
+    ushift = btor_bv_to_uint64 (b);
+  }
+
+  if (ushift >= a->width) return res;
 
 #ifdef BTOR_USE_GMP
   mpz_fdiv_q_2exp (res->val, a->val, shift);
 #else
-  assert (btor_util_is_power_of_2 (bw) || a->len == b->len);
-  uint32_t skip, i, j, k;
-  BTOR_BV_TYPE v;
-
-  k    = shift % BTOR_BV_TYPE_BW;
-  skip = shift / BTOR_BV_TYPE_BW;
+  k    = ushift % BTOR_BV_TYPE_BW;
+  skip = ushift / BTOR_BV_TYPE_BW;
 
   v = 0;
   for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)

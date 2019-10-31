@@ -287,6 +287,29 @@ class TestBv : public TestBtor
     btor_bv_free (d_mm, zero);
   }
 
+  void shift_bitvec (const char *toshift,
+                     const char *shift,
+                     const char *expected,
+                     BtorBitVector *(*shift_fun) (BtorMemMgr *,
+                                                  const BtorBitVector *,
+                                                  const BtorBitVector *) )
+  {
+    assert (strlen (toshift) == strlen (shift));
+    assert (strlen (toshift) == strlen (expected));
+
+    BtorBitVector *bv, *bv_shift, *bv_res, *bv_expected;
+
+    bv          = btor_bv_char_to_bv (d_mm, toshift);
+    bv_shift    = btor_bv_char_to_bv (d_mm, shift);
+    bv_res      = shift_fun (d_mm, bv, bv_shift);
+    bv_expected = btor_bv_char_to_bv (d_mm, expected);
+    ASSERT_EQ (btor_bv_compare (bv_res, bv_expected), 0);
+    btor_bv_free (d_mm, bv_expected);
+    btor_bv_free (d_mm, bv_res);
+    btor_bv_free (d_mm, bv_shift);
+    btor_bv_free (d_mm, bv);
+  }
+
   void concat_bitvec (int32_t num_tests, uint32_t bit_width)
   {
     int32_t i;
@@ -2162,6 +2185,81 @@ TEST_F (TestBv, sll)
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 8);
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 16);
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<2> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<3> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<8> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<65> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<128> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
 }
 
 TEST_F (TestBv, srl)
@@ -2170,6 +2268,81 @@ TEST_F (TestBv, srl)
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 8);
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 16);
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<2> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<3> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<8> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<65> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<128> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
 }
 
 TEST_F (TestBv, mul)
