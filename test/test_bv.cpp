@@ -2233,6 +2233,7 @@ TEST_F (TestBv, sll)
 
   for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
   {
+    /* shift value fits into uint64_t */
     for (uint64_t j = 0; j < 32; ++j)
     {
       std::stringstream ss_expected;
@@ -2244,10 +2245,18 @@ TEST_F (TestBv, sll)
                     expected.c_str (),
                     btor_bv_sll);
     }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sll);
+    }
   }
 
   for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
   {
+    /* shift value fits into uint64_t */
     for (uint64_t j = 0; j < 32; ++j)
     {
       std::stringstream ss_expected;
@@ -2257,6 +2266,14 @@ TEST_F (TestBv, sll)
       shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
                     std::bitset<128> (j).to_string ().c_str (),
                     expected.c_str (),
+                    btor_bv_sll);
+    }
+    /* shift value doesn't fit into uint64_t */
+    for (uint64_t j = 64; j < 128; ++j)
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (j, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
                     btor_bv_sll);
     }
   }
@@ -2316,6 +2333,7 @@ TEST_F (TestBv, srl)
 
   for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
   {
+    /* shift value fits into uint64_t */
     for (uint64_t j = 0; j < 32; ++j)
     {
       std::stringstream ss_expected;
@@ -2327,10 +2345,18 @@ TEST_F (TestBv, srl)
                     expected.c_str (),
                     btor_bv_srl);
     }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_srl);
+    }
   }
 
   for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
   {
+    /* shift value fits into uint64_t */
     for (uint64_t j = 0; j < 32; ++j)
     {
       std::stringstream ss_expected;
@@ -2340,6 +2366,13 @@ TEST_F (TestBv, srl)
       shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
                     std::bitset<128> (j).to_string ().c_str (),
                     expected.c_str (),
+                    btor_bv_srl);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (120, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
                     btor_bv_srl);
     }
   }

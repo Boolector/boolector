@@ -1933,7 +1933,6 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
 {
   assert (mm);
   assert (a);
-  assert (shift <= UINT32_MAX);
 
   BtorBitVector *res;
   uint32_t bw = a->width;
@@ -1966,6 +1965,37 @@ sll_bv (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
   return res;
 }
 
+static bool
+shift_is_uint64 (BtorMemMgr *mm,
+                 const BtorBitVector *a,
+                 const BtorBitVector *b,
+                 uint64_t *res)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (res);
+
+  uint64_t zeroes;
+  BtorBitVector *shift;
+
+  if (b->width <= 64)
+  {
+    *res = btor_bv_to_uint64 (b);
+    return true;
+  }
+
+  zeroes = btor_bv_get_num_leading_zeros (b);
+  if (zeroes < b->width - 64) return false;
+
+  shift =
+      btor_bv_slice (mm, b, zeroes < b->width ? b->width - 1 - zeroes : 0, 0);
+  assert (shift->width <= 64);
+  *res = btor_bv_to_uint64 (shift);
+  btor_bv_free (mm, shift);
+  return true;
+}
+
 BtorBitVector *
 btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
@@ -1974,23 +2004,18 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (b);
   assert (a->width == b->width);
 
-  BtorBitVector *shift;
-  uint64_t ushift, zeroes;
+  uint64_t ushift;
 
-  if (b->width > 64)
+  if (shift_is_uint64 (mm, a, b, &ushift))
   {
-    zeroes = btor_bv_get_num_leading_zeros (b);
-    assert (zeroes >= b->width - 64);
-    shift = btor_bv_slice (mm, b, b->width - zeroes, 0);
-    assert (shift->width <= 64);
-    ushift = btor_bv_to_uint64 (shift);
-    btor_bv_free (mm, shift);
+    return sll_bv (mm, a, ushift);
   }
-  else
-  {
-    ushift = btor_bv_to_uint64 (b);
-  }
-  return sll_bv (mm, a, ushift);
+#ifndef NDEBUG
+  BtorBitVector *width = btor_bv_uint64_to_bv (mm, a->width, b->width);
+  assert (btor_bv_compare (b, width) > 0);
+  btor_bv_free (mm, width);
+#endif
+  return btor_bv_new (mm, a->width);
 }
 
 BtorBitVector *
@@ -2001,43 +2026,38 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (b);
   assert (a->width == b->width);
 
-  uint32_t skip, i, j, k, zeroes;
+  uint32_t skip, i, j, k;
   uint64_t ushift;
-  BtorBitVector *res, *shift;
+  BtorBitVector *res;
   BTOR_BV_TYPE v;
 
   res = btor_bv_new (mm, a->width);
 
-  if (b->width > 64)
+  if (shift_is_uint64 (mm, a, b, &ushift))
   {
-    zeroes = btor_bv_get_num_leading_zeros (b);
-    assert (zeroes >= b->width - 64);
-    shift = btor_bv_slice (mm, b, b->width - zeroes, 0);
-    assert (shift->width <= 64);
-    ushift = btor_bv_to_uint64 (shift);
-    btor_bv_free (mm, shift);
-  }
-  else
-  {
-    ushift = btor_bv_to_uint64 (b);
-  }
-
-  if (ushift >= a->width) return res;
+    if (ushift >= a->width) return res;
 
 #ifdef BTOR_USE_GMP
-  mpz_fdiv_q_2exp (res->val, a->val, shift);
+    mpz_fdiv_q_2exp (res->val, a->val, shift);
 #else
-  k    = ushift % BTOR_BV_TYPE_BW;
-  skip = ushift / BTOR_BV_TYPE_BW;
+    k    = ushift % BTOR_BV_TYPE_BW;
+    skip = ushift / BTOR_BV_TYPE_BW;
 
-  v = 0;
-  for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)
-  {
-    v            = (k == 0) ? a->bits[i] : v | (a->bits[i] >> k);
-    res->bits[j] = v;
-    v            = (k == 0) ? a->bits[i] : a->bits[i] << (BTOR_BV_TYPE_BW - k);
+    v = 0;
+    for (i = 0, j = skip; i < a->len && j < a->len; i++, j++)
+    {
+      v            = (k == 0) ? a->bits[i] : v | (a->bits[i] >> k);
+      res->bits[j] = v;
+      v = (k == 0) ? a->bits[i] : a->bits[i] << (BTOR_BV_TYPE_BW - k);
+    }
+    assert (rem_bits_zero_dbg (res));
+#endif
+    return res;
   }
-  assert (rem_bits_zero_dbg (res));
+#ifndef NDEBUG
+  BtorBitVector *width = btor_bv_uint64_to_bv (mm, a->width, b->width);
+  assert (btor_bv_compare (b, width) > 0);
+  btor_bv_free (mm, width);
 #endif
   return res;
 }

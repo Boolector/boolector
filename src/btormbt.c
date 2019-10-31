@@ -1727,11 +1727,22 @@ btormbt_binary_op (BtorMBT *mbt,
   }
   else if (op >= SLL && op <= ROR)
   {
-    /* modify width of e0 power of 2 and e1 log2(e0) */
-    next_pow_of_2 (e0_width, &tmp0, &tmp1);
-    e0       = modify_bv (mbt, e0, tmp0);
-    e1       = modify_bv (mbt, e1, tmp1);
-    e0_width = tmp0;
+    if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
+    {
+      /* use same bit-width */
+      if (e0_width != e1_width)
+      {
+        e1 = modify_bv (mbt, e1, e0_width);
+      }
+    }
+    else
+    {
+      /* modify width of e0 power of 2 and e1 log2(e0) */
+      next_pow_of_2 (e0_width, &tmp0, &tmp1);
+      e0       = modify_bv (mbt, e0, tmp0);
+      e1       = modify_bv (mbt, e1, tmp1);
+      e0_width = tmp0;
+    }
   }
   else if (op == CONCAT)
   {

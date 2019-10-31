@@ -462,7 +462,7 @@ aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (avmgr);
   assert (av1);
   assert (av2);
-  assert (av1->width > 1);
+  assert (av1->width);
   assert (btor_util_is_power_of_2 (av1->width));
   assert (btor_util_log_2 (av1->width) == av2->width);
 
@@ -487,7 +487,7 @@ btor_aigvec_sll (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (avmgr);
   assert (av1);
   assert (av2);
-  assert (av1->width > 1);
+  assert (av1->width);
   assert (av1->width == av2->width);
   return translate_shift (avmgr, av1, av2, aigvec_sll);
 }
@@ -533,7 +533,7 @@ aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (avmgr);
   assert (av1);
   assert (av2);
-  assert (av1->width > 1);
+  assert (av1->width);
   assert (btor_util_is_power_of_2 (av1->width));
   assert (btor_util_log_2 (av1->width) == av2->width);
   width  = av2->width;
@@ -554,7 +554,7 @@ btor_aigvec_srl (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (avmgr);
   assert (av1);
   assert (av2);
-  assert (av1->width > 1);
+  assert (av1->width);
   assert (av1->width == av2->width);
   return translate_shift (avmgr, av1, av2, aigvec_srl);
 }
