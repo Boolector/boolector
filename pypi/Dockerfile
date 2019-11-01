@@ -1,4 +1,4 @@
-M quay.io/pypa/manylinux1_x86_64
+FROM quay.io/pypa/manylinux1_x86_64
 
 RUN /opt/python/cp27-cp27m/bin/pip install cython wheel twine
 RUN /opt/python/cp34-cp34m/bin/pip install cython wheel twine
