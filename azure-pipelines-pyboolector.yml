@@ -1,0 +1,17 @@
+
+trigger:
+- master
+
+variables:
+  CCACHE_DIR: $(Pipeline.Workspace)/ccache
+
+jobs:
+- job: Linux
+  pool:
+   vmImage: 'ubuntu-16.04'
+  steps:
+  - bash: |
+      docker pull quay.io/pypa/manylinux1_x86_64
+      docker build -t pyboolector pypi
+    displayName: 'Setup Docker Image'
+
