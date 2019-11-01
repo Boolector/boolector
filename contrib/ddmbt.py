@@ -46,7 +46,8 @@ VALID_KEYWORDS = [
     'new', 'return', 'sat', 'assume', 'assert', 'failed', 'set_opt', 'has_opt',
     'array_assignment', 'bv_assignment', 'uf_assignment',
     'free_array_assignment', 'free_bv_assignment', 'free_uf_assignment',
-    'fixate_assumptions', 'fun_sort_check', 'set_sat_solver', 'simplify'
+    'fixate_assumptions', 'fun_sort_check', 'set_sat_solver', 'simplify',
+    'is_array', 'get_width'
 ]
 VALID_KEYWORDS.extend(CONST_NODE_KINDS)
 VALID_KEYWORDS.extend(NODE_KINDS)
