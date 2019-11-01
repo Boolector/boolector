@@ -351,11 +351,6 @@ translate_shift (BtorAIGVecMgr *avmgr,
 
   width = av1->width;
 
-  if (btor_util_is_power_of_2 (width) && btor_util_log_2 (width) == av2->width)
-  {
-    return fun (avmgr, av1, av2);
-  }
-
   /* When represented as AIG vectors, we require that the vector to be shifted
    * has a power of 2 width, and the shift width is log2 of this width. The
    * given vectors av1 and av2 have the same bit-width, which is not necessarily
@@ -378,7 +373,7 @@ translate_shift (BtorAIGVecMgr *avmgr,
   }
   else
   {
-    assert (width >= 1);
+    assert (width > 1);
     assert (width <= pow2);
 
     /* the delta (in # bits) for 'pow2' and 'width' */
