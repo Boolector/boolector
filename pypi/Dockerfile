@@ -7,5 +7,5 @@ RUN /opt/python/cp36-cp36m/bin/pip install cython wheel twine
 RUN /opt/python/cp37-cp37m/bin/pip install cython wheel twine
 RUN /opt/python/cp38-cp38/bin/pip install cython wheel twine
 
-CMD runuser root
+CMD echo "Hello World"
 
