@@ -10,7 +10,7 @@ jobs:
   pool:
    vmImage: 'ubuntu-16.04'
   steps:
-  - bash: |
+  - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
       docker build -t pyboolector pypi
       docker run -it pyboolector
