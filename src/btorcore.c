@@ -1246,7 +1246,8 @@ insert_into_constraint_tables (Btor *btor, BtorNode *exp)
     }
     else
     {
-      assert (btor_hashptr_table_get (btor->unsynthesized_constraints, exp));
+      assert (btor_hashptr_table_get (btor->unsynthesized_constraints, exp)
+              || btor_hashptr_table_get (btor->synthesized_constraints, exp));
     }
   }
 }
