@@ -13,6 +13,6 @@ jobs:
       echo "Hello from Azure"
       docker pull quay.io/pypa/manylinux1_x86_64
       docker build -t pyboolector pypi
-      docker run pyboolector
+      docker run -v $(Build.Repository.LocalPath):boolector
     displayName: 'Setup Docker Image'
 
