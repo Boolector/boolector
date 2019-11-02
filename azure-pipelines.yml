@@ -35,7 +35,7 @@ jobs:
       echo "Twine version:"
       python3.6 -m twine --version
 
-      echo "PYPIRC_PATH: $(PYPIRC_PATH)"
-      cat $(PYPIRC_PATH)
-      python3.6 -m twine upload -r "pypi" --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+      echo "Calling twine"
+      python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+      echo "Calling twine complete"
     displayName: 'Upload to PyPi'
