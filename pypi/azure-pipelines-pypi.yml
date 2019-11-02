@@ -1,11 +1,6 @@
-trigger:
-- master
-
-variables:
-  CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
 jobs:
-- job: Linux
+- job: PyPi_Linux
   pool:
    vmImage: 'ubuntu-16.04'
   steps:

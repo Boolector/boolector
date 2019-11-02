@@ -47,8 +47,9 @@ mkdir -p boolector/deps
 mkdir -p boolector/deps/install/lib
 mkdir -p boolector/deps/install/include/btor2parser
 
-ngeling
-#************************************************************************************************
+#******************************************************************************
+#* Lingeling
+#******************************************************************************
 cd ${BUILD_DIR}
   
 unzip -o lingeling-master.zip
