@@ -10,9 +10,14 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
-      echo "Hello from Azure"
       docker pull quay.io/pypa/manylinux1_x86_64
       docker build -t pyboolector pypi
-      docker run -v $(Build.Repository.LocalPath):/boolector pyboolector
     displayName: 'Setup Docker Image'
 
+  - script: |
+      docker run -v $(Build.Repository.LocalPath):/boolector pyboolector
+    displayName: 'Run PyBoolector Build'
+
+  - script: |
+      ls result
+    displayName: 'Check build result'

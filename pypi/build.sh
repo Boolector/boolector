@@ -159,4 +159,9 @@ for whl in dist/*.whl; do
   if test $? -ne 0; then exit 1; fi
 done
 
+rm -rf /boolector/result
+mkdir -p /boolector/result
+
+cp -r wheelhouse dist /boolector/result
+
 
