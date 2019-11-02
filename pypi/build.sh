@@ -7,8 +7,11 @@ echo "Hello from PyPi build.sh"
 
 BUILD_DIR=`pwd`
 if test -f /proc/cpuinfo; then
+  echo "cpuinfo exists"
+  cat /proc/cpuinfo
   N_CORES=1
 else
+  echo "cpuinfo DOES NOT exist"
   N_CORES=1
 fi
 
