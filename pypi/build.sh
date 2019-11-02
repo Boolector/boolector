@@ -123,4 +123,40 @@ if test $? -ne 0; then exit 1; fi
 make install
 if test $? -ne 0; then exit 1; fi
 
+#********************************************************************
+#* pyboolector
+#********************************************************************
+cd ${BUILD_DIR}
+rm -rf pyboolector
+
+cp -r /boolector/pypi pyboolector
+
+cd pyboolector
+
+# for py in python27 rh-python35 rh-python36; do
+for py in cp27-cp27m cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38; do
+  echo "Python: ${py}"
+  python=/opt/python/${py}/bin/python
+  cd ${BUILD_DIR}/pyboolector
+  rm -rf src
+  cp -r ${BUILD_DIR}/boolector/src/api/python src
+  sed -i -e 's/override//g' \
+     -e 's/noexcept/_GLIBCXX_USE_NOEXCEPT/g' \
+     -e 's/\(BoolectorException (const.*\)/\1\n    virtual ~BoolectorException() _GLIBCXX_USE_NOEXCEPT {}/' \
+       src/pyboolector_abort.cpp
+  if test $? -ne 0; then exit 1; fi
+  mkdir -p src/utils
+  cp ${BUILD_DIR}/boolector/src/*.h src
+  cp ${BUILD_DIR}/boolector/src/utils/*.h src/utils
+  $python ./src/mkoptions.py ./src/btortypes.h ./src/pyboolector_options.pxd
+  if test $? -ne 0; then exit 1; fi
+  $python setup.py sdist bdist_wheel
+  if test $? -ne 0; then exit 1; fi
+done
+
+for whl in dist/*.whl; do
+  auditwheel repair $whl
+  if test $? -ne 0; then exit 1; fi
+done
+
 
