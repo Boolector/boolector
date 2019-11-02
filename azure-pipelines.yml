@@ -10,8 +10,8 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
-      pip install wheel
-      pip install twine
+      pip3 install wheel
+      pip3 install twine
     displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
@@ -27,5 +27,5 @@ jobs:
       pythonUploadServiceConnection: pypi
   - script: |
       ls result
-      python -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+      python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
     displayName: 'Upload to PyPi'
