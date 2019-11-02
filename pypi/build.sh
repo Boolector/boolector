@@ -12,10 +12,10 @@ else
   N_CORES=1
 fi
 
-CMAKE_DIR=cmake-3.3.0-Linux-x86_64
+CMAKE_DIR=cmake-3.5.0-Linux-x86_64
 
 if test ! -f ${CMAKE_DIR}.tar.gz; then
-  curl -L -O https://cmake.org/files/v3.3/cmake-3.3.0-Linux-x86_64.tar.gz
+  curl -L -O https://cmake.org/files/v3.5/${CMAKE_DIR}.tar.gz
   if test $? -ne 0; then exit 1; fi
 fi      
 
