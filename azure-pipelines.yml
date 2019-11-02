@@ -1,6 +1,3 @@
-trigger:
-- master
-
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
 
@@ -8,34 +5,108 @@ jobs:
 - job: Linux
   pool:
    vmImage: 'ubuntu-16.04'
+  strategy:
+    matrix:
+      production:
+        btorConfig: ''
+        btorConfigEnv: ''
+      production_clang:
+        btorConfig: ''
+        btorConfigEnv: 'CC=clang CXX=clang++'
+      debug:
+        btorConfig: '-g'
+        btorConfigEnv: ''
+      python2:
+        needCython: true
+        btorConfig: '--python --py2'
+        btorConfigEnv: ''
+      python3:
+        needCython: true
+        btorConfig: '--python --py3'
+        btorConfigEnv: ''
   steps:
-  - script: |
-      sudo add-apt-repository ppa:jonathonf/python-3.6
-      sudo apt-get update
-      sudo apt-get install python3.6 -y
-      sudo python3.6 -m pip install wheel
-      sudo python3.6 -m pip install twine
-    displayName: 'Install wheel+twine'
-  - script: |
-      docker pull quay.io/pypa/manylinux1_x86_64
-      docker build -t pyboolector pypi
-    displayName: 'Setup Docker Image'
+  - bash: |
+      sudo apt-get install ccache -y
+      echo "##vso[task.prependpath]/usr/lib/ccache"
+    displayName: 'Install ccache'
 
-  - script: |
-      docker run -v $(Build.Repository.LocalPath):/boolector pyboolector
-    displayName: 'Run PyBoolector Build'
-
-  - task: TwineAuthenticate@1
+  - task: CacheBeta@0
     inputs:
-      pythonUploadServiceConnection: pypi
-  - script: |
-      ls result
-      echo "Python version:"
-      python3.6 --version
-      echo "Twine version:"
-      python3.6 -m twine --version
+        key: $(Agent.OS)
+        path: $(CCACHE_DIR)
+    displayName: ccache
 
-      echo "Calling twine"
-      python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
-      echo "Calling twine complete"
-    displayName: 'Upload to PyPi'
+  - script: sudo pip install -U cython
+    condition: eq(variables.needCython, true)
+    displayName: 'Install Cython'
+
+  - script: |
+      ./contrib/setup-btor2tools.sh
+      ./contrib/setup-cadical.sh
+      ./contrib/setup-lingeling.sh
+    displayName: 'Setup dependencies'
+
+  - script: $(btorConfigEnv) ./configure.sh $(btorConfig)
+    displayName: 'Configure Boolector'
+
+  - script: make -j $(nproc)
+    workingDirectory: 'build'
+    displayName: 'Build Boolector'
+
+  - script: ctest -j$(nproc) --output-on-failure
+    workingDirectory: 'build'
+    displayName: 'Run CTest'
+
+- job: macOS
+  pool:
+   vmImage: 'macos-10.13'
+  strategy:
+    matrix:
+      production:
+        btorConfig: ''
+        btorConfigEnv: ''
+      production_clang:
+        btorConfig: ''
+        btorConfigEnv: 'CC=clang CXX=clang++'
+      debug:
+        btorConfig: '-g'
+        btorConfigEnv: ''
+      python3:
+        needCython: true
+        btorConfig: '--python --py3'
+        btorConfigEnv: ''
+  steps:
+  - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
+    displayName: 'Determine number of CPUs'
+
+  - bash: |
+      brew install ccache
+      echo "##vso[task.prependpath]/usr/local/opt/ccache/libexec"
+    displayName: 'Install ccache'
+
+  - task: CacheBeta@0
+    inputs:
+        key: $(Agent.OS)
+        path: $(CCACHE_DIR)
+    displayName: ccache
+
+  - script: sudo pip3 install cython
+    condition: eq(variables.needCython, true)
+    displayName: 'Install Cython'
+
+  - script: |
+      ./contrib/setup-btor2tools.sh
+      ./contrib/setup-cadical.sh
+      ./contrib/setup-lingeling.sh
+    displayName: 'Setup dependencies'
+
+  - script: $(btorConfigEnv) ./configure.sh $(btorConfig)
+    displayName: 'Configure Boolector'
+
+  - script: make -j $(ncpus)
+    workingDirectory: 'build'
+    displayName: 'Build Boolector'
+
+  - script: ctest -j$(ncpus) --output-on-failure
+    workingDirectory: 'build'
+    displayName: 'Run CTest'
