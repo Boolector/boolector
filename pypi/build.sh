@@ -137,7 +137,7 @@ cp -r /boolector/pypi pyboolector
 cd pyboolector
 
 # Add the build number to the version
-sed -i -e "s/{{BUILD_NUM}}/${BUILD_NUM}" setup.py
+sed -i -e "s/{{BUILD_NUM}}/${BUILD_NUM}/g" setup.py
 
 # for py in python27 rh-python35 rh-python36; do
 for py in cp27-cp27m cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38; do
