@@ -10,6 +10,7 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
+      apt-get install python3.6 -y
       pip3.6 install wheel
       pip3.6 install twine
     displayName: 'Install wheel+twine'
