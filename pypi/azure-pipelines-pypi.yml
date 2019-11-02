@@ -17,7 +17,7 @@ jobs:
     displayName: 'Setup Docker Image'
 
   - script: |
-      docker run -v $(Build.Repository.LocalPath):/boolector pyboolector
+      docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector pyboolector
     displayName: 'Run PyBoolector Build'
 
   - task: TwineAuthenticate@1

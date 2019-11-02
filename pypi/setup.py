@@ -1,6 +1,6 @@
 
 NAME = 'PyBoolector'
-VERSION = '3.0.0.1'
+VERSION = '3.0.0.{{BUILD_NUM}}'
 DESCRIPTION = "Python wrapper around the Boolector SMT solver"
 LONG_DESCRIPTION = """\
 This package, specifically, enables the Boolector Python wrapper \
