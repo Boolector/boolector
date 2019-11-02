@@ -10,8 +10,8 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
-      pip3 install wheel
-      pip3 install twine
+      pip3.6 install wheel
+      pip3.6 install twine
     displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
@@ -28,11 +28,11 @@ jobs:
   - script: |
       ls result
       echo "Python version:"
-      python3 --version
+      python3.6 --version
       echo "Twine version:"
-      python3 -m twine --version
+      python3.6 -m twine --version
 
       echo "PYPIRC_PATH: $(PYPIRC_PATH)"
-      cat ${PYPIRC_PATH)
-      python3 -m twine upload -r "pypi" --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+      cat $(PYPIRC_PATH)
+      python3.6 -m twine upload -r "pypi" --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
     displayName: 'Upload to PyPi'
