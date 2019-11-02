@@ -18,6 +18,10 @@ jobs:
       docker run -v $(Build.Repository.LocalPath):/boolector pyboolector
     displayName: 'Run PyBoolector Build'
 
+  - task: TwineAuthenticate@1
+    inputs:
+      pythonUploadServiceConnection: pypi
   - script: |
       ls result
-    displayName: 'Check build result'
+      twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+    displayName: 'Upload to PyPi'
