@@ -10,6 +10,8 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
+      sudo add-apt-repository ppa:jonathonf/python-3.6
+      sudo apt-get update
       sudo apt-get install python3.6 -y
       sudo pip3.6 install wheel
       sudo pip3.6 install twine
