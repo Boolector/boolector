@@ -10,9 +10,9 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
-      apt-get install python3.6 -y
-      pip3.6 install wheel
-      pip3.6 install twine
+      sudo apt-get install python3.6 -y
+      sudo pip3.6 install wheel
+      sudo pip3.6 install twine
     displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
