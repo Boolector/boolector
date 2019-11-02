@@ -10,8 +10,9 @@ jobs:
    vmImage: 'ubuntu-16.04'
   steps:
   - script: |
+      pip install wheel
       pip install twine
-    displayName: 'Install twine'
+    displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
       docker build -t pyboolector pypi
