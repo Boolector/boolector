@@ -13,8 +13,8 @@ jobs:
       sudo add-apt-repository ppa:jonathonf/python-3.6
       sudo apt-get update
       sudo apt-get install python3.6 -y
-      sudo pip3.6 install wheel
-      sudo pip3.6 install twine
+      sudo python3.6 -m pip install wheel
+      sudo python3.6 -m pip install twine
     displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux1_x86_64
