@@ -720,7 +720,7 @@ get_apply_value (Btor *btor,
   uint32_t i;
   BtorArgsIterator it;
   BtorBitVectorTuple *t;
-  BtorNode *arg, *real_arg;
+  BtorNode *arg, *real_arg, *tmp;
   BtorHashTableData *d;
   BtorBitVector *bv, *bv_inv, *result;
   BtorMemMgr *mm;
@@ -737,9 +737,12 @@ get_apply_value (Btor *btor,
 
     if (btor_node_is_param (real_arg))
     {
-      real_arg = btor_node_param_get_assigned_exp (real_arg);
+      tmp      = btor_node_param_get_assigned_exp (real_arg);
+      arg      = btor_node_cond_invert (arg, tmp);
+      real_arg = btor_node_real_addr (arg);
       assert (real_arg);
     }
+    assert (btor_node_is_regular (real_arg));
     if (real_arg->parameterized)
       d = btor_hashint_map_get (bv_param_model, real_arg->id);
     else
