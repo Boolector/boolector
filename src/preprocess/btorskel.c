@@ -229,11 +229,12 @@ btor_process_skeleton (Btor *btor)
 {
   BtorPtrHashTable *ids;
   uint32_t count, fixed;
-  BtorNodePtrStack work_stack;
+  BtorNodePtrStack work_stack, new_assertions;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashTableIterator it;
   double start, delta;
   int32_t res, lit, val;
+  size_t i;
   BtorNode *exp;
   LGL *lgl;
   BtorIntHashTable *mark;
@@ -259,6 +260,7 @@ btor_process_skeleton (Btor *btor)
   count = 0;
 
   BTOR_INIT_STACK (mm, work_stack);
+  BTOR_INIT_STACK (mm, new_assertions);
   mark = btor_hashint_map_new (mm);
 
   btor_iter_hashptr_init (&it, btor->synthesized_constraints);
@@ -316,7 +318,7 @@ btor_process_skeleton (Btor *btor)
           BTORLOG (1,
                    "found constraint (skeleton): %s",
                    btor_util_node2string (exp));
-          btor_assert_exp (btor, exp);
+          BTOR_PUSH_STACK (new_assertions, exp);
           btor->stats.skeleton_constraints++;
           fixed++;
         }
@@ -331,6 +333,12 @@ btor_process_skeleton (Btor *btor)
 
   btor_hashptr_table_delete (ids);
   lglrelease (lgl);
+
+  for (i = 0; i < BTOR_COUNT_STACK (new_assertions); i++)
+  {
+    btor_assert_exp (btor, BTOR_PEEK_STACK (new_assertions, i));
+  }
+  BTOR_RELEASE_STACK (new_assertions);
 
   delta = btor_util_time_stamp () - start;
   btor->time.skel += delta;
