@@ -293,6 +293,8 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
   BtorBitVector *bv, *result;
   BtorHashTableData *d;
 
+  exp = btor_node_get_simplified (btor, exp);
+
   real_exp = btor_node_real_addr (exp);
   if ((d = btor_hashint_map_get (btor->bv_model, real_exp->id)))
     bv = btor_bv_copy (btor->mm, d->as_ptr);
@@ -2197,7 +2199,8 @@ push_unreachable_applies (Btor *btor, BtorNodePtrStack *init_apps)
     BTOR_PUSH_STACK (visit, cur);
     while (!BTOR_EMPTY_STACK (visit))
     {
-      cur = btor_node_real_addr (BTOR_POP_STACK (visit));
+      cur = btor_node_real_addr (
+          btor_node_get_simplified (btor, BTOR_POP_STACK (visit)));
       if (btor_hashint_table_contains (cache, cur->id)) continue;
       btor_hashint_table_add (cache, cur->id);
       for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
@@ -2209,8 +2212,9 @@ push_unreachable_applies (Btor *btor, BtorNodePtrStack *init_apps)
   for (size_t i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-
-    if (!cur || cur->parameterized || !btor_node_is_apply (cur)
+    if (!cur) continue;
+    cur = btor_node_get_simplified (btor, cur);
+    if (cur->parameterized || !btor_node_is_apply (cur)
         || btor_hashint_table_contains (cache, cur->id))
       continue;
 
