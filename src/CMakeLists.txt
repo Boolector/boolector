@@ -149,16 +149,6 @@ set_target_properties(boolector-bin
   PROPERTIES
     OUTPUT_NAME boolector
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-if(NOT BUILD_SHARED_LIBS AND NOT APPLE)
-  set(BTOR_STATIC_FLAGS "-static")
-  if(HAVE_NO_EXPORT_DYNAMIC)
-    set(BTOR_STATIC_FLAGS "${BTOR_STATIC_FLAGS} -Wl,--no-export-dynamic")
-  endif()
-  set_target_properties(boolector-bin
-    PROPERTIES
-      LINK_FLAGS ${BTOR_STATIC_FLAGS}
-      LINK_SEARCH_START_STATIC ON LINK_SEARCH_END_STATIC ON)
-endif()
 install(TARGETS boolector-bin DESTINATION bin)
 
 #-----------------------------------------------------------------------------#
@@ -199,3 +189,22 @@ set(btorimc_src_files
 )
 add_executable (btorimc ${btorimc_src_files})
 target_link_libraries(btorimc boolector)
+
+#-----------------------------------------------------------------------------#
+# Static binaries
+
+if(NOT BUILD_SHARED_LIBS AND NOT APPLE)
+  set(BTOR_STATIC_FLAGS "-static")
+  set(STATIC_TARGETS boolector-bin btormc btoruntrace btorimc)
+
+  if(HAVE_NO_EXPORT_DYNAMIC)
+    set(BTOR_STATIC_FLAGS "${BTOR_STATIC_FLAGS} -Wl,--no-export-dynamic")
+  endif()
+  if(NOT IS_WINDOWS_BUILD)
+    set(STATIC_TARGETS ${STATIC_TARGETS} btormbt)
+  endif()
+  set_target_properties(${STATIC_TARGETS}
+    PROPERTIES
+      LINK_FLAGS ${BTOR_STATIC_FLAGS}
+      LINK_SEARCH_START_STATIC ON LINK_SEARCH_END_STATIC ON)
+endif()
