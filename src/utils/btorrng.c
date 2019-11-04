@@ -41,6 +41,7 @@ void
 btor_rng_clone (BtorRNG* rng, BtorRNG* clone)
 {
   (void) rng;
+  (void) clone;
 #ifdef BTOR_USE_GMP
   gmp_randinit_set (clone->gmp_state, rng->gmp_state);
 #endif
