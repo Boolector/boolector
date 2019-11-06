@@ -42,13 +42,17 @@ NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
 SORT_KINDS = ["bool_sort", "bitvec_sort", "fun_sort", "array_sort",
               "tuple_sort"]
 
-VALID_KEYWORDS = [
+OTHER_KEYWORDS = [
     'new', 'return', 'sat', 'assume', 'assert', 'failed', 'set_opt', 'has_opt',
     'array_assignment', 'bv_assignment', 'uf_assignment',
     'free_array_assignment', 'free_bv_assignment', 'free_uf_assignment',
     'fixate_assumptions', 'fun_sort_check', 'set_sat_solver', 'simplify',
-    'is_array', 'get_width'
+    'is_array', 'get_width', 'set_symbol', 'clone', 'dump_smt2', 'get_node_id',
+    'get_bits', 'free_bits', 'get_index_width', 'is_bv_const_max_signed',
+    'release', 'chkclone', 'reset_assumptions', 'is_uf', 'get_opt'
 ]
+VALID_KEYWORDS = []
+VALID_KEYWORDS.extend(OTHER_KEYWORDS)
 VALID_KEYWORDS.extend(CONST_NODE_KINDS)
 VALID_KEYWORDS.extend(NODE_KINDS)
 VALID_KEYWORDS.extend(SORT_KINDS)
@@ -59,7 +63,7 @@ class LineTokens:
         self.id = id
         self.kind = tokens[0]
         if self.kind not in VALID_KEYWORDS:
-            raise ValueError("invalid keyword '{}'".format(self.kind))
+            print("warning: invalid keyword '{}'".format(self.kind))
         if len(tokens) > 1:
             self.btor = tokens[1]
         else:
@@ -267,14 +271,14 @@ def _run(initial=False):
         subproc = Popen(g_command, stdout=PIPE, stderr=PIPE)
         try:
             if initial:
-              msg_out, msg_err = subproc.communicate()
+                _, msg_err = subproc.communicate()
             else:
                 timeout = max([g_golden_runtime * 2, 1])
-                msg_out, msg_err = subproc.communicate(timeout=timeout)
+                _, msg_err = subproc.communicate(timeout=timeout)
         except TimeoutExpired:
             subproc.kill()
-            msg_out, msg_err = subproc.communicate()
-        return (subproc.returncode, msg_err) 
+            _, msg_err = subproc.communicate()
+        return (subproc.returncode, msg_err)
     except OSError as err:
         _error_and_exit(err)
 
@@ -311,9 +315,8 @@ def _error_and_exit(msg):
 def _remove_lines():
     global g_lines
 
-    gran = len(g_lines)
-
     num_lines = 0
+    gran = len(g_lines)
     while gran >= 1:
         cur_lines = g_lines[:]
         last_saved_lines = g_lines[:]
@@ -324,9 +327,9 @@ def _remove_lines():
             subset = cur_lines[lower:upper]
             lines = cur_lines[:lower]
             lines.extend(cur_lines[upper:])
-            assert(len(subset) == len(cur_lines) - len(lines))
-            assert(len(subset) > 0)
-            assert(len(lines) < len(cur_lines))
+            assert len(subset) == len(cur_lines) - len(lines)
+            assert subset
+            assert len(lines) < len(cur_lines)
 
             _open_file_dump_trace(g_tmpfile, lines)
 
@@ -343,6 +346,8 @@ def _remove_lines():
 
         g_lines = last_saved_lines 
         gran = gran // 2
+
+    num_lines += _remove_return_pairs()
 
     return num_lines 
 
@@ -393,7 +398,7 @@ def _swap_candidates(nid):
     for j in range(i):
         ltok = g_line_tokens[j]
         if ltok.id != None and ltok.bw == bw and ltok.id not in cache and \
-           ltok.id != nid:
+           ltok.id < nid:
             cache[ltok.id] = True
             candidates.append(ltok.id)
 
@@ -460,35 +465,29 @@ def _remove_return_pairs():
     num_lines = 0
     cur_lines = g_lines[:]
     last_saved_lines = g_lines[:]
-    offset = 0
 
-    # remove get_width etc.
-    num = 0
-    prev_kind = None 
+    offset = 0
     while offset < len(cur_lines):
         line = cur_lines[offset]
         kind = line.split()[0]
-        prev_kind = kind if prev_kind is None else prev_kind
+        if offset + 1 < len(cur_lines):
+            next_line = cur_lines[offset + 1]
+        else:
+            next_line = None
 
-        if "return" in kind and prev_kind != kind and \
-            ("get_" in prev_kind or "is_" in prev_kind or \
-            "_assignment" in prev_kind):
-            cur_lines.pop(offset - 1)
-            cur_lines.pop(offset - 1)
-            num_lines += 2
-            offset -= 1
-        elif "free_" in kind and "assignment" in kind: 
+        if kind in OTHER_KEYWORDS:
             cur_lines.pop(offset)
-            num_lines += 1
+            if next_line and next_line.startswith('return'):
+                cur_lines.pop(offset)
         else:
             offset += 1
-        prev_kind = kind
 
     _open_file_dump_trace(g_tmpfile, cur_lines)
 
     if _test():
         _save(cur_lines)
         last_saved_lines = cur_lines[:]
+        num_lines = len(g_lines) - len(cur_lines)
     else:
         cur_lines = g_lines[:]
         last_saved_lines = g_lines[:]
@@ -497,40 +496,36 @@ def _remove_return_pairs():
         offset = 0
         while offset < len(cur_lines):
             line = cur_lines[offset]
+            kind = line.split()[0]
+            if offset + 1 < len(cur_lines):
+                next_line = cur_lines[offset + 1]
+            else:
+                next_line = None
 
-            if "return" in line:
-                assert(offset > 0)
-                lower = offset - 1
-                upper = offset + 1
-                subset = cur_lines[lower:upper]
-                assert (len(subset) == 2)
-                lines = cur_lines[:lower]
-                lines.extend(cur_lines[upper:])
-                assert(len(subset) == len(cur_lines) - len(lines))
-                assert(len(subset) > 0)
-                assert(len(lines) < len(cur_lines))
+            if kind in OTHER_KEYWORDS and \
+                next_line and next_line.startswith('return'):
 
+                lines = cur_lines[:]
+                lines.pop(offset)
+                lines.pop(offset)
                 _open_file_dump_trace(g_tmpfile, lines)
 
                 if _test():
                     _save(lines)
                     cur_lines = lines
                     last_saved_lines = cur_lines[:]
-                    num_lines += len(subset)
-                else:
-                    offset += 1 
-            else:
-                 offset += 1
+                    num_lines += 2
+                    continue
 
-            _log(1, "  pairs: offset {}, lines {}".format(offset,
-                 len(last_saved_lines)), True)
+            offset += 1
+            _log(1, "  pairs: offset {}, lines {}".format(
+                offset, len(last_saved_lines)), True)
 
-    g_lines = last_saved_lines 
-
-    return num_lines 
+    g_lines = last_saved_lines
+    return num_lines
 
 
-def ddmbt_main(): 
+def ddmbt_main():
     global g_options, g_golden_exit_code, g_tmpfile, g_outfile, g_command
     global g_num_tests, g_nodes, g_golden_err_msg
 
@@ -569,21 +564,18 @@ def ddmbt_main():
     _log(1, "golden err msg: {}".format(g_golden_err_msg))
 
     rounds = 0
-    last_num_lines = last_num_substs = last_num_swaps = 0
     num_swap_only_rounds = 0
     while True:
         rounds += 1
-
-        if last_num_lines > 0 or rounds % 5 == 1:
-            num_lines = _remove_return_pairs()
-            num_lines += _remove_lines()
-            if num_lines > 0:
-                num_swap_only_rounds = 0
-        if last_num_substs > 0 or rounds % 5 == 1:
+        num_substs = 0
+        num_swaps = 0
+        num_lines = _remove_lines()
+        if num_lines > 0:
+            num_swap_only_rounds = 0
+        else:
             num_substs = _compact_graph()
             if num_substs > 0:
                 num_swap_only_rounds = 0
-        if last_num_swaps > 0 or rounds % 5 == 1:
             num_swaps = _swap_ids()
             if num_lines == 0 and num_substs == 0:
                 num_swap_only_rounds += 1
@@ -593,17 +585,8 @@ def ddmbt_main():
                 "swapped {} nodes".format(rounds, num_lines,
                                           num_substs, num_swaps))
 
-        if (num_lines == 0 and num_substs == 0 and num_swaps == 0) or \
-            num_swap_only_rounds >= 3:
-            num_lines = _remove_return_pairs()
-            num_lines += _remove_lines()
-
-            if num_lines == 0:
-                break
-
-        last_num_lines = num_lines
-        last_num_substs = num_substs
-        last_num_swaps = num_swaps
+        if num_lines == 0 and num_substs == 0 and num_swaps == 0:
+            break
 
     _log(1, "tests: {0:d}".format(g_num_tests))
     _log(1, "dumped {0:d} lines (removed {1:.1f}% of lines)".format(
