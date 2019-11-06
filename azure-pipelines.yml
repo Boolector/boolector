@@ -16,6 +16,9 @@ jobs:
       debug:
         btorConfig: '-g'
         btorConfigEnv: ''
+      debug:
+        btorConfig: '-g --gmp'
+        btorConfigEnv: ''
       python2:
         needCython: true
         btorConfig: '--python --py2'
@@ -70,6 +73,9 @@ jobs:
         btorConfigEnv: 'CC=clang CXX=clang++'
       debug:
         btorConfig: '-g'
+        btorConfigEnv: ''
+      debug:
+        btorConfig: '-g --gmp'
         btorConfigEnv: ''
       python3:
         needCython: true
