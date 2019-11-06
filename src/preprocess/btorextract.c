@@ -636,7 +636,6 @@ collect_indices_updates (Btor *btor,
   visit_cache = btor_hashint_table_new (btor->mm);
 
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
-  btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
@@ -745,7 +744,7 @@ collect_indices_lambdas (Btor *btor,
   btor_iter_hashptr_init_reversed (&it, btor->lambdas);
   while (btor_iter_hashptr_has_next (&it))
   {
-    lambda = btor_iter_hashptr_next (&it);
+    lambda = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     assert (btor_node_is_regular (lambda));
 
     /* already visited */
@@ -844,8 +843,6 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
 
   /* top level equality pre-initialization */
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
-  btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
-  btor_iter_hashptr_queue (&it, btor->embedded_constraints);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
