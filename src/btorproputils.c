@@ -2015,20 +2015,6 @@ inv_sll_bv (Btor *btor,
       {
         shift = ctz_bvsll - ctz_bve;
 
-#if 0
-        if (shift > bw - 1)
-        {
-          /* CONFLICT: do not allow shift by bw ----------------------------- */
-          assert (btor_bv_is_zero (bvsll));
-        BVSLL_CONF:
-          res =
-              res_rec_conf (btor, sll, e, bvsll, bve, eidx, cons_sll_bv, "<<");
-#ifndef NDEBUG
-          is_inv = false;
-#endif
-        }
-        else if (btor_bv_is_zero (bvsll))
-#endif
         if (btor_bv_is_zero (bvsll))
         {
           /* x...x0 << e[1] = 0...0
@@ -2172,20 +2158,6 @@ inv_srl_bv (Btor *btor,
       {
         shift = clz_bvsrl - clz_bve;
 
-#if 0
-        if (shift > bw - 1)
-        {
-          /* CONFLICT: do not allow shift by bw ----------------------------- */
-          assert (btor_bv_is_zero (bvsrl));
-        BVSRL_CONF:
-          res =
-              res_rec_conf (btor, srl, e, bvsrl, bve, eidx, cons_srl_bv, ">>");
-#ifndef NDEBUG
-          is_inv = false;
-#endif
-        }
-        else if (btor_bv_is_zero (bvsrl))
-#endif
         if (btor_bv_is_zero (bvsrl))
         {
           /* x...x0 >> e[1] = 0...0
