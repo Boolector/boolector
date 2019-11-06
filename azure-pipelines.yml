@@ -16,7 +16,7 @@ jobs:
       debug:
         btorConfig: '-g'
         btorConfigEnv: ''
-      debug:
+      debug_gmp:
         btorConfig: '-g --gmp'
         btorConfigEnv: ''
       python2:
@@ -74,7 +74,7 @@ jobs:
       debug:
         btorConfig: '-g'
         btorConfigEnv: ''
-      debug:
+      debug_gmp:
         btorConfig: '-g --gmp'
         btorConfigEnv: ''
       python3:
