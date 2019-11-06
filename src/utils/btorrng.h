@@ -13,17 +13,21 @@
 #include <stdint.h>
 
 #ifdef BTOR_USE_GMP
-#include <gmp.h>
+#include "utils/btormem.h"
 #endif
 
 struct BtorRNG
 {
   uint32_t z, w;
 #ifdef BTOR_USE_GMP
+  BtorMemMgr* mm;
   bool is_init;
-  gmp_randstate_t gmp_state;
+  /* This is a bit ugly, but a workaround to not include gmp.h in this header
+   * (including the GMP header causes compilation problems with gtest). */
+  void* gmp_state;
 #endif
 };
+
 typedef struct BtorRNG BtorRNG;
 
 /**

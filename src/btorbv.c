@@ -133,7 +133,7 @@ btor_bv_new_random (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
   BtorBitVector *res;
 #ifdef BTOR_USE_GMP
   res = btor_bv_new (mm, bw);
-  mpz_urandomb (res->val, rng->gmp_state, bw);
+  mpz_urandomb (res->val, *((gmp_randstate_t *) rng->gmp_state), bw);
   mpz_fdiv_r_2exp (res->val, res->val, bw);
 #else
   res = btor_bv_new_random_bit_range (mm, rng, bw, bw - 1, 0);
@@ -165,7 +165,7 @@ btor_bv_new_random_range (BtorMemMgr *mm,
   mpz_sub (n_to, n_to, from->val);
   mpz_add_ui (n_to, n_to, 1);
 
-  mpz_urandomm (res->val, rng->gmp_state, n_to);
+  mpz_urandomm (res->val, *((gmp_randstate_t *) rng->gmp_state), n_to);
   mpz_add (res->val, res->val, from->val);
   mpz_clear (n_to);
 #else

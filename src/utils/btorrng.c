@@ -15,6 +15,10 @@
 #include <float.h>
 #endif
 
+#ifdef BTOR_USE_GMP
+#include <gmp.h>
+#endif
+
 void
 btor_rng_init (BtorRNG* rng, uint32_t seed)
 {
@@ -30,10 +34,19 @@ btor_rng_init (BtorRNG* rng, uint32_t seed)
   rng->z *= 1000632769u;
 
 #ifdef BTOR_USE_GMP
-  if (rng->is_init) gmp_randclear (rng->gmp_state);
+  if (rng->is_init)
+  {
+    assert (rng->gmp_state);
+    gmp_randclear (*((gmp_randstate_t*) rng->gmp_state));
+  }
+  else
+  {
+    rng->mm        = btor_mem_mgr_new ();
+    rng->gmp_state = btor_mem_malloc (rng->mm, sizeof (gmp_randstate_t));
+  }
   rng->is_init = true;
-  gmp_randinit_mt (rng->gmp_state);
-  gmp_randseed_ui (rng->gmp_state, btor_rng_rand (rng));
+  gmp_randinit_mt (*((gmp_randstate_t*) rng->gmp_state));
+  gmp_randseed_ui (*((gmp_randstate_t*) rng->gmp_state), btor_rng_rand (rng));
 #endif
 }
 
@@ -43,7 +56,11 @@ btor_rng_clone (BtorRNG* rng, BtorRNG* clone)
   (void) rng;
   (void) clone;
 #ifdef BTOR_USE_GMP
-  gmp_randinit_set (clone->gmp_state, rng->gmp_state);
+  assert (rng->gmp_state);
+  clone->mm        = btor_mem_mgr_new ();
+  clone->gmp_state = btor_mem_malloc (clone->mm, sizeof (gmp_randstate_t));
+  gmp_randinit_set (*((gmp_randstate_t*) clone->gmp_state),
+                    *((gmp_randstate_t*) rng->gmp_state));
 #endif
 }
 
@@ -52,7 +69,11 @@ btor_rng_delete (BtorRNG* rng)
 {
   (void) rng;
 #ifdef BTOR_USE_GMP
-  gmp_randclear (rng->gmp_state);
+  assert (rng->gmp_state);
+  gmp_randclear (*((gmp_randstate_t*) rng->gmp_state));
+  btor_mem_free (rng->mm, rng->gmp_state, sizeof (gmp_randstate_t));
+  btor_mem_mgr_delete (rng->mm);
+  rng->gmp_state = 0;
   rng->is_init = false;
 #endif
 }
