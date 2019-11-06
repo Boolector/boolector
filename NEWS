@@ -11,6 +11,8 @@
 + fixed issue in SMT2 parser to correctly print echo commands
   (thanks to Dominik Klumpp)
 + patches and documentation for building Boolector on Windows
++ support/use termination function feature of CaDiCaL
+  (thanks to Andrew V. Jones)
 + new API calls
   - boolector_copy_sort
   - boolector_min_signed
