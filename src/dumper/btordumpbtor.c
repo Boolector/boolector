@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -206,6 +206,7 @@ btor_dumpbtor_add_output_to_dump_context (BtorDumpContext *bdc,
 void
 btor_dumpbtor_add_root_to_dump_context (BtorDumpContext *bdc, BtorNode *root)
 {
+  assert (!btor_node_is_args (root));
   (void) btor_node_copy (bdc->btor, root);
   BTOR_PUSH_STACK (bdc->roots, root);
 }
@@ -354,7 +355,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_UF_NODE:
       op = btor_node_is_uf_array (node) ? "array" : "uf";
       break;
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
       bits = btor_node_bv_const_get_bits (node);
       opt  = btor_opt_get (bdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
       if (btor_bv_is_zero (bits))
@@ -545,7 +546,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   {
     default:
     case BTOR_BOOL_SORT: kind = "bool"; break;
-    case BTOR_BITVEC_SORT: kind = "bv"; break;
+    case BTOR_BV_SORT: kind = "bv"; break;
     case BTOR_ARRAY_SORT: kind = "array"; break;
     case BTOR_FUN_SORT: kind = "fun"; break;
   }
@@ -555,7 +556,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
 
   fprintf (file, "%d sort %s", id, kind);
 
-  if (sort->kind == BTOR_BITVEC_SORT)
+  if (sort->kind == BTOR_BV_SORT)
     fprintf (file, " %d", sort->bitvec.width);
   else if (sort->kind == BTOR_ARRAY_SORT)
     fprintf (file,
@@ -640,6 +641,10 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 static void
 bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {
+  assert (bdc);
+  assert (start);
+  assert (file);
+
   BtorNode *node;
   uint32_t i;
 
@@ -668,8 +673,11 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
       assert (!BTOR_EMPTY_STACK (bdc->work));
       node = BTOR_POP_STACK (bdc->work);
       assert (btor_node_is_regular (node));
-      (void) bdcid (bdc, node);
-      bdcnode (bdc, node, file);
+      if (!btor_node_is_args (node))
+      {
+        (void) bdcid (bdc, node);
+        bdcnode (bdc, node, file);
+      }
     }
   }
 }
@@ -782,6 +790,7 @@ btor_dumpbtor_dump_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->roots); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->roots, i);
+    assert (!btor_node_is_args (node));
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     if (bdc->version == 1)
@@ -803,6 +812,7 @@ btor_dumpbtor_dump_node (Btor *btor, FILE *file, BtorNode *exp)
   assert (btor);
   assert (file);
   assert (exp);
+  assert (!btor_node_is_args (exp));
 
   BtorDumpContext *bdc;
 

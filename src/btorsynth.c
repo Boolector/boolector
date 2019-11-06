@@ -348,7 +348,7 @@ eval_candidate (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
@@ -363,7 +363,7 @@ eval_candidate (Btor *btor,
             assert (!candidate);
             result = btor_bv_copy (mm, value_out);
             assert (btor_node_bv_get_width (real_cur->btor, real_cur)
-                    == value_out->width);
+                    == btor_bv_get_width (value_out));
           }
           else
             result = btor_bv_copy (mm, value_in->bv[pos]);
@@ -503,7 +503,7 @@ eval_exps (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 
@@ -524,7 +524,7 @@ eval_exps (Btor *btor,
               assert (value_out);
               result = btor_bv_copy (mm, value_out);
               assert (btor_node_bv_get_width (real_cur->btor, real_cur)
-                      == value_out->width);
+                      == btor_bv_get_width (value_out));
             }
           }
           else
@@ -964,7 +964,7 @@ synthesize (Btor *btor,
   BTOR_INIT_STACK (mm, candidates.nexps_level);
   BTOR_PUSH_STACK (candidates.nexps_level, 0);
 
-  target_sort = btor_sort_bv (btor, value_out[0]->width);
+  target_sort = btor_sort_bv (btor, btor_bv_get_width (value_out[0]));
 
   /* generate target signature */
   tmp_value_out = value_out;

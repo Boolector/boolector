@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2018 Aina Niemetz.
  *  Copyright (C) 2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -8,15 +8,18 @@
  */
 
 #include "btorslvsls.h"
+
 #include "btorabort.h"
 #include "btorbv.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorlog.h"
+#include "btorlsutils.h"
 #include "btormodel.h"
 #include "btorprintmodel.h"
-#include "btorslvpropsls.h"
+#include "btorproputils.h"
+#include "btorslsutils.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btornodeiter.h"
@@ -342,7 +345,7 @@ try_move (Btor *btor,
   }
 #endif
 
-  btor_propsls_update_cone (btor,
+  btor_lsutils_update_cone (btor,
                             bv_model,
                             slv->roots,
                             score,
@@ -533,8 +536,8 @@ select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
                       ? btor_hashint_map_get (slv->max_cans, can->id)->as_ptr
                       : 0;
 
-      if (pos == ass->width - 1) n_endpos += 1;
-      cpos = pos % ass->width;
+      if (pos == btor_bv_get_width (ass) - 1) n_endpos += 1;
+      cpos = pos % btor_bv_get_width (ass);
 
       btor_hashint_map_add (cans, can->id)->as_ptr =
           btor_opt_get (btor, BTOR_OPT_SLS_MOVE_INC_MOVE_TEST) && max_neigh
@@ -561,7 +564,7 @@ static inline bool
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   size_t i, n_endpos;
-  uint32_t up, cup, clo, sls_strat;
+  uint32_t up, cup, clo, sls_strat, bw;
   bool done = false;
   double sc;
   BtorSLSMove *m;
@@ -601,17 +604,19 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
       clo = 0;
       cup = up;
-      if (up >= ass->width)
+      bw  = btor_bv_get_width (ass);
+
+      if (up >= bw)
       {
-        if ((up - 1) / 2 < ass->width) n_endpos += 1;
-        cup = ass->width - 1;
+        if ((up - 1) / 2 < bw) n_endpos += 1;
+        cup = bw - 1;
       }
 
       /* range from MSB rather than LSB with given prob */
       if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
-        clo = ass->width - 1 - cup;
-        cup = ass->width - 1;
+        clo = bw - 1 - cup;
+        cup = bw - 1;
       }
 
       btor_hashint_map_add (cans, can->id)->as_ptr =
@@ -640,7 +645,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   size_t i, n_endpos;
   int32_t ctmp;
-  uint32_t lo, clo, up, cup, seg, sls_strat;
+  uint32_t lo, clo, up, cup, seg, sls_strat, bw;
   bool done = false;
   double sc;
   BtorSLSMove *m;
@@ -683,21 +688,22 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
         clo = lo;
         cup = up;
+        bw  = btor_bv_get_width (ass);
 
-        if (up >= ass->width)
+        if (up >= bw)
         {
-          if (up - seg < ass->width) n_endpos += 1;
-          cup = ass->width - 1;
+          if (up - seg < bw) n_endpos += 1;
+          cup = bw - 1;
         }
 
-        if (lo >= ass->width - 1) clo = ass->width < seg ? 0 : ass->width - seg;
+        if (lo >= bw - 1) clo = bw < seg ? 0 : bw - seg;
 
         /* range from MSB rather than LSB with given prob */
         if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
         {
           ctmp = clo;
-          clo  = ass->width - 1 - cup;
-          cup  = ass->width - 1 - ctmp;
+          clo  = bw - 1 - cup;
+          cup  = bw - 1 - ctmp;
         }
 
         btor_hashint_map_add (cans, can->id)->as_ptr =
@@ -727,7 +733,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 {
   double sc, rand_max_score = -1.0;
   size_t i, n_endpos;
-  uint32_t up, cup, clo, sls_strat;
+  uint32_t up, cup, clo, sls_strat, bw;
   bool done;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
@@ -763,21 +769,21 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int32_t gw)
 
       clo = 0;
       cup = up;
-      if (up >= ass->width)
+      bw  = btor_bv_get_width (ass);
+      if (up >= bw)
       {
-        if ((up - 1) / 2 < ass->width) n_endpos += 1;
-        cup = ass->width - 1;
+        if ((up - 1) / 2 < bw) n_endpos += 1;
+        cup = bw - 1;
       }
 
       /* range from MSB rather than LSB with given prob */
       if (btor_rng_pick_with_prob (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
-        clo = ass->width - 1 - cup;
-        cup = ass->width - 1;
+        clo = bw - 1 - cup;
+        cup = bw - 1;
       }
       btor_hashint_map_add (cans, can->id)->as_ptr =
-          btor_bv_new_random_bit_range (
-              btor->mm, &btor->rng, ass->width, cup, clo);
+          btor_bv_new_random_bit_range (btor->mm, &btor->rng, bw, cup, clo);
     }
 
     sc = try_move (btor, bv_model, score, cans, &done);
@@ -1027,7 +1033,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  uint32_t i, r, up, lo;
+  uint32_t i, r, up, lo, bw;
   BtorSLSMoveKind mk;
   BtorNodePtrStack cans, *pcans;
   BtorNode *can;
@@ -1069,13 +1075,13 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
     ass = (BtorBitVector *) btor_model_get_bv (btor, can);
     assert (ass);
 
-    r = btor_rng_pick_rand (
-        &btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + ass->width - 1);
+    bw = btor_bv_get_width (ass);
+    r  = btor_rng_pick_rand (&btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + bw - 1);
 
-    if (r < ass->width)
+    if (r < bw)
       mk = BTOR_SLS_MOVE_FLIP;
     else
-      mk = (BtorSLSMoveKind) r - ass->width + 1;
+      mk = (BtorSLSMoveKind) r - bw + 1;
     assert (mk >= 0);
 
     if ((!btor_opt_get (btor, BTOR_OPT_SLS_MOVE_SEGMENT)
@@ -1092,20 +1098,18 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
       case BTOR_SLS_MOVE_DEC: neigh = btor_bv_dec (btor->mm, ass); break;
       case BTOR_SLS_MOVE_NOT: neigh = btor_bv_not (btor->mm, ass); break;
       case BTOR_SLS_MOVE_FLIP_RANGE:
-        up = btor_rng_pick_rand (
-            &btor->rng, ass->width > 1 ? 1 : 0, ass->width - 1);
+        up    = btor_rng_pick_rand (&btor->rng, bw > 1 ? 1 : 0, bw - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, 0);
         break;
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
-        lo = btor_rng_pick_rand (&btor->rng, 0, ass->width - 1);
-        up = btor_rng_pick_rand (
-            &btor->rng, lo < ass->width - 1 ? lo + 1 : lo, ass->width - 1);
+        lo = btor_rng_pick_rand (&btor->rng, 0, bw - 1);
+        up = btor_rng_pick_rand (&btor->rng, lo < bw - 1 ? lo + 1 : lo, bw - 1);
         neigh = btor_bv_flipped_bit_range (btor->mm, ass, up, lo);
         break;
       default:
         assert (mk == BTOR_SLS_MOVE_FLIP);
         neigh = btor_bv_flipped_bit (
-            btor->mm, ass, btor_rng_pick_rand (&btor->rng, 0, ass->width - 1));
+            btor->mm, ass, btor_rng_pick_rand (&btor->rng, 0, bw - 1));
         break;
     }
 
@@ -1161,7 +1165,7 @@ move (Btor *btor, uint32_t nmoves)
      * encountered, no move is performed. */
     slv->max_move = BTOR_SLS_MOVE_PROP;
     slv->stats.props +=
-        btor_propsls_select_move_prop (btor, constr, &can, &neigh);
+        btor_proputils_select_move_prop (btor, constr, &can, &neigh);
     if (can)
     {
       assert (neigh);
@@ -1251,7 +1255,7 @@ move (Btor *btor, uint32_t nmoves)
   }
 #endif
 
-  btor_propsls_update_cone (btor,
+  btor_lsutils_update_cone (btor,
                             btor->bv_model,
                             slv->roots,
                             slv->score,
@@ -1549,8 +1553,8 @@ sat_sls_solver (BtorSLSSolver *slv)
         btor_opt_get (btor, BTOR_OPT_PROP_PROB_FLIP_COND_CONST);
     slv->prop_flip_cond_const_prob_delta =
         slv->prop_flip_cond_const_prob > (BTOR_PROB_MAX / 2)
-            ? -BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA
-            : BTOR_PROPSLS_PROB_FLIP_COND_CONST_DELTA;
+            ? -BTOR_PROPUTILS_PROB_FLIP_COND_CONST_DELTA
+            : BTOR_PROPUTILS_PROB_FLIP_COND_CONST_DELTA;
 
     /* collect unsatisfied roots (kept up-to-date in update_cone) */
     assert (!slv->roots);
@@ -1571,7 +1575,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     }
 
     /* compute initial sls score */
-    btor_propsls_compute_sls_scores (
+    btor_slsutils_compute_sls_scores (
         btor, btor->bv_model, btor->fun_model, slv->score);
 
     if (!slv->roots->count) goto SAT;

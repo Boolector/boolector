@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -906,6 +906,7 @@ btor_delete (Btor *btor)
   BtorPtrHashTableIterator it;
 
   mm = btor->mm;
+  btor_rng_delete (&btor->rng);
 
   if (btor->slv) btor->slv->api.delet (btor->slv);
 
@@ -1168,7 +1169,7 @@ btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   if (btor_node_is_bv_const (exp))
   {
     bits = btor_node_bv_const_get_bits (exp);
-    assert (bits->width == 1);
+    assert (btor_bv_get_width (bits) == 1);
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
         || (!btor_node_is_inverted (exp) && !btor_bv_get_bit (bits, 0)))
     {
@@ -1592,7 +1593,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   if (btor_node_is_bv_const (real_exp))
   {
     bits = btor_node_bv_const_get_bits (real_exp);
-    assert (bits->width == 1);
+    assert (btor_bv_get_width (bits) == 1);
     /* we do not add true/false */
     if ((btor_node_is_inverted (exp) && btor_bv_get_bit (bits, 0))
         || (!btor_node_is_inverted (exp) && !btor_bv_get_bit (bits, 0)))
@@ -2394,7 +2395,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   switch (exp->kind)
   {
     case BTOR_PROXY_NODE:
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
     case BTOR_VAR_NODE:
     case BTOR_PARAM_NODE:
     case BTOR_UF_NODE:
@@ -4300,6 +4301,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       {
         value      = (BtorBitVector *) it.bucket->data.as_ptr;
         args_tuple = btor_iter_hashptr_next (&it);
+
+        if (args_tuple->arity == 0) continue;
 
         /* create condition */
         assert (BTOR_EMPTY_STACK (consts));

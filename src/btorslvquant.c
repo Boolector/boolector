@@ -1093,21 +1093,21 @@ mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
   /* create params from domain sort */
   for (i = 0; i < args_tuple->arity; i++)
   {
-    p = btor_exp_param (btor, args_tuple->bv[i]->width, 0);
+    p = btor_exp_param (btor, btor_bv_get_width (args_tuple->bv[i]), 0);
     BTOR_PUSH_STACK (params, p);
     BTOR_PUSH_STACK (tup_sorts, p->sort_id);
   }
 
   dsortid =
       btor_sort_tuple (btor, tup_sorts.start, BTOR_COUNT_STACK (tup_sorts));
-  cdsortid  = btor_sort_bv (btor, value->width);
+  cdsortid  = btor_sort_bv (btor, btor_bv_get_width (value));
   funsortid = btor_sort_fun (btor, dsortid, cdsortid);
   btor_sort_release (btor, dsortid);
   btor_sort_release (btor, cdsortid);
   BTOR_RELEASE_STACK (tup_sorts);
 
   if (opt_synth_complete)
-    e_else = btor_exp_bv_zero (btor, value->width);
+    e_else = btor_exp_bv_zero (btor, btor_bv_get_width (value));
   else
   {
     uf   = btor_exp_uf (btor, funsortid, 0);
@@ -1415,7 +1415,7 @@ eval_exp (Btor *btor,
 
       switch (real_cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           result = btor_bv_copy (mm, btor_node_bv_const_get_bits (real_cur));
           break;
 

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2013-2017 Mathias Preiner.
- *  Copyright (C) 2014-2018 Aina Niemetz.
+ *  Copyright (C) 2014-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -520,9 +520,9 @@ is_urem_exp (Btor *btor,
 {
   BtorNode *mul, *udiv, *x, *y;
 
-  if (btor_node_is_neg (btor, e0, &mul))
+  if (btor_node_bv_is_neg (btor, e0, &mul))
     x = e1;
-  else if (btor_node_is_neg (btor, e1, &mul))
+  else if (btor_node_bv_is_neg (btor, e1, &mul))
     x = e0;
   else
     return false;
@@ -1692,7 +1692,8 @@ applies_zero_lower_slice (Btor *btor,
                           uint32_t lower)
 {
   (void) upper;
-  return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+  return btor_opt_get (btor, BTOR_OPT_RW_ZERO_LOWER_SLICE)
+         && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
          && upper < btor_node_bv_get_width (btor, exp) / 2
          && (btor_node_is_bv_mul (exp) || btor_node_is_bv_add (exp));
@@ -1941,9 +1942,9 @@ applies_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && btor_node_is_regular (e1)
          && btor_node_is_bv_add (e1)
          && ((btor_node_is_regular (e1->e[0])
-              && btor_node_is_neg (btor, e1->e[0], 0))
+              && btor_node_bv_is_neg (btor, e1->e[0], 0))
              || (btor_node_is_regular (e1->e[1])
-                 && btor_node_is_neg (btor, e1->e[1], 0)));
+                 && btor_node_bv_is_neg (btor, e1->e[1], 0)));
 }
 
 static inline BtorNode *
@@ -1954,11 +1955,11 @@ apply_sub_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result;
   BtorNode *neg = 0, *other;
 
-  if (btor_node_is_neg (btor, e1->e[0], &neg))
+  if (btor_node_bv_is_neg (btor, e1->e[0], &neg))
     other = e1->e[1];
   else
   {
-    btor_node_is_neg (btor, e1->e[1], &neg);
+    btor_node_bv_is_neg (btor, e1->e[1], &neg);
     other = e1->e[0];
   }
   assert (neg);

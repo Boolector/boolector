@@ -31,20 +31,16 @@
 (assert (= ((_ extract 31 31) s) ((_ extract 26 26) s)))
 (assert (= ((_ extract 30 30) s) ((_ extract 27 27) s)))
 (assert (= ((_ extract 29 29) s) ((_ extract 28 28) s)))
-
 ; assume the highest bit of 's' is set ...
 ;
 (assert ((_ extract 57 57) s))
-
 ; ... or alternatively disallow the followin spurious solutions:
 ;
 ;(assert (distinct r #b00000000000000000000000000000))
 ;(assert (distinct r #b00011000100011000111101101000)) 	;(_ bv51482472 29)))
 ;
-
 ; then this is the only solution (uncomment to check that it is)
 ;
 (assert (distinct r #b10111010000001011100111110001))	;(_ bv390117873 29)))
-
 (check-sat)
 (exit)

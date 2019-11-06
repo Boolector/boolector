@@ -852,7 +852,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s %u", btor_opt_get_lng (btor, opt), val);
+  BTOR_TRAPI ("%u %s %u", opt, btor_opt_get_lng (btor, opt), val);
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   BTOR_ABORT (
       val < btor_opt_get_min (btor, opt) || val > btor_opt_get_max (btor, opt),
@@ -990,7 +990,7 @@ boolector_get_opt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1005,7 +1005,7 @@ boolector_get_opt_min (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_min (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1020,7 +1020,7 @@ boolector_get_opt_max (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_max (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1035,7 +1035,7 @@ boolector_get_opt_dflt (Btor *btor, BtorOption opt)
 {
   uint32_t res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_dflt (btor, opt);
   BTOR_TRAPI_RETURN_UINT (res);
@@ -1050,7 +1050,7 @@ boolector_get_opt_lng (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_lng (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1065,7 +1065,7 @@ boolector_get_opt_shrt (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_shrt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1080,7 +1080,7 @@ boolector_get_opt_desc (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_get_desc (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
@@ -1095,7 +1095,7 @@ boolector_has_opt (Btor *btor, BtorOption opt)
 {
   bool res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   res = btor_opt_is_valid (btor, opt);
   BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
@@ -1123,7 +1123,7 @@ boolector_next_opt (Btor *btor, BtorOption opt)
 {
   BtorOption res;
   BTOR_ABORT_ARG_NULL (btor);
-  BTOR_TRAPI ("%s", btor_opt_get_lng (btor, opt));
+  BTOR_TRAPI ("%u %s", opt, btor_opt_get_lng (btor, opt));
   BTOR_ABORT (!btor_opt_is_valid (btor, opt), "invalid option");
   res = btor_opt_next (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
@@ -1780,6 +1780,46 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   (void) btor_hashptr_table_add (btor->inputs, btor_node_copy (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, sort, symbol);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_const_array (Btor *btor, BoolectorSort sort, BoolectorNode *value)
+{
+  BTOR_ABORT_ARG_NULL (btor);
+
+  BtorNode *res, *val;
+  BtorSortId s;
+
+  val = BTOR_IMPORT_BOOLECTOR_NODE (value);
+
+  s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_sort_is_fun (btor, s)
+                  || btor_sort_tuple_get_arity (
+                         btor, btor_sort_fun_get_domain (btor, s))
+                         != 1,
+              "'sort' is not an array sort");
+  BTOR_TRAPI (BTOR_TRAPI_SORT_FMT BTOR_TRAPI_NODE_FMT,
+              sort,
+              btor,
+              BTOR_TRAPI_NODE_ID (val));
+  BTOR_ABORT_ARG_NULL (val);
+  BTOR_ABORT_REFS_NOT_POS (val);
+  BTOR_ABORT_BTOR_MISMATCH (btor, val);
+  BTOR_ABORT_IS_NOT_BV (val);
+  BTOR_ABORT (
+      btor_node_get_sort_id (val) != btor_sort_array_get_element (btor, s),
+      "sort of 'value' does not match element sort of array");
+
+  res = btor_exp_const_array (btor, s, val);
+
+  btor_node_inc_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, const_array, sort, value);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -4102,7 +4142,7 @@ generate_fun_model_str (
     /* build assignment string for all arguments */
     t   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
     len = t->arity;
-    for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
+    for (j = 0; j < t->arity; j++) len += btor_bv_get_width (t->bv[j]);
     BTOR_NEWN (btor->mm, arg, len);
     tmp = arg;
 
@@ -4597,7 +4637,7 @@ boolector_is_fun_sort (Btor *btor, BoolectorSort sort)
 uint32_t
 boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
 {
-  bool res;
+  uint32_t res;
   BtorSortId s;
 
   BTOR_ABORT_ARG_NULL (btor);
@@ -4607,9 +4647,9 @@ boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_sort_is_valid (btor, s), "'sort' is not a valid sort");
 
   res = btor_sort_bv_get_width (btor, s);
-  BTOR_TRAPI_RETURN_BOOL (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_BOOL (res, bitvec_sort_get_width, sort);
+  BTOR_CHKCLONE_RES_UINT (res, bitvec_sort_get_width, sort);
 #endif
   return res;
 }
@@ -4872,7 +4912,7 @@ boolector_copyright (Btor *btor)
   return "This software is\n"
          "Copyright (c) 2007-2009 Robert Brummayer\n"
          "Copyright (c) 2007-2018 Armin Biere\n"
-         "Copyright (c) 2012-2018 Aina Niemetz, Mathias Preiner\n"
+         "Copyright (c) 2012-2019 Aina Niemetz, Mathias Preiner\n"
 #ifdef BTOR_USE_LINGELING
          "\n"
          "This software is linked against Lingeling\n"
@@ -4891,7 +4931,7 @@ boolector_copyright (Btor *btor)
 #ifdef BTOR_USE_CADICAL
          "\n"
          "This software is linked against CaDiCaL\n"
-         "Copyright (c) 2016-2018 Armin Biere\n"
+         "Copyright (c) 2016-2019 Armin Biere\n"
 #endif
          "";
 }

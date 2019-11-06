@@ -810,6 +810,11 @@ btormbt_new_btormbt (void)
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
+  /* Pre-initialize with 0, seed is set per round. Initializing is mandatory
+   * to make sure it the GMP RNG is initialized correctly when copmiled
+   * with GMP. */
+  btor_rng_init (&mbt->round.rng, 0);
+
   BTOR_INIT_STACK (mm, mbt->btor_opts);
 
   /* retrieve all available boolector options */
@@ -967,6 +972,7 @@ btormbt_delete_btormbt (BtorMBT *mbt)
   BtorMBTBtorOpt *opt;
 
   mm = mbt->mm;
+  btor_rng_delete (&mbt->round.rng);
   while (!BTOR_EMPTY_STACK (mbt->btor_opts))
   {
     opt = BTOR_POP_STACK (mbt->btor_opts);
@@ -3833,6 +3839,7 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
 
+  btor_rng_delete (&mbt->round.rng);
   memset (&mbt->round, 0, sizeof (mbt->round));
 
   mbt->assumptions = btormbt_new_exp_stack (mbt->mm);

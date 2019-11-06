@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -1070,6 +1070,7 @@ aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
 
   BTOR_CNEW (mm, res);
   memcpy (res, aprop, sizeof (AIGProp));
+  btor_rng_clone (&res->rng, &aprop->rng);
   res->amgr = clone;
   res->unsatroots =
       btor_hashint_map_clone (mm, aprop->unsatroots, btor_clone_data_as_int, 0);
@@ -1107,6 +1108,7 @@ aigprop_delete_aigprop (AIGProp *aprop)
 {
   assert (aprop);
 
+  btor_rng_delete (&aprop->rng);
   if (aprop->unsatroots) btor_hashint_map_delete (aprop->unsatroots);
   if (aprop->score) btor_hashint_map_delete (aprop->score);
   if (aprop->model) btor_hashint_map_delete (aprop->model);

@@ -14,6 +14,7 @@ set(libboolector_src_files
   btordbg.c
   btordcr.c
   btorexp.c
+  btorlsutils.c
   btormc.c
   btormodel.c
   btormsg.c
@@ -21,13 +22,14 @@ set(libboolector_src_files
   btoropt.c
   btorparse.c
   btorprintmodel.c
+  btorproputils.c
   btorrewrite.c
   btorrwcache.c
   btorsat.c
+  btorslsutils.c
   btorslvaigprop.c
   btorslvfun.c
   btorslvprop.c
-  btorslvpropsls.c
   btorslvquant.c
   btorslvsls.c
   btorsort.c
@@ -65,6 +67,7 @@ set(libboolector_src_files
   utils/btoroptparse.c
   utils/btorpartgen.c
   utils/btorrng.c
+  utils/btorunionfind.c
   utils/btorutil.c
 )
 
@@ -85,6 +88,11 @@ target_include_directories(boolector
 
 target_include_directories(boolector PRIVATE ${Btor2Tools_INCLUDE_DIR})
 target_link_libraries(boolector ${Btor2Tools_LIBRARIES})
+
+if(GMP_FOUND)
+  target_include_directories(boolector PRIVATE ${GMP_INCLUDE_DIR})
+  target_link_libraries(boolector ${GMP_LIBRARIES})
+endif()
 
 if(Lingeling_FOUND)
   target_include_directories(boolector PRIVATE ${Lingeling_INCLUDE_DIR})

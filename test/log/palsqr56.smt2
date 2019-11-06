@@ -30,11 +30,9 @@
 (assert (= ((_ extract 30 30) s) ((_ extract 25 25) s)))
 (assert (= ((_ extract 29 29) s) ((_ extract 26 26) s)))
 (assert (= ((_ extract 28 28) s) ((_ extract 27 27) s)))
-
 ; assume the highest bit of 's' is set
 ;
 (assert ((_ extract 55 55) s))
-
 ; ... or alternatively disallow the followin spurious solutions:
 ;
 ;(assert (distinct r #b0000000000000000000000000000))
@@ -42,8 +40,6 @@
 ;(assert (distinct r #b0000000101110110101110000000))
 ;(assert (distinct r #b0001100000101011101100011000))
 ;(assert (distinct r #b0010111110100100111011100100))
-
 ; there is no solution for 56 bits ...
-
 (check-sat)
 (exit)

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2019 Aina Niemetz.
  *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -304,9 +304,7 @@ clone_sorts_unique_table (Btor *btor, Btor *clone)
 	    cid = btor_sort_bool (clone);
 	    break;
 #endif
-      case BTOR_BITVEC_SORT:
-        cid = btor_sort_bv (clone, sort->bitvec.width);
-        break;
+      case BTOR_BV_SORT: cid = btor_sort_bv (clone, sort->bitvec.width); break;
 #if 0
 	  case BTOR_LST_SORT:
 	    cid = btor_sort_lst (clone, sort->lst.head->id, sort->lst.tail->id);
@@ -401,7 +399,7 @@ clone_sorts_unique_table (BtorMemMgr * mm,
 	    csort = btor_sort_bool (res);
 	    break;
 
-	  case BTOR_BITVEC_SORT:
+	  case BTOR_BV_SORT:
 	    csort = btor_sort_bv (res, sort->bitvec.len);
 	    break;
 
@@ -852,8 +850,7 @@ clone_nodes_unique_table (Btor *btor, Btor *clone, BtorNodeMap *exp_map)
   } while (0)
 #endif
 
-#define MEM_BITVEC(bv) \
-  ((bv) ? sizeof (*(bv)) + bv->len * sizeof (BTOR_BV_TYPE) : 0)
+#define MEM_BITVEC(bv) ((bv) ? btor_bv_size (bv) : 0)
 
 static Btor *
 clone_aux_btor (Btor *btor,
@@ -900,6 +897,8 @@ clone_aux_btor (Btor *btor,
 #endif
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
+  btor_rng_clone (&btor->rng, &clone->rng);
+
   BTOR_CLR (&clone->cbs);
   btor_opt_clone_opts (btor, clone);
 #ifndef NDEBUG
@@ -1607,8 +1606,7 @@ btor_clone_recursively_rebuild_sort (Btor *btor, Btor *clone, BtorSortId sort)
           for (i = 0; i < s->tuple.num_elements; i++)
             BTOR_PUSH_STACK (sort_stack, s->tuple.elements[i]);
           break;
-        default:
-          assert (s->kind == BTOR_BOOL_SORT || s->kind == BTOR_BITVEC_SORT);
+        default: assert (s->kind == BTOR_BOOL_SORT || s->kind == BTOR_BV_SORT);
       }
     }
     else if (!d->as_int)
@@ -1643,7 +1641,7 @@ btor_clone_recursively_rebuild_sort (Btor *btor, Btor *clone, BtorSortId sort)
           break;
         case BTOR_BOOL_SORT: r = btor_sort_bool (clone); break;
         default:
-          assert (s->kind == BTOR_BITVEC_SORT);
+          assert (s->kind == BTOR_BV_SORT);
           r = btor_sort_bv (clone, s->bitvec.width);
       }
       assert (r);
@@ -1723,7 +1721,7 @@ btor_clone_recursively_rebuild_exp (Btor *btor,
       }
       switch (cur->kind)
       {
-        case BTOR_CONST_NODE:
+        case BTOR_BV_CONST_NODE:
           cur_clone = btor_exp_bv_const (clone, btor_node_bv_const_get_bits (cur));
           break;
         case BTOR_VAR_NODE:

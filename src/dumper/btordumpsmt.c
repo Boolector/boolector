@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -235,9 +235,9 @@ btor_dumpsmt_dump_const_value (Btor *btor,
   if (base == BTOR_OUTPUT_BASE_DEC)
   {
     val = btor_bv_to_dec_char (btor->mm, bits);
-    fprintf (file, "(_ bv%s %d)", val, bits->width);
+    fprintf (file, "(_ bv%s %d)", val, btor_bv_get_width (bits));
   }
-  else if (base == BTOR_OUTPUT_BASE_HEX && bits->width % 4 == 0)
+  else if (base == BTOR_OUTPUT_BASE_HEX && btor_bv_get_width (bits) % 4 == 0)
   {
     val = btor_bv_to_hex_char (btor->mm, bits);
     fprintf (file, "#x%s", val);
@@ -282,9 +282,9 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, BtorBitVector *bits)
                               btor_bv_copy (sdc->btor->mm, bits))
           ->data.as_str = val;
     }
-    fprintf (file, "(_ bv%s %d)", val, bits->width);
+    fprintf (file, "(_ bv%s %d)", val, btor_bv_get_width (bits));
   }
-  else if (base == BTOR_OUTPUT_BASE_HEX && bits->width % 4 == 0)
+  else if (base == BTOR_OUTPUT_BASE_HEX && btor_bv_get_width (bits) % 4 == 0)
   {
     if ((b = btor_hashptr_table_get (sdc->const_cache, bits)))
     {
@@ -314,15 +314,15 @@ btor_dumpsmt_dump_sort (BtorSort *sort, FILE *file)
   {
     case BTOR_BOOL_SORT: fputs ("Bool", file); break;
 
-    case BTOR_BITVEC_SORT:
+    case BTOR_BV_SORT:
       fmt = "(_ BitVec %d)";
       fprintf (file, fmt, sort->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
       fmt = "(Array (_ BitVec %d) (_ BitVec %d))";
-      assert (sort->array.index->kind == BTOR_BITVEC_SORT);
-      assert (sort->array.element->kind == BTOR_BITVEC_SORT);
+      assert (sort->array.index->kind == BTOR_BV_SORT);
+      assert (sort->array.element->kind == BTOR_BV_SORT);
       fprintf (file,
                fmt,
                sort->array.index->bitvec.width,
@@ -456,7 +456,7 @@ extract_store (BtorSMTDumpContext * sdc, BtorNode * exp,
 
 static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_INVALID_NODE]   = "invalid",
-    [BTOR_CONST_NODE]     = "const",
+    [BTOR_BV_CONST_NODE]  = "bvconst",
     [BTOR_VAR_NODE]       = "var",
     [BTOR_PARAM_NODE]     = "param",
     [BTOR_BV_SLICE_NODE]  = "extract",

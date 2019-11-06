@@ -12,3 +12,5 @@
 (assert (= (bvxor b0 b1) (bvshl b1 (_ bv1 8))))
 (assert (= (bvxor (bvand b0 b1) b2) (bvshl b2 (_ bv1 8))))
 (assert (not (and (= b0 u0) (= b1 u1) (= b2 u2))))
+(check-sat)
+(exit)

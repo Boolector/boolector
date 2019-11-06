@@ -7,7 +7,6 @@
 (assert (= |val2| #xd620))
 (assert (= |gen_mul| (bvmul val1 val2)))
 (check-sat)
-
 (get-value (|val1|))
 (get-value (|val2|))
 (get-value (|gen_mul|))

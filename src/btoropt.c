@@ -1196,16 +1196,6 @@ btor_opt_init_opts (Btor *btor)
             1,
             "make base case of concrete model constant instead of undef.");
   init_opt (btor,
-            BTOR_OPT_QUANT_FIXSYNTH,
-            false,
-            true,
-            "quant:fixsynth",
-            0,
-            1,
-            0,
-            1,
-            "update current model w.r.t. synthesized skolem function");
-  init_opt (btor,
             BTOR_OPT_QUANT_SYNTH_QI,
             false,
             true,
@@ -1340,6 +1330,26 @@ btor_opt_init_opts (Btor *btor)
             UINT32_MAX,
             "interpret sorts introduced with declare-sort as bit-vectors of "
             "given width");
+  init_opt (btor,
+            BTOR_OPT_QUANT_FIXSYNTH,
+            true,
+            true,
+            "quant:fixsynth",
+            0,
+            1,
+            0,
+            1,
+            "update current model w.r.t. synthesized skolem function");
+  init_opt (btor,
+            BTOR_OPT_RW_ZERO_LOWER_SLICE,
+            true,
+            true,
+            "rw-zero-lower-slice",
+            0,
+            0,
+            0,
+            1,
+            "enable zero_lower_slice rewrite");
 }
 
 void
@@ -1484,8 +1494,8 @@ const char *
 btor_opt_get_lng (Btor *btor, const BtorOption opt)
 {
   assert (btor);
-  assert (btor_opt_is_valid (btor, opt));
-
+  if (opt == BTOR_OPT_NUM_OPTS) return BTOR_OPT_NUM_OPTS_STR;
+  if (!btor_opt_is_valid (btor, opt)) return BTOR_OPT_INVALID_OPT_STR;
   return (const char *) btor->options[opt].lng;
 }
 

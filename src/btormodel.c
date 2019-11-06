@@ -273,6 +273,7 @@ recursively_compute_function_model (Btor *btor,
   assert (btor_node_is_regular (fun));
   assert (btor_node_is_fun (fun));
 
+  bool has_default_value = false;
   int32_t i;
   BtorNode *value, *cur_fun, *cur;
   BtorPtrHashTable *static_rho;
@@ -316,6 +317,19 @@ recursively_compute_function_model (Btor *btor,
           for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (stack, cur->e[i]);
         }
         BTOR_RELEASE_STACK (stack);
+      }
+      else if (btor_node_is_const_array (cur_fun))
+      {
+        /* Default value for model. Note, we add a 0-arity tuple to the
+         * function model to indicate a default value for all indices. */
+        t        = btor_bv_new_tuple (btor->mm, 0);
+        bv_value = btor_model_recursively_compute_assignment (
+            btor, bv_model, fun_model, cur_fun->e[1]);
+        add_to_fun_model (btor, fun_model, fun, t, bv_value);
+        btor_bv_free (mm, bv_value);
+        btor_bv_free_tuple (mm, t);
+        has_default_value = true;
+        cur_fun           = 0;
       }
       else
       {
@@ -363,6 +377,49 @@ recursively_compute_function_model (Btor *btor,
       assert (btor_node_is_uf (cur_fun));
       cur_fun = 0;
     }
+  }
+
+  /* Remove all model entries that are the same as the default value. */
+  if (has_default_value)
+  {
+    BtorBitVector *default_value;
+    BtorBitVectorTuple *args;
+    BtorPtrHashBucket *b;
+    BtorPtrHashTable *cur_model, *new_model;
+    BtorPtrHashTableIterator it;
+
+    t = btor_bv_new_tuple (mm, 0);
+    assert (btor_hashint_map_contains (fun_model, fun->id));
+    cur_model = btor_hashint_map_get (fun_model, fun->id)->as_ptr;
+    assert (cur_model);
+    b = btor_hashptr_table_get (cur_model, t);
+    assert (b);
+    default_value = b->data.as_ptr;
+
+    new_model = btor_hashptr_table_new (mm, cur_model->hash, cur_model->cmp);
+    btor_iter_hashptr_init (&it, cur_model);
+    while (btor_iter_hashptr_has_next (&it))
+    {
+      bv_value = it.bucket->data.as_ptr;
+      args     = btor_iter_hashptr_next (&it);
+
+      if (btor_bv_compare (bv_value, default_value) || args->arity == 0)
+      {
+        btor_hashptr_table_add (new_model, args)->data.as_ptr = bv_value;
+      }
+      /* Skip values that are same as 'default_value'. */
+      else
+      {
+        btor_bv_free (mm, bv_value);
+        btor_bv_free_tuple (mm, args);
+      }
+    }
+    /* Replace model of 'fun' with new cleaned up model. */
+    btor_hashptr_table_delete (cur_model);
+    btor_hashint_map_remove (fun_model, fun->id, 0);
+    btor_hashint_map_add (fun_model, fun->id)->as_ptr = new_model;
+
+    btor_bv_free_tuple (mm, t);
   }
 }
 

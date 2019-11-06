@@ -28,11 +28,12 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 
-/* NOTE: DO NOT REORDER THE INDICES.
- * CERTAIN MACROS DEPEND ON ORDER.
- * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE
- * and BTOR_VAR_NODE are at the beginning,
- * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
+/* NOTE: DO NOT REORDER THE INDICES.  CERTAIN MACROS DEPEND ON ORDER.
+ *
+ * Some code also depends the order of this enum, in particular that
+ * BTOR_INVALID_NODE is the first entry.
+ * It also relies on that BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1.
+ *
  * FURTHER NOTE:
  * binary nodes: [BTOR_BV_AND_NODE, ..., BTOR_LAMBDA_NODE]
  * ternary nodes: [BTOR_BCOND_NODE]
@@ -40,13 +41,8 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
  */
 enum BtorNodeKind
 {
-  /* Even though the following is just for debugging purposes,
-   * we should not put '#ifndef NDEBUG' around.  This would
-   * make delta debugging of Heisenbugs in release mode more
-   * difficult.
-   */
-  BTOR_INVALID_NODE   = 0,
-  BTOR_CONST_NODE     = 1,
+  BTOR_INVALID_NODE   = 0, /* for debugging purposes only */
+  BTOR_BV_CONST_NODE  = 1,
   BTOR_VAR_NODE       = 2,
   BTOR_PARAM_NODE     = 3, /* parameter for lambda expressions */
   BTOR_BV_SLICE_NODE  = 4,
@@ -67,8 +63,8 @@ enum BtorNodeKind
   BTOR_LAMBDA_NODE    = 19, /* lambda expression */
   BTOR_COND_NODE      = 20, /* conditional on bit vectors */
   BTOR_ARGS_NODE      = 21,
-  BTOR_UF_NODE        = 22,
   BTOR_UPDATE_NODE    = 23,
+  BTOR_UF_NODE        = 22,
   BTOR_PROXY_NODE     = 24, /* simplified expression without children */
   BTOR_NUM_OPS_NODE   = 25
 
@@ -79,7 +75,9 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
 
-#define BTOR_BV_NODE_STRUCT                                                \
+/*------------------------------------------------------------------------*/
+
+#define BTOR_NODE_STRUCT                                                   \
   struct                                                                   \
   {                                                                        \
     BtorNodeKind kind : 5;        /* kind of expression */                 \
@@ -120,57 +118,81 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
     BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
 
+#define BTOR_FP_ADDITIONAL_NODE_STRUCT                             \
+  struct                                                           \
+  {                                                                \
+    BtorNode *e[4];           /* expression children */            \
+    BtorNode *prev_parent[4]; /* prev in parent list of child i */ \
+    BtorNode *next_parent[4]; /* next in parent list of child i */ \
+  }
+
+/*------------------------------------------------------------------------*/
+
 struct BtorBVVarNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
 };
-
 typedef struct BtorBVVarNode BtorBVVarNode;
 
 struct BtorUFNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
 };
-
 typedef struct BtorUFNode BtorUFNode;
 
 struct BtorBVConstNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BtorBitVector *bits;
   BtorBitVector *invbits;
 };
-
 typedef struct BtorBVConstNode BtorBVConstNode;
 
 struct BtorBVSliceNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   uint32_t upper;
   uint32_t lower;
 };
-
 typedef struct BtorBVSliceNode BtorBVSliceNode;
 
 struct BtorBVNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
-
 typedef struct BtorBVNode BtorBVNode;
+
+/*------------------------------------------------------------------------*/
 
 struct BtorNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
+
+/*------------------------------------------------------------------------*/
+
+struct BtorFPVarNode
+{
+  BTOR_NODE_STRUCT;
+};
+typedef struct BtorFPVarNode BtorFPVarNode;
+
+struct BtorFPNode
+{
+  BTOR_NODE_STRUCT;
+  BTOR_FP_ADDITIONAL_NODE_STRUCT;
+};
+typedef struct BtorFPNode BtorFPNode;
+
+/*------------------------------------------------------------------------*/
 
 #define BTOR_BINDER_STRUCT                                   \
   struct                                                     \
   {                                                          \
-    BTOR_BV_NODE_STRUCT;                                     \
+    BTOR_NODE_STRUCT;                                        \
     BTOR_BV_ADDITIONAL_NODE_STRUCT;                          \
     BtorNode *body; /* short-cut for curried binder terms */ \
   }
@@ -179,7 +201,6 @@ struct BtorBinderNode
 {
   BTOR_BINDER_STRUCT;
 };
-
 typedef struct BtorBinderNode BtorBinderNode;
 
 struct BtorLambdaNode
@@ -187,24 +208,21 @@ struct BtorLambdaNode
   BTOR_BINDER_STRUCT;
   BtorPtrHashTable *static_rho;
 };
-
 typedef struct BtorLambdaNode BtorLambdaNode;
 
 struct BtorParamNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BtorNode *binder; /* exp that binds the param (lambda, forall, exists) */
   BtorNode *assigned_exp;
 };
-
 typedef struct BtorParamNode BtorParamNode;
 
 struct BtorArgsNode
 {
-  BTOR_BV_NODE_STRUCT;
+  BTOR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
-
 typedef struct BtorArgsNode BtorArgsNode;
 
 /*------------------------------------------------------------------------*/
@@ -212,37 +230,38 @@ typedef struct BtorArgsNode BtorArgsNode;
 static inline BtorNode *
 btor_node_set_tag (BtorNode *node, uintptr_t tag)
 {
+  assert (tag <= 3);
   return (BtorNode *) (tag | (uintptr_t) node);
 }
 
 static inline BtorNode *
 btor_node_invert (const BtorNode *node)
 {
-  return (BtorNode *) (1ul ^ (uintptr_t) node);
+  return (BtorNode *) ((uintptr_t) 1 ^ (uintptr_t) node);
 }
 
 static inline BtorNode *
 btor_node_cond_invert (const BtorNode *cond, const BtorNode *node)
 {
-  return (BtorNode *) (((uintptr_t) cond & 1ul) ^ (uintptr_t) node);
+  return (BtorNode *) (((uintptr_t) cond & (uintptr_t) 1) ^ (uintptr_t) node);
 }
 
 static inline bool
 btor_node_is_inverted (const BtorNode *node)
 {
-  return (1ul & (uintptr_t) node) != 0;
+  return ((uintptr_t) 1 & (uintptr_t) node) != 0;
 }
 
 static inline BtorNode *
 btor_node_real_addr (const BtorNode *node)
 {
-  return (BtorNode *) (~3ul & (uintptr_t) node);
+  return (BtorNode *) (~(uintptr_t) 3 & (uintptr_t) node);
 }
 
 static inline bool
 btor_node_is_regular (const BtorNode *node)
 {
-  return (3ul & (uintptr_t) node) == 0;
+  return ((uintptr_t) 3 & (uintptr_t) node) == 0;
 }
 
 static inline bool
@@ -274,7 +293,7 @@ btor_node_is_binary_commutative_kind (BtorNodeKind kind)
 static inline bool
 btor_node_is_ternary_kind (BtorNodeKind kind)
 {
-  return kind >= BTOR_COND_NODE;
+  return kind >= BTOR_COND_NODE && kind <= BTOR_UPDATE_NODE;
 }
 
 static inline bool
@@ -325,7 +344,7 @@ btor_node_is_bv_const (const BtorNode *exp)
   assert (exp);
   exp = btor_node_real_addr (exp);
   return btor_sort_is_bv (exp->btor, exp->sort_id)
-         && exp->kind == BTOR_CONST_NODE;
+         && exp->kind == BTOR_BV_CONST_NODE;
 }
 
 static inline bool
@@ -432,6 +451,15 @@ btor_node_is_array (const BtorNode *exp)
 }
 
 static inline bool
+btor_node_is_const_array (const BtorNode *exp)
+{
+  assert (exp);
+  exp = btor_node_real_addr (exp);
+  return btor_node_is_array (exp) && exp->kind == BTOR_LAMBDA_NODE
+         && !btor_node_real_addr (exp->e[1])->parameterized;
+}
+
+static inline bool
 btor_node_is_forall (const BtorNode *exp)
 {
   assert (exp);
@@ -521,7 +549,7 @@ bool btor_node_is_bv_const_ones (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_min_signed (Btor *btor, BtorNode *exp);
 bool btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp);
 
-bool btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res);
+bool btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res);
 
 /*------------------------------------------------------------------------*/
 
@@ -536,7 +564,7 @@ btor_node_get_id (const BtorNode *exp)
 static inline int32_t
 btor_node_get_tag (const BtorNode *exp)
 {
-  return (int32_t) (3ul & (uintptr_t) exp);
+  return (int32_t) ((uintptr_t) 3 & (uintptr_t) exp);
 }
 
 /*========================================================================*/

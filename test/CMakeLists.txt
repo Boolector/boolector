@@ -1,1881 +1,993 @@
-set(test_src_files
-  test.c
-  testaig.c
-  testaigvec.c
-  testarithmetic.c
-  testboolectornodemap.c
-  testbv.c
-  testcomp.c
-  testexp.c
-  testhash.c
-  testinc.c
-  testinthash.c
-  testinthashmap.c
-  testlambda.c
-  testlogic.c
-  testmap.c
-  testmc.c
-  testmem.c
-  testmisc.c
-  testmodelgen.c
-  testmodelgensmt2.c
-  testnormquant.c
-  testoverflow.c
-  testparseerror.c
-  testprop.c
-  testpropinv.c
-  testqueue.c
-  testrunner.c
-  testsat.c
-  testshift.c
-  testsmtaxioms.c
-  testsort.c
-  testspecial.c
-  teststack.c
-  testtestcases.c
-  testutil.c
-)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
 
-add_executable (testbtor ${test_src_files})
-target_link_libraries(testbtor boolector m)
-set_target_properties(testbtor PROPERTIES OUTPUT_NAME test)
-
-set(units
-  add_aigvec
-  add_bitvec
-  add_exp
-  add_int_hash_map
-  add_int_hash_table
-  add_s_arithmetic
-  add_u_arithmetic
+set(test_names
   aig
-  aig_to_sat
   aigvec
-  and_aig
-  and_aigvec
-  and_bitvec
-  and_exp
-  and_logic
-  andopt10_special
-  andopt11_special
-  andopt12_special
-  andopt13_special
-  andopt14_special
-  andopt15_special
-  andopt16_special
-  andopt17_special
-  andopt1_special
-  andopt2_special
-  andopt3_special
-  andopt4_special
-  andopt5_special
-  andopt6_special
-  andopt7_special
-  andopt8_special
-  andopt9_special
   arithmetic
-  array_exp
-  array_sort
-  arraycond10_special
-  arraycond11_special
-  arraycond12_special
-  arraycond13_special
-  arraycond14_special
-  arraycond15_special
-  arraycond16_special
-  arraycond17_special
-  arraycond18_special
-  arraycond1_special
-  arraycond2_special
-  arraycond3_special
-  arraycond4_special
-  arraycond5_special
-  arraycond6_special
-  arraycond7_special
-  arraycond8_special
-  arraycond9_special
-  bitvec
-  bitvec_sort
-  bool_sort
   boolectornodemap
-  boolectornodemap0
-  boolectornodemap1
-  bv_to_char_bitvec
-  bv_to_dec_char_bitvec
-  bv_to_hex_char_bitvec
-  calloc_mem
-  char_to_bitvec
+  bv
   comp
-  compare_bitvec
-  concat_aigvec
-  concat_bitvec
-  concat_exp
-  concat_misc
-  cond_aig
-  cond_aigvec
-  cond_exp
-  cond_misc
-  const1_special
-  const2_special
-  const_aigvec
-  const_exp
-  dec_bitvec
-  dec_exp
-  eq_1_comp
-  eq_2_comp
-  eq_aig
-  eq_aigvec
-  eq_bitvec
-  eq_exp
   exp
-  ext10_special
-  ext11_special
-  ext12_special
-  ext13_special
-  ext14_special
-  ext15_special
-  ext16_special
-  ext17_special
-  ext18_special
-  ext19_special
-  ext1_special
-  ext20_special
-  ext21_special
-  ext22_special
-  ext23_special
-  ext24_special
-  ext25_special
-  ext26_special
-  ext27_special
-  ext28_special
-  ext29_special
-  ext2_special
-  ext3_special
-  ext4_special
-  ext5_special
-  ext6_special
-  ext7_special
-  ext8_special
-  ext9_special
-  factor18446744073709551617const_special
-  factor18446744073709551617xconst_special
-  factor18446744073709551617yconst_special
-  factor2209_special
-  factor4294967295_special
-  factor4294967297_special
-  false_aig
-  fit_stack
-  flipped_bit_bitvec
-  flipped_bit_range_bitvec
-  fun_sort
-  functionality_queue
-  functionality_stack
-  get_num_leading_ones_bitvec
-  get_num_leading_zeros_bitvec
-  get_num_trailing_zeros_bitvec
   hash
-  hash_str2i
-  hash_str2str
   inc
-  inc_assume_assert1
-  inc_bitvec
-  inc_count1
-  inc_count1nondet
-  inc_count2
-  inc_count2nondet
-  inc_count3
-  inc_count3nondet
-  inc_count4
-  inc_count4nondet
-  inc_count8
-  inc_count8nondet
-  inc_exp
-  inc_lemmas_on_demand_1
-  inc_lt1
-  inc_lt2
-  inc_lt3
-  inc_lt4
-  inc_lt8
-  inc_true_false
-  init_release_queue
-  init_release_stack
-  int64_to_bv_bitvec
-  int_hash_map
-  int_hash_table
-  invert_aigvec
-  is_one_bitvec
-  is_ones_bitvec
-  is_power_of_2_util
-  is_special_const_bitvec
-  is_umulo_bitvec
-  is_zero_bitvec
+  inthash
+  inthashmap
   lambda
-  lambda1_special
-  lambda2_special
-  lambda_bounded_reduce1
-  lambda_bounded_reduce2
-  lambda_bounded_reduce3
-  lambda_const_lambda_const
-  lambda_const_lambda_negated
-  lambda_const_lambda_param
-  lambda_const_lambda_var
-  lambda_define_fun
-  lambda_hashing_1
-  lambda_hashing_2
-  lambda_hashing_3
-  lambda_hashing_4
-  lambda_param_acond
-  lambda_param_add
-  lambda_param_and
-  lambda_param_bcond1
-  lambda_param_bcond2
-  lambda_param_bcond3
-  lambda_param_concat
-  lambda_param_eq
-  lambda_param_iff
-  lambda_param_implies
-  lambda_param_mul
-  lambda_param_nand
-  lambda_param_ne
-  lambda_param_neg
-  lambda_param_nor
-  lambda_param_not
-  lambda_param_or
-  lambda_param_read
-  lambda_param_redand
-  lambda_param_redor
-  lambda_param_redxor
-  lambda_param_rol
-  lambda_param_ror
-  lambda_param_saddo
-  lambda_param_sdiv
-  lambda_param_sdivo
-  lambda_param_sext
-  lambda_param_sgt
-  lambda_param_sgte
-  lambda_param_slice
-  lambda_param_sll
-  lambda_param_slt
-  lambda_param_slte
-  lambda_param_smod
-  lambda_param_smulo
-  lambda_param_sra
-  lambda_param_srem
-  lambda_param_srl
-  lambda_param_ssubo
-  lambda_param_sub
-  lambda_param_uaddo
-  lambda_param_udiv
-  lambda_param_uext
-  lambda_param_ugt
-  lambda_param_ugte
-  lambda_param_ult
-  lambda_param_ulte
-  lambda_param_umulo
-  lambda_param_urem
-  lambda_param_usubo
-  lambda_param_write1
-  lambda_param_write2
-  lambda_param_xnor
-  lambda_param_xor
-  lambda_partial_reduce_nested_lambdas_add1
-  lambda_reduce_nested_lambdas_add1
-  lambda_reduce_nested_lambdas_add2
-  lambda_reduce_nested_lambdas_const_n1000
-  lambda_reduce_nested_lambdas_read
-  lambda_reduce_nested_writes
-  lambda_reduce_write1
-  lambda_reduce_write2
-  lambda_unassigned_param
-  log_2_util
   logic
-  lst_sort
-  malloc_mem
-  map
-  map0
-  map1
-  mapnewdel
-  max_signed_bitvec
-  max_signed_exp
   mc
-  mccount2enable
-  mccount2multi
-  mccount2resetenable
-  mcnewdel
-  mctoggle
-  mctwostepsmodel
   mem
-  min_signed_bitvec
-  min_signed_exp
   misc
   modelgen
-  modelgen1
-  modelgen10
-  modelgen11
-  modelgen12
-  modelgen13
-  modelgen14
-  modelgen15
-  modelgen16
-  modelgen17
-  modelgen18
-  modelgen19
-  modelgen2
-  modelgen20
-  modelgen21
-  modelgen22
-  modelgen23
-  modelgen24
-  modelgen25
-  modelgen26
-  modelgen27
-  modelgen3
-  modelgen4
-  modelgen5
-  modelgen6
-  modelgen7
-  modelgen8
-  modelgen9
   modelgensmt2
-  modelgensmt21
-  modelgensmt210
-  modelgensmt211
-  modelgensmt212
-  modelgensmt213
-  modelgensmt214
-  modelgensmt215
-  modelgensmt216
-  modelgensmt217
-  modelgensmt218
-  modelgensmt219
-  modelgensmt22
-  modelgensmt220
-  modelgensmt221
-  modelgensmt222
-  modelgensmt223
-  modelgensmt224
-  modelgensmt225
-  modelgensmt226
-  modelgensmt227
-  modelgensmt23
-  modelgensmt24
-  modelgensmt25
-  modelgensmt26
-  modelgensmt27
-  modelgensmt28
-  modelgensmt29
-  mul_aigvec
-  mul_bitvec
-  mul_exp
-  mul_s_arithmetic
-  mul_u_arithmetic
-  ne_1_comp
-  ne_2_comp
-  ne_exp
-  neg_bitvec
-  neg_exp
-  new_bitvec
-  new_delete_aig_mgr
-  new_delete_aigvec_mgr
-  new_delete_btor
-  new_delete_hash
-  new_delete_int_hash_map
-  new_delete_int_hash_table
-  new_delete_mem_mgr
-  new_delete_sat_mgr
-  new_random_range_bitvec
-  next_cnf_id_sat_mgr
-  next_power_of_2_util
+  nodemap
   normquant
-  not_aig
-  not_aigvec
-  not_bitvec
-  not_exp
-  not_logic
-  num_digits_util
-  one_bitvec
-  one_exp
-  ones_bitvec
-  ones_exp
-  or_aig
-  or_exp
-  or_logic
   overflow
   parseerror
-  pow_2_util
-  power_of_two_bitvec
   prop
-  prop_complete_add_bv
-  prop_complete_and_bv
-  prop_complete_concat_bv
-  prop_complete_eq_bv
-  prop_complete_mul_bv
-  prop_complete_slice_bv
-  prop_complete_sll_bv
-  prop_complete_srl_bv
-  prop_complete_udiv_bv
-  prop_complete_ult_bv
-  prop_complete_urem_bv
-  prop_one_complete_add_bv
-  prop_one_complete_and_bv
-  prop_one_complete_concat_bv
-  prop_one_complete_eq_bv
-  prop_one_complete_mul_bv
-  prop_one_complete_sll_bv
-  prop_one_complete_srl_bv
-  prop_one_complete_udiv_bv
-  prop_one_complete_ult_bv
-  prop_one_complete_urem_bv
   propinv
-  propinv_complete_add_bv
-  propinv_complete_and_bv
-  propinv_complete_concat_bv
-  propinv_complete_eq_bv
-  propinv_complete_mul_bv
-  propinv_complete_slice_bv
-  propinv_complete_sll_bv
-  propinv_complete_srl_bv
-  propinv_complete_udiv_bv
-  propinv_complete_ult_bv
-  propinv_complete_urem_bv
-  propinv_conf_and_bv
-  propinv_conf_concat_bv
-  propinv_conf_mul_bv
-  propinv_conf_sll_bv
-  propinv_conf_srl_bv
-  propinv_conf_udiv_bv
-  propinv_conf_ult_bv
-  propinv_conf_urem_bv
-  quantifier_hashing_1
-  quantifier_hashing_2
   queue
-  read10_special
-  read11_special
-  read12_special
-  read13_special
-  read14_special
-  read15_special
-  read16_special
-  read17_special
-  read18_special
-  read19_special
-  read1_special
-  read20_special
-  read21_special
-  read22_special
-  read2_special
-  read3_special
-  read4_special
-  read5_special
-  read6_special
-  read7_special
-  read8_special
-  read9_special
-  read_exp
-  read_misc
-  realloc_mem
-  redand_exp
-  redand_logic
-  redor_exp
-  redor_logic
-  redxor_exp
-  redxor_logic
-  regrcalypto1_special
-  regrcalypto2_special
-  regrcalypto3_special
-  regrmodel1_special
-  regrmodel2_special
-  regrmodel3_special
-  regrmodel4_special
-  regrrwbinexpconcatzeroconst_special
-  reset_queue
-  reset_stack
-  rol_exp
-  rol_shift
-  ror_exp
-  ror_shift
-  rw10_special
-  rw11_special
-  rw12_special
-  rw13_special
-  rw14_special
-  rw15_special
-  rw1_special
-  rw2_special
-  rw3_special
-  rw4_special
-  rw5_special
-  rw6_special
-  rw7_special
-  rw8_special
-  rw9_special
-  saddo_exp
-  saddo_overflow
-  sat
-  sdiv_arithmetic
-  sdiv_exp
-  sdivo_exp
-  sdivo_overflow
-  sext_bitvec
-  sext_exp
-  sext_misc
-  sgt_comp
-  sgt_exp
-  sgte_comp
-  sgte_exp
+  satmgr
   shift
-  slice_aigvec
-  slice_bitvec
-  slice_exp
-  slice_misc
-  sll_aigvec
-  sll_bitvec
-  sll_exp
-  sll_shift
-  slt_comp
-  slt_exp
-  slte_comp
-  slte_exp
-  small_positive_int_bitvec
-  smod_exp
   smtaxioms
-  smulo_exp
-  smulo_overflow
   sort
-  special
-  sqrt13_special
-  sqrt18446744073709551617_special
-  sqrt25_special
-  sqrt29_special
-  sqrt31_special
-  sqrt4294967297_special
-  sqrt4295098369_special
-  sqrt49_special
-  sqrt4_special
-  sqrt53_special
-  sqrt5_special
-  sqrt65537_special
-  sqrt7_special
-  sqrt9_special
-  sra_exp
-  sra_shift
-  srem_arithmetic
-  srem_exp
-  srl_aigvec
-  srl_bitvec
-  srl_exp
-  srl_shift
-  ssubo_exp
-  ssubo_overflow
   stack
-  strdup_mem
-  sub_bitvec
-  sub_exp
-  sub_s_arithmetic
-  sub_u_arithmetic
-  substitute10_special
-  substitute11_special
-  substitute12_special
-  substitute13_special
-  substitute14_special
-  substitute15_special
-  substitute16_special
-  substitute17_special
-  substitute18_special
-  substitute19_special
-  substitute1_special
-  substitute20_special
-  substitute21_special
-  substitute22_special
-  substitute23_special
-  substitute24_special
-  substitute25_special
-  substitute26_special
-  substitute27_special
-  substitute28_special
-  substitute29_special
-  substitute2_special
-  substitute30_special
-  substitute31_special
-  substitute32_special
-  substitute33_special
-  substitute34_special
-  substitute35_special
-  substitute36_special
-  substitute37_special
-  substitute38_special
-  substitute39_special
-  substitute3_special
-  substitute40_special
-  substitute4_special
-  substitute5_special
-  substitute6_special
-  substitute7_special
-  substitute8_special
-  substitute9_special
-  testcases
-  traverse_hash_str2i
-  true_aig
-  uaddo_exp
-  uaddo_overflow
-  udiv_aigvec
-  udiv_arithmetic
-  udiv_bitvec
-  udiv_exp
-  uext_bitvec
-  uext_exp
-  uext_misc
-  ugt_comp
-  ugt_exp
-  ugte_comp
-  ugte_exp
-  uint64_to_bitvec
-  uint64_to_bv_to_uint64_bitvec
-  ult_aigvec
-  ult_bitvec
-  ult_comp
-  ult_exp
-  ulte_comp
-  ulte_exp
-  umulo_exp
-  umulo_overflow
-  unsigned_to_exp
-  upprop1_special
-  urem_aigvec
-  urem_arithmetic
-  urem_bitvec
-  urem_exp
-  usubo_exp
-  usubo_overflow
+  unionfind
   util
-  var1_special
-  var2_special
-  var_aig
-  var_aigvec
-  var_exp
-  verbose1_special
-  verbose2_special
-  write10_special
-  write11_special
-  write12_special
-  write13_special
-  write14_special
-  write15_special
-  write16_special
-  write17_special
-  write18_special
-  write19_special
-  write1_special
-  write20_special
-  write21_special
-  write22_special
-  write23_special
-  write24_special
-  write2_special
-  write3_special
-  write4_special
-  write5_special
-  write6_special
-  write7_special
-  write8_special
-  write9_special
-  write_exp
-  xnor_exp
-  xnor_logic
-  xor_bitvec
-  xor_exp
-  xor_logic
-  zero_exp
 )
 
-set(regressions
-  3vl1
-  3vl2
-  3vl3
-  3vl4
-  3vl5
-  3vl6
-  add
-  addnegmul1
-  andopt1
-  andopt10
-  andopt11
-  andopt12
-  andopt13
-  andopt14
-  andopt15
-  andopt16
-  andopt17
-  andopt2
-  andopt3
-  andopt4
-  andopt5
-  andopt6
-  andopt7
-  andopt8
-  andopt9
-  array_strange.basic
-  arrayand
-  arraycond1
-  arraycond10
-  arraycond11
-  arraycond12
-  arraycond13
-  arraycond14
-  arraycond15
-  arraycond16
-  arraycond17
-  arraycond18
-  arraycond2
-  arraycond3
-  arraycond4
-  arraycond5
-  arraycond6
-  arraycond7
-  arraycond8
-  arraycond9
-  arraycondconst
-  arraycondconstaig
-  arrayeqerr0
-  arrayeqerr1
-  arrayeqerr2
-  binarysearch32s016
-  blabs2
-  bm22
-  bm32
-  bmc0k4
-  bubblesort.basic
-  bubsort002un
-  bvashr.axiom
-  bvnand.axiom
-  bvnor.axiom
-  bvsdiv.axiom
-  bvsge.axiom
-  bvsgt.axiom
-  bvsle.axiom
-  bvslt.axiom
-  bvsmod.axiom
-  bvsrem.axiom
-  bvsub.axiom
-  bvuge.axiom
-  bvugt.axiom
-  bvule.axiom
-  bvxnor.axiom
-  bvxor.axiom
-  calprob14sat5ksimp
-  concatslice1
-  concatslice2
-  const1
-  const2
-  count02inc
-  count02incuns
-  count03inc
-  count03plus2inc
-  count03to6
-  countbits016
-  csa3w162
-  csa3w322
-  csa3w42
-  csa3w82
-  csa4w42
-  csa4w82
-  davidcokchallenge2
-  dec
-  distri1
-  distri2
-  distri3
-  distri4
-  distri5
-  distri6
-  distri7
-  distri8
-  div
-  divrem
-  dubreva002ue
-  dum1
-  dum1.btor
-  dum2
-  dum2.btor
-  dum3.btor
-  eagerreadbug
-  exactlyone
-  exit0.basic
-  exit0_exit1.basic
-  exit1.basic
-  exit1_exit0.basic
-  exit2
-  exita.basic
-  ext1
-  ext10
-  ext11
-  ext12
-  ext13
-  ext14
-  ext15
-  ext16
-  ext17
-  ext18
-  ext19
-  ext2
-  ext20
-  ext21
-  ext22
-  ext23
-  ext24
-  ext25
-  ext26
-  ext27
-  ext28
-  ext29
-  ext3
-  ext4
-  ext5
-  ext6
-  ext7
-  ext8
-  ext9
-  extarraywrite1
-  extarraywrite2
-  extarraywrite3
-  extarraywrite3sat
-  factor18446744073709551617
-  factor18446744073709551617const
-  factor18446744073709551617reduced
-  factor18446744073709551617xconst
-  factor18446744073709551617yconst
-  factor2209
-  factor4294967295
-  factor4294967297
-  false2
-  fifo32bc04k05
-  fifo32ia04k05
-  fifo32in04k05
-  getvalue12
-  getvalue22
-  getvalue32
-  gtewithsub
-  hd1
-  hd10
-  hd11
-  hd12
-  hd13
-  hd14
-  hd15
-  hd16
-  hd17
-  hd18
-  hd19
-  hd2
-  hd20
-  hd21
-  hd3
-  hd4
-  hd5
-  hd6
-  hd7
-  hd8
-  hd9
-  headline1
-  headline10
-  headline11
-  headline12
-  headline13
-  headline14
-  headline15
-  headline16
-  headline2
-  headline3
-  headline4
-  headline5
-  headline6
-  headline7
-  headline8
-  headline9
-  inc
-  invalidmodel12
-  invalidmodel22
-  invalidmodel3
-  kreise
-  lambda1
-  lambda2
-  lazyitex
-  lazyitex0
-  lazyreadwritebug1
-  lazywritememleak1
-  lin0
-  lin1
-  lin2
-  lin3
-  lin4
-  memclear_bw32p3
-  memcpy02
-  modelge21
-  modelge210
-  modelge211
-  modelge212
-  modelge213
-  modelge214
-  modelge215
-  modelge216
-  modelge217
-  modelge218
-  modelge219
-  modelge22
-  modelge220
-  modelge221
-  modelge222
-  modelge223
-  modelge224
-  modelge225
-  modelge226
-  modelge227
-  modelge23
-  modelge24
-  modelge25
-  modelge26
-  modelge27
-  modelge28
-  modelge29
-  modelgen1
-  modelgen10
-  modelgen11
-  modelgen12
-  modelgen13
-  modelgen14
-  modelgen15
-  modelgen16
-  modelgen17
-  modelgen18
-  modelgen19
-  modelgen2
-  modelgen20
-  modelgen21
-  modelgen22
-  modelgen23
-  modelgen24
-  modelgen25
-  modelgen26
-  modelgen27
-  modelgen3
-  modelgen4
-  modelgen5
-  modelgen6
-  modelgen7
-  modelgen8
-  modelgen9
-  mul
-  mul4mod
-  mulassoc4
-  mulassoc5
-  mulassoc6
-  mux
-  negdistadd2
-  negsdivzero
-  nestedfun12
-  nextarray1
-  nextarray2
-  nextarray3
-  nextarray4
-  nextarray5
-  nextarray6
-  nextarray7
-  nextarray8
-  nextarrayinput1
-  nextautomata1
-  nextautomata2
-  nextautomata3
-  nextautomata4
-  nextcounter1
-  nextcounter2
-  nextcounter3
-  nextcounter4
-  nextcounter5
-  nextpoweroftwo016
-  nexttoggle
-  normaddneg0
-  normaddneg1
-  normaddneg2
-  normaddneg3
-  normalize_add_incomplete
-  normalize_and_incomplete
-  normalize_mul_incomplete
-  notdistadd02
-  notdistadd12
-  painc
-  palsqr562
-  palsqr582
-  peekpoke.basic
-  peekpokelong.basic
-  possdivzero
-  prim8bugreduced
-  problem_130
-  process
-  proxybug
-  random1
-  random12
-  random2
-  random3
-  random4
-  random5
-  read1
-  read10
-  read11
-  read12
-  read13
-  read14
-  read15
-  read16
-  read17
-  read18
-  read19
-  read2
-  read20
-  read21
-  read22
-  read3
-  read4
-  read5
-  read6
-  read7
-  read8
-  read9
-  redand3twice
-  redor3
-  regaddnorm1
-  regaddnorm2
-  regexit0basic
-  regmismatch2
-  regnegadd1
-  regpicoprepsqrt4
-  regprim11simp
-  regr-5smod3
-  regr-5srem3
-  regr-6smod3
-  regr-6srem3
-  regr-distinct2
-  regr3vl1
-  regr3vl2
-  regr3vl3
-  regr3vl4
-  regr5smod-3
-  regr5srem-3
-  regr6smod-3
-  regr6srem-3
-  regrbetacache1
-  regrbetacache2
-  regrbfs1
-  regrcalypto12
-  regrcalypto22
-  regrcalypto32
-  regrcollectprem
-  regrdomabst1
-  regrdomabst2
-  regrdomabst3
-  regrdomabst4
-  regrdomabst5
-  regrdomabst6
-  regrembeddedconstraint1
-  regrembeddedconstraint10
-  regrembeddedconstraint11
-  regrembeddedconstraint12
-  regrembeddedconstraint13
-  regrembeddedconstraint14
-  regrembeddedconstraint2
-  regrembeddedconstraint3
-  regrembeddedconstraint4
-  regrembeddedconstraint5
-  regrembeddedconstraint6
-  regrembeddedconstraint7
-  regrembeddedconstraint8
-  regrembeddedconstraint9
-  regrencparamapps2
-  regrexpleak1
-  regrexpleak2
-  regrlemmaloop_embeddedconstraints
-  regrmark1
-  regrmark2
-  regrmark3
-  regrmodel1
-  regrmodel2
-  regrmodel3
-  regrmodel4
-  regrpointerchasing1
-  regrrwbinexpconcatzeroconst
-  regrrwbinexpconcatzeroconst2
-  regrw8simp
-  regsmod1
-  regsubslapd149921red
-  reparse0.smt
-  reparse1.smt
-  reparse2.smt
-  reparselet
-  rw1
-  rw10
-  rw100
-  rw101
-  rw102
-  rw103
-  rw104
-  rw105
-  rw106
-  rw107
-  rw108
-  rw109
-  rw11
-  rw110
-  rw111
-  rw112
-  rw113
-  rw114
-  rw115
-  rw116
-  rw117
-  rw118
-  rw119
-  rw12
-  rw120
-  rw121
-  rw122
-  rw123
-  rw124
-  rw125
-  rw126
-  rw127
-  rw128
-  rw129
-  rw13
-  rw130
-  rw131
-  rw132
-  rw133
-  rw134
-  rw135
-  rw136
-  rw137
-  rw138
-  rw139
-  rw14
-  rw140
-  rw141
-  rw142
-  rw143
-  rw144
-  rw145
-  rw146
-  rw147
-  rw148
-  rw149
-  rw15
-  rw150
-  rw151
-  rw152
-  rw153
-  rw154
-  rw155
-  rw156
-  rw157
-  rw158
-  rw159
-  rw16
-  rw160
-  rw161
-  rw162
-  rw163
-  rw164
-  rw165
-  rw166
-  rw167
-  rw168
-  rw169
-  rw17
-  rw170
-  rw171
-  rw172
-  rw173
-  rw174
-  rw175
-  rw176
-  rw177
-  rw178
-  rw179
-  rw18
-  rw180
-  rw181
-  rw182
-  rw183
-  rw184
-  rw185
-  rw186
-  rw187
-  rw188
-  rw189
-  rw19
-  rw190
-  rw191
-  rw192
-  rw193
-  rw194
-  rw195
-  rw196
-  rw197
-  rw198
-  rw199
-  rw2
-  rw20
-  rw200
-  rw201
-  rw202
-  rw203
-  rw204
-  rw205
-  rw206
-  rw207
-  rw208
-  rw209
-  rw21
-  rw210
-  rw211
-  rw212
-  rw213
-  rw214
-  rw215
-  rw216
-  rw2172
-  rw2182
-  rw2192
-  rw22
-  rw2202
-  rw2212
-  rw23
-  rw24
-  rw25
-  rw26
-  rw27
-  rw28
-  rw29
-  rw3
-  rw30
-  rw31
-  rw32
-  rw33
-  rw34
-  rw35
-  rw36
-  rw37
-  rw38
-  rw39
-  rw4
-  rw40
-  rw41
-  rw42
-  rw43
-  rw44
-  rw45
-  rw46
-  rw47
-  rw48
-  rw49
-  rw5
-  rw50
-  rw51
-  rw52
-  rw53
-  rw54
-  rw55
-  rw56
-  rw57
-  rw58
-  rw59
-  rw6
-  rw60
-  rw61
-  rw62
-  rw63
-  rw64
-  rw65
-  rw66
-  rw67
-  rw68
-  rw69
-  rw7
-  rw70
-  rw71
-  rw72
-  rw73
-  rw74
-  rw75
-  rw76
-  rw77
-  rw78
-  rw79
-  rw8
-  rw80
-  rw81
-  rw82
-  rw83
-  rw84
-  rw85
-  rw86
-  rw87
-  rw88
-  rw89
-  rw9
-  rw90
-  rw91
-  rw92
-  rw93
-  rw94
-  rw95
-  rw96
-  rw97
-  rw98
-  rw99
-  rwpropindexplusconst1
-  rwpropindexplusconst2
-  rwpropindexplusconst3
-  rwpropindexplusconst4
-  rwpropindexpluszero1
-  rwpropindexpluszero2
-  rwpropindexpluszero3
-  rwpropindexpluszero4
-  rwpropindexpluszero5
-  rwpropindexpluszero6
-  rwpropindexpluszero7
-  rwpropindexpluszero8
-  rwr1
-  rww1
-  sc12fuzzcheck22
-  sc2011rules-qf-abv-ex2
-  sc2011rules-qf-bv-ex2
-  sdiveqashr2false322
-  selsort002un
-  seq0
-  seq1
-  simple.basic
-  simple0-from-carsten2
-  slicesubst1
-  sll
-  smt1perr000
-  smt1perr001
-  smt1perr002
-  smt1perr003
-  smt2perr0002
-  smt2perr0012
-  smt2perr0022
-  smt2perr0032
-  smt2perr0042
-  smt2perr0052
-  smt2perr0062
-  smt2perr0072
-  smt2perr0082
-  smt2perr0092
-  smt2perr0112
-  smt2perr0122
-  smt2perr0132
-  smt2perr0142
-  smt2perr0152
-  smt2perr0162
-  smt2perr0172
-  smt2perr0182
-  smt2perr0192
-  smt2perr0202
-  smt2perr0212
-  smt2perr0222
-  smt2perr0232
-  smt2perr0242
-  smt2perr0252
-  smt2perr0262
-  smt2perr0272
-  smt2perr0282
-  smt2perr0292
-  smt2perr0302
-  smt2perr0312
-  smt2perr0322
-  smt2perr0332
-  smt2perr0342
-  smt2perr0352
-  smt2perr0362
-  smt2perr0372
-  smt2perr0382
-  smt2perr0392
-  smt2perr0402
-  smt2perr0412
-  smt2perr0422
-  smt2perr0432
-  smt2perr0442
-  smt2perr0452
-  smt2perr0462
-  smt2perr0472
-  smt2perr0482
-  smt2perr0492
-  smt2perr0502
-  smt2perr0512
-  smt2perr0522
-  smt2perr0532
-  smt2perr0542
-  smt2perr0552
-  smt2perr0562
-  smt2perr0572
-  smt2perr0582
-  smt2perr0592
-  smt2perr0602
-  smt2perr0612
-  smt2perr0622
-  smt2perr0632
-  smt2perr0642
-  smt2perr0652
-  smt2perr0662
-  smt2perr0672
-  smt2perr0682
-  smt2perr0692
-  smt2perr0702
-  smt2perr0712
-  smt2perr0722
-  smt2perr0732
-  smt2perr0742
-  smt2perr0752
-  smt2perr0762
-  smt2perr0772
-  smt2perr0782
-  smt2perr0792
-  smt2perr0802
-  smt2perr0812
-  smt2perr0822
-  smt2perr0832
-  smt2perr0842
-  smt2perr0852
-  smt2perr0862
-  smt2perr0872
-  smt2perr0882
-  smt2perr0892
-  smt2perr0902
-  smt2perr0912
-  smt2perr0922
-  smt2perr0932
-  smt2perr0942
-  smt2perr0952
-  smt2perr0962
-  smt2perr0972
-  smt2perr0982
-  smt2perr0992
-  smt2perr1002
-  smt2perr1012
-  smt2perr1022
-  smt2perr1032
-  smt2perr1042
-  smt2perr1052
-  smt2perr1062
-  smt2perr1072
-  smt2perr1082
-  smt2perr1092
-  smt2perr1102
-  smt2perr1112
-  smt2perr1122
-  smt2perr1132
-  smt2perr1142
-  smt2perr1152
-  smt2perr1162
-  smt2perr1172
-  smt2perr1182
-  smt2perr1192
-  smt2perr1202
-  smt2perr1212
-  smt2perr1222
-  smt2perr1232
-  smt2perr1242
-  smt2perr1252
-  smt2perr1262
-  smt2perr1272
-  smt2perr1282
-  smt2perr1292
-  smt2perr1302
-  smt2perr1312
-  smt2perr1322
-  smt2perr1332
-  smt2perr1342
-  smt2perr1352
-  smt2perr1362
-  smt2perr1372
-  smt2perr1382
-  smt2perr1392
-  smt2perr1402
-  smt2perr1412
-  smt2perr1422
-  smt2perr1432
-  smt2perr1442
-  smt2perr1452
-  smt2perr1462
-  smt2perr1472
-  smt2perr1482
-  smt2perr1492
-  smt2perr1502
-  smt2perr1512
-  smt2perr1522
-  smt2perr1532
-  smt2perr1552
-  smt2perr1562
-  smt2perr1572
-  smt2perr1582
-  smt2perr1592
-  smt2perr1602
-  smt2perr1612
-  smt2perr1622
-  smt2perr1632
-  smt2perr1642
-  smtandvar
-  smtarraycond1
-  smtarraycond2
-  smtarraycond3
-  smtashr1
-  smtashr2
-  smtashr3
-  smtaxiombvashr1
-  smtaxiombvashr16
-  smtaxiombvashr2
-  smtaxiombvashr3
-  smtaxiombvashr32
-  smtaxiombvashr4
-  smtaxiombvashr5
-  smtaxiombvashr6
-  smtaxiombvashr64
-  smtaxiombvashr7
-  smtaxiombvashr8
-  smtaxiombvnand1
-  smtaxiombvnand16
-  smtaxiombvnand2
-  smtaxiombvnand3
-  smtaxiombvnand32
-  smtaxiombvnand4
-  smtaxiombvnand5
-  smtaxiombvnand6
-  smtaxiombvnand64
-  smtaxiombvnand7
-  smtaxiombvnand8
-  smtaxiombvnor1
-  smtaxiombvnor16
-  smtaxiombvnor2
-  smtaxiombvnor3
-  smtaxiombvnor32
-  smtaxiombvnor4
-  smtaxiombvnor5
-  smtaxiombvnor6
-  smtaxiombvnor64
-  smtaxiombvnor7
-  smtaxiombvnor8
-  smtaxiombvsdiv1
-  smtaxiombvsdiv16
-  smtaxiombvsdiv2
-  smtaxiombvsdiv3
-  smtaxiombvsdiv32
-  smtaxiombvsdiv4
-  smtaxiombvsdiv5
-  smtaxiombvsdiv6
-  smtaxiombvsdiv64
-  smtaxiombvsdiv7
-  smtaxiombvsdiv8
-  smtaxiombvsge1
-  smtaxiombvsge16
-  smtaxiombvsge2
-  smtaxiombvsge3
-  smtaxiombvsge32
-  smtaxiombvsge4
-  smtaxiombvsge5
-  smtaxiombvsge6
-  smtaxiombvsge64
-  smtaxiombvsge7
-  smtaxiombvsge8
-  smtaxiombvsgt1
-  smtaxiombvsgt16
-  smtaxiombvsgt2
-  smtaxiombvsgt3
-  smtaxiombvsgt32
-  smtaxiombvsgt4
-  smtaxiombvsgt5
-  smtaxiombvsgt6
-  smtaxiombvsgt64
-  smtaxiombvsgt7
-  smtaxiombvsgt8
-  smtaxiombvsle1
-  smtaxiombvsle16
-  smtaxiombvsle2
-  smtaxiombvsle3
-  smtaxiombvsle32
-  smtaxiombvsle4
-  smtaxiombvsle5
-  smtaxiombvsle6
-  smtaxiombvsle64
-  smtaxiombvsle7
-  smtaxiombvsle8
-  smtaxiombvslt1
-  smtaxiombvslt16
-  smtaxiombvslt2
-  smtaxiombvslt3
-  smtaxiombvslt32
-  smtaxiombvslt4
-  smtaxiombvslt5
-  smtaxiombvslt6
-  smtaxiombvslt64
-  smtaxiombvslt7
-  smtaxiombvslt8
-  smtaxiombvsmod1
-  smtaxiombvsmod16
-  smtaxiombvsmod2
-  smtaxiombvsmod3
-  smtaxiombvsmod32
-  smtaxiombvsmod4
-  smtaxiombvsmod5
-  smtaxiombvsmod6
-  smtaxiombvsmod64
-  smtaxiombvsmod7
-  smtaxiombvsmod8
-  smtaxiombvsrem1
-  smtaxiombvsrem16
-  smtaxiombvsrem2
-  smtaxiombvsrem3
-  smtaxiombvsrem32
-  smtaxiombvsrem4
-  smtaxiombvsrem5
-  smtaxiombvsrem6
-  smtaxiombvsrem64
-  smtaxiombvsrem7
-  smtaxiombvsrem8
-  smtaxiombvsub1
-  smtaxiombvsub16
-  smtaxiombvsub2
-  smtaxiombvsub3
-  smtaxiombvsub32
-  smtaxiombvsub4
-  smtaxiombvsub5
-  smtaxiombvsub6
-  smtaxiombvsub64
-  smtaxiombvsub7
-  smtaxiombvsub8
-  smtaxiombvuge1
-  smtaxiombvuge16
-  smtaxiombvuge2
-  smtaxiombvuge3
-  smtaxiombvuge32
-  smtaxiombvuge4
-  smtaxiombvuge5
-  smtaxiombvuge6
-  smtaxiombvuge64
-  smtaxiombvuge7
-  smtaxiombvuge8
-  smtaxiombvugt1
-  smtaxiombvugt16
-  smtaxiombvugt2
-  smtaxiombvugt3
-  smtaxiombvugt32
-  smtaxiombvugt4
-  smtaxiombvugt5
-  smtaxiombvugt6
-  smtaxiombvugt64
-  smtaxiombvugt7
-  smtaxiombvugt8
-  smtaxiombvule1
-  smtaxiombvule16
-  smtaxiombvule2
-  smtaxiombvule3
-  smtaxiombvule32
-  smtaxiombvule4
-  smtaxiombvule5
-  smtaxiombvule6
-  smtaxiombvule64
-  smtaxiombvule7
-  smtaxiombvule8
-  smtaxiombvxnor1
-  smtaxiombvxnor16
-  smtaxiombvxnor2
-  smtaxiombvxnor3
-  smtaxiombvxnor32
-  smtaxiombvxnor4
-  smtaxiombvxnor5
-  smtaxiombvxnor6
-  smtaxiombvxnor64
-  smtaxiombvxnor7
-  smtaxiombvxnor8
-  smtaxiombvxor1
-  smtaxiombvxor16
-  smtaxiombvxor2
-  smtaxiombvxor3
-  smtaxiombvxor32
-  smtaxiombvxor4
-  smtaxiombvxor5
-  smtaxiombvxor6
-  smtaxiombvxor64
-  smtaxiombvxor7
-  smtaxiombvxor8
-  smtaxiommccarthy
-  smtbbbrwl0
-  smtbv255
-  smtbvbin
-  smtbvhex
-  smtextarray1sat0
-  smtextarray1sat1
-  smtextarray2sat0
-  smtextarray2sat1
-  smtextarray2sat2
-  smtextarray2sat3
-  smtextarray3sat0
-  smtextarray3sat1
-  smtextarray3sat2
-  smtextarray3sat3
-  smtextarray3sat4
-  smtextarray3sat5
-  smtextarray3sat6
-  smtextarray3sat7
-  smtextarrayaxiom1
-  smtextarrayaxiom1uf
-  smtextarrayaxiom2
-  smtextarrayaxiom2uf
-  smtextarrayaxiom3
-  smtextarrayaxiom3uf
-  smtextarrayaxiom4
-  smtextarrayaxiom4uf
-  smtfalse
-  smtflet
-  smtiff
-  smtlshr1
-  smtlshr2
-  smtlshr3
-  smtnotvar
-  smtor
-  smtrepeat
-  smtrotate
-  smtshl1
-  smtshl2
-  smtshl3
-  smtsignextend
-  smtsub0
-  smttrue
-  smtvar
-  smtxor
-  smtzeroextend
-  sqrt11
-  sqrt13
-  sqrt18446744073709551617
-  sqrt25
-  sqrt29
-  sqrt31
-  sqrt4
-  sqrt4294967297
-  sqrt4295098369
-  sqrt49
-  sqrt5
-  sqrt53
-  sqrt65537
-  sqrt7
-  sqrt9
-  substcyclic1
-  substitute1
-  substitute10
-  substitute11
-  substitute12
-  substitute13
-  substitute14
-  substitute15
-  substitute16
-  substitute17
-  substitute18
-  substitute19
-  substitute2
-  substitute20
-  substitute21
-  substitute22
-  substitute23
-  substitute24
-  substitute25
-  substitute26
-  substitute27
-  substitute28
-  substitute29
-  substitute3
-  substitute30
-  substitute31
-  substitute32
-  substitute33
-  substitute34
-  substitute35
-  substitute36
-  substitute37
-  substitute38
-  substitute39
-  substitute4
-  substitute40
-  substitute5
-  substitute6
-  substitute7
-  substitute8
-  substitute9
-  sult
-  sult2
-  sum.basic
-  swap.basic
-  swapmem002se
-  swapmem002ue
-  translateaxiom.sh
-  translateaxioms.sh
-  true2
-  twocomplementassub
-  udiv16castdown8
-  udiv32castdown16
-  udiv8castdown4
-  udiv8castdown5
-  udiv8castdown6
-  udiv8castdown7
-  udivtheorem1
-  udivzero
-  ultsubst1
-  ultsubst2
-  ultsubst3
-  ultsubst4
-  ultsubst5
-  ultsubst6
-  ultsubst7
-  ultsubst8
-  ultsubst9
-  ulttheorem1
-  upprop1
-  uremsimp32
-  uremsimp32
-  uremtheorem1
-  uremudivaxiom4
-  uremudivaxiom4no
-  var1
-  var2
-  varread
-  verbose1
-  verbose2
-  wchains002se
-  wchains002ue
-  write1
-  write10
-  write11
-  write12
-  write13
-  write14
-  write15
-  write16
-  write17
-  write18
-  write19
-  write2
-  write20
-  write21
-  write22
-  write23
-  write24
-  write3
-  write4
-  write5
-  write5red
-  write6
-  write7
-  write8
-  write9
-)
-
-foreach(testcase ${units} ${regressions})
-  add_test(${testcase} ${CMAKE_BINARY_DIR}/bin/test -q -e ${testcase})
+foreach(test ${test_names})
+  add_executable (test${test} test_${test}.cpp)
+  target_include_directories(test${test} PRIVATE ${PROJECT_SOURCE_DIR}/test/new_test)
+  target_link_libraries(test${test} boolector m)
+  target_link_libraries(test${test} gtest_main)
+  set_target_properties(test${test} PROPERTIES OUTPUT_NAME test${test})
+  add_test(${test} ${CMAKE_BINARY_DIR}/bin/tests/test${test})
 endforeach()
 
+set(sat_testcases
+"arraycond1.btor"
+"arraycond10.btor"
+"arraycond15.btor"
+"arraycond16.btor"
+"arraycond17.btor"
+"arraycond2.btor"
+"arraycond4.btor"
+"const1.btor"
+"ext1.btor"
+"ext12.btor"
+"ext14.btor"
+"ext17.btor"
+"ext20.btor"
+"ext3.btor"
+"ext4.btor"
+"ext6.btor"
+"ext8.btor"
+"extarraywrite3sat.smt2"
+"factor18446744073709551617const.btor"
+"factor18446744073709551617xconst.btor"
+"factor18446744073709551617yconst.btor"
+"factor2209.btor"
+"factor4294967295.btor"
+"factor4294967297.btor"
+"fifo32ia04k05.smt2"
+"fifo32in04k05.smt2"
+"invalidmodel1.smt2"
+"invalidmodel2.smt2 -xl=0 -ml=0 -rwl=2"
+"invalidmodel3.btor"
+"lazyreadwritebug1.btor"
+"lambda1.btor"
+"lin0.btor"
+"lin1.btor"
+"lin2.btor"
+"lin3.btor"
+"lin4.btor"
+"nestedfun1.smt2 -rwl 2"
+"normaddneg0.btor"
+"normaddneg1.btor"
+"proxybug.btor"
+"random1.btor"
+"random1.btor2"
+"random2.btor"
+"random3.btor"
+"random4.btor"
+"read12.btor"
+"read13.btor"
+"read14.btor"
+"read15.btor"
+"read18.btor"
+"read3.btor"
+"redand3twice.btor"
+"redor3.btor"
+"regr3vl1.btor -rwl 0"
+"regr3vl1.btor -rwl 1"
+"regr3vl1.btor -rwl 2"
+"regr3vl1.btor -rwl 3"
+"regr3vl2.btor -rwl 0"
+"regr3vl2.btor -rwl 1"
+"regr3vl2.btor -rwl 2"
+"regr3vl2.btor -rwl 3"
+"regr3vl3.btor -rwl 0"
+"regr3vl3.btor -rwl 1"
+"regr3vl3.btor -rwl 2"
+"regr3vl3.btor -rwl 3"
+"regr3vl4.btor -rwl 0"
+"regr3vl4.btor -rwl 1"
+"regr3vl4.btor -rwl 2"
+"regr3vl4.btor -rwl 3"
+"regrbetacache1.btor -bra"
+# currently broken since we don't allow to mix lambdas with arrays
+#"regrbetacache2.btor -bra"
+"regrbfs1.btor -rwl 0"
+"regrbfs1.btor -rwl 1"
+"regrbfs1.btor -rwl 2"
+"regrbfs1.btor -rwl 3"
+"regrcollectprem.btor"
+"regrdomabst1.btor"
+"regrdomabst2.btor"
+"regrdomabst3.btor"
+"regrdomabst4.btor"
+"regrembeddedconstraint10.btor -rwl 0"
+"regrembeddedconstraint10.btor -rwl 1"
+"regrembeddedconstraint10.btor -rwl 2"
+"regrembeddedconstraint10.btor -rwl 3"
+"regrembeddedconstraint11.btor -rwl 0"
+"regrembeddedconstraint11.btor -rwl 1"
+"regrembeddedconstraint11.btor -rwl 2"
+"regrembeddedconstraint11.btor -rwl 3"
+"regrembeddedconstraint3.btor -rwl 0"
+"regrembeddedconstraint3.btor -rwl 1"
+"regrembeddedconstraint3.btor -rwl 2"
+"regrembeddedconstraint3.btor -rwl 3"
+"regrembeddedconstraint5.btor -rwl 0"
+"regrembeddedconstraint5.btor -rwl 1"
+"regrembeddedconstraint5.btor -rwl 2"
+"regrembeddedconstraint5.btor -rwl 3"
+"regrembeddedconstraint6.btor -rwl 0"
+"regrembeddedconstraint6.btor -rwl 1"
+"regrembeddedconstraint6.btor -rwl 2"
+"regrembeddedconstraint6.btor -rwl 3"
+"regrembeddedconstraint7.btor -rwl 0"
+"regrembeddedconstraint7.btor -rwl 1"
+"regrembeddedconstraint7.btor -rwl 2"
+"regrembeddedconstraint7.btor -rwl 3"
+"regrembeddedconstraint8.btor -rwl 0"
+"regrembeddedconstraint8.btor -rwl 1"
+"regrembeddedconstraint8.btor -rwl 2"
+"regrembeddedconstraint8.btor -rwl 3"
+"regrembeddedconstraint9.btor -rwl 0"
+"regrembeddedconstraint9.btor -rwl 1"
+"regrembeddedconstraint9.btor -rwl 2"
+"regrembeddedconstraint9.btor -rwl 3"
+"regrencparamapps.smt2"
+"regrlemmaloop_embeddedconstraints.btor -rwl 1"
+"regrmark1.btor -rwl 0"
+"regrmark1.btor -rwl 1"
+"regrmark1.btor -rwl 2"
+"regrmark1.btor -rwl 3"
+"regrmodel1.btor"
+"regrmodel3.btor"
+"regrmodel4.btor"
+"regpicoprepsqrt4.btor"
+"regprim11simp.btor"
+"regrrwbinexpconcatzeroconst.btor"
+"regrw8simp.btor"
+"rw113.btor -rwl 0"
+"rw1.btor"
+"rw10.btor"
+"rw11.btor"
+"rw12.btor"
+"rw13.btor"
+"rw14.btor"
+"rw15.btor"
+"rw2.btor"
+"rw3.btor"
+"rw4.btor"
+"rw5.btor"
+"rw6.btor"
+"rw7.btor"
+"rw8.btor"
+"rw9.btor"
+"rw113.btor -rwl 1"
+"rw114.btor -rwl 0"
+"rw114.btor -rwl 1"
+"rw121.btor -rwl 0"
+"rw121.btor -rwl 1"
+"rw122.btor -rwl 0"
+"rw122.btor -rwl 1"
+"rw132.btor -rwl 0"
+"rw132.btor -rwl 1"
+"rw133.btor -rwl 0"
+"rw133.btor -rwl 1"
+"rw134.btor -rwl 0"
+"rw134.btor -rwl 3"
+"rw135.btor -rwl 0"
+"rw135.btor -rwl 3"
+"rw137.btor -rwl 0"
+"rw137.btor -rwl 3"
+"rw138.btor -rwl 0"
+"rw138.btor -rwl 3"
+"rw139.btor -rwl 0"
+"rw139.btor -rwl 3"
+"rw140.btor -rwl 0"
+"rw140.btor -rwl 3"
+"rw141.btor -rwl 0"
+"rw141.btor -rwl 3"
+"rw142.btor -rwl 0"
+"rw142.btor -rwl 3"
+"rw143.btor -rwl 0"
+"rw143.btor -rwl 3"
+"rw148.btor -rwl 0"
+"rw148.btor -rwl 3"
+"rw153.btor -rwl 0"
+"rw153.btor -rwl 3"
+"rw157.btor"
+"rw16.btor -rwl 0"
+"rw16.btor -rwl 1"
+"rw166.btor -rwl 1"
+"rw167.btor -rwl 1"
+"rw168.btor -rwl 1"
+"rw169.btor -rwl 1"
+"rw17.btor -rwl 0"
+"rw17.btor -rwl 1"
+"rw178.btor -rwl 3"
+"rw179.btor -rwl 3"
+"rw18.btor -rwl 0"
+"rw18.btor -rwl 1"
+"rw212.smt2 -rwl 3"
+"rw216.smt2 -rwl 3"
+"rw44.btor -rwl 0"
+"rw44.btor -rwl 1"
+"rw45.btor -rwl 0"
+"rw45.btor -rwl 1"
+"rw58.btor -rwl 0"
+"rw58.btor -rwl 3"
+"rw59.btor -rwl 0"
+"rw59.btor -rwl 3"
+"rwpropindexpluszero1.btor"
+"rwpropindexpluszero1.btor -rwl 0"
+"rwpropindexpluszero2.btor"
+"rwpropindexpluszero2.btor -rwl 0"
+"rwpropindexpluszero3.btor"
+"rwpropindexpluszero3.btor -rwl 0"
+"rwpropindexpluszero4.btor"
+"rwpropindexpluszero4.btor -rwl 0"
+"rwpropindexpluszero5.btor"
+"rwpropindexpluszero5.btor -rwl 0"
+"rwpropindexpluszero6.btor"
+"rwpropindexpluszero6.btor -rwl 0"
+"rwpropindexpluszero7.btor"
+"rwpropindexpluszero7.btor -rwl 0"
+"rwpropindexpluszero8.btor"
+"rwpropindexpluszero8.btor -rwl 0"
+"rwr1.btor -rwl 3 -bra"
+"rww1.btor -rwl 3"
+"sc12fuzzcheck2.smt2"
+"slicesubst1.btor -rwl 0"
+"slicesubst1.btor -rwl 2"
+"smt2pushpop0.smt2 -i"
+"smtashr1.smt2"
+"smtashr2.smt2"
+"smtashr3.smt2"
+"smtextarray1sat0.smt2"
+"smtextarray1sat1.smt2"
+"smtextarray2sat0.smt2"
+"smtextarray2sat1.smt2"
+"smtextarray2sat2.smt2"
+"smtextarray2sat3.smt2"
+"smtextarray3sat0.smt2"
+"smtextarray3sat1.smt2"
+"smtextarray3sat2.smt2"
+"smtextarray3sat3.smt2"
+"smtextarray3sat4.smt2"
+"smtextarray3sat5.smt2"
+"smtextarray3sat6.smt2"
+"smtextarray3sat7.smt2"
+"smtlshr1.smt2"
+"smtlshr2.smt2"
+"smtlshr3.smt2"
+"smtrepeat.smt2"
+"smtrotate.smt2"
+"smtshl1.smt2"
+"smtshl2.smt2"
+"smtshl3.smt2"
+"smtsignextend.smt2"
+"smttrue.smt2 -m"
+"smtzeroextend.smt2"
+"sqrt25.btor"
+"sqrt4.btor"
+"sqrt4295098369.btor"
+"sqrt49.btor"
+"sqrt9.btor"
+"substcyclic1.btor"
+"substitute1.btor"
+"substitute3.btor"
+"substitute4.btor"
+"substitute40.btor"
+"substitute5.btor"
+"swapmem002se.smt2"
+"ultsubst1.btor -rwl 0"
+"ultsubst1.btor -rwl 2"
+"ultsubst2.btor -rwl 0"
+"ultsubst2.btor -rwl 2"
+"ultsubst3.btor -rwl 0"
+"ultsubst3.btor -rwl 2"
+"ultsubst4.btor -rwl 0"
+"ultsubst4.btor -rwl 2"
+"ultsubst5.btor -rwl 0"
+"ultsubst5.btor -rwl 2"
+"ultsubst6.btor -rwl 0"
+"ultsubst6.btor -rwl 2"
+"ultsubst7.btor -rwl 0"
+"ultsubst7.btor -rwl 2"
+"ultsubst8.btor -rwl 0"
+"ultsubst8.btor -rwl 2"
+"ultsubst9.btor -rwl 0"
+"ultsubst9.btor -rwl 2"
+"upprop1.btor"
+"var1.btor"
+"var2.btor"
+"write11.btor"
+"write12.btor"
+"write15.btor"
+"write18.btor"
+"write19.btor"
+"write20.btor"
+"write5.btor"
+"wchains002se.smt2"
+)
+
+set(unsat_testcases
+"3vl1.btor -rwl 0"
+"3vl1.btor -rwl 2"
+"3vl2.btor -rwl 0"
+"3vl2.btor -rwl 2"
+"3vl3.btor -rwl 0"
+"3vl3.btor -rwl 2"
+"3vl4.btor -rwl 0"
+"3vl4.btor -rwl 2"
+"3vl5.btor -rwl 0"
+"3vl5.btor -rwl 2"
+"3vl6.btor -rwl 0"
+"3vl6.btor -rwl 2"
+"addnegmul1.btor"
+"andopt1.btor"
+"andopt10.btor"
+"andopt11.btor"
+"andopt12.btor"
+"andopt13.btor"
+"andopt14.btor"
+"andopt15.btor"
+"andopt16.btor"
+"andopt17.btor"
+"andopt2.btor"
+"andopt3.btor"
+"andopt4.btor"
+"andopt5.btor"
+"andopt6.btor"
+"andopt7.btor"
+"andopt8.btor"
+"andopt9.btor"
+"arraycond11.btor"
+"arraycond12.btor"
+"arraycond13.btor"
+"arraycond14.btor"
+"arraycond18.btor"
+"arraycond3.btor"
+"arraycond5.btor"
+"arraycond6.btor"
+"arraycond7.btor"
+"arraycond8.btor"
+"arraycond9.btor"
+"arraycondconst.btor -rwl 0"
+"arraycondconstaig.btor -rwl 0"
+"binarysearch32s016.smt2"
+"bubsort002un.smt2"
+"const2.btor"
+"countbits016.smt2"
+"dec_rwl3.btor"
+"dec_rwl0.btor -rwl 0"
+"distri1.btor"
+"distri2.btor"
+"distri3.btor"
+"distri4.btor"
+"distri5.btor"
+"distri6.btor"
+"distri7.btor"
+"distri8.btor"
+"dubreva002ue.smt2"
+"exactlyone.btor"
+"ext10.btor"
+"ext11.btor"
+"ext13.btor"
+"ext15.btor"
+"ext16.btor"
+"ext18.btor"
+"ext19.btor"
+"ext2.btor"
+"ext21.btor"
+"ext22.btor"
+"ext23.btor"
+"ext24.btor"
+"ext25.btor"
+"ext26.btor"
+"ext27.btor"
+"ext28.btor"
+"ext29.btor"
+"ext5.btor"
+"ext7.btor"
+"ext9.btor"
+"extarraywrite1.btor"
+"extarraywrite2.btor"
+"extarraywrite3.smt2"
+"fifo32bc04k05.smt2"
+"gtewithsub.btor"
+"hd1.btor -rwl 0"
+"hd1.btor -rwl 1"
+"hd10.btor -rwl 0"
+"hd10.btor -rwl 1"
+"hd11.btor -rwl 0"
+"hd11.btor -rwl 1"
+"hd12.btor -rwl 0"
+"hd12.btor -rwl 1"
+"hd13.btor -rwl 0"
+"hd13.btor -rwl 1"
+"hd14.btor -rwl 0"
+"hd14.btor -rwl 1"
+"hd15.btor -rwl 0"
+"hd15.btor -rwl 1"
+"hd16.btor -rwl 0"
+"hd16.btor -rwl 1"
+"hd17.btor -rwl 0"
+"hd17.btor -rwl 1"
+"hd18.btor -rwl 0"
+"hd18.btor -rwl 1"
+"hd19.btor"
+"hd2.btor -rwl 0"
+"hd2.btor -rwl 1"
+"hd20.btor"
+"hd21.btor"
+"hd3.btor -rwl 0"
+"hd3.btor -rwl 1"
+"hd4.btor -rwl 0"
+"hd4.btor -rwl 1"
+"hd5.btor -rwl 0"
+"hd5.btor -rwl 1"
+"hd6.btor -rwl 0"
+"hd6.btor -rwl 1"
+"hd7.btor -rwl 0"
+"hd7.btor -rwl 1"
+"hd8.btor -rwl 0"
+"hd8.btor -rwl 1"
+"hd9.btor -rwl 0"
+"hd9.btor -rwl 1"
+"inc.btor"
+"inc.btor -rwl 0"
+"lambda2.btor"
+"memcpy02.smt2"
+"mulassoc4.smt2"
+"mulassoc5.smt2"
+"mulassoc6.smt2"
+"nextpoweroftwo016.smt2"
+"normaddneg2.btor"
+"normaddneg3.btor"
+"prim8bugreduced.btor"
+"problem_130.smt2"
+"random5.btor -rwl 0"
+"random5.btor -rwl 1"
+"read1.btor"
+"read10.btor"
+"read11.btor"
+"read16.btor"
+"read17.btor"
+"read19.btor"
+"read2.btor"
+"read20.btor"
+"read21.btor"
+"read22.btor"
+"read4.btor"
+"read5.btor"
+"read6.btor"
+"read7.btor"
+"read8.btor"
+"read9.btor"
+"regr-distinct.smt2"
+"regrcalypto1.smt2"
+"regrcalypto2.smt2"
+"regrcalypto3.smt2"
+"regrembeddedconstraint1.btor -rwl 0"
+"regrembeddedconstraint1.btor -rwl 1"
+"regrembeddedconstraint1.btor -rwl 2"
+"regrembeddedconstraint1.btor -rwl 3"
+"regrembeddedconstraint12.btor -rwl 0"
+"regrembeddedconstraint12.btor -rwl 1"
+"regrembeddedconstraint12.btor -rwl 2"
+"regrembeddedconstraint12.btor -rwl 3"
+"regrembeddedconstraint13.btor -rwl 0"
+"regrembeddedconstraint13.btor -rwl 1"
+"regrembeddedconstraint13.btor -rwl 2"
+"regrembeddedconstraint13.btor -rwl 3"
+"regrembeddedconstraint14.btor -rwl 0"
+"regrembeddedconstraint14.btor -rwl 1"
+"regrembeddedconstraint14.btor -rwl 2"
+"regrembeddedconstraint14.btor -rwl 3"
+"regrembeddedconstraint2.btor -rwl 0"
+"regrembeddedconstraint2.btor -rwl 1"
+"regrembeddedconstraint2.btor -rwl 2"
+"regrembeddedconstraint2.btor -rwl 3"
+"regrembeddedconstraint4.btor -rwl 0"
+"regrembeddedconstraint4.btor -rwl 1"
+"regrembeddedconstraint4.btor -rwl 2"
+"regrembeddedconstraint4.btor -rwl 3"
+"regrexpleak1.btor -rwl 0"
+"regrexpleak1.btor -rwl 1"
+"regrexpleak1.btor -rwl 2"
+"regrexpleak1.btor -rwl 3"
+"regrexpleak2.btor -rwl 0"
+"regrexpleak2.btor -rwl 1"
+"regrexpleak2.btor -rwl 2"
+"regrexpleak2.btor -rwl 3"
+"regrmark2.btor -rwl 0"
+"regrmark2.btor -rwl 1"
+"regrmark2.btor -rwl 2"
+"regrmark2.btor -rwl 3"
+"regrmark3.btor -rwl 0"
+"regrmark3.btor -rwl 1"
+"regrmark3.btor -rwl 2"
+"regrmark3.btor -rwl 3"
+"regrmodel2.btor"
+"regrpointerchasing1.btor"
+"regsmod1.smt2"
+"regsmtparselet.smt2"
+"regsubslapd149921red.btor"
+"rw100.btor -rwl 0"
+"rw100.btor -rwl 1"
+"rw101.btor -rwl 0"
+"rw101.btor -rwl 1"
+"rw102.btor -rwl 0"
+"rw102.btor -rwl 1"
+"rw103.btor -rwl 0"
+"rw103.btor -rwl 1"
+"rw104.btor -rwl 0"
+"rw104.btor -rwl 1"
+"rw105.btor -rwl 0"
+"rw105.btor -rwl 1"
+"rw106.btor -rwl 0"
+"rw106.btor -rwl 1"
+"rw107.btor -rwl 0"
+"rw107.btor -rwl 1"
+"rw108.btor -rwl 0"
+"rw108.btor -rwl 1"
+"rw109.btor -rwl 0"
+"rw109.btor -rwl 1"
+"rw110.btor -rwl 0"
+"rw110.btor -rwl 1"
+"rw111.btor -rwl 0"
+"rw111.btor -rwl 1"
+"rw112.btor -rwl 0"
+"rw112.btor -rwl 1"
+"rw115.btor -rwl 0"
+"rw115.btor -rwl 1"
+"rw116.btor -rwl 0"
+"rw116.btor -rwl 1"
+"rw117.btor -rwl 0"
+"rw117.btor -rwl 1"
+"rw118.btor -rwl 0"
+"rw118.btor -rwl 1"
+"rw119.btor -rwl 0"
+"rw119.btor -rwl 1"
+"rw120.btor -rwl 0"
+"rw120.btor -rwl 1"
+"rw123.btor -rwl 0"
+"rw123.btor -rwl 1"
+"rw124.btor -rwl 0"
+"rw124.btor -rwl 1"
+"rw125.btor -rwl 0"
+"rw125.btor -rwl 3"
+"rw126.btor -rwl 0"
+"rw126.btor -rwl 3"
+"rw127.btor -rwl 0"
+"rw127.btor -rwl 3"
+"rw128.btor -rwl 0"
+"rw128.btor -rwl 3"
+"rw129.btor -rwl 0"
+"rw129.btor -rwl 3"
+"rw130.btor -rwl 0"
+"rw130.btor -rwl 1"
+"rw131.btor -rwl 0"
+"rw131.btor -rwl 1"
+"rw136.btor -rwl 0"
+"rw136.btor -rwl 3"
+"rw144.btor -rwl 0"
+"rw144.btor -rwl 3"
+"rw145.btor -rwl 0"
+"rw145.btor -rwl 3"
+"rw146.btor -rwl 0"
+"rw146.btor -rwl 3"
+"rw147.btor -rwl 0"
+"rw147.btor -rwl 3"
+"rw149.btor -rwl 0"
+"rw149.btor -rwl 3"
+"rw150.btor -rwl 0"
+"rw150.btor -rwl 3"
+"rw151.btor -rwl 0"
+"rw151.btor -rwl 3"
+"rw152.btor -rwl 0"
+"rw152.btor -rwl 3"
+"rw154.btor -rwl 0"
+"rw154.btor -rwl 1"
+"rw155.btor -rwl 0"
+"rw155.btor -rwl 1"
+"rw156.btor -rwl 0"
+"rw156.btor -rwl 1"
+"rw158.btor -rwl 1"
+"rw159.btor -rwl 1"
+"rw160.btor -rwl 1"
+"rw161.btor -rwl 1"
+"rw162.btor -rwl 1"
+"rw163.btor -rwl 1"
+"rw164.btor -rwl 1"
+"rw165.btor -rwl 1"
+"rw170.btor -rwl 1"
+"rw171.btor -rwl 1"
+"rw172.btor -rwl 1"
+"rw173.btor -rwl 1"
+"rw174.btor -rwl 1"
+"rw175.btor -rwl 1"
+"rw176.btor -rwl 1"
+"rw177.btor -rwl 1"
+"rw180.btor -rwl 3"
+"rw181.btor -rwl 3"
+"rw182.btor -rwl 3"
+"rw183.btor -rwl 3"
+"rw184.btor -rwl 3"
+"rw185.btor -rwl 3"
+"rw186.btor -rwl 3"
+"rw187.btor -rwl 3"
+"rw188.btor -rwl 3"
+"rw189.btor -rwl 3"
+"rw19.btor -rwl 0"
+"rw19.btor -rwl 1"
+"rw190.btor -rwl 3"
+"rw191.btor -rwl 3"
+"rw192.btor -rwl 3"
+"rw193.btor -rwl 3"
+"rw194.btor -rwl 3"
+"rw195.btor -rwl 3"
+"rw196.btor -rwl 3"
+"rw197.btor -rwl 3"
+"rw198.btor -rwl 3"
+"rw199.btor -rwl 3"
+"rw20.btor -rwl 0"
+"rw20.btor -rwl 1"
+"rw200.btor -rwl 3"
+"rw201.btor -rwl 3"
+"rw202.btor -rwl 3"
+"rw203.btor -rwl 3"
+"rw204.btor -rwl 3"
+"rw205.btor -rwl 3"
+"rw206.btor -rwl 3"
+"rw207.btor -rwl 3"
+"rw208.btor -rwl 3"
+"rw209.btor -rwl 3"
+"rw21.btor -rwl 0"
+"rw21.btor -rwl 1"
+"rw210.btor -rwl 3"
+"rw211.btor -rwl 3"
+"rw213.smt2 -rwl 3"
+"rw214.smt2 -rwl 3"
+"rw215.smt2 -rwl 3"
+"rw217.smt2 -rwl 3"
+"rw218.smt2 -rwl 3"
+"rw219.smt2 -rwl 3"
+"rw22.btor -rwl 0"
+"rw22.btor -rwl 1"
+"rw220.smt2 -rwl 3"
+"rw221.smt2 -rwl 3"
+"rw23.btor -rwl 0"
+"rw23.btor -rwl 1"
+"rw24.btor -rwl 0"
+"rw24.btor -rwl 1"
+"rw25.btor -rwl 0"
+"rw25.btor -rwl 1"
+"rw26.btor -rwl 0"
+"rw26.btor -rwl 1"
+"rw27.btor -rwl 0"
+"rw27.btor -rwl 1"
+"rw28.btor -rwl 0"
+"rw28.btor -rwl 1"
+"rw29.btor -rwl 0"
+"rw29.btor -rwl 1"
+"rw30.btor -rwl 0"
+"rw30.btor -rwl 1"
+"rw31.btor -rwl 0"
+"rw31.btor -rwl 1"
+"rw32.btor -rwl 0"
+"rw32.btor -rwl 1"
+"rw33.btor -rwl 0"
+"rw33.btor -rwl 1"
+"rw34.btor -rwl 0"
+"rw34.btor -rwl 1"
+"rw35.btor -rwl 0"
+"rw35.btor -rwl 1"
+"rw36.btor -rwl 0"
+"rw36.btor -rwl 1"
+"rw37.btor -rwl 0"
+"rw37.btor -rwl 1"
+"rw38.btor -rwl 0"
+"rw38.btor -rwl 1"
+"rw39.btor -rwl 0"
+"rw39.btor -rwl 1"
+"rw40.btor -rwl 0"
+"rw40.btor -rwl 1"
+"rw41.btor -rwl 0"
+"rw41.btor -rwl 1"
+"rw42.btor -rwl 0"
+"rw42.btor -rwl 1"
+"rw43.btor -rwl 0"
+"rw43.btor -rwl 1"
+"rw46.btor"
+"rw47.btor"
+"rw48.btor"
+"rw49.btor"
+"rw50.btor"
+"rw51.btor"
+"rw52.btor -rwl 0"
+"rw52.btor -rwl 1"
+"rw53.btor -rwl 0"
+"rw53.btor -rwl 3"
+"rw54.btor -rwl 0"
+"rw54.btor -rwl 3"
+"rw55.btor -rwl 0"
+"rw55.btor -rwl 3"
+"rw56.btor -rwl 0"
+"rw56.btor -rwl 3"
+"rw57.btor -rwl 0"
+"rw57.btor -rwl 3"
+"rw60.btor"
+"rw61.btor -rwl 0"
+"rw61.btor -rwl 1"
+"rw62.btor -rwl 0"
+"rw62.btor -rwl 1"
+"rw63.btor -rwl 0"
+"rw63.btor -rwl 1"
+"rw64.btor -rwl 0"
+"rw64.btor -rwl 1"
+"rw65.btor -rwl 0"
+"rw65.btor -rwl 1"
+"rw66.btor -rwl 0"
+"rw66.btor -rwl 1"
+"rw67.btor -rwl 0"
+"rw67.btor -rwl 1"
+"rw68.btor -rwl 0"
+"rw68.btor -rwl 1"
+"rw69.btor -rwl 0"
+"rw69.btor -rwl 3"
+"rw70.btor -rwl 0"
+"rw70.btor -rwl 3"
+"rw71.btor -rwl 0"
+"rw71.btor -rwl 3"
+"rw72.btor -rwl 0"
+"rw72.btor -rwl 3"
+"rw73.btor -rwl 0"
+"rw73.btor -rwl 3"
+"rw74.btor -rwl 0"
+"rw74.btor -rwl 3"
+"rw75.btor -rwl 0"
+"rw75.btor -rwl 3"
+"rw76.btor -rwl 0"
+"rw76.btor -rwl 3"
+"rw77.btor -rwl 0"
+"rw77.btor -rwl 3"
+"rw78.btor -rwl 0"
+"rw78.btor -rwl 3"
+"rw79.btor -rwl 0"
+"rw79.btor -rwl 3"
+"rw80.btor -rwl 0"
+"rw80.btor -rwl 3"
+"rw81.btor -rwl 0"
+"rw81.btor -rwl 1"
+"rw82.btor -rwl 0"
+"rw82.btor -rwl 1"
+"rw83.btor -rwl 0"
+"rw83.btor -rwl 1"
+"rw84.btor -rwl 0"
+"rw84.btor -rwl 1"
+"rw85.btor -rwl 0"
+"rw85.btor -rwl 1"
+"rw86.btor -rwl 0"
+"rw86.btor -rwl 1"
+"rw87.btor -rwl 0"
+"rw87.btor -rwl 1"
+"rw88.btor -rwl 0"
+"rw88.btor -rwl 1"
+"rw89.btor -rwl 0"
+"rw89.btor -rwl 1"
+"rw90.btor -rwl 0"
+"rw90.btor -rwl 1"
+"rw91.btor -rwl 0"
+"rw91.btor -rwl 1"
+"rw92.btor -rwl 0"
+"rw92.btor -rwl 1"
+"rw93.btor -rwl 0"
+"rw93.btor -rwl 1"
+"rw94.btor -rwl 0"
+"rw94.btor -rwl 1"
+"rw95.btor -rwl 0"
+"rw95.btor -rwl 1"
+"rw96.btor -rwl 0"
+"rw96.btor -rwl 1"
+"rw97.btor -rwl 0"
+"rw97.btor -rwl 1"
+"rw98.btor -rwl 0"
+"rw98.btor -rwl 1"
+"rw99.btor -rwl 0"
+"rw99.btor -rwl 1"
+"rwpropindexplusconst1.btor"
+"rwpropindexplusconst1.btor -rwl 0"
+"rwpropindexplusconst2.btor"
+"rwpropindexplusconst2.btor -rwl 0"
+"rwpropindexplusconst3.btor"
+"rwpropindexplusconst3.btor -rwl 0"
+"rwpropindexplusconst4.btor"
+"rwpropindexplusconst4.btor -rwl 0"
+"selsort002un.smt2"
+"smtarraycond1.smt2"
+"smtarraycond2.smt2"
+"smtarraycond3.smt2"
+"smtaxiommccarthy.smt2"
+"smtbv255.smt2"
+"smtextarrayaxiom1.smt2"
+"smtextarrayaxiom1uf.smt2"
+"smtextarrayaxiom2.smt2"
+"smtextarrayaxiom2uf.smt2"
+"smtextarrayaxiom3.smt2"
+"smtextarrayaxiom3uf.smt2"
+"smtextarrayaxiom4.smt2"
+"smtextarrayaxiom4uf.smt2"
+"smtfalse.smt2 -m"
+"smtflet.smt2"
+"sqrt13.btor"
+"sqrt18446744073709551617.btor"
+"sqrt29.btor"
+"sqrt31.btor"
+"sqrt4294967297.btor"
+"sqrt5.btor"
+"sqrt53.btor"
+"sqrt65537.btor"
+"sqrt7.btor"
+"substitute10.btor"
+"substitute11.btor"
+"substitute12.btor"
+"substitute13.btor"
+"substitute14.btor"
+"substitute15.btor"
+"substitute16.btor"
+"substitute17.btor"
+"substitute18.btor"
+"substitute19.btor"
+"substitute2.btor"
+"substitute20.btor"
+"substitute21.btor"
+"substitute22.btor"
+"substitute23.btor"
+"substitute24.btor"
+"substitute25.btor"
+"substitute26.btor"
+"substitute27.btor"
+"substitute28.btor"
+"substitute29.btor"
+"substitute30.btor"
+"substitute31.btor"
+"substitute32.btor"
+"substitute33.btor"
+"substitute34.btor"
+"substitute35.btor"
+"substitute36.btor"
+"substitute37.btor"
+"substitute38.btor"
+"substitute39.btor"
+"substitute6.btor"
+"substitute7.btor"
+"substitute8.btor"
+"substitute9.btor"
+"sult.btor"
+"sult2.btor"
+"swapmem002ue.smt2"
+"twocomplementassub.btor"
+"udiv16castdown8.btor"
+"udiv8castdown4.btor"
+"udiv8castdown5.btor"
+"udiv8castdown6.btor"
+"udiv8castdown7.btor"
+"udivtheorem1.btor"
+"ulttheorem1.btor"
+"uremtheorem1.btor"
+"uremudivaxiom4.btor"
+"uremudivaxiom4no.btor"
+"wchains002ue.smt2"
+"write1.btor"
+"write10.btor"
+"write13.btor"
+"write14.btor"
+"write16.btor"
+"write17.btor"
+"write2.btor"
+"write21.btor"
+"write22.btor"
+"write23.btor"
+"write24.btor"
+"write3.btor"
+"write4.btor"
+"write6.btor"
+"write7.btor"
+"write8.btor"
+"write9.btor"
+)
+
+set(cmp_testcases
+"arrayeqerr0.btor"
+"arrayeqerr1.btor"
+"arrayeqerr2.btor"
+"concatslice1.btor -rwl 1 -db"
+"concatslice2.btor -rwl 1 -db"
+"dumpbtor1.btor -rwl 0 -db"
+# currently broken due to dumper support for args/apply
+#"dumpbtor2.btor -rwl 0 -db"
+"dumpbtor3.btor -db"
+"dumpsmt1.btor -rwl 0 -ds"
+"dumpsmt2.btor -rwl 0 -ds"
+"getvalue1.smt2"
+"getvalue2.smt2"
+"getvalue3.smt2"
+"normalize_add_incomplete.btor -db"
+"normalize_and_incomplete.btor -db"
+"normalize_mul_incomplete.btor -db"
+"painc.smt2 -i"
+"regaddnorm1.btor -db"
+"regaddnorm2.btor -db"
+"regmismatch.smt2"
+"regnegadd1.btor -db"
+"regr-5smod3.btor -m -d"
+"regr-5srem3.btor -m -d"
+"regr-6smod3.btor -m -d"
+"regr-6srem3.btor -m -d"
+"regr5smod-3.btor -m -d"
+"regr5srem-3.btor -m -d"
+"regr6smod-3.btor -m -d"
+"regr6srem-3.btor -m -d"
+"smtandvar.smt2 -m"
+"smtiff.smt2 -m"
+"smtnotvar.smt2 -m"
+"smtor.smt2 -m"
+"smtvar.smt2 -m"
+"smtxor.smt2 -m"
+)
+
+get_target_property(BOOLECTOR_BINARY_PATH boolector-bin RUNTIME_OUTPUT_DIRECTORY)
+set(BOOLECTOR_BINARY "${BOOLECTOR_BINARY_PATH}/boolector")
+set(RUN_TEST_CASE_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/run-test-case.py)
+
+macro(add_test_case option testcase)
+  string(REPLACE " " "_" TESTNAME ${testcase})
+  string(REPLACE "-" "" TESTNAME ${TESTNAME})
+  set(tcase "${CMAKE_CURRENT_LIST_DIR}/log/${testcase}")
+  add_test(${TESTNAME}
+      ${RUN_TEST_CASE_SCRIPT}
+      ${option}
+      ${BOOLECTOR_BINARY}
+      ${tcase}
+  )
+  set_tests_properties(${TESTNAME} PROPERTIES LABELS "testcases")
+endmacro()
+
+foreach(testcase ${sat_testcases})
+    add_test_case("--check-sat" ${testcase})
+endforeach()
+
+foreach(testcase ${unsat_testcases})
+    add_test_case("--check-unsat" ${testcase})
+endforeach()
+
+foreach(testcase ${cmp_testcases})
+    add_test_case("--check-output" ${testcase})
+endforeach()

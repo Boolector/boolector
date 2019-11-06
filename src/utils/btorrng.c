@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2015-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -13,6 +13,10 @@
 #include <limits.h>
 #ifndef NDEBUG
 #include <float.h>
+#endif
+
+#ifdef BTOR_USE_GMP
+#include <gmp.h>
 #endif
 
 void
@@ -28,6 +32,50 @@ btor_rng_init (BtorRNG* rng, uint32_t seed)
   rng->z += 1;
   rng->w *= 2019164533u;
   rng->z *= 1000632769u;
+
+#ifdef BTOR_USE_GMP
+  if (rng->is_init)
+  {
+    assert (rng->gmp_state);
+    gmp_randclear (*((gmp_randstate_t*) rng->gmp_state));
+  }
+  else
+  {
+    rng->mm        = btor_mem_mgr_new ();
+    rng->gmp_state = btor_mem_malloc (rng->mm, sizeof (gmp_randstate_t));
+  }
+  rng->is_init = true;
+  gmp_randinit_mt (*((gmp_randstate_t*) rng->gmp_state));
+  gmp_randseed_ui (*((gmp_randstate_t*) rng->gmp_state), btor_rng_rand (rng));
+#endif
+}
+
+void
+btor_rng_clone (BtorRNG* rng, BtorRNG* clone)
+{
+  (void) rng;
+  (void) clone;
+#ifdef BTOR_USE_GMP
+  assert (rng->gmp_state);
+  clone->mm        = btor_mem_mgr_new ();
+  clone->gmp_state = btor_mem_malloc (clone->mm, sizeof (gmp_randstate_t));
+  gmp_randinit_set (*((gmp_randstate_t*) clone->gmp_state),
+                    *((gmp_randstate_t*) rng->gmp_state));
+#endif
+}
+
+void
+btor_rng_delete (BtorRNG* rng)
+{
+  (void) rng;
+#ifdef BTOR_USE_GMP
+  assert (rng->gmp_state);
+  gmp_randclear (*((gmp_randstate_t*) rng->gmp_state));
+  btor_mem_free (rng->mm, rng->gmp_state, sizeof (gmp_randstate_t));
+  btor_mem_mgr_delete (rng->mm);
+  rng->gmp_state = 0;
+  rng->is_init = false;
+#endif
 }
 
 uint32_t

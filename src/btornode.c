@@ -42,7 +42,7 @@
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
-    [BTOR_INVALID_NODE] = "invalid", [BTOR_CONST_NODE] = "const",
+    [BTOR_INVALID_NODE] = "invalid", [BTOR_BV_CONST_NODE] = "bvconst",
     [BTOR_VAR_NODE] = "var",         [BTOR_PARAM_NODE] = "param",
     [BTOR_BV_SLICE_NODE] = "slice",  [BTOR_BV_AND_NODE] = "and",
     [BTOR_BV_EQ_NODE] = "beq",       [BTOR_FUN_EQ_NODE] = "feq",
@@ -236,7 +236,7 @@ btor_node_is_bv_const_max_signed (Btor *btor, BtorNode *exp)
 }
 
 bool
-btor_node_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
+btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
 {
   assert (btor);
   assert (exp);
@@ -822,7 +822,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp)
 
   switch (exp->kind)
   {
-    case BTOR_CONST_NODE:
+    case BTOR_BV_CONST_NODE:
       btor_bv_free (mm, btor_node_bv_const_get_bits (exp));
       if (btor_node_bv_const_get_invbits (exp))
         btor_bv_free (mm, btor_node_bv_const_get_invbits (exp));
@@ -1504,7 +1504,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   {
     assert (btor_node_is_regular (cur));
     if (btor_node_is_bv_const (cur)
-        && btor_node_bv_get_width (btor, cur) == bits->width
+        && btor_node_bv_get_width (btor, cur) == btor_bv_get_width (bits)
         && !btor_bv_compare (btor_node_bv_const_get_bits (cur), bits))
       break;
     else
@@ -1556,7 +1556,7 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
   BtorNode *cur, **result;
 
   assert (kind != BTOR_BV_SLICE_NODE);
-  assert (kind != BTOR_CONST_NODE);
+  assert (kind != BTOR_BV_CONST_NODE);
 
   sort_bv_exp (btor, kind, e);
   hash = hash_bv_exp (btor, kind, arity, e);
@@ -1858,10 +1858,10 @@ new_const_exp_node (Btor *btor, BtorBitVector *bits)
   BtorBVConstNode *exp;
 
   BTOR_CNEW (btor->mm, exp);
-  set_kind (btor, (BtorNode *) exp, BTOR_CONST_NODE);
+  set_kind (btor, (BtorNode *) exp, BTOR_BV_CONST_NODE);
   exp->bytes = sizeof *exp;
   btor_node_set_sort_id ((BtorNode *) exp,
-                         btor_sort_bv (btor, bits->width));
+                         btor_sort_bv (btor, btor_bv_get_width (bits)));
   setup_node_and_add_to_id_table (btor, exp);
   btor_node_bv_const_set_bits ((BtorNode *) exp, btor_bv_copy (btor->mm, bits));
   btor_node_bv_const_set_invbits ((BtorNode *) exp,

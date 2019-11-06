@@ -243,9 +243,9 @@ cdr (BtorSMTNode *node)
   return node->tail;
 }
 
-#define isleaf(l) (1lu & (unsigned long) (l))
-#define leaf(l) ((void *) (1lu | (unsigned long) (l)))
-#define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
+#define isleaf(l) ((uintptr_t) 1 & (uintptr_t) (l))
+#define leaf(l) ((void *) ((uintptr_t) 1 | (uintptr_t) (l)))
+#define strip(l) ((BtorSMTSymbol *) ((~(uintptr_t) 1) & (uintptr_t) (l)))
 
 static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
