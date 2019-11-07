@@ -1114,6 +1114,10 @@ btor_bv_get_num_trailing_zeros (const BtorBitVector *bv)
   assert (bv);
 
   uint32_t res = 0;
+#ifdef BTOR_USE_GMP
+  res = mpz_scan1(bv->val, 0);
+  if (res > bv->width) res = bv->width;
+#else
   uint32_t i;
 
   for (i = 0, res = 0; i < bv->width; i++)
@@ -1121,6 +1125,7 @@ btor_bv_get_num_trailing_zeros (const BtorBitVector *bv)
     if (btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
+#endif
   return res;
 }
 
