@@ -526,6 +526,7 @@ set(unsat_testcases
 "regrexpleak2.btor -rwl 1"
 "regrexpleak2.btor -rwl 2"
 "regrexpleak2.btor -rwl 3"
+"regrnormquant.smt2"
 "regrmark2.btor -rwl 0"
 "regrmark2.btor -rwl 1"
 "regrmark2.btor -rwl 2"

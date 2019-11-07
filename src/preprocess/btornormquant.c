@@ -658,7 +658,6 @@ btor_normalize_quantifiers (Btor *btor)
   assert (btor->embedded_constraints->count == 0);
   assert (btor->varsubst_constraints->count == 0);
 
-  int32_t opt_simp_const;
   BtorNode *result, *root;
   BtorMemMgr *mm;
   BtorNodePtrStack roots;
@@ -671,22 +670,23 @@ btor_normalize_quantifiers (Btor *btor)
     return btor_exp_true (btor);
   }
 
-  /* we do not want simplification of constraints here as we need the
-   * complete formula in nnf */
-  opt_simp_const = btor_opt_get (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS);
-  btor_opt_set (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0);
-
   BTOR_INIT_STACK (mm, roots);
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
   while (btor_iter_hashptr_has_next (&it))
   {
     root = btor_iter_hashptr_next (&it);
     BTOR_PUSH_STACK (roots, root);
+    btor_node_real_addr (root)->constraint = 0;
+    btor_hashptr_table_remove (btor->unsynthesized_constraints, root, 0, 0);
   }
 
   result = normalize_quantifiers (btor, roots.start, BTOR_COUNT_STACK (roots));
+
+  while (!BTOR_EMPTY_STACK (roots))
+  {
+    btor_node_release (btor, BTOR_POP_STACK (roots));
+  }
   BTOR_RELEASE_STACK (roots);
-  btor_opt_set (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, opt_simp_const);
   return result;
 }
 
