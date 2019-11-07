@@ -300,18 +300,45 @@ parse_str_arg (char *op)
   return tok;
 }
 
-/* Return true if result is a uint32 and false if it is a char*. */
-static bool
-parse_str_or_uint_arg (char **res_str, uint32_t *res_uint)
+/* Parse
+ *   <enum> <long-opt> <value>
+ * or
+ *   <long-opt> <value>
+ */
+static BtorOption
+parse_opt (char **arg_str)
 {
+  BtorUNTBtorOpt *unt_opt;
+  BtorOption opt = BTOR_OPT_NUM_OPTS;
   char *tok;
-  if (!(tok = strtok (0, " ")) || !is_num_str (tok) || tok[0] == '-')
+
+  if (!(tok = strtok (0, " ")))
   {
-    *res_str = tok;
-    return false;
+    btorunt_parse_error ("expected long option name");
   }
-  *res_uint = strtoul (tok, 0, 10);
-  return true;
+
+  if (is_num_str (tok) && tok[0] != '-')
+  {
+    opt = strtoul (tok, 0, 10);
+    tok = strtok (0, " ");
+  }
+
+  unt_opt = btorunt_get_btor_opt (g_btorunt, tok);
+  if (arg_str) *arg_str = tok;
+  if (opt == BTOR_OPT_NUM_OPTS)
+  {
+    opt = unt_opt->kind;
+  }
+  else if (opt != unt_opt->kind)
+  {
+    btorunt_parse_error (
+        "expected enum value '%u' for long option '%s', got '%u'",
+        unt_opt->kind,
+        tok,
+        opt);
+  }
+
+  return opt;
 }
 
 #define PARSE_ARGS0(op) parse_check_last_arg (op);
@@ -414,7 +441,6 @@ parse (FILE *file)
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
   BtorOption opt;
-  BtorUNTBtorOpt *unt_opt;
   Btor *btor;
 
   int32_t exp_ret;               /* expected return value */
@@ -696,20 +722,14 @@ NEXT:
     }
     else if (!strcmp (tok, "set_opt"))
     {
-      bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-      if (is_uint)
-      {
-        arg2_str = parse_str_arg (tok);
-        unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-        assert (!unt_opt || opt == unt_opt->kind);
-      }
+      opt = parse_opt (&arg1_str);
       val = parse_uint_arg (tok);
       parse_check_last_arg (tok);
       if (!btorunt_has_cl_btor_opt (g_btorunt, opt))
       {
         boolector_set_opt (btor, opt, val);
         BTORUNT_LOG ("     set boolector option '%s' to '%u' (via trace)",
-                     arg2_str,
+                     arg1_str,
                      val);
       }
     }
@@ -717,13 +737,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_uint = boolector_get_opt (btor, opt);
         exp_ret  = RET_UINT;
@@ -737,13 +751,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_uint = boolector_get_opt_min (btor, opt);
         exp_ret  = RET_UINT;
@@ -757,13 +765,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_uint = boolector_get_opt_max (btor, opt);
         exp_ret  = RET_UINT;
@@ -777,13 +779,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_uint = boolector_get_opt_dflt (btor, opt);
         exp_ret  = RET_UINT;
@@ -797,13 +793,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_str = (void *) boolector_get_opt_shrt (btor, opt);
         exp_ret = RET_UINT;
@@ -817,13 +807,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_str = (void *) boolector_get_opt_lng (btor, opt);
         exp_ret = RET_CHARPTR;
@@ -837,13 +821,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_str = (void *) boolector_get_opt_desc (btor, opt);
         exp_ret = RET_CHARPTR;
@@ -857,13 +835,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_bool = boolector_has_opt (btor, opt);
         exp_ret  = RET_BOOL;
@@ -890,13 +862,7 @@ NEXT:
     {
       if (!g_btorunt->skip)
       {
-        bool is_uint = parse_str_or_uint_arg (&arg2_str, &opt);
-        if (is_uint)
-        {
-          arg2_str = parse_str_arg (tok);
-          unt_opt  = btorunt_get_btor_opt (g_btorunt, arg2_str);
-          assert (!unt_opt || opt == unt_opt->kind);
-        }
+        opt = parse_opt (0);
         parse_check_last_arg (tok);
         ret_int = boolector_next_opt (btor, opt);
         exp_ret = RET_INT;
