@@ -1216,10 +1216,6 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
   assert (bv);
 
   uint32_t res = 0;
-#ifdef BTOR_USE_GMP
-  res = mpz_scan0 (bv->val, bv->width - 1);
-  if (res > bv->width) res = bv->width;
-#else
   uint32_t i;
 
   for (i = bv->width - 1, res = 0; i < UINT32_MAX; i--)
@@ -1227,7 +1223,6 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
     if (!btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
-#endif
   return res;
 }
 
