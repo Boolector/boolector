@@ -2972,18 +2972,6 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
     btor_opt_set (btor, BTOR_OPT_BETA_REDUCE, BTOR_BETA_REDUCE_ALL);
   }
 
-  /* FIXME: disable options that potentially slow down incremental mode */
-  // TODO: check this
-  if (btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
-      && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL_RW))
-  {
-    /* variable substitution and skeleton preprocessing can have the effect
-     * that already bit-blased structures get rewritten, which have to
-     * be bit-blasted again */
-    btor_opt_set (btor, BTOR_OPT_SKELETON_PREPROC, 0);
-    btor_opt_set (btor, BTOR_OPT_EXTRACT_LAMBDAS, 0);
-  }
-
   res = btor_simplify (btor);
 
   if (res != BTOR_RESULT_UNSAT)
