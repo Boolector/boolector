@@ -1092,9 +1092,13 @@ btor_bv_small_positive_int (const BtorBitVector *bv)
         }
       }
     }
-    else if (limb != 0)
+    else
     {
-      return -1;
+      assert (mp_bits_per_limb == 32);
+      if (limb != 0)
+      {
+        return -1;
+      }
     }
   }
   res = (int32_t) limb;
@@ -1135,13 +1139,74 @@ btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
   assert (bv);
 
   uint32_t res = 0;
-  uint32_t i;
+  uint32_t i, n, clz, nbits_rem;
+#ifdef BTOR_USE_GMP
+  mp_limb_t limb = 0u;
 
-  for (i = bv->width - 1, res = 0; i < UINT32_MAX; i--)
+  if (!(n = mpz_size (bv->val))) return bv->width;
+
+  nbits_rem = bv->width % mp_bits_per_limb;
+
+  for (i = 0; i < n; i++)
   {
-    if (btor_bv_get_bit (bv, i)) break;
-    res += 1;
+    limb = mpz_getlimbn (bv->val, n - 1 - i);
+    if (limb > 0) break;
   }
+  assert (limb);
+#if defined(__GNUC__) || defined(__clang__)
+  clz = mp_bits_per_limb == 64 ? __builtin_clzll (limb) : __builtin_clz (limb);
+#else
+  int32_t w;
+  mp_limb_t mask;
+  for (w = 0, mask = 0; w < mp_bits_per_limb; w++)
+  {
+    mask += (((mp_limb_t) 1u) << w);
+    if ((limb & ~mask) == 0) break;
+  }
+  clz          = mp_bits_per_limb - 1 - w;
+#endif
+  {
+    res += clz;
+  }
+  uint32_t m = bv->width / mp_bits_per_limb;
+  res += (m - n) * mp_bits_per_limb + nbits_rem;
+#else
+  BTOR_BV_TYPE limb = 0u;
+
+  nbits_rem = bv->width % BTOR_BV_TYPE_BW;
+  n         = bv->len;
+
+  for (i = 0; i < n; i++)
+  {
+    limb = bv->bits[i];
+    if (limb > 0) break;
+    res += i == 0 && nbits_rem ? nbits_rem : BTOR_BV_TYPE_BW;
+  }
+  if (limb == 0u) return bv->width;
+#if defined(__GNUC__) || defined(__clang__)
+  clz = BTOR_BV_TYPE_BW == 64 ? __builtin_clzll (limb) : __builtin_clz (limb);
+#else
+  uint32_t w;
+  BTOR_BV_TYPE mask;
+  for (w = 0, mask = 0; w < BTOR_BV_TYPE_BW; w++)
+  {
+    mask += (1u << w);
+    if ((limb & ~mask) == 0) break;
+  }
+  clz = BTOR_BV_TYPE_BW - 1 - w;
+#endif
+  if (nbits_rem && i == 0)
+  {
+    if (clz > BTOR_BV_TYPE_BW - nbits_rem)
+    {
+      res += clz - BTOR_BV_TYPE_BW + nbits_rem;
+    }
+  }
+  else
+  {
+    res += clz;
+  }
+#endif
   return res;
 }
 
@@ -1151,6 +1216,10 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
   assert (bv);
 
   uint32_t res = 0;
+#ifdef BTOR_USE_GMP
+  res = mpz_scan0 (bv->val, bv->width - 1);
+  if (res > bv->width) res = bv->width;
+#else
   uint32_t i;
 
   for (i = bv->width - 1, res = 0; i < UINT32_MAX; i--)
@@ -1158,6 +1227,7 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
     if (!btor_bv_get_bit (bv, i)) break;
     res += 1;
   }
+#endif
   return res;
 }
 

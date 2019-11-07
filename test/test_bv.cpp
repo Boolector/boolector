@@ -10,6 +10,7 @@
 #include "test.h"
 
 #include <math.h>
+#include <bitset>
 
 extern "C" {
 #include "btorbv.h"
@@ -2839,60 +2840,96 @@ TEST_F (TestBv, test_get_num_leading_zeros)
 {
   BtorBitVector *bv;
 
-  // 1000
-  bv = btor_bv_uint64_to_bv (d_mm, 8, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
+  for (uint64_t i = 0, bw = 67; i < (1u << 8); ++i)
+  {
+    std::stringstream ss;
+    ss << std::bitset<67> (i).to_string ();
+    std::string val = ss.str ();
+    uint32_t exp    = 0;
+    for (exp = 0; exp < bw && val[exp] == '0'; ++exp)
+      ;
+    bv = btor_bv_uint64_to_bv (d_mm, i, bw);
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), exp);
+    btor_bv_free (d_mm, bv);
+  }
+
+  for (uint64_t i = 0, bw = 167; i < (1u << 8); ++i)
+  {
+    std::stringstream ss;
+    ss << std::bitset<167> (i).to_string ();
+    std::string val = ss.str ();
+    uint32_t exp    = 0;
+    for (exp = 0; exp < bw && val[exp] == '0'; ++exp)
+      ;
+    bv = btor_bv_uint64_to_bv (d_mm, i, bw);
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), exp);
+    btor_bv_free (d_mm, bv);
+  }
+
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (31, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
+    btor_bv_free (d_mm, bv);
+  }
+
+  {
+    std::stringstream ss;
+    ss << "001" << std::string (61, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 2u);
+    btor_bv_free (d_mm, bv);
+  }
+
+  {
+    std::stringstream ss;
+    ss << "01" << std::string (62, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
+    btor_bv_free (d_mm, bv);
+  }
+
+  bv = btor_bv_char_to_bv (d_mm, std::string (64, '0').c_str ());
+  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 64u);
   btor_bv_free (d_mm, bv);
 
-  // 0100
-  bv = btor_bv_uint64_to_bv (d_mm, 4, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (63, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
+    btor_bv_free (d_mm, bv);
+  }
+
+  bv = btor_bv_char_to_bv (d_mm, std::string (65, '0').c_str ());
+  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 65u);
   btor_bv_free (d_mm, bv);
 
-  // 0010
-  bv = btor_bv_uint64_to_bv (d_mm, 2, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 2u);
-  btor_bv_free (d_mm, bv);
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (65, '0');
+    //   std::cout << "ss " << ss.str() << std::endl;
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
+    btor_bv_free (d_mm, bv);
+  }
 
-  // 0001
-  bv = btor_bv_uint64_to_bv (d_mm, 1, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 3u);
-  btor_bv_free (d_mm, bv);
+  {
+    std::stringstream ss;
+    ss << "01" << std::string (65, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
+    btor_bv_free (d_mm, bv);
+  }
 
-  // 0000
-  bv = btor_bv_uint64_to_bv (d_mm, 0, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 4u);
-  btor_bv_free (d_mm, bv);
-
-  // 1111
-  bv = btor_bv_uint64_to_bv (d_mm, 15, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (d_mm, bv);
-
-  // 0110
-  bv = btor_bv_uint64_to_bv (d_mm, 6, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 0111
-  bv = btor_bv_uint64_to_bv (d_mm, 7, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 1010
-  bv = btor_bv_uint64_to_bv (d_mm, 10, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (d_mm, bv);
-
-  // 0
-  bv = btor_bv_uint64_to_bv (d_mm, 0, 1);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 1
-  bv = btor_bv_uint64_to_bv (d_mm, 1, 1);
-  ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 0u);
-  btor_bv_free (d_mm, bv);
+  {
+    std::stringstream ss;
+    ss << "001" << std::string (65, '0');
+    bv = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    ASSERT_EQ (btor_bv_get_num_leading_zeros (bv), 2u);
+    btor_bv_free (d_mm, bv);
+  }
 }
 
 TEST_F (TestBv, test_get_num_leading_ones)
