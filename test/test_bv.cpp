@@ -528,19 +528,21 @@ class TestBv : public TestBtor
 
   void test_get_num_aux (const std::string &val,
                          uint32_t (*fun) (const BtorBitVector *),
-                         bool from_msb = true)
+                         bool from_msb = true,
+                         bool zeros    = true)
   {
     BtorBitVector *bv;
     uint32_t bw  = val.size ();
     uint32_t exp = 0;
+    char c       = zeros ? '0' : '1';
     if (from_msb)
     {
-      for (exp = 0; exp < bw && val[exp] == '0'; ++exp)
+      for (exp = 0; exp < bw && val[exp] == c; ++exp)
         ;
     }
     else
     {
-      for (exp = 0; exp < bw && val[bw - 1 - exp] == '0'; ++exp)
+      for (exp = 0; exp < bw && val[bw - 1 - exp] == c; ++exp)
         ;
     }
     bv = btor_bv_char_to_bv (d_mm, val.c_str ());
@@ -550,7 +552,8 @@ class TestBv : public TestBtor
 
   void test_get_num (uint32_t bw,
                      uint32_t (*fun) (const BtorBitVector *),
-                     bool from_msb = true)
+                     bool from_msb = true,
+                     bool zeros    = true)
   {
     if (bw == 8)
     {
@@ -558,7 +561,7 @@ class TestBv : public TestBtor
       {
         std::stringstream ss;
         ss << std::bitset<8> (i).to_string ();
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
     }
     else
@@ -569,7 +572,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << v << std::string (bw - 8, '0');
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
 
       for (uint64_t i = 0; i < (1u << 8); ++i)
@@ -577,7 +580,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << std::string (bw - 8, '0') << v;
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
 
       for (uint64_t i = 0; i < (1u << 8); ++i)
@@ -585,7 +588,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << v << std::string (bw - 16, '0') << v;
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
 
       // concat 8bit-values with 1s to create value for bv
@@ -594,7 +597,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << v << std::string (bw - 8, '1');
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
 
       for (uint64_t i = 0; i < (1u << 8); ++i)
@@ -602,7 +605,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << std::string (bw - 8, '1') << v;
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
 
       for (uint64_t i = 0; i < (1u << 8); ++i)
@@ -610,7 +613,7 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << v << std::string (bw - 16, '1') << v;
-        test_get_num_aux (ss.str (), fun, from_msb);
+        test_get_num_aux (ss.str (), fun, from_msb, zeros);
       }
     }
   }
@@ -2886,57 +2889,11 @@ TEST_F (TestBv, get_num_leading_zeros)
 
 TEST_F (TestBv, test_get_num_leading_ones)
 {
-  BtorBitVector *bv;
-
-  // 1000
-  bv = btor_bv_uint64_to_bv (d_mm, 8, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 1100
-  bv = btor_bv_uint64_to_bv (d_mm, 12, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 2u);
-  btor_bv_free (d_mm, bv);
-
-  // 1110
-  bv = btor_bv_uint64_to_bv (d_mm, 14, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 3u);
-  btor_bv_free (d_mm, bv);
-
-  // 1111
-  bv = btor_bv_uint64_to_bv (d_mm, 15, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 4u);
-  btor_bv_free (d_mm, bv);
-
-  // 0000
-  bv = btor_bv_uint64_to_bv (d_mm, 0, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 0u);
-  btor_bv_free (d_mm, bv);
-
-  // 1011
-  bv = btor_bv_uint64_to_bv (d_mm, 11, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 1101
-  bv = btor_bv_uint64_to_bv (d_mm, 13, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 2u);
-  btor_bv_free (d_mm, bv);
-
-  // 1001
-  bv = btor_bv_uint64_to_bv (d_mm, 9, 4);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (d_mm, bv);
-
-  // 0
-  bv = btor_bv_uint64_to_bv (d_mm, 0, 1);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 0u);
-  btor_bv_free (d_mm, bv);
-
-  // 1
-  bv = btor_bv_uint64_to_bv (d_mm, 1, 1);
-  ASSERT_EQ (btor_bv_get_num_leading_ones (bv), 1u);
-  btor_bv_free (d_mm, bv);
+  test_get_num (8, btor_bv_get_num_leading_ones, true, false);
+  test_get_num (64, btor_bv_get_num_leading_ones, true, false);
+  test_get_num (76, btor_bv_get_num_leading_ones, true, false);
+  test_get_num (128, btor_bv_get_num_leading_ones, true, false);
+  test_get_num (176, btor_bv_get_num_leading_ones, true, false);
 }
 
 // TODO btor_bv_get_assignment

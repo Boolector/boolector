@@ -1139,24 +1139,81 @@ btor_bv_get_num_trailing_zeros (const BtorBitVector *bv)
  */
 #ifdef BTOR_USE_GMP
 static uint32_t
-get_limb (const BtorBitVector *bv, mp_limb_t *limb)
+get_limb (const BtorBitVector *bv,
+          mp_limb_t *limb,
+          uint32_t nbits_rem,
+          bool zeros)
 {
   /* GMP normalizes the limbs, the left most (most significant) is never 0 */
-  uint32_t n_limbs = mpz_size (bv->val);
-  *limb            = n_limbs ? mpz_getlimbn (bv->val, n_limbs - 1) : 0;
-  return n_limbs;
+  uint32_t i, n_limbs, n_limbs_total;
+  mp_limb_t res = 0u, mask;
+
+  n_limbs = mpz_size (bv->val);
+
+  /* for leading zeros */
+  if (zeros)
+  {
+    *limb = n_limbs ? mpz_getlimbn (bv->val, n_limbs - 1) : 0;
+    return n_limbs;
+  }
+
+  /* for leading ones */
+  n_limbs_total = bv->width / mp_bits_per_limb + (nbits_rem ? 1 : 0);
+  if (n_limbs != n_limbs_total)
+  {
+    /* no leading ones, simulate */
+    *limb = nbits_rem ? ~(~((mp_limb_t) 0) << nbits_rem) : ~((mp_limb_t) 0);
+    return n_limbs_total;
+  }
+  mask = ~((mp_limb_t) 0) << nbits_rem;
+  for (i = 0; i < n_limbs; i++)
+  {
+    res = mpz_getlimbn (bv->val, n_limbs - 1 - i);
+    if (nbits_rem && i == 0)
+    {
+      res = res | mask;
+    }
+    res = ~res;
+    if (res > 0) break;
+  }
+  *limb = res;
+  return n_limbs - i;
 }
 #else
 static uint32_t
-get_limb (const BtorBitVector *bv, BTOR_BV_TYPE *limb)
+get_limb (const BtorBitVector *bv,
+          BTOR_BV_TYPE *limb,
+          uint32_t nbits_rem,
+          bool zeros)
 {
   uint32_t i;
-  BTOR_BV_TYPE res = 0u;
-  for (i = 0; i < bv->len; i++)
+  BTOR_BV_TYPE res = 0u, mask;
+
+  /* for leading zeros */
+  if (zeros)
   {
-    res = bv->bits[i];
-    if (res > 0) break;
+    for (i = 0; i < bv->len; i++)
+    {
+      res = bv->bits[i];
+      if (res > 0) break;
+    }
   }
+  /* for leading ones */
+  else
+  {
+    mask = ~((BTOR_BV_TYPE) 0) << nbits_rem;
+    for (i = 0; i < bv->len; i++)
+    {
+      res = bv->bits[i];
+      if (nbits_rem && i == 0)
+      {
+        res = res | mask;
+      }
+      res = ~res;
+      if (res > 0) break;
+    }
+  }
+
   *limb = res;
   return bv->len - i;
 }
@@ -1187,8 +1244,8 @@ clz_limb (uint32_t nbits_per_limb, BTOR_BV_TYPE limb)
 }
 #endif
 
-uint32_t
-btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
+static uint32_t
+get_num_leading (const BtorBitVector *bv, bool zeros)
 {
   assert (bv);
 
@@ -1217,7 +1274,7 @@ btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
 
   nbits_rem = bv->width % nbits_per_limb;
 
-  n_limbs = get_limb (bv, &limb);
+  n_limbs = get_limb (bv, &limb, nbits_rem, zeros);
   if (n_limbs == 0) return bv->width;
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -1232,10 +1289,18 @@ btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
 }
 
 uint32_t
+btor_bv_get_num_leading_zeros (const BtorBitVector *bv)
+{
+  return get_num_leading (bv, true);
+}
+
+uint32_t
 btor_bv_get_num_leading_ones (const BtorBitVector *bv)
 {
   assert (bv);
 
+  return get_num_leading (bv, false);
+#if 0
   uint32_t res = 0;
   uint32_t i;
 
@@ -1245,6 +1310,7 @@ btor_bv_get_num_leading_ones (const BtorBitVector *bv)
     res += 1;
   }
   return res;
+#endif
 }
 
 /*------------------------------------------------------------------------*/
