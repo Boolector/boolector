@@ -1743,18 +1743,16 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, uint32_t nroots)
   assert (file);
 
   uint32_t i;
-  BtorNode *tmp, *tmp_roots[nroots];
+  BtorNode *tmp;
   BtorPtrHashTableIterator it;
   BtorSMTDumpContext *sdc;
-
-  for (i = 0; i < nroots; i++) tmp_roots[i] = roots[i];
 
   sdc = new_smt_dump_context (btor, file);
 
   if (nroots)
   {
     for (i = 0; i < nroots; i++)
-      add_root_to_smt_dump_context (sdc, tmp_roots[i]);
+      add_root_to_smt_dump_context (sdc, roots[i]);
   }
   else
   {

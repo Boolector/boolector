@@ -482,7 +482,8 @@ RESTART:
   update_node_hash_tables (btor);
   update_assumptions (btor);
 
-  if (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST))
+  if (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST)
+      && !BTOR_EMPTY_STACK(reset_stack))
   {
     // TODO: check if sorting is even necessary if we pop from the stack
     qsort (reset_stack.start,

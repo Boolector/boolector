@@ -479,6 +479,9 @@ compute_model_values (Btor *btor,
   BtorNode *cur;
   BtorBitVector *bv;
 
+  if (num_nodes == 0)
+    return;
+
   qsort (
       nodes, num_nodes, sizeof (BtorNode *), btor_node_compare_by_id_qsort_asc);
 
