@@ -485,11 +485,6 @@ RESTART:
   if (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST)
       && !BTOR_EMPTY_STACK(reset_stack))
   {
-    // TODO: check if sorting is even necessary if we pop from the stack
-    qsort (reset_stack.start,
-           BTOR_COUNT_STACK (reset_stack),
-           sizeof (BtorNode *),
-           btor_node_compare_by_id_qsort_desc);
     while (!BTOR_EMPTY_STACK (reset_stack))
     {
       cur = BTOR_POP_STACK (reset_stack);
