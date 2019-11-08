@@ -6,6 +6,7 @@ BUILDDIR=build
 #--------------------------------------------------------------------------#
 
 asan=no
+ubsan=no
 debug=no
 check=no
 log=no
@@ -49,6 +50,7 @@ where <option> is one of the following:
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
   --asan            compile with -fsanitize=address -fsanitize-recover=address
+  --ubsan           compile with -fsanitize=undefined
   --gcov            compile with -fprofile-arcs -ftest-coverage
   --gprof           compile with -pg
 
@@ -113,6 +115,7 @@ do
     -l)      log=yes;;
     -c)      check=yes;;
     --asan)  asan=yes;;
+    --ubsan) ubsan=yes;;
     --gcov)  gcov=yes;;
     --gprof) gprof=yes;;
 
@@ -145,6 +148,7 @@ done
 cmake_opts="$CMAKE_OPTS"
 
 [ $asan = yes ] && cmake_opts="$cmake_opts -DASAN=ON"
+[ $ubsan = yes ] && cmake_opts="$cmake_opts -DUBSAN=ON"
 [ $debug = yes ] && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=Debug"
 [ $check = yes ] && cmake_opts="$cmake_opts -DCHECK=ON"
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"

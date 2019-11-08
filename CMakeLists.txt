@@ -102,6 +102,7 @@ message(STATUS "BIN directory is '${CMAKE_BINARY_DIR}/bin'")
 #-----------------------------------------------------------------------------#
 
 option3vl(ASAN       "Compile with ASAN support")
+option3vl(UBSAN      "Compile with UBSan support")
 option3vl(CHECK      "Enable assertions even for optimized compilation")
 option3vl(GCOV       "Compile with coverage support")
 option3vl(GPROF      "Compile with profiling support")
@@ -160,6 +161,11 @@ if(ASAN)
   unset(CMAKE_REQUIRED_FLAGS)
   add_check_c_cxx_flag("-fno-omit-frame-pointer")
   add_required_c_cxx_flag("-fsanitize-recover=address")
+  set(BUILD_SHARED_LIBS ON)
+endif()
+
+if(UBSAN)
+  add_required_c_cxx_flag("-fsanitize=undefined")
   set(BUILD_SHARED_LIBS ON)
 endif()
 
