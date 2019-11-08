@@ -563,6 +563,7 @@ class TestBv : public TestBtor
     }
     else
     {
+      // concat 8-bit value with 0s to create value for bv
       for (uint64_t i = 0; i < (1u << 8); ++i)
       {
         std::stringstream ss;
@@ -584,6 +585,31 @@ class TestBv : public TestBtor
         std::stringstream ss;
         std::string v = std::bitset<8> (i).to_string ();
         ss << v << std::string (bw - 16, '0') << v;
+        test_get_num_aux (ss.str (), fun, from_msb);
+      }
+
+      // concat 8bit-values with 1s to create value for bv
+      for (uint64_t i = 0; i < (1u << 8); ++i)
+      {
+        std::stringstream ss;
+        std::string v = std::bitset<8> (i).to_string ();
+        ss << v << std::string (bw - 8, '1');
+        test_get_num_aux (ss.str (), fun, from_msb);
+      }
+
+      for (uint64_t i = 0; i < (1u << 8); ++i)
+      {
+        std::stringstream ss;
+        std::string v = std::bitset<8> (i).to_string ();
+        ss << std::string (bw - 8, '1') << v;
+        test_get_num_aux (ss.str (), fun, from_msb);
+      }
+
+      for (uint64_t i = 0; i < (1u << 8); ++i)
+      {
+        std::stringstream ss;
+        std::string v = std::bitset<8> (i).to_string ();
+        ss << v << std::string (bw - 16, '1') << v;
         test_get_num_aux (ss.str (), fun, from_msb);
       }
     }
