@@ -1201,7 +1201,7 @@ is_distinct (Btor *btor, BoolectorNode *n1, BoolectorNode *n2)
 
     for (i = 0; i < size1; i++)
     {
-      assert (!btor_hashptr_table_get (cache, indices[i]));
+      assert (!btor_hashptr_table_get (cache, indices1[i]));
       btor_hashptr_table_add (cache, indices1[i])->data.as_str = values1[i];
     }
     for (i = 0; i < size2; i++)
