@@ -1130,7 +1130,7 @@ print_witness (BtorMC *mc, int32_t time)
   BtorMCstate *state;
   BoolectorNode *src;
   BtorPtrHashTableIterator it;
-  bool full_trace;
+  bool full_trace, printed_state_header;
 
   full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
 
@@ -1143,16 +1143,25 @@ print_witness (BtorMC *mc, int32_t time)
 
   for (i = 0; i <= (size_t) time; i++)
   {
-    if (i == 0 || full_trace)
+    /* We have to print the state assignments if
+     * 1) the state is uninitialized
+     * 2) the state has no next function (primary input)
+     * 3) the user wants a full trace
+     * In all other cases the state part can be omitted. */
+    printed_state_header = false;
+    btor_iter_hashptr_init (&it, mc->states);
+    while (btor_iter_hashptr_has_next (&it))
     {
-      printf ("#%zu\n", i);
-      btor_iter_hashptr_init (&it, mc->states);
-      while (btor_iter_hashptr_has_next (&it))
+      state = it.bucket->data.as_ptr;
+      assert (state);
+      src = (BoolectorNode *) btor_iter_hashptr_next (&it);
+      if (((i == 0) && !state->init) || !state->next || full_trace)
       {
-        state = it.bucket->data.as_ptr;
-        assert (state);
-        src = (BoolectorNode *) btor_iter_hashptr_next (&it);
-        if (!full_trace && state->init) continue;
+        if (!printed_state_header)
+        {
+          printed_state_header = true;
+          printf ("#%zu\n", i);
+        }
         print_witness_at_time (mc, src, i);
       }
     }
