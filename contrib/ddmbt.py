@@ -158,7 +158,7 @@ def _node_bw(tokens):
             bw = cbw[1]
         elif kind == "read":
             assert(len(cbw[0]) == 2)
-            bw = cbw[0][0]
+            bw = cbw[0][1]
             assert(not isinstance(bw, list))
         elif kind == "write":
             assert(len(cbw[0]) == 2)
@@ -185,10 +185,10 @@ def _node_bw(tokens):
         elif kind == "copy":
             bw = cbw[0]
         else:
-            assert(len(cbw) == 2)
-            assert(cbw[0] == cbw[1])
+            assert len(cbw) == 2
+            assert cbw[0] == cbw[1]
             bw = cbw[0]
-            assert(not isinstance(bw, list))
+            assert not isinstance(bw, list)
     return bw
 
 def _build_graph():
