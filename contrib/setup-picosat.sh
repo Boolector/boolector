@@ -9,7 +9,7 @@ PICOSAT_DIR=${DEPS_DIR}/picosat
 rm -rf ${PICOSAT_DIR}
 
 # Download and build PicoSAT
-wget http://fmv.jku.at/picosat/picosat-965.tar.gz
+curl -o picosat-965.tar.gz -L http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
 rm picosat-965.tar.gz
 mv picosat-965 ${PICOSAT_DIR}
