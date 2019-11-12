@@ -47,6 +47,7 @@ jobs:
       ./contrib/setup-btor2tools.sh
       ./contrib/setup-cadical.sh
       ./contrib/setup-lingeling.sh
+      ./contrib/setup-cms.sh
     displayName: 'Setup dependencies'
 
   - script: $(btorConfigEnv) ./configure.sh $(btorConfig)
@@ -101,9 +102,11 @@ jobs:
     displayName: 'Install Cython'
 
   - script: |
+      brew remove boost
       ./contrib/setup-btor2tools.sh
       ./contrib/setup-cadical.sh
       ./contrib/setup-lingeling.sh
+      ./contrib/setup-cms.sh
     displayName: 'Setup dependencies'
 
   - script: $(btorConfigEnv) ./configure.sh $(btorConfig)
