@@ -10,6 +10,7 @@ set(libboolector_src_files
   btorbv.c
   btorchkclone.c
   btorchkmodel.c
+  btorchkfailed.c
   btorclone.c
   btorcore.c
   btordbg.c

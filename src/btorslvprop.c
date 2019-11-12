@@ -60,7 +60,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   btor_iter_hashptr_queue (&pit, btor->assumptions);
   while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_iter_hashptr_next (&pit);
+    root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&pit));
     if (btor_bv_is_false (btor_model_get_bv (btor, root)))
       assert (btor_hashint_map_contains (slv->roots, btor_node_get_id (root)));
     else
@@ -252,7 +252,7 @@ sat_prop_solver_aux (Btor *btor)
   btor_iter_hashptr_init (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    root = btor_iter_hashptr_next (&it);
+    root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     if (btor_hashptr_table_get (btor->unsynthesized_constraints,
                                 btor_node_invert (root)))
       goto UNSAT;
@@ -273,7 +273,7 @@ sat_prop_solver_aux (Btor *btor)
     btor_iter_hashptr_queue (&it, btor->assumptions);
     while (btor_iter_hashptr_has_next (&it))
     {
-      root = btor_iter_hashptr_next (&it);
+      root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
 
       if (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))

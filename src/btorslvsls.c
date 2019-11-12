@@ -1523,7 +1523,7 @@ sat_sls_solver (BtorSLSSolver *slv)
   btor_iter_hashptr_init (&pit, btor->assumptions);
   while (btor_iter_hashptr_has_next (&pit))
   {
-    root = btor_iter_hashptr_next (&pit);
+    root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&pit));
     if (btor_hashptr_table_get (btor->unsynthesized_constraints,
                                 btor_node_invert (root)))
       goto UNSAT;
@@ -1564,7 +1564,7 @@ sat_sls_solver (BtorSLSSolver *slv)
     btor_iter_hashptr_queue (&pit, btor->assumptions);
     while (btor_iter_hashptr_has_next (&pit))
     {
-      root = btor_iter_hashptr_next (&pit);
+      root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&pit));
       if (!btor_hashint_map_contains (slv->roots, btor_node_get_id (root))
           && btor_bv_is_zero (btor_model_get_bv (btor, root)))
       {

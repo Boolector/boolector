@@ -265,7 +265,7 @@ btor_dcr_compute_scores (Btor *btor)
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_iter_hashptr_next (&it);
+    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     BTOR_PUSH_STACK (stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -342,7 +342,7 @@ btor_dcr_compute_scores_dual_prop (Btor *btor)
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_iter_hashptr_next (&it);
+    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     BTOR_PUSH_STACK (stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {

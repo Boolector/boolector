@@ -94,7 +94,7 @@ rebuild_formula (Btor *btor, uint32_t rewrite_level)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, cnt - i))) continue;
 
-    if (btor_node_is_proxy (cur)) continue;
+    if (btor_node_is_simplified (cur)) continue;
 
     if (cur->arity == 0)
     {
@@ -280,7 +280,7 @@ btor_check_model_init (Btor *btor)
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_MODEL, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-  btor_opt_set (ctx->clone, BTOR_OPT_NONDESTR_SUBST, 0);
+  // btor_opt_set (ctx->clone, BTOR_OPT_NONDESTR_SUBST, 0);
   btor_set_term (ctx->clone, 0, 0);
 
   btor_opt_set (ctx->clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);

@@ -177,7 +177,7 @@ incremental_required (Btor *btor)
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_iter_hashptr_next (&it);
+    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     BTOR_PUSH_STACK (stack, cur);
   }
 
@@ -592,7 +592,6 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor->embedded_constraints->count == 0);
   assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
   assert (btor_dbg_check_all_hash_tables_simp_free (btor));
-  assert (btor_dbg_check_assumptions_simp_free (btor));
 
   btor_add_again_assumptions (btor);
 
@@ -877,7 +876,8 @@ search_initial_applies_dual_prop (Btor *btor,
 
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
+      cur = BTOR_POP_STACK (stack);
+      cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
 
       if (btor_hashint_table_contains (mark, cur->id)) continue;
 
@@ -968,8 +968,6 @@ search_initial_applies_bv_skeleton (Btor *btor,
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_POP_STACK (stack);
-      assert (!btor_node_is_simplified (cur)
-              || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
       cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
 
       if (btor_hashint_table_contains (cache, cur->id)) continue;
@@ -1035,7 +1033,8 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = btor_node_real_addr (BTOR_POP_STACK (stack));
+      cur = BTOR_POP_STACK (stack);
+      cur = btor_node_real_addr (btor_node_get_simplified (btor, cur));
 
       if (btor_hashint_table_contains (mark, cur->id)) continue;
 
@@ -2195,7 +2194,7 @@ push_unreachable_applies (Btor *btor, BtorNodePtrStack *init_apps)
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_iter_hashptr_next (&it);
+    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     BTOR_PUSH_STACK (visit, cur);
     while (!BTOR_EMPTY_STACK (visit))
     {

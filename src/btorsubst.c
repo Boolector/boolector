@@ -20,44 +20,6 @@
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
-static void
-update_assumptions (Btor *btor)
-{
-  assert (btor);
-
-  BtorPtrHashTable *ass;
-  BtorNode *cur, *simp;
-  BtorPtrHashTableIterator it;
-
-  ass = btor_hashptr_table_new (btor->mm,
-                                (BtorHashPtr) btor_node_hash_by_id,
-                                (BtorCmpPtr) btor_node_compare_by_id);
-  btor_iter_hashptr_init (&it, btor->assumptions);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    cur = btor_iter_hashptr_next (&it);
-    if (btor_node_is_simplified (cur))
-    {
-      /* Note: do not simplify constraint expression in order to prevent
-       * constraint expressions from not being added to btor->assumptions.
-       */
-      simp = btor_node_get_simplified (btor, cur);
-      if (!btor_hashptr_table_get (ass, simp))
-        btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
-      btor_node_release (btor, cur);
-    }
-    else
-    {
-      if (!btor_hashptr_table_get (ass, cur))
-        btor_hashptr_table_add (ass, cur);
-      else
-        btor_node_release (btor, cur);
-    }
-  }
-  btor_hashptr_table_delete (btor->assumptions);
-  btor->assumptions = ass;
-}
-
 /* update hash tables of nodes in order to get rid of proxy nodes
  */
 static void
@@ -480,7 +442,6 @@ RESTART:
   BTOR_RELEASE_STACK (visit);
 
   update_node_hash_tables (btor);
-  update_assumptions (btor);
 
   if (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST)
       && !BTOR_EMPTY_STACK(reset_stack))
@@ -489,6 +450,7 @@ RESTART:
     {
       cur = BTOR_POP_STACK (reset_stack);
       assert (btor_node_is_regular (cur));
+      assert (cur->parameterized);
       simplified = btor_node_real_addr (cur->simplified);
       assert (simplified);
       btor_node_release (btor, simplified);
