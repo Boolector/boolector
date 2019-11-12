@@ -340,11 +340,11 @@ if(NOT USE_LINGELING
    AND NOT USE_PICOSAT
    AND NOT USE_MINISAT)
   message(FATAL_ERROR "No SAT solver configured")
-elseif(NOT LINGELING_FOUND
-       AND NOT CADICAL_FOUND
-       AND NOT CMS_FOUND
-       AND NOT PICOSAT_FOUND
-       AND NOT MINISAT_FOUND)
+elseif(NOT Lingeling_FOUND
+       AND NOT CaDiCaL_FOUND
+       AND NOT CryptoMiniSat_FOUND
+       AND NOT PicoSAT_FOUND
+       AND NOT MiniSat_FOUND)
   message(FATAL_ERROR "No SAT solver found")
 endif()
 
