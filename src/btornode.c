@@ -241,21 +241,17 @@ btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
   assert (btor);
   assert (exp);
 
-  BtorNode *real_exp;
+  if (btor_node_is_inverted (exp) || !btor_node_is_bv_add (exp)) return false;
 
-  real_exp = btor_node_real_addr (exp);
-
-  if (!btor_node_is_bv_add (real_exp)) return false;
-
-  if (btor_node_is_bv_const_one (btor, real_exp->e[0]))
+  if (btor_node_is_bv_const_one (btor, exp->e[0]))
   {
-    if (res) *res = btor_node_invert (real_exp->e[1]);
+    if (res) *res = btor_node_invert (exp->e[1]);
     return true;
   }
 
-  if (btor_node_is_bv_const_one (btor, real_exp->e[1]))
+  if (btor_node_is_bv_const_one (btor, exp->e[1]))
   {
-    if (res) *res = btor_node_invert (real_exp->e[0]);
+    if (res) *res = btor_node_invert (exp->e[0]);
     return true;
   }
 

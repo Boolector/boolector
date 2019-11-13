@@ -1779,6 +1779,12 @@ propagate (Btor *btor,
       {
         if (!equal_bv_assignments (app, fun->e[2]))
         {
+          BTORLOG (1, "\e[1;31m");
+          BTORLOG (1, "update conflict at: %s", btor_util_node2string (fun));
+          BTORLOG (1, "add_lemma:");
+          BTORLOG (1, "  fun: %s", btor_util_node2string (fun));
+          BTORLOG (1, "  app: %s", btor_util_node2string (app));
+          BTORLOG (1, "\e[0;39m");
 #if 0
 		  if (opt_eager_lemmas == BTOR_FUN_EAGER_LEMMAS_CONF)
 		    {
