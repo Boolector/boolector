@@ -1372,7 +1372,7 @@ normalize_substitution (Btor *btor,
   assert (btor_opt_get (btor, BTOR_OPT_VAR_SUBST));
 
   BtorNode *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
-  BtorNode *const_exp, *real_exp;
+  BtorNode *const_exp, *e0, *e1;
   uint32_t leadings;
   BtorBitVector *ic, *fc, *bits;
   BtorMemMgr *mm;
@@ -1407,103 +1407,106 @@ normalize_substitution (Btor *btor,
     return true;
   }
 
-  if (btor_node_is_bv_ult (exp)
-      && (btor_node_is_bv_var (btor_node_real_addr (exp)->e[0])
-          || btor_node_is_bv_var (btor_node_real_addr (exp)->e[1])))
+  if (btor_node_is_bv_ult (exp))
   {
-    real_exp = btor_node_real_addr (exp);
+    e0 = btor_node_get_simplified (btor, btor_node_real_addr (exp)->e[0]);
+    e1 = btor_node_get_simplified (btor, btor_node_real_addr (exp)->e[1]);
 
-    if (btor_node_is_inverted (exp))
-      comp = BTOR_SUBST_COMP_UGTE_KIND;
-    else
-      comp = BTOR_SUBST_COMP_ULT_KIND;
-
-    if (btor_node_is_bv_var (real_exp->e[0]))
+    if (btor_node_is_bv_var (e0) || btor_node_is_bv_var (e1))
     {
-      var   = real_exp->e[0];
-      right = real_exp->e[1];
-    }
-    else
-    {
-      assert (btor_node_is_bv_var (real_exp->e[1]));
-      var   = real_exp->e[1];
-      right = real_exp->e[0];
-      comp  = reverse_subst_comp_kind (btor, comp);
-    }
+      if (btor_node_is_inverted (exp))
+        comp = BTOR_SUBST_COMP_UGTE_KIND;
+      else
+        comp = BTOR_SUBST_COMP_ULT_KIND;
 
-    /* ~a comp b is equal to a reverse_comp ~b,
-     * where comp in ult, ulte, ugt, ugte
-     * (e.g. reverse_comp of ult is ugt) */
-    if (btor_node_is_inverted (var))
-    {
-      var   = btor_node_real_addr (var);
-      right = btor_node_invert (right);
-      comp  = reverse_subst_comp_kind (btor, comp);
-    }
-
-    /* we do not create a lambda (index) if variable is already in
-     * substitution table */
-    assert (!btor_node_is_inverted (var));
-    if (btor_hashptr_table_get (btor->varsubst_constraints, var)) return false;
-
-    if (!btor_node_is_bv_const (right)) return false;
-
-    if (btor_node_is_inverted (right))
-      bits = btor_bv_not (mm, btor_node_bv_const_get_bits (right));
-    else
-      bits = btor_bv_copy (mm, btor_node_bv_const_get_bits (right));
-
-    if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
-    {
-      leadings = btor_bv_get_num_leading_zeros (bits);
-      if (leadings > 0)
+      if (btor_node_is_bv_var (e0))
       {
-        sort      = btor_sort_bv (btor, leadings);
-        const_exp = btor_exp_bv_zero (btor, sort);
-        btor_sort_release (btor, sort);
-        sort   = btor_sort_bv (btor,
-                                 btor_node_bv_get_width (btor, var) - leadings);
-        lambda = btor_exp_var (btor, sort, 0);
-        btor_sort_release (btor, sort);
-        tmp = btor_exp_bv_concat (btor, const_exp, lambda);
-        insert_varsubst_constraint (btor, var, tmp);
-        btor_node_release (btor, const_exp);
-        btor_node_release (btor, lambda);
-        btor_node_release (btor, tmp);
+        var   = e0;
+        right = e1;
       }
-    }
-    else
-    {
-      assert (comp == BTOR_SUBST_COMP_UGT_KIND
-              || comp == BTOR_SUBST_COMP_UGTE_KIND);
-      leadings = btor_bv_get_num_leading_ones (bits);
-      if (leadings > 0)
+      else
       {
-        sort      = btor_sort_bv (btor, leadings);
-        const_exp = btor_exp_bv_ones (btor, sort);
-        btor_sort_release (btor, sort);
-        sort   = btor_sort_bv (btor,
-                                 btor_node_bv_get_width (btor, var) - leadings);
-        lambda = btor_exp_var (btor, sort, 0);
-        btor_sort_release (btor, sort);
-        tmp = btor_exp_bv_concat (btor, const_exp, lambda);
-        insert_varsubst_constraint (btor, var, tmp);
-        btor_node_release (btor, const_exp);
-        btor_node_release (btor, lambda);
-        btor_node_release (btor, tmp);
+        assert (btor_node_is_bv_var (e1));
+        var   = e1;
+        right = e0;
+        comp  = reverse_subst_comp_kind (btor, comp);
       }
-    }
 
-    btor_bv_free (btor->mm, bits);
-    return false;
+      /* ~a comp b is equal to a reverse_comp ~b,
+       * where comp in ult, ulte, ugt, ugte
+       * (e.g. reverse_comp of ult is ugt) */
+      if (btor_node_is_inverted (var))
+      {
+        var   = btor_node_real_addr (var);
+        right = btor_node_invert (right);
+        comp  = reverse_subst_comp_kind (btor, comp);
+      }
+
+      /* we do not create a lambda (index) if variable is already in
+       * substitution table */
+      assert (!btor_node_is_inverted (var));
+      if (btor_hashptr_table_get (btor->varsubst_constraints, var))
+        return false;
+
+      if (!btor_node_is_bv_const (right)) return false;
+
+      if (btor_node_is_inverted (right))
+        bits = btor_bv_not (mm, btor_node_bv_const_get_bits (right));
+      else
+        bits = btor_bv_copy (mm, btor_node_bv_const_get_bits (right));
+
+      if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
+      {
+        leadings = btor_bv_get_num_leading_zeros (bits);
+        if (leadings > 0)
+        {
+          sort      = btor_sort_bv (btor, leadings);
+          const_exp = btor_exp_bv_zero (btor, sort);
+          btor_sort_release (btor, sort);
+          sort   = btor_sort_bv (btor,
+                               btor_node_bv_get_width (btor, var) - leadings);
+          lambda = btor_exp_var (btor, sort, 0);
+          btor_sort_release (btor, sort);
+          tmp = btor_exp_bv_concat (btor, const_exp, lambda);
+          insert_varsubst_constraint (btor, var, tmp);
+          btor_node_release (btor, const_exp);
+          btor_node_release (btor, lambda);
+          btor_node_release (btor, tmp);
+        }
+      }
+      else
+      {
+        assert (comp == BTOR_SUBST_COMP_UGT_KIND
+                || comp == BTOR_SUBST_COMP_UGTE_KIND);
+        leadings = btor_bv_get_num_leading_ones (bits);
+        if (leadings > 0)
+        {
+          sort      = btor_sort_bv (btor, leadings);
+          const_exp = btor_exp_bv_ones (btor, sort);
+          btor_sort_release (btor, sort);
+          sort   = btor_sort_bv (btor,
+                               btor_node_bv_get_width (btor, var) - leadings);
+          lambda = btor_exp_var (btor, sort, 0);
+          btor_sort_release (btor, sort);
+          tmp = btor_exp_bv_concat (btor, const_exp, lambda);
+          insert_varsubst_constraint (btor, var, tmp);
+          btor_node_release (btor, const_exp);
+          btor_node_release (btor, lambda);
+          btor_node_release (btor, tmp);
+        }
+      }
+
+      btor_bv_free (btor->mm, bits);
+      return false;
+    }
   }
 
   /* in the boolean case a != b is the same as a == ~b */
   if (btor_node_is_inverted (exp) && btor_node_is_bv_eq (exp)
       && btor_node_bv_get_width (btor, btor_node_real_addr (exp)->e[0]) == 1)
   {
-    left  = btor_node_real_addr (exp)->e[0];
-    right = btor_node_real_addr (exp)->e[1];
+    left  = btor_node_get_simplified (btor, btor_node_real_addr (exp)->e[0]);
+    right = btor_node_get_simplified (btor, btor_node_real_addr (exp)->e[1]);
 
     if (btor_node_is_bv_var (left))
     {
@@ -1523,8 +1526,8 @@ normalize_substitution (Btor *btor,
   if (btor_node_is_inverted (exp) || !btor_node_is_array_or_bv_eq (exp))
     return false;
 
-  left       = exp->e[0];
-  right      = exp->e[1];
+  left       = btor_node_get_simplified (btor, exp->e[0]);
+  right      = btor_node_get_simplified (btor, exp->e[1]);
   real_left  = btor_node_real_addr (left);
   real_right = btor_node_real_addr (right);
 
