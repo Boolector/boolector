@@ -352,7 +352,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   if (btor->unsynthesized_constraints->count == 0) return 0;
 
   start = btor_util_time_stamp ();
-  clone = btor_clone_exp_layer (btor, exp_map, false);
+  clone = btor_clone_exp_layer (btor, exp_map, true);
   assert (!clone->synthesized_constraints->count);
   assert (clone->embedded_constraints->count == 0);
   assert (clone->unsynthesized_constraints->count);
