@@ -12,6 +12,7 @@ check=no
 log=no
 shared=no
 prefix=
+path=
 
 gmp=no
 
@@ -44,6 +45,9 @@ where <option> is one of the following:
   -f...|-m...       add compiler options
 
   --prefix <dir>    install prefix
+
+  --path <dir>      look for dependencies in <dir>/{include,lib}
+                    specify multiple --path options for multiple directories
 
   --shared          shared library
 
@@ -110,6 +114,13 @@ do
       prefix=$1
       ;;
 
+    --path)
+      shift
+      [ $# -eq 0 ] && die "missing argument to $opt"
+      [ -n "$path" ] && path="$path;"
+      path="$path$1"
+      ;;
+
     --shared) shared=yes;;
 
     -l)      log=yes;;
@@ -155,6 +166,7 @@ cmake_opts="$CMAKE_OPTS"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=ON"
 
 [ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
+[ -n "$path" ] && cmake_opts="$cmake_opts -DCMAKE_PREFIX_PATH=$path"
 
 [ $gmp = yes ] && cmake_opts="$cmake_opts -DUSE_GMP=ON"
 
