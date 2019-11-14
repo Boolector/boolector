@@ -170,6 +170,17 @@ btor_dbg_check_constraints_not_const (const Btor *btor)
 }
 
 bool
+btor_dbg_check_assumptions_simp_free (const Btor *btor)
+{
+  BtorPtrHashTableIterator it;
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    if (btor_node_is_simplified (btor_iter_hashptr_next (&it)))
+      return false;
+  return true;
+}
+
+bool
 btor_dbg_check_nodes_simp_free (Btor *btor, BtorNode *nodes[], size_t nnodes)
 {
   size_t i;
@@ -244,6 +255,7 @@ btor_dbg_check_constraints_simp_free (Btor *btor)
 
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);

@@ -136,8 +136,7 @@ generate_model_from_aig_model (Btor *btor)
   btor_iter_hashptr_init (&it, btor->synthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
-    BTOR_PUSH_STACK (
-        stack, btor_node_get_simplified (btor, btor_iter_hashptr_next (&it)));
+    BTOR_PUSH_STACK (stack, btor_iter_hashptr_next (&it));
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -227,6 +226,14 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor_dbg_check_all_hash_tables_proxy_free (btor));
   assert (btor_dbg_check_all_hash_tables_simp_free (btor));
+
+#ifndef NDEBUG
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    assert (!btor_node_real_addr (((BtorNode *) btor_iter_hashptr_next (&it)))
+                 ->simplified);
+#endif
+
   assert (slv->aprop);
   assert (!slv->aprop->roots);
   assert (!slv->aprop->score);
@@ -243,7 +250,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
   btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
-    root = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
+    root = btor_iter_hashptr_next (&it);
 
     if (!btor_node_real_addr (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (btor_node_real_addr (root)->av->width == 1);
