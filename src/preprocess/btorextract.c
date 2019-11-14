@@ -747,6 +747,8 @@ collect_indices_lambdas (Btor *btor,
     lambda = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
     assert (btor_node_is_regular (lambda));
 
+    if (!btor_node_is_lambda (lambda)) continue;
+
     /* already visited */
     if (btor_hashptr_table_get (map_value_index, lambda)) continue;
 

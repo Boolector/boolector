@@ -36,14 +36,17 @@ update_assumptions (Btor *btor)
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
-    if (btor_node_is_simplified (cur))
+    simp = btor_simplify_exp (btor, cur);
+    if (cur != simp)
     {
-      /* Note: do not simplify constraint expression in order to prevent
-       * constraint expressions from not being added to btor->assumptions.
-       */
-      simp = btor_node_get_simplified (btor, cur);
       if (!btor_hashptr_table_get (ass, simp))
+      {
+        BTORLOG (2,
+                 "update assumption: %s -> %s\n",
+                 btor_util_node2string (cur),
+                 btor_util_node2string (simp));
         btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
+      }
       btor_node_release (btor, cur);
     }
     else

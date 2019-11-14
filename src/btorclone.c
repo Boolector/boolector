@@ -1183,6 +1183,9 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (assumptions);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->assumptions))
           == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE (orig_assumptions);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->orig_assumptions))
+          == clone->mm->allocated);
   btor_clone_node_ptr_stack (
       mm, &btor->failed_assumptions, &clone->failed_assumptions, emap, true);
   assert ((allocated +=

@@ -145,6 +145,8 @@ struct Btor
   /* maintains simplified assumptions, these are the assumptions that are
    * actually bit-blasted and assumed to the SAT solver */
   BtorPtrHashTable *assumptions;
+  /* maintains the non-simplified (original) assumptions */
+  BtorPtrHashTable *orig_assumptions;
   /* maintains non-simplified assumptions as assumed via boolector_assume,
    * this stack is needed for boolector_get_failed_assumptions only */
   BtorNodePtrStack failed_assumptions;

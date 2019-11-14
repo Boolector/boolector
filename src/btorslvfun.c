@@ -2499,7 +2499,12 @@ sat_fun_solver (BtorFunSolver *slv)
 
   /* initialize dual prop clone */
   if (btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP))
+  {
+    BTOR_ABORT (
+        btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST),
+        "Non-destructive substitution is not supported with dual propagation");
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
+  }
 
   while (true)
   {

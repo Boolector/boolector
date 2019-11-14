@@ -683,8 +683,7 @@ boolector_get_failed_assumptions (Btor *btor)
   {
     fass = BTOR_PEEK_STACK (btor->failed_assumptions, i);
     if (!fass) continue;
-    assert (btor_hashptr_table_get (btor->assumptions,
-                                    btor_node_get_simplified (btor, fass)));
+    assert (btor_hashptr_table_get (btor->orig_assumptions, fass));
     if (btor_failed_exp (btor, fass))
       BTOR_PUSH_STACK (failed, fass);
     else
