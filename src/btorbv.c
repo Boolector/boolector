@@ -2281,10 +2281,16 @@ btor_bv_sext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
-  assert (len > 0);
 
   BtorBitVector *res;
-  uint32_t bw = bv->width;
+  uint32_t bw;
+
+  if (len == 0)
+  {
+    return btor_bv_copy (mm, bv);
+  }
+
+  bw = bv->width;
 #ifdef BTOR_USE_GMP
   if (btor_bv_get_bit (bv, bw - 1))
   {
@@ -2313,11 +2319,17 @@ btor_bv_uext (BtorMemMgr *mm, const BtorBitVector *bv, uint32_t len)
 {
   assert (mm);
   assert (bv);
-  assert (len > 0);
 
   BtorBitVector *res;
-  uint32_t bw = bv->width + len;
-  res         = btor_bv_new (mm, bw);
+  uint32_t bw;
+
+  if (len == 0)
+  {
+    return btor_bv_copy (mm, bv);
+  }
+
+  bw  = bv->width + len;
+  res = btor_bv_new (mm, bw);
 #ifdef BTOR_USE_GMP
   mpz_set (res->val, bv->val);
 #else

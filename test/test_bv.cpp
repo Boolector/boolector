@@ -355,7 +355,7 @@ class TestBv : public TestBtor
 
     for (i = 0; i < num_tests; i++)
     {
-      len = btor_rng_pick_rand (d_rng, 1, bit_width - 1);
+      len = btor_rng_pick_rand (d_rng, 0, bit_width - 1);
       bv  = btor_bv_new_random (d_mm, d_rng, bit_width - len);
 
       res = ext_func (d_mm, bv, len);
