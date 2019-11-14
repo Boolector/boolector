@@ -2026,10 +2026,12 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   assert (b);
   assert (a->width == b->width);
 
+#ifndef BTOR_USE_GMP
   uint32_t skip, i, j, k;
+  BTOR_BV_TYPE v;
+#endif
   uint64_t ushift;
   BtorBitVector *res;
-  BTOR_BV_TYPE v;
 
   res = btor_bv_new (mm, a->width);
 
@@ -2038,7 +2040,7 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
     if (ushift >= a->width) return res;
 
 #ifdef BTOR_USE_GMP
-    mpz_fdiv_q_2exp (res->val, a->val, shift);
+    mpz_fdiv_q_2exp (res->val, a->val, ushift);
 #else
     k    = ushift % BTOR_BV_TYPE_BW;
     skip = ushift / BTOR_BV_TYPE_BW;
