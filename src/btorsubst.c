@@ -361,8 +361,10 @@ RESTART:
 
     d = btor_hashint_map_get (cache, id);
     BTORLOG (2,
-             "  visit (%s): %s",
+             "visit (%s, synth: %u, param: %u): %s",
              d == 0 ? "pre" : "post",
+             btor_node_is_synth (cur),
+             cur->parameterized,
              btor_util_node2string (cur));
     assert (opt_nondestr_subst || !btor_node_is_simplified (cur));
     assert (!btor_node_is_proxy (cur));

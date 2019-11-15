@@ -2147,10 +2147,11 @@ btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
           || exp->parameterized);
 
   BTORLOG (2,
-           "set simplified: %s -> %s (synth: %u)",
+           "set simplified: %s -> %s (synth: %u, param: %u)",
            btor_util_node2string (exp),
            btor_util_node2string (simplified),
-           btor_node_is_synth (exp));
+           btor_node_is_synth (exp),
+           exp->parameterized);
 
   /* FIXME: indicator for slow-down in incremental mode, when too many
    * synthesized nodes are rewritten, it can significantly slow-down the

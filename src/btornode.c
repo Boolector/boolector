@@ -1615,6 +1615,13 @@ find_binder_exp (Btor *btor,
   uint32_t hash;
 
   hash = hash_binder_exp (btor, param, body, params);
+
+  BTORLOG (2,
+           "find binder %s %s (hash: %u)",
+           btor_util_node2string (param),
+           btor_util_node2string (body),
+           hash);
+
   if (binder_hash) *binder_hash = hash;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
@@ -1634,6 +1641,11 @@ find_binder_exp (Btor *btor,
     }
   }
   assert (!*result || btor_node_is_binder (*result));
+  BTORLOG (2,
+           "found binder %s %s -> %s",
+           btor_util_node2string (param),
+           btor_util_node2string (body),
+           btor_util_node2string (*result));
   return result;
 }
 
@@ -2194,6 +2206,11 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
         *lookup = new_lambda_exp_node (btor, simp_e[0], simp_e[1]);
         btor_hashptr_table_get (btor->lambdas, *lookup)->data.as_int =
             binder_hash;
+        BTORLOG (2,
+                 "new lambda: %s (hash: %u, param: %u)",
+                 btor_util_node2string (*lookup),
+                 binder_hash,
+                 (*lookup)->parameterized);
         break;
       case BTOR_FORALL_NODE:
       case BTOR_EXISTS_NODE:
