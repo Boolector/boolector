@@ -2041,17 +2041,15 @@ add_extensionality_lemmas (Btor *btor)
   btor_iter_hashptr_init (&it, btor->feqs);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
-    if (!btor_node_is_fun_eq (cur)) continue;
-    BTOR_PUSH_STACK (feqs, cur);
+    BTOR_PUSH_STACK (feqs, btor_iter_hashptr_next (&it));
   }
 
   BtorUnionFind *ufind = btor_ufind_new (btor->mm);
 
   while (!BTOR_EMPTY_STACK (feqs))
   {
-    cur = BTOR_POP_STACK (feqs);
-    assert (btor_node_is_fun_eq (cur));
+    cur = btor_node_get_simplified (btor, BTOR_POP_STACK (feqs));
+    if (!btor_node_is_fun_eq (cur)) continue;
 
     evalbv = get_bv_assignment (btor, cur);
     assert (evalbv);
