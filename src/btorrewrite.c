@@ -374,7 +374,7 @@ cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
-  return btor_node_real_addr (a)->id - btor_node_real_addr (b)->id;
+  return btor_node_get_id (a) - btor_node_get_id (b);
 }
 
 static bool
@@ -5715,6 +5715,44 @@ apply_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 /* normalizers                                                                */
 /* -------------------------------------------------------------------------- */
 
+static BtorNode *
+mk_norm_node_from_hash_table (Btor *btor,
+                              BtorNodeKind kind,
+                              BtorPtrHashTable *nodes)
+{
+  assert (nodes->count > 0);
+
+  size_t i;
+  BtorNode *cur, *tmp, *result;
+  BtorNodePtrStack stack;
+  BtorPtrHashTableIterator it;
+  BtorHashTableData *d;
+
+  BTOR_INIT_STACK (btor->mm, stack);
+  btor_iter_hashptr_init (&it, nodes);
+  while (btor_iter_hashptr_has_next (&it))
+  {
+    cur = it.cur;
+    d   = btor_iter_hashptr_next_data (&it);
+    for (i = 0; i < (size_t) d->as_int; i++) BTOR_PUSH_STACK (stack, cur);
+  }
+
+  qsort (
+      stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
+
+  assert (!BTOR_EMPTY_STACK (stack));
+  result = btor_node_copy (btor, BTOR_PEEK_STACK (stack, 0));
+  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    cur = BTOR_PEEK_STACK (stack, i);
+    tmp = btor_rewrite_binary_exp (btor, kind, result, cur);
+    btor_node_release (btor, result);
+    result = tmp;
+  }
+  BTOR_RELEASE_STACK (stack);
+  return result;
+}
+
 static void
 normalize_bin_comm_ass_exp (Btor *btor,
                             BtorNode *e0,
@@ -5736,14 +5774,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
           || btor_node_is_bv_mul (e0));
   assert (e0->kind == e1->kind);
 
-  size_t i;
   BtorNodeKind kind;
-  BtorNode *cur, *result, *temp, *common;
+  BtorNode *cur, *common;
   BtorNodePtrStack stack;
   BtorMemMgr *mm;
   BtorPtrHashTable *left, *right, *comm;
   BtorPtrHashBucket *b;
-  BtorPtrHashTableIterator it;
   BtorIntHashTable *cache;
   BtorHashTableData *d;
   bool normalize_all = true;
@@ -5782,7 +5818,7 @@ RESTART_NORMALIZE:
       if (!d)
         d = btor_hashint_map_add (cache, cur->id);
       d->as_int += 1;
-      if (d && d->as_int > 32)
+      if (d->as_int > 32)
       {
         BTOR_RELEASE_STACK (stack);
         goto RESTART_NORMALIZE_ALL;
@@ -5817,7 +5853,7 @@ RESTART_NORMALIZE:
       if (!d)
         d = btor_hashint_map_add (cache, cur->id);
       d->as_int += 1;
-      if (d && d->as_int > 32)
+      if (d->as_int > 32)
       {
         BTOR_RELEASE_STACK (stack);
         goto RESTART_NORMALIZE_ALL;
@@ -5899,126 +5935,17 @@ RESTART_NORMALIZE_ALL:
   assert (comm->count >= 2u);
 
   /* normalize common nodes */
-  BTOR_INIT_STACK (mm, stack);
-  b = comm->first;
-  while (b)
-  {
-    cur = b->key;
-    assert (b->data.as_int >= 0);
-    for (i = 0; i < (size_t) b->data.as_int; i++) BTOR_PUSH_STACK (stack, cur);
-    b = b->next;
-  }
+  common = mk_norm_node_from_hash_table (btor, kind, comm);
 
-  qsort (
-      stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
+  if (!(b = btor_hashptr_table_get (left, common)))
+    b = btor_hashptr_table_add (left, common);
+  b->data.as_int += 1;
+  *e0_norm = mk_norm_node_from_hash_table (btor, kind, left);
 
-  common = btor_node_copy (btor, BTOR_PEEK_STACK (stack, 0));
-  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
-  {
-    cur  = BTOR_PEEK_STACK (stack, i);
-    temp = btor_rewrite_binary_exp (btor, kind, common, cur);
-    btor_node_release (btor, common);
-    common = temp;
-  }
-  BTOR_RELEASE_STACK (stack);
-
-#if 0
-  /* normalize left side */
-  result = btor_node_copy (btor, common);
-  btor_iter_hashptr_init (&it, left);
-  while (btor_iter_hashptr_has_next (&it))
-    {
-      b = it.bucket;
-      cur = btor_iter_hashptr_next (&it);
-      for (i = 0; i < b->data.as_int; i++)
-	{
-	  temp = fptr (btor, result, cur);
-	  btor_node_release (btor, result);
-	  result = temp;
-	}
-    }
-  *e0_norm = result;
-
-  /* normalize right side */
-  result = btor_node_copy (btor, common);
-  btor_iter_hashptr_init (&it, right);
-  while (btor_iter_hashptr_has_next (&it))
-    {
-      b = it.bucket;
-      cur = btor_iter_hashptr_next (&it);
-      for (i = 0; i < b->data.as_int; i++)
-	{
-	  temp = fptr (btor, result, cur);
-	  btor_node_release (btor, result);
-	  result = temp;
-	}
-    }
-  *e1_norm = result;
-#else
-  /* Bubble up common part.
-   */
-  result = 0;
-  btor_iter_hashptr_init (&it, left);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    b   = it.bucket;
-    cur = btor_iter_hashptr_next (&it);
-    assert (b->data.as_int >= 0);
-    for (i = 0; i < (size_t) b->data.as_int; i++)
-    {
-      if (result)
-      {
-        temp = btor_rewrite_binary_exp (btor, kind, result, cur);
-        btor_node_release (btor, result);
-        result = temp;
-      }
-      else
-        result = btor_node_copy (btor, cur);
-    }
-  }
-
-  if (result)
-  {
-    temp = btor_rewrite_binary_exp (btor, kind, common, result);
-    btor_node_release (btor, result);
-    result = temp;
-  }
-  else
-    result = btor_node_copy (btor, common);
-
-  *e0_norm = result;
-
-  result = 0;
-  btor_iter_hashptr_init (&it, right);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    b   = it.bucket;
-    cur = btor_iter_hashptr_next (&it);
-    assert (b->data.as_int >= 0);
-    for (i = 0; i < (size_t) b->data.as_int; i++)
-    {
-      if (result)
-      {
-        temp = btor_rewrite_binary_exp (btor, kind, result, cur);
-        btor_node_release (btor, result);
-        result = temp;
-      }
-      else
-        result = btor_node_copy (btor, cur);
-    }
-  }
-
-  if (result)
-  {
-    temp = btor_rewrite_binary_exp (btor, kind, common, result);
-    btor_node_release (btor, result);
-    result = temp;
-  }
-  else
-    result = btor_node_copy (btor, common);
-
-  *e1_norm = result;
-#endif
+  if (!(b = btor_hashptr_table_get (right, common)))
+    b = btor_hashptr_table_add (right, common);
+  b->data.as_int += 1;
+  *e1_norm = mk_norm_node_from_hash_table (btor, kind, right);
 
   /* clean up */
   btor_node_release (btor, common);
