@@ -274,7 +274,7 @@ btor_check_model_init (Btor *btor)
   BTOR_CNEW (btor->mm, ctx);
 
   ctx->btor  = btor;
-  ctx->clone = btor_clone_exp_layer (btor, 0, false);
+  ctx->clone = btor_clone_exp_layer (btor, 0, true);
   btor_set_msg_prefix (ctx->clone, "chkm");
   btor_opt_set (ctx->clone, BTOR_OPT_FUN_DUAL_PROP, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
