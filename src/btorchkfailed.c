@@ -39,7 +39,7 @@ rebuild_formula (Btor *btor, uint32_t rewrite_level)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, cnt - i))) continue;
 
-    if (btor_node_is_proxy (cur)) continue;
+    if (btor_node_is_simplified (cur)) continue;
 
     if (cur->arity == 0)
     {
@@ -67,8 +67,7 @@ btor_check_failed_assumptions (Btor *btor)
   BtorNodePtrStack stack;
 
   clone = btor_clone_exp_layer (btor, 0, true);
-  btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
-  btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_msg_prefix (clone, "chkf");
   btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_MODEL, 0);
