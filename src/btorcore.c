@@ -1848,12 +1848,12 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!btor_node_real_addr (exp)->parameterized);
 
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+
   BTORLOG (2,
            "assume: %s (%s)",
            btor_util_node2string (exp),
            btor_util_node2string (btor_simplify_exp (btor, exp)));
-
-  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
   if (!btor_hashptr_table_get (btor->orig_assumptions, exp))
   {
