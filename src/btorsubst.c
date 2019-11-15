@@ -270,6 +270,9 @@ substitute (Btor *btor,
   BtorHashTableData *d, *dsub;
   BtorNode *cur, *cur_subst, *real_cur_subst, *rebuilt, *simplified;
   BtorIntHashTable *substs, *cache;
+#ifndef NDEBUG
+  BtorIntHashTable *cnt;
+#endif
   BtorPtrHashTableIterator it;
   bool opt_nondestr_subst = btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST) == 1;
 
@@ -281,6 +284,9 @@ substitute (Btor *btor,
   BTOR_INIT_STACK (btor->mm, reset_stack);
   BTOR_INIT_STACK (btor->mm, release_stack);
   cache = btor_hashint_map_new (btor->mm);
+#ifndef NDEBUG
+  cnt = btor_hashint_map_new (btor->mm);
+#endif
 
   /* normalize substitutions: -t1 -> t2 ---> t1 -> -t2 */
   substs = btor_hashint_map_new (btor->mm);
@@ -342,7 +348,7 @@ RESTART:
     d = btor_hashint_map_get (cache, id);
     BTORLOG (2,
              "  visit (%s): %s",
-             !d || d->as_int == 0 ? "pre" : "post",
+             d == 0 ? "pre" : "post",
              btor_util_node2string (cur));
     assert (opt_nondestr_subst || !btor_node_is_simplified (cur));
     assert (!btor_node_is_proxy (cur));
@@ -398,10 +404,20 @@ RESTART:
 
       if (cur != rebuilt && btor_node_real_addr (rebuilt)->rebuild)
       {
-        BTORLOG (1, "needs rebuild: %s", btor_util_node2string (rebuilt));
+        BTORLOG (1,
+                 "needs rebuild: %s != %s",
+                 btor_util_node2string (cur),
+                 btor_util_node2string (rebuilt));
         BTOR_PUSH_STACK (release_stack, rebuilt);
         BTOR_PUSH_STACK (visit, cur);
         BTOR_PUSH_STACK (visit, rebuilt);
+#ifndef NDEBUG
+        BtorHashTableData *d;
+        if (!(d = btor_hashint_map_get (cnt, btor_node_real_addr (cur)->id)))
+          d = btor_hashint_map_add (cnt, btor_node_real_addr (cur)->id);
+        d->as_int++;
+        assert (d->as_int < 100);
+#endif
         continue;
       }
 
@@ -480,6 +496,9 @@ RESTART:
   }
   btor_hashint_map_delete (cache);
   btor_hashint_map_delete (substs);
+#ifndef NDEBUG
+  btor_hashint_map_delete (cnt);
+#endif
   BTOR_RELEASE_STACK (visit);
 
   update_node_hash_tables (btor);
