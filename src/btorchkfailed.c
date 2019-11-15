@@ -16,6 +16,45 @@
 #include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
+static void
+rebuild_formula (Btor *btor, uint32_t rewrite_level)
+{
+  assert (btor);
+
+  uint32_t i, cnt;
+  BtorNode *cur;
+  BtorPtrHashTable *t;
+
+  BTORLOG (1, "rebuild formula with rewrite level %u", rewrite_level);
+
+  /* set new rewrite level */
+  btor_opt_set (btor, BTOR_OPT_REWRITE_LEVEL, rewrite_level);
+
+  t = btor_hashptr_table_new (btor->mm,
+                              (BtorHashPtr) btor_node_hash_by_id,
+                              (BtorCmpPtr) btor_node_compare_by_id);
+
+  /* collect all leaves and rebuild whole formula */
+  for (i = 1, cnt = BTOR_COUNT_STACK (btor->nodes_id_table); i <= cnt; i++)
+  {
+    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, cnt - i))) continue;
+
+    if (btor_node_is_proxy (cur)) continue;
+
+    if (cur->arity == 0)
+    {
+      assert (btor_node_is_bv_var (cur) || btor_node_is_bv_const (cur)
+              || btor_node_is_param (cur) || btor_node_is_uf (cur));
+      btor_hashptr_table_add (t, cur);
+    }
+  }
+
+  btor_substitute_and_rebuild (btor, t);
+  btor_hashptr_table_delete (t);
+
+  BTORLOG (1, "rebuild formula done");
+}
+
 void
 btor_check_failed_assumptions (Btor *btor)
 {
@@ -47,6 +86,9 @@ btor_check_failed_assumptions (Btor *btor)
     ass = BTOR_POP_STACK (clone->assertions);
     btor_node_release (clone, ass);
   }
+
+  /* rebuild formula to eliminate all simplified nodes. */
+  rebuild_formula (clone, 3);
 
   /* assert failed assumptions */
   BTOR_INIT_STACK (btor->mm, stack);
