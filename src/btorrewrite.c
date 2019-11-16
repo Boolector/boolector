@@ -5782,7 +5782,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   BtorPtrHashBucket *b;
   BtorIntHashTable *cache;
   BtorHashTableData *d;
-  bool normalize_all = true;
+  bool normalize_all = true, need_restart = false;
 
   mm    = btor->mm;
   kind  = e0->kind;
@@ -5802,6 +5802,11 @@ RESTART_NORMALIZE:
   if (!btor_opt_get (btor, BTOR_OPT_NORMALIZE))
     goto RETURN_NO_RESULT;
 
+  /* We first try to normalize all nodes, i.e., we do a tree traversal on e0
+   * and e1. If we encounter a node more than 32 times, we restart and do a
+   * DAG traversal. The 'need_restart' flag indicates whether we actually need
+   * to do a DAG traversal after the first pass, which is the case if a node
+   * was visited more than once. */
   BTOR_INIT_STACK (mm, stack);
   BTOR_PUSH_STACK (stack, e0);
   do
@@ -5810,13 +5815,22 @@ RESTART_NORMALIZE:
     if (!btor_node_is_inverted (cur) && cur->kind == kind)
     {
       d = btor_hashint_map_get (cache, cur->id);
-      if (!normalize_all && d)
+      if (d)
       {
-        BTOR_RELEASE_STACK (stack);
-        goto RETURN_NO_RESULT;
+        if (normalize_all)
+        {
+          need_restart = true;
+        }
+        else
+        {
+          BTOR_RELEASE_STACK (stack);
+          goto RETURN_NO_RESULT;
+        }
       }
-      if (!d)
+      else
+      {
         d = btor_hashint_map_add (cache, cur->id);
+      }
       d->as_int += 1;
       if (d->as_int > 32)
       {
@@ -5828,11 +5842,9 @@ RESTART_NORMALIZE:
     }
     else
     {
-      b = btor_hashptr_table_get (left, cur);
-      if (!b)
-        btor_hashptr_table_add (left, cur)->data.as_int = 1;
-      else
-        b->data.as_int++;
+      if (!(b = btor_hashptr_table_get (left, cur)))
+        b = btor_hashptr_table_add (left, cur);
+      b->data.as_int++;
     }
   } while (!BTOR_EMPTY_STACK (stack));
   btor_hashint_map_delete (cache);
@@ -5845,13 +5857,22 @@ RESTART_NORMALIZE:
     if (!btor_node_is_inverted (cur) && cur->kind == kind)
     {
       d = btor_hashint_map_get (cache, cur->id);
-      if (!normalize_all && d)
+      if (d)
       {
-        BTOR_RELEASE_STACK (stack);
-        goto RETURN_NO_RESULT;
+        if (normalize_all)
+        {
+          need_restart = true;
+        }
+        else
+        {
+          BTOR_RELEASE_STACK (stack);
+          goto RETURN_NO_RESULT;
+        }
       }
-      if (!d)
+      else
+      {
         d = btor_hashint_map_add (cache, cur->id);
+      }
       d->as_int += 1;
       if (d->as_int > 32)
       {
@@ -5878,20 +5899,16 @@ RESTART_NORMALIZE:
         }
 
         /* insert into common table */
-        b = btor_hashptr_table_get (comm, cur);
-        if (!b)
-          btor_hashptr_table_add (comm, cur)->data.as_int = 1;
-        else
-          b->data.as_int++;
+        if (!(b = btor_hashptr_table_get (comm, cur)))
+          b = btor_hashptr_table_add (comm, cur);
+        b->data.as_int++;
       }
       else
       {
         /* operand is not common */
-        b = btor_hashptr_table_get (right, cur);
-        if (!b)
-          btor_hashptr_table_add (right, cur)->data.as_int = 1;
-        else
-          b->data.as_int++;
+        if (!(b = btor_hashptr_table_get (right, cur)))
+          b = btor_hashptr_table_add (right, cur);
+        b->data.as_int++;
       }
     }
   } while (!BTOR_EMPTY_STACK (stack));
@@ -5911,7 +5928,7 @@ RESTART_NORMALIZE:
     return;
   }
 
-  if (normalize_all && (left->count > 0 || right->count > 0))
+  if (normalize_all && need_restart && (left->count > 0 || right->count > 0))
   {
 RESTART_NORMALIZE_ALL:
     normalize_all = false;
