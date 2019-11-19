@@ -32,31 +32,23 @@ update_assumptions (Btor *btor)
   ass = btor_hashptr_table_new (btor->mm,
                                 (BtorHashPtr) btor_node_hash_by_id,
                                 (BtorCmpPtr) btor_node_compare_by_id);
-  btor_iter_hashptr_init (&it, btor->assumptions);
+  btor_iter_hashptr_init (&it, btor->orig_assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
     simp = btor_simplify_exp (btor, cur);
-    if (cur != simp)
+    if (!btor_hashptr_table_get (ass, simp))
     {
-      if (!btor_hashptr_table_get (ass, simp))
-      {
-        BTORLOG (2,
-                 "update assumption: %s -> %s",
-                 btor_util_node2string (cur),
-                 btor_util_node2string (simp));
-        btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
-      }
-      btor_node_release (btor, cur);
-    }
-    else
-    {
-      if (!btor_hashptr_table_get (ass, cur))
-        btor_hashptr_table_add (ass, cur);
-      else
-        btor_node_release (btor, cur);
+      BTORLOG (2,
+               "update assumption: %s -> %s",
+               btor_util_node2string (cur),
+               btor_util_node2string (simp));
+      btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
     }
   }
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    btor_node_release (btor, btor_iter_hashptr_next (&it));
   btor_hashptr_table_delete (btor->assumptions);
   btor->assumptions = ass;
 }
