@@ -463,35 +463,6 @@ is_abs_set_pattern (BtorNode *index, BtorNode *prev_index)
          && (!prev_index || btor_node_is_bv_const (prev_index));
 }
 
-inline static bool
-is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
-{
-  BtorNode *base_addr, *offset, *prev_base_addr, *prev_offset;
-
-  if (btor_node_is_inverted (index) || !btor_node_is_bv_add (index))
-    return false;
-
-  if (!btor_node_is_bv_const (index->e[0])
-      && !btor_node_is_bv_const (index->e[1]))
-    return false;
-
-  if (!prev_index) return true;
-
-  if (btor_node_is_inverted (prev_index) || !btor_node_is_bv_add (prev_index))
-    return false;
-
-  if (!btor_node_is_bv_const (prev_index->e[0])
-      && !btor_node_is_bv_const (prev_index->e[1]))
-    return false;
-
-  extract_base_addr_offset (index, &base_addr, &offset);
-  extract_base_addr_offset (prev_index, &prev_base_addr, &prev_offset);
-  assert (btor_node_is_bv_const (offset));
-  assert (btor_node_is_bv_const (prev_offset));
-
-  return base_addr == prev_base_addr;
-}
-
 /* Pattern 1)
  *
  *   dst0 := write(dst, dst_addr + c, read(src, src_addr + c))
@@ -595,24 +566,10 @@ check_and_add_index (Btor *btor,
                      BtorNode *index,
                      BtorNode *prev_index,
                      BtorNode *value,
-                     BtorNode *prev_value,
-                     BtorNode *next_fun,
-                     BtorIntHashTable *visit_cache,
                      BtorIntHashTable *index_cache)
 {
-  if (!is_abs_set_pattern (index, prev_index)
-      && !is_rel_set_pattern (index, prev_index))
+  if (!is_abs_set_pattern (index, prev_index))
     return false;
-
-  /* optimization for memcopy: do not visit lambdas that are only accessed via
-   * this lambda (reduces number of redundant memcopy patterns)
-   */
-  if (is_rel_set_pattern (index, prev_index)
-      && is_copy_pattern (index, value, prev_index, prev_value, next_fun)
-      && value->e[0] == next_fun && next_fun->parents == 2)
-  {
-    btor_hashint_table_add (visit_cache, btor_node_get_id (next_fun));
-  }
 
   btor_hashint_table_add (index_cache, btor_node_get_id (index));
   add_to_index_map (btor, map_value_index, fun, index, value);
@@ -692,9 +649,6 @@ collect_indices_updates (Btor *btor,
                                   index,
                                   prev_index,
                                   value,
-                                  prev_value,
-                                  cur_upd->e[0],
-                                  visit_cache,
                                   index_cache))
         {
           break;
@@ -805,9 +759,6 @@ collect_indices_lambdas (Btor *btor,
                                   index,
                                   prev_index,
                                   value,
-                                  prev_value,
-                                  array,
-                                  visit_cache,
                                   index_cache))
         {
           BTOR_PUSH_STACK (lambdas, array);
