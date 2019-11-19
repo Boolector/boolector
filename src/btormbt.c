@@ -2835,6 +2835,13 @@ btormbt_state_opt (BtorMBT *mbt)
     {
       continue;
     }
+    else if ((btoropt->kind == BTOR_OPT_NONDESTR_SUBST
+              && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+             || (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+                 && boolector_get_opt (mbt->btor, BTOR_OPT_NONDESTR_SUBST)))
+    {
+      continue;
+    }
 
     if (!btoropt->forced_by_cl)
     {
