@@ -1,0 +1,36 @@
+
+jobs:
+- job: PyPi_Linux
+  pool:
+   vmImage: 'ubuntu-16.04'
+  steps:
+  - script: |
+      sudo add-apt-repository ppa:jonathonf/python-3.6
+      sudo apt-get update
+      sudo apt-get install python3.6 -y
+      sudo python3.6 -m pip install wheel
+      sudo python3.6 -m pip install twine
+    displayName: 'Install wheel+twine'
+  - script: |
+      docker pull quay.io/pypa/manylinux1_x86_64
+      docker build -t pyboolector pypi
+    displayName: 'Setup Docker Image'
+
+  - script: |
+      docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector pyboolector
+    displayName: 'Run PyBoolector Build'
+
+  - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
+    inputs:
+      pythonUploadServiceConnection: pypi
+  - script: |
+      # Only deploy from master
+      if test "$(Build.SourceBranchName)" = "master"; then
+          python3.6 -m twine --version
+          echo "Calling twine"
+          python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+          echo "Calling twine complete"
+      fi
+    displayName: 'Upload to PyPi'
+
