@@ -21,16 +21,16 @@ jobs:
     displayName: 'Run PyBoolector Build'
 
   - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
     inputs:
       pythonUploadServiceConnection: pypi
   - script: |
-      ls result
-      echo "Python version:"
-      python3.6 --version
-      echo "Twine version:"
-      python3.6 -m twine --version
-
-      echo "Calling twine"
-      python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
-      echo "Calling twine complete"
+      # Only deploy from master
+      if test "$(Build.SourceBranchName)" = "master"; then
+          python3.6 -m twine --version
+          echo "Calling twine"
+          python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+          echo "Calling twine complete"
+      fi
     displayName: 'Upload to PyPi'
+
