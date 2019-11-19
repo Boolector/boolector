@@ -838,7 +838,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 #endif
   )
   {
-    BTOR_WARN ("SAT solver %s not compiled in, using %s",
+    BTOR_WARN (true,
+               "SAT solver %s not compiled in, using %s",
                g_btor_se_name[sat_engine],
                g_btor_se_name[oldval]);
     sat_engine = oldval;
