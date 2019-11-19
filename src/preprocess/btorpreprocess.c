@@ -48,6 +48,8 @@ btor_simplify (Btor *btor)
   rounds = 0;
   start  = btor_util_time_stamp ();
 
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+
   if (btor->inconsistent) goto DONE;
 
   /* empty varsubst_constraints table if variable substitution was disabled
