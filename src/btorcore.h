@@ -151,9 +151,6 @@ struct Btor
    * this stack is needed for boolector_get_failed_assumptions only */
   BtorNodePtrStack failed_assumptions;
 
-  BtorPtrHashTable *var_rhs;
-  BtorPtrHashTable *fun_rhs;
-
   /* maintain assertions for different contexts push/pop */
   BtorNodePtrStack assertions;
   /* caches the assertions on stack 'assertions' */

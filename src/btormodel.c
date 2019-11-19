@@ -1281,12 +1281,10 @@ btor_model_generate (Btor *btor,
   else /* push nodes reachable from roots only */
   {
     BTOR_INIT_STACK (btor->mm, roots);
-    /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
-    btor_iter_hashptr_init (&it, btor->fun_rhs);
-    btor_iter_hashptr_queue (&it, btor->var_rhs);
-    btor_iter_hashptr_queue (&it, btor->unsynthesized_constraints);
+    btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
     btor_iter_hashptr_queue (&it, btor->assumptions);
+    btor_iter_hashptr_queue (&it, btor->inputs);
     while (btor_iter_hashptr_has_next (&it))
     {
       cur = btor_iter_hashptr_next (&it);

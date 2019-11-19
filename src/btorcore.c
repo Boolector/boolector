@@ -765,12 +765,6 @@ btor_new (void)
       btor_hashptr_table_new (mm,
                               (BtorHashPtr) btor_node_hash_by_id,
                               (BtorCmpPtr) btor_node_compare_by_id);
-  btor->var_rhs = btor_hashptr_table_new (mm,
-                                          (BtorHashPtr) btor_node_hash_by_id,
-                                          (BtorCmpPtr) btor_node_compare_by_id);
-  btor->fun_rhs = btor_hashptr_table_new (mm,
-                                          (BtorHashPtr) btor_node_hash_by_id,
-                                          (BtorCmpPtr) btor_node_compare_by_id);
 
   BTOR_INIT_STACK (mm, btor->assertions);
   BTOR_INIT_STACK (mm, btor->assertions_trail);
@@ -930,8 +924,6 @@ btor_delete (Btor *btor)
   btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->assumptions);
   btor_iter_hashptr_queue (&it, btor->orig_assumptions);
-  btor_iter_hashptr_queue (&it, btor->var_rhs);
-  btor_iter_hashptr_queue (&it, btor->fun_rhs);
   while (btor_iter_hashptr_has_next (&it))
     btor_node_release (btor, btor_iter_hashptr_next (&it));
 
@@ -947,8 +939,6 @@ btor_delete (Btor *btor)
       btor_node_release (btor, BTOR_PEEK_STACK (btor->failed_assumptions, i));
   }
   BTOR_RELEASE_STACK (btor->failed_assumptions);
-  btor_hashptr_table_delete (btor->var_rhs);
-  btor_hashptr_table_delete (btor->fun_rhs);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->assertions); i++)
     btor_node_release (btor, BTOR_PEEK_STACK (btor->assertions, i));
@@ -2163,18 +2153,6 @@ btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   exp->simplified = btor_node_copy (btor, simplified);
 
   if (exp->constraint) replace_constraint (btor, exp, exp->simplified);
-
-  /* if a variable or UF gets simplified we need to save the original input
-   * exp in a hash table (for model generation) */
-  if (btor_node_is_bv_var (exp) && !btor_hashptr_table_get (btor->var_rhs, exp))
-  {
-    btor_hashptr_table_add (btor->var_rhs, btor_node_copy (btor, exp));
-  }
-  else if (btor_node_is_uf (exp)
-           && !btor_hashptr_table_get (btor->fun_rhs, exp))
-  {
-    btor_hashptr_table_add (btor->fun_rhs, btor_node_copy (btor, exp));
-  }
 
   if (!btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST))
   {

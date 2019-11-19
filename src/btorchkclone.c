@@ -869,8 +869,6 @@ chkclone_tables (Btor *btor, Btor *clone)
   chkclone_node_ptr_hash_table (
       btor->synthesized_constraints, clone->synthesized_constraints, 0);
   chkclone_node_ptr_hash_table (btor->assumptions, clone->assumptions, 0);
-  chkclone_node_ptr_hash_table (btor->var_rhs, clone->var_rhs, 0);
-  chkclone_node_ptr_hash_table (btor->fun_rhs, clone->fun_rhs, 0);
 
   if (!btor->parameterized)
     assert (!clone->parameterized);

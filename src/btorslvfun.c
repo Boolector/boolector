@@ -181,8 +181,7 @@ incremental_required (Btor *btor)
     BTOR_PUSH_STACK (stack, cur);
   }
 
-  btor_iter_hashptr_init (&it, btor->var_rhs);
-  btor_iter_hashptr_queue(&it, btor->fun_rhs);
+  btor_iter_hashptr_init (&it, btor->inputs);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&it));
@@ -507,9 +506,8 @@ add_function_inequality_constraints (Btor *btor)
   mm = btor->mm;
   BTOR_INIT_STACK (mm, visit);
   /* we have to add inequality constraints for every function equality
-   * in the formula (var_rhs and fun_rhs are still part of the formula). */
-  btor_iter_hashptr_init (&it, btor->var_rhs);
-  btor_iter_hashptr_queue (&it, btor->fun_rhs);
+   * in the formula (inputs are still part of the formula). */
+  btor_iter_hashptr_init (&it, btor->inputs);
   btor_iter_hashptr_queue (&it, btor->unsynthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->assumptions);
   assert (btor->embedded_constraints->count == 0);
@@ -1700,6 +1698,7 @@ propagate (Btor *btor,
     assert (!btor_node_is_simplified (args)
             || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
     args = btor_node_get_simplified (btor, args);
+    assert (btor_node_is_args (args));
 
     push_applies_for_propagation (btor, args, prop_stack, apply_search_cache);
 
@@ -2270,20 +2269,19 @@ check_and_resolve_conflicts (Btor *btor,
   BTOR_INIT_STACK (mm, top_applies);
   apply_search_cache = btor_hashint_table_new (mm);
 
-  /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
-   * top level equality). if terms containing applies do not occur in the
-   * formula anymore due to variable substitution, we still need to ensure that
-   * the assignment computed for the substituted variable is correct. hence, we
-   * need to check the applies for consistency and push them onto the
-   * propagation stack.
+  /* NOTE: if terms containing applies do not occur in the formula anymore due
+   * to variable substitution, we still need to ensure that the assignment
+   * computed for the substituted variable is correct. hence, we need to check
+   * the applies for consistency and push them onto the propagation stack.
    * this also applies for don't care reasoning.
    */
-  btor_iter_hashptr_init (&pit, btor->var_rhs);
+  btor_iter_hashptr_init (&pit, btor->inputs);
   while (btor_iter_hashptr_has_next (&pit))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&pit));
     /* no parents -> is not reachable from the roots */
-    if (btor_node_real_addr (cur)->parents > 0) continue;
+    if (btor_node_real_addr (cur)->parents > 0 || btor_node_is_fun (cur))
+      continue;
     push_applies_for_propagation (btor, cur, &prop_stack, apply_search_cache);
   }
 

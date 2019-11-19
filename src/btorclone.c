@@ -1191,12 +1191,6 @@ clone_aux_btor (Btor *btor,
   assert ((allocated +=
            BTOR_SIZE_STACK (btor->failed_assumptions) * sizeof (BtorNode *))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (var_rhs);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->var_rhs))
-          == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (fun_rhs);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_rhs))
-          == clone->mm->allocated);
 
   clone->assertions_cache =
       btor_hashint_table_clone (clone->mm, btor->assertions_cache);
