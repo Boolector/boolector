@@ -13,6 +13,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btorsubst.h"
+#include "preprocess/btorpputils.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
 
@@ -681,24 +682,26 @@ collect_indices_lambdas (Btor *btor,
                          BtorPtrHashTable *map_value_index,
                          BtorPtrHashTable *map_lambda_base)
 {
+  size_t i;
   bool is_top;
   BtorNode *lambda, *cur, *array, *index, *value, *tmp, *array_if, *array_else;
   BtorNode *prev_index, *prev_value;
-  BtorPtrHashTableIterator it;
-  BtorNodeIterator pit;
-  BtorNodePtrStack lambdas;
+  BtorNodeIterator it;
+  BtorNodePtrStack visit, lambdas;
   BtorIntHashTable *index_cache, *visit_cache;
   BtorMemMgr *mm;
 
   mm = btor->mm;
+  BTOR_INIT_STACK (mm, visit);
   BTOR_INIT_STACK (mm, lambdas);
   visit_cache = btor_hashint_table_new (mm);
 
+  btor_pputils_collect_lambdas(btor, &lambdas);
+
   /* collect lambdas that are at the top of lambda chains */
-  btor_iter_hashptr_init_reversed (&it, btor->lambdas);
-  while (btor_iter_hashptr_has_next (&it))
+  for (i = 0; i < BTOR_COUNT_STACK(lambdas); i++)
   {
-    lambda = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
+    lambda = btor_node_get_simplified (btor, BTOR_PEEK_STACK(lambdas, i));
     assert (btor_node_is_regular (lambda));
 
     if (!btor_node_is_lambda (lambda)) continue;
@@ -711,10 +714,10 @@ collect_indices_lambdas (Btor *btor,
       continue;
 
     is_top = false;
-    btor_iter_apply_parent_init (&pit, lambda);
-    while (btor_iter_apply_parent_has_next (&pit))
+    btor_iter_apply_parent_init (&it, lambda);
+    while (btor_iter_apply_parent_has_next (&it))
     {
-      tmp = btor_iter_apply_parent_next (&pit);
+      tmp = btor_iter_apply_parent_next (&it);
 
       if (!tmp->parameterized)
       {
@@ -725,10 +728,10 @@ collect_indices_lambdas (Btor *btor,
 
     if (!is_top) continue;
 
-    BTOR_PUSH_STACK (lambdas, lambda);
-    while (!BTOR_EMPTY_STACK (lambdas))
+    BTOR_PUSH_STACK (visit, lambda);
+    while (!BTOR_EMPTY_STACK (visit))
     {
-      lambda = BTOR_POP_STACK (lambdas);
+      lambda = BTOR_POP_STACK (visit);
 
       /* already visited */
       if (btor_hashint_table_contains (visit_cache, btor_node_get_id (lambda)))
@@ -761,7 +764,7 @@ collect_indices_lambdas (Btor *btor,
                                   value,
                                   index_cache))
         {
-          BTOR_PUSH_STACK (lambdas, array);
+          BTOR_PUSH_STACK (visit, array);
           break;
         }
 
@@ -779,12 +782,13 @@ collect_indices_lambdas (Btor *btor,
       // TODO (ma): can only be ite now change to is_fun_cond_node check
       if (is_array_ite_exp (cur, &array_if, &array_else))
       {
-        BTOR_PUSH_STACK (lambdas, array_if);
-        BTOR_PUSH_STACK (lambdas, array_else);
+        BTOR_PUSH_STACK (visit, array_if);
+        BTOR_PUSH_STACK (visit, array_else);
       }
     }
   }
   btor_hashint_table_delete (visit_cache);
+  BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (lambdas);
 }
 
