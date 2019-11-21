@@ -887,13 +887,22 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
     }
     else if (opt == BTOR_OPT_FUN_DUAL_PROP)
     {
-      BTOR_ABORT (val && btor_opt_get (btor, BTOR_OPT_FUN_JUST),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_FUN_JUST),
                   "enabling multiple optimization techniques is not allowed");
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST),
+                  "Non-destructive substitution is not supported with dual "
+                  "propagation");
     }
     else if (opt == BTOR_OPT_FUN_JUST)
     {
-      BTOR_ABORT (val && btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP),
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP),
                   "enabling multiple optimization techniques is not allowed");
+    }
+    else if (opt == BTOR_OPT_NONDESTR_SUBST)
+    {
+      BTOR_ABORT (btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP),
+                  "Non-destructive substitution is not supported with dual "
+                  "propagation");
     }
   }
 
