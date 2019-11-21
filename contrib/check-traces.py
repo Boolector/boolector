@@ -25,7 +25,7 @@ def untrace(trace):
     global g_args
 
     try:
-        cmd = [g_args.untracer, '-s', trace]
+        cmd = [g_args.untracer, trace]
 
         proc = subprocess.Popen(cmd,
                                 stdin=subprocess.PIPE,
@@ -37,6 +37,9 @@ def untrace(trace):
 
         if 'BTORLEAK' in err:
             return None
+
+        if 'Boolector under test changed' in err:
+            err = 'Boolector under test changed'
 
         new_err = [e for e in err.split('\n') if 'WARNING' not in e]
         err = '\n'.join(new_err).strip()
@@ -53,13 +56,35 @@ def untrace(trace):
             return None
         return ('timeout', 0, trace)
 
+def reduce(info):
+    err = info[0]
+    trace = info[1]
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ddmbt_path = os.path.join(script_dir, 'ddmbt.py')
+    try:
+        split_path = os.path.split(trace)
+        red_trace = \
+            os.path.join(split_path[0], 'red-{}'.format(split_path[1]))
+        cmd = [ddmbt_path, '-vv', trace, red_trace, g_args.untracer]
+
+        proc = subprocess.Popen(cmd,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        _, _ = proc.communicate()
+
+        return (err, get_num_lines(red_trace), red_trace)
+    except KeyboardInterrupt:
+        proc.terminate()
+        return None
+
 
 def main():
     global g_args
 
     ap = argparse.ArgumentParser()
     ap.add_argument('dir', nargs='+')
-    ap.add_argument('-u', '--untracer', default='bin/btoruntrace',
+    ap.add_argument('-u', '--untracer', default='build/bin/btoruntrace',
                     help='Path to untracer')
     ap.add_argument('-r', '--reduce', default=False, action='store_true',
                     help='Reduce smallest trace for each group')
@@ -94,34 +119,37 @@ def main():
     except KeyboardInterrupt:
         pass
 
-    errors = sorted(errors.items(), key=lambda x: len(x[1]), reverse=True)
+    sorted_errors = sorted(errors.items(), key=lambda x: len(x[1]), reverse=True)
 
-    for msg, traces in errors:
+    if g_args.reduce:
+        to_reduce = []
+        for msg, traces in sorted_errors:
+            traces = sorted(traces)
+            trace = traces[0][1]
+            to_reduce.append((msg, trace))
+
+        try:
+            with Pool(processes=g_args.procs) as pool:
+                for i, t in enumerate(pool.imap_unordered(reduce, to_reduce, 1)):
+                    print('{} Reducing {}/{}\r'.format(
+                        progress(i), i, len(to_reduce)),
+                        file=sys.stderr, end='')
+                    if t:
+                        err, num_lines, trace = t
+                        files = errors.setdefault(err, [])
+                        files.append((num_lines, trace))
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.join()
+
+        sorted_errors = sorted(errors.items(), key=lambda x: len(x[1]), reverse=True)
+
+
+    for msg, traces in sorted_errors:
         print('{} {}'.format(len(traces), msg))
         traces_display = sorted(traces)[:5]
         print('\n{}\n'.format(
             '\n'.join('{} {}'.format(x, y) for x, y in traces_display)))
-
-
-    if g_args.reduce:
-        print('Reducing smallest trace in each group')
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        ddmbt_path = os.path.join(script_dir, 'ddmbt.py')
-        for msg, traces in errors:
-            traces = sorted(traces)
-            trace = traces[0][1]
-            split_path = os.path.split(trace)
-            red_trace = \
-                os.path.join(split_path[0], 'red-{}'.format(split_path[1]))
-            cmd = [ddmbt_path, '-vv', trace, red_trace, g_args.untracer]
-
-            proc = subprocess.Popen(cmd)
-            _, _ = proc.communicate()
-
-            print('Reduced {} ({}) to {} ({})\n'.format(
-                trace, get_num_lines(trace),
-                red_trace, get_num_lines(red_trace)))
-
 
 
 if __name__ == '__main__':
