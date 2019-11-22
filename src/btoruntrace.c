@@ -326,6 +326,9 @@ parse_opt (char **arg_str)
   }
 
   unt_opt = btorunt_get_btor_opt (g_btorunt, tok);
+  if (!unt_opt)
+    btorunt_parse_error ("unknown option '%s'", tok);
+
   if (arg_str) *arg_str = tok;
   if (opt == BTOR_OPT_NUM_OPTS)
   {
