@@ -6,9 +6,9 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "test.h"
-
 #include <bitset>
+
+#include "test.h"
 
 extern "C" {
 #include "btorbv.h"
@@ -18,7 +18,11 @@ extern "C" {
 class TestShift : public TestCommon
 {
  protected:
-  void test_shift (uint32_t bw, const char *shift, bool left)
+  void test_shift (
+      uint32_t bw,
+      const char *shift,
+      BoolectorNode *(*shift_fun) (Btor *, BoolectorNode *, BoolectorNode *),
+      BoolectorNode *(*fun) (Btor *, BoolectorNode *, BoolectorNode *) )
   {
     assert (bw > 1);
     assert (bw == strlen (shift));
@@ -33,20 +37,6 @@ class TestShift : public TestCommon
     BoolectorNode *ne0, *ne1, *ne2;
     BoolectorNode *zero, *two, *cond, *tmp;
     Btor *btor;
-
-    BoolectorNode *(*shift_fun) (Btor *, BoolectorNode *, BoolectorNode *);
-    BoolectorNode *(*fun) (Btor *, BoolectorNode *, BoolectorNode *);
-
-    if (left)
-    {
-      shift_fun = boolector_sll;
-      fun       = boolector_mul;
-    }
-    else
-    {
-      shift_fun = boolector_srl;
-      fun       = boolector_udiv;
-    }
 
     btor = boolector_new ();
     boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
@@ -130,7 +120,10 @@ TEST_F (TestShift, sll_2)
 {
   for (uint32_t i = 0; i < (1u << 2); ++i)
   {
-    test_shift (2, std::bitset<2> (i).to_string ().c_str (), true);
+    test_shift (2,
+                std::bitset<2> (i).to_string ().c_str (),
+                boolector_sll,
+                boolector_mul);
   }
 }
 
@@ -138,7 +131,10 @@ TEST_F (TestShift, sll_3)
 {
   for (uint32_t i = 0; i < (1u << 3); ++i)
   {
-    test_shift (3, std::bitset<3> (i).to_string ().c_str (), true);
+    test_shift (3,
+                std::bitset<3> (i).to_string ().c_str (),
+                boolector_sll,
+                boolector_mul);
   }
 }
 
@@ -146,7 +142,10 @@ TEST_F (TestShift, sll_4)
 {
   for (uint32_t i = 0; i < (1u << 4); ++i)
   {
-    test_shift (4, std::bitset<4> (i).to_string ().c_str (), true);
+    test_shift (4,
+                std::bitset<4> (i).to_string ().c_str (),
+                boolector_sll,
+                boolector_mul);
   }
 }
 
@@ -154,7 +153,10 @@ TEST_F (TestShift, sll_5)
 {
   for (uint32_t i = 0; i < (1u << 5); ++i)
   {
-    test_shift (5, std::bitset<5> (i).to_string ().c_str (), true);
+    test_shift (5,
+                std::bitset<5> (i).to_string ().c_str (),
+                boolector_sll,
+                boolector_mul);
   }
 }
 
@@ -162,7 +164,10 @@ TEST_F (TestShift, sll_8)
 {
   for (uint32_t i = 0; i < (1u << 8); ++i)
   {
-    test_shift (8, std::bitset<8> (i).to_string ().c_str (), true);
+    test_shift (8,
+                std::bitset<8> (i).to_string ().c_str (),
+                boolector_sll,
+                boolector_mul);
   }
 }
 
@@ -170,7 +175,10 @@ TEST_F (TestShift, srl_2)
 {
   for (uint32_t i = 0; i < (1u << 2); ++i)
   {
-    test_shift (2, std::bitset<2> (i).to_string ().c_str (), false);
+    test_shift (2,
+                std::bitset<2> (i).to_string ().c_str (),
+                boolector_srl,
+                boolector_udiv);
   }
 }
 
@@ -178,7 +186,10 @@ TEST_F (TestShift, srl_3)
 {
   for (uint32_t i = 0; i < (1u << 3); ++i)
   {
-    test_shift (3, std::bitset<3> (i).to_string ().c_str (), false);
+    test_shift (3,
+                std::bitset<3> (i).to_string ().c_str (),
+                boolector_srl,
+                boolector_udiv);
   }
 }
 
@@ -186,7 +197,10 @@ TEST_F (TestShift, srl_4)
 {
   for (uint32_t i = 0; i < (1u << 4); ++i)
   {
-    test_shift (4, std::bitset<4> (i).to_string ().c_str (), false);
+    test_shift (4,
+                std::bitset<4> (i).to_string ().c_str (),
+                boolector_srl,
+                boolector_udiv);
   }
 }
 
@@ -194,7 +208,10 @@ TEST_F (TestShift, srl_5)
 {
   for (uint32_t i = 0; i < (1u << 5); ++i)
   {
-    test_shift (5, std::bitset<5> (i).to_string ().c_str (), false);
+    test_shift (5,
+                std::bitset<5> (i).to_string ().c_str (),
+                boolector_srl,
+                boolector_udiv);
   }
 }
 
@@ -202,6 +219,9 @@ TEST_F (TestShift, srl_8)
 {
   for (uint32_t i = 0; i < (1u << 8); ++i)
   {
-    test_shift (8, std::bitset<8> (i).to_string ().c_str (), false);
+    test_shift (8,
+                std::bitset<8> (i).to_string ().c_str (),
+                boolector_srl,
+                boolector_udiv);
   }
 }
