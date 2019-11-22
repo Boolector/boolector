@@ -8,6 +8,12 @@ from multiprocessing import Pool
 
 g_args = None
 
+ERR_KEYWORDS = ['Boolector under test changed',
+                'not hashed',
+                'but got',
+                'ERROR: AddressSanitizer: heap-use-after-free',
+                'ERROR: LeakSanitizer: detected memory leaks']
+
 def get_num_lines(file):
     return sum(1 for line in open(file))
 
@@ -38,8 +44,14 @@ def untrace(trace):
         if 'BTORLEAK' in err:
             return None
 
-        if 'Boolector under test changed' in err:
-            err = 'Boolector under test changed'
+        for kw in ERR_KEYWORDS:
+            if kw in err:
+                err = kw
+                break
+
+        #if 'Non-destructive substitution' in err:
+        #    os.remove(trace)
+        #    return None
 
         new_err = [e for e in err.split('\n') if 'WARNING' not in e]
         err = '\n'.join(new_err).strip()
@@ -54,7 +66,7 @@ def untrace(trace):
         proc.terminate()
         if g_args.skip_timeout:
             return None
-        return ('timeout', 0, trace)
+        return ('timeout', get_num_lines(trace), trace)
 
 def reduce(info):
     err = info[0]
