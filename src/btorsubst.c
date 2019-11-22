@@ -182,7 +182,7 @@ rebuild_noproxy (Btor *btor, BtorNode *node, BtorIntHashTable *cache)
   assert (!btor_node_is_simplified (node));
 
   size_t i;
-  BtorNode *e[3]   = {0, 0, 0}, *child, *real_child;
+  BtorNode *e[3]   = {0, 0, 0}, *child, *real_child, *simp;
   BtorNode *result = 0;
   BtorHashTableData *d;
 
@@ -243,6 +243,10 @@ rebuild_noproxy (Btor *btor, BtorNode *node, BtorIntHashTable *cache)
 
     default: result = btor_exp_create (btor, node->kind, e, node->arity);
   }
+
+  simp = btor_node_copy (btor, btor_node_get_simplified (btor, result));
+  btor_node_release (btor, result);
+  result = simp;
 
   if (btor_node_is_lambda (node))
   {
