@@ -213,12 +213,16 @@ btor_check_model (BtorCheckModelContext *ctx)
         {
           model = btor_exp_bv_const (clone, args_tuple->bv[i]);
           BTOR_PUSH_STACK (consts, model);
+          BTORLOG (2, "  arg%u: %s", i, btor_util_node2string(model));
         }
 
         args  = btor_exp_args (clone, consts.start, BTOR_COUNT_STACK (consts));
         apply = btor_exp_apply (clone, real_simp_clone, args);
         model = btor_exp_bv_const (clone, value);
         eq    = btor_exp_eq (clone, apply, model);
+
+        BTORLOG (2, "  value: %s", btor_util_node2string(model));
+
         btor_assert_exp (clone, eq);
         btor_node_release (clone, eq);
         btor_node_release (clone, model);
