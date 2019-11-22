@@ -6672,7 +6672,8 @@ SWAP_OPERANDS:
     ADD_RW_RULE (const_neg_lhs_add, e0, e1);
     ADD_RW_RULE (const_neg_rhs_add, e0, e1);
     ADD_RW_RULE (push_ite_add, e0, e1);
-    ADD_RW_RULE (sll_add, e0, e1);
+    // TODO: enable when same bw shift is merged
+    //ADD_RW_RULE (sll_add, e0, e1);
 
     assert (!result);
 
