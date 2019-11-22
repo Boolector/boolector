@@ -89,8 +89,6 @@ btor_dbg_check_hash_table_proxy_free (BtorPtrHashTable *table)
 bool
 btor_dbg_check_all_hash_tables_proxy_free (const Btor *btor)
 {
-  if (!btor_dbg_check_hash_table_proxy_free (btor->varsubst_constraints))
-    return false;
   if (!btor_dbg_check_hash_table_proxy_free (btor->embedded_constraints))
     return false;
   if (!btor_dbg_check_hash_table_proxy_free (btor->unsynthesized_constraints))
@@ -134,8 +132,6 @@ btor_dbg_check_unique_table_rebuild (const Btor *btor)
 bool
 btor_dbg_check_all_hash_tables_simp_free (const Btor *btor)
 {
-  if (!btor_dbg_check_hash_table_simp_free (btor->varsubst_constraints))
-    return false;
   if (!btor_dbg_check_hash_table_simp_free (btor->embedded_constraints))
     return false;
   if (!btor_dbg_check_hash_table_simp_free (btor->unsynthesized_constraints))

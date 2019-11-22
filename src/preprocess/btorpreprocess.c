@@ -90,13 +90,16 @@ btor_simplify (Btor *btor)
           break;  // TODO (ma): continue instead of break?
       }
 
-      btor_process_embedded_constraints (btor);
-
-      if (btor->inconsistent)
+      while (btor->embedded_constraints->count)
       {
-        BTORLOG (1,
-                 "formula inconsistent after embedded constraint processing");
-        break;
+        btor_process_embedded_constraints (btor);
+
+        if (btor->inconsistent)
+        {
+          BTORLOG (1,
+                   "formula inconsistent after embedded constraint processing");
+          break;
+        }
       }
 
       if (btor->varsubst_constraints->count) continue;
