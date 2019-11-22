@@ -552,16 +552,19 @@ NEXT:
       {
         exp_str = parse_str_arg ("return");
         parse_check_last_arg ("return");
-        bool is_inv = ((uintptr_t) 1 & (uintptr_t) ret_ptr) != 0;
-        int32_t id  = boolector_get_node_id (btor, ret_ptr);
-        snprintf (check_buf, 128, "n%d@%p", is_inv ? -id : id, btor);
-        if (!check_return_str (exp_str, check_buf))
+        if (!g_btorunt->skip)
         {
-          btorunt_error (
-              "Boolector under test changed. "
-              "expected node %s but got %s",
-              exp_str,
-              check_buf);
+          bool is_inv = ((uintptr_t) 1 & (uintptr_t) ret_ptr) != 0;
+          int32_t id  = boolector_get_node_id (btor, ret_ptr);
+          snprintf (check_buf, 128, "n%d@%p", is_inv ? -id : id, btor);
+          if (!check_return_str (exp_str, check_buf))
+          {
+            btorunt_error (
+                "Boolector under test changed. "
+                "expected node %s but got %s",
+                exp_str,
+                check_buf);
+          }
         }
         hmap_add (hmap, exp_str, ret_ptr);
       }
@@ -569,14 +572,17 @@ NEXT:
       {
         exp_str = parse_str_arg ("return");
         parse_check_last_arg ("return");
-        snprintf (check_buf, 128, "s%" PRId64 "@%p", (int64_t) ret_ptr, btor);
-        if (!check_return_str (exp_str, check_buf))
+        if (!g_btorunt->skip)
         {
-          btorunt_error (
-              "Boolector under test changed. "
-              "expected node %s but got %s",
-              exp_str,
-              check_buf);
+          snprintf (check_buf, 128, "s%" PRId64 "@%p", (int64_t) ret_ptr, btor);
+          if (!check_return_str (exp_str, check_buf))
+          {
+            btorunt_error (
+                "Boolector under test changed. "
+                "expected node %s but got %s",
+                exp_str,
+                check_buf);
+          }
         }
         hmap_add (hmap, exp_str, ret_ptr);
       }
