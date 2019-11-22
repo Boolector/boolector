@@ -1225,7 +1225,7 @@ collect_nodes (Btor *btor,
     if (btor_hashint_table_contains (cache, cur->id)) continue;
 
     if (!cur->parameterized && !btor_node_is_args (cur))
-      BTOR_PUSH_STACK (*nodes, cur);
+      BTOR_PUSH_STACK (*nodes, btor_node_copy (btor, cur));
     btor_hashint_table_add (cache, cur->id);
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
   }
@@ -1261,21 +1261,10 @@ btor_model_generate (Btor *btor,
       if (!cur || btor_node_is_args (cur) || btor_node_is_proxy (cur)
           || cur->parameterized)
         continue;
-      /* Note: Always push the simplified pointer here. If this is not done,
-       * simplified nodes are pushed onto the stack that may disappear after
-       * calling btor_node_get_simplified (...).
-       *
-       * For example:
-       *
-       * a->b->c
-       *
-       * 'b' is only referenced by 'a', but 'a' and 'b' get pushed onto the
-       * stack. If btor_node_get_simplified is called on 'a' it follows the
-       * simplified pointers to 'c' and frees 'b'.
-       */
       assert (!btor_node_is_simplified (cur)
               || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
-      BTOR_PUSH_STACK (nodes, btor_node_get_simplified (btor, cur));
+      BTOR_PUSH_STACK (
+          nodes, btor_node_copy (btor, btor_node_get_simplified (btor, cur)));
     }
   }
   else /* push nodes reachable from roots only */
@@ -1298,6 +1287,8 @@ btor_model_generate (Btor *btor,
   compute_model_values (
       btor, bv_model, fun_model, nodes.start, BTOR_COUNT_STACK (nodes));
 
+  while (!BTOR_EMPTY_STACK (nodes))
+    btor_node_release (btor, BTOR_POP_STACK (nodes));
   BTOR_RELEASE_STACK (nodes);
 
   btor->time.model_gen += btor_util_time_stamp () - start;
