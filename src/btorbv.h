@@ -309,6 +309,11 @@ BtorBitVector *btor_bv_sdiv (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the signed remainder of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_srem (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
 /* Create the if-then-else conditional c ? a : b. */
 BtorBitVector *btor_bv_ite (BtorMemMgr *mm,
                             const BtorBitVector *c,

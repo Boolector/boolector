@@ -238,6 +238,12 @@ class TestBv : public TestBtor
     return (x / y) % (uint64_t) pow (2, bw);
   }
 
+  static int64_t srem (int64_t x, int64_t y, uint32_t bw)
+  {
+    if (y == 0) return x % (uint64_t) pow (2, bw);
+    return (x % y) % (uint64_t) pow (2, bw);
+  }
+
   static uint64_t ite (uint64_t c, uint64_t t, uint64_t e, uint32_t bw)
   {
     (void) bw;
@@ -2591,6 +2597,14 @@ TEST_F (TestBv, sdiv)
   binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 7);
   binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 31);
   binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
+TEST_F (TestBv, srem)
+{
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 33);
 }
 
 TEST_F (TestBv, concat)
