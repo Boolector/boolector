@@ -2266,6 +2266,53 @@ btor_bv_urem (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_sdiv (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  bool is_signed_a, is_signed_b;
+  uint32_t bw;
+  BtorBitVector *res, *div, *neg_a, *neg_b;
+
+  bw          = a->width;
+  is_signed_a = btor_bv_get_bit (a, bw - 1);
+  is_signed_b = btor_bv_get_bit (b, bw - 1);
+
+  if (is_signed_a && !is_signed_b)
+  {
+    neg_a = btor_bv_neg (mm, a);
+    div   = btor_bv_udiv (mm, neg_a, b);
+    res   = btor_bv_neg (mm, div);
+    btor_bv_free (mm, neg_a);
+    btor_bv_free (mm, div);
+  }
+  else if (!is_signed_a && is_signed_b)
+  {
+    neg_b = btor_bv_neg (mm, b);
+    div   = btor_bv_udiv (mm, a, neg_b);
+    res   = btor_bv_neg (mm, div);
+    btor_bv_free (mm, neg_b);
+    btor_bv_free (mm, div);
+  }
+  else if (is_signed_a && is_signed_b)
+  {
+    neg_a = btor_bv_neg (mm, a);
+    neg_b = btor_bv_neg (mm, b);
+    res   = btor_bv_udiv (mm, neg_a, neg_b);
+    btor_bv_free (mm, neg_a);
+    btor_bv_free (mm, neg_b);
+  }
+  else
+  {
+    res = btor_bv_udiv (mm, a, b);
+  }
+  return res;
+}
+
+BtorBitVector *
 btor_bv_concat (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (mm);

@@ -229,6 +229,15 @@ class TestBv : public TestBtor
     return (x % y) % (uint64_t) pow (2, bw);
   }
 
+  static int64_t sdiv (int64_t x, int64_t y, uint32_t bw)
+  {
+    if (y == 0)
+    {
+      return x < 0 ? 1 : UINT64_MAX % (uint64_t) pow (2, bw);
+    }
+    return (x / y) % (uint64_t) pow (2, bw);
+  }
+
   static uint64_t ite (uint64_t c, uint64_t t, uint64_t e, uint32_t bw)
   {
     (void) bw;
@@ -276,6 +285,57 @@ class TestBv : public TestBtor
       bv2 = btor_bv_new_random (d_mm, d_rng, bit_width);
       a1  = btor_bv_to_uint64 (bv1);
       a2  = btor_bv_to_uint64 (bv2);
+      /* test for x = 0 explicitly */
+      res  = bitvec_func (d_mm, zero, bv2);
+      ares = int_func (0, a2, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      /* test for y = 0 explicitly */
+      res  = bitvec_func (d_mm, bv1, zero);
+      ares = int_func (a1, 0, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      /* test x, y random */
+      res  = bitvec_func (d_mm, bv1, bv2);
+      ares = int_func (a1, a2, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv1);
+      btor_bv_free (d_mm, bv2);
+    }
+    btor_bv_free (d_mm, zero);
+  }
+
+  void binary_signed_bitvec (
+      int64_t (*int_func) (int64_t, int64_t, uint32_t),
+      BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                     const BtorBitVector *,
+                                     const BtorBitVector *),
+      uint32_t num_tests,
+      uint32_t bit_width)
+  {
+    uint32_t i;
+    BtorBitVector *bv1, *bv2, *zero, *res;
+    int64_t a1, a2, ares, bres;
+
+    zero = btor_bv_new (d_mm, bit_width);
+    for (i = 0; i < num_tests; i++)
+    {
+      bv1 = btor_bv_new_random (d_mm, d_rng, bit_width);
+      bv2 = btor_bv_new_random (d_mm, d_rng, bit_width);
+      a1  = btor_bv_to_uint64 (bv1);
+      a2  = btor_bv_to_uint64 (bv2);
+      if (btor_bv_get_bit (bv1, bit_width - 1))
+      {
+        a1 = (UINT64_MAX << bit_width) | a1;
+      }
+      if (btor_bv_get_bit (bv2, bit_width - 1))
+      {
+        a2 = (UINT64_MAX << bit_width) | a2;
+      }
       /* test for x = 0 explicitly */
       res  = bitvec_func (d_mm, zero, bv2);
       ares = int_func (0, a2, bit_width);
@@ -2523,6 +2583,14 @@ TEST_F (TestBv, urem)
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
+TEST_F (TestBv, sdiv)
+{
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 33);
 }
 
 TEST_F (TestBv, concat)

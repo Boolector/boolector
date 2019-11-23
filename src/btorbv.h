@@ -294,13 +294,18 @@ BtorBitVector *btor_bv_mul (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
-/* Create the unsigned divisionof of bit-vectors 'a' and 'b'. */
+/* Create the unsigned division of of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_udiv (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
 /* Create the unsigned remainder of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_urem (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed division of of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sdiv (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
