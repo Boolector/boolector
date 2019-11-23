@@ -1995,6 +1995,122 @@ btor_bv_ugte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_bv_slt (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw, msb_a, msb_b;
+
+  bw    = a->width;
+  msb_a = btor_bv_get_bit (a, bw - 1);
+  msb_b = btor_bv_get_bit (b, bw - 1);
+  if (msb_a && !msb_b)
+  {
+    res = btor_bv_one (mm, 1);
+  }
+  else if (!msb_a && msb_b)
+  {
+    res = btor_bv_zero (mm, 1);
+  }
+  else
+  {
+    res = btor_bv_ult (mm, a, b);
+  }
+  return res;
+}
+
+BtorBitVector *
+btor_bv_slte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw, msb_a, msb_b;
+
+  bw    = a->width;
+  msb_a = btor_bv_get_bit (a, bw - 1);
+  msb_b = btor_bv_get_bit (b, bw - 1);
+  if (msb_a && !msb_b)
+  {
+    res = btor_bv_one (mm, 1);
+  }
+  else if (!msb_a && msb_b)
+  {
+    res = btor_bv_zero (mm, 1);
+  }
+  else
+  {
+    res = btor_bv_ulte (mm, a, b);
+  }
+  return res;
+}
+
+BtorBitVector *
+btor_bv_sgt (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw, msb_a, msb_b;
+
+  bw    = a->width;
+  msb_a = btor_bv_get_bit (a, bw - 1);
+  msb_b = btor_bv_get_bit (b, bw - 1);
+  if (msb_a && !msb_b)
+  {
+    res = btor_bv_zero (mm, 1);
+  }
+  else if (!msb_a && msb_b)
+  {
+    res = btor_bv_one (mm, 1);
+  }
+  else
+  {
+    res = btor_bv_ugt (mm, a, b);
+  }
+  return res;
+}
+
+BtorBitVector *
+btor_bv_sgte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw, msb_a, msb_b;
+
+  bw    = a->width;
+  msb_a = btor_bv_get_bit (a, bw - 1);
+  msb_b = btor_bv_get_bit (b, bw - 1);
+  if (msb_a && !msb_b)
+  {
+    res = btor_bv_zero (mm, 1);
+  }
+  else if (!msb_a && msb_b)
+  {
+    res = btor_bv_one (mm, 1);
+  }
+  else
+  {
+    res = btor_bv_ugte (mm, a, b);
+  }
+  return res;
+}
+
+BtorBitVector *
 btor_bv_sll_uint64 (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
 {
   assert (mm);

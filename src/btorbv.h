@@ -275,6 +275,28 @@ BtorBitVector *btor_bv_ugte (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_slt (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'.
+ */
+BtorBitVector *btor_bv_slte (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sgt (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'.
+ */
+BtorBitVector *btor_bv_sgte (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
 /* Create the logical shift left of bit-vectors 'a' by 'shift'. */
 BtorBitVector *btor_bv_sll_uint64 (BtorMemMgr *mm,
                                    const BtorBitVector *a,

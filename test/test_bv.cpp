@@ -197,6 +197,30 @@ class TestBv : public TestBtor
     return x >= y;
   }
 
+  static int64_t slt (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x < y;
+  }
+
+  static int64_t slte (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x <= y;
+  }
+
+  static int64_t sgt (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x > y;
+  }
+
+  static int64_t sgte (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x >= y;
+  }
+
   static uint64_t sll (uint64_t x, uint64_t y, uint32_t bw)
   {
     assert (bw <= 64);
@@ -346,11 +370,11 @@ class TestBv : public TestBtor
       bv2 = btor_bv_new_random (d_mm, d_rng, bit_width);
       a1  = btor_bv_to_uint64 (bv1);
       a2  = btor_bv_to_uint64 (bv2);
-      if (btor_bv_get_bit (bv1, bit_width - 1))
+      if (bit_width < 64 && btor_bv_get_bit (bv1, bit_width - 1))
       {
         a1 = (UINT64_MAX << bit_width) | a1;
       }
-      if (btor_bv_get_bit (bv2, bit_width - 1))
+      if (bit_width < 64 && btor_bv_get_bit (bv2, bit_width - 1))
       {
         a2 = (UINT64_MAX << bit_width) | a2;
       }
@@ -914,7 +938,10 @@ TEST_F (TestBv, int64_to_bv)
 {
   uint32_t bw_a, bw_b;
   uint64_t i, j;
-  BtorBitVector *a, *b, *ult, *ulte, *ugt, *ugte, *ext;
+  BtorBitVector *a, *b;
+  BtorBitVector *ult, *ulte, *ugt, *ugte;
+  BtorBitVector *slt, *slte, *sgt, *sgte;
+  BtorBitVector *ext;
   char *str_a, *str_b;
   const char *s_a, *s_b;
   int64_t x[] = {
@@ -977,14 +1004,26 @@ TEST_F (TestBv, int64_to_bv)
     ulte = btor_bv_ulte (d_mm, a, b);
     ugt = btor_bv_ugt (d_mm, a, b);
     ugte = btor_bv_ugte (d_mm, a, b);
+    slt  = btor_bv_slt (d_mm, a, b);
+    slte = btor_bv_slte (d_mm, a, b);
+    sgt  = btor_bv_sgt (d_mm, a, b);
+    sgte = btor_bv_sgte (d_mm, a, b);
     ASSERT_TRUE (btor_bv_is_false (ult));
     ASSERT_TRUE (btor_bv_is_false (ulte));
     ASSERT_TRUE (btor_bv_is_true (ugt));
     ASSERT_TRUE (btor_bv_is_true (ugte));
+    ASSERT_TRUE (btor_bv_is_true (slt));
+    ASSERT_TRUE (btor_bv_is_true (slte));
+    ASSERT_TRUE (btor_bv_is_false (sgt));
+    ASSERT_TRUE (btor_bv_is_false (sgte));
     btor_bv_free (d_mm, ult);
     btor_bv_free (d_mm, ulte);
     btor_bv_free (d_mm, ugt);
     btor_bv_free (d_mm, ugte);
+    btor_bv_free (d_mm, slt);
+    btor_bv_free (d_mm, slte);
+    btor_bv_free (d_mm, sgt);
+    btor_bv_free (d_mm, sgte);
     btor_bv_free (d_mm, a);
     btor_bv_free (d_mm, b);
     btor_mem_freestr (d_mm, str_a);
@@ -2292,6 +2331,42 @@ TEST_F (TestBv, ugte)
   binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 33);
   binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, slt)
+{
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, slte)
+{
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, sgt)
+{
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, sgte)
+{
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
 TEST_F (TestBv, sll)
