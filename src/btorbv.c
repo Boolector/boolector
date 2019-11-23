@@ -1885,7 +1885,7 @@ btor_bv_ult (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   for (i = 0; i < a->len && a->bits[i] == b->bits[i]; i++)
     ;
 
-  /* a == b */
+  /* a >= b */
   if (i == a->len || a->bits[i] >= b->bits[i]) bit = 0;
 
   btor_bv_set_bit (res, 0, bit);
@@ -1918,8 +1918,74 @@ btor_bv_ulte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   for (i = 0; i < a->len && a->bits[i] == b->bits[i]; i++)
     ;
 
-  /* a == b */
+  /* a > b */
   if (i < a->len && a->bits[i] > b->bits[i]) bit = 0;
+
+  btor_bv_set_bit (res, 0, bit);
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *
+btor_bv_ugt (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  res =
+      mpz_cmp (a->val, b->val) > 0 ? btor_bv_one (mm, 1) : btor_bv_zero (mm, 1);
+#else
+  assert (a->len == b->len);
+  uint32_t i, bit;
+
+  res = btor_bv_new (mm, 1);
+  bit = 1;
+
+  /* find index on which a and b differ */
+  for (i = 0; i < a->len && a->bits[i] == b->bits[i]; i++)
+    ;
+
+  /* a <= b */
+  if (i == a->len || a->bits[i] <= b->bits[i]) bit = 0;
+
+  btor_bv_set_bit (res, 0, bit);
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *
+btor_bv_ugte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  res = mpz_cmp (a->val, b->val) >= 0 ? btor_bv_one (mm, 1)
+                                      : btor_bv_zero (mm, 1);
+#else
+  assert (a->len == b->len);
+  uint32_t i, bit;
+
+  res = btor_bv_new (mm, 1);
+  bit = 1;
+
+  /* find index on which a and b differ */
+  for (i = 0; i < a->len && a->bits[i] == b->bits[i]; i++)
+    ;
+
+  /* a < b */
+  if (i < a->len && a->bits[i] < b->bits[i]) bit = 0;
 
   btor_bv_set_bit (res, 0, bit);
 

@@ -185,6 +185,18 @@ class TestBv : public TestBtor
     return x <= y;
   }
 
+  static uint64_t ugt (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x > y;
+  }
+
+  static uint64_t ugte (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x >= y;
+  }
+
   static uint64_t sll (uint64_t x, uint64_t y, uint32_t bw)
   {
     assert (bw <= 64);
@@ -2256,6 +2268,24 @@ TEST_F (TestBv, ulte)
   binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 33);
   binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, ugt)
+{
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, ugte)
+{
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
 TEST_F (TestBv, sll)
