@@ -914,7 +914,7 @@ TEST_F (TestBv, int64_to_bv)
 {
   uint32_t bw_a, bw_b;
   uint64_t i, j;
-  BtorBitVector *a, *b, *ult, *ugt, *ext;
+  BtorBitVector *a, *b, *ult, *ulte, *ugt, *ugte, *ext;
   char *str_a, *str_b;
   const char *s_a, *s_b;
   int64_t x[] = {
@@ -974,11 +974,17 @@ TEST_F (TestBv, int64_to_bv)
       a = ext;
     }
     ult = btor_bv_ult (d_mm, a, b);
-    ugt = btor_bv_ult (d_mm, b, a);
+    ulte = btor_bv_ulte (d_mm, a, b);
+    ugt = btor_bv_ugt (d_mm, a, b);
+    ugte = btor_bv_ugte (d_mm, a, b);
     ASSERT_TRUE (btor_bv_is_false (ult));
+    ASSERT_TRUE (btor_bv_is_false (ulte));
     ASSERT_TRUE (btor_bv_is_true (ugt));
+    ASSERT_TRUE (btor_bv_is_true (ugte));
     btor_bv_free (d_mm, ult);
+    btor_bv_free (d_mm, ulte);
     btor_bv_free (d_mm, ugt);
+    btor_bv_free (d_mm, ugte);
     btor_bv_free (d_mm, a);
     btor_bv_free (d_mm, b);
     btor_mem_freestr (d_mm, str_a);
