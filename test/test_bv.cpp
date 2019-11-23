@@ -798,10 +798,11 @@ TEST_F (TestBv, uint64_to_bv_to_uint64)
 
 TEST_F (TestBv, int64_to_bv)
 {
-  uint64_t i;
-  BtorBitVector *a;
-  char *str_a;
-  const char *s;
+  uint32_t bw_a, bw_b;
+  uint64_t i, j;
+  BtorBitVector *a, *b, *ult, *ugt, *ext;
+  char *str_a, *str_b;
+  const char *s_a, *s_b;
   int64_t x[] = {
       -1,
       -2,
@@ -833,14 +834,41 @@ TEST_F (TestBv, int64_to_bv)
 
       0};
 
-  for (i = 0; str_x[i]; i++)
+  for (i = 0, j = 1; str_x[j]; i++, j++)
   {
-    s     = str_x[i];
-    a     = btor_bv_int64_to_bv (d_mm, x[i], strlen (s));
+    assert (str_x[i]);
+    s_a   = str_x[i];
+    s_b   = str_x[j];
+    a     = btor_bv_int64_to_bv (d_mm, x[i], strlen (s_a));
+    b     = btor_bv_int64_to_bv (d_mm, x[j], strlen (s_b));
     str_a = btor_bv_to_char (d_mm, a);
-    ASSERT_EQ (strcmp (str_a, s), 0);
+    str_b = btor_bv_to_char (d_mm, b);
+    ASSERT_EQ (strcmp (str_a, s_a), 0);
+    ASSERT_EQ (strcmp (str_b, s_b), 0);
+    bw_a = btor_bv_get_width (a);
+    bw_b = btor_bv_get_width (b);
+    if (bw_a > bw_b)
+    {
+      ext = btor_bv_sext (d_mm, b, bw_a - bw_b);
+      btor_bv_free (d_mm, b);
+      b = ext;
+    }
+    else if (btor_bv_get_width (a) < btor_bv_get_width (b))
+    {
+      ext = btor_bv_sext (d_mm, a, bw_b - bw_a);
+      btor_bv_free (d_mm, a);
+      a = ext;
+    }
+    ult = btor_bv_ult (d_mm, a, b);
+    ugt = btor_bv_ult (d_mm, b, a);
+    ASSERT_TRUE (btor_bv_is_false (ult));
+    ASSERT_TRUE (btor_bv_is_true (ugt));
+    btor_bv_free (d_mm, ult);
+    btor_bv_free (d_mm, ugt);
     btor_bv_free (d_mm, a);
+    btor_bv_free (d_mm, b);
     btor_mem_freestr (d_mm, str_a);
+    btor_mem_freestr (d_mm, str_b);
   }
 }
 
