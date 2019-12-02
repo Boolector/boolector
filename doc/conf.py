@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Boolector'
-copyright = '2007-2018 The authors of Boolector'
+copyright = '2007-2019 The authors of Boolector'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
