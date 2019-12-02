@@ -34,11 +34,12 @@ typedef BoolectorAnonymous* BoolectorSort;
 
 /* Boolector options */
 
+// clang-format off
 enum BtorOption
 {
   /* --------------------------------------------------------------------- */
   /*!
-   **General Options:**
+    **General Options:**
    */
   /* --------------------------------------------------------------------- */
   /*!
@@ -82,18 +83,13 @@ enum BtorOption
         while parsing.
 
       * BTOR_INPUT_FORMAT_BTOR:
-        `BTOR format
-         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_
+        `BTOR <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_ format
       * BTOR_INPUT_FORMAT_BTOR2:
-        `BTOR2 format
-         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_
+        `BTOR2 <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_ format
       * BTOR_INPUT_FORMAT_SMT1:
-        `SMT-LIB v1 format
-         <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_
+        `SMT-LIB v1 <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_ format
       * BTOR_INPUT_FORMAT_SMT2:
-        `SMT-LIB v2 format
-         <http://smtlib.cs.uiowa.edu/papers/
-          smt-lib-reference-v2.0-r12.09.09.pdf>`_
+        `SMT-LIB v2 <http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf>`_ format
   */
 
   BTOR_OPT_INPUT_FORMAT,
@@ -118,21 +114,15 @@ enum BtorOption
         `SMT-LIB v2`_: 2).
 
       * BTOR_OUTPUT_FORMAT_BTOR [default]:
-        `BTOR format
-         <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_
+        `BTOR`_ format
       * BTOR_OUTPUT_FORMAT_BTOR2:
-        `BTOR2 format
-         <http://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf>`_
+        `BTOR2`_ format
       * BTOR_OUTPUT_FORMAT_SMT2:
-        `SMT-LIB v2 format
-         <http://smtlib.cs.uiowa.edu/papers/
-          smt-lib-reference-v2.0-r12.09.09.pdf>`_
+        `SMT-LIB v2`_ format
       * BTOR_OUTPUT_FORMAT_AIGER_ASCII:
-        `Aiger ascii format
-        <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
+        `Aiger ascii format <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
       * BTOR_OUTPUT_FORMAT_AIGER_BINARY:
-        `Aiger binary format
-        <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
+        `Aiger binary format <http://fmv.jku.at/papers/BiereHeljankoWieringa-FMV-TR-11-2.pdf>`_
   */
   BTOR_OPT_OUTPUT_FORMAT,
 
@@ -227,7 +217,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Simplifier Options:**
+    **Simplifier Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -330,7 +320,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Fun Engine Options:**
+    **Fun Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -423,7 +413,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **SLS Engine Options:**
+    **SLS Engine Options:**
    */
   /* --------------------------------------------------------------------- */
 
@@ -593,7 +583,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **Prop Engine Options**:
+    **Prop Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 
@@ -745,7 +735,7 @@ enum BtorOption
 
   /* --------------------------------------------------------------------- */
   /*!
-   **AIGProp Engine Options**:
+    **AIGProp Engine Options**:
    */
   /* --------------------------------------------------------------------- */
 
@@ -769,7 +759,7 @@ enum BtorOption
 
   /* QUANT engine ------------------------------------------------------- */
   /*!
-   * **BTOR_OPT_QUANT_SYNTH**
+    * **BTOR_OPT_QUANT_SYNTH**
 
      Select synthesis mode for Skolem functions.
 
@@ -790,7 +780,7 @@ enum BtorOption
   BTOR_OPT_QUANT_SYNTH,
 
   /*!
-   * **BTOR_OPT_QUANT_DUAL_SOLVER**
+    * **BTOR_OPT_QUANT_DUAL_SOLVER**
 
       Enable (``value``: 1) or disable (``value``: 0) solving the dual
       (negated) version of the quantified bit-vector formula.
@@ -798,7 +788,7 @@ enum BtorOption
   BTOR_OPT_QUANT_DUAL_SOLVER,
 
   /*!
-   * **BTOR_OPT_QUANT_SYNTH_LIMIT**
+    * **BTOR_OPT_QUANT_SYNTH_LIMIT**
 
       Set the limit of enumerated expressions for the enumerative learning
       synthesis algorithm.
@@ -806,7 +796,7 @@ enum BtorOption
   BTOR_OPT_QUANT_SYNTH_LIMIT,
 
   /*!
-   * **BTOR_OPT_SYNTH_QI**
+    * **BTOR_OPT_SYNTH_QI**
 
       Enable (``value``: 1) or disable (``value``: 0) generalization of
       quantifier instantiations via enumerative learning.
@@ -814,7 +804,7 @@ enum BtorOption
   BTOR_OPT_QUANT_SYNTH_QI,
 
   /*!
-   * **BTOR_OPT_QUANT_DER**
+    * **BTOR_OPT_QUANT_DER**
 
       Enable (``value``: 1) or disable (``value``: 0) destructive equality
       resolution simplification.
@@ -822,7 +812,7 @@ enum BtorOption
   BTOR_OPT_QUANT_DER,
 
   /*!
-   * **BTOR_OPT_QUANT_CER**
+    * **BTOR_OPT_QUANT_CER**
 
       Enable (``value``: 1) or disable (``value``: 0) constructive equality
       resolution simplification.
@@ -830,7 +820,7 @@ enum BtorOption
   BTOR_OPT_QUANT_CER,
 
   /*!
-   * **BTOR_OPT_QUANT_MINISCOPE**
+    * **BTOR_OPT_QUANT_MINISCOPE**
 
       Enable (``value``: 1) or disable (``value``: 0) miniscoping.
    */
@@ -859,6 +849,8 @@ enum BtorOption
   /* this MUST be the last entry! */
   BTOR_OPT_NUM_OPTS,
 };
+// clang-format on
+
 typedef enum BtorOption BtorOption;
 
 enum BtorOptBetaReduceMode

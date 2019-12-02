@@ -131,9 +131,9 @@ int32_t boolector_terminate (Btor *btor);
   It is recommended to set this function prior to creating Boolector instances.
 
   .. note::
-  This function is not thread safe (the function pointer is maintained as
-  a global variable). It you use threading, make sure to set the abort
-  function prior to creating threads.
+    This function is not thread safe (the function pointer is maintained as
+    a global variable). It you use threading, make sure to set the abort
+    function prior to creating threads.
 
   :param fun: The abort callback function.
   :param msg: The abort error message.
@@ -2281,7 +2281,7 @@ uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
 /*!
   Parse input file.
 
-  Input file format may be either BTOR_, BTOR2_, `SMT-LIB v1`_, or
+  Input file format may be either `BTOR`_, `BTOR2`_, `SMT-LIB v1`_, or
   `SMT-LIB v2`_, the file type is detected automatically.  If the parser
   encounters an error, an explanation of that error is stored in ``error_msg``.
   If the input file specifies a (known) status of the input formula (either sat
