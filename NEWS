@@ -1,5 +1,8 @@
  news since 3.0.0
 --------------------------------------------------------------------------------
++ build system:
+  - requires now cmake >= 3.3
+  - exports library interface for using find_package(Boolector) in cmake projects
 + support for custom abort callback function
   (called on abort instead of actually aborting)
 + Python API now throws Python exceptions on abort conditions
@@ -10,9 +13,14 @@
   messages for these modes
 + fixed issue in SMT2 parser to correctly print echo commands
   (thanks to Dominik Klumpp)
++ fixed race condition in Cython dependencies
+  (thanks to Marco Gario)
 + patches and documentation for building Boolector on Windows
+  (thanks to Andrew V. Jones)
 + support/use termination function feature of CaDiCaL
   (thanks to Andrew V. Jones)
++ various fixes to contrib dependecy scripts
+  (thanks to Serge Bazanski)
 + new API calls
   - boolector_copy_sort
   - boolector_min_signed
@@ -22,6 +30,16 @@
   - boolector_is_bv_const_ones
   - boolector_is_bv_const_min_signed
   - boolector_is_bv_const_max_signed
++ CaDiCaL is now default SAT engine
++ support for constant arrays
++ support for GMP as bit-vector implementation
++ support for CyproMiniSat
+  - supports multi-threading via option --sat-engine-n-threads
++ switched to Google test as testing framework
++ CLI options changed (replaced ':' with a '-')
++ BtorMC improvements (HWMCC'19 version)
+  - k-induction engine with simple path constraints
++ Poolector Python script used in SMT-COMP'19
 
 news for release 3.0.0 since 2.4.1
 --------------------------------------------------------------------------------
