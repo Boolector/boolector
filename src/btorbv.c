@@ -2165,12 +2165,10 @@ btor_bv_sll_uint64 (BtorMemMgr *mm, const BtorBitVector *a, uint64_t shift)
 
 static bool
 shift_is_uint64 (BtorMemMgr *mm,
-                 const BtorBitVector *a,
                  const BtorBitVector *b,
                  uint64_t *res)
 {
   assert (mm);
-  assert (a);
   assert (b);
   assert (res);
 
@@ -2204,7 +2202,7 @@ btor_bv_sll (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   uint64_t ushift;
 
-  if (shift_is_uint64 (mm, a, b, &ushift))
+  if (shift_is_uint64 (mm, b, &ushift))
   {
     return btor_bv_sll_uint64 (mm, a, ushift);
   }
@@ -2277,7 +2275,7 @@ btor_bv_srl (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
 
   uint64_t ushift;
 
-  if (shift_is_uint64 (mm, a, b, &ushift))
+  if (shift_is_uint64 (mm, b, &ushift))
   {
     return btor_bv_srl_uint64 (mm, a, ushift);
   }

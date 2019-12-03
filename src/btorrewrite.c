@@ -4600,6 +4600,7 @@ applies_same_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 static inline BtorNode *
 apply_same_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
+  (void) e1;
   assert (applies_same_srl (btor, e0, e1));
   return btor_exp_bv_zero (btor, btor_node_get_sort_id (e0));
 }

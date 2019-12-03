@@ -530,6 +530,8 @@ class TestBv : public TestBtor
       ae   = btor_bv_to_uint64 (bve);
       ares = ite (ac, at, ae, bit_width);
       bres = btor_bv_to_uint64 (res);
+      (void) ares;
+      (void) bres;
       assert (ares == bres);
       btor_bv_free (d_mm, res);
       btor_bv_free (d_mm, bvc);
@@ -879,6 +881,9 @@ TEST_F (TestBv, hash)
     hash1 = btor_bv_hash (bv1);
     hash2 = btor_bv_hash (bv2);
     hash3 = btor_bv_hash (bv3);
+    (void) hash1;
+    (void) hash2;
+    (void) hash3;
     assert (!btor_bv_compare (bv1, bv2) || hash1 != hash2
             || !btor_bv_compare (bv1, bv3) || hash1 != hash3
             || !btor_bv_compare (bv2, bv3) || hash2 != hash3);
@@ -2067,6 +2072,7 @@ TEST_F (TestBv, set_get_flip_bit)
     v  = btor_bv_get_bit (bv, n);
     vv = btor_rng_pick_with_prob (d_rng, 500) ? 1 : 0;
     btor_bv_set_bit (bv, n, vv);
+    (void) v;
     assert (btor_bv_get_bit (bv, n) == vv);
     assert (v == vv || btor_bv_get_bit (bv, n) == (((~v) << 31) >> 31));
     btor_bv_flip_bit (bv, n);

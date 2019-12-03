@@ -65,6 +65,7 @@ class TestRotate : public TestBoolector
 
     boolector_assert (d_btor, ne0);
     res = boolector_sat (d_btor);
+    (void) res;
     assert (res == BOOLECTOR_UNSAT);
 
     boolector_release (d_btor, ne0);
