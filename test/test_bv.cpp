@@ -394,6 +394,7 @@ class TestBv : public TestBtor
       res  = bitvec_func (d_mm, bv1, bv2);
       ares = int_func (a1, a2, bit_width);
       bres = btor_bv_to_uint64 (res);
+      assert (ares == bres);
       ASSERT_EQ (ares, bres);
       btor_bv_free (d_mm, res);
       btor_bv_free (d_mm, bv1);
@@ -941,14 +942,10 @@ TEST_F (TestBv, uint64_to_bv_to_uint64)
 
 TEST_F (TestBv, int64_to_bv)
 {
-  uint32_t bw_a, bw_b;
-  uint64_t i, j;
-  BtorBitVector *a, *b;
-  BtorBitVector *ult, *ulte, *ugt, *ugte;
-  BtorBitVector *slt, *slte, *sgt, *sgte;
-  BtorBitVector *ext;
-  char *str_a, *str_b;
-  const char *s_a, *s_b;
+  uint32_t bw;
+  uint64_t i;
+  BtorBitVector *a, *ua, *tmp, *b;
+  char *str_a;
   int64_t x[] = {
       -1,
       -2,
@@ -980,59 +977,33 @@ TEST_F (TestBv, int64_to_bv)
 
       0};
 
-  for (i = 0, j = 1; str_x[j]; i++, j++)
+  for (i = 0; str_x[i]; i++)
   {
     assert (str_x[i]);
-    s_a   = str_x[i];
-    s_b   = str_x[j];
-    a     = btor_bv_int64_to_bv (d_mm, x[i], strlen (s_a));
-    b     = btor_bv_int64_to_bv (d_mm, x[j], strlen (s_b));
+    bw    = strlen (str_x[i]);
+    a     = btor_bv_int64_to_bv (d_mm, x[i], bw);
     str_a = btor_bv_to_char (d_mm, a);
-    str_b = btor_bv_to_char (d_mm, b);
-    ASSERT_EQ (strcmp (str_a, s_a), 0);
-    ASSERT_EQ (strcmp (str_b, s_b), 0);
-    bw_a = btor_bv_get_width (a);
-    bw_b = btor_bv_get_width (b);
-    if (bw_a > bw_b)
+    ASSERT_EQ (strcmp (str_a, str_x[i]), 0);
+    btor_mem_freestr (d_mm, str_a);
+    if (x[i] < 0)
     {
-      ext = btor_bv_sext (d_mm, b, bw_a - bw_b);
-      btor_bv_free (d_mm, b);
-      b = ext;
+      tmp = btor_bv_uint64_to_bv (d_mm, -x[i], bw);
+      ua  = btor_bv_neg (d_mm, tmp);
+      btor_bv_free (d_mm, tmp);
+      tmp = btor_bv_uint64_to_bv (d_mm, x[i], bw);
+      b   = btor_bv_neg (d_mm, tmp);
+      btor_bv_free (d_mm, tmp);
     }
-    else if (btor_bv_get_width (a) < btor_bv_get_width (b))
+    else
     {
-      ext = btor_bv_sext (d_mm, a, bw_b - bw_a);
-      btor_bv_free (d_mm, a);
-      a = ext;
+      ua = btor_bv_uint64_to_bv (d_mm, x[i], bw);
+      b  = btor_bv_uint64_to_bv (d_mm, -x[i], bw);
     }
-    ult = btor_bv_ult (d_mm, a, b);
-    ulte = btor_bv_ulte (d_mm, a, b);
-    ugt = btor_bv_ugt (d_mm, a, b);
-    ugte = btor_bv_ugte (d_mm, a, b);
-    slt  = btor_bv_slt (d_mm, a, b);
-    slte = btor_bv_slte (d_mm, a, b);
-    sgt  = btor_bv_sgt (d_mm, a, b);
-    sgte = btor_bv_sgte (d_mm, a, b);
-    ASSERT_TRUE (btor_bv_is_false (ult));
-    ASSERT_TRUE (btor_bv_is_false (ulte));
-    ASSERT_TRUE (btor_bv_is_true (ugt));
-    ASSERT_TRUE (btor_bv_is_true (ugte));
-    ASSERT_TRUE (btor_bv_is_true (slt));
-    ASSERT_TRUE (btor_bv_is_true (slte));
-    ASSERT_TRUE (btor_bv_is_false (sgt));
-    ASSERT_TRUE (btor_bv_is_false (sgte));
-    btor_bv_free (d_mm, ult);
-    btor_bv_free (d_mm, ulte);
-    btor_bv_free (d_mm, ugt);
-    btor_bv_free (d_mm, ugte);
-    btor_bv_free (d_mm, slt);
-    btor_bv_free (d_mm, slte);
-    btor_bv_free (d_mm, sgt);
-    btor_bv_free (d_mm, sgte);
+    ASSERT_EQ (btor_bv_compare (a, ua), 0);
+    ASSERT_NE (btor_bv_compare (a, b), 0);
     btor_bv_free (d_mm, a);
     btor_bv_free (d_mm, b);
-    btor_mem_freestr (d_mm, str_a);
-    btor_mem_freestr (d_mm, str_b);
+    btor_bv_free (d_mm, ua);
   }
 }
 
