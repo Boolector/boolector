@@ -2016,6 +2016,10 @@ btor_bv_slt (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   {
     res = btor_bv_zero (mm, 1);
   }
+  else if (msb_a && msb_b)
+  {
+    res = btor_bv_ult (mm, b, a);
+  }
   else
   {
     res = btor_bv_ult (mm, a, b);
@@ -2044,6 +2048,10 @@ btor_bv_slte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   else if (!msb_a && msb_b)
   {
     res = btor_bv_zero (mm, 1);
+  }
+  else if (msb_a && msb_b)
+  {
+    res = btor_bv_ulte (mm, b, a);
   }
   else
   {
@@ -2074,6 +2082,10 @@ btor_bv_sgt (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   {
     res = btor_bv_one (mm, 1);
   }
+  else if (msb_a && msb_b)
+  {
+    res = btor_bv_ugt (mm, b, a);
+  }
   else
   {
     res = btor_bv_ugt (mm, a, b);
@@ -2102,6 +2114,10 @@ btor_bv_sgte (BtorMemMgr *mm, const BtorBitVector *a, const BtorBitVector *b)
   else if (!msb_a && msb_b)
   {
     res = btor_bv_one (mm, 1);
+  }
+  else if (msb_a && msb_b)
+  {
+    res = btor_bv_ugte (mm, b, a);
   }
   else
   {
