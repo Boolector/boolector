@@ -1,4 +1,4 @@
- news since 3.0.0
+ news for release 3.1.0 since 3.0.0
 --------------------------------------------------------------------------------
 + build system:
   - requires now cmake >= 3.3
