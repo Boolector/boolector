@@ -12,7 +12,7 @@ cd build
 cmake -DENABLE_PYTHON_INTERFACE=OFF \
       -DSTATICCOMPILE=ON \
       -DNOM4RI=ON \
+      -DONLY_SIMPLE=ON \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
       ..
-make libcryptominisat5 -j${NPROC}
-make install
+make libcryptominisat5 -j${NPROC} install
