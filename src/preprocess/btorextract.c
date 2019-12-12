@@ -594,6 +594,7 @@ collect_indices_updates (Btor *btor,
   visit_cache = btor_hashint_table_new (btor->mm);
 
   btor_iter_hashptr_init (&it, btor->unsynthesized_constraints);
+  btor_iter_hashptr_queue (&it, btor->assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
