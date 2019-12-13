@@ -889,12 +889,6 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   set_kind (btor, exp, BTOR_INVALID_NODE);
 
-  if (btor_node_is_bv_const (exp))
-  {
-    btor_bv_free (btor->mm, btor_node_bv_const_get_bits (exp));
-    if (btor_node_bv_const_get_invbits (exp))
-      btor_bv_free (btor->mm, btor_node_bv_const_get_invbits (exp));
-  }
   assert (btor_node_get_sort_id (exp));
   btor_sort_release (btor, btor_node_get_sort_id (exp));
   btor_node_set_sort_id (exp, 0);
