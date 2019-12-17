@@ -185,7 +185,6 @@ create_pattern_memset (Btor *btor,
   param = btor_exp_param (btor, btor_node_get_sort_id (lower), 0);
   read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
-  ;
   ite = btor_exp_cond (btor, cond, value, read);
   res = btor_exp_lambda (btor, param, ite);
 
@@ -220,7 +219,6 @@ create_pattern_itoi (Btor *btor,
   param = btor_exp_param (btor, btor_node_get_sort_id (lower), 0);
   read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
-  ;
   ite = btor_exp_cond (btor, cond, param, read);
   res = btor_exp_lambda (btor, param, ite);
 
@@ -255,7 +253,6 @@ create_pattern_itoip1 (Btor *btor,
   param = btor_exp_param (btor, btor_node_get_sort_id (lower), 0);
   read  = btor_exp_read (btor, array, param);
   cond  = create_range (btor, lower, upper, param, offset);
-  ;
   inc = btor_exp_bv_inc (btor, param);
   ite = btor_exp_cond (btor, cond, inc, read);
   res = btor_exp_lambda (btor, param, ite);
@@ -556,10 +553,6 @@ add_to_index_map (Btor *btor,
   BTOR_PUSH_STACK (*indices, index);
 }
 
-// TODO (ma): is there a way to recognize base_addr + 0 as
-//            relative?
-//            -> only if its the last index
-//	       - prev_index->base_addr == index
 static bool
 check_and_add_index (Btor *btor,
                      BtorPtrHashTable *map_value_index,
