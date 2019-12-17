@@ -40,6 +40,7 @@ btor_pputils_collect_lambdas (Btor *btor, BtorNodePtrStack *lambdas)
     if (btor_hashint_table_contains (cache, cur->id) || !cur->lambda_below)
       continue;
 
+    btor_hashint_table_add (cache, cur->id);
     if (btor_node_is_lambda (cur)) BTOR_PUSH_STACK (*lambdas, cur);
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
