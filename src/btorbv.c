@@ -3044,7 +3044,6 @@ BtorBitVectorTuple *
 btor_bv_new_tuple (BtorMemMgr *mm, uint32_t arity)
 {
   assert (mm);
-  assert (arity > 0);
 
   BtorBitVectorTuple *res = 0;
 
