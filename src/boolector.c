@@ -4202,7 +4202,8 @@ boolector_free_array_assignment (Btor *btor,
 
   funass =
       btor_ass_get_fun ((const char **) indices, (const char **) values, size);
-  (void) funass;
+  BTOR_ABORT (size != funass->size,
+              "wrong size given, expected %u, but got %u", funass->size, size);
 #ifndef NDEBUG
   char **cindices, **cvalues;
   cindices = funass->cloned_indices;
@@ -4285,7 +4286,8 @@ boolector_free_uf_assignment (Btor *btor,
   BTOR_ABORT (!size && values, "non zero 'values' but 'size == 0'");
   funass =
       btor_ass_get_fun ((const char **) args, (const char **) values, size);
-  (void) funass;
+  BTOR_ABORT (size != funass->size,
+              "wrong size given, expected %u, but got %u", funass->size, size);
 #ifndef NDEBUG
   char **cargs, **cvalues;
   cargs   = funass->cloned_indices;
