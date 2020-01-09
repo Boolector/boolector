@@ -2051,10 +2051,11 @@ void boolector_free_bv_assignment (Btor *btor, const char *assignment);
   expression. See our publication `Lemmas on Demand for Lambdas
   <http://fmv.jku.at/papers/PreinerNiemetzBiere-DIFTS13.pdf>`_ for details. At
   indices that do not occur in the model, it is assumed that the array stores a
-  globally unique default value, for example 0.  The bit-vector assignments to
-  the indices and values have to be freed by boolector_free_bv_assignment.
-  Furthermore, the user has to free the array of indices and the array of
-  values, respectively of size ``size``.
+  globally unique default value, for example 0. If the model of a constant array
+  is queried the default value of the constant array is indicated via index '*'.
+  The bit-vector assignments to the indices and values have to be freed by
+  boolector_free_bv_assignment. Furthermore, the user has to free the array of
+  indices and the array of values, respectively of size ``size``.
 
   :param btor: Boolector instance.
   :param n_array: Array operand for which the array model should be built.

@@ -4070,23 +4070,37 @@ generate_fun_model_str (
 
     /* build assignment string for all arguments */
     t   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
-    len = t->arity;
-    for (j = 0; j < t->arity; j++) len += btor_bv_get_width (t->bv[j]);
-    BTOR_NEWN (btor->mm, arg, len);
-    tmp = arg;
-
-    bv = btor_bv_to_char (btor->mm, t->bv[0]);
-    strcpy (tmp, bv);
-    btor_mem_freestr (btor->mm, bv);
-
-    for (j = 1; j < t->arity; j++)
+    if (t->arity)
     {
-      bv = btor_bv_to_char (btor->mm, t->bv[j]);
-      strcat (tmp, " ");
-      strcat (tmp, bv);
+      len = t->arity;
+      for (j = 0; j < t->arity; j++) len += btor_bv_get_width (t->bv[j]);
+      BTOR_CNEWN (btor->mm, arg, len);
+      tmp = arg;
+
+      bv = btor_bv_to_char (btor->mm, t->bv[0]);
+      strncpy (tmp, bv, len);
+      len -= strlen (bv);
       btor_mem_freestr (btor->mm, bv);
+
+      for (j = 1; j < t->arity; j++)
+      {
+        bv = btor_bv_to_char (btor->mm, t->bv[j]);
+        strncat (tmp, " ", len);
+        len -= 1;
+        strncat (tmp, bv, len);
+        len -= strlen (bv);
+        btor_mem_freestr (btor->mm, bv);
+      }
+      len -= 1;
+      assert (len == 0);
     }
-    assert (strlen (arg) == len - 1);
+    /* If argument tuple has arity 0, value represents the default value for
+     * the function/array (constant arrays). */
+    else
+    {
+      BTOR_CNEWN (btor->mm, arg, 2);
+      arg[0] = '*';
+    }
 
     (*args)[i]   = arg;
     (*values)[i] = (char *) btor_bv_to_char (btor->mm, value);
