@@ -207,6 +207,9 @@ btor_check_model (BtorCheckModelContext *ctx)
         value      = (BtorBitVector *) it.bucket->data.as_ptr;
         args_tuple = btor_iter_hashptr_next (&it);
 
+        /* Ignore default values of constant arrays */
+        if (!args_tuple->arity) continue;
+
         /* create condition */
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)
