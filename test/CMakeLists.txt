@@ -54,6 +54,7 @@ set(sat_testcases
 "arraycond2.btor"
 "arraycond4.btor"
 "const1.btor"
+"constarray.smt2"
 "ext1.btor"
 "ext12.btor"
 "ext14.btor"

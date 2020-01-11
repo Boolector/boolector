@@ -297,6 +297,7 @@ typedef struct BtorSMT2Item
   {
     BtorSMT2Node *node;
     BoolectorNode *exp;
+    BoolectorSort sort;
     char *str;
   };
 } BtorSMT2Item;
@@ -2364,6 +2365,19 @@ close_term (BtorSMT2Parser *parser)
       assert (item_open + 1 == parser->work.top);
     }
   }
+  else if (tag == BTOR_AS_TAG_SMT2)
+  {
+    if (nargs != 1)
+    {
+      parser->perrcoo = item_cur->coo;
+      return !perr_smt2 (
+          parser,
+          "expected exactly one argument for ((as ...) but got %u",
+          nargs);
+    }
+    exp = boolector_const_array (btor, item_cur->sort, item_cur[1].exp);
+    release_exp_and_overwrite (parser, item_open, item_cur, nargs, exp);
+  }
   /* CORE: NOT -------------------------------------------------------------- */
   else if (tag == BTOR_NOT_TAG_SMT2)
   {
@@ -3327,6 +3341,68 @@ parse_open_term_indexed (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
 }
 
 static int32_t
+parse_open_term_as (BtorSMT2Parser *parser, BtorSMT2Item *item_cur)
+{
+  assert (parser);
+  assert (item_cur);
+
+  const char *identifier;
+  int32_t tag;
+  BtorSMT2Node *node;
+  BtorSMT2Item *item_open;
+
+  if (!prev_item_was_lpar_smt2 (parser)) return 0;
+
+  if (BTOR_COUNT_STACK (parser->work) < 3)
+  {
+    assert (BTOR_COUNT_STACK (parser->work) == 2);
+    assert (parser->work.start[0].tag == BTOR_LPAR_TAG_SMT2);
+    assert (parser->work.start[1].tag == BTOR_UNDERSCORE_TAG_SMT2);
+    parser->perrcoo = parser->work.start[0].coo;
+    return !perr_smt2 (parser, "expected '(' before '(as'");
+  }
+  if (parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+  {
+    parser->perrcoo = parser->work.top[-3].coo;
+    return !perr_smt2 (parser,
+                       "expected '(' at '%s' before '(as'",
+                       item2str_smt2 (parser->work.top - 3));
+  }
+
+  tag  = read_token_smt2 (parser);
+  node = parser->last_node;
+
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !perr_smt2 (parser, "unexpected end-of-file after '_'");
+  if (tag != BTOR_SYMBOL_TAG_SMT2)
+  {
+    return !perr_smt2 (parser, "expected identifier");
+  }
+
+  identifier = node->name;
+  item_open  = item_cur - 1;
+
+  if (!strcmp (identifier, "const"))
+  {
+    tag = read_token_smt2 (parser);
+    if (!parse_sort (parser, tag, true, &item_open->sort)) return 0;
+    assert (item_open->sort);
+  }
+  else
+  {
+    return !perr_smt2 (parser, "invalid identifier '%s'", identifier);
+  }
+
+  item_open->tag   = BTOR_AS_TAG_SMT2;
+  parser->work.top = item_cur;
+  if (!read_rpar_smt2 (parser, " to close (as ")) return 0;
+  assert (parser->open > 0);
+  parser->open--;
+  return 1;
+}
+
+static int32_t
 parse_open_term_item_with_node (BtorSMT2Parser *parser,
                                 int32_t tag,
                                 BtorSMT2Item *item_cur)
@@ -3374,6 +3450,10 @@ parse_open_term_item_with_node (BtorSMT2Parser *parser,
     else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
     {
       if (!parse_open_term_indexed (parser, item_cur)) return 0;
+    }
+    else if (tag == BTOR_AS_TAG_SMT2)
+    {
+      if (!parse_open_term_as (parser, item_cur)) return 0;
     }
     else
     {
