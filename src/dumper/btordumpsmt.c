@@ -1565,7 +1565,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (btor_node_is_lambda (cur) && !btor_node_is_array (cur)
              && !cur->parameterized && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (shared, cur);
-    else if (btor_node_is_lambda (cur) && btor_node_is_array (cur))
+    else if (btor_node_is_lambda (cur) && btor_node_is_array (cur)
+             && !btor_node_is_const_array (cur))
       BTOR_PUSH_STACK (larr, cur);
     else if (btor_node_is_quantifier (cur))
       quantifiers = true;
