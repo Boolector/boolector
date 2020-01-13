@@ -170,7 +170,7 @@ if(UBSAN)
 endif()
 
 if(NOT BUILD_SHARED_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 endif()
 
 #-----------------------------------------------------------------------------#
