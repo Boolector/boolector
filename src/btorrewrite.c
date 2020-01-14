@@ -5029,9 +5029,16 @@ apply_prop_apply_update (Btor *btor, BtorNode *e0, BtorNode *e1)
   /* propagated until 'cur', create apply on 'cur' */
   if (!result)
   {
-    BTOR_INC_REC_RW_CALL (btor);
-    result = btor_node_create_apply (btor, cur, e1);
-    BTOR_DEC_REC_RW_CALL (btor);
+    if (btor_node_is_const_array (cur))
+    {
+      result = btor_node_copy (btor, cur->e[1]);
+    }
+    else
+    {
+      BTOR_INC_REC_RW_CALL (btor);
+      result = btor_node_create_apply (btor, cur, e1);
+      BTOR_DEC_REC_RW_CALL (btor);
+    }
   }
   btor->stats.prop_apply_update += propagations;
   return result;
