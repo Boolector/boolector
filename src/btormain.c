@@ -1414,6 +1414,7 @@ boolector_main (int32_t argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
+  bool parsed_smt2 = false;
   val = boolector_get_opt (btor, BTOR_OPT_INPUT_FORMAT);
   switch (val)
   {
@@ -1456,6 +1457,7 @@ boolector_main (int32_t argc, char **argv)
                                         g_app->outfile,
                                         &parse_err_msg,
                                         &parse_status);
+      parsed_smt2 = true;
       break;
 
     default:
@@ -1464,7 +1466,8 @@ boolector_main (int32_t argc, char **argv)
                                    g_app->infile_name,
                                    g_app->outfile,
                                    &parse_err_msg,
-                                   &parse_status);
+                                   &parse_status,
+                                   &parsed_smt2);
   }
 
   /* verbosity may have been increased via input (set-option) */
@@ -1504,7 +1507,8 @@ boolector_main (int32_t argc, char **argv)
     {
       assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
       val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
-      boolector_print_model (btor, val ? "smt2" : "btor", g_app->outfile);
+      boolector_print_model (
+          btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
     }
 
 #ifdef BTOR_TIME_STATISTICS
@@ -1549,7 +1553,8 @@ boolector_main (int32_t argc, char **argv)
   }
 
   /* call sat (if not yet called) */
-  if (parse_res == BOOLECTOR_PARSE_UNKNOWN && !boolector_terminate (btor))
+  if (parse_res == BOOLECTOR_PARSE_UNKNOWN && !boolector_terminate (btor)
+      && !parsed_smt2)
   {
     sat_res = boolector_sat (btor);
     print_sat_result (g_app, sat_res);
@@ -1581,7 +1586,8 @@ boolector_main (int32_t argc, char **argv)
   {
     assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
     val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
-    boolector_print_model (btor, val ? "smt2" : "btor", g_app->outfile);
+    boolector_print_model (
+        btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
   }
 
 DONE:

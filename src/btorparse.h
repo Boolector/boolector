@@ -56,7 +56,8 @@ int32_t btor_parse (Btor *btor,
                     const char *infile_name,
                     FILE *outfile,
                     char **error_msg,
-                    int32_t *status);
+                    int32_t *status,
+                    bool *parsed_smt2);
 
 int32_t btor_parse_btor (Btor *btor,
                          FILE *infile,

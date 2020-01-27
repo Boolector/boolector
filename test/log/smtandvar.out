@@ -1,3 +1,5 @@
 sat
-2 1 a
-3 1 b
+(model
+  (define-fun a () Bool true)
+  (define-fun b () Bool true)
+)

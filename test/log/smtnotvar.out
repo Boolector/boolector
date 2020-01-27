@@ -1,2 +1,4 @@
 sat
-2 0 a
+(model
+  (define-fun a () Bool false)
+)

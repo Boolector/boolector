@@ -2321,6 +2321,7 @@ uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
+  :param parsed_smt2: Flag indicating if an SMT-LIB v2 was parsed.
   :return: In the incremental case or in case of SMT-LIB v2 (which requires a
            'check-sat' command), the function returns either BOOLECTOR_SAT,
            BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns
@@ -2332,7 +2333,8 @@ int32_t boolector_parse (Btor *btor,
                          const char *infile_name,
                          FILE *outfile,
                          char **error_msg,
-                         int32_t *status);
+                         int32_t *status,
+                         bool *parsed_smt2);
 
 /*!
   Parse input file in BTOR format.

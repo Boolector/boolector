@@ -4609,7 +4609,8 @@ boolector_parse (Btor *btor,
                  const char *infile_name,
                  FILE *outfile,
                  char **error_msg,
-                 int32_t *status)
+                 int32_t *status,
+                 bool *parsed_smt2)
 {
   int32_t res;
 
@@ -4621,7 +4622,8 @@ boolector_parse (Btor *btor,
   BTOR_ABORT_ARG_NULL (status);
   BTOR_ABORT (BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
               "file parsing must be done before creating expressions");
-  res = btor_parse (btor, infile, infile_name, outfile, error_msg, status);
+  res = btor_parse (
+      btor, infile, infile_name, outfile, error_msg, status, parsed_smt2);
   /* shadow clone can not shadow boolector_parse* (parser uses API calls only,
    * hence all API calls issued while parsing are already shadowed and the
    * shadow clone already maintains the parsed formula) */

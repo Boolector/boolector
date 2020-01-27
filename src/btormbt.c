@@ -3477,9 +3477,11 @@ btormbt_state_dump (BtorMBT *mbt)
     boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
     {
+      bool parsed_smt2;
       pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat, &parsed_smt2);
       (void) pres;
+      (void) parsed_smt2;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
     }

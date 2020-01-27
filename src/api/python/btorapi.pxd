@@ -547,7 +547,8 @@ cdef extern from "boolector.h":
                              const char * infile_name,
                              FILE * outfile,
                              char ** error_msg,
-                             int32_t * status) \
+                             int32_t * status,
+                             bool *parsed_smt2) \
       except +raise_py_error
 
     #int32_t boolector_parse_btor (Btor * btor,
@@ -589,7 +590,7 @@ cdef extern from "boolector.h":
                                      bool merge_roots) \
       except +raise_py_error
 
-    void boolector_dump_aiger_binary (Btor * btor, FILE * file,bool merge_roots) \
+    void boolector_dump_aiger_binary (Btor * btor, FILE * file, bool merge_roots) \
       except +raise_py_error
 
     const char * boolector_copyright (Btor * btor) \
