@@ -2020,9 +2020,9 @@ int32_t boolector_fun_sort_check (Btor *btor,
   :param node: Bit-vector expression.
   :return: String representing a satisfying assignment to bit-vector variables
            and a consistent assignment for arbitrary bit-vector expressions.
-           Each character of the string can be ``0``, ``1`` or ``x``. The
-           latter represents that the corresponding bit can be assigned
-           arbitrarily.
+           The string representation will use binary, decimal or hexadecimal
+           number format, depending on the configuration of option
+           ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
 
   .. seealso::
     boolector_set_opt for enabling model generation.
@@ -2059,8 +2059,14 @@ void boolector_free_bv_assignment (Btor *btor, const char *assignment);
 
   :param btor: Boolector instance.
   :param n_array: Array operand for which the array model should be built.
-  :param indices: Pointer to array of index strings.
-  :param values: Pointer to array of value strings.
+  :param indices: Pointer to array of index strings. The string representation
+                  will use binary, decimal or hexadecimal number format,
+                  depending on the configuration of option
+                  ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
+  :param values: Pointer to array of value strings. The string representation
+                  will use binary, decimal or hexadecimal number format,
+                  depending on the configuration of option
+                  ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
   :param size: Pointer to size.
 
   .. seealso::

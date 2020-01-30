@@ -4043,6 +4043,9 @@ generate_fun_model_str (
   const BtorPtrHashTable *model;
   BtorBitVector *value;
   BtorBitVectorTuple *t;
+  uint32_t opt;
+
+  opt = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
   exp = btor_simplify_exp (btor, exp);
   assert (btor_node_is_fun (exp));
@@ -4069,7 +4072,7 @@ generate_fun_model_str (
     value = (BtorBitVector *) it.bucket->data.as_ptr;
 
     /* build assignment string for all arguments */
-    t   = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
+    t = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
     if (t->arity)
     {
       len = t->arity;
@@ -4077,14 +4080,39 @@ generate_fun_model_str (
       BTOR_CNEWN (btor->mm, arg, len);
       tmp = arg;
 
-      bv = btor_bv_to_char (btor->mm, t->bv[0]);
+      switch (opt)
+      {
+        case BTOR_OUTPUT_BASE_HEX:
+          printf ("hex\n");
+          bv = btor_bv_to_hex_char (btor->mm, t->bv[0]);
+          break;
+        case BTOR_OUTPUT_BASE_DEC:
+          printf ("dec\n");
+          bv = btor_bv_to_dec_char (btor->mm, t->bv[0]);
+          break;
+        default:
+          printf ("bin\n");
+          assert (opt == BTOR_OUTPUT_BASE_BIN);
+          bv = btor_bv_to_char (btor->mm, t->bv[0]);
+      }
       strncpy (tmp, bv, len);
       len -= strlen (bv);
       btor_mem_freestr (btor->mm, bv);
 
       for (j = 1; j < t->arity; j++)
       {
-        bv = btor_bv_to_char (btor->mm, t->bv[j]);
+        switch (opt)
+        {
+          case BTOR_OUTPUT_BASE_HEX:
+            bv = btor_bv_to_hex_char (btor->mm, t->bv[j]);
+            break;
+          case BTOR_OUTPUT_BASE_DEC:
+            bv = btor_bv_to_dec_char (btor->mm, t->bv[j]);
+            break;
+          default:
+            assert (opt == BTOR_OUTPUT_BASE_BIN);
+            bv = btor_bv_to_char (btor->mm, t->bv[j]);
+        }
         strncat (tmp, " ", len);
         len -= 1;
         strncat (tmp, bv, len);
@@ -4092,7 +4120,6 @@ generate_fun_model_str (
         btor_mem_freestr (btor->mm, bv);
       }
       len -= 1;
-      assert (len == 0);
     }
     /* If argument tuple has arity 0, value represents the default value for
      * the function/array (constant arrays). */
@@ -4102,8 +4129,19 @@ generate_fun_model_str (
       arg[0] = '*';
     }
 
-    (*args)[i]   = arg;
-    (*values)[i] = (char *) btor_bv_to_char (btor->mm, value);
+    (*args)[i] = arg;
+    switch (opt)
+    {
+      case BTOR_OUTPUT_BASE_HEX:
+        (*values)[i] = (char *) btor_bv_to_hex_char (btor->mm, value);
+        break;
+      case BTOR_OUTPUT_BASE_DEC:
+        (*values)[i] = (char *) btor_bv_to_dec_char (btor->mm, value);
+        break;
+      default:
+        assert (opt == BTOR_OUTPUT_BASE_BIN);
+        (*values)[i] = (char *) btor_bv_to_char (btor->mm, value);
+    }
     i++;
   }
 }
