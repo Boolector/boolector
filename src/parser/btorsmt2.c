@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2011-2017 Armin Biere.
  *  Copyright (C) 2013-2019 Aina Niemetz.
- *  Copyright (C) 2013-2018 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.

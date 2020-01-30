@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2019 Aina Niemetz.
- *  Copyright (C) 2013-2018 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
  *  This file is part of Boolector.
