@@ -411,6 +411,17 @@ enum BtorOption
 
   BTOR_OPT_FUN_STORE_LAMBDAS,
 
+  /*!
+   * **BTOR_OPT_PRINT_DIMACS**
+
+     Enable (``value``: 1) or disable (``value``: 0) DIMACS printer.
+
+     When enabled Boolector will record the CNF sent to the SAT solver and
+     prints it to stdout.
+   */
+  BTOR_OPT_PRINT_DIMACS,
+
+
   /* --------------------------------------------------------------------- */
   /*!
     **SLS Engine Options:**

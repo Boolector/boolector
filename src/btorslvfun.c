@@ -2527,7 +2527,8 @@ sat_fun_solver (BtorFunSolver *slv)
       goto DONE;
     else if (result == BTOR_RESULT_UNKNOWN)
     {
-      assert (slv->sat_limit > -1 || btor->cbs.term.done);
+      assert (slv->sat_limit > -1 || btor->cbs.term.done
+              || btor_opt_get (btor, BTOR_OPT_PRINT_DIMACS));
       goto DONE;
     }
 

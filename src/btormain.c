@@ -1562,7 +1562,8 @@ boolector_main (int32_t argc, char **argv)
   else
     sat_res = parse_res;
 
-  assert (boolector_terminate (btor) || sat_res != BOOLECTOR_UNKNOWN);
+  assert (boolector_terminate (btor) || sat_res != BOOLECTOR_UNKNOWN
+          || boolector_get_opt (btor, BTOR_OPT_PRINT_DIMACS));
 
   /* check if status is equal to benchmark status (if provided) */
   if (sat_res == BOOLECTOR_SAT && parse_status == BOOLECTOR_UNSAT)

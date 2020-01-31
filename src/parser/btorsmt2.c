@@ -4532,7 +4532,9 @@ check_sat (BtorSMT2Parser *parser)
       fprintf (parser->outfile, "sat\n");
     else if (parser->res->result == BOOLECTOR_UNSAT)
       fprintf (parser->outfile, "unsat\n");
-    else
+    /* Do not print 'unknown' if we print DIMACS. 'unknown' is only returned if
+     * SAT solver is used non-incremental. */
+    else if (!boolector_get_opt (parser->btor, BTOR_OPT_PRINT_DIMACS))
       fprintf (parser->outfile, "unknown\n");
     fflush (parser->outfile);
   }

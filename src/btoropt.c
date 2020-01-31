@@ -681,6 +681,18 @@ btor_opt_init_opts (Btor *btor)
             1,
             "represent array store as lambda");
 
+  init_opt (
+      btor,
+      BTOR_OPT_PRINT_DIMACS,
+      false,
+      true,
+      "dump-dimacs",
+      "dd",
+      0,
+      0,
+      1,
+      "Print CNF formula sent to SAT solver in DIMACS format and terminate.");
+
   /* SLS engine ---------------------------------------------------------- */
   init_opt (btor,
             BTOR_OPT_SLS_NFLIPS,
