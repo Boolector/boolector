@@ -4083,15 +4083,12 @@ generate_fun_model_str (
       switch (opt)
       {
         case BTOR_OUTPUT_BASE_HEX:
-          printf ("hex\n");
           bv = btor_bv_to_hex_char (btor->mm, t->bv[0]);
           break;
         case BTOR_OUTPUT_BASE_DEC:
-          printf ("dec\n");
           bv = btor_bv_to_dec_char (btor->mm, t->bv[0]);
           break;
         default:
-          printf ("bin\n");
           assert (opt == BTOR_OUTPUT_BASE_BIN);
           bv = btor_bv_to_char (btor->mm, t->bv[0]);
       }
