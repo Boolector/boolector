@@ -4037,7 +4037,7 @@ generate_fun_model_str (
   assert (size);
   assert (btor_node_is_regular (exp));
 
-  char *arg, *tmp, *bv;
+  char *arg, *tmp, **bv;
   uint32_t i, j, len;
   BtorPtrHashTableIterator it;
   const BtorPtrHashTable *model;
@@ -4075,48 +4075,40 @@ generate_fun_model_str (
     t = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
     if (t->arity)
     {
+      BTOR_CNEWN (btor->mm, bv, t->arity);
       len = t->arity;
-      for (j = 0; j < t->arity; j++) len += btor_bv_get_width (t->bv[j]);
-      BTOR_CNEWN (btor->mm, arg, len);
-      tmp = arg;
-
-      switch (opt)
-      {
-        case BTOR_OUTPUT_BASE_HEX:
-          bv = btor_bv_to_hex_char (btor->mm, t->bv[0]);
-          break;
-        case BTOR_OUTPUT_BASE_DEC:
-          bv = btor_bv_to_dec_char (btor->mm, t->bv[0]);
-          break;
-        default:
-          assert (opt == BTOR_OUTPUT_BASE_BIN);
-          bv = btor_bv_to_char (btor->mm, t->bv[0]);
-      }
-      strncpy (tmp, bv, len);
-      len -= strlen (bv);
-      btor_mem_freestr (btor->mm, bv);
-
-      for (j = 1; j < t->arity; j++)
+      for (j = 0; j < t->arity; j++)
       {
         switch (opt)
         {
           case BTOR_OUTPUT_BASE_HEX:
-            bv = btor_bv_to_hex_char (btor->mm, t->bv[j]);
+            bv[j] = btor_bv_to_hex_char (btor->mm, t->bv[j]);
             break;
           case BTOR_OUTPUT_BASE_DEC:
-            bv = btor_bv_to_dec_char (btor->mm, t->bv[j]);
+            bv[j] = btor_bv_to_dec_char (btor->mm, t->bv[j]);
             break;
           default:
             assert (opt == BTOR_OUTPUT_BASE_BIN);
-            bv = btor_bv_to_char (btor->mm, t->bv[j]);
+            bv[j] = btor_bv_to_char (btor->mm, t->bv[j]);
         }
+        len += strlen (bv[j]);
+      }
+      BTOR_CNEWN (btor->mm, arg, len);
+      tmp = arg;
+      strncpy (tmp, bv[0], len);
+      len -= strlen (bv[0]);
+
+      for (j = 1; j < t->arity; j++)
+      {
         strncat (tmp, " ", len);
         len -= 1;
-        strncat (tmp, bv, len);
-        len -= strlen (bv);
-        btor_mem_freestr (btor->mm, bv);
+        strncat (tmp, bv[j], len);
+        len -= strlen (bv[j]);
       }
+      for (j = 0; j < t->arity; j++) btor_mem_freestr (btor->mm, bv[j]);
+      BTOR_DELETEN (btor->mm, bv, t->arity);
       len -= 1;
+      assert (len == 0);
     }
     /* If argument tuple has arity 0, value represents the default value for
      * the function/array (constant arrays). */

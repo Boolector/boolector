@@ -24,6 +24,8 @@ main (void)
   uint32_t i, size;
 
   btor       = boolector_new ();
+  boolector_set_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, BTOR_OUTPUT_BASE_HEX);
+
   sort_index = boolector_bitvec_sort (btor, ARRAY2_EXAMPLE_INDEX_BW);
   sort_elem  = boolector_bitvec_sort (btor, ARRAY2_EXAMPLE_ELEM_BW);
   sort_array = boolector_array_sort (btor, sort_index, sort_elem);
@@ -55,7 +57,7 @@ main (void)
   {
     printf ("Array1:\n");
     for (i = 0; i < size; i++)
-      printf ("Array1[%s] = %s\n", indices[i], values[i]);
+      printf ("Array1[#x%s] = #x%s\n", indices[i], values[i]);
     boolector_free_array_assignment (btor, indices, values, size);
   }
 
@@ -64,7 +66,7 @@ main (void)
   {
     printf ("\nArray2:\n");
     for (i = 0; i < size; i++)
-      printf ("Array2[%s] = %s\n", indices[i], values[i]);
+      printf ("Array2[#x%s] = #x%s\n", indices[i], values[i]);
     boolector_free_array_assignment (btor, indices, values, size);
   }
 
@@ -73,7 +75,7 @@ main (void)
   {
     printf ("\nWrite1:\n");
     for (i = 0; i < size; i++)
-      printf ("Write1[%s] = %s\n", indices[i], values[i]);
+      printf ("Write1[#x%s] = #x%s\n", indices[i], values[i]);
     boolector_free_array_assignment (btor, indices, values, size);
   }
 
@@ -82,7 +84,7 @@ main (void)
   {
     printf ("\nWrite2:\n");
     for (i = 0; i < size; i++)
-      printf ("Write2[%s] = %s\n", indices[i], values[i]);
+      printf ("Write2[#x%s] = #x%s\n", indices[i], values[i]);
     boolector_free_array_assignment (btor, indices, values, size);
   }
 
