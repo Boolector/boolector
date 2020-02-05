@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2020 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -788,7 +788,6 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         case BTOR_BV_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_BV_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (btor_node_bv_get_width (sdc->btor, real_exp) > 1);
           pad = btor_node_bv_get_width (sdc->btor, real_exp)
                 - btor_node_bv_get_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad, depth + 1);
