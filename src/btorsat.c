@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -57,12 +57,12 @@ assume (BtorSATMgr *smgr, int32_t lit)
 }
 
 static inline void *
-clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+clone (Btor *btor, BtorSATMgr *smgr)
 {
   BTOR_ABORT (!smgr->api.clone,
               "SAT solver %s does not support 'clone' API call",
               smgr->name);
-  return smgr->api.clone (smgr, mm);
+  return smgr->api.clone (btor, smgr);
 }
 
 static inline int32_t
@@ -214,7 +214,7 @@ btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr)
 
   mm = btor->mm;
   BTOR_NEW (mm, res);
-  res->solver = clone (smgr, mm);
+  res->solver = clone (btor, smgr);
   res->btor   = btor;
   assert (mm->sat_allocated == smgr->btor->mm->sat_allocated);
   res->name = smgr->name;
@@ -483,16 +483,6 @@ btor_sat_failed (BtorSATMgr *smgr, int32_t lit)
 /* DIMACS printer                                                         */
 /*------------------------------------------------------------------------*/
 
-struct BtorCnfPrinter
-{
-  FILE *out;
-  BtorIntStack clauses;
-  BtorIntStack assumptions;
-  BtorSATMgr *smgr; /* SAT manager wrapped by DIMACS printer. */
-};
-
-typedef struct BtorCnfPrinter BtorCnfPrinter;
-
 static void *
 dimacs_printer_init (BtorSATMgr *smgr)
 {
@@ -666,17 +656,19 @@ clone_int_stack (BtorMemMgr *mm, BtorIntStack *clone, BtorIntStack *stack)
 }
 
 static void *
-dimacs_printer_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+dimacs_printer_clone (Btor *btor, BtorSATMgr *smgr)
 {
   BtorCnfPrinter *printer, *printer_clone;
+  BtorMemMgr *mm;
 
+  mm      = btor->mm;
   printer = (BtorCnfPrinter *) smgr->solver;
 
   BTOR_CNEW (mm, printer_clone);
   clone_int_stack (mm, &printer_clone->assumptions, &printer->assumptions);
   clone_int_stack (mm, &printer_clone->clauses, &printer->clauses);
   printer_clone->out  = printer->out;
-  printer_clone->smgr = btor_sat_mgr_clone (smgr->btor, printer->smgr);
+  printer_clone->smgr = btor_sat_mgr_clone (btor, printer->smgr);
 
   return printer_clone;
 }

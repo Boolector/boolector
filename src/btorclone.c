@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2019 Aina Niemetz.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *  Copyright (C) 2014-2018 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -1027,21 +1027,35 @@ clone_aux_btor (Btor *btor,
       BTORLOG_TIMESTAMP (delta);
       clone->avmgr = btor_aigvec_mgr_clone (clone, btor->avmgr);
       BTORLOG (2, "  clone AIG mgr: %.3f s", (btor_util_time_stamp () - delta));
-      assert (
-          (allocated +=
-           sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
+      allocated +=
+          sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
+          + sizeof (BtorSATMgr)
+          /* memory of AIG nodes */
+          + (amgr->cur_num_aigs + amgr->cur_num_aig_vars) * sizeof (BtorAIG)
+          /* children for AND AIGs */
+          + amgr->cur_num_aigs * sizeof (int32_t) * 2
+          /* unique table chain */
+          + amgr->table.size * sizeof (int32_t)
+          + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
+          + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t);
 #ifdef BTOR_USE_LINGELING
-           + (amgr->smgr->solver ? sizeof (BtorLGL) : 0)
+      assert (strcmp (amgr->smgr->name, "Lingeling") == 0
+              || strcmp (amgr->smgr->name, "DIMACS Printer") == 0);
+      assert (strcmp (amgr->smgr->name, "DIMACS Printer") != 0
+              || strcmp (((BtorCnfPrinter *) amgr->smgr->solver)->smgr->name,
+                         "Lingeling")
+                     == 0);
+      allocated += amgr->smgr->solver ? sizeof (BtorLGL) : 0;
+      if (strcmp (amgr->smgr->name, "DIMACS Printer") == 0)
+      {
+        BtorCnfPrinter *cnf_printer = ((BtorCnfPrinter *) amgr->smgr->solver);
+        allocated +=
+            sizeof (BtorCnfPrinter) + sizeof (BtorSATMgr)
+            + BTOR_SIZE_STACK (cnf_printer->clauses) * sizeof (int32_t)
+            + BTOR_SIZE_STACK (cnf_printer->assumptions) * sizeof (int32_t);
+      }
 #endif
-           /* memory of AIG nodes */
-           + (amgr->cur_num_aigs + amgr->cur_num_aig_vars) * sizeof (BtorAIG)
-           /* children for AND AIGs */
-           + amgr->cur_num_aigs * sizeof (int32_t) * 2
-           /* unique table chain */
-           + amgr->table.size * sizeof (int32_t)
-           + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
-           + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t))
-          == clone->mm->allocated);
+      assert (allocated == clone->mm->allocated);
     }
   }
 

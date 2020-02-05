@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -264,12 +264,14 @@ fixed (BtorSATMgr *smgr, int32_t lit)
 }
 
 static void *
-clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+clone (Btor *btor, BtorSATMgr *smgr)
 {
   assert (smgr);
 
   BtorLGL *res, *blgl;
+  BtorMemMgr *mm;
 
+  mm   = btor->mm;
   blgl = smgr->solver;
 
   /* not initialized yet */

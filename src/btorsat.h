@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *  Copyright (C) 2012-2018 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -12,11 +12,12 @@
 #ifndef BTORSAT_H_INCLUDED
 #define BTORSAT_H_INCLUDED
 
-#include "btortypes.h"
-#include "utils/btormem.h"
-
 #include <stdbool.h>
 #include <stdio.h>
+
+#include "btortypes.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -71,10 +72,22 @@ struct BtorSATMgr
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
-    void *(*clone) (BtorSATMgr *, BtorMemMgr *);
+    void *(*clone) (Btor *btor, BtorSATMgr *);
     void (*setterm) (BtorSATMgr *);
   } api;
 };
+
+/*------------------------------------------------------------------------*/
+
+struct BtorCnfPrinter
+{
+  FILE *out;
+  BtorIntStack clauses;
+  BtorIntStack assumptions;
+  BtorSATMgr *smgr; /* SAT manager wrapped by DIMACS printer. */
+};
+
+typedef struct BtorCnfPrinter BtorCnfPrinter;
 
 /*------------------------------------------------------------------------*/
 
