@@ -72,6 +72,7 @@ btor_check_failed_assumptions (Btor *btor)
   btor_opt_set (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_MODEL, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
+  btor_opt_set (clone, BTOR_OPT_PRINT_DIMACS, 0);
   btor_set_term (clone, 0, 0);
 
   btor_opt_set (clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);

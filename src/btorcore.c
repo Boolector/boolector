@@ -2916,7 +2916,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       && btor_opt_get (btor, BTOR_OPT_UCOPT)
       && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
-      && !btor_opt_get (btor, BTOR_OPT_MODEL_GEN))
+      && !btor_opt_get (btor, BTOR_OPT_MODEL_GEN)
+      && !btor_opt_get (btor, BTOR_OPT_PRINT_DIMACS))
   {
     uclone = btor_clone_btor (btor);
     btor_opt_set (uclone, BTOR_OPT_UCOPT, 0);
