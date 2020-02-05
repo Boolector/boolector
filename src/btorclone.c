@@ -1027,6 +1027,7 @@ clone_aux_btor (Btor *btor,
       BTORLOG_TIMESTAMP (delta);
       clone->avmgr = btor_aigvec_mgr_clone (clone, btor->avmgr);
       BTORLOG (2, "  clone AIG mgr: %.3f s", (btor_util_time_stamp () - delta));
+#ifndef NDEBUG
       allocated +=
           sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
           + sizeof (BtorSATMgr)
@@ -1056,6 +1057,7 @@ clone_aux_btor (Btor *btor,
       }
 #endif
       assert (allocated == clone->mm->allocated);
+#endif
     }
   }
 
