@@ -49,7 +49,9 @@ OTHER_KEYWORDS = [
     'fixate_assumptions', 'fun_sort_check', 'set_sat_solver', 'simplify',
     'is_array', 'get_width', 'set_symbol', 'clone', 'dump_smt2', 'get_node_id',
     'get_bits', 'free_bits', 'get_index_width', 'is_bv_const_max_signed',
-    'release', 'chkclone', 'reset_assumptions', 'is_uf', 'get_opt'
+    'release', 'release_sort', 'chkclone', 'reset_assumptions', 'is_uf',
+    'get_opt', 'is_bv_const_one', 'is_bv_const_zero', 'is_bv_const_min_signed',
+    'is_bv_const_ones', 'is_var', 'roli', 'is_const'
 ]
 VALID_KEYWORDS = []
 VALID_KEYWORDS.extend(OTHER_KEYWORDS)
