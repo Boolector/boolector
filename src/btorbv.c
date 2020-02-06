@@ -1096,7 +1096,6 @@ btor_bv_small_positive_int (const BtorBitVector *bv)
     }
     else
     {
-      assert (mp_bits_per_limb == 32);
       if (limb != 0)
       {
         return -1;
