@@ -596,7 +596,7 @@ print_dimacs (BtorSATMgr *smgr)
     fprintf (printer->out, "c assumptions\n");
     for (size_t i = 0; i < BTOR_COUNT_STACK (printer->assumptions); i++)
     {
-      lit = BTOR_PEEK_STACK (printer->clauses, i);
+      lit = BTOR_PEEK_STACK (printer->assumptions, i);
       fprintf (printer->out, "%d\n", lit);
     }
   }
@@ -644,14 +644,15 @@ static void
 clone_int_stack (BtorMemMgr *mm, BtorIntStack *clone, BtorIntStack *stack)
 {
   size_t size = BTOR_SIZE_STACK (*stack);
+  size_t cnt  = BTOR_COUNT_STACK (*stack);
 
   BTOR_INIT_STACK (mm, *clone);
   if (size)
   {
     BTOR_CNEWN (mm, clone->start, size);
     clone->end = clone->start + size;
-    clone->top = clone->start;
-    memcpy (clone->start, stack->start, size * sizeof (int32_t));
+    clone->top = clone->start + cnt;
+    memcpy (clone->start, stack->start, cnt * sizeof (int32_t));
   }
 }
 
