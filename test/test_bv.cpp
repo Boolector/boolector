@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015-2019 Aina Niemetz.
+ *  Copyright (C) 2015-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -2910,12 +2910,12 @@ TEST_F (TestBv, is_ones)
 {
   int32_t i;
   char *s;
-  BtorBitVector *bv1, *bv2, *bv3;
+  BtorBitVector *bv1, *bv2, *bv3, *bv4;
 
-  for (i = 1; i < 32; i++)
+  for (i = 1; i <= 64; i++)
   {
     bv1 = btor_bv_ones (d_mm, i);
-    bv2 = btor_bv_uint64_to_bv (d_mm, UINT32_MAX, i);
+    bv2 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
     BTOR_CNEWN (d_mm, s, i + 1);
     memset (s, '1', i);
     bv3 = btor_bv_char_to_bv (d_mm, s);
@@ -2929,15 +2929,39 @@ TEST_F (TestBv, is_ones)
     btor_bv_free (d_mm, bv3);
     BTOR_DELETEN (d_mm, s, i + 1);
   }
+  for (i = 1; i <= 64; i++)
+  {
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_one (d_mm, i);
+    bv3 = btor_bv_min_signed (d_mm, i);
+    bv4 = btor_bv_max_signed (d_mm, i);
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    if (i == 1)
+    {
+      ASSERT_TRUE (btor_bv_is_ones (bv2));
+      ASSERT_TRUE (btor_bv_is_ones (bv3));
+      ASSERT_FALSE (btor_bv_is_ones (bv4));
+    }
+    else
+    {
+      ASSERT_FALSE (btor_bv_is_ones (bv2));
+      ASSERT_FALSE (btor_bv_is_ones (bv3));
+      ASSERT_FALSE (btor_bv_is_ones (bv4));
+    }
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+    btor_bv_free (d_mm, bv4);
+  }
 }
 
 TEST_F (TestBv, is_zero)
 {
   int32_t i;
   char *s;
-  BtorBitVector *bv1, *bv2, *bv3;
+  BtorBitVector *bv1, *bv2, *bv3, *bv4;
 
-  for (i = 1; i < 32; i++)
+  for (i = 1; i <= 64; i++)
   {
     bv1 = btor_bv_new (d_mm, i);
     bv2 = btor_bv_uint64_to_bv (d_mm, 0, i);
@@ -2953,6 +2977,28 @@ TEST_F (TestBv, is_zero)
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
     BTOR_DELETEN (d_mm, s, i + 1);
+  }
+  for (i = 1; i <= 64; i++)
+  {
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_one (d_mm, i);
+    bv3 = btor_bv_min_signed (d_mm, i);
+    bv4 = btor_bv_max_signed (d_mm, i);
+    ASSERT_FALSE (btor_bv_is_zero (bv1));
+    ASSERT_FALSE (btor_bv_is_zero (bv2));
+    ASSERT_FALSE (btor_bv_is_zero (bv3));
+    if (i == 1)
+    {
+      ASSERT_TRUE (btor_bv_is_zero (bv4));
+    }
+    else
+    {
+      ASSERT_FALSE (btor_bv_is_zero (bv4));
+    }
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+    btor_bv_free (d_mm, bv4);
   }
 }
 

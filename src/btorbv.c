@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2020 Mathias Preiner.
- *  Copyright (C) 2015-2019 Aina Niemetz.
+ *  Copyright (C) 2015-2020 Aina Niemetz.
  *  Copyright (C) 2018 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -983,10 +983,12 @@ btor_bv_is_ones (const BtorBitVector *bv)
   return ((uint64_t) limb) == (max >> m);
 #else
   for (i = bv->len - 1; i >= 1; i--)
+  {
     if (bv->bits[i] != UINT32_MAX) return false;
-  if (bv->width == BTOR_BV_TYPE_BW) return bv->bits[0] == UINT32_MAX;
+  }
   n = BTOR_BV_TYPE_BW - bv->width % BTOR_BV_TYPE_BW;
   assert (n > 0);
+  if (n == BTOR_BV_TYPE_BW) return bv->bits[0] == UINT32_MAX;
   return bv->bits[0] == (UINT32_MAX >> n);
 #endif
 }
