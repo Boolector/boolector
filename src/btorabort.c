@@ -20,6 +20,8 @@
 void
 btor_abort_fun (const char* msg)
 {
+  fflush (stdout);
+  fflush (stderr);
   fprintf (stderr, "%s", msg);
   fflush (stderr);
   exit (BTOR_ERR_EXIT);
@@ -44,7 +46,7 @@ btor_abort_warn (
   i = 0;
   buffer[i++] = '[';
   for (p = s; p < e && i < BUFFER_LEN; p++) buffer[i++] = *p;
-  
+
   assert (i <= BUFFER_LEN);
   i += snprintf (buffer+i, BUFFER_LEN - i, "] %s: ", fun);
 
@@ -57,13 +59,15 @@ btor_abort_warn (
   assert (i <= BUFFER_LEN);
   i += vsnprintf (buffer+i, BUFFER_LEN - i, fmt, list);
   va_end (list);
-  
+
   assert (i <= BUFFER_LEN);
   snprintf (buffer+i, BUFFER_LEN - i, "\n");
   if (abort)
     btor_abort_callback.abort_fun (buffer);
   else
   {
+    fflush (stdout);
+    fflush (stderr);
     fprintf (stderr, "%s\n", buffer);
     fflush (stderr);
   }
