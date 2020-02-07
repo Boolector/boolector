@@ -2908,17 +2908,26 @@ TEST_F (TestBv, is_one)
 
 TEST_F (TestBv, is_ones)
 {
-  int32_t i;
-  char *s;
-  BtorBitVector *bv1, *bv2, *bv3, *bv4;
+  BtorBitVector *bv1, *bv2, *bv3;
 
-  for (i = 1; i <= 64; i++)
+  for (uint32_t i = 1; i <= 128; i++)
   {
+    std::string s (i, '1');
     bv1 = btor_bv_ones (d_mm, i);
-    bv2 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '1', i);
-    bv3 = btor_bv_char_to_bv (d_mm, s);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
     ASSERT_TRUE (btor_bv_is_ones (bv1));
     ASSERT_TRUE (btor_bv_is_ones (bv2));
     ASSERT_TRUE (btor_bv_is_ones (bv3));
@@ -2927,31 +2936,95 @@ TEST_F (TestBv, is_ones)
     btor_bv_free (d_mm, bv1);
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
-    BTOR_DELETEN (d_mm, s, i + 1);
   }
-  for (i = 1; i <= 64; i++)
+
+  for (uint32_t i = 2; i <= 128; i++)
   {
-    bv1 = btor_bv_zero (d_mm, i);
-    bv2 = btor_bv_one (d_mm, i);
-    bv3 = btor_bv_min_signed (d_mm, i);
-    bv4 = btor_bv_max_signed (d_mm, i);
-    ASSERT_FALSE (btor_bv_is_ones (bv1));
-    if (i == 1)
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
     {
-      ASSERT_TRUE (btor_bv_is_ones (bv2));
-      ASSERT_TRUE (btor_bv_is_ones (bv3));
-      ASSERT_FALSE (btor_bv_is_ones (bv4));
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
     }
     else
     {
-      ASSERT_FALSE (btor_bv_is_ones (bv2));
-      ASSERT_FALSE (btor_bv_is_ones (bv3));
-      ASSERT_FALSE (btor_bv_is_ones (bv4));
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
     }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
     btor_bv_free (d_mm, bv1);
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
-    btor_bv_free (d_mm, bv4);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
   }
 }
 

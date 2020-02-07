@@ -967,14 +967,14 @@ btor_bv_is_ones (const BtorBitVector *bv)
   uint64_t m, max;
   mp_limb_t limb;
   if ((n = mpz_size (bv->val)) == 0) return false;  // zero
+  m = bv->width / mp_bits_per_limb;
+  if (bv->width % mp_bits_per_limb) m += 1;
+  if (m != n) return false;  // less limbs used than expected, not ones
   max = mp_bits_per_limb == 64 ? UINT64_MAX : UINT32_MAX;
-  if (n > 1)
+  for (i = 0; i < n - 1; i++)
   {
-    for (i = 0; i < n - 1; i++)
-    {
-      limb = mpz_getlimbn (bv->val, i);
-      if (((uint64_t) limb) != max) return false;
-    }
+    limb = mpz_getlimbn (bv->val, i);
+    if (((uint64_t) limb) != max) return false;
   }
   limb = mpz_getlimbn (bv->val, n - 1);
   if (bv->width == (uint32_t) mp_bits_per_limb)
