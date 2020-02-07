@@ -51,7 +51,7 @@ OTHER_KEYWORDS = [
     'get_bits', 'free_bits', 'get_index_width', 'is_bv_const_max_signed',
     'release', 'release_sort', 'chkclone', 'reset_assumptions', 'is_uf',
     'get_opt', 'is_bv_const_one', 'is_bv_const_zero', 'is_bv_const_min_signed',
-    'is_bv_const_ones', 'is_var', 'roli', 'is_const'
+    'is_bv_const_ones', 'is_var', 'roli', 'is_const', 'is_fun', 'is_bound_param'
 ]
 VALID_KEYWORDS = []
 VALID_KEYWORDS.extend(OTHER_KEYWORDS)
