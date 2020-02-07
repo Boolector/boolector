@@ -291,22 +291,31 @@ select_path_sll (Btor *btor,
       {
         shift = btor_bv_to_uint64 (bve[1]);
       }
-      /* bve[1] and number of LSB 0-bits in bvsll must match */
-      for (i = 0; i < shift; i++)
+      /* if shift is greater than bit-width, result must be zero */
+      if (!btor_bv_is_zero (bvsll) && shift >= bw)
       {
-        if (btor_bv_get_bit (bvsll, i))
-        {
-          eidx = 1;
-          goto DONE;
-        }
+        eidx = 1;
+        goto DONE;
       }
-      /* bve[0] and bvsll (except for the bits shifted out) must match */
-      for (i = 0, j = shift; i < bw - j; i++)
+      if (shift < bw)
       {
-        if (btor_bv_get_bit (bve[0], i) != btor_bv_get_bit (bvsll, j + i))
+        /* bve[1] and number of LSB 0-bits in bvsll must match */
+        for (i = 0; i < shift; i++)
         {
-          eidx = eidx == -1 ? 0 : -1;
-          break;
+          if (btor_bv_get_bit (bvsll, i))
+          {
+            eidx = 1;
+            goto DONE;
+          }
+        }
+        /* bve[0] and bvsll (except for the bits shifted out) must match */
+        for (i = 0, j = shift; i < bw - j; i++)
+        {
+          if (btor_bv_get_bit (bve[0], i) != btor_bv_get_bit (bvsll, j + i))
+          {
+            eidx = eidx == -1 ? 0 : -1;
+            break;
+          }
         }
       }
     }
@@ -382,23 +391,32 @@ select_path_srl (Btor *btor,
       {
         shift = btor_bv_to_uint64 (bve[1]);
       }
-      /* bve[1] and number of MSB 0-bits in bvsrl must match */
-      for (i = 0; i < shift; i++)
+      /* if shift is greater than bit-width, result must be zero */
+      if (!btor_bv_is_zero (bvsrl) && shift >= bw)
       {
-        if (btor_bv_get_bit (bvsrl, bw - 1 - i))
-        {
-          eidx = 1;
-          goto DONE;
-        }
+        eidx = 1;
+        goto DONE;
       }
-      /* bve[0] and bvsrl (except for the bits shifted out) must match */
-      for (i = 0, j = shift; i < bw - j; i++)
+      if (shift < bw)
       {
-        if (btor_bv_get_bit (bve[0], bw - 1 - i)
-            != btor_bv_get_bit (bvsrl, bw - 1 - (j + i)))
+        /* bve[1] and number of MSB 0-bits in bvsrl must match */
+        for (i = 0; i < shift; i++)
         {
-          eidx = eidx == -1 ? 0 : -1;
-          break;
+          if (btor_bv_get_bit (bvsrl, bw - 1 - i))
+          {
+            eidx = 1;
+            goto DONE;
+          }
+        }
+        /* bve[0] and bvsrl (except for the bits shifted out) must match */
+        for (i = 0, j = shift; i < bw - j; i++)
+        {
+          if (btor_bv_get_bit (bve[0], bw - 1 - i)
+              != btor_bv_get_bit (bvsrl, bw - 1 - (j + i)))
+          {
+            eidx = eidx == -1 ? 0 : -1;
+            break;
+          }
         }
       }
     }
