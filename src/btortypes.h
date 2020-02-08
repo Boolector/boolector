@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015-2020 Mathias Preiner.
- *  Copyright (C) 2016-2019 Aina Niemetz.
+ *  Copyright (C) 2016-2020 Aina Niemetz.
  *  Copyright (C) 2016 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -412,12 +412,12 @@ enum BtorOption
   BTOR_OPT_FUN_STORE_LAMBDAS,
 
   /*!
-   * **BTOR_OPT_PRINT_DIMACS**
+    * **BTOR_OPT_PRINT_DIMACS**
 
-     Enable (``value``: 1) or disable (``value``: 0) DIMACS printer.
+      Enable (``value``: 1) or disable (``value``: 0) DIMACS printer.
 
-     When enabled Boolector will record the CNF sent to the SAT solver and
-     prints it to stdout.
+      When enabled Boolector will record the CNF sent to the SAT solver and
+      prints it to stdout.
    */
   BTOR_OPT_PRINT_DIMACS,
 
