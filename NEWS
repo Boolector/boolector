@@ -1,7 +1,15 @@
  news for release 3.1.1 since 3.1.0
 --------------------------------------------------------------------------------
-+ new dumper: CNF printer (enable with CLI option -dd and API option
-                           BTOR_OPT_PRINT_DIMACS)
++ new dumper CNF printer (enable with CLI option -dd and API option
+  BTOR_OPT_PRINT_DIMACS)
++ fix issue with model construction for constant arrays
++ boolector_sat is not automatically called on smt2 input anymore, must be
+  explicitly called via (check-sat) in the input file
++ smt2:
+  - support for parsing constant arrays
+  - support for :global-declarations
++ API changes:
+  - boolector_ror and boolector_rol now allow same bit-width for both operands
 + new API calls
   - boolector_roli
   - boolector_rori
