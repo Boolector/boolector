@@ -369,7 +369,9 @@ function(add_cython_target _name)
   add_custom_command(OUTPUT ${generated_file}
                      COMMAND ${CYTHON_EXECUTABLE}
                      ARGS ${cxx_arg} ${include_directory_arg} ${py_version_arg}
-                          ${embed_arg} ${annotate_arg} ${no_docstrings_arg}
+                          ${embed_arg} ${annotate_arg}
+                          # We always want to generate docstrings
+                          # ${no_docstrings_arg}
                           ${cython_debug_arg} ${embed_pos_arg}
                           ${line_directives_arg} ${CYTHON_FLAGS} ${pyx_location}
                           --output-file ${generated_file}
