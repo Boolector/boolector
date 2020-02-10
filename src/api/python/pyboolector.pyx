@@ -11,7 +11,7 @@ cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
 from libc.stdint cimport int32_t, uint32_t, uint64_t
-from libcpp cimport bool
+from libcpp cimport bool as cbool
 from cpython.ref cimport PyObject
 import math, os, sys
 
@@ -563,7 +563,7 @@ cdef class BoolectorQuantNode(BoolectorBVNode):
     The class representing a Boolector quantified node.
     """
     cdef list _params
-    cdef bool is_existential
+    cdef cbool is_existential
 
     def __init__ (self, Boolector boolector, is_exists):
         super().__init__(boolector)
@@ -1140,7 +1140,7 @@ cdef class Boolector:
         cdef int32_t res
         cdef char * err_msg
         cdef int32_t status
-        cdef bool parsed_smt2
+        cdef cbool parsed_smt2
 
         if not os.path.isfile(infile):
             raise BoolectorException("File '{}' does not exist".format(infile))
@@ -1229,7 +1229,7 @@ cdef class Boolector:
             r._c_node = \
                 btorapi.boolector_const(self._c_btor, _ChPtr(const_str)._c_str)
             return r
-        elif c == True or c == False: #isinstance(c, bool):
+        elif isinstance(c, bool):
             r = BoolectorConstNode(self)
             if c:
                 r._c_node = btorapi.boolector_true(self._c_btor)
@@ -2736,7 +2736,7 @@ cdef class Boolector:
         for i in range(argc):
             a = args[i]
             if not isinstance(a, BoolectorNode):
-                if not (isinstance(a, int) or a == True or a == False): #isinstance(a, bool)):
+                if not (isinstance(a, int) or isinstance(a, bool)):
                     raise BoolectorException(
                               "Invalid type of argument {}".format(i))
                 a = self.Const(a, _get_argument_width(fun, i))
