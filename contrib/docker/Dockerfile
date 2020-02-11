@@ -37,7 +37,9 @@ ENV BUILD_DEPS \
     git \
     make \
     python-dev \
-    sed
+    python3 \
+    sed \
+    wget
 
 #
 # Deps needed for running afterwards
@@ -49,9 +51,14 @@ ENV PERSISTENT_DEPS \
     python
 
 #
-# Copy our current source tree to the Docker image
+# Which repo to build from?
 #
-COPY . boolector
+ARG UPSTREAM=https://github.com/Boolector/boolector/archive
+
+#
+# Which Boolector branch to build?
+#
+ARG BRANCH=master
 
 #
 # Steps to build-up our image
@@ -63,6 +70,18 @@ RUN apk upgrade --update && \
     # Musl does not provide /usr/include/sys/unistd.h, which Lingeling needs \
     # \
     echo "#include <unistd.h>" > /usr/include/sys/unistd.h && \
+    #
+    # Grab our Boolector tar (output is going to be "boolector-${BRANCH}".tar.gz)
+    #
+    wget "${UPSTREAM}/${BRANCH}.tar.gz" -O "boolector-${BRANCH}.tar.gz" && \
+    tar -xzvf "boolector-${BRANCH}.tar.gz" && \
+    #
+    # Move to sanitized location
+    #
+    mv "boolector-${BRANCH}" boolector && \
+    #
+    # Enter source tree
+    #
     cd boolector && \
     # \
     # Musl does not provide quite enough of glibc, so we pretend we're Windows \
@@ -80,9 +99,9 @@ RUN apk upgrade --update && \
     cd build && \
     make -j$(nproc) && \
     # \
-    # Validate our build of Boolector \
+    # Validate our build of Boolector
     # \
-    ./bin/test && \
+    ctest -j$(nproc) --output-on-failure \
     apk del .build-deps
 
 #
