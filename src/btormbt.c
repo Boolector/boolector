@@ -187,7 +187,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
   "  -h, --help                  print this message and exit\n"                \
-  "  -ha                         print all options\n"                          \
   "\n"                                                                         \
   "  -v                          be extra verbose\n"                           \
   "  -q                          be extra quiet (stats only)\n"                \
