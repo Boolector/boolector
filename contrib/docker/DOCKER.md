@@ -18,8 +18,21 @@ cd boolector
 docker build -t btor/btor -f contrib/docker/Dockerfile .
 ```
 
-This will then build you a fresh Docker image, with Boolector built inside.
+This will then build you a fresh Docker image, with Boolector's current master
+branch built inside.
 
+If you wish to build a version of Boolector using a different repository or a
+different branch, you can specify this as part of Docker's build arguments:
+
+```
+# default arguments
+UPSTREAM=https://github.com/Boolector/boolector/archive
+BRANCH=master
+docker build 	-t btor/btor \
+		-f contrib/docker/Dockerfile \
+		--build-arg UPSTREAM=${UPSTREAM} \
+		--build-arg BRANCH=${BRANCH} .
+```
 
 ## Using Docker to run `.smt2` files
 
@@ -53,7 +66,7 @@ shared volume:
 
 ```
 # Assuming you're at the root of a Boolector clone
-docker run --rm -i -v $(pwd):/tmp btor/btor -m /tmp/src/tests/log/modelgensmt227.smt2
+docker run --rm -i -v $(pwd):/tmp btor/btor -m /tmp/test/log/modelgensmt227.smt2
 ```
 
 *Note*: the current working directory (`pwd`) has been mapped to `/tmp` within
