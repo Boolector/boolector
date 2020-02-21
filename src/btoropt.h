@@ -248,4 +248,7 @@ BtorOption btor_opt_next (Btor *btor, BtorOption cur);
 #ifndef NBTORLOG
 void btor_opt_log_opts (Btor *btor);
 #endif
+
+void btor_opt_check_solver_supports_timeout (Btor *btor);
+
 #endif

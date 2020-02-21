@@ -1680,6 +1680,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
                 g_btor_se_name[val],
                 g_btor_se_name[oldval]);
     }
+    btor_opt_check_solver_supports_timeout (btor);
   }
 #ifndef BTOR_USE_LINGELING
   else if (opt == BTOR_OPT_SAT_ENGINE_LGL_FORK)
@@ -1716,6 +1717,10 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
     }
   }
 #endif
+  else if (opt == BTOR_OPT_TIMEOUT)
+  {
+    btor_opt_check_solver_supports_timeout (btor);
+  }
 
   if (val > o->max) val = o->max;
   if (val < o->min) val = o->min;
@@ -1765,3 +1770,19 @@ btor_opt_log_opts (Btor *btor)
              btor_opt_get (btor, opt));
 }
 #endif
+
+void
+btor_opt_check_solver_supports_timeout (Btor *btor)
+{
+  uint32_t sat_engine;
+  sat_engine = btor_opt_get (btor, BTOR_OPT_SAT_ENGINE);
+  if (sat_engine == BTOR_SAT_ENGINE_CMS || sat_engine == BTOR_SAT_ENGINE_MINISAT
+      || sat_engine == BTOR_SAT_ENGINE_PICOSAT)
+  {
+    BTOR_MSG (btor->msg,
+              0,
+              "SAT solver %s does not support termination functions; timeout "
+              "option is ignored",
+              g_btor_se_name[sat_engine]);
+  }
+}
