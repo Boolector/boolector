@@ -823,6 +823,16 @@ btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
 
   smgr = btor_get_sat_mgr (btor);
   btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
+
+  /* when setting a term function, this disables the timeout option */
+  if (btor_opt_get (btor, BTOR_OPT_TIMEOUT))
+  {
+    BTOR_MSG (
+        btor->msg,
+        1,
+        "Setting a termination function overrides any current timeout values");
+    btor_opt_set (btor, BTOR_OPT_TIMEOUT, 0);
+  }
 }
 
 void
