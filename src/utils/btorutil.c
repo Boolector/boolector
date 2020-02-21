@@ -494,12 +494,12 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 }
 
 /*------------------------------------------------------------------------*/
-#ifdef BTOR_TIME_STATISTICS
-
+#if defined(BTOR_HAVE_TIME_UTILS) || defined(BTOR_TIME_STATISTICS)
 #include <sys/resource.h>
 #include <sys/time.h>
-#include <time.h>
+#endif
 
+#ifdef BTOR_TIME_STATISTICS
 double
 btor_util_time_stamp (void)
 {
