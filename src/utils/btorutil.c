@@ -709,15 +709,6 @@ btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
 
 /*------------------------------------------------------------------------*/
 
-int32_t
-btor_util_timeout_deadline (void *param)
-{
-  uint64_t now      = btor_util_get_time_now_ms ();
-  uint64_t deadline = *(uint64_t *) param;
-
-  return now > deadline;
-}
-
 uint64_t
 btor_util_get_time_now_ms (void)
 {

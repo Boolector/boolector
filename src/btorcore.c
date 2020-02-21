@@ -84,6 +84,8 @@
 
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
+static int32_t btor_timeout_deadline_compare (void *param);
+
 /*------------------------------------------------------------------------*/
 
 enum BtorSubstCompKind
@@ -818,6 +820,23 @@ btor_set_term (Btor *btor, int32_t (*fun) (void *), void *state)
   btor->cbs.term.termfun = terminate_aux_btor;
   btor->cbs.term.fun     = fun;
   btor->cbs.term.state   = state;
+
+  smgr = btor_get_sat_mgr (btor);
+  btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
+}
+
+void
+btor_set_timeout (Btor *btor)
+{
+  assert (btor);
+
+  BtorSATMgr *smgr;
+
+  btor->cbs.term.termfun = terminate_aux_btor;
+  btor->cbs.term.fun     = &btor_timeout_deadline_compare;
+  btor->clock_deadline =
+      btor_util_get_time_now_ms () + btor_opt_get (btor, BTOR_OPT_TIMEOUT);
+  btor->cbs.term.state = (void *) &btor->clock_deadline;
 
   smgr = btor_get_sat_mgr (btor);
   btor_sat_mgr_set_term (smgr, terminate_aux_btor, btor);
@@ -2891,6 +2910,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
+  if (btor_opt_get (btor, BTOR_OPT_TIMEOUT)) btor_set_timeout (btor);
+
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
   /* 'btor->assertions' contains all assertions that were asserted in context
@@ -3194,4 +3215,13 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     result = btor_aigvec_copy (avmgr, result);
 
   return result;
+}
+
+static int32_t
+btor_timeout_deadline_compare (void *param)
+{
+  uint64_t now      = btor_util_get_time_now_ms ();
+  uint64_t deadline = *(uint64_t *) param;
+
+  return now > deadline;
 }

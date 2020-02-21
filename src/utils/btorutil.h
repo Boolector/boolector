@@ -92,8 +92,6 @@ char *btor_util_getenv_value (BtorMemMgr *mm, const char *name);
 
 /*------------------------------------------------------------------------*/
 
-int32_t btor_util_timeout_deadline (void *param);
-
 uint64_t btor_util_get_time_now_ms (void);
 
 /*------------------------------------------------------------------------*/

@@ -48,8 +48,6 @@ struct BtorSATMgr
 
   double sat_time;
 
-  uint64_t clock_deadline;
-
   struct
   {
     int32_t (*fun) (void *); /* termination callback */

@@ -237,6 +237,8 @@ struct Btor
     double rewrite;
     double occurrence;
   } time;
+
+  uint64_t clock_deadline;
 };
 
 /* Creates new boolector instance. */
