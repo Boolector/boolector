@@ -123,7 +123,7 @@ btor_opt_check_solver_supports_timeout (Btor *btor,
     BTOR_MSG (btor->msg,
               0,
               "SAT solver %s does not support termination functions; timeout "
-              "option is disabled",
+              "option may not have effect",
               g_btor_se_name[sat_engine]);
   }
 }
