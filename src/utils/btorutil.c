@@ -712,7 +712,7 @@ btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
 uint64_t
 btor_util_get_time_now_ms (void)
 {
-  uint64_t res;
+  uint64_t res = 0;
 #ifdef BTOR_HAVE_TIME_UTILS
   /*
    * If we have BTOR_HAVE_TIME_UTILS, then we use 'getrusage' and calculate the
