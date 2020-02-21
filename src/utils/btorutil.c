@@ -494,7 +494,6 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 }
 
 /*------------------------------------------------------------------------*/
-
 #ifdef BTOR_TIME_STATISTICS
 
 #include <sys/resource.h>
