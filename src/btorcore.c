@@ -84,8 +84,6 @@
 
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
-static int32_t btor_timeout_deadline_compare (void *param);
-
 /*------------------------------------------------------------------------*/
 
 enum BtorSubstCompKind
@@ -3227,7 +3225,7 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   return result;
 }
 
-static int32_t
+int32_t
 btor_timeout_deadline_compare (void *param)
 {
   uint64_t now      = btor_util_get_time_now_ms ();

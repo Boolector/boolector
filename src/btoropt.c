@@ -1749,6 +1749,24 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
      */
     btor_opt_check_solver_supports_timeout (
         btor, val, btor_opt_get (btor, BTOR_OPT_SAT_ENGINE));
+
+    /* when setting a timeout value, this disables any current termination
+     * functions */
+    if (btor->cbs.term.fun != &btor_timeout_deadline_compare)
+    {
+      BTOR_MSG (
+          btor->msg,
+          1,
+          "Setting a timeout overrides any current termination functions");
+
+      /*
+       * We explictly set the current termination functions to NULL -- these
+       * will get set correctly when 'btor_set_timeout' is called as part of
+       * 'btor_check_sat'
+       */
+      btor->cbs.term.fun     = NULL;
+      btor->cbs.term.termfun = NULL;
+    }
   }
 
   if (val > o->max) val = o->max;

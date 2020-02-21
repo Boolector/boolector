@@ -363,4 +363,9 @@ void btor_process_unsynthesized_constraints (Btor *btor);
 void btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *constraint);
 void btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified);
 void btor_delete_varsubst_constraints (Btor *btor);
+
+/*
+ * not static, as we need to know the address of this function in btor_opt_set
+ */
+int32_t btor_timeout_deadline_compare (void *param);
 #endif
