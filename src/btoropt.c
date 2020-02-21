@@ -112,9 +112,7 @@ strcmpoptval (const char *a, const char *b)
 }
 
 static void
-btor_opt_check_solver_supports_timeout (Btor *btor,
-                                        uint32_t timeout,
-                                        uint32_t sat_engine)
+btor_opt_check_solver_supports_timeout (uint32_t timeout, uint32_t sat_engine)
 {
   if (timeout
       && (sat_engine == BTOR_SAT_ENGINE_CMS
@@ -1704,7 +1702,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
      * pass it in, but read the value for the other option.
      */
     btor_opt_check_solver_supports_timeout (
-        btor, btor_opt_get (btor, BTOR_OPT_TIMEOUT), val);
+        btor_opt_get (btor, BTOR_OPT_TIMEOUT), val);
   }
 #ifndef BTOR_USE_LINGELING
   else if (opt == BTOR_OPT_SAT_ENGINE_LGL_FORK)
@@ -1748,7 +1746,7 @@ btor_opt_set (Btor *btor, const BtorOption opt, uint32_t val)
      * pass it in, but read the value for the other option.
      */
     btor_opt_check_solver_supports_timeout (
-        btor, val, btor_opt_get (btor, BTOR_OPT_SAT_ENGINE));
+        val, btor_opt_get (btor, BTOR_OPT_SAT_ENGINE));
 
     /* when setting a timeout value, this disables any current termination
      * functions */
