@@ -1,0 +1,2 @@
+sat
+[btoropt] btor_opt_check_solver_supports_timeout: WARNING: SAT solver MiniSat does not support termination functions; timeout option may not have effect

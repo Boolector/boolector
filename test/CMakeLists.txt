@@ -1008,6 +1008,24 @@ if(Lingeling_FOUND)
     "timeout_in_file.smt2 -m --sat-engine=lingeling" # 500ms by file
   )
 endif()
+if(PicoSAT_FOUND)
+  list(APPEND cmp_testcases
+    "timeout_unsupported_picosat.smt2 -to 500 --sat-engine=picosat" # 500ms by argument
+    "timeout_in_file_unsupported_picosat.smt2 --sat-engine=picosat" # 500ms by file
+  )
+endif()
+if(MiniSat_FOUND)
+  list(APPEND cmp_testcases
+    "timeout_unsupported_minisat.smt2 -to 500 --sat-engine=minisat" # 500ms by argument
+    "timeout_in_file_unsupported_minisat.smt2 --sat-engine=minisat" # 500ms by file
+  )
+endif()
+if(CryptoMiniSat_FOUND)
+  list(APPEND cmp_testcases
+    "timeout_unsupported_cms.smt2 -to 500 --sat-engine=cms" # 500ms by argument
+    "timeout_in_file_unsupported_cms.smt2 --sat-engine=cms" # 500ms by file
+  )
+endif()
 
 
 get_target_property(BOOLECTOR_BINARY_PATH boolector-bin RUNTIME_OUTPUT_DIRECTORY)
