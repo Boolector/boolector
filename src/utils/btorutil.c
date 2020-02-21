@@ -495,7 +495,7 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 
 /*------------------------------------------------------------------------*/
 
-#ifdef BTOR_HAVE_TIME_UTILS
+#ifdef BTOR_TIME_STATISTICS
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -716,10 +716,14 @@ btor_util_get_time_now_ms (void)
   uint64_t res;
 #ifdef BTOR_HAVE_TIME_UTILS
   /*
-   * If we have BTOR_HAVE_TIME_UTILS, then `btor_util_time_stamp` returns the
-   * current time (as a double) in ms
+   * If we have BTOR_HAVE_TIME_UTILS, then we use 'getrusage' and calculate the
+   * current time in millis
    */
-  res = (uint64_t) btor_util_time_stamp ();
+  struct rusage u;
+  if (!getrusage (RUSAGE_SELF, &u))  // what to do if this fails?
+  {
+    res = (1000 * u.ru_utime.tv_sec + u.ru_utime.tv_usec / 1000);
+  }
 #else
   /*
    * clock returns clock_t, which is likely to be long, but cast to a double
