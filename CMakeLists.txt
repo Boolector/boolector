@@ -256,6 +256,8 @@ endif()
 include(CheckTimeUtils)
 if(NOT HAVE_TIME_UTILS)
   set(TIME_STATS OFF)
+else()
+  add_definitions("-DBTOR_HAVE_TIME_UTILS")
 endif()
 
 if(TIME_STATS)

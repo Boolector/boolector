@@ -494,7 +494,8 @@ btor_util_check_hex_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 }
 
 /*------------------------------------------------------------------------*/
-#ifdef BTOR_TIME_STATISTICS
+
+#ifdef BTOR_HAVE_TIME_UTILS
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -712,11 +713,21 @@ btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
 uint64_t
 btor_util_get_time_now_ms (void)
 {
+  uint64_t res;
+#ifdef BTOR_HAVE_TIME_UTILS
+  /*
+   * If we have BTOR_HAVE_TIME_UTILS, then `btor_util_time_stamp` returns the
+   * current time (as a double) in ms
+   */
+  res = (uint64_t) btor_util_time_stamp ();
+#else
   /*
    * clock returns clock_t, which is likely to be long, but cast to a double
    * (for the division and multiplication) and then truncate to a uint
    */
-  return (uint64_t) (((double) clock () / CLOCKS_PER_SEC) * 1000);
+  res = (uint64_t) (((double) clock () / CLOCKS_PER_SEC) * 1000);
+#endif
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
