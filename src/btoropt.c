@@ -405,6 +405,16 @@ btor_opt_init_opts (Btor *btor)
             0,
             UINT32_MAX,
             "increase loglevel");
+  init_opt (btor,
+            BTOR_OPT_TIMEOUT /* opt */,
+            false /* internal */,
+            false /* isflag */,
+            "timeout" /* lng */,
+            "to" /* shrt */,
+            0 /* val */,
+            0 /* min */,
+            UINT32_MAX /* max */,
+            "enable SAT solver timeout" /* desc */);
 
   /* simplifier --------------------------------------------------------- */
   init_opt (btor,

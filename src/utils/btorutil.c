@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <time.h>
 #ifndef NDEBUG
 #include <float.h>
 #endif
@@ -705,3 +706,26 @@ btor_util_getenv_value (BtorMemMgr *mm, const char *lname)
   BTOR_RELEASE_STACK (uname);
   return res;
 }
+
+/*------------------------------------------------------------------------*/
+
+int32_t
+btor_util_timeout_deadline (void *param)
+{
+  uint64_t now      = btor_util_get_time_now_ms ();
+  uint64_t deadline = *(uint64_t *) param;
+
+  return now > deadline;
+}
+
+uint64_t
+btor_util_get_time_now_ms (void)
+{
+  /*
+   * clock returns clock_t, which is likely to be long, but cast to a double
+   * (for the division and multiplication) and then truncate to a uint
+   */
+  return (uint64_t) (((double) clock () / CLOCKS_PER_SEC) * 1000);
+}
+
+/*------------------------------------------------------------------------*/

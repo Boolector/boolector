@@ -215,6 +215,11 @@ enum BtorOption
   */
   BTOR_OPT_LOGLEVEL,
 
+  /*!
+   * **BTOR_OPT_TIMEOUT**
+   */
+  BTOR_OPT_TIMEOUT,
+
   /* --------------------------------------------------------------------- */
   /*!
     **Simplifier Options:**

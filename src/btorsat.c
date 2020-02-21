@@ -155,6 +155,18 @@ setterm (BtorSATMgr *smgr)
 }
 
 static inline void
+settimeout (BtorSATMgr *smgr)
+{
+  if (!smgr->api.setterm) return;
+
+  smgr->term.fun       = &btor_util_timeout_deadline;
+  smgr->clock_deadline = btor_util_get_time_now_ms ()
+                         + btor_opt_get (smgr->btor, BTOR_OPT_TIMEOUT);
+  smgr->term.state = (void *) &smgr->clock_deadline;
+  smgr->api.setterm (smgr);
+}
+
+static inline void
 stats (BtorSATMgr *smgr)
 {
   if (smgr->api.stats) smgr->api.stats (smgr);
@@ -403,7 +415,10 @@ btor_sat_check_sat (BtorSATMgr *smgr, int32_t limit)
             limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
-  setterm (smgr);
+  if (btor_opt_get (smgr->btor, BTOR_OPT_TIMEOUT))
+    settimeout (smgr);
+  else
+    setterm (smgr);
   sat_res = sat (smgr, limit);
   smgr->sat_time += btor_util_time_stamp () - start;
   switch (sat_res)

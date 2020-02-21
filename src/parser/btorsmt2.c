@@ -165,6 +165,7 @@ typedef enum BtorSMT2Tag
   BTOR_VERBOSITY_TAG_SMT2                 = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                   = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_GLOBAL_DECLARATIONS_TAG_SMT2       = 35 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_TIMEOUT_TAG_SMT2                   = 36 + BTOR_KEYWORD_TAG_CLASS_SMT2,
 
   /* ---------------------------------------------------------------------- */
   /* Theories                                                               */
@@ -839,6 +840,7 @@ insert_keywords_smt2 (BtorSMT2Parser *parser)
   INSERT (":sorts-description", BTOR_SORTS_DESCRIPTION_TAG_SMT2);
   INSERT (":status", BTOR_STATUS_TAG_SMT2);
   INSERT (":theories", BTOR_THEORIES_TAG_SMT2);
+  INSERT (":timeout", BTOR_TIMEOUT_TAG_SMT2);
   INSERT (":values", BTOR_VALUES_TAG_SMT2);
   INSERT (":verbosity", BTOR_VERBOSITY_TAG_SMT2);
   INSERT (":version", BTOR_VERSION_TAG_SMT2);
@@ -4468,6 +4470,8 @@ set_option_smt2 (BtorSMT2Parser *parser)
   {
     if (tag == BTOR_PRODUCE_MODELS_TAG_SMT2)
       o = BTOR_OPT_MODEL_GEN;
+    else if (tag == BTOR_TIMEOUT_TAG_SMT2)
+      o = BTOR_OPT_TIMEOUT;
     else
     {
       opt = parser->token.start + 1;
