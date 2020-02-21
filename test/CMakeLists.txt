@@ -968,6 +968,7 @@ set(cmp_testcases
 "smtor.smt2 -m"
 "smtvar.smt2 -m"
 "smtxor.smt2 -m"
+"timeout.smt2 -m -to 500" # 500ms
 )
 
 if(CaDiCaL_FOUND)
