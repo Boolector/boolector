@@ -11,6 +11,7 @@
 #include "btoropt.h"
 #include <limits.h>
 #include "boolector.h"
+#include "btorabort.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btorlog.h"
@@ -120,11 +121,10 @@ btor_opt_check_solver_supports_timeout (Btor *btor,
           || sat_engine == BTOR_SAT_ENGINE_MINISAT
           || sat_engine == BTOR_SAT_ENGINE_PICOSAT))
   {
-    BTOR_MSG (btor->msg,
-              0,
-              "SAT solver %s does not support termination functions; timeout "
-              "option may not have effect",
-              g_btor_se_name[sat_engine]);
+    BTOR_WARN (true,
+               "SAT solver %s does not support termination functions; timeout "
+               "option may not have effect",
+               g_btor_se_name[sat_engine]);
   }
 }
 
