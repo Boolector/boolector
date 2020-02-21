@@ -968,7 +968,6 @@ set(cmp_testcases
 "smtor.smt2 -m"
 "smtvar.smt2 -m"
 "smtxor.smt2 -m"
-"timeout.smt2 -m -to 500" # 500ms
 )
 
 if(CaDiCaL_FOUND)
@@ -996,6 +995,19 @@ if(CaDiCaL_FOUND)
   )
 endif()
 
+# Solvers that support timeout
+if(CaDiCaL_FOUND)
+  list(APPEND cmp_testcases
+    "timeout.smt2 -m -to 500 --sat-engine=cadical" # 500ms by argument
+    "timeout_in_file.smt2 -m --sat-engine=cadical" # 500ms in file
+  )
+endif()
+if(Lingeling_FOUND)
+  list(APPEND cmp_testcases
+    "timeout.smt2 -m -to 500 --sat-engine=lingeling" # 500ms by argument
+    "timeout_in_file.smt2 -m --sat-engine=lingeling" # 500ms by file
+  )
+endif()
 
 
 get_target_property(BOOLECTOR_BINARY_PATH boolector-bin RUNTIME_OUTPUT_DIRECTORY)
