@@ -1785,10 +1785,10 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-// TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
-  given ``id``.
+  given ``id``.  Aborts if no node with given ``id`` exists in given Boolector
+  instance.
 
   :param btor: Boolector instance.
   :param id: Boolector node id.
@@ -1799,22 +1799,25 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node_by_id (Btor *btor, int32_t id);
 
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
-  given ``symbol``.
+  given ``symbol``. Aborts if no node with given ``symbol`` exists in given
+  Boolector instance.
 
   :param btor: Boolector instance.
   :param symbol: The symbol of an expression.
   :return: The Boolector node that matches given ``node`` in Boolector instance
-           ``btor`` by symbol.
+           ``btor`` by id.
 
   .. note::
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
 
@@ -1822,6 +1825,7 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
   Retrieve the node belonging to Boolector instance ``btor`` that matches
   given BoolectorNode ``node`` by id. This is intended to be used for handling
   expressions of a cloned instance (boolector_clone).
+  Aborts no matching node exists in given Boolector instance.
 
   :param btor: Boolector instance.
   :param node: Boolector node.
@@ -1832,7 +1836,7 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
-    Only nodes created before the boolector_clone call can be matched.
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
 

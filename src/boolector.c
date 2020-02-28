@@ -1562,25 +1562,31 @@ remove_unique_symbol_prefix (Btor *btor, const char *symbol)
 /* Create symbol that is unique in the current scope. Prefix symbols with
  * BTOR_<num_push_pop>@<symbol> to make them unique in the current context. */
 static char *
-mk_unique_symbol (Btor *btor, const char *symbol)
+mk_unique_symbol_aux (BtorMemMgr *mm, uint32_t num_push_pop, const char *symbol)
 {
   char *symb;
   size_t len;
-  if (btor->num_push_pop)
+  if (num_push_pop)
   {
     len = strlen (symbol) + 1;
     len += strlen ("BTOR_@");
-    len += btor_util_num_digits (btor->num_push_pop);
-    BTOR_CNEWN (btor->mm, symb, len);
-    sprintf (symb, "BTOR_%u@%s", btor->num_push_pop, symbol);
+    len += btor_util_num_digits (num_push_pop);
+    BTOR_CNEWN (mm, symb, len);
+    sprintf (symb, "BTOR_%u@%s", num_push_pop, symbol);
   }
   else
   {
-    symb = btor_mem_strdup (btor->mm, symbol);
+    symb = btor_mem_strdup (mm, symbol);
   }
-  assert (!symbol
-          || !strcmp (symbol, remove_unique_symbol_prefix (btor, symb)));
   return symb;
+}
+
+static char *
+mk_unique_symbol (Btor *btor, const char *symbol)
+{
+  char *res = mk_unique_symbol_aux (btor->mm, btor->num_push_pop, symbol);
+  assert (!symbol || !strcmp (symbol, remove_unique_symbol_prefix (btor, res)));
+  return res;
 }
 
 BoolectorNode *
@@ -3538,7 +3544,10 @@ boolector_match_node_by_id (Btor *btor, int32_t id)
   BTOR_ABORT (id <= 0, "node id must be > 0");
   BTOR_TRAPI ("%d", id);
   res = btor_node_match_by_id (btor, id);
-  BTOR_ABORT (!res, "invalid node id '%d', node does not exist", id);
+  BTOR_ABORT (
+      !res,
+      "invalid node id '%d', no matching node in given Boolector instance",
+      id);
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -3551,14 +3560,21 @@ BoolectorNode *
 boolector_match_node_by_symbol (Btor *btor, const char *symbol)
 {
   char *symb;
+  uint32_t i;
   BtorNode *res;
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (symbol);
   BTOR_TRAPI ("%s", symbol);
-  symb = mk_unique_symbol (btor, symbol);
-  res  = btor_node_match_by_symbol (btor, symb);
-  btor_mem_freestr (btor->mm, symb);
-  btor_node_inc_ext_ref_counter (btor, res);
+  for (i = 0, res = 0; !res && i <= btor->num_push_pop; i++)
+  {
+    symb = mk_unique_symbol_aux (btor->mm, i, symbol);
+    res  = btor_node_match_by_symbol (btor, symb);
+    btor_mem_freestr (btor->mm, symb);
+  }
+  BTOR_ABORT (
+      !res,
+      "invalid symbol'%s', no matching node in given Boolector instance",
+      symbol);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node_by_symbol, symbol);
@@ -3576,6 +3592,8 @@ boolector_match_node (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS (exp);
   res = btor_node_match (btor, exp);
+  BTOR_ABORT (!res,
+              "invalid node, no matching node in given Boolector instance");
   btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG

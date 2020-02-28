@@ -1126,7 +1126,9 @@ btor_node_match_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
-  return btor_node_copy (btor, btor_node_get_by_symbol (btor, sym));
+  BtorNode *res = btor_node_get_by_symbol (btor, sym);
+  if (res) btor_node_copy (btor, res);
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
