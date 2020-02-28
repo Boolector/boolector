@@ -3575,6 +3575,7 @@ boolector_match_node_by_symbol (Btor *btor, const char *symbol)
       !res,
       "invalid symbol'%s', no matching node in given Boolector instance",
       symbol);
+  btor_node_inc_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node_by_symbol, symbol);
