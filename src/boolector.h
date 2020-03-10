@@ -1890,16 +1890,20 @@ uint32_t boolector_get_width (Btor *btor, BoolectorNode *node);
 uint32_t boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /*!
-  Get the bit-vector of a constant node as a bit string.
+  Get the bit-vector of a constant node represented as a bit string.
+  Must be freed via boolector_free_bits.
 
   :param btor: Boolector instance.
   :param node: Constant node.
   :return: String representing the bits of ``node``.
+
+  .. seealso::
+    boolector_free_bits
 */
 const char *boolector_get_bits (Btor *btor, BoolectorNode *node);
 
 /*!
-  Free a bits string for bit-vector constants.
+  Free a bits string retrieved via boolector_get_bits.
 
   :param btor: Boolector instance.
   :param bits: String which has to be freed.
