@@ -73,6 +73,7 @@ btor_check_failed_assumptions (Btor *btor)
   btor_opt_set (clone, BTOR_OPT_CHK_MODEL, 0);
   btor_opt_set (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
   btor_opt_set (clone, BTOR_OPT_PRINT_DIMACS, 0);
+  btor_opt_set (clone, BTOR_OPT_AUTO_CLEANUP, 1);
   btor_set_term (clone, 0, 0);
 
   btor_opt_set (clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
@@ -80,12 +81,17 @@ btor_check_failed_assumptions (Btor *btor)
   clone->slv->api.delet (clone->slv);
   clone->slv = 0;
 
-  /* clone->assertions have been already added at this point. */
+  /* clone->assertions have already been added at this point. */
   while (!BTOR_EMPTY_STACK (clone->assertions))
   {
     ass = BTOR_POP_STACK (clone->assertions);
     btor_node_release (clone, ass);
   }
+
+  /* Set to false in order to not trigger a reset of the assumptions when a
+   * constraint is replaced (and thus a 'new' one added) when simplifying
+   * expressions in btor_substitute_and_rebuild. */
+  clone->valid_assignments = 0;
 
   /* rebuild formula to eliminate all simplified nodes. */
   rebuild_formula (clone, 3);
