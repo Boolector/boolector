@@ -3639,7 +3639,16 @@ boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   symb = mk_unique_symbol (btor, symbol);
-  btor_node_set_symbol (btor, exp, symb);
+
+  if (btor_hashptr_table_get (btor->symbols, symb))
+  {
+    BTOR_WARN (
+        true, "symbol %s already defined, ignoring setting symbol", symbol);
+  }
+  else
+  {
+    btor_node_set_symbol (btor, exp, symb);
+  }
   btor_mem_freestr (btor->mm, symb);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_symbol, BTOR_CLONED_EXP (exp), symbol);
