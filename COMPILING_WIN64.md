@@ -2,7 +2,7 @@
 
 ### Important preamble
 
-These steps document what is necessary to build a 32-bit version of `pyboolector.pyd` on 64-bit Windows. These steps _probably_ work for a 64-bit version, but have not been tested. They also do not guarantee the correctness of other parts of Boolector (e.g., the main `boolector.exe`).
+These steps document what is necessary to build a 64-bit version of `pyboolector.pyd` on 64-bit Windows. They also do not guarantee the correctness of other parts of Boolector (e.g., the main `boolector.exe`).
 
 To ensure the portability of `pyboolector.pyd`, every effort is made in this guide to avoid building Boolector with Cygwin (e.g., we wish to avoid a dependency on `cygwin1.dll`, which could affect the portability of `pyboolector.pyd`). Given this, the guide is written to use the MinGW-W64 "cross-compiler".
 
@@ -23,10 +23,10 @@ You should select the "MinGW-W64 Online Installer" (`MinGW-W64-install.exe`).
 
 The following options are recommended and have been tested when writing this guide:
 
-* Version: 4.9.4
-* Architecture: i686
+* Version: 8.1.0
+* Architecture: x86_64
 * Threads: win32
-* Exception: dwarf (default)
+* Exception: seh (default)
 * Build revision: 0 (default)
 
 When selecting the threading model, only the Win32 model has been validated -- the POSIX model has not been tested at all. On Windows, Boolector's make system has been modified to statically link, expecting the Win32 model.
@@ -38,7 +38,7 @@ Install MSYS from here:
 
 * <https://www.msys2.org>
 
-It is important to select the 32-bit installation option (`msys2-i686-<DATE>.exe`). There are no further choices to be made when installing MSYS.
+It is important to select the 64-bit installation option (`msys2-x86_64-<DATE>.exe`). There are no further choices to be made when installing MSYS.
 
 Once MSYS is installed, start an MSYS shell, and run `pacman -Syuu`. Once this is complete, it will ask you to close the shell. Close MSYS, re-open it and re-run `pacman -Syuu` again. Once it is complete the second time, close and re-open MSYS. This process needs to be performed twice to allow for MSYS to first update itself, and then update its packages.
 
@@ -47,26 +47,28 @@ Now install the following:
 * `pacman -S --needed make git vim wget patch tar`
 
 
-### Python 2.7
+### Python 3.8
 
-Install the most recent 32-bit Python 2.7 from here:
+Install the most recent 32-bit Python 3.8 from here:
 
 * <https://www.python.org/downloads/windows/>
 
-You should download the _x86 MSI_. No specific choices need to be made when installing Python.
+You should download the _x86-64 MSI_. No specific choices need to be made when installing Python.
 
 Update your `%PATH%` variable to include both the path to `python.exe ` and to the `Scripts` sub-directory of the Python installation. These paths will look something like:
 
-* `C:\Python27`
-* `C:\Python27\Scripts`
+* `C:\Python38`
+* `C:\Python38\Scripts`
+
+Or if installed for the current user only, something like:
+
+* `C:\Users\User\AppData\Local\Programs\Python\Python38`
+* `C:\Users\User\AppData\Local\Programs\Python\Python38\scripts`
 
 Once your `%PATH%` is set correctly, start `cmd` and run the following:
 
 * `python -m pip install --upgrade pip`
 * `python -m pip install --upgrade cython`
-
-You now need to edit the file `cygwinccompiler.py` in your Python installation directory to avoid the use of the `-mno-cygwin` flag. The path to this file is commonly found here: `C:\Python27\Lib\distutils\cygwinccompiler.py`. You should change the line `no_cygwin = ' -mno-cygwin'` to read `no_cygwin = ''` (so empty quotes). On Python 2.7.15, the line number is 323.
-
 
 ### CMake
 
@@ -74,7 +76,7 @@ The version of CMake that comes with MSYS does not correctly support MSYS Makefi
 
 * <https://cmake.org/download/>
 
-Downloading "Windows win32-x86 ZIP" (`cmake-<VERSION>-win32-x86.zip`) is sufficient. You do not need the installer.
+Downloading "Windows win64-x64 ZIP" (`cmake-<VERSION>-win64-x64.zip`) is sufficient. You do not need the installer.
 
 When this is downloaded, extract the zip, but _remember the path you extracted it to_! You will need it later to the set the variable `CMAKE_DIR`.
 
@@ -88,9 +90,9 @@ Now that you have installed all of the necessary dependencies for Boolector, we 
 ```bash
 #!/bin/bash
 
-export PYTHON_DIR=$(cygpath -u "C:\Python27")
-export CMAKE_DIR=$(cygpath -u "C:\cmake-3.12.1-win32-x86")
-export MINGW_DIR=$(cygpath -u "C:\Program Files (x86)\mingw-w64\i686-4.9.4-win32-dwarf-rt_v5-rev0\mingw32")
+export PYTHON_DIR=$(cygpath -u "C:\Python38")
+export CMAKE_DIR=$(cygpath -u "C:\cmake-3.17.0-win64-x64")
+export MINGW_DIR=$(cygpath -u "C:\Program Files\mingw-w64\x86_64-8.1.0-win32-seh-rt_v6-rev0\mingw64")
 
 export PATH=${PYTHON_DIR}:${PATH}
 export PATH=${PYTHON_DIR}/Scripts:${PATH}
@@ -99,10 +101,12 @@ export PATH=${MINGW_DIR}/bin:${PATH}
 
 # export DEBUG_FLAG="-g"
 export DEBUG_FLAG=""
-export COMPARCH=32   # for a 32-bit build!
+export COMPARCH=64   # for a 64-bit build!
 
 export EXTRA_FLAGS="-static-libstdc++ -static-libgcc"
-export COMPFLAGS="${EXTRA_FLAGS} -I${PYTHON_DIR}/include -m${COMPARCH}"
+
+# -DMS_WIN64 is required so the Python headers properly detect a 64-bit build
+export COMPFLAGS="${EXTRA_FLAGS} -I${PYTHON_DIR}/include -m${COMPARCH} -DMS_WIN64"
 
 if [ -z "$DEBUG_FLAG" ]; then
     COMPFLAGS="-O3 -DNDEBUG ${COMPFLAGS}"
@@ -148,6 +152,7 @@ cd boolector
 #
 # Download, patch and build Boolector's dependencies
 #
+
 ./contrib/setup-picosat.sh
 ./contrib/setup-lingeling.sh
 ./contrib/setup-cadical.sh
