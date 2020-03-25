@@ -1,3 +1,13 @@
+ news for release 3.2.1 since 3.2.0
+--------------------------------------------------------------------------------
++ initial version of Dockerfile for Boolector
+  (thanks to Andrew V. Jones)
++ fix issue with infinite recursion in Python API
+  (thanks to Andrew V. Jones)
++ fix issue with dumping constant arrays
++ fix issue with reset assumptions and checking of failed assumptions
++ fix witness printing in btormc
+
  news for release 3.2.0 since 3.1.0
 --------------------------------------------------------------------------------
 + new dumper CNF printer (enable with CLI option -dd and API option
