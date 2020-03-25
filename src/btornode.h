@@ -226,6 +226,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 /*------------------------------------------------------------------------*/
 
+bool btor_node_is_bv (Btor *btor, const BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
 static inline BtorNode *
 btor_node_set_tag (BtorNode *node, uintptr_t tag)
 {

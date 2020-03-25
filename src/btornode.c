@@ -257,6 +257,16 @@ btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
 
 /*------------------------------------------------------------------------*/
 
+bool
+btor_node_is_bv (Btor *btor, const BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  return btor_sort_is_bv (btor, btor_node_get_sort_id (exp));
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 {
