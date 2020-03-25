@@ -1122,9 +1122,10 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
 }
 
 static void
-print_witness (BtorMC *mc, int32_t time)
+print_witness (BtorMC *mc, int32_t time, size_t bad_id)
 {
   assert (time >= 0);
+  assert (BTOR_PEEK_STACK (mc->reached, bad_id) == time);
 
   size_t i;
   BtorMCstate *state;
@@ -1134,12 +1135,7 @@ print_witness (BtorMC *mc, int32_t time)
 
   full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
 
-  printf ("sat\n");
-  for (i = 0; i < BTOR_COUNT_STACK (mc->reached); i++)
-  {
-    if (BTOR_PEEK_STACK (mc->reached, i) == time) printf ("b%zu ", i);
-  }
-  printf ("\n");
+  printf ("sat\nb%zu\n", bad_id);
 
   for (i = 0; i <= (size_t) time; i++)
   {
@@ -1410,7 +1406,9 @@ check_last_forward_frame (BtorMC *mc)
       }
 
       if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
-        print_witness (mc, k);
+      {
+        print_witness (mc, k, i);
+      }
     }
     else
     {
