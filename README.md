@@ -126,11 +126,10 @@ find_package(Boolector)
 target_link_libraries(<your_target> Boolector::boolector)
 ```
 
-### Windows 32-bit on Windows 64-bit
+### Windows
 
-For build and installation instructions of a Boolector Windows 32-bit build
-on a Windows 64-bit system, see file [COMPILING_WIN32.md](
-    https://github.com/Boolector/boolector/blob/master/COMPILING_WIN32.md).
+For building and usage of Boolector on Windows, please see 
+[COMPILING_WINDOWS.md](https://github.com/Boolector/boolector/blob/master/COMPILING_WINDOWS.md).
 
 ## Usage
 
