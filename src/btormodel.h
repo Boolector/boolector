@@ -60,6 +60,15 @@ const BtorPtrHashTable* btor_model_get_fun_aux (Btor* btor,
                                                 BtorIntHashTable* fun_model,
                                                 BtorNode* exp);
 
+/**
+ * Get node representation of the model value of the given node.
+ *
+ * For bit-vector nodes, the returned node is a bit-vector const node.
+ * For arrays, the returned node is a write chain.
+ * For functions, the returned node is an ite chain over the argument values.
+ */
+BtorNode* btor_model_get_value (Btor* btor, BtorNode* exp);
+
 /*------------------------------------------------------------------------*/
 
 void btor_model_add_to_bv (Btor* btor,

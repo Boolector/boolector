@@ -12,6 +12,7 @@
 #include "btorclone.h"
 #include "btordbg.h"
 #include "btorlog.h"
+#include "utils/btorhash.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
@@ -1197,6 +1198,118 @@ btor_model_recursively_compute_assignment (Btor *btor,
   btor_hashint_map_delete (mark);
 
   return result;
+}
+
+/*------------------------------------------------------------------------*/
+
+BtorNode *
+btor_model_get_value (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT && btor->valid_assignments);
+
+  uint32_t i, nparams;
+  BtorNode *res, *tmp, *arg, *val, **params, *uf, *cond, *eq;
+  BtorSortId sort, domain;
+  const BtorPtrHashTable *model;
+  BtorBitVectorTuple *tup;
+  BtorPtrHashTableIterator it;
+  BtorTupleSortIterator tit;
+
+  exp  = btor_simplify_exp (btor, exp);
+  sort = btor_node_get_sort_id (exp);
+
+  if (btor_node_is_bv (btor, exp))
+  {
+    res = btor_exp_bv_const (btor, btor_model_get_bv (btor, exp));
+  }
+  else if ((btor_node_is_lambda (exp)
+            && btor_node_fun_get_arity (btor, exp) > 1)
+           || btor_node_is_const_array (exp))
+  {
+    res = btor_node_copy (btor, exp);
+  }
+  else
+  {
+    assert (btor_node_is_array (exp) || btor_node_is_fun (exp));
+    model = btor_model_get_fun (btor, exp);
+    if (!model)
+    {
+      res = btor_node_copy (btor, exp);
+    }
+    else
+    {
+      if (btor_node_is_array (exp))
+      {
+        res = btor_exp_array (btor, sort, 0);
+        btor_iter_hashptr_init (&it, (BtorPtrHashTable *) model);
+        while (btor_iter_hashptr_has_next (&it))
+        {
+          val = btor_exp_bv_const (btor, it.bucket->data.as_ptr);
+          tup = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
+          assert (tup->arity == 1);
+          arg = btor_exp_bv_const (btor, tup->bv[0]);
+          tmp = btor_exp_write (btor, res, arg, val);
+          btor_node_release (btor, arg);
+          btor_node_release (btor, val);
+          btor_node_release (btor, res);
+          res = tmp;
+        }
+      }
+      else
+      {
+        domain  = btor_sort_fun_get_domain (btor, sort);
+        nparams = btor_node_fun_get_arity (btor, exp);
+        BTOR_NEWN (btor->mm, params, nparams);
+        /* create parameters x1, ..., xn for lambda */
+        i = 0;
+        btor_iter_tuple_sort_init (&tit, btor, domain);
+        while (btor_iter_tuple_sort_has_next (&tit))
+        {
+          params[i++] =
+              btor_exp_param (btor, btor_iter_tuple_sort_next (&tit), 0);
+        }
+        /* create base case: uf(x1, ..., xn) */
+        uf  = btor_exp_uf (btor, sort, 0);
+        res = btor_exp_apply_n (btor, uf, params, nparams);
+        btor_node_release (btor, uf);
+        /* create ite chain */
+        btor_iter_hashptr_init (&it, (BtorPtrHashTable *) model);
+        while (btor_iter_hashptr_has_next (&it))
+        {
+          val = btor_exp_bv_const (btor, it.bucket->data.as_ptr);
+          tup = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
+          assert (tup->arity == nparams);
+          cond = btor_exp_true (btor);
+          for (i = 0; i < nparams; i++)
+          {
+            arg = btor_exp_bv_const (btor, tup->bv[i]);
+            eq  = btor_exp_eq (btor, arg, params[i]);
+            tmp = btor_exp_bv_and (btor, cond, eq);
+            btor_node_release (btor, eq);
+            btor_node_release (btor, arg);
+            btor_node_release (btor, cond);
+            cond = tmp;
+          }
+          tmp = btor_exp_cond (btor, cond, val, res);
+          btor_node_release (btor, val);
+          btor_node_release (btor, cond);
+          btor_node_release (btor, res);
+          res = tmp;
+        }
+        tmp = btor_exp_fun (btor, params, nparams, res);
+        btor_node_release (btor, res);
+        res = tmp;
+        for (i = 0; i < nparams; i++)
+        {
+          btor_node_release (btor, params[i]);
+        }
+        BTOR_DELETEN (btor->mm, params, nparams);
+      }
+    }
+  }
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

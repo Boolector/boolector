@@ -3982,6 +3982,33 @@ boolector_fun_sort_check (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
+BoolectorNode *
+boolector_get_value (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *res;
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT (
+      btor->last_sat_result != BTOR_RESULT_SAT || !btor->valid_assignments,
+      "cannot retrieve model if input formula is not SAT");
+  BTOR_ABORT (!btor_opt_get (btor, BTOR_OPT_MODEL_GEN),
+              "model generation has not been enabled");
+  BTOR_ABORT (btor->quantifiers->count,
+              "models are currently not supported with quantifiers");
+  BTOR_ABORT_ARG_NULL (exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS (exp);
+  BTOR_ABORT_BTOR_MISMATCH (btor, exp);
+  res = btor_model_get_value (btor, exp);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, get_value, BTOR_CLONED_EXP (exp));
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {

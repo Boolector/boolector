@@ -1735,6 +1735,12 @@ NEXT:
       exp_ret = RET_SKIP;
       BTOR_DELETEN (g_btorunt->mm, tmp, arg1_uint);
     }
+    else if (!strcmp (tok, "get_value"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr = boolector_get_value (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_NODEPTR;
+    }
     else if (!strcmp (tok, "bv_assignment"))
     {
       PARSE_ARGS1 (tok, str);
