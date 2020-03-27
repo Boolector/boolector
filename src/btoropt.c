@@ -22,8 +22,7 @@
 
 /*------------------------------------------------------------------------*/
 
-const char *const g_btor_se_name[BTOR_SAT_ENGINE_MAX] = {
-    [BTOR_SAT_ENGINE_MIN]       = "invalid",
+const char *const g_btor_se_name[BTOR_SAT_ENGINE_MAX + 1] = {
     [BTOR_SAT_ENGINE_LINGELING] = "Lingeling",
     [BTOR_SAT_ENGINE_PICOSAT]   = "PicoSAT",
     [BTOR_SAT_ENGINE_MINISAT]   = "MiniSat",
@@ -174,8 +173,8 @@ btor_opt_init_opts (Btor *btor)
             "input-format",
             0,
             BTOR_INPUT_FORMAT_DFLT,
-            BTOR_INPUT_FORMAT_MIN + 1,
-            BTOR_INPUT_FORMAT_MAX - 1,
+            BTOR_INPUT_FORMAT_MIN,
+            BTOR_INPUT_FORMAT_MAX,
             "input file format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -204,8 +203,8 @@ btor_opt_init_opts (Btor *btor)
             "output-number-format",
             0,
             BTOR_OUTPUT_BASE_DFLT,
-            BTOR_OUTPUT_BASE_MIN + 1,
-            BTOR_OUTPUT_BASE_MAX - 1,
+            BTOR_OUTPUT_BASE_MIN,
+            BTOR_OUTPUT_BASE_MAX,
             "output number format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -233,8 +232,8 @@ btor_opt_init_opts (Btor *btor)
             "output-format",
             0,
             BTOR_OUTPUT_FORMAT_DFLT,
-            BTOR_OUTPUT_FORMAT_MIN + 1,
-            BTOR_OUTPUT_FORMAT_MAX - 1,
+            BTOR_OUTPUT_FORMAT_MIN,
+            BTOR_OUTPUT_FORMAT_MAX,
             "output file format");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -272,8 +271,8 @@ btor_opt_init_opts (Btor *btor)
             "engine",
             "E",
             BTOR_ENGINE_DFLT,
-            BTOR_ENGINE_MIN + 1,
-            BTOR_ENGINE_MAX - 1,
+            BTOR_ENGINE_MIN,
+            BTOR_ENGINE_MAX,
             "enable specific engine");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -305,7 +304,6 @@ btor_opt_init_opts (Btor *btor)
                 "use the quantifier engine (BV only)");
   btor->options[BTOR_OPT_ENGINE].options = opts;
 
-
   init_opt (btor,
             BTOR_OPT_SAT_ENGINE,
             false,
@@ -313,8 +311,8 @@ btor_opt_init_opts (Btor *btor)
             "sat-engine",
             "SE",
             BTOR_SAT_ENGINE_DFLT,
-            BTOR_SAT_ENGINE_MIN + 1,
-            BTOR_SAT_ENGINE_MAX - 1,
+            BTOR_SAT_ENGINE_MIN,
+            BTOR_SAT_ENGINE_MAX,
             "enable specific SAT solver");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -571,8 +569,8 @@ btor_opt_init_opts (Btor *btor)
             "fun-dual-prop-qsort",
             0,
             BTOR_DP_QSORT_DFLT,
-            BTOR_DP_QSORT_MIN + 1,
-            BTOR_DP_QSORT_MAX - 1,
+            BTOR_DP_QSORT_MIN,
+            BTOR_DP_QSORT_MAX,
             "order in which to assume inputs in dual solver");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -605,8 +603,8 @@ btor_opt_init_opts (Btor *btor)
             "fun-just-heuristic",
             0,
             BTOR_JUST_HEUR_DFLT,
-            BTOR_JUST_HEUR_MIN + 1,
-            BTOR_JUST_HEUR_MAX - 1,
+            BTOR_JUST_HEUR_MIN,
+            BTOR_JUST_HEUR_MAX,
             "justification heuristic");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -647,8 +645,8 @@ btor_opt_init_opts (Btor *btor)
             "fun-eager-lemmas",
             "fun-el",
             BTOR_FUN_EAGER_LEMMAS_DFLT,
-            BTOR_FUN_EAGER_LEMMAS_MIN + 1,
-            BTOR_FUN_EAGER_LEMMAS_MAX - 1,
+            BTOR_FUN_EAGER_LEMMAS_MIN,
+            BTOR_FUN_EAGER_LEMMAS_MAX,
             "eager lemma generation");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -712,8 +710,8 @@ btor_opt_init_opts (Btor *btor)
             "sls-strategy",
             0,
             BTOR_SLS_STRAT_DFLT,
-            BTOR_SLS_STRAT_MIN + 1,
-            BTOR_SLS_STRAT_MAX - 1,
+            BTOR_SLS_STRAT_MIN,
+            BTOR_SLS_STRAT_MAX,
             "move strategy for sls");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -946,8 +944,8 @@ btor_opt_init_opts (Btor *btor)
             "prop-path-sel",
             0,
             BTOR_PROP_PATH_SEL_DFLT,
-            BTOR_PROP_PATH_SEL_MIN + 1,
-            BTOR_PROP_PATH_SEL_MAX - 1,
+            BTOR_PROP_PATH_SEL_MIN,
+            BTOR_PROP_PATH_SEL_MAX,
             "path selection mode");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
@@ -1176,11 +1174,6 @@ btor_opt_init_opts (Btor *btor)
             BTOR_QUANT_SYNTH_MIN,
             BTOR_QUANT_SYNTH_MAX,
             "synthesis mode for Skolem functions");
-            //"0=none,"
-            //"1=enumlearn,"
-            //"2=enumlearn modulo predicates,"
-            //"3=1+2 combined,"
-            //"4=enumlearn modulo formula");
   opts = btor_hashptr_table_new (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmpoptval);
   add_opt_help (mm,
