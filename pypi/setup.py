@@ -8,20 +8,17 @@ to be installed from Py-Pi
 """
 MAINTAINER = "Matthew Ballance"
 MAINTAINER_EMAIL = 'matt.ballance@gmail.com'
-LICENSE = "Apache 2.0"
+LICENSE = "MIT License"
 PLATFORMS = "Any"
 URL = "https://github.com/boolector/boolector"
 DOWNLOAD_URL = "https://pypi.org/project/PyBoolector/"
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache 2.0 License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.4",
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
