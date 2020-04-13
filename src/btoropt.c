@@ -242,11 +242,11 @@ btor_opt_init_opts (Btor *btor)
                 "btor",
                 BTOR_OUTPUT_FORMAT_BTOR,
                 "use BTOR as output file format");
-  add_opt_help (mm,
-                opts,
-                "btor2",
-                BTOR_OUTPUT_FORMAT_BTOR2,
-                "use BTOR2 as output file format");
+  // add_opt_help (mm,
+  //              opts,
+  //              "btor2",
+  //              BTOR_OUTPUT_FORMAT_BTOR2,
+  //              "use BTOR2 as output file format");
   add_opt_help (mm,
                 opts,
                 "smt2",

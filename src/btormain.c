@@ -78,7 +78,6 @@ enum BtorMainOption
   BTORMAIN_OPT_DUMP_AAG,
   BTORMAIN_OPT_DUMP_AIG,
   BTORMAIN_OPT_DUMP_AIGER_MERGE,
-  BTORMAIN_OPT_SMT2_MODEL,
   /* this MUST be the last entry! */
   BTORMAIN_OPT_NUM_OPTS,
 };
@@ -384,19 +383,6 @@ btormain_init_opts (BtorMainApp *app)
                      true,
                      BTOR_ARG_EXPECT_NONE,
                      "merge all roots of AIG [0]");
-  btormain_init_opt (app,
-                     BTORMAIN_OPT_SMT2_MODEL,
-                     false,
-                     true,
-                     "smt2-model",
-                     0,
-                     0,
-                     0,
-                     1,
-                     false,
-                     BTOR_ARG_EXPECT_NONE,
-                     "print model in SMT-LIB v2 format "
-                     "if model generation is enabled");
 }
 
 static bool
@@ -815,7 +801,7 @@ print_help (BtorMainApp *app)
     if (app->options[mo].general) continue;
     if (mo == BTORMAIN_OPT_LGL_NOFORK) continue;
     PRINT_MAIN_OPT (app, &app->options[mo]);
-    if (mo == BTORMAIN_OPT_SMT2_MODEL) fprintf (out, "\n");
+    if (mo == BTORMAIN_OPT_DUMP_AIGER_MERGE) fprintf (out, "\n");
   }
 
   BTOR_PUSH_STACK (ostack, BTOR_OPT_ENGINE);
@@ -1001,11 +987,10 @@ int32_t
 boolector_main (int32_t argc, char **argv)
 {
   size_t i, len;
-  int32_t format;
   int32_t res;
   int32_t parse_res, parse_status;
   int32_t sat_res;
-  uint32_t mgen, pmodel, inc, dump;
+  uint32_t format, mgen, pmodel, inc, dump;
   uint32_t val;
   bool dump_merge;
   char *cmd, *parse_err_msg;
@@ -1028,7 +1013,6 @@ boolector_main (int32_t argc, char **argv)
   mm    = g_app->mm;
 
   res          = BTOR_UNKNOWN_EXIT;
-  parse_res    = BOOLECTOR_UNKNOWN;
   parse_status = BOOLECTOR_UNKNOWN;
   sat_res      = BOOLECTOR_UNKNOWN;
 
@@ -1169,10 +1153,6 @@ boolector_main (int32_t argc, char **argv)
             goto DONE;
           }
           g_app->outfile_name = po->valstr;
-          break;
-
-        case BTORMAIN_OPT_SMT2_MODEL:
-          g_app->options[BTORMAIN_OPT_SMT2_MODEL].val += 1;
           break;
 
         case BTORMAIN_OPT_LGL_NOFORK:
@@ -1379,10 +1359,6 @@ boolector_main (int32_t argc, char **argv)
     g_app->close_outfile = true;
   }
 
-  /* automatically enable model generation if smt2 models are forced */
-  val  = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
-  mgen = !mgen && g_app->options[BTORMAIN_OPT_SMT2_MODEL].val ? val : mgen;
-
   // TODO: disabling model generation not yet supported (ma)
   if (mgen > 0) boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, mgen);
 
@@ -1506,9 +1482,18 @@ boolector_main (int32_t argc, char **argv)
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
       assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
-      val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
-      boolector_print_model (
-          btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
+      format = boolector_get_opt (btor, BTOR_OPT_OUTPUT_FORMAT);
+      printf ("format %u\n", format);
+      if (format == BTOR_OUTPUT_FORMAT_BTOR || !parsed_smt2)
+      {
+        boolector_print_model (btor, "btor", g_app->outfile);
+      }
+      else
+      {
+        boolector_print_model (btor, "smt2", g_app->outfile);
+      }
+      // boolector_print_model (
+      //    btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
     }
 
 #ifdef BTOR_TIME_STATISTICS
@@ -1586,9 +1571,18 @@ boolector_main (int32_t argc, char **argv)
   if (pmodel && sat_res == BOOLECTOR_SAT)
   {
     assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
-    val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
-    boolector_print_model (
-        btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
+    format = boolector_get_opt (btor, BTOR_OPT_OUTPUT_FORMAT);
+    printf ("format %u val %u parse_smt2 %u\n", format, val, parsed_smt2);
+    if (format == BTOR_OUTPUT_FORMAT_BTOR || !parsed_smt2)
+    {
+      boolector_print_model (btor, "btor", g_app->outfile);
+    }
+    else
+    {
+      boolector_print_model (btor, "smt2", g_app->outfile);
+    }
+    // boolector_print_model (
+    //     btor, val || parsed_smt2 ? "smt2" : "btor", g_app->outfile);
   }
 
 DONE:

@@ -1,3 +1,7 @@
+ news since 3.2.1
+--------------------------------------------------------------------------------
++ remove obsolete CL option --smt2-model (use -m --output-format=smt2 instead)
+
  news for release 3.2.1 since 3.2.0
 --------------------------------------------------------------------------------
 + initial version of Dockerfile for Boolector
