@@ -1483,7 +1483,6 @@ boolector_main (int32_t argc, char **argv)
     {
       assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
       format = boolector_get_opt (btor, BTOR_OPT_OUTPUT_FORMAT);
-      printf ("format %u\n", format);
       if (format == BTOR_OUTPUT_FORMAT_BTOR || !parsed_smt2)
       {
         boolector_print_model (btor, "btor", g_app->outfile);
@@ -1572,7 +1571,6 @@ boolector_main (int32_t argc, char **argv)
   {
     assert (boolector_get_opt (btor, BTOR_OPT_MODEL_GEN));
     format = boolector_get_opt (btor, BTOR_OPT_OUTPUT_FORMAT);
-    printf ("format %u val %u parse_smt2 %u\n", format, val, parsed_smt2);
     if (format == BTOR_OUTPUT_FORMAT_BTOR || !parsed_smt2)
     {
       boolector_print_model (btor, "btor", g_app->outfile);
