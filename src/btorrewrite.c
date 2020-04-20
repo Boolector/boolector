@@ -3980,6 +3980,32 @@ apply_sll_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+static inline bool
+applies_neg_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  (void) e1;
+  return btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+         && btor_node_bv_is_neg (btor, e0, 0)
+         && btor_node_bv_is_neg (btor, e1, 0);
+}
+
+static inline BtorNode *
+apply_neg_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_neg_mul (btor, e0, e1));
+
+  BtorNode *result, *a, *b;
+
+  btor_node_bv_is_neg (btor, e0, &a);
+  btor_node_bv_is_neg (btor, e1, &b);
+
+  BTOR_INC_REC_RW_CALL (btor);
+  result = rewrite_mul_exp (btor, a, b);
+  BTOR_DEC_REC_RW_CALL (btor);
+  return result;
+}
+
 #if 0
   // TODO: why should we disable this?
   //
@@ -6790,6 +6816,7 @@ SWAP_OPERANDS:
     ADD_RW_RULE (const_mul, e0, e1);
     ADD_RW_RULE (push_ite_mul, e0, e1);
     ADD_RW_RULE (sll_mul, e0, e1);
+    ADD_RW_RULE (neg_mul, e0, e1);
 
     assert (!result);
 
