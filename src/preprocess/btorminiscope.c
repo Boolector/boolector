@@ -332,7 +332,7 @@ btor_miniscope_node (Btor *btor, BtorNode *root)
   BtorPtrHashTable *rev_pushed_to;
   BtorHashTableData *d;
 
-  if (btor->quantifiers->count == 0) return 0;
+  if (btor->quantifiers->count == 0) return btor_node_copy (btor, root);
 
   mm            = btor->mm;
   cache         = btor_hashint_map_new (mm);

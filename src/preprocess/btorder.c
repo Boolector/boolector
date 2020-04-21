@@ -304,6 +304,9 @@ compute_deps (Btor *btor, BtorNode *root)
 static BtorNode *
 elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
 {
+  assert (btor);
+  assert (root);
+
   uint32_t i, num_quant_vars = 0, num_elim_vars = 0, opt_simp_const;
   BtorNode *cur, *real_cur, *e[3], *result;
   BtorNodePtrStack visit;
