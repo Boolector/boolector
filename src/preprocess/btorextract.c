@@ -1470,7 +1470,7 @@ extract_macros (Btor *btor)
     if (btor_node_is_inverted (cur) || !btor_node_is_forall (cur)) continue;
 
     body = cur->e[1];
-    if (!btor_node_is_bv_eq (body)) continue;
+    if (btor_node_is_inverted (body) || !btor_node_is_bv_eq (body)) continue;
 
     if (btor_node_is_apply (body->e[0]))
     {
