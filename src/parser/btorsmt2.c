@@ -4806,8 +4806,6 @@ read_command_smt2 (BtorSMT2Parser *parser)
       if (!boolector_get_opt (parser->btor, BTOR_OPT_MODEL_GEN))
         return !perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
-      printf ("format %u\n",
-              boolector_get_opt (parser->btor, BTOR_OPT_OUTPUT_FORMAT));
       if (boolector_get_opt (parser->btor, BTOR_OPT_OUTPUT_FORMAT)
           == BTOR_OUTPUT_FORMAT_BTOR)
       {
