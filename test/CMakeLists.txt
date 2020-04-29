@@ -76,6 +76,7 @@ set(sat_testcases
 "invalidmodel1.smt2"
 "invalidmodel2.smt2 -xl=0 -ml=0 -rwl=2"
 "invalidmodel3.btor"
+"issue96.smt2"
 "lazyreadwritebug1.btor"
 "lambda1.btor"
 "lin0.btor"

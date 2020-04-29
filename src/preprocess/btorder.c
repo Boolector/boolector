@@ -159,7 +159,6 @@ find_substitutions (Btor *btor,
 {
   assert (btor);
   assert (root);
-  assert (!btor_node_is_quantifier (root));
   assert (subst_map);
 
   BtorNode *cur, *real_cur, *top_and = 0;
