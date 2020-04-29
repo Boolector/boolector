@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2017 Armin Biere.
- *  Copyright (C) 2013-2019 Aina Niemetz.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *  Copyright (C) 2013-2020 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -4664,13 +4664,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
         case BTOR_LOGIC_QF_ABV_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_QF_AUFBV;
           break;
-        case BTOR_LOGIC_ABV_TAG_SMT2:
-          parser->res->logic = BTOR_LOGIC_QF_ABV;
-          break;
         case BTOR_LOGIC_BV_TAG_SMT2: parser->res->logic = BTOR_LOGIC_BV; break;
-        case BTOR_LOGIC_UFBV_TAG_SMT2:
-          parser->res->logic = BTOR_LOGIC_QF_UFBV;
-          break;
         case BTOR_LOGIC_ALL_TAG_SMT2:
           parser->res->logic = BTOR_LOGIC_ALL;
           break;
