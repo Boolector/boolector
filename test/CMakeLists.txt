@@ -469,6 +469,7 @@ set(unsat_testcases
 "hd9.btor -rwl 1"
 "inc.btor"
 "inc.btor -rwl 0"
+"issue97.smt2"
 "lambda2.btor"
 "memcpy02.smt2"
 "mulassoc4.smt2"
