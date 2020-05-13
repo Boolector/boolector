@@ -2366,7 +2366,7 @@ cdef class Boolector:
 
             Parameters ``a`` and ``b`` must have the same bit width
             (see :ref:`const-conversion`).
-            If ``a`` is 0, the division's result is -1.
+            If ``b`` is 0, the division's result is -1.
 
             It is also possible to create an unsigned division as follows
             (see :ref:`operator-overloading`): ::
