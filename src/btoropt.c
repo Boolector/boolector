@@ -25,6 +25,7 @@
 const char *const g_btor_se_name[BTOR_SAT_ENGINE_MAX + 1] = {
     [BTOR_SAT_ENGINE_LINGELING] = "Lingeling",
     [BTOR_SAT_ENGINE_PICOSAT]   = "PicoSAT",
+    [BTOR_SAT_ENGINE_KISSAT]    = "Kissat",
     [BTOR_SAT_ENGINE_MINISAT]   = "MiniSat",
     [BTOR_SAT_ENGINE_CADICAL]   = "CaDiCaL",
     [BTOR_SAT_ENGINE_CMS]       = "CryptoMiniSat",
@@ -341,6 +342,11 @@ btor_opt_init_opts (Btor *btor)
                 "picosat",
                 BTOR_SAT_ENGINE_PICOSAT,
                 "use picosat as back end SAT solver");
+  add_opt_help (mm,
+                opts,
+                "kissat",
+                BTOR_SAT_ENGINE_KISSAT,
+                "use kissat as back end SAT solver");
   btor->options[BTOR_OPT_SAT_ENGINE].options = opts;
 
   init_opt (btor,

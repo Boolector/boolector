@@ -8,3 +8,4 @@ set -e -o pipefail
 ./contrib/setup-lingeling.sh
 ./contrib/setup-minisat.sh
 ./contrib/setup-picosat.sh
+./contrib/setup-kissat.sh

@@ -719,6 +719,9 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 #ifndef BTOR_USE_PICOSAT
       || sat_engine == BTOR_SAT_ENGINE_PICOSAT
 #endif
+#ifndef BTOR_USE_KISSAT
+      || sat_engine == BTOR_SAT_ENGINE_KISSAT
+#endif
 #ifndef BTOR_USE_CMS
       || sat_engine == BTOR_SAT_ENGINE_CMS
 #endif
@@ -4934,6 +4937,11 @@ boolector_copyright (Btor *btor)
          "\n"
          "This software is linked against CaDiCaL\n"
          "Copyright (c) 2016-2019 Armin Biere\n"
+#endif
+#ifdef BTOR_USE_KISSAT
+         "\n"
+         "This software is linked against Kissat\n"
+         "Copyright (c) 2019-2020 Armin Biere\n"
 #endif
          "";
 }

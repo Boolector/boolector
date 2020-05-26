@@ -66,6 +66,7 @@ set(libboolector_src_files
   sat/btorlgl.c
   sat/btorminisat.cc
   sat/btorpicosat.c
+  sat/btorkissat.c
   utils/boolectornodemap.c
   utils/btoraigmap.c
   utils/btorhashint.c
@@ -121,6 +122,11 @@ endif()
 if(PicoSAT_FOUND)
   target_include_directories(boolector PRIVATE ${PicoSAT_INCLUDE_DIR})
   target_link_libraries(boolector ${PicoSAT_LIBRARIES})
+endif()
+
+if(Kissat_FOUND)
+  target_include_directories(boolector PRIVATE ${Kissat_INCLUDE_DIR})
+  target_link_libraries(boolector ${Kissat_LIBRARIES})
 endif()
 
 if(MiniSat_FOUND)

@@ -19,6 +19,7 @@ gmp=no
 lingeling=unknown
 minisat=unknown
 picosat=unknown
+kissat=unknown
 cadical=unknown
 cms=unknown
 
@@ -74,12 +75,14 @@ can not be found.
   --no-lingeling         do not use Lingeling
   --no-minisat           do not use MiniSAT
   --no-picosat           do not use PicoSAT
+  --no-kissat            do not use Kissat
 
   --only-cadical         only use CaDiCaL
   --only-cms             only use CryptoMiniSat
   --only-lingeling       only use Lingeling
   --only-minisat         only use MiniSAT
   --only-picosat         only use PicoSAT
+  --only-kissat          only use Kissat
 EOF
   exit 0
 }
@@ -142,12 +145,14 @@ do
     --no-lingeling) lingeling=no;;
     --no-minisat)   minisat=no;;
     --no-picosat)   picosat=no;;
+    --no-kissat)    kissat=no;;
 
-    --only-cadical)   lingeling=no;minisat=no;picosat=no;cadical=yes;cms=no;;
-    --only-cms)       lingeling=no;minisat=no;picosat=no;cadical=no;cms=yes;;
-    --only-lingeling) lingeling=yes;minisat=no;picosat=no;cadical=no;cms=no;;
-    --only-minisat)   lingeling=no;minisat=yes;picosat=no;cadical=no;cms=no;;
-    --only-picosat)   lingeling=no;minisat=no;picosat=yes;cadical=no;cms=no;;
+    --only-cadical)   lingeling=no;minisat=no;picosat=no;kissat=no;cadical=yes;cms=no;;
+    --only-cms)       lingeling=no;minisat=no;picosat=no;kissat=no;cadical=no;cms=yes;;
+    --only-lingeling) lingeling=yes;minisat=no;picosat=no;kissat=no;cadical=no;cms=no;;
+    --only-minisat)   lingeling=no;minisat=yes;picosat=no;kissat=no;cadical=no;cms=no;;
+    --only-picosat)   lingeling=no;minisat=no;picosat=yes;kissat=no;cadical=no;cms=no;;
+    --only-kissat)    lingeling=no;minisat=no;picosat=no;kissat=yes;cadical=no;cms=no;;
 
     -*) die "invalid option '$opt' (try '-h')";;
   esac
@@ -175,12 +180,14 @@ cmake_opts="$CMAKE_OPTS"
 [ $lingeling = yes ] && cmake_opts="$cmake_opts -DUSE_LINGELING=ON"
 [ $minisat = yes ] && cmake_opts="$cmake_opts -DUSE_MINISAT=ON"
 [ $picosat = yes ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=ON"
+[ $kissat = yes ] && cmake_opts="$cmake_opts -DUSE_KISSAT=ON"
 
 [ $cadical = no ] && cmake_opts="$cmake_opts -DUSE_CADICAL=OFF"
 [ $cms = no ] && cmake_opts="$cmake_opts -DUSE_CMS=OFF"
 [ $lingeling = no ] && cmake_opts="$cmake_opts -DUSE_LINGELING=OFF"
 [ $minisat = no ] && cmake_opts="$cmake_opts -DUSE_MINISAT=OFF"
 [ $picosat = no ] && cmake_opts="$cmake_opts -DUSE_PICOSAT=OFF"
+[ $kissat = no ] && cmake_opts="$cmake_opts -DUSE_KISSAT=OFF"
 
 [ $gcov = yes ] && cmake_opts="$cmake_opts -DGCOV=ON"
 [ $gprof = yes ] && cmake_opts="$cmake_opts -DGPROF=ON"

@@ -21,6 +21,7 @@
 #include "btorcore.h"
 #include "sat/btorcadical.h"
 #include "sat/btorcms.h"
+#include "sat/btorkissat.h"
 #include "sat/btorlgl.h"
 #include "sat/btorminisat.h"
 #include "sat/btorpicosat.h"
@@ -30,7 +31,7 @@
 
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PICOSAT)  \
     && !defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_CADICAL) \
-    && !defined(BTOR_USE_CMS)
+    && !defined(BTOR_USE_CMS) && !defined(BTOR_USE_KISSAT)
 #error "no SAT solver configured"
 #endif
 
@@ -305,6 +306,9 @@ btor_sat_enable_solver (BtorSATMgr *smgr)
 #endif
 #ifdef BTOR_USE_PICOSAT
     case BTOR_SAT_ENGINE_PICOSAT: btor_sat_enable_picosat (smgr); break;
+#endif
+#ifdef BTOR_USE_KISSAT
+    case BTOR_SAT_ENGINE_KISSAT: btor_sat_enable_kissat (smgr); break;
 #endif
 #ifdef BTOR_USE_MINISAT
     case BTOR_SAT_ENGINE_MINISAT: btor_sat_enable_minisat (smgr); break;
