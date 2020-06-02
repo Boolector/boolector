@@ -92,6 +92,11 @@ struct BtorGroundSolvers
   BtorSolverResult result;
 
   BtorQuantStats statistics;
+
+#ifdef BTOR_HAVE_PTHREADS
+  bool *found_result;
+  pthread_mutex_t *found_result_mutex;
+#endif
 };
 
 typedef struct BtorGroundSolvers BtorGroundSolvers;
@@ -2483,9 +2488,6 @@ DONE:
 }
 
 #ifdef BTOR_HAVE_PTHREADS
-bool thread_found_result            = false;
-pthread_mutex_t thread_result_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 void *
 thread_work (void *state)
 {
@@ -2494,23 +2496,23 @@ thread_work (void *state)
   bool skip_exists = true;
 
   gslv = state;
-  while (res == BTOR_RESULT_UNKNOWN && !thread_found_result)
+  while (res == BTOR_RESULT_UNKNOWN && !*gslv->found_result)
   {
     res         = find_model (gslv, skip_exists);
     skip_exists = false;
     gslv->statistics.stats.refinements++;
   }
-  pthread_mutex_lock (&thread_result_mutex);
-  if (!thread_found_result)
+  pthread_mutex_lock (gslv->found_result_mutex);
+  if (!*gslv->found_result)
   {
     BTOR_MSG (gslv->exists->msg,
               1,
               "found solution in %.2f seconds",
               btor_util_process_time_thread ());
-    thread_found_result = true;
+    *gslv->found_result = true;
   }
-  assert (thread_found_result || res == BTOR_RESULT_UNKNOWN);
-  pthread_mutex_unlock (&thread_result_mutex);
+  assert (*gslv->found_result || res == BTOR_RESULT_UNKNOWN);
+  pthread_mutex_unlock (gslv->found_result_mutex);
   gslv->result = res;
   return NULL;
 }
@@ -2518,21 +2520,30 @@ thread_work (void *state)
 int32_t
 thread_terminate (void *state)
 {
-  (void) state;
-  return thread_found_result == true;
+  bool found_result = *((bool *) state);
+  return found_result;
 }
 
 static BtorSolverResult
 run_parallel (BtorGroundSolvers *gslv, BtorGroundSolvers *dgslv)
 {
+  bool thread_found_result;
+  pthread_mutex_t thread_result_mutex = PTHREAD_MUTEX_INITIALIZER;
   BtorSolverResult res;
   pthread_t thread_orig, thread_dual;
 
+  thread_found_result   = false;
   g_measure_thread_time = true;
-  btor_set_term (gslv->forall, thread_terminate, 0);
-  btor_set_term (gslv->exists, thread_terminate, 0);
-  btor_set_term (dgslv->forall, thread_terminate, 0);
-  btor_set_term (dgslv->exists, thread_terminate, 0);
+  btor_set_term (gslv->forall, thread_terminate, &thread_found_result);
+  btor_set_term (gslv->exists, thread_terminate, &thread_found_result);
+  btor_set_term (dgslv->forall, thread_terminate, &thread_found_result);
+  btor_set_term (dgslv->exists, thread_terminate, &thread_found_result);
+
+  gslv->found_result        = &thread_found_result;
+  gslv->found_result_mutex  = &thread_result_mutex;
+  dgslv->found_result       = &thread_found_result;
+  dgslv->found_result_mutex = &thread_result_mutex;
+
   pthread_create (&thread_orig, 0, thread_work, gslv);
   pthread_create (&thread_dual, 0, thread_work, dgslv);
   pthread_join (thread_orig, 0);
