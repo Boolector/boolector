@@ -169,6 +169,15 @@ init_options (BtorMC *mc)
             0,
             1,
             "add simple path constraints");
+  init_opt (mc,
+            BTOR_MC_OPT_SEED,
+            false,
+            "seed",
+            "s",
+            0,
+            0,
+            UINT32_MAX,
+            "set the RNG seed");
 }
 
 /*------------------------------------------------------------------------*/
@@ -366,6 +375,9 @@ btor_mc_set_opt (BtorMC *mc, BtorMCOption opt, uint32_t val)
 
   if (opt == BTOR_MC_OPT_VERBOSITY)
     boolector_set_opt (mc->btor, BTOR_OPT_VERBOSITY, val);
+
+  if (opt == BTOR_MC_OPT_SEED)
+    boolector_set_opt (mc->btor, BTOR_OPT_SEED, val);
 }
 
 uint32_t
@@ -1024,9 +1036,11 @@ initialize_new_forward_frame (BtorMC *mc)
 
   if (!mc->forward)
   {
-    uint32_t v;
+    uint32_t v, s;
     BTOR_MSG (boolector_get_btor_msg (btor), 1, "new forward manager");
     mc->forward = boolector_new ();
+    if ((s = btor_mc_get_opt(mc, BTOR_MC_OPT_SEED)))
+      boolector_set_opt (mc->forward, BTOR_OPT_SEED, s);
     boolector_set_opt (mc->forward, BTOR_OPT_INCREMENTAL, 1);
     if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
       boolector_set_opt (mc->forward, BTOR_OPT_MODEL_GEN, 1);

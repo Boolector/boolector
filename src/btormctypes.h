@@ -44,6 +44,8 @@ enum BtorMCOption
   /* Enable k-induction engine */
   BTOR_MC_OPT_KINDUCTION,
   BTOR_MC_OPT_SIMPLE_PATH,
+  /* Set the RNG seed */
+  BTOR_MC_OPT_SEED,
   /* This MUST be the last entry! */
   BTOR_MC_OPT_NUM_OPTS,
 };
