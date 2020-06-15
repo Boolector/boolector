@@ -127,6 +127,7 @@ miniscope (Btor *btor,
               && btor_hashint_map_get (pushed_to, real_cur->id))
              || real_cur->kind == quant->kind)
     {
+      if (btor_node_is_inverted (cur)) cur_pol *= -1;
       cur        = real_cur->e[1];
       cur_parent = btor_node_set_tag (real_cur, 1);
       continue;
@@ -356,7 +357,9 @@ btor_miniscope_node (Btor *btor, BtorNode *root)
     {
       d->as_int = 1;
       if (btor_node_is_quantifier (cur))
+      {
         miniscope (btor, cur, pushed_to, rev_pushed_to);
+      }
     }
   }
 

@@ -1409,6 +1409,9 @@ check_last_forward_frame (BtorMC *mc)
       {
         print_witness (mc, k, i);
       }
+
+      if (btor_mc_get_opt (mc, BTOR_MC_OPT_STOP_FIRST))
+        break;
     }
     else
     {
