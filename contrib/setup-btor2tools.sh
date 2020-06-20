@@ -5,11 +5,9 @@ set -e -o pipefail
 source "$(dirname "$0")/setup-utils.sh"
 
 BTOR2TOOLS_DIR=${DEPS_DIR}/btor2tools
+COMMIT_ID="1df768d75adfb13a8f922f5ffdd1d58e80cb1cc2"
 
-rm -rf ${BTOR2TOOLS_DIR}
-
-# Download and build btor2tools
-git clone --depth 1 https://github.com/Boolector/btor2tools.git ${BTOR2TOOLS_DIR}
+download_github "boolector/btor2tools" "$COMMIT_ID" "$BTOR2TOOLS_DIR"
 cd ${BTOR2TOOLS_DIR}
 
 if is_windows; then
