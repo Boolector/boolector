@@ -16,6 +16,7 @@ list(APPEND CMAKE_PREFIX_PATH "${PROJECT_SOURCE_DIR}/deps/install")
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+include (ExternalProject)
 
 macro(add_c_flag flag)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
@@ -300,7 +301,15 @@ endif()
 
 #-----------------------------------------------------------------------------#
 
-find_package(Btor2Tools REQUIRED)
+# find_package(Btor2Tools REQUIRED)
+ExternalProject_Add(
+  Btor2Tools
+  URL https://github.com/mballance/btor2tools_win32/archive/master.zip
+  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/btor2tools
+  # Disable install step
+  INSTALL_COMMAND ""
+  )
+ExternalProject_Get_Property(Btor2Tools source_dir binary_dir)
 
 if(NOT IS_WINDOWS_BUILD)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -319,7 +328,16 @@ if(USE_GMP)
 endif()
 
 if(USE_LINGELING)
-  find_package(Lingeling)
+#  find_package(Lingeling)
+ExternalProject_Add(
+  lingeling
+  URL https://github.com/mballance/lingeling_win32/archive/master.zip
+  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/lingeling
+  # Disable install step
+  INSTALL_COMMAND ""
+  )
+ExternalProject_Get_Property(lingeling source_dir binary_dir)
+
 endif()
 if(USE_CADICAL)
   find_package(CaDiCaL)
