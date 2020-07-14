@@ -4935,6 +4935,11 @@ boolector_copyright (Btor *btor)
          "This software is linked against CaDiCaL\n"
          "Copyright (c) 2016-2019 Armin Biere\n"
 #endif
+#ifdef BTOR_USE_CMS
+         "\n"
+         "This software is linked against CryptoMiniSat\n"
+         "Copyright (c) 2009-2018 Mate Soos\n"
+#endif
          "";
 }
 
