@@ -52,6 +52,7 @@ void boolector_chkclone (Btor *);
 void boolector_set_btor_id (Btor *, BoolectorNode *, int32_t);
 void boolector_get_btor_msg (Btor *);
 void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
+void boolector_var_mark_bool (Btor *, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT BtorUNT;
@@ -1788,6 +1789,11 @@ NEXT:
       PARSE_ARGS2 (tok, str, str);
       boolector_print_value_smt2 (
           btor, hmap_get (hmap, arg1_str), arg2_str, stdout);
+    }
+    else if (!strcmp (tok, "var_mark_bool"))
+    {
+      PARSE_ARGS1 (tok, str);
+      boolector_var_mark_bool (btor, hmap_get (hmap, arg1_str));
     }
     /* sorts */
     else if (!strcmp (tok, "bool_sort"))
