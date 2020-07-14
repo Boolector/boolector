@@ -8,7 +8,7 @@ LINGELING_DIR=${DEPS_DIR}/lingeling
 COMMIT_ID="03b4860d14016f42213ea271014f2f13d181f504"
 
 download_github "arminbiere/lingeling" "$COMMIT_ID" "$LINGELING_DIR"
-cd ${LINGELING_DIR}
+cd "${LINGELING_DIR}"
 
 if is_windows; then
   component="Lingeling"
