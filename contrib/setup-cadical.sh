@@ -8,7 +8,7 @@ CADICAL_DIR=${DEPS_DIR}/cadical
 COMMIT_ID="cb89cbfa16f47cb7bf1ec6ad9855e7b6d5203c18"
 
 download_github "arminbiere/cadical" "$COMMIT_ID" "$CADICAL_DIR"
-cd ${CADICAL_DIR}
+cd "${CADICAL_DIR}"
 
 if is_windows; then
   component="CaDiCaL"

@@ -5,7 +5,7 @@ source "$(dirname "$0")/setup-utils.sh"
 CMS_DIR=${DEPS_DIR}/cryptominisat
 
 download_github "msoos/cryptominisat" "5.6.3" "$CMS_DIR"
-cd ${CMS_DIR}
+cd "${CMS_DIR}"
 
 mkdir build
 cd build
