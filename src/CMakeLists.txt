@@ -140,7 +140,7 @@ install(EXPORT boolector-export
   DESTINATION lib/cmake/Boolector)
 
 # Install header files
-install(FILES boolector.h btortypes.h DESTINATION include/boolector)
+install(FILES boolector.h btortypes.h btoropt.h DESTINATION include/boolector)
 
 #-----------------------------------------------------------------------------#
 # boolector
