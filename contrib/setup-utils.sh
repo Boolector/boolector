@@ -107,13 +107,14 @@ function download_github
   local repo="$1"
   local version="$2"
   local location="$3"
+  local tar_args="$4"
   local name=$(echo "$repo" | cut -d '/' -f 2)
   local archive="$name-$version.tar.gz"
 
   curl -o "$archive" -L "https://github.com/$repo/archive/$version.tar.gz"
 
   rm -rf "${location}"
-  tar xfvz "$archive"
+  tar xfvz "$archive" $tar_args
   rm "$archive"
   mv "$name-$version" "${location}"
 }
