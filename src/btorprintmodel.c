@@ -444,6 +444,7 @@ print_bv_value_smt2 (
 
   char *symbol;
   const BtorBitVector *ass;
+  BtorPtrHashBucket *b;
   int32_t id;
 
   ass    = btor_model_get_bv (btor, node);
@@ -458,7 +459,15 @@ print_bv_value_smt2 (
         file, "(v%d ", id ? id : btor_node_get_id (btor_node_real_addr (node)));
   }
 
-  btor_dumpsmt_dump_const_value (btor, ass, base, file);
+  b = btor_hashptr_table_get (btor->inputs, node);
+  if (b && b->data.flag)
+  {
+    fprintf (file, "%s", btor_bv_is_true (ass) ? "true" : "false");
+  }
+  else
+  {
+    btor_dumpsmt_dump_const_value (btor, ass, base, file);
+  }
   fprintf (file, ")");
 }
 
