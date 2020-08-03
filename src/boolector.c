@@ -516,8 +516,9 @@ boolector_assume (Btor *btor, BoolectorNode *node)
               "'exp' must have bit-width one");
   BTOR_ABORT (btor_node_real_addr (exp)->parameterized,
               "assumption must not be parameterized");
-  BTOR_PUSH_STACK (btor->failed_assumptions, btor_node_copy (btor, exp));
+
   btor_assume_exp (btor, exp);
+  BTOR_PUSH_STACK (btor->failed_assumptions, btor_node_copy (btor, exp));
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
 #endif
