@@ -1,11 +1,15 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2018 Mathias Preiner.
-# Copyright (C) 2014-2018 Aina Niemetz.
+# Copyright (C) 2014-2020 Aina Niemetz.
 #
 # This file is part of Boolector.
 # See COPYING for more information on using this software.
 #
+
+"""
+The Python API of the SMT solver Boolector.
+"""
 
 cimport btorapi
 from libc.stdlib cimport malloc, free
@@ -26,7 +30,10 @@ g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
 g_is_abort_fun_set = False
 
 class BoolectorException(Exception):
-    """ The class representing a Boolector exception."""
+    """ BoolectorException
+
+        The class representing a Boolector exception.
+    """
     def __init__(self, msg):
         self.msg = msg
 
@@ -99,8 +106,9 @@ cdef uint32_t _get_argument_width(BoolectorFunNode fun, uint32_t pos):
 # sort wrapper classes
 
 cdef class BoolectorSort:
-    """
-    The class representing a Boolector sort.
+    """ BoolectorSort
+
+        The class representing a Boolector sort.
     """
     cdef Boolector btor
     cdef btorapi.Btor * _c_btor
@@ -115,28 +123,32 @@ cdef class BoolectorSort:
             btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorArraySort(BoolectorSort):
-    """
-    The class representing a Boolector array sort.
+    """ _BoolectorArraySort
+
+        The class representing a Boolector array sort.
     """
     cdef BoolectorSort _index
     cdef BoolectorSort _elem
 
 cdef class _BoolectorFunSort(BoolectorSort):
-    """
-    The class representing a Boolector function sort.
+    """ _BoolectorFunSort
+
+        The class representing a Boolector function sort.
     """
     cdef list _domain
     cdef BoolectorSort _codomain
 
 cdef class _BoolectorBitVecSort(BoolectorSort):
-    """
-    The class representing a Boolector bit-vector sort.
+    """ _BoolectorBitVecSort
+
+        The class representing a Boolector bit-vector sort.
     """
     cdef uint32_t _width
 
 cdef class _BoolectorBoolSort(BoolectorSort):
-    """
-    The class representing a Boolector Boolean sort.
+    """ _BoolectorBoolSort
+
+        The class representing a Boolector Boolean sort.
     """
     pass
 
@@ -144,10 +156,10 @@ cdef class _BoolectorBoolSort(BoolectorSort):
 # option wrapper classes
 
 cdef class BoolectorOptions:
-    """
-    The class representing a Boolector option iterator (see
-    :func:`~pyboolector.Boolector.Options`).
+    """ BoolectorOptions
 
+        The class representing a Boolector option iterator (see
+        :func:`~pyboolector.Boolector.Options`).
     """
     cdef Boolector btor
     cdef BoolectorOpt __cur
@@ -172,8 +184,9 @@ cdef class BoolectorOptions:
         return next
 
 cdef class BoolectorOpt:
-    """
-    The class representing a Boolector option.
+    """ BoolectorOpt
+
+        The class representing a Boolector option.
     """
     cdef Boolector btor
     cdef BtorOption opt
@@ -253,9 +266,12 @@ cdef class BoolectorOpt:
 # wrapper classes for BoolectorNode
 
 cdef class BoolectorNode:
+    """ BoolectorNode
+
+        The class representing a Boolector node.
     """
-    The class representing a Boolector node.
-    """
+
+    """The Boolector instance this node is associated with."""
     cdef public Boolector btor
     cdef btorapi.Btor * _c_btor
     cdef btorapi.BoolectorNode * _c_node
@@ -399,8 +415,9 @@ cdef class BoolectorNode:
 
 
 cdef class BoolectorBVNode(BoolectorNode):
-    """
-    The class representing a Boolector bit vector node.
+    """ BoolectorBVNode
+
+        The class representing a Boolector bit vector node.
     """
     cdef _BoolectorBitVecSort _sort
 
@@ -498,7 +515,8 @@ cdef class BoolectorBVNode(BoolectorNode):
 
 
 cdef class BoolectorConstNode(BoolectorBVNode):
-    """
+    """ BoolectorConstNode
+
         The class representing Boolector constant nodes.
     """
     property bits:
@@ -518,8 +536,9 @@ cdef class BoolectorConstNode(BoolectorBVNode):
 
 
 cdef class BoolectorArrayNode(BoolectorNode):
-    """
-    The class representing a Boolector array node.
+    """ BoolectorArrayNode
+
+        The class representing a Boolector array node.
     """
     cdef _BoolectorArraySort _sort
 
@@ -538,8 +557,9 @@ cdef class BoolectorArrayNode(BoolectorNode):
 
 
 cdef class BoolectorFunNode(BoolectorNode):
-    """
-    The class representing a Boolector function node.
+    """ BoolectorFunNode
+
+        The class representing a Boolector function node.
     """
     cdef list _params
     cdef _BoolectorFunSort _sort
@@ -556,11 +576,16 @@ cdef class BoolectorFunNode(BoolectorNode):
 
 
 cdef class _BoolectorParamNode(BoolectorBVNode):
+    """ BoolectorParamNode
+
+        The class representing a Boolector parameter node.
+    """
     pass
 
 cdef class BoolectorQuantNode(BoolectorBVNode):
-    """
-    The class representing a Boolector quantified node.
+    """ BoolectorQuantNode
+
+        The class representing a Boolector quantified node.
     """
     cdef list _params
     cdef cbool is_existential
@@ -570,22 +595,34 @@ cdef class BoolectorQuantNode(BoolectorBVNode):
         self.is_existential = is_exists
 
     def is_exists(self):
+        """ is_exists()
+
+            :return: True if node is an existential quantifier.
+            :rtype: Bool
+        """
         return self.is_existential
 
     def is_forall(self):
+        """ is_forall()
+
+            :return: True if node is a universal quantifier.
+            :rtype: Bool
+        """
         return not self.is_existential
 
 cdef class BoolectorExistsNode(BoolectorQuantNode):
-    """
-    The class representing a Boolector existentially quantified node.
+    """ BoolectorExistsNode
+
+        The class representing a Boolector existentially quantified node.
     """
 
     def __init__ (self, Boolector boolector):
         super().__init__(boolector, True)
 
 cdef class BoolectorForallNode(BoolectorQuantNode):
-    """
-    The class representing a Boolector universally quantified node.
+    """ BoolectorForallNode
+
+        The class representing a Boolector universally quantified node.
     """
 
     def __init__ (self, Boolector boolector):
@@ -596,8 +633,9 @@ cdef class BoolectorForallNode(BoolectorQuantNode):
 # wrapper class for Boolector itself
 
 cdef class Boolector:
-    """
-    The class representing a Boolector instance.
+    """ Boolector
+
+        The class representing a Boolector instance.
     """
     cdef btorapi.Btor * _c_btor
     cdef _BoolectorBitVecSort _sort
@@ -687,19 +725,34 @@ cdef class Boolector:
     # Boolector API functions (general)
 
     def Copyright(self):
-            cdef const char * c_str
-            c_str = btorapi.boolector_copyright(self._c_btor)
-            return _to_str(c_str)
+        """ Copyright()
+
+            :return: The copyright information.
+            :rtype: str
+        """
+        cdef const char * c_str
+        c_str = btorapi.boolector_copyright(self._c_btor)
+        return _to_str(c_str)
 
     def Version(self):
-            cdef const char * c_str
-            c_str = btorapi.boolector_version(self._c_btor)
-            return _to_str(c_str)
+        """ Version()
+
+            :return: The version number.
+            :rtype: str
+        """
+        cdef const char * c_str
+        c_str = btorapi.boolector_version(self._c_btor)
+        return _to_str(c_str)
 
     def GitId(self):
-            cdef const char * c_str
-            c_str = btorapi.boolector_git_id(self._c_btor)
-            return _to_str(c_str)
+        """ GitId()
+
+            :return: The git commit sha.
+            :rtype: str
+        """
+        cdef const char * c_str
+        c_str = btorapi.boolector_git_id(self._c_btor)
+        return _to_str(c_str)
 
     def Push(self, uint32_t levels = 1):
         """ Push(level)
@@ -759,7 +812,7 @@ cdef class Boolector:
     def Assume(self, *assumptions):
         """ Assume(a,...)
 
-                Add one or more assumptions.
+            Add one or more assumptions.
 
             You must enable Boolector's incremental usage via
             :func:`~pyboolector.Boolector.Set_opt` before you can add

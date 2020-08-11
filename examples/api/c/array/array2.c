@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btoropt.h"
 
 #define ARRAY2_EXAMPLE_ELEM_BW 8
 #define ARRAY2_EXAMPLE_INDEX_BW 1

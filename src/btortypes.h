@@ -31,8 +31,8 @@ typedef struct BoolectorAnonymous BoolectorAnonymous;
 typedef BoolectorAnonymous* BoolectorSort;
 
 /* --------------------------------------------------------------------- */
-
-/* Boolector options */
+/* Boolector options                                                     */
+/* --------------------------------------------------------------------- */
 
 // clang-format off
 enum BtorOption
@@ -864,6 +864,110 @@ enum BtorOption
 
 typedef enum BtorOption BtorOption;
 
+/* --------------------------------------------------------------------- */
+/* Boolector option values                                               */
+/* --------------------------------------------------------------------- */
+
+/* Note: enums with NONE values should start with NONE = 0. If there is no NONE
+ * value the enum range should start with 1. This allows us to determine if an
+ * option is set by checking if it is > 0. */
+
+enum BtorOptSatEngine
+{
+  BTOR_SAT_ENGINE_LINGELING,
+  BTOR_SAT_ENGINE_PICOSAT,
+  BTOR_SAT_ENGINE_MINISAT,
+  BTOR_SAT_ENGINE_CADICAL,
+  BTOR_SAT_ENGINE_CMS,
+};
+
+enum BtorOptEngine
+{
+  BTOR_ENGINE_FUN = 1,
+  BTOR_ENGINE_SLS,
+  BTOR_ENGINE_PROP,
+  BTOR_ENGINE_AIGPROP,
+  BTOR_ENGINE_QUANT,
+};
+
+enum BtorOptInputFormat
+{
+  BTOR_INPUT_FORMAT_NONE,
+  BTOR_INPUT_FORMAT_BTOR,
+  BTOR_INPUT_FORMAT_BTOR2,
+  BTOR_INPUT_FORMAT_SMT1,
+  BTOR_INPUT_FORMAT_SMT2,
+};
+
+enum BtorOptOutputBase
+{
+  BTOR_OUTPUT_BASE_BIN = 1,
+  BTOR_OUTPUT_BASE_HEX,
+  BTOR_OUTPUT_BASE_DEC,
+};
+
+enum BtorOptOutputFormat
+{
+  BTOR_OUTPUT_FORMAT_NONE,
+  BTOR_OUTPUT_FORMAT_BTOR = 1,
+  //  BTOR_OUTPUT_FORMAT_BTOR2,
+  BTOR_OUTPUT_FORMAT_SMT2,
+  BTOR_OUTPUT_FORMAT_AIGER_ASCII,
+  BTOR_OUTPUT_FORMAT_AIGER_BINARY,
+};
+
+enum BtorOptDPQsort
+{
+  BTOR_DP_QSORT_JUST = 1,
+  BTOR_DP_QSORT_ASC,
+  BTOR_DP_QSORT_DESC,
+};
+
+enum BtorOptJustHeur
+{
+  BTOR_JUST_HEUR_BRANCH_LEFT = 1,
+  BTOR_JUST_HEUR_BRANCH_MIN_APP,
+  BTOR_JUST_HEUR_BRANCH_MIN_DEP,
+};
+
+enum BtorOptSLSStrat
+{
+  BTOR_SLS_STRAT_BEST_MOVE = 1,
+  BTOR_SLS_STRAT_RAND_WALK,
+  BTOR_SLS_STRAT_FIRST_BEST_MOVE,
+  BTOR_SLS_STRAT_BEST_SAME_MOVE,
+  BTOR_SLS_STRAT_ALWAYS_PROP,
+};
+
+enum BtorOptPropPathSel
+{
+  BTOR_PROP_PATH_SEL_CONTROLLING = 1,
+  BTOR_PROP_PATH_SEL_ESSENTIAL,
+  BTOR_PROP_PATH_SEL_RANDOM,
+};
+
+enum BtorOptQuantSynth
+{
+  BTOR_QUANT_SYNTH_NONE,
+  BTOR_QUANT_SYNTH_EL,
+  BTOR_QUANT_SYNTH_ELMC,
+  BTOR_QUANT_SYNTH_EL_ELMC,
+  BTOR_QUANT_SYNTH_ELMR,
+};
+
+enum BtorOptFunEagerLemmas
+{
+  BTOR_FUN_EAGER_LEMMAS_NONE,
+  BTOR_FUN_EAGER_LEMMAS_CONF,
+  BTOR_FUN_EAGER_LEMMAS_ALL,
+};
+
+enum BtorOptIncrementalSMT1
+{
+  BTOR_INCREMENTAL_SMT1_BASIC = 1,
+  BTOR_INCREMENTAL_SMT1_CONTINUE,
+};
+
 enum BtorOptBetaReduceMode
 {
   BTOR_BETA_REDUCE_NONE,
@@ -871,6 +975,8 @@ enum BtorOptBetaReduceMode
   BTOR_BETA_REDUCE_ALL,
 };
 typedef enum BtorOptBetaReduceMode BtorOptBetaReduceMode;
+
+/* --------------------------------------------------------------------- */
 
 /* Callback function to be executed on abort, primarily intended to be used for
  * plugging in exception handling. */

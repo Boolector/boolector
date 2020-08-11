@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "btoropt.h"
 
 static BoolectorNode *
 swap_with_xor (Btor *btor,
