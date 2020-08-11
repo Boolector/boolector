@@ -880,6 +880,7 @@ enum BtorOptSatEngine
   BTOR_SAT_ENGINE_CADICAL,
   BTOR_SAT_ENGINE_CMS,
 };
+typedef enum BtorOptSatEngine BtorOptSatEngine;
 
 enum BtorOptEngine
 {
@@ -889,6 +890,7 @@ enum BtorOptEngine
   BTOR_ENGINE_AIGPROP,
   BTOR_ENGINE_QUANT,
 };
+typedef enum BtorOptEngine BtorOptEngine;
 
 enum BtorOptInputFormat
 {
@@ -898,6 +900,7 @@ enum BtorOptInputFormat
   BTOR_INPUT_FORMAT_SMT1,
   BTOR_INPUT_FORMAT_SMT2,
 };
+typedef enum BtorOptInputFormat BtorOptInputFormat;
 
 enum BtorOptOutputBase
 {
@@ -905,6 +908,7 @@ enum BtorOptOutputBase
   BTOR_OUTPUT_BASE_HEX,
   BTOR_OUTPUT_BASE_DEC,
 };
+typedef enum BtorOptOutputBase BtorOptOutputBase;
 
 enum BtorOptOutputFormat
 {
@@ -915,6 +919,7 @@ enum BtorOptOutputFormat
   BTOR_OUTPUT_FORMAT_AIGER_ASCII,
   BTOR_OUTPUT_FORMAT_AIGER_BINARY,
 };
+typedef enum BtorOptOutputFormat BtorOptOutputFormat;
 
 enum BtorOptDPQsort
 {
@@ -922,6 +927,7 @@ enum BtorOptDPQsort
   BTOR_DP_QSORT_ASC,
   BTOR_DP_QSORT_DESC,
 };
+typedef enum BtorOptDPQsort BtorOptDPQsort;
 
 enum BtorOptJustHeur
 {
@@ -929,6 +935,7 @@ enum BtorOptJustHeur
   BTOR_JUST_HEUR_BRANCH_MIN_APP,
   BTOR_JUST_HEUR_BRANCH_MIN_DEP,
 };
+typedef enum BtorOptJustHeur BtorOptJustHeur;
 
 enum BtorOptSLSStrat
 {
@@ -938,6 +945,7 @@ enum BtorOptSLSStrat
   BTOR_SLS_STRAT_BEST_SAME_MOVE,
   BTOR_SLS_STRAT_ALWAYS_PROP,
 };
+typedef enum BtorOptSLSStrat BtorOptSLSStrat;
 
 enum BtorOptPropPathSel
 {
@@ -945,6 +953,7 @@ enum BtorOptPropPathSel
   BTOR_PROP_PATH_SEL_ESSENTIAL,
   BTOR_PROP_PATH_SEL_RANDOM,
 };
+typedef enum BtorOptPropPathSel BtorOptPropPathSel;
 
 enum BtorOptQuantSynth
 {
@@ -954,6 +963,7 @@ enum BtorOptQuantSynth
   BTOR_QUANT_SYNTH_EL_ELMC,
   BTOR_QUANT_SYNTH_ELMR,
 };
+typedef enum BtorOptQuantSynth BtorOptQuantSynt;
 
 enum BtorOptFunEagerLemmas
 {
@@ -961,12 +971,14 @@ enum BtorOptFunEagerLemmas
   BTOR_FUN_EAGER_LEMMAS_CONF,
   BTOR_FUN_EAGER_LEMMAS_ALL,
 };
+typedef enum BtorOptFunEagerLemmas BtorOptFunEagerLemmas;
 
 enum BtorOptIncrementalSMT1
 {
   BTOR_INCREMENTAL_SMT1_BASIC = 1,
   BTOR_INCREMENTAL_SMT1_CONTINUE,
 };
+typedef enum BtorOptIncrementalSMT1 BtorOptIncrementalSMT1;
 
 enum BtorOptBetaReduceMode
 {
