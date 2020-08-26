@@ -4819,11 +4819,21 @@ read_command_smt2 (BtorSMT2Parser *parser)
       failed_assumptions = boolector_get_failed_assumptions (parser->btor);
       for (i = 0; failed_assumptions[i] != 0; i++)
       {
-        boolector_dump_smt2_node (
-            parser->btor, parser->outfile, failed_assumptions[i]);
+        if (i > 0) fputc (' ', parser->outfile);
+        const char *symbol =
+            boolector_get_symbol (parser->btor, failed_assumptions[i]);
+        if (symbol)
+        {
+          fprintf (parser->outfile, "%s", symbol);
+        }
+        else
+        {
+          boolector_dump_smt2_node (
+              parser->btor, parser->outfile, failed_assumptions[i]);
+        }
       }
       failed_assumptions = 0;
-      fputc (')', parser->outfile);
+      fputs (")\n", parser->outfile);
       fflush (parser->outfile);
       break;
 
