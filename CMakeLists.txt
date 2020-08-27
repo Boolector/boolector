@@ -237,7 +237,7 @@ if(GCOV)
   setup_target_for_coverage_lcov(
     NAME coverage
     EXECUTABLE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test
-    DEPENDENCIES testbtor boolector-bin)
+    DEPENDENCIES boolector-bin)
 endif()
 
 if(GPROF)
