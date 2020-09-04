@@ -19,7 +19,7 @@ from libcpp cimport bool as cbool
 from cpython.ref cimport PyObject
 import math, os, sys
 
-include "pyboolector_options.pxd"
+include "pyboolector_enums.pxd"
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "beta_reduce_all", "probe_beta_reduce_all",

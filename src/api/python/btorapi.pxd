@@ -14,7 +14,7 @@ from cpython.ref cimport PyObject
 from libc.stdint cimport int32_t, uint32_t
 from pyboolector import BoolectorException
 
-#include "pyboolector_options.pxd"
+#include "pyboolector_enums.pxd"
 
 cdef inline int raise_py_error() except *:
     raise BoolectorException(pyboolector_get_err_msg().decode('utf-8'))
