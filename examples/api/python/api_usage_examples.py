@@ -411,3 +411,19 @@ if __name__ == "__main__":
     res       = bbb.Sat()
     if res == bbb.SAT: print("result: SAT")
     else             : print("result: UNSAT")
+
+### Option interaction
+    bbbb = Boolector()
+    desired_output_format = pyboolector.BTOR_OUTPUT_FORMAT_AIGER_ASCII
+    bbbb.Set_opt(
+        pyboolector.BTOR_OPT_OUTPUT_FORMAT, desired_output_format
+    )
+    assert (
+        bbbb.Get_opt(pyboolector.BTOR_OPT_OUTPUT_FORMAT).val
+        == desired_output_format
+    )
+    assert (
+        bbbb.Get_opt(pyboolector.BTOR_OPT_OUTPUT_FORMAT).val
+        != pyboolector.BTOR_OUTPUT_FORMAT_SMT2
+    )
+
