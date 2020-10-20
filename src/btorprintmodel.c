@@ -412,7 +412,7 @@ btor_print_model_aufbv (Btor *btor, const char *format, FILE *file)
   base = btor_opt_get (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
   if (!strcmp (format, "smt2"))
-    fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
+    fprintf (file, "(\n");
 
   btor_iter_hashptr_init (&it, btor->inputs);
   while (btor_iter_hashptr_has_next (&it))
