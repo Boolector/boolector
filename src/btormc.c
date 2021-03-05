@@ -1429,9 +1429,6 @@ check_last_forward_frame (BtorMC *mc)
           {
             goto KINDUCTION_RECHECK;
           }
-          BoolectorNode *not_bad = boolector_not (mc->forward, bad);
-          boolector_assert (mc->forward, not_bad);
-          boolector_release (mc->forward, not_bad);
           mc->state = BTOR_NO_MC_STATE;
         }
         else
