@@ -19,10 +19,6 @@ jobs:
       debug_gmp:
         btorConfig: '-g --gmp'
         btorConfigEnv: ''
-      python2:
-        needCython: true
-        btorConfig: '--python --py2'
-        btorConfigEnv: ''
       python3:
         needCython: true
         btorConfig: '--python --py3'
