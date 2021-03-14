@@ -295,7 +295,8 @@ if __name__ == '__main__':
 			'./src'
 		],
                 language="c++",
-                libraries=['boolector']),
+                libraries=['boolector'],
+                cython_directives={'language_level' : '3'}),
         ],
 
         distclass=Distribution,
