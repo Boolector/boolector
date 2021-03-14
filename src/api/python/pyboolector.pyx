@@ -6,7 +6,6 @@
 # This file is part of Boolector.
 # See COPYING for more information on using this software.
 #
-# cython: language_level=3
 
 """
 The Python API of the SMT solver Boolector.
