@@ -6,6 +6,7 @@
 # This file is part of Boolector.
 # See COPYING for more information on using this software.
 #
+# cython: language_level=3
 
 cimport btorapi
 from libc.stdlib cimport malloc, free

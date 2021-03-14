@@ -1,10 +1,10 @@
 
 NAME = 'PyBoolector'
-VERSION = '3.0.0.{{BUILD_NUM}}'
+VERSION = '@VERSION@.{{BUILD_NUM}}'
 DESCRIPTION = "Python wrapper around the Boolector SMT solver"
 LONG_DESCRIPTION = """\
 This package, specifically, enables the Boolector Python wrapper \
-to be installed from Py-Pi
+to be installed from PyPi
 """
 MAINTAINER = "Matthew Ballance"
 MAINTAINER_EMAIL = 'matt.ballance@gmail.com'

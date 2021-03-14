@@ -12,7 +12,7 @@ jobs:
       sudo python3.6 -m pip install twine
     displayName: 'Install wheel+twine'
   - script: |
-      docker pull quay.io/pypa/manylinux1_x86_64
+      docker pull quay.io/pypa/manylinux2010_x86_64
       docker build -t pyboolector pypi
     displayName: 'Setup Docker Image'
 
