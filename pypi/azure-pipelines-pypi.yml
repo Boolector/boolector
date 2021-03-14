@@ -2,14 +2,10 @@
 jobs:
 - job: PyPi_Linux
   pool:
-   vmImage: 'ubuntu-16.04'
+   vmImage: 'ubuntu-latest'
   steps:
   - script: |
-      sudo add-apt-repository ppa:jonathonf/python-3.6
-      sudo apt-get update
-      sudo apt-get install python3.6 -y
-      sudo python3.6 -m pip install wheel
-      sudo python3.6 -m pip install twine
+      sudo python3 -m pip install wheel twine
     displayName: 'Install wheel+twine'
   - script: |
       docker pull quay.io/pypa/manylinux2010_x86_64
@@ -28,9 +24,9 @@ jobs:
   - script: |
       # Only deploy from master
       if test "$(Build.SourceBranchName)" = "master"; then
-          python3.6 -m twine --version
+          python3 -m twine --version
           echo "Calling twine"
-          python3.6 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+          python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
           echo "Calling twine complete"
       fi
     displayName: 'Upload to PyPi'
