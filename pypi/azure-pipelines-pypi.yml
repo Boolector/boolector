@@ -20,6 +20,7 @@ jobs:
       docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector pyboolector
     displayName: 'Run PyBoolector Build'
 
+# Note: this must be enabled after Azure Pipelines has proper PyPi service information
 #  - task: TwineAuthenticate@1
 #    condition: eq(variables['Build.SourceBranchName'], 'master')
 #    inputs:
@@ -33,4 +34,84 @@ jobs:
           echo "Calling twine complete"
       fi
     displayName: 'Upload to PyPi'
+- job: PyPi_MacOS
+  pool:
+   vmImage: 'macos-latest'
+  strategy:
+    matrix:
+      production:
+        needCython: true
+        btorConfig: ''
+        btorConfigEnv: ''
+  steps:
+  - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
+    displayName: 'Determine number of CPUs'
+
+  - script: sudo pip3 install cython wheel twine setuptools
+    displayName: 'Install Cython'
+
+  - script: |
+      brew remove boost
+      ./contrib/setup-btor2tools.sh
+      ./contrib/setup-cadical.sh
+      ./contrib/setup-lingeling.sh
+    displayName: 'Setup dependencies'
+
+  - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
+    displayName: 'Configure Boolector'
+
+  - script: |
+      make VERBOSE=1 -j $(ncpus)
+      make VERBOSE=1 install
+    workingDirectory: 'build'
+    displayName: 'Build Boolector'
+
+  - script: |
+      export BUILD_NUM=$(Build.BuildNumber)
+      export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)
+      cp -r src/api/python pypi/src
+      mkdir -p pypi/src/utils
+      cp src/*.h pypi/src
+      cp COPYING pypi/LICENSE
+      cp src/utils/*.h pypi/src/utils
+      version=`grep 'set(VERSION' /boolector/CMakeLists.txt | sed -e 's/^.*\"\(.*\)\".*$/\1/'`
+      cd pypi
+      sed -e 's/override//g' -e 's/noexcept/_NOEXCEPT/g' -e 's/\(BoolectorException (const.*\)/\1    virtual ~BoolectorException() _NOEXCEPT {}/' src/pyboolector_abort.cpp > src/pyboolector_abort.cpp.new
+      if test $? -ne 0; then exit 1; fi
+      cp src/pyboolector_abort.cpp.new src/pyboolector_abort.cpp
+      python3 src/mkenums.py ./src/btortypes.h src/pyboolector_enums.pxd
+      if test $? -ne 0; then exit 1; fi
+      python3 setup.py sdist bdist_wheel
+      if test $? -ne 0; then exit 1; fi
+    displayName: 'Build PyPi package'
+
+# Note: this must be enabled after Azure Pipelines has proper PyPi service information
+#  - task: TwineAuthenticate@1
+#    condition: eq(variables['Build.SourceBranchName'], 'master')
+#    inputs:
+#      pythonUploadServiceConnection: pypi-pyboolector
+
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: '$(Build.Repository.LocalPath)/pypi/dist'
+      contents: '*.whl'
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'dist'
+      publishLocation: 'Container'
+
+  - script: |
+      # Only deploy from master
+      if test "$(Build.SourceBranchName)" = "master"; then
+          cd pypi
+          echo "Calling twine"
+
+          python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) dist/*.whl
+          echo "Calling twine complete"
+      fi
+    displayName: 'Upload to PyPi'
+
 

@@ -41,19 +41,15 @@ if test $? -ne 0; then exit 1; fi
 cd ${BUILD_DIR}
 rm -rf pyboolector
 
+# Specify path to CmakeLists.txt so setup.py can extract the version
+export CMAKELISTS_TXT=/boolector/CMakeLists.txt
+
 cp -r /boolector/pypi pyboolector
 
 # Grab the main license file
 cp /boolector/COPYING pyboolector/LICENSE
 
-# Extract the version from the top-level CMakeLists.txt
-version=`grep 'set(VERSION' /boolector/CMakeLists.txt | sed -e 's/^.*\"\(.*\)\".*$/\1/'`
-sed -i -e "s/@VERSION@/${version}/" pyboolector/setup.py
-
 cd pyboolector
-
-# Add the CI build number to the version
-sed -i -e "s/{{BUILD_NUM}}/${BUILD_NUM}/g" setup.py
 
 for py in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39; do
   echo "Python: ${py}"
@@ -68,7 +64,7 @@ for py in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39; do
   mkdir -p src/utils
   cp ${BUILD_DIR}/boolector/src/*.h src
   cp ${BUILD_DIR}/boolector/src/utils/*.h src/utils
-  $python ./src/mkoptions.py ./src/btortypes.h ./src/pyboolector_options.pxd
+  $python ./src/mkenums.py ./src/btortypes.h ./src/pyboolector_enums.pxd
   $python setup.py sdist bdist_wheel
 done
 
