@@ -10,6 +10,7 @@ set(libboolector_src_files
   btorbv.c
   btorchkclone.c
   btorchkmodel.c
+  btorchkfailed.c
   btorclone.c
   btorcore.c
   btordbg.c
@@ -44,6 +45,7 @@ set(libboolector_src_files
   parser/btorbtor2.c
   parser/btorsmt.c
   parser/btorsmt2.c
+  preprocess/btorpputils.c
   preprocess/btorack.c
   preprocess/btorder.c
   preprocess/btorelimapplies.c

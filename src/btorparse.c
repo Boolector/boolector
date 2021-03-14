@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2018 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -115,7 +115,8 @@ btor_parse (Btor *btor,
             const char *infile_name,
             FILE *outfile,
             char **error_msg,
-            int32_t *status)
+            int32_t *status,
+            bool *parsed_smt2)
 {
   assert (btor);
   assert (infile);
@@ -123,6 +124,7 @@ btor_parse (Btor *btor,
   assert (outfile);
   assert (error_msg);
   assert (status);
+  assert (parsed_smt2);
 
   const BtorParserAPI *parser_api;
   int32_t idx, first, second, res;
@@ -136,6 +138,7 @@ btor_parse (Btor *btor,
   BTOR_NEWN (btor->mm, msg, len);
   mem = btor_mem_mgr_new ();
   BTOR_INIT_STACK (mem, prefix);
+  *parsed_smt2 = false;
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
@@ -151,6 +154,7 @@ btor_parse (Btor *btor,
   {
     parser_api = btor_parsesmt2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
+    *parsed_smt2 = true;
   }
   else
   {
@@ -203,6 +207,7 @@ btor_parse (Btor *btor,
         else
         {
           parser_api = btor_parsesmt2_parser_api ();
+          *parsed_smt2 = true;
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }

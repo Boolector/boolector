@@ -344,6 +344,20 @@ BtorNode *btor_exp_bv_rol (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *btor_exp_bv_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
+ * Create bit-vector rotate left, with the number of bits to rotate by
+ * given as an unsigned integer.
+ * width(result) = width(e0)
+ */
+BtorNode *btor_exp_bv_roli (Btor *btor, BtorNode *exp, uint32_t nbits);
+
+/**
+ * Create bit-vector rotate right, with the number of bits to rotate by
+ * given as an unsigned integer.
+ * width(result) = width(e0)
+ */
+BtorNode *btor_exp_bv_rori (Btor *btor, BtorNode *exp, uint32_t nbits);
+
+/**
  * Create bit-vector subtraction.
  * width(e0) = width(e1)
  * width(result) = width(e0)

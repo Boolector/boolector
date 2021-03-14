@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -131,9 +131,9 @@ int32_t boolector_terminate (Btor *btor);
   It is recommended to set this function prior to creating Boolector instances.
 
   .. note::
-  This function is not thread safe (the function pointer is maintained as
-  a global variable). It you use threading, make sure to set the abort
-  function prior to creating threads.
+    This function is not thread safe (the function pointer is maintained as
+    a global variable). It you use threading, make sure to set the abort
+    function prior to creating threads.
 
   :param fun: The abort callback function.
   :param msg: The abort error message.
@@ -1318,9 +1318,11 @@ BoolectorNode *boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*!
-  Create a rotate left.
+  Create a rotate left, with the number of bits to rotate by given as a
+  bit-vector.
 
-  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  The parameters ``n0`` and ``n1`` must either have the same bit width or
+  the bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
@@ -1331,9 +1333,11 @@ BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*!
-  Create a rotate right.
+  Create a rotate right, with the number of bits to rotate by given as a
+  bit-vector.
 
-  The bit width of ``n0`` must be a power of two (greater than 1) and the
+  The parameters ``n0`` and ``n1`` must either have the same bit width or
+  the bit width of ``n0`` must be a power of two (greater than 1) and the
   bit width of ``n1`` must be log2 of the bit width of ``n0``.
 
   :param btor: Boolector instance.
@@ -1342,6 +1346,28 @@ BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
   :return: Bit-vector with the same bit width as ``n0``.
 */
 BoolectorNode *boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*!
+  Create a rotate left, with the number of bits to rotate by given as a
+  numeral (unsigned integer).
+
+  :param btor: Boolector instance.
+  :param n: Bit-vector operand.
+  :param nbits: Number of bits to rotate by.
+  :return: Bit-vector with the same bit width as ``n``.
+*/
+BoolectorNode *boolector_roli (Btor *btor, BoolectorNode *n, uint32_t nbits);
+
+/*!
+  Create a rotate right, with the number of bits to rotate by given as a
+  numeral (unsigned integer).
+
+  :param btor: Boolector instance.
+  :param n: Bit-vector operand.
+  :param nbits: Number of bits to rotate by.
+  :return: Bit-vector with the same bit width as ``n``.
+*/
+BoolectorNode *boolector_rori (Btor *btor, BoolectorNode *n, uint32_t nbits);
 
 /*!
   Create a bit-vector subtraction.
@@ -1759,10 +1785,10 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-// TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
-  given ``id``.
+  given ``id``.  Aborts if no node with given ``id`` exists in given Boolector
+  instance.
 
   :param btor: Boolector instance.
   :param id: Boolector node id.
@@ -1773,22 +1799,25 @@ BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node_by_id (Btor *btor, int32_t id);
 
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
-  given ``symbol``.
+  given ``symbol``. Aborts if no node with given ``symbol`` exists in given
+  Boolector instance.
 
   :param btor: Boolector instance.
   :param symbol: The symbol of an expression.
   :return: The Boolector node that matches given ``node`` in Boolector instance
-           ``btor`` by symbol.
+           ``btor`` by id.
 
   .. note::
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
 
@@ -1796,6 +1825,7 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
   Retrieve the node belonging to Boolector instance ``btor`` that matches
   given BoolectorNode ``node`` by id. This is intended to be used for handling
   expressions of a cloned instance (boolector_clone).
+  Aborts no matching node exists in given Boolector instance.
 
   :param btor: Boolector instance.
   :param node: Boolector node.
@@ -1806,7 +1836,7 @@ BoolectorNode *boolector_match_node_by_symbol (Btor *btor, const char *symbol);
     Matching a node against another increases the reference
     count of the returned match, which must therefore be released appropriately
     (boolector_release).
-    Only nodes created before the boolector_clone call can be matched.
+    Only nodes created before a boolector_clone call can be matched.
 */
 BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
 
@@ -1860,16 +1890,20 @@ uint32_t boolector_get_width (Btor *btor, BoolectorNode *node);
 uint32_t boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /*!
-  Get the bit-vector of a constant node as a bit string.
+  Get the bit-vector of a constant node represented as a bit string.
+  Must be freed via boolector_free_bits.
 
   :param btor: Boolector instance.
   :param node: Constant node.
   :return: String representing the bits of ``node``.
+
+  .. seealso::
+    boolector_free_bits
 */
 const char *boolector_get_bits (Btor *btor, BoolectorNode *node);
 
 /*!
-  Free a bits string for bit-vector constants.
+  Free a bits string retrieved via boolector_get_bits.
 
   :param btor: Boolector instance.
   :param bits: String which has to be freed.
@@ -1994,9 +2028,9 @@ int32_t boolector_fun_sort_check (Btor *btor,
   :param node: Bit-vector expression.
   :return: String representing a satisfying assignment to bit-vector variables
            and a consistent assignment for arbitrary bit-vector expressions.
-           Each character of the string can be ``0``, ``1`` or ``x``. The
-           latter represents that the corresponding bit can be assigned
-           arbitrarily.
+           The string representation will use binary, decimal or hexadecimal
+           number format, depending on the configuration of option
+           ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
 
   .. seealso::
     boolector_set_opt for enabling model generation.
@@ -2025,15 +2059,22 @@ void boolector_free_bv_assignment (Btor *btor, const char *assignment);
   expression. See our publication `Lemmas on Demand for Lambdas
   <http://fmv.jku.at/papers/PreinerNiemetzBiere-DIFTS13.pdf>`_ for details. At
   indices that do not occur in the model, it is assumed that the array stores a
-  globally unique default value, for example 0.  The bit-vector assignments to
-  the indices and values have to be freed by boolector_free_bv_assignment.
-  Furthermore, the user has to free the array of indices and the array of
-  values, respectively of size ``size``.
+  globally unique default value, for example 0. If the model of a constant array
+  is queried the default value of the constant array is indicated via index '*'.
+  The bit-vector assignments to the indices and values have to be freed by
+  boolector_free_bv_assignment. Furthermore, the user has to free the array of
+  indices and the array of values, respectively of size ``size``.
 
   :param btor: Boolector instance.
   :param n_array: Array operand for which the array model should be built.
-  :param indices: Pointer to array of index strings.
-  :param values: Pointer to array of value strings.
+  :param indices: Pointer to array of index strings. The string representation
+                  will use binary, decimal or hexadecimal number format,
+                  depending on the configuration of option
+                  ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
+  :param values: Pointer to array of value strings. The string representation
+                  will use binary, decimal or hexadecimal number format,
+                  depending on the configuration of option
+                  ``BTOR_OPT_OUTPUT_NUMBER_FORMAT`` (binary by default).
   :param size: Pointer to size.
 
   .. seealso::
@@ -2281,7 +2322,7 @@ uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
 /*!
   Parse input file.
 
-  Input file format may be either BTOR_, BTOR2_, `SMT-LIB v1`_, or
+  Input file format may be either `BTOR`_, `BTOR2`_, `SMT-LIB v1`_, or
   `SMT-LIB v2`_, the file type is detected automatically.  If the parser
   encounters an error, an explanation of that error is stored in ``error_msg``.
   If the input file specifies a (known) status of the input formula (either sat
@@ -2294,6 +2335,7 @@ uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
+  :param parsed_smt2: Flag indicating if an SMT-LIB v2 was parsed.
   :return: In the incremental case or in case of SMT-LIB v2 (which requires a
            'check-sat' command), the function returns either BOOLECTOR_SAT,
            BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns
@@ -2305,7 +2347,8 @@ int32_t boolector_parse (Btor *btor,
                          const char *infile_name,
                          FILE *outfile,
                          char **error_msg,
-                         int32_t *status);
+                         int32_t *status,
+                         bool *parsed_smt2);
 
 /*!
   Parse input file in BTOR format.

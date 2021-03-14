@@ -29,6 +29,8 @@ py2=no
 py3=no
 timestats=no
 
+ninja=no
+
 flags=""
 
 #--------------------------------------------------------------------------#
@@ -44,6 +46,7 @@ where <option> is one of the following:
   -g                compile with debugging support
   -f...|-m...       add compiler options
 
+  --ninja           use Ninja build system
   --prefix <dir>    install prefix
 
   --path <dir>      look for dependencies in <dir>/{include,lib}
@@ -108,6 +111,8 @@ do
     -g) debug=yes;;
     -f*|-m*) if [ -z "$flags" ]; then flags=$1; else flags="$flags;$1"; fi;;
 
+    --ninja) ninja=yes;;
+
     --prefix)
       shift
       [ $# -eq 0 ] && die "missing argument to $opt"
@@ -157,6 +162,8 @@ done
 #--------------------------------------------------------------------------#
 
 cmake_opts="$CMAKE_OPTS"
+
+[ $ninja = yes ] && cmake_opts="$cmake_opts -G Ninja"
 
 [ $asan = yes ] && cmake_opts="$cmake_opts -DASAN=ON"
 [ $ubsan = yes ] && cmake_opts="$cmake_opts -DUBSAN=ON"

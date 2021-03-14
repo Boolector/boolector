@@ -25,6 +25,7 @@ set(test_names
   parseerror
   prop
   propinv
+  rotate
   queue
   satmgr
   shift
@@ -53,6 +54,7 @@ set(sat_testcases
 "arraycond2.btor"
 "arraycond4.btor"
 "const1.btor"
+"constarray.smt2"
 "ext1.btor"
 "ext12.btor"
 "ext14.btor"
@@ -74,6 +76,7 @@ set(sat_testcases
 "invalidmodel1.smt2"
 "invalidmodel2.smt2 -xl=0 -ml=0 -rwl=2"
 "invalidmodel3.btor"
+"issue96.smt2"
 "lazyreadwritebug1.btor"
 "lambda1.btor"
 "lin0.btor"
@@ -171,6 +174,8 @@ set(sat_testcases
 "regprim11simp.btor"
 "regrrwbinexpconcatzeroconst.btor"
 "regrw8simp.btor"
+"rol_same_bw.btor"
+"ror_same_bw.btor"
 "rw113.btor -rwl 0"
 "rw1.btor"
 "rw10.btor"
@@ -264,6 +269,7 @@ set(sat_testcases
 "sc12fuzzcheck2.smt2"
 "slicesubst1.btor -rwl 0"
 "slicesubst1.btor -rwl 2"
+"sll_same_bw.btor"
 "smt2pushpop0.smt2 -i"
 "smtashr1.smt2"
 "smtashr2.smt2"
@@ -291,13 +297,14 @@ set(sat_testcases
 "smtshl2.smt2"
 "smtshl3.smt2"
 "smtsignextend.smt2"
-"smttrue.smt2 -m"
+"smttrue.smt2"
 "smtzeroextend.smt2"
 "sqrt25.btor"
 "sqrt4.btor"
 "sqrt4295098369.btor"
 "sqrt49.btor"
 "sqrt9.btor"
+"srl_same_bw.btor"
 "substcyclic1.btor"
 "substitute1.btor"
 "substitute3.btor"
@@ -462,6 +469,7 @@ set(unsat_testcases
 "hd9.btor -rwl 1"
 "inc.btor"
 "inc.btor -rwl 0"
+"issue97.smt2"
 "lambda2.btor"
 "memcpy02.smt2"
 "mulassoc4.smt2"
@@ -845,7 +853,7 @@ set(unsat_testcases
 "smtextarrayaxiom3uf.smt2"
 "smtextarrayaxiom4.smt2"
 "smtextarrayaxiom4uf.smt2"
-"smtfalse.smt2 -m"
+"smtfalse.smt2"
 "smtflet.smt2"
 "sqrt13.btor"
 "sqrt18446744073709551617.btor"
@@ -940,26 +948,6 @@ set(cmp_testcases
 "getvalue1.smt2"
 "getvalue2.smt2"
 "getvalue3.smt2"
-"nondestr_subst1.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst10.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst11.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst12.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst13.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst14.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst15.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst16.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst17.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst18.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst19.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst2.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst20.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst3.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst4.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst5.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst6.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst7.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst8.smt2 -i --nondestr-subst -SE cadical"
-"nondestr_subst9.smt2 -i --nondestr-subst -SE cadical"
 "normalize_add_incomplete.btor -db"
 "normalize_and_incomplete.btor -db"
 "normalize_mul_incomplete.btor -db"
@@ -984,6 +972,31 @@ set(cmp_testcases
 "smtxor.smt2 -m"
 )
 
+if(CaDiCaL_FOUND)
+  list(APPEND cmp_testcases
+    "nondestr_subst1.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst10.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst11.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst12.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst13.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst14.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst15.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst16.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst17.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst18.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst19.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst2.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst20.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst3.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst4.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst5.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst6.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst7.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst8.smt2 -i --nondestr-subst -SE cadical"
+    "nondestr_subst9.smt2 -i --nondestr-subst -SE cadical"
+  )
+endif()
+
 
 
 get_target_property(BOOLECTOR_BINARY_PATH boolector-bin RUNTIME_OUTPUT_DIRECTORY)
@@ -999,6 +1012,7 @@ macro(add_test_case option testcase)
       ${option}
       ${BOOLECTOR_BINARY}
       ${tcase}
+      ${CMAKE_CURRENT_BINARY_DIR}
   )
   set_tests_properties(${TESTNAME} PROPERTIES LABELS "testcases")
 endmacro()

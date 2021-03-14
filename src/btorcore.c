@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
- *  Copyright (C) 2012-2018 Mathias Preiner.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
  *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
@@ -15,6 +15,7 @@
 
 #include "btorabort.h"
 #ifndef NDEBUG
+#include "btorchkfailed.h"
 #include "btorchkmodel.h"
 #endif
 #include "btorclone.h"
@@ -83,9 +84,6 @@
 
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
-#ifndef NDEBUG
-static void check_failed_assumptions (Btor *);
-#endif
 /*------------------------------------------------------------------------*/
 
 enum BtorSubstCompKind
@@ -767,12 +765,6 @@ btor_new (void)
       btor_hashptr_table_new (mm,
                               (BtorHashPtr) btor_node_hash_by_id,
                               (BtorCmpPtr) btor_node_compare_by_id);
-  btor->var_rhs = btor_hashptr_table_new (mm,
-                                          (BtorHashPtr) btor_node_hash_by_id,
-                                          (BtorCmpPtr) btor_node_compare_by_id);
-  btor->fun_rhs = btor_hashptr_table_new (mm,
-                                          (BtorHashPtr) btor_node_hash_by_id,
-                                          (BtorCmpPtr) btor_node_compare_by_id);
 
   BTOR_INIT_STACK (mm, btor->assertions);
   BTOR_INIT_STACK (mm, btor->assertions_trail);
@@ -932,8 +924,6 @@ btor_delete (Btor *btor)
   btor_iter_hashptr_queue (&it, btor->synthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->assumptions);
   btor_iter_hashptr_queue (&it, btor->orig_assumptions);
-  btor_iter_hashptr_queue (&it, btor->var_rhs);
-  btor_iter_hashptr_queue (&it, btor->fun_rhs);
   while (btor_iter_hashptr_has_next (&it))
     btor_node_release (btor, btor_iter_hashptr_next (&it));
 
@@ -949,8 +939,6 @@ btor_delete (Btor *btor)
       btor_node_release (btor, BTOR_PEEK_STACK (btor->failed_assumptions, i));
   }
   BTOR_RELEASE_STACK (btor->failed_assumptions);
-  btor_hashptr_table_delete (btor->var_rhs);
-  btor_hashptr_table_delete (btor->fun_rhs);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->assertions); i++)
     btor_node_release (btor, BTOR_PEEK_STACK (btor->assertions, i));
@@ -1850,12 +1838,12 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!btor_node_real_addr (exp)->parameterized);
 
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+
   BTORLOG (2,
            "assume: %s (%s)",
            btor_util_node2string (exp),
            btor_util_node2string (btor_simplify_exp (btor, exp)));
-
-  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
   if (!btor_hashptr_table_get (btor->orig_assumptions, exp))
   {
@@ -2149,10 +2137,11 @@ btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
           || exp->parameterized);
 
   BTORLOG (2,
-           "set simplified: %s -> %s (synth: %u)",
+           "set simplified: %s -> %s (synth: %u, param: %u)",
            btor_util_node2string (exp),
            btor_util_node2string (simplified),
-           btor_node_is_synth (exp));
+           btor_node_is_synth (exp),
+           exp->parameterized);
 
   /* FIXME: indicator for slow-down in incremental mode, when too many
    * synthesized nodes are rewritten, it can significantly slow-down the
@@ -2164,18 +2153,6 @@ btor_set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   exp->simplified = btor_node_copy (btor, simplified);
 
   if (exp->constraint) replace_constraint (btor, exp, exp->simplified);
-
-  /* if a variable or UF gets simplified we need to save the original input
-   * exp in a hash table (for model generation) */
-  if (btor_node_is_bv_var (exp) && !btor_hashptr_table_get (btor->var_rhs, exp))
-  {
-    btor_hashptr_table_add (btor->var_rhs, btor_node_copy (btor, exp));
-  }
-  else if (btor_node_is_uf (exp)
-           && !btor_hashptr_table_get (btor->fun_rhs, exp))
-  {
-    btor_hashptr_table_add (btor->fun_rhs, btor_node_copy (btor, exp));
-  }
 
   if (!btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST))
   {
@@ -2939,7 +2916,8 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
       && btor_opt_get (btor, BTOR_OPT_UCOPT)
       && btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && !btor_opt_get (btor, BTOR_OPT_INCREMENTAL)
-      && !btor_opt_get (btor, BTOR_OPT_MODEL_GEN))
+      && !btor_opt_get (btor, BTOR_OPT_MODEL_GEN)
+      && !btor_opt_get (btor, BTOR_OPT_PRINT_DIMACS))
   {
     uclone = btor_clone_btor (btor);
     btor_opt_set (uclone, BTOR_OPT_UCOPT, 0);
@@ -3102,7 +3080,7 @@ btor_check_sat (Btor *btor, int32_t lod_limit, int32_t sat_limit)
 #ifndef NDEBUG
   if (check && btor_opt_get (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS)
       && !btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
-    check_failed_assumptions (btor);
+    btor_check_failed_assumptions (btor);
 #endif
 
   delta = btor_util_time_stamp () - start;
@@ -3217,73 +3195,3 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   return result;
 }
-
-#ifndef NDEBUG
-static void
-check_failed_assumptions (Btor *btor)
-{
-  assert (btor);
-  assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
-
-  Btor *clone;
-  BtorNode *ass, *cass;
-  BtorPtrHashTableIterator it;
-  BtorNodePtrStack stack;
-
-  clone = btor_clone_exp_layer (btor, 0, true);
-  btor_opt_set (clone, BTOR_OPT_LOGLEVEL, 0);
-  btor_opt_set (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_opt_set (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
-  btor_opt_set (clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
-  btor_opt_set (clone, BTOR_OPT_CHK_MODEL, 0);
-  btor_opt_set (clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-  btor_set_term (clone, 0, 0);
-
-  btor_opt_set (clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-  assert (clone->slv);
-  clone->slv->api.delet (clone->slv);
-  clone->slv = 0;
-
-  /* clone->assertions have been already added at this point. */
-  while (!BTOR_EMPTY_STACK (clone->assertions))
-  {
-    ass = BTOR_POP_STACK (clone->assertions);
-    btor_node_release (clone, ass);
-  }
-
-  /* assert failed assumptions */
-  BTOR_INIT_STACK (btor->mm, stack);
-  btor_iter_hashptr_init (&it, btor->orig_assumptions);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    ass = btor_iter_hashptr_next (&it);
-    if (btor_failed_exp (btor, ass))
-    {
-      BTORLOG (2, "failed assumption: %s", btor_util_node2string (ass));
-      cass = btor_node_match (clone, ass);
-      assert (cass);
-      BTOR_PUSH_STACK (stack, cass);
-    }
-  }
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cass = BTOR_POP_STACK (stack);
-    btor_assert_exp (clone, cass);
-    btor_node_release (clone, cass);
-  }
-  BTOR_RELEASE_STACK (stack);
-
-  /* cleanup assumptions */
-  btor_iter_hashptr_init (&it, clone->assumptions);
-  while (btor_iter_hashptr_has_next (&it))
-    btor_node_release (clone, btor_iter_hashptr_next (&it));
-  btor_hashptr_table_delete (clone->assumptions);
-  clone->assumptions =
-      btor_hashptr_table_new (clone->mm,
-                              (BtorHashPtr) btor_node_hash_by_id,
-                              (BtorCmpPtr) btor_node_compare_by_id);
-
-  assert (btor_check_sat (clone, -1, -1) == BTOR_RESULT_UNSAT);
-  btor_delete (clone);
-}
-#endif

@@ -15,6 +15,7 @@
 #include "btorexp.h"
 #include "btorlog.h"
 #include "btorsubst.h"
+#include "preprocess/btorpputils.h"
 #include "utils/btorhashint.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
@@ -91,7 +92,7 @@ btor_merge_lambdas (Btor *btor)
   BtorMemMgr *mm;
   BtorPtrHashTableIterator it;
   BtorNodeIterator nit;
-  BtorNodePtrStack stack, visit, params;
+  BtorNodePtrStack stack, visit, params, lambdas;
   BtorPtrHashTable *merge_lambdas, *static_rho;
   BtorIntHashTable *mark, *mark_lambda;
 
@@ -106,16 +107,19 @@ btor_merge_lambdas (Btor *btor)
   BTOR_INIT_STACK (mm, stack);
   BTOR_INIT_STACK (mm, visit);
   BTOR_INIT_STACK (mm, params);
+  BTOR_INIT_STACK (mm, lambdas);
+
+  btor_pputils_collect_lambdas (btor, &lambdas);
 
   /* collect candidates for merging */
-  btor_iter_hashptr_init (&it, btor->lambdas);
-  while (btor_iter_hashptr_has_next (&it))
+  while (!BTOR_EMPTY_STACK(lambdas))
   {
-    lambda = btor_iter_hashptr_next (&it);
+    lambda = BTOR_POP_STACK(lambdas);
     assert (!btor_node_is_simplified (lambda)
             || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
     lambda = btor_node_get_simplified (btor, lambda);
     assert (btor_node_is_regular (lambda));
+    assert (btor_node_is_lambda(lambda));
 
     if (!btor_node_is_lambda (lambda))
     {
@@ -281,6 +285,7 @@ btor_merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (visit);
   BTOR_RELEASE_STACK (stack);
   BTOR_RELEASE_STACK (params);
+  BTOR_RELEASE_STACK (lambdas);
   delta = btor_util_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,

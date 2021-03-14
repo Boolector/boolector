@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2019 Mathias Preiner.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
  *  Copyright (C) 2012-2019 Aina Niemetz.
  *
  *  This file is part of Boolector.
@@ -94,7 +94,7 @@ rebuild_formula (Btor *btor, uint32_t rewrite_level)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, cnt - i))) continue;
 
-    if (btor_node_is_proxy (cur)) continue;
+    if (btor_node_is_simplified (cur)) continue;
 
     if (cur->arity == 0)
     {
@@ -207,18 +207,25 @@ btor_check_model (BtorCheckModelContext *ctx)
         value      = (BtorBitVector *) it.bucket->data.as_ptr;
         args_tuple = btor_iter_hashptr_next (&it);
 
+        /* Ignore default values of constant arrays */
+        if (!args_tuple->arity) continue;
+
         /* create condition */
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)
         {
           model = btor_exp_bv_const (clone, args_tuple->bv[i]);
           BTOR_PUSH_STACK (consts, model);
+          BTORLOG (2, "  arg%u: %s", i, btor_util_node2string(model));
         }
 
         args  = btor_exp_args (clone, consts.start, BTOR_COUNT_STACK (consts));
         apply = btor_exp_apply (clone, real_simp_clone, args);
         model = btor_exp_bv_const (clone, value);
         eq    = btor_exp_eq (clone, apply, model);
+
+        BTORLOG (2, "  value: %s", btor_util_node2string(model));
+
         btor_assert_exp (clone, eq);
         btor_node_release (clone, eq);
         btor_node_release (clone, model);
@@ -274,13 +281,13 @@ btor_check_model_init (Btor *btor)
   BTOR_CNEW (btor->mm, ctx);
 
   ctx->btor  = btor;
-  ctx->clone = btor_clone_exp_layer (btor, 0, false);
+  ctx->clone = btor_clone_exp_layer (btor, 0, true);
   btor_set_msg_prefix (ctx->clone, "chkm");
   btor_opt_set (ctx->clone, BTOR_OPT_FUN_DUAL_PROP, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_UNCONSTRAINED, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_MODEL, 0);
   btor_opt_set (ctx->clone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-  btor_opt_set (ctx->clone, BTOR_OPT_NONDESTR_SUBST, 0);
+  btor_opt_set (ctx->clone, BTOR_OPT_PRINT_DIMACS, 0);
   btor_set_term (ctx->clone, 0, 0);
 
   btor_opt_set (ctx->clone, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);

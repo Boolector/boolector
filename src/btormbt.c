@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2019 Aina Niemetz.
- *  Copyright (C) 2013-2018 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Mathias Preiner.
  *  Copyright (C) 2013-2016 Armin Biere.
  *
  *  This file is part of Boolector.
@@ -117,6 +117,9 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define MIN_NADDOPLITS_INC 0
 #define MAX_NADDOPLITS_INC 3
 
+#define MIN_NBITS_ROTATE 0
+#define MAX_NBITS_ROTATE_FACT 5
+
 #define MIN_NOPS_INIT 0
 #define MAX_NOPS_INIT 50
 #define MIN_NOPS 20
@@ -184,7 +187,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
   "  -h, --help                  print this message and exit\n"                \
-  "  -ha                         print all options\n"                          \
   "\n"                                                                         \
   "  -v                          be extra verbose\n"                           \
   "  -q                          be extra quiet (stats only)\n"                \
@@ -260,6 +262,8 @@ typedef enum BtorMBTOperator
   DEC,
   UEXT,
   SEXT,
+  ROLI,
+  RORI,
   /* boolean unary funs */
   REDOR,
   REDXOR,
@@ -1632,11 +1636,15 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
-  uint32_t upper, lower, repeat, width;
+  uint32_t upper, lower, repeat, nbits, width;
   BoolectorNode *node;
 
-  upper = lower = repeat = 0;
-  width                  = boolector_get_width (mbt->btor, e);
+  upper  = 0;
+  lower  = 0;
+  repeat = 0;
+  nbits  = 0;
+
+  width = boolector_get_width (mbt->btor, e);
   assert (width <= mbt->bw.max);
 
   if (op == SLICE)
@@ -1653,6 +1661,12 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
     repeat = btor_rng_pick_rand (
         &mbt->round.rng, 1, ((uint32_t) MAX_BITWIDTH / width));
   }
+  else if (op == ROLI || op == RORI)
+  {
+    nbits = btor_rng_pick_rand (&mbt->round.rng,
+                                MIN_NBITS_ROTATE,
+                                MAX_NBITS_ROTATE_FACT * MAX_BITWIDTH);
+  }
 
   node = 0;
   switch (op)
@@ -1665,6 +1679,8 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
     case DEC: node = boolector_dec (mbt->btor, e); break;
     case UEXT: node = boolector_uext (mbt->btor, e, upper); break;
     case SEXT: node = boolector_sext (mbt->btor, e, upper); break;
+    case ROLI: node = boolector_roli (mbt->btor, e, nbits); break;
+    case RORI: node = boolector_rori (mbt->btor, e, nbits); break;
     case REDOR: node = boolector_redor (mbt->btor, e); break;
     case REDXOR: node = boolector_redxor (mbt->btor, e); break;
     default: assert (op == REDAND); node = boolector_redand (mbt->btor, e);
@@ -1710,11 +1726,22 @@ btormbt_binary_op (BtorMBT *mbt,
   }
   else if (op >= SLL && op <= ROR)
   {
-    /* modify width of e0 power of 2 and e1 log2(e0) */
-    next_pow_of_2 (e0_width, &tmp0, &tmp1);
-    e0       = modify_bv (mbt, e0, tmp0);
-    e1       = modify_bv (mbt, e1, tmp1);
-    e0_width = tmp0;
+    if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
+    {
+      /* use same bit-width */
+      if (e0_width != e1_width)
+      {
+        e1 = modify_bv (mbt, e1, e0_width);
+      }
+    }
+    else
+    {
+      /* modify width of e0 power of 2 and e1 log2(e0) */
+      next_pow_of_2 (e0_width, &tmp0, &tmp1);
+      e0       = modify_bv (mbt, e0, tmp0);
+      e1       = modify_bv (mbt, e1, tmp1);
+      e0_width = tmp0;
+    }
   }
   else if (op == CONCAT)
   {
@@ -2835,6 +2862,13 @@ btormbt_state_opt (BtorMBT *mbt)
     {
       continue;
     }
+    else if ((btoropt->kind == BTOR_OPT_NONDESTR_SUBST
+              && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+             || (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+                 && boolector_get_opt (mbt->btor, BTOR_OPT_NONDESTR_SUBST)))
+    {
+      continue;
+    }
 
     if (!btoropt->forced_by_cl)
     {
@@ -3442,9 +3476,11 @@ btormbt_state_dump (BtorMBT *mbt)
     boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
     {
+      bool parsed_smt2;
       pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat, &parsed_smt2);
       (void) pres;
+      (void) parsed_smt2;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
     }

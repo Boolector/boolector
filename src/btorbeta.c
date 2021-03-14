@@ -206,8 +206,6 @@ beta_reduce (Btor *btor,
   BTOR_INIT_STACK (mm, reset);
   mark = btor_hashint_map_new (mm);
 
-  real_cur = btor_node_real_addr (exp);
-
   BTOR_PUSH_STACK (stack, exp);
   BTOR_PUSH_STACK (stack, 0);
 

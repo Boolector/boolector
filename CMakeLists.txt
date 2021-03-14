@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.3)
 #-----------------------------------------------------------------------------#
 
 project(boolector)
-set(VERSION "3.1.0-pre")
+set(VERSION "3.2.1")
 string(TIMESTAMP TIME)
 
 #-----------------------------------------------------------------------------#
@@ -170,7 +170,7 @@ if(UBSAN)
 endif()
 
 if(NOT BUILD_SHARED_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 endif()
 
 #-----------------------------------------------------------------------------#
@@ -237,7 +237,7 @@ if(GCOV)
   setup_target_for_coverage_lcov(
     NAME coverage
     EXECUTABLE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test
-    DEPENDENCIES testbtor boolector-bin)
+    DEPENDENCIES boolector-bin)
 endif()
 
 if(GPROF)
@@ -478,3 +478,43 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/BoolectorConfigVersion.cmake
   DESTINATION lib/cmake/Boolector
 )
+
+#-----------------------------------------------------------------------------#
+# Print Boolector configuration
+
+if(NOT WIN32)
+  string(ASCII 27 Esc)
+  set(Green "${Esc}[32m")
+  set(Blue "${Esc}[34m")
+  set(ResetColor "${Esc}[m")
+endif()
+
+macro(config_info msg value)
+  message(STATUS  "${Blue}${msg}: ${Green}${value}${ResetColor}")
+endmacro()
+
+macro(config_info_bool msg value)
+  if(${value})
+    config_info("${msg}" "yes")
+  else()
+    config_info("${msg}" "no")
+  endif()
+endmacro()
+
+config_info("Build type" "${CMAKE_BUILD_TYPE}")
+config_info_bool("Shared build" "${BUILD_SHARED_LIBS}")
+
+config_info_bool("ASAN support" ASAN)
+config_info_bool("UBSAN support" UBSAN)
+config_info_bool("Assertions enabled" CHECK)
+config_info_bool("gcov support" GCOV)
+config_info_bool("gprof support" GPROF)
+config_info_bool("Logging support" LOG)
+config_info_bool("Python bindings" PYTHON)
+config_info_bool("Time statistics" TIME_STATS)
+config_info_bool("CaDiCaL" CaDiCaL_FOUND)
+config_info_bool("CryptoMiniSat" CryptoMiniSat_FOUND)
+config_info_bool("Lingeling" Lingeling_FOUND)
+config_info_bool("MiniSat" MiniSat_FOUND)
+config_info_bool("PicoSAT" PicoSAT_FOUND)
+config_info_bool("GMP" USE_GMP)

@@ -23,12 +23,38 @@ class TestParseError : public TestFile
     TestFile::SetUp ();
   }
 
+  void run_btor_parse_error_test (const char *name)
+  {
+    boolector_set_opt (d_btor, BTOR_OPT_INPUT_FORMAT, BTOR_INPUT_FORMAT_BTOR);
+    run_test (name, ".btor", BOOLECTOR_UNKNOWN);
+  }
+
   void run_smt_parse_error_test (const char *name)
   {
     boolector_set_opt (d_btor, BTOR_OPT_INPUT_FORMAT, BTOR_INPUT_FORMAT_SMT2);
     run_test (name, ".smt2", BOOLECTOR_UNKNOWN);
   }
 };
+
+TEST_F (TestParseError, btorperr000)
+{
+  run_btor_parse_error_test ("btorperr000");
+}
+
+TEST_F (TestParseError, btorperr001)
+{
+  run_btor_parse_error_test ("btorperr001");
+}
+
+TEST_F (TestParseError, btorperr002)
+{
+  run_btor_parse_error_test ("btorperr002");
+}
+
+TEST_F (TestParseError, btorperr003)
+{
+  run_btor_parse_error_test ("btorperr003");
+}
 
 TEST_F (TestParseError, smt2perr000)
 {

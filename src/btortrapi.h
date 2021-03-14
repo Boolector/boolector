@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2018 Aina Niemetz.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *  Copyright (C) 2013-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -64,8 +64,18 @@
               BTOR_TRAPI_NODE_ID (e1),                                     \
               BTOR_TRAPI_NODE_ID (e2))
 
-#define BTOR_TRAPI_RETURN_NODE(res) \
-  BTOR_TRAPI_RETURN (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (res))
+#define BTOR_TRAPI_RETURN_NODE(res)                                      \
+  do                                                                     \
+  {                                                                      \
+    if (res)                                                             \
+    {                                                                    \
+      BTOR_TRAPI_RETURN (BTOR_TRAPI_NODE_FMT, BTOR_TRAPI_NODE_ID (res)); \
+    }                                                                    \
+    else                                                                 \
+    {                                                                    \
+      BTOR_TRAPI_RETURN ("(nil)@%p");                                    \
+    }                                                                    \
+  } while (0)
 
 #define BTOR_TRAPI_RETURN_PTR(res) BTOR_TRAPI_RETURN ("%p", res)
 

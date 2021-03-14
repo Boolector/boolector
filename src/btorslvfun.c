@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
  *  Copyright (C) 2012-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
@@ -181,8 +181,7 @@ incremental_required (Btor *btor)
     BTOR_PUSH_STACK (stack, cur);
   }
 
-  btor_iter_hashptr_init (&it, btor->var_rhs);
-  btor_iter_hashptr_queue(&it, btor->fun_rhs);
+  btor_iter_hashptr_init (&it, btor->inputs);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&it));
@@ -507,9 +506,8 @@ add_function_inequality_constraints (Btor *btor)
   mm = btor->mm;
   BTOR_INIT_STACK (mm, visit);
   /* we have to add inequality constraints for every function equality
-   * in the formula (var_rhs and fun_rhs are still part of the formula). */
-  btor_iter_hashptr_init (&it, btor->var_rhs);
-  btor_iter_hashptr_queue (&it, btor->fun_rhs);
+   * in the formula (inputs are still part of the formula). */
+  btor_iter_hashptr_init (&it, btor->inputs);
   btor_iter_hashptr_queue (&it, btor->unsynthesized_constraints);
   btor_iter_hashptr_queue (&it, btor->assumptions);
   assert (btor->embedded_constraints->count == 0);
@@ -1700,6 +1698,7 @@ propagate (Btor *btor,
     assert (!btor_node_is_simplified (args)
             || btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
     args = btor_node_get_simplified (btor, args);
+    assert (btor_node_is_args (args));
 
     push_applies_for_propagation (btor, args, prop_stack, apply_search_cache);
 
@@ -2041,17 +2040,15 @@ add_extensionality_lemmas (Btor *btor)
   btor_iter_hashptr_init (&it, btor->feqs);
   while (btor_iter_hashptr_has_next (&it))
   {
-    cur = btor_node_get_simplified (btor, btor_iter_hashptr_next (&it));
-    if (!btor_node_is_fun_eq (cur)) continue;
-    BTOR_PUSH_STACK (feqs, cur);
+    BTOR_PUSH_STACK (feqs, btor_iter_hashptr_next (&it));
   }
 
   BtorUnionFind *ufind = btor_ufind_new (btor->mm);
 
   while (!BTOR_EMPTY_STACK (feqs))
   {
-    cur = BTOR_POP_STACK (feqs);
-    assert (btor_node_is_fun_eq (cur));
+    cur = btor_node_get_simplified (btor, BTOR_POP_STACK (feqs));
+    if (!btor_node_is_fun_eq (cur)) continue;
 
     evalbv = get_bv_assignment (btor, cur);
     assert (evalbv);
@@ -2272,20 +2269,19 @@ check_and_resolve_conflicts (Btor *btor,
   BTOR_INIT_STACK (mm, top_applies);
   apply_search_cache = btor_hashint_table_new (mm);
 
-  /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
-   * top level equality). if terms containing applies do not occur in the
-   * formula anymore due to variable substitution, we still need to ensure that
-   * the assignment computed for the substituted variable is correct. hence, we
-   * need to check the applies for consistency and push them onto the
-   * propagation stack.
+  /* NOTE: if terms containing applies do not occur in the formula anymore due
+   * to variable substitution, we still need to ensure that the assignment
+   * computed for the substituted variable is correct. hence, we need to check
+   * the applies for consistency and push them onto the propagation stack.
    * this also applies for don't care reasoning.
    */
-  btor_iter_hashptr_init (&pit, btor->var_rhs);
+  btor_iter_hashptr_init (&pit, btor->inputs);
   while (btor_iter_hashptr_has_next (&pit))
   {
     cur = btor_simplify_exp (btor, btor_iter_hashptr_next (&pit));
     /* no parents -> is not reachable from the roots */
-    if (btor_node_real_addr (cur)->parents > 0) continue;
+    if (btor_node_real_addr (cur)->parents > 0 || btor_node_is_fun (cur))
+      continue;
     push_applies_for_propagation (btor, cur, &prop_stack, apply_search_cache);
   }
 
@@ -2500,9 +2496,6 @@ sat_fun_solver (BtorFunSolver *slv)
   /* initialize dual prop clone */
   if (btor_opt_get (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
-    BTOR_ABORT (
-        btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST),
-        "Non-destructive substitution is not supported with dual propagation");
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
   }
 
@@ -2534,7 +2527,8 @@ sat_fun_solver (BtorFunSolver *slv)
       goto DONE;
     else if (result == BTOR_RESULT_UNKNOWN)
     {
-      assert (slv->sat_limit > -1 || btor->cbs.term.done);
+      assert (slv->sat_limit > -1 || btor->cbs.term.done
+              || btor_opt_get (btor, BTOR_OPT_PRINT_DIMACS));
       goto DONE;
     }
 

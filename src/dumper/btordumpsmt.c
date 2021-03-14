@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
+ *  Copyright (C) 2012-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -788,7 +788,6 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         case BTOR_BV_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_BV_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (btor_node_bv_get_width (sdc->btor, real_exp) > 1);
           pad = btor_node_bv_get_width (sdc->btor, real_exp)
                 - btor_node_bv_get_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad, depth + 1);
@@ -805,7 +804,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         case BTOR_APPLY_NODE:
 
           if (btor_node_is_update (real_exp->e[0])
-              || btor_node_is_uf_array (real_exp->e[0]))
+              || btor_node_is_uf_array (real_exp->e[0])
+              || btor_node_is_const_array (real_exp->e[0]))
             op = "select ";
 
           /* we need the arguments in reversed order */
@@ -828,29 +828,38 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           assert (btor_node_is_lambda (exp));
           assert (btor_node_is_array (exp));
 
-          tmp = 0;
-          expand_lambda (sdc, exp, &indices, &values, &tmp);
-          assert (tmp);
-          assert (btor_node_is_uf_array (tmp));
-
-          for (i = 0; i < BTOR_COUNT_STACK (indices); i++)
+          if (btor_node_is_const_array (exp))
           {
-            PUSH_DUMP_NODE (BTOR_PEEK_STACK (values, i), 1, 0, 1, 0, depth + 1);
-            PUSH_DUMP_NODE (
-                BTOR_PEEK_STACK (indices, i), 1, 0, 1, 0, depth + 1);
-            if (i < BTOR_COUNT_STACK (indices) - 1)
-            {
-              open_sexp (sdc);
-              fputs ("store ", sdc->file);
-              PUSH_DUMP_NODE (exp, 1, 0, 1, 0, depth + 1);
-            }
+            op = "";
+            PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 0, 0, depth + 1);
           }
-          BTOR_RESET_STACK (indices);
-          BTOR_RESET_STACK (values);
+          else
+          {
+            tmp = 0;
+            expand_lambda (sdc, exp, &indices, &values, &tmp);
+            assert (tmp);
+            assert (btor_node_is_uf_array (tmp));
 
-          op = "store";
-          /* push base array */
-          PUSH_DUMP_NODE (tmp, 1, 0, 1, 0, depth + 1);
+            for (i = 0; i < BTOR_COUNT_STACK (indices); i++)
+            {
+              PUSH_DUMP_NODE (
+                  BTOR_PEEK_STACK (values, i), 1, 0, 1, 0, depth + 1);
+              PUSH_DUMP_NODE (
+                  BTOR_PEEK_STACK (indices, i), 1, 0, 1, 0, depth + 1);
+              if (i < BTOR_COUNT_STACK (indices) - 1)
+              {
+                open_sexp (sdc);
+                fputs ("store ", sdc->file);
+                PUSH_DUMP_NODE (exp, 1, 0, 1, 0, depth + 1);
+              }
+            }
+            BTOR_RESET_STACK (indices);
+            BTOR_RESET_STACK (values);
+
+            op = "store";
+            /* push base array */
+            PUSH_DUMP_NODE (tmp, 1, 0, 1, 0, depth + 1);
+          }
           break;
 
         case BTOR_UPDATE_NODE:
@@ -957,6 +966,12 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                  fmt,
                  btor_node_bv_slice_get_upper (real_exp),
                  btor_node_bv_slice_get_lower (real_exp));
+      }
+      else if (btor_node_is_const_array (real_exp))
+      {
+        fputs ("(as const ", sdc->file);
+        btor_dumpsmt_dump_sort_node (real_exp, sdc->file);
+        fputs (") ", sdc->file);
       }
       else if (btor_node_is_quantifier (real_exp))
       {
@@ -1550,7 +1565,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (btor_node_is_lambda (cur) && !btor_node_is_array (cur)
              && !cur->parameterized && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (shared, cur);
-    else if (btor_node_is_lambda (cur) && btor_node_is_array (cur))
+    else if (btor_node_is_lambda (cur) && btor_node_is_array (cur)
+             && !btor_node_is_const_array (cur))
       BTOR_PUSH_STACK (larr, cur);
     else if (btor_node_is_quantifier (cur))
       quantifiers = true;

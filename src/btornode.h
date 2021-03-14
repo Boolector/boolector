@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Aina Niemetz.
  *  Copyright (C) 2012-2017 Mathias Preiner.
  *
  *  This file is part of Boolector.
@@ -41,32 +41,32 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
  */
 enum BtorNodeKind
 {
-  BTOR_INVALID_NODE   = 0, /* for debugging purposes only */
-  BTOR_BV_CONST_NODE  = 1,
-  BTOR_VAR_NODE       = 2,
-  BTOR_PARAM_NODE     = 3, /* parameter for lambda expressions */
-  BTOR_BV_SLICE_NODE  = 4,
-  BTOR_BV_AND_NODE    = 5,
-  BTOR_BV_EQ_NODE     = 6, /* equality on bit vectors */
-  BTOR_FUN_EQ_NODE    = 7, /* equality on arrays */
-  BTOR_BV_ADD_NODE    = 8,
-  BTOR_BV_MUL_NODE    = 9,
-  BTOR_BV_ULT_NODE    = 10,
-  BTOR_BV_SLL_NODE    = 11,
-  BTOR_BV_SRL_NODE    = 12,
-  BTOR_BV_UDIV_NODE   = 13,
-  BTOR_BV_UREM_NODE   = 14,
-  BTOR_BV_CONCAT_NODE = 15,
-  BTOR_APPLY_NODE     = 16,
-  BTOR_FORALL_NODE    = 17,
-  BTOR_EXISTS_NODE    = 18,
-  BTOR_LAMBDA_NODE    = 19, /* lambda expression */
-  BTOR_COND_NODE      = 20, /* conditional on bit vectors */
-  BTOR_ARGS_NODE      = 21,
-  BTOR_UPDATE_NODE    = 23,
-  BTOR_UF_NODE        = 22,
-  BTOR_PROXY_NODE     = 24, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 25
+  BTOR_INVALID_NODE = 0, /* for debugging purposes only */
+  BTOR_BV_CONST_NODE,
+  BTOR_VAR_NODE,
+  BTOR_PARAM_NODE, /* parameter for lambda expressions */
+  BTOR_BV_SLICE_NODE,
+  BTOR_BV_AND_NODE,
+  BTOR_BV_EQ_NODE,  /* equality on bit vectors */
+  BTOR_FUN_EQ_NODE, /* equality on arrays */
+  BTOR_BV_ADD_NODE,
+  BTOR_BV_MUL_NODE,
+  BTOR_BV_ULT_NODE,
+  BTOR_BV_SLL_NODE,
+  BTOR_BV_SRL_NODE,
+  BTOR_BV_UDIV_NODE,
+  BTOR_BV_UREM_NODE,
+  BTOR_BV_CONCAT_NODE,
+  BTOR_APPLY_NODE,
+  BTOR_FORALL_NODE,
+  BTOR_EXISTS_NODE,
+  BTOR_LAMBDA_NODE, /* lambda expression */
+  BTOR_COND_NODE,   /* conditional on bit vectors */
+  BTOR_ARGS_NODE,
+  BTOR_UPDATE_NODE,
+  BTOR_UF_NODE,
+  BTOR_PROXY_NODE, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -591,6 +591,8 @@ void btor_node_release (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 
+/* Get the id of the sort of the given node.
+ * Do not release the returned sort. */
 static inline BtorSortId
 btor_node_get_sort_id (const BtorNode *exp)
 {
@@ -598,6 +600,7 @@ btor_node_get_sort_id (const BtorNode *exp)
   return btor_node_real_addr (exp)->sort_id;
 }
 
+/* Set the sort id of the given node. */
 static inline void
 btor_node_set_sort_id (BtorNode *exp, BtorSortId id)
 {

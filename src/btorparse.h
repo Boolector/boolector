@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Mathias Preiner.
  *  Copyright (C) 2015-2018 Aina Niemetz.
  *
  *  This file is part of Boolector.
@@ -56,7 +56,8 @@ int32_t btor_parse (Btor *btor,
                     const char *infile_name,
                     FILE *outfile,
                     char **error_msg,
-                    int32_t *status);
+                    int32_t *status,
+                    bool *parsed_smt2);
 
 int32_t btor_parse_btor (Btor *btor,
                          FILE *infile,

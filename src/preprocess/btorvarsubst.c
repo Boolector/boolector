@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2017 Armin Biere.
  *  Copyright (C) 2012-2019 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -205,7 +205,7 @@ btor_substitute_var_exps (Btor *btor)
   assert (btor);
 
   BtorPtrHashTable *varsubst_constraints, *substs;
-  BtorNode *cur, *left, *right;
+  BtorNode *cur, *simp, *left, *right, *simp_right;
   BtorPtrHashBucket *b;
   BtorPtrHashTableIterator it;
   double start, delta;
@@ -233,12 +233,22 @@ btor_substitute_var_exps (Btor *btor)
     {
       b   = varsubst_constraints->first;
       cur = (BtorNode *) b->key;
-      assert (btor_node_is_regular (cur));
-      assert (btor_node_is_bv_var (cur) || btor_node_is_uf (cur));
-      right = btor_node_get_simplified (btor, (BtorNode *) b->data.as_ptr);
-      assert (!btor_node_is_simplified (right));
-      btor_hashptr_table_add (substs, cur)->data.as_ptr = right;
+      right = (BtorNode *) b->data.as_ptr;
+      simp  = btor_node_get_simplified (btor, cur);
       btor_hashptr_table_remove (varsubst_constraints, cur, 0, 0);
+
+      if (btor_node_is_regular (simp)
+          && (btor_node_is_bv_var (simp) || btor_node_is_uf (simp)))
+      {
+        assert (btor_node_is_regular (simp));
+        assert (btor_node_is_bv_var (simp) || btor_node_is_uf (simp));
+        simp_right = btor_node_get_simplified (btor, right);
+        assert (!btor_node_is_simplified (simp_right));
+        btor_hashptr_table_add (substs, btor_node_copy (btor, simp))
+            ->data.as_ptr = btor_node_copy (btor, simp_right);
+      }
+      btor_node_release (btor, cur);
+      btor_node_release (btor, right);
     }
     assert (varsubst_constraints->count == 0u);
 

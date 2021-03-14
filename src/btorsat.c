@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2013-2019 Aina Niemetz.
+ *  Copyright (C) 2012-2020 Mathias Preiner.
+ *  Copyright (C) 2013-2020 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -11,20 +11,20 @@
 
 #include "btorsat.h"
 
+#include <assert.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdlib.h>
+
+#include "btorabort.h"
+#include "btorconfig.h"
+#include "btorcore.h"
 #include "sat/btorcadical.h"
 #include "sat/btorcms.h"
 #include "sat/btorlgl.h"
 #include "sat/btorminisat.h"
 #include "sat/btorpicosat.h"
-
-#include "btorabort.h"
-#include "btorcore.h"
 #include "utils/btorutil.h"
-
-#include <assert.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -33,6 +33,8 @@
     && !defined(BTOR_USE_CMS)
 #error "no SAT solver configured"
 #endif
+
+static bool enable_dimacs_printer (BtorSATMgr *smgr);
 
 /*------------------------------------------------------------------------*/
 /* wrapper functions for SAT solver API                                   */
@@ -55,12 +57,12 @@ assume (BtorSATMgr *smgr, int32_t lit)
 }
 
 static inline void *
-clone (BtorSATMgr *smgr, BtorMemMgr *mm)
+clone (Btor *btor, BtorSATMgr *smgr)
 {
   BTOR_ABORT (!smgr->api.clone,
               "SAT solver %s does not support 'clone' API call",
               smgr->name);
-  return smgr->api.clone (smgr, mm);
+  return smgr->api.clone (btor, smgr);
 }
 
 static inline int32_t
@@ -212,7 +214,7 @@ btor_sat_mgr_clone (Btor *btor, BtorSATMgr *smgr)
 
   mm = btor->mm;
   BTOR_NEW (mm, res);
-  res->solver = clone (smgr, mm);
+  res->solver = clone (btor, smgr);
   res->btor   = btor;
   assert (mm->sat_allocated == smgr->btor->mm->sat_allocated);
   res->name = smgr->name;
@@ -321,6 +323,20 @@ btor_sat_enable_solver (BtorSATMgr *smgr)
             "%s allows %snon-incremental mode",
             smgr->name,
             smgr->api.assume ? "both incremental and " : "");
+
+  if (btor_opt_get (smgr->btor, BTOR_OPT_PRINT_DIMACS))
+  {
+    enable_dimacs_printer (smgr);
+  }
+}
+
+static void
+init_flags (BtorSATMgr *smgr)
+{
+  assert (smgr);
+  smgr->initialized  = true;
+  smgr->inc_required = true;
+  smgr->sat_time     = 0;
 }
 
 void
@@ -330,11 +346,10 @@ btor_sat_init (BtorSATMgr *smgr)
   assert (!smgr->initialized);
   BTOR_MSG (smgr->btor->msg, 1, "initialized %s", smgr->name);
 
+  init_flags (smgr);
+
   smgr->solver = init (smgr);
   enable_verbosity (smgr, btor_opt_get (smgr->btor, BTOR_OPT_VERBOSITY));
-  smgr->initialized  = true;
-  smgr->inc_required = true;
-  smgr->sat_time     = 0;
 
   /* Set terminate callbacks if SAT solver supports it */
   if (smgr->term.fun && smgr->api.setterm)
@@ -462,4 +477,273 @@ btor_sat_failed (BtorSATMgr *smgr, int32_t lit)
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
   return failed (smgr, lit);
+}
+
+/*------------------------------------------------------------------------*/
+/* DIMACS printer                                                         */
+/*------------------------------------------------------------------------*/
+
+static void *
+dimacs_printer_init (BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BtorSATMgr *wrapped_smgr = printer->smgr;
+
+  BTOR_INIT_STACK (smgr->btor->mm, printer->clauses);
+  BTOR_INIT_STACK (smgr->btor->mm, printer->assumptions);
+  printer->out = stdout;
+
+  /* Note: We need to explicitly do the initialization steps for 'wrapped_smgr'
+   * here instead of calling btor_sat_init on 'wrapped_smgr'. Otherwise, not all
+   * information is recorded correctly. */
+  BTOR_MSG (smgr->btor->msg, 1, "initialized %s", wrapped_smgr->name);
+  init_flags (wrapped_smgr);
+  wrapped_smgr->solver = wrapped_smgr->api.init (wrapped_smgr);
+
+  return printer;
+}
+
+static void
+dimacs_printer_add (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BTOR_PUSH_STACK (printer->clauses, lit);
+  add (printer->smgr, lit);
+}
+
+static void
+dimacs_printer_assume (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BTOR_PUSH_STACK (printer->assumptions, lit);
+  assume (printer->smgr, lit);
+}
+
+static int32_t
+dimacs_printer_deref (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  return deref (printer->smgr, lit);
+}
+
+static int32_t
+dimacs_printer_repr (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  return repr (printer->smgr, lit);
+}
+
+static void
+dimacs_printer_enable_verbosity (BtorSATMgr *smgr, int32_t level)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  return enable_verbosity (printer->smgr, level);
+}
+
+static int32_t
+dimacs_printer_failed (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  return failed (printer->smgr, lit);
+}
+
+static int32_t
+dimacs_printer_fixed (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  return fixed (printer->smgr, lit);
+}
+
+static void
+dimacs_printer_reset (BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BtorSATMgr *wrapped_smgr = printer->smgr;
+
+  reset (wrapped_smgr);
+
+  BTOR_DELETE (smgr->btor->mm, wrapped_smgr);
+  BTOR_RELEASE_STACK (printer->clauses);
+  BTOR_RELEASE_STACK (printer->assumptions);
+  BTOR_DELETE (smgr->btor->mm, printer);
+  smgr->solver = 0;
+}
+
+static void
+print_dimacs (BtorSATMgr *smgr)
+{
+  int32_t lit;
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+
+  /* Print CNF in DIMACS format. */
+  fprintf (printer->out, "c CNF dump %u start\n", smgr->satcalls);
+  fprintf (printer->out, "c Boolector version %s\n", BTOR_GIT_ID);
+  fprintf (printer->out, "p cnf %u %u\n", smgr->maxvar, smgr->clauses);
+
+  /* Print clauses */
+  for (size_t i = 0; i < BTOR_COUNT_STACK (printer->clauses); i++)
+  {
+    lit = BTOR_PEEK_STACK (printer->clauses, i);
+    if (lit)
+      printf ("%d ", lit);
+    else
+      printf ("%d\n", lit);
+  }
+
+  /* Print assumptions */
+  if (!BTOR_EMPTY_STACK (printer->assumptions))
+  {
+    fprintf (printer->out, "c assumptions\n");
+    for (size_t i = 0; i < BTOR_COUNT_STACK (printer->assumptions); i++)
+    {
+      lit = BTOR_PEEK_STACK (printer->assumptions, i);
+      fprintf (printer->out, "%d\n", lit);
+    }
+  }
+  fprintf (printer->out, "c CNF dump %u end\n", smgr->satcalls);
+}
+
+static int32_t
+dimacs_printer_sat (BtorSATMgr *smgr, int32_t limit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BtorSATMgr *wrapped_smgr = printer->smgr;
+
+  print_dimacs (smgr);
+
+  wrapped_smgr->inc_required = smgr->inc_required;
+  wrapped_smgr->satcalls     = smgr->satcalls;
+
+  /* If incremental is disabled, we only print the CNF and return unknown. */
+  return smgr->inc_required ? sat (wrapped_smgr, limit) : 0;
+}
+
+static void
+dimacs_printer_set_output (BtorSATMgr *smgr, FILE *output)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  printer->out            = output;
+  set_output (printer->smgr, output);
+}
+
+static void
+dimacs_printer_set_prefix (BtorSATMgr *smgr, const char *prefix)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  set_prefix (printer->smgr, prefix);
+}
+
+static void
+dimacs_printer_stats (BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  stats (printer->smgr);
+}
+
+static void
+clone_int_stack (BtorMemMgr *mm, BtorIntStack *clone, BtorIntStack *stack)
+{
+  size_t size = BTOR_SIZE_STACK (*stack);
+  size_t cnt  = BTOR_COUNT_STACK (*stack);
+
+  BTOR_INIT_STACK (mm, *clone);
+  if (size)
+  {
+    BTOR_CNEWN (mm, clone->start, size);
+    clone->end = clone->start + size;
+    clone->top = clone->start + cnt;
+    memcpy (clone->start, stack->start, cnt * sizeof (int32_t));
+  }
+}
+
+static void *
+dimacs_printer_clone (Btor *btor, BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer, *printer_clone;
+  BtorMemMgr *mm;
+
+  mm      = btor->mm;
+  printer = (BtorCnfPrinter *) smgr->solver;
+
+  BTOR_CNEW (mm, printer_clone);
+  clone_int_stack (mm, &printer_clone->assumptions, &printer->assumptions);
+  clone_int_stack (mm, &printer_clone->clauses, &printer->clauses);
+  printer_clone->out  = printer->out;
+  printer_clone->smgr = btor_sat_mgr_clone (btor, printer->smgr);
+
+  return printer_clone;
+}
+
+static void
+dimacs_printer_setterm (BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  setterm (printer->smgr);
+}
+
+static int32_t
+dimacs_printer_inc_max_var (BtorSATMgr *smgr)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BtorSATMgr *wrapped_smgr   = printer->smgr;
+  wrapped_smgr->inc_required = smgr->inc_required;
+  wrapped_smgr->maxvar       = smgr->maxvar;
+  return inc_max_var (wrapped_smgr);
+}
+
+static void
+dimacs_printer_melt (BtorSATMgr *smgr, int32_t lit)
+{
+  BtorCnfPrinter *printer = (BtorCnfPrinter *) smgr->solver;
+  BtorSATMgr *wrapped_smgr   = printer->smgr;
+  wrapped_smgr->inc_required = smgr->inc_required;
+  melt (wrapped_smgr, lit);
+}
+
+/*------------------------------------------------------------------------*/
+
+/* The DIMACS printer is a SAT manager that wraps the currently configured SAT
+ * mangager. It records the CNF sent to the SAT solver and forwards all API
+ * calls to the wrapped SAT manager. The DIMACS printer assumes a SAT solver
+ * was already enabled. */
+static bool
+enable_dimacs_printer (BtorSATMgr *smgr)
+{
+  assert (smgr);
+  assert (smgr->name);
+
+  BtorCnfPrinter *printer;
+
+  /* Initialize printer and copy current SAT manager. */
+  BTOR_CNEW (smgr->btor->mm, printer);
+  BTOR_CNEW (smgr->btor->mm, printer->smgr);
+  memcpy (printer->smgr, smgr, sizeof (BtorSATMgr));
+
+  /* Clear API */
+  memset (&smgr->api, 0, sizeof (smgr->api));
+
+  smgr->solver               = printer;
+  smgr->name                 = "DIMACS Printer";
+  smgr->api.add              = dimacs_printer_add;
+  smgr->api.deref            = dimacs_printer_deref;
+  smgr->api.enable_verbosity = dimacs_printer_enable_verbosity;
+  smgr->api.fixed            = dimacs_printer_fixed;
+  smgr->api.inc_max_var      = dimacs_printer_inc_max_var;
+  smgr->api.init             = dimacs_printer_init;
+  smgr->api.melt             = dimacs_printer_melt;
+  smgr->api.repr             = dimacs_printer_repr;
+  smgr->api.reset            = dimacs_printer_reset;
+  smgr->api.sat              = dimacs_printer_sat;
+  smgr->api.set_output       = dimacs_printer_set_output;
+  smgr->api.set_prefix       = dimacs_printer_set_prefix;
+  smgr->api.stats            = dimacs_printer_stats;
+  smgr->api.setterm          = dimacs_printer_setterm;
+
+  /* These function are used in btor_sat_mgr_has_* testers and should only be
+   * set if the underlying SAT solver also has support for it. */
+  smgr->api.assume = printer->smgr->api.assume ? dimacs_printer_assume : 0;
+  smgr->api.failed = printer->smgr->api.failed ? dimacs_printer_failed : 0;
+  smgr->api.clone  = printer->smgr->api.clone ? dimacs_printer_clone : 0;
+
+  return true;
 }

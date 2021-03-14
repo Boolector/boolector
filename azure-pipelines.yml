@@ -4,7 +4,7 @@ variables:
 jobs:
 - job: Linux
   pool:
-   vmImage: 'ubuntu-16.04'
+   vmImage: 'ubuntu-latest'
   strategy:
     matrix:
       production:
@@ -18,10 +18,6 @@ jobs:
         btorConfigEnv: ''
       debug_gmp:
         btorConfig: '-g --gmp'
-        btorConfigEnv: ''
-      python2:
-        needCython: true
-        btorConfig: '--python --py2'
         btorConfigEnv: ''
       python3:
         needCython: true
@@ -63,7 +59,7 @@ jobs:
 
 - job: macOS
   pool:
-   vmImage: 'macos-10.13'
+   vmImage: 'macos-latest'
   strategy:
     matrix:
       production:
