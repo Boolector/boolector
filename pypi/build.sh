@@ -25,15 +25,12 @@ cd ${BUILD_DIR}
 cd boolector
 
 ./configure.sh --shared --prefix /usr
-if test $? -ne 0; then exit 1; fi
 
 cd build
 
 make -j${N_CORES}
-if test $? -ne 0; then exit 1; fi
 
 make install
-if test $? -ne 0; then exit 1; fi
 
 #********************************************************************
 #* pyboolector
