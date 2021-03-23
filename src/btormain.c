@@ -1503,7 +1503,9 @@ boolector_main (int32_t argc, char **argv)
   /* we don't dump formula(s) in incremental mode */
   else if (dump)
   {
-    (void) boolector_simplify (btor);
+    // if the formula is simplified to true or false we don't actually dump anything,
+    // so let the caller know about it by the return code
+    sat_res = boolector_simplify (btor);
 
     switch (dump)
     {
