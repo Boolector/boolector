@@ -142,7 +142,7 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   BtorPtrHashTableIterator it;
   BtorNodePtrStack nodes;
 
-  const char *fmt_header = "%s AIG dump\nc Boolector version %s\n";
+  const char *fmt_header = "%s AIG dump\nBoolector version %s\n";
   int comment_section_started = 0;
 
   BTOR_INIT_STACK (btor->mm, nodes);
@@ -151,6 +151,18 @@ btor_dumpaig_dump (Btor *btor, bool is_binary, FILE *output, bool merge_roots)
   while (btor_iter_hashptr_has_next (&it))
   {
     BTOR_PUSH_STACK (nodes, btor_iter_hashptr_next (&it));
+  }
+
+  if (BTOR_EMPTY_STACK(nodes))
+  {
+    if (btor->inconsistent)
+    {
+      BTOR_PUSH_STACK(nodes, btor_node_invert(btor->true_exp));
+    }
+    else
+    {
+      BTOR_PUSH_STACK(nodes, btor->true_exp);
+    }
   }
 
   if (BTOR_COUNT_STACK (nodes))
