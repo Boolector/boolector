@@ -115,3 +115,6 @@ jobs:
   - script: ctest -j$(ncpus) --output-on-failure
     workingDirectory: 'build'
     displayName: 'Run CTest'
+
+- template: pypi/azure-pipelines-pypi.yml
+
