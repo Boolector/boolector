@@ -16,11 +16,11 @@ jobs:
       docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector pyboolector
     displayName: 'Run PyBoolector Build'
 
-# Note: this must be enabled after Azure Pipelines has proper PyPi service information
-#  - task: TwineAuthenticate@1
-#    condition: eq(variables['Build.SourceBranchName'], 'master')
-#    inputs:
-#      pythonUploadServiceConnection: pypi
+  - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
+    inputs:
+      pythonUploadServiceConnection: pypi-pyboolector
+
   - script: |
       # Only deploy from master
       if test "$(Build.SourceBranchName)" = "master"; then
@@ -81,11 +81,10 @@ jobs:
       if test $? -ne 0; then exit 1; fi
     displayName: 'Build PyPi package'
 
-# Note: this must be enabled after Azure Pipelines has proper PyPi service information
-#  - task: TwineAuthenticate@1
-#    condition: eq(variables['Build.SourceBranchName'], 'master')
-#    inputs:
-#      pythonUploadServiceConnection: pypi-pyboolector
+  - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
+    inputs:
+      pythonUploadServiceConnection: pypi-pyboolector
 
   - task: CopyFiles@2
     inputs:
