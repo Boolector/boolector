@@ -483,7 +483,7 @@ btormain_msg (char *msg, ...)
 
 #define IS_OPT(optlng, lng) (!strcmp (optlng, lng))
 
-const char *
+static const char *
 get_opt_val_string (BtorPtrHashTable *options, int32_t val)
 {
   BtorPtrHashTableIterator it;
@@ -503,7 +503,7 @@ get_opt_val_string (BtorPtrHashTable *options, int32_t val)
   return s;
 }
 
-char *
+static char *
 get_opt_vals_string (BtorMemMgr *mm, BtorOpt *bo)
 {
   size_t i;
@@ -693,7 +693,7 @@ print_opt (BtorMainApp *app,
   BTOR_RELEASE_STACK (optstr);
 }
 
-void
+static void
 print_opt_help (BtorMainApp *app,
                 const char *shrt,
                 const char *lng,

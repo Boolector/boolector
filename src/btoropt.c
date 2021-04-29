@@ -1414,7 +1414,7 @@ btor_opt_init_opts (Btor *btor)
             "enable non-destructive term substitutions");
 }
 
-void
+static void
 clone_data_as_opt_help_ptr (BtorMemMgr *mm,
                             const void *map,
                             BtorHashTableData *data,

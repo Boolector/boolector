@@ -74,7 +74,7 @@ get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   return aigprop_get_assignment_aig (aprop, aig);
 }
 
-BtorBitVector *
+static BtorBitVector *
 get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
 {
   assert (mm);

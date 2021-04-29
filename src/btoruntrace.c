@@ -246,7 +246,7 @@ is_num_str (const char *str)
   return ch == 0;
 }
 
-void
+static void
 parse_check_last_arg (char *op)
 {
   if (strtok (0, " "))
@@ -455,7 +455,7 @@ check_return_str (char *expected, char *got)
   return strncmp (expected, got, pos1) == 0;
 }
 
-void
+static void
 parse (FILE *file)
 {
   size_t i;

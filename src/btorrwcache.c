@@ -12,7 +12,7 @@
 static uint32_t hash_primes[] = {
     333444569u, 76891121u, 456790003u, 2654435761u};
 
-int32_t
+static int32_t
 compare_rw_cache_tuple (const BtorRwCacheTuple *t0, const BtorRwCacheTuple *t1)
 {
   assert (t0);
@@ -26,7 +26,7 @@ compare_rw_cache_tuple (const BtorRwCacheTuple *t0, const BtorRwCacheTuple *t1)
   return 1;
 }
 
-uint32_t
+static uint32_t
 hash_rw_cache_tuple (const BtorRwCacheTuple *t)
 {
   uint32_t hash;

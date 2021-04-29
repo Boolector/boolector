@@ -373,7 +373,7 @@ delete_model (BtorGroundSolvers *gslv)
  * 'deps' maps existential variables to a list of universal variables by means
  * of an argument node.
  */
-void
+static void
 compute_var_deps (Btor *btor,
                   BtorNode *root,
                   BtorNodeMap *edeps,
@@ -1065,152 +1065,7 @@ refine_exists_solver (BtorGroundSolvers *gslv, BtorNodeMap *evar_map)
   btor_node_release (e_solver, res);
 }
 
-BtorNode *
-mk_concrete_lambda_model (Btor *btor, const BtorPtrHashTable *model)
-
-{
-  assert (btor);
-  assert (model);
-
-  uint32_t i;
-  bool opt_synth_complete;
-  BtorNode *uf;
-  BtorNode *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
-  BtorPtrHashTableIterator it;
-  BtorNodePtrStack params, consts;
-  BtorBitVector *value;
-  BtorBitVectorTuple *args_tuple;
-  BtorSortId dsortid, cdsortid, funsortid;
-  BtorSortIdStack tup_sorts;
-  BtorPtrHashTable *static_rho;
-  BtorMemMgr *mm;
-
-  mm         = btor->mm;
-  static_rho = btor_hashptr_table_new (mm, 0, 0);
-  BTOR_INIT_STACK (mm, params);
-  BTOR_INIT_STACK (mm, consts);
-  BTOR_INIT_STACK (mm, tup_sorts);
-  opt_synth_complete =
-      btor_opt_get (btor, BTOR_OPT_QUANT_SYNTH_ITE_COMPLETE) == 1;
-
-  args_tuple = model->first->key;
-  value      = model->first->data.as_ptr;
-
-  /* create params from domain sort */
-  for (i = 0; i < args_tuple->arity; i++)
-  {
-    p = btor_exp_param (btor, btor_bv_get_width (args_tuple->bv[i]), 0);
-    BTOR_PUSH_STACK (params, p);
-    BTOR_PUSH_STACK (tup_sorts, p->sort_id);
-  }
-
-  dsortid =
-      btor_sort_tuple (btor, tup_sorts.start, BTOR_COUNT_STACK (tup_sorts));
-  cdsortid  = btor_sort_bv (btor, btor_bv_get_width (value));
-  funsortid = btor_sort_fun (btor, dsortid, cdsortid);
-  btor_sort_release (btor, dsortid);
-  btor_sort_release (btor, cdsortid);
-  BTOR_RELEASE_STACK (tup_sorts);
-
-  if (opt_synth_complete)
-    e_else = btor_exp_bv_zero (btor, btor_bv_get_width (value));
-  else
-  {
-    uf   = btor_exp_uf (btor, funsortid, 0);
-    args = btor_exp_args (btor, params.start, BTOR_COUNT_STACK (params));
-    assert (args->sort_id == btor_sort_fun_get_domain (btor, uf->sort_id));
-    e_else = btor_exp_apply (btor, uf, args);
-    assert (btor_node_real_addr (e_else)->sort_id
-            == btor_sort_fun_get_codomain (btor, uf->sort_id));
-    btor_node_release (btor, args);
-    btor_node_release (btor, uf);
-  }
-
-  /* generate ITEs */
-  ite = 0;
-  res = 0;
-  btor_iter_hashptr_init (&it, (BtorPtrHashTable *) model);
-  while (btor_iter_hashptr_has_next (&it))
-  {
-    value      = (BtorBitVector *) it.bucket->data.as_ptr;
-    args_tuple = btor_iter_hashptr_next (&it);
-
-    /* create condition */
-    assert (BTOR_EMPTY_STACK (consts));
-    assert (BTOR_COUNT_STACK (params) == args_tuple->arity);
-    for (i = 0; i < args_tuple->arity; i++)
-    {
-      c = btor_exp_bv_const (btor, args_tuple->bv[i]);
-      assert (btor_node_real_addr (c)->sort_id
-              == BTOR_PEEK_STACK (params, i)->sort_id);
-      BTOR_PUSH_STACK (consts, c);
-    }
-
-    assert (!BTOR_EMPTY_STACK (params));
-    assert (BTOR_COUNT_STACK (params) == BTOR_COUNT_STACK (consts));
-    cond = btor_exp_eq (
-        btor, BTOR_PEEK_STACK (params, 0), BTOR_PEEK_STACK (consts, 0));
-    for (i = 1; i < BTOR_COUNT_STACK (params); i++)
-    {
-      eq = btor_exp_eq (
-          btor, BTOR_PEEK_STACK (params, i), BTOR_PEEK_STACK (consts, i));
-      tmp = btor_exp_bv_and (btor, cond, eq);
-      btor_node_release (btor, cond);
-      btor_node_release (btor, eq);
-      cond = tmp;
-    }
-
-    /* args for static_rho */
-    args = btor_exp_args (btor, consts.start, BTOR_COUNT_STACK (consts));
-
-    while (!BTOR_EMPTY_STACK (consts))
-      btor_node_release (btor, BTOR_POP_STACK (consts));
-
-    /* create ITE */
-    e_if = btor_exp_bv_const (btor, value);
-    ite  = btor_exp_cond (btor, cond, e_if, e_else);
-
-    /* add to static rho */
-    btor_hashptr_table_add (static_rho, args)->data.as_ptr =
-        btor_node_copy (btor, e_if);
-
-    btor_node_release (btor, cond);
-    btor_node_release (btor, e_if);
-    btor_node_release (btor, e_else);
-    e_else = ite;
-  }
-
-  assert (ite);
-  if (ite) /* get rid of compiler warning */
-  {
-    res = btor_exp_fun (btor, params.start, BTOR_COUNT_STACK (params), ite);
-    btor_node_release (btor, ite);
-  }
-  assert (res->sort_id == funsortid);
-  btor_sort_release (btor, funsortid);
-
-  while (!BTOR_EMPTY_STACK (params))
-    btor_node_release (btor, BTOR_POP_STACK (params));
-  BTOR_RELEASE_STACK (params);
-  BTOR_RELEASE_STACK (consts);
-
-  /* res already exists */
-  if (((BtorLambdaNode *) res)->static_rho)
-  {
-    btor_iter_hashptr_init (&it, static_rho);
-    while (btor_iter_hashptr_has_next (&it))
-    {
-      btor_node_release (btor, it.bucket->data.as_ptr);
-      btor_node_release (btor, btor_iter_hashptr_next (&it));
-    }
-    btor_hashptr_table_delete (static_rho);
-  }
-  else
-    ((BtorLambdaNode *) res)->static_rho = static_rho;
-  return res;
-}
-
-BtorNode *
+static BtorNode *
 mk_concrete_ite_model (BtorGroundSolvers *gslv,
                        BtorNode *evar,
                        FlatModel *model)
@@ -2488,7 +2343,7 @@ DONE:
 }
 
 #ifdef BTOR_HAVE_PTHREADS
-void *
+static void *
 thread_work (void *state)
 {
   BtorSolverResult res = BTOR_RESULT_UNKNOWN;
@@ -2517,7 +2372,7 @@ thread_work (void *state)
   return NULL;
 }
 
-int32_t
+static int32_t
 thread_terminate (void *state)
 {
   bool found_result = *((bool *) state);

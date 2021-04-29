@@ -841,7 +841,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
   }
 }
 
-void
+static void
 find_ranges (Btor *btor,
              BtorNodePtrStack *stack,
              BtorNodePtrStack *ranges,
@@ -1450,7 +1450,7 @@ extract_lambdas (Btor *btor,
  * handled right now. If that happens Boolector aborts with an error message
  * about extensional lambdas. However, this is not a problem since we would
  * abort anyways since we only support pure quantified BV right now. */
-void
+static void
 extract_macros (Btor *btor)
 {
   double start;

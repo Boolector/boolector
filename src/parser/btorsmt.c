@@ -1072,38 +1072,6 @@ UNEXPECTED_CHARACTER:
   return !perr_smt (parser, "unexpected character with ASCII code %d", ch);
 }
 
-static void
-btorsmtppaux (FILE *file, BtorSMTNode *node, uint32_t indent)
-{
-  uint32_t i;
-
-  if (isleaf (node))
-    fprintf (file, "%s", ((BtorSMTSymbol *) strip (node))->name);
-  else
-  {
-    fputc ('(', file);
-
-    for (;;)
-    {
-      btorsmtppaux (file, car (node), indent + 1);
-      if (!(node = cdr (node))) break;
-
-      fputc ('\n', file);
-      for (i = 0; i <= indent; i++) fputc (' ', file);
-    }
-
-    fputc (')', file);
-  }
-}
-
-void
-btorsmtpp (BtorSMTNode *node)
-{
-  btorsmtppaux (stdout, node, 0);
-  fputc ('\n', stdout);
-  fflush (stdout);
-}
-
 static const char *
 next_numeral (const char *str)
 {
