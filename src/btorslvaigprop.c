@@ -42,7 +42,8 @@ clone_aigprop_solver (Btor *clone, BtorAIGPropSolver *slv, BtorNodeMap *exp_map)
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorAIGPropSolver));
   res->btor  = clone;
-  res->aprop = aigprop_clone_aigprop (btor_get_aig_mgr (clone), slv->aprop);
+  res->aprop =
+      btor_aigprop_clone_aigprop (btor_get_aig_mgr (clone), slv->aprop);
   return res;
 }
 
@@ -56,12 +57,12 @@ delete_aigprop_solver (BtorAIGPropSolver *slv)
 
   Btor *btor = slv->btor;
 
-  if (slv->aprop) aigprop_delete_aigprop (slv->aprop);
+  if (slv->aprop) btor_aigprop_delete_aigprop (slv->aprop);
   BTOR_DELETE (btor->mm, slv);
 }
 
 static int32_t
-get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
+get_assignment_aig (BtorAIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
   assert (aprop->model);
@@ -71,11 +72,11 @@ get_assignment_aig (AIGProp *aprop, BtorAIG *aig)
   /* initialize don't care bits with false */
   if (!btor_hashint_map_contains (aprop->model, BTOR_REAL_ADDR_AIG (aig)->id))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
-  return aigprop_get_assignment_aig (aprop, aig);
+  return btor_aigprop_get_assignment_aig (aprop, aig);
 }
 
 static BtorBitVector *
-get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, AIGProp *aprop)
+get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorAIGProp *aprop)
 {
   assert (mm);
   assert (exp);
@@ -115,7 +116,7 @@ generate_model_from_aig_model (Btor *btor)
   BtorPtrHashTableIterator it;
   BtorNodePtrStack stack;
   BtorIntHashTable *cache;
-  AIGProp *aprop;
+  BtorAIGProp *aprop;
 
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
 
@@ -262,7 +263,7 @@ sat_aigprop_solver (BtorAIGPropSolver *slv)
       (void) btor_hashint_table_add (roots, btor_aig_get_id (aig));
   }
 
-  if ((sat_result = aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)
+  if ((sat_result = btor_aigprop_sat (slv->aprop, roots)) == BTOR_RESULT_UNSAT)
     goto UNSAT;
   generate_model_from_aig_model (btor);
   assert (sat_result == BTOR_RESULT_SAT);
@@ -367,12 +368,12 @@ btor_new_aigprop_solver (Btor *btor)
       (BtorSolverPrintTimeStats) print_time_stats_aigprop_solver;
   slv->api.print_model = (BtorSolverPrintModel) print_model;
 
-  slv->aprop =
-      aigprop_new_aigprop (btor_get_aig_mgr (btor),
-                           btor_opt_get (btor, BTOR_OPT_LOGLEVEL),
-                           btor_opt_get (btor, BTOR_OPT_SEED),
-                           btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
-                           btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT));
+  slv->aprop = btor_aigprop_new_aigprop (
+      btor_get_aig_mgr (btor),
+      btor_opt_get (btor, BTOR_OPT_LOGLEVEL),
+      btor_opt_get (btor, BTOR_OPT_SEED),
+      btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_RESTARTS),
+      btor_opt_get (btor, BTOR_OPT_AIGPROP_USE_BANDIT));
 
   BTOR_MSG (btor->msg, 1, "enabled aigprop engine");
 

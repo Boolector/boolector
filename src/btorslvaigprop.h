@@ -18,7 +18,7 @@ struct BtorAIGPropSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  AIGProp *aprop;
+  BtorAIGProp *aprop;
 
   /* statistics */
   struct
