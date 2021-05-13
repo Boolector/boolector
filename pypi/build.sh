@@ -50,7 +50,7 @@ cd pyboolector
 
 for py in /opt/python/cp3{6,7,8,9}-*; do
   echo "Python: ${py}"
-  python=/opt/python/${py}/bin/python
+  python=${py}/bin/python
   cd ${BUILD_DIR}/pyboolector
   rm -rf src
   cp -r ${BUILD_DIR}/boolector/src/api/python src
