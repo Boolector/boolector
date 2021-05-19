@@ -106,6 +106,10 @@ target_link_libraries(swapmem boolector ${LIBRARIES})
 add_executable(exception EXCLUDE_FROM_ALL exception.cpp)
 target_link_libraries(exception boolector ${LIBRARIES})
 
+# quickstart example
+add_executable(quickstart EXCLUDE_FROM_ALL quickstart.c)
+target_link_libraries(quickstart boolector ${LIBRARIES})
+
 # build all examples at once
 add_custom_target(examples
   DEPENDS
@@ -137,4 +141,5 @@ add_custom_target(examples
   sudoku
   swapmem
   exception
+  quickstart
 )
