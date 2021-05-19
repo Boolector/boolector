@@ -461,7 +461,7 @@ cerr_smt2 (BtorSMT2Parser *parser, const char *p, int32_t ch, const char *s)
   {
     case '\\':
       n = "backslash";
-      d = "\\\\";
+      d = "\\";
       break;
     case '\n':
       n = "new line";
@@ -1211,13 +1211,7 @@ RESTART:
           return BTOR_STRING_CONSTANT_TAG_SMT2;
         }
       }
-      if (ch == '\\')
-      {
-        if ((ch = nextch_smt2 (parser)) != '"' && ch != '\\')
-          return !cerr_smt2 (
-              parser, "unexpected", ch, "after backslash '\\\\' in string");
-      }
-      else if (!(cc_smt2 (parser, ch) & BTOR_STRING_CHAR_CLASS_SMT2))
+      if (!(cc_smt2 (parser, ch) & BTOR_STRING_CHAR_CLASS_SMT2))
       {
         // TODO unreachable?
         return !cerr_smt2 (parser, "invalid", ch, "in string");

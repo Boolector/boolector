@@ -889,3 +889,8 @@ TEST_F (TestParseError, smt2perr167)
 {
   run_smt_parse_error_test ("smt2perr167");
 }
+
+TEST_F (TestParseError, smt2perr168)
+{
+  run_smt_parse_error_test ("smt2perr168");
+}
