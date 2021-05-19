@@ -4824,20 +4824,6 @@ boolector_dump_btor (Btor *btor, FILE *file)
 #endif
 }
 
-#if 0
-void
-boolector_dump_btor2 (Btor * btor, FILE * file)
-{
-  BTOR_TRAPI ("");
-  BTOR_ABORT_ARG_NULL (btor);
-  BTOR_ABORT_ARG_NULL (file);
-  btor_dumpbtor_dump (btor, file, 2);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_btor, file);
-#endif
-}
-#endif
-
 void
 boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
 {

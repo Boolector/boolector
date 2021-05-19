@@ -81,9 +81,9 @@ Btor *boolector_new (void);
 
   .. note::
     If Lingeling is used as SAT solver, Boolector can be cloned at any time,
-    since Lingeling also supports cloning. However, if you use boolector_clone
-    with MiniSAT or PicoSAT (no cloning support), Boolector can only be cloned
-    prior to the first boolector_sat call.
+    since Lingeling also supports cloning. However, with all other SAT solver
+    that do not support cloning, Boolector can only be cloned prior to the
+    first boolector_sat call.
 */
 Btor *boolector_clone (Btor *btor);
 
@@ -354,7 +354,7 @@ int32_t boolector_sat (Btor *btor);
   Otherwise, this function can only be called once.
 
   :param btor: Boolector instance.
-  :param lod_limit: Limit for lemmas on demand (-1 unlimited).
+  :param lod_limit: Lemma limit (-1 unlimited).
   :param sat_limit: Conflict limit for SAT solver (-1 unlimited).
   :return: BOOLECTOR_SAT if the input formula is satisfiable (under possibly
            given assumptions), BOOLECTOR_UNSAT if the instance is
@@ -1128,7 +1128,7 @@ BoolectorNode *boolector_saddo (Btor *btor,
                                 BoolectorNode *n1);
 
 /*!
-  Create a bitvector multiplication.
+  Create a bit-vector multiplication.
 
   The parameters ``n0`` and ``n1`` must have the same bit width.
 
@@ -1701,7 +1701,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 /*------------------------------------------------------------------------*/
 
 /*!
-  Create a universally quantified term.
+  Create a universally quantified formula.
 
   \forall (params[0] ... params[paramc - 1]) body
 
@@ -1709,7 +1709,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
   :param params: Array of quantified variables.
   :param paramc: length of ``params`` array.
   :param body: Term where ``params`` may occur.
-  :return: Universally quantified term with bit width 1.
+  :return: Universally quantified formula.
  */
 BoolectorNode *boolector_forall (Btor *btor,
                                  BoolectorNode *params[],
@@ -1717,7 +1717,7 @@ BoolectorNode *boolector_forall (Btor *btor,
                                  BoolectorNode *body);
 
 /*!
-  Create an existentially quantifed term.
+  Create an existentially quantifed formula.
 
   \exists (params[0] ... params[paramc - 1]) body
 
@@ -1725,7 +1725,7 @@ BoolectorNode *boolector_forall (Btor *btor,
   :param params: Array of quantified variables.
   :param paramc: length of ``params`` array.
   :param body: Term where ``params`` may occur.
-  :return: Existentially quantified term with bit width 1.
+  :return: Existentially quantified formula.
  */
 BoolectorNode *boolector_exists (Btor *btor,
                                  BoolectorNode *param[],
@@ -1742,7 +1742,6 @@ BoolectorNode *boolector_exists (Btor *btor,
 */
 Btor *boolector_get_btor (BoolectorNode *node);
 
-// TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Get the id of a given node.
 
@@ -1952,7 +1951,7 @@ bool boolector_is_var (Btor *btor, BoolectorNode *node);
 bool boolector_is_array (Btor *btor, BoolectorNode *node);
 
 /*!
-  Determine if expression is an array variable.
+  Determine if given node is an array variable.
 
   :param btor: Boolector instance.
   :param node: Boolector node.
@@ -2455,17 +2454,6 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
                have been opened by the user before.
 */
 void boolector_dump_btor (Btor *btor, FILE *file);
-
-#if 0
-/*!
-  Dump formula to file in BTOR 2.0 format.
-
-  :param btor: Boolector instance.
-  :param file: File to which the formula should be dumped. The file must be
-               have been opened by the user before.
-*/
-void boolector_dump_btor2 (Btor * btor, FILE * file);
-#endif
 
 /*!
   Recursively dump ``node`` to file in `SMT-LIB v2`_ format.
