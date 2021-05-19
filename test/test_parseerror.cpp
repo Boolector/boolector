@@ -875,7 +875,17 @@ TEST_F (TestParseError, smt2perr164)
   run_smt_parse_error_test ("smt2perr164");
 }
 
-TEST_F (TestParseError, smt2perr173)
+TEST_F (TestParseError, smt2perr165)
 {
-  run_smt_parse_error_test ("smt2perr173");
+  run_smt_parse_error_test ("smt2perr165");
+}
+
+TEST_F (TestParseError, smt2perr166)
+{
+  run_smt_parse_error_test ("smt2perr166");
+}
+
+TEST_F (TestParseError, smt2perr167)
+{
+  run_smt_parse_error_test ("smt2perr167");
 }
