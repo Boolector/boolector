@@ -19,13 +19,13 @@ Quickstart
 -----------
 
   First, create a Boolector instance:
-    
+
   .. code-block:: c
 
     Btor *btor = boolector_new ();
 
   You can configure this instance via :c:func:`boolector_set_opt`
-  E.g., if you want to enable model generation:
+  For example, if you want to enable model generation:
 
   .. code-block:: c
 
@@ -34,33 +34,50 @@ Quickstart
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.
 
-  Next you can either parse an input file, and/or generate expressions to 
-  be either asserted via :c:func:`boolector_assert`, or, if incremental usage
-  is enabled, assumed via :c:func:`boolector_assume` (analogously to
-  MiniSAT). 
-  Note that Boolector's internal design is motivated by hardware design,
-  hence we do not distinguish between type *Boolean* and type *bit vector
-  of length 1*. 
+  Next, you can generate expressions and assert formulas via
+  :c:func:`boolector_assert`.
 
-  E.g., if you want to parse an input file "example.btor", you can either
-  use :c:func:`boolector_parse` or :c:func:`boolector_parse_btor`:
+  .. note::
+
+      Boolector's internal design is motivated by hardware design.
+      Hence we do not distinguish between type *Boolean* and type *bit vector
+      of length 1*.
+
+  If incremental usage is enabled, formulas can optionally be assumed via
+  :c:func:`boolector_assume`.
+
+  .. note::
+
+    Assumptions are invalidated after a call to :c:func:`boolector_sat`.
+
+  Alternatively, you can parse an input file prior to creating and asserting
+  expressions. For example, to parse an input file `example.btor`,
+  you can use :c:func:`boolector_parse` (auto detects the input format) or
+  :c:func:`boolector_parse_btor` (for parsing input files in BTOR_ format).
 
   .. code-block:: c
 
-    char *error_msg; 
+    char *error_msg;
     int status;
     int result;
     FILE *fd = fopen ("example.btor", "r");
     result = boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
 
-  Incremental usage is not enabled, hence, if the parser does not encounter
-  an error, it returns :c:macro:`BOOLECTOR_UNKNOWN` (for a more detailed
-  description of the parsers return values, see :c:func:`boolector_parse`).
-  However, if the parser encounters an error, it returns 
-  :c:macro:`BOOLECTOR_PARSE_ERROR` and an explanation of that error is 
-  stored in ``error_msg``. If the input file specifies a (known) status
-  of the input formula (either satisfiable or unsatisfiable), that status
-  is stored in ``status``.
+  In case the input issues a call to check sat (in case of SMT-LIB v2 or
+  incremental SMT-LIB v1), this function either returns
+  :c:macro:`BOOLECTOR_SAT`, :c:macro:`BOOLECTOR_UNSAT` or
+  :c:macro:`BOOLECTOR_UNKNOWN`. In any other non-error case it returns
+  :c:macro:`BOOLECTOR_PARSE_UNKNOWN`.
+  For a more detailed description of the parsers return values, see
+  :c:func:`boolector_parse`, :c:func:`boolector_parse_btor`.
+  :c:func:`boolector_parse_btor2`, :c:func:`boolector_parse_smt1` and
+  :c:func:`boolector_parse_smt2`.
+
+  If the parser encounters an error, it returns
+  :c:macro:`BOOLECTOR_PARSE_ERROR` and an explanation of that error is stored
+  in ``error_msg``.
+  If the input file specifies a (known) status of the input formula (either
+  satisfiable or unsatisfiable), that status is stored in ``status``.
 
   As an example for generating and asserting expressions via
   :c:func:`boolector_assert`, consider the following example: ::

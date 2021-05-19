@@ -2336,11 +2336,11 @@ uint32_t boolector_bitvec_sort_get_width (Btor *btor, BoolectorSort sort);
   :param error_msg: Error message.
   :param status: Status of the input formula.
   :param parsed_smt2: Flag indicating if an SMT-LIB v2 was parsed.
-  :return: In the incremental case or in case of SMT-LIB v2 (which requires a
-           'check-sat' command), the function returns either BOOLECTOR_SAT,
-           BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it always returns
-           BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the function
-           returns BOOLECTOR_PARSE_ERROR.
+  :return: If the input issues a call to check sat (in case of incremental
+           SMT-LIB v1 case or SMT-LIB v2), this function returns either
+           BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN. Otherwise, it
+           always returns BOOLECTOR_PARSE_UNKNOWN. If a parse error occurs the
+           function returns BOOLECTOR_PARSE_ERROR.
 */
 int32_t boolector_parse (Btor *btor,
                          FILE *infile,
@@ -2403,10 +2403,10 @@ int32_t boolector_parse_btor2 (Btor *btor,
   :param outfile: Input file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: In the incremental case (right now `SMT-LIB v1`_ only) the function
-           returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN,
-           otherwise it always returns BOOLECTOR_UNKNOWN. If a parse error
-           occurs the function returns BOOLECTOR_PARSE_ERROR.
+  :return: In the incremental case, the function returns either BOOLECTOR_SAT,
+           BOOLECTOR_UNSAT or BOOLECTOR_UNKNOWN, otherwise it always returns
+           BOOLECTOR_UNKNOWN. If a parse error occurs the function returns
+           BOOLECTOR_PARSE_ERROR.
 */
 int32_t boolector_parse_smt1 (Btor *btor,
                               FILE *infile,
@@ -2424,8 +2424,9 @@ int32_t boolector_parse_smt1 (Btor *btor,
   :param outfile: Output file.
   :param error_msg: Error message.
   :param status: Status of the input formula.
-  :return: BOOLECTOR_UNKNOWN or BOOLECTOR_PARSE_ERROR if a parse error
-           occurred.
+  :return: The function returns either BOOLECTOR_SAT, BOOLECTOR_UNSAT or
+           BOOLECTOR_UNKNOWN. If a parse error occurs, the function returns
+           BOOLECTOR_PARSE_ERROR.
 */
 int32_t boolector_parse_smt2 (Btor *btor,
                               FILE *infile,
