@@ -22,14 +22,14 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 6
+       :lines: 7
 
   We can configure this instance via :c:func:`boolector_set_opt`
   For example, if we want to enable model generation:
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 8
+       :lines: 9
 
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.
@@ -92,20 +92,20 @@ Quickstart
   
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 11
+       :lines: 12
 
   Then, we generate and assert the following expressions:
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 14-43
+       :lines: 15-44
 
   The satisfiability of the resulting formula can be determined via
   :c:func:`boolector_sat`.
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 45
+       :lines: 46
 
   If the resulting formula is satisfiable and model generation has been enabled
   via :c:func:`boolector_set_opt`, we can either print the resulting model via
@@ -124,7 +124,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 62-63
+       :lines: 63-64
 
   Boolector supports printing models in its own format ("btor") or in
   `SMT-LIB v2`_ format ("smt2"). We print the resulting model in BTOR_
@@ -132,7 +132,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 69
+       :lines: 70
 
   A possible model is shown below and gives the assignments of bit vector
   variables ``x`` and ``y``.
@@ -147,14 +147,14 @@ Quickstart
 
     4[00] 01 A
 
-  Here, A has id 4 and is an array with index and element bit width of 2, 
-  and its value at index 0 is 1.
+  Here, array ``A`` has id 4 with index and element bit width of 2, and its
+  value at index 0 is 1.
 
   We now print the model of the example above in `SMT-LIB v2`_ format.
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 72
+       :lines: 73
 
   A possible model is shown below: ::
 
@@ -177,7 +177,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 75-97
+       :lines: 76-98
 
   The source code of the example above can be found at `examples/api/c/quickstart.c <https://github.com/boolector/boolector/tree/master/examples/api/c/quickstart.c>`_.
 
