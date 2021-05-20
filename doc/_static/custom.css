@@ -67,11 +67,11 @@ a:hover, a:focus {
 }
 
 .wy-nav-top {
-  color: #343131;
-  background-color: #afd700;
+  color: #fff;
+  background-color: #000;
 }
 
 .wy-nav-top a {
-    color: #343131;
+    color: #fff;
 }
 
