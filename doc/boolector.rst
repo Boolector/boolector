@@ -3,10 +3,16 @@
 Module Index: pyboolector
 =========================
 
-.. automodule:: pyboolector
+.. autoclass:: pyboolector.Boolector
    :members:
-   :exclude-members: BoolectorNode
-   :show-inheritance:
+
+   .. autoattribute:: UNKNOWN
+
+   .. autoattribute:: SAT
+
+   .. autoattribute:: UNSAT
+
+   .. autoattribute:: PARSE_ERROR
 
 .. autoclass:: pyboolector.BoolectorNode
    :members:
@@ -15,3 +21,8 @@ Module Index: pyboolector
    .. attribute:: btor
 
       The Boolector instance this node is associated with.
+
+.. automodule:: pyboolector
+   :members:
+   :exclude-members: Boolector, BoolectorNode
+   :show-inheritance:

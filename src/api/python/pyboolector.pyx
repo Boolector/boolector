@@ -641,9 +641,13 @@ cdef class Boolector:
     cdef _BoolectorBitVecSort _sort
     cdef list _option_names
 
+    #: Value representing an `unknown` result.
     UNKNOWN = 0
+    #: Value representing a `sat` result.
     SAT = 10
+    #: Value representing an `unsat` result.
     UNSAT = 20
+    #: Value representing a `parse error` result.
     PARSE_ERROR = 1
 
     def __init__(self, Boolector parent = None):

@@ -34,7 +34,7 @@ Quickstart
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.
 
-  Next, we can generate expressions and assert formulas via
+  Next, we can create expressions and assert formulas via
   :c:func:`boolector_assert`.
 
   .. note::
@@ -88,13 +88,13 @@ Quickstart
   We encode it with bit-vectors of size 8, and to preserve semantics,
   we have to ensure that the multiplication does not overflow.
 
-  We first generate a bit-vector sort of size 8.
-  
+  We first create a bit-vector sort of size 8.
+ 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
        :lines: 12
 
-  Then, we generate and assert the following expressions:
+  Then, we create and assert the following expressions:
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
@@ -115,12 +115,12 @@ Quickstart
   :c:func:`boolector_array_assignment` and :c:func:`boolector_uf_assignment`.
 
   .. note::
-      Querying assignments is not limited to variables. You can query 
+      Querying assignments is not limited to variables. You can query
       the assignment of any arbitrary expression.
 
   The example above is satisfiable, and we can now either query the assignments
   of variables ``x`` and ``y`` or print the resulting model via
-  :c:func:`boolector_print_model`. 
+  :c:func:`boolector_print_model`.
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
@@ -140,7 +140,7 @@ Quickstart
   assignment, and the third column its name (or symbol) if any. ::
 
     2 00000001 x
-    3 10111111 y
+    3 01011111 y
 
   In the case that the formula includes arrays as inputs, their values at a
   certain index are indicated as follows: ::
@@ -167,7 +167,7 @@ Quickstart
       Boolector internally represents arrays as uninterpreted functions and
       prints array models as models for UF.
 
-  Finally, we have to clean up all generated expressions (see
+  Finally, we have to clean up all created expressions (see
   :ref:`c-internals` and :c:func:`boolector_release`) and delete Boolector
   instance ``btor`` via :c:func:`boolector_delete`.
   Queried assignment strings have to be freed via
@@ -184,37 +184,37 @@ Quickstart
 Options
 -------
 
-  Boolector can be configured either via :c:func:`boolector_set_opt`, 
+  Boolector can be configured either via :c:func:`boolector_set_opt`,
   or via environment variables of the form: ::
 
     BTOR<capitalized option name without '_' and ':'>=<value>
 
-  E.g., given a Boolector instance ``btor``, model generation is enabled either 
-  via 
+  E.g., given a Boolector instance ``btor``, model generation is enabled either
+  via
 
   .. code-block:: c
 
     boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
-  or via setting the environment variable:: 
+  or via setting the environment variable::
 
     BTORMODELGEN=1
 
-  For a list and detailed descriptions of all available options, 
+  For a list and detailed descriptions of all available options,
   see :c:func:`boolector_set_opt`.
 
 API Tracing
 ^^^^^^^^^^^
 
   API tracing allows to record every call to Boolector's public API. The
-  resulting trace can be replayed and the replayed sequence behaves exactly 
+  resulting trace can be replayed and the replayed sequence behaves exactly
   like the original Boolector run.
   This is particularly useful for debugging purposes, as it enables replaying
   erroneous behaviour.
   API tracing can be enabled either via :c:func:`boolector_set_trapi` or by
   setting the environment variable ``BTORAPITRACE=<filename>``.
 
-  E.g., given a Boolector instance ``btor``, enabling API tracing is done as
+  For example, given a Boolector instance ``btor``, API tracing is enabled as
   follows:
 
   .. code-block:: c
@@ -223,7 +223,7 @@ API Tracing
     boolector_set_trapi (btor, fd);
 
   or ::
-  
+ 
     BTORAPITRACE="error.trace"
 
 .. _c-internals:
@@ -235,7 +235,7 @@ Internals
   counter, which is initially set to 1.
   Each time an expression is shared, i.e., for each API call that returns
   an expression (a BoolectorNode), its reference counter is incremented
-  by 1. Not considering API calls that generate expressions, this mainly
+  by 1. Not considering API calls that created expressions, this mainly
   applies to :c:func:`boolector_copy`, which simply increments the reference
   counter of an expression, and :c:func:`boolector_match_node` and
   :c:func:`boolector_match_node_by_id`, which retrieve nodes of a given
@@ -264,7 +264,7 @@ Operators
 
 Rewriting and Preprocessing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Boolector simplifies expressions and the expression DAG by means of 
+  Boolector simplifies expressions and the expression DAG by means of
   rewriting. It supports three so-called **rewrite levels**.
   Increasing rewrite levels increase the extent of rewriting and preprocessing
   performed.  Rewrite level of 0 is equivalent to disabling rewriting and
