@@ -1,5 +1,12 @@
- news since 3.2.1
+ news for release 3.2.2 since 3.2.1
 --------------------------------------------------------------------------------
++ fix issues in btormc
++ fix issue with get-value for Boolean variables
++ fix issue with get_failed_assumptions in combination with push/pop
++ fix get-unsat-assumptions printing
++ export enums for setting options (option values)
++ get-model is now SMT-LIB standard compliant
++ PyPi packages for Boolector
 + remove obsolete CL option --smt2-model (use -m --output-format=smt2 instead)
 
  news for release 3.2.1 since 3.2.0
