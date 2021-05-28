@@ -1,3 +1,11 @@
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 # the following code to fetch googletest
 # is inspired by and adapted after https://crascit.com/2015/07/25/cmake-gtest/
 # download and unpack googletest at configure time

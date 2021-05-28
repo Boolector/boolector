@@ -1,9 +1,28 @@
 The main authors and developers of Boolector are:
 
-  Armin Biere, Johannes Kepler University Linz.
-  Robert Brummayer, Johannes Kepler University Linz.
-  Aina Niemetz, Johannes Kepler University Linz, Stanford University.
-  Mathias Preiner, Johannes Kepler University Linz, Stanford University.
+  Armin Biere (Johannes Kepler University Linz), 2007-2018.
+  Robert Brummayer (Johannes Kepler University Linz), 2007-2009.
+  Aina Niemetz (Johannes Kepler University Linz, Stanford University), 2012-2021.
+  Mathias Preiner (Johannes Kepler University Linz, Stanford University), 2012-2021.
 
-Boolector's copyright is held by these individuals and the affiliated
+The copyright of Boolector is held by these individuals and the affiliated
+institutions at the time of their contributions.
+
+The main authors of BtorMBT are
+
+  Armin Biere (Johannes Kepler University), 2013-2016.
+  Aina Niemetz (Johannes Kepler University Linz, Stanford University), 2013-2021.
+  Mathias Preiner (Johannes Kepler University Linz, Stanford University), 2013-2021.
+  Christian Reisenberger (Johannes Kepler University Linz), 2013.
+
+The copyright of BtorMBT is held by these individuals and the affiliated
+institutions at the time of their contributions.
+
+The main authors of BtorUntrace are
+
+  Aina Niemetz (Johannes Kepler University Linz, Stanford University), 2013-2021.
+  Mathias Preiner (Johannes Kepler University Linz, Stanford University), 2013-2021.
+  Christian Reisenberger (Johannes Kepler University Linz), 2013.
+
+The copyright of BtorUntrace is held by these individuals and the affiliated
 institutions at the time of their contributions.
