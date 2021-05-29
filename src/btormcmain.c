@@ -9,7 +9,7 @@
 #include "boolectormc.h"
 #include "btormc.h"
 
-#include "btor2parser/btor2parser.h"
+#include "btor2parser.h"
 #include "utils/btorhashint.h"
 #include "utils/btormem.h"
 #include "utils/btoroptparse.h"

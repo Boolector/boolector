@@ -27,4 +27,4 @@ fi
 ./configure.sh -fPIC
 make -j${NPROC}
 install_lib build/libbtor2parser.a
-install_include src/btor2parser/btor2parser.h btor2parser
+install_include src/btor2parser/btor2parser.h
