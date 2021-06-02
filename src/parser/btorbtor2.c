@@ -6,7 +6,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btor2parser/btor2parser.h"
+#include "btor2parser.h"
 #include "btormsg.h"
 #include "btorparse.h"
 #include "btortypes.h"
