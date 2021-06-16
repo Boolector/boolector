@@ -116,6 +116,7 @@ option3vl(GPROF      "Compile with profiling support")
 option3vl(LOG        "Compile with logging support (default for Debug builds)")
 option3vl(PYTHON     "Build Python API")
 option3vl(TIME_STATS "Compile with time statistics")
+option3vl(TESTING    "Configure unit and regression testing")
 
 option3vl(USE_CADICAL    "Use and link with CaDiCaL")
 option3vl(USE_CMS        "Use and link with CryptoMiniSat")
@@ -226,6 +227,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_check_c_cxx_flag("-g3")
   add_check_c_cxx_flag("-ggdb")
   set_option(LOG ON)
+  set_option(TESTING ON)
   set_option(TIME_STATS ON)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_check_c_cxx_flag("-O3")
@@ -440,14 +442,18 @@ configure_file(
 #-----------------------------------------------------------------------------#
 # Regression tests
 
-enable_testing()
+if(TESTING)
+  enable_testing()
+endif()
 
 #-----------------------------------------------------------------------------#
 # Source directories
 
 include_directories(src ${CMAKE_CURRENT_BINARY_DIR}/src)
 add_subdirectory(src)
-add_subdirectory(test)
+if(TESTING)
+  add_subdirectory(test)
+endif()
 if(PYTHON)
   add_subdirectory(src/api/python)
 endif()
@@ -507,6 +513,7 @@ config_info_bool("Shared build" "${BUILD_SHARED_LIBS}")
 config_info_bool("ASAN support" ASAN)
 config_info_bool("UBSAN support" UBSAN)
 config_info_bool("Assertions enabled" CHECK)
+config_info_bool("Testing" TESTING)
 config_info_bool("gcov support" GCOV)
 config_info_bool("gprof support" GPROF)
 config_info_bool("Logging support" LOG)

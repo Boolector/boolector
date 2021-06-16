@@ -16,6 +16,8 @@ path=
 
 gmp=no
 
+testing=unknown
+
 lingeling=unknown
 minisat=unknown
 picosat=unknown
@@ -56,6 +58,10 @@ where <option> is one of the following:
 
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
+
+  --testing         enable unit and regression testing
+  --no-testing      disable unit and regression testing
+
   --asan            compile with -fsanitize=address -fsanitize-recover=address
   --ubsan           compile with -fsanitize=undefined
   --gcov            compile with -fprofile-arcs -ftest-coverage
@@ -130,6 +136,10 @@ do
 
     -l)      log=yes;;
     -c)      check=yes;;
+
+    --testing) testing=yes;;
+    --no-testing) testing=no;;
+
     --asan)  asan=yes;;
     --ubsan) ubsan=yes;;
     --gcov)  gcov=yes;;
@@ -171,6 +181,9 @@ cmake_opts="$CMAKE_OPTS"
 [ $check = yes ] && cmake_opts="$cmake_opts -DCHECK=ON"
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=ON"
+
+[ $testing = yes ] && cmake_opts="$cmake_opts -DTESTING=ON"
+[ $testing = no ] && cmake_opts="$cmake_opts -DTESTING=OFF"
 
 [ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
 [ -n "$path" ] && cmake_opts="$cmake_opts -DCMAKE_PREFIX_PATH=$path"
