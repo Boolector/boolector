@@ -60,10 +60,22 @@ main ()
   }
   printf ("\n");
 
+  // Get assignment strings for x and y
   const char *xstr = boolector_bv_assignment (btor, x);  // returns "00000100"
   const char *ystr = boolector_bv_assignment (btor, y);  // returns "00010101"
   printf ("assignment of x: %s\n", xstr);
   printf ("assignment of y: %s\n", ystr);
+  printf ("\n");
+
+  // Alternatively, get values for x and y as nodes
+  BoolectorNode *x_value = boolector_get_value(btor, x);
+  BoolectorNode *y_value = boolector_get_value(btor, y);
+  const char *xvaluestr =
+      boolector_bv_assignment (btor, x_value);  // returns "00000100"
+  const char *yvaluestr =
+      boolector_bv_assignment (btor, y_value);  // returns "00010101"
+  printf ("assignment of x (via get-value): %s\n", xvaluestr);
+  printf ("assignment of y (via get-value): %s\n", yvaluestr);
   printf ("\n");
 
   printf ("Print model in BTOR format:\n");

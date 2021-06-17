@@ -124,7 +124,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 63-64
+       :lines: 63-79
 
   Boolector supports printing models in its own format ("btor") or in
   `SMT-LIB v2`_ format ("smt2"). We print the resulting model in BTOR_
@@ -132,7 +132,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 70
+       :lines: 82
 
   A possible model is shown below and gives the assignments of bit vector
   variables ``x`` and ``y``.
@@ -154,7 +154,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 73
+       :lines: 85
 
   A possible model is shown below: ::
 
@@ -177,7 +177,7 @@ Quickstart
 
   .. literalinclude:: ../examples/api/c/quickstart.c
        :language: c
-       :lines: 76-98
+       :lines: 88-110
 
   The source code of the example above can be found at `examples/api/c/quickstart.c <https://github.com/boolector/boolector/tree/master/examples/api/c/quickstart.c>`_.
 
