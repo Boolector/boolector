@@ -5810,6 +5810,7 @@ mk_norm_node_from_hash_table (Btor *btor,
   qsort (
       stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
 
+  BTOR_INC_REC_RW_CALL (btor);
   assert (!BTOR_EMPTY_STACK (stack));
   result = btor_node_copy (btor, BTOR_PEEK_STACK (stack, 0));
   for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
@@ -5820,6 +5821,7 @@ mk_norm_node_from_hash_table (Btor *btor,
     result = tmp;
   }
   BTOR_RELEASE_STACK (stack);
+  BTOR_DEC_REC_RW_CALL (btor);
   return result;
 }
 
@@ -7301,9 +7303,12 @@ btor_rewrite_slice_exp (Btor *btor,
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   BtorNode *res;
-  double start = btor_util_time_stamp ();
+  double start = (btor->rec_rw_calls == 0) ? btor_util_time_stamp () : 0;
   res          = rewrite_slice_exp (btor, exp, upper, lower);
-  btor->time.rewrite += btor_util_time_stamp () - start;
+  if (btor->rec_rw_calls == 0)
+  {
+    btor->time.rewrite += btor_util_time_stamp () - start;
+  }
   return res;
 }
 
@@ -7320,7 +7325,7 @@ btor_rewrite_binary_exp (Btor *btor,
   assert (btor_opt_get (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   BtorNode *result;
-  double start = btor_util_time_stamp ();
+  double start = (btor->rec_rw_calls == 0) ? btor_util_time_stamp () : 0;
 
   switch (kind)
   {
@@ -7355,8 +7360,10 @@ btor_rewrite_binary_exp (Btor *btor,
       assert (kind == BTOR_LAMBDA_NODE);
       result = rewrite_lambda_exp (btor, e0, e1);
   }
-
-  btor->time.rewrite += btor_util_time_stamp () - start;
+  if (btor->rec_rw_calls == 0)
+  {
+    btor->time.rewrite += btor_util_time_stamp () - start;
+  }
   return result;
 }
 
@@ -7374,8 +7381,11 @@ btor_rewrite_ternary_exp (
   (void) kind;
 
   BtorNode *res;
-  double start = btor_util_time_stamp ();
+  double start = (btor->rec_rw_calls == 0) ? btor_util_time_stamp () : 0;
   res          = rewrite_cond_exp (btor, e0, e1, e2);
-  btor->time.rewrite += btor_util_time_stamp () - start;
+  if (btor->rec_rw_calls == 0)
+  {
+    btor->time.rewrite += btor_util_time_stamp () - start;
+  }
   return res;
 }
