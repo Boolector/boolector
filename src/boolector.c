@@ -1582,6 +1582,7 @@ mk_unique_symbol_aux (BtorMemMgr *mm, uint32_t num_push_pop, const char *symbol)
 static char *
 mk_unique_symbol (Btor *btor, const char *symbol)
 {
+  if (!symbol) return NULL; /* Leave null symbols as is. */
   char *res = mk_unique_symbol_aux (btor->mm, btor->num_push_pop, symbol);
   assert (!symbol || !strcmp (symbol, remove_unique_symbol_prefix (btor, res)));
   return res;
