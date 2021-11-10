@@ -90,7 +90,7 @@ delete_btor2_parser (BtorBTOR2Parser *parser)
 
 static const char *
 parse_btor2_parser (BtorBTOR2Parser *parser,
-                    BtorCharStack *prefix,
+                    BtorIntStack *prefix,
                     FILE *infile,
                     const char *infile_name,
                     FILE *outfile,

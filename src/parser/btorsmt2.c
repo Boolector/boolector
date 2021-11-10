@@ -363,7 +363,8 @@ typedef struct BtorSMT2Parser
   FILE *outfile;
   double parse_start;
   bool store_tokens; /* needed for parsing terms in get-value */
-  BtorCharStack *prefix, token, tokens;
+  BtorIntStack *prefix;
+  BtorCharStack token, tokens;
   BoolectorSortStack sorts;
   BtorSMT2ItemStack work;
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
@@ -422,7 +423,7 @@ perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
 }
 
 static void
-savech_smt2 (BtorSMT2Parser *parser, char ch)
+savech_smt2 (BtorSMT2Parser *parser, int32_t ch)
 {
   assert (!parser->saved);
   parser->saved   = true;
@@ -4922,7 +4923,7 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
 static const char *
 parse_smt2_parser (BtorSMT2Parser *parser,
-                   BtorCharStack *prefix,
+                   BtorIntStack *prefix,
                    FILE *infile,
                    const char *infile_name,
                    FILE *outfile,

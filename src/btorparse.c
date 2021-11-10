@@ -35,7 +35,7 @@ has_compressed_suffix (const char *str, const char *suffix)
 static int32_t
 parse_aux (Btor *btor,
            FILE *infile,
-           BtorCharStack *prefix,
+           BtorIntStack *prefix,
            const char *infile_name,
            FILE *outfile,
            const BtorParserAPI *parser_api,
@@ -124,10 +124,10 @@ btor_parse (Btor *btor,
   assert (parsed_smt2);
 
   const BtorParserAPI *parser_api;
-  int32_t idx, first, second, res;
+  int32_t idx, first, second, res, ch;
   uint32_t len;
-  char ch, *msg;
-  BtorCharStack prefix;
+  char *msg;
+  BtorIntStack prefix;
   BtorMemMgr *mem;
 
   idx = 0;
@@ -217,14 +217,23 @@ btor_parse (Btor *btor,
           if (ch == EOF) break;
           BTOR_PUSH_STACK (prefix, ch);
         } while (ch != '\n');
-        BTOR_PUSH_STACK (prefix, 0);
-        if (strstr (prefix.start + idx, " sort ") != NULL)
+        for (size_t i = idx; i < BTOR_COUNT_STACK (prefix); ++i)
         {
-          parser_api = btor_parsebtor2_parser_api ();
-          sprintf (
-              msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
+          /* check if input is BTOR2 */
+          if (i < BTOR_COUNT_STACK (prefix) - 6)
+          {
+            if (BTOR_PEEK_STACK (prefix, i) == ' '
+                && BTOR_PEEK_STACK (prefix, i + 1) == 's'
+                && BTOR_PEEK_STACK (prefix, i + 2) == 'o'
+                && BTOR_PEEK_STACK (prefix, i + 3) == 'r'
+                && BTOR_PEEK_STACK (prefix, i + 4) == 't'
+                && BTOR_PEEK_STACK (prefix, i + 5) == ' ')
+            {
+              parser_api = btor_parsebtor2_parser_api ();
+              sprintf (msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
+            }
+          }
         }
-        (void) BTOR_POP_STACK (prefix);
       }
     }
   }

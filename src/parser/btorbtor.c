@@ -55,7 +55,7 @@ struct BtorBTORParser
   Btor *btor;
 
   uint32_t nprefix;
-  BtorCharStack *prefix;
+  BtorIntStack *prefix;
   FILE *infile;
   const char *infile_name;
   uint32_t lineno;
@@ -1849,7 +1849,7 @@ delete_btor_parser (BtorBTORParser *parser)
  * input files). */
 static const char *
 parse_btor_parser (BtorBTORParser *parser,
-                   BtorCharStack *prefix,
+                   BtorIntStack *prefix,
                    FILE *infile,
                    const char *infile_name,
                    FILE *outfile,

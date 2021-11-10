@@ -27,7 +27,7 @@ typedef BtorParser *(*BtorInitParser) (Btor *);
 typedef void (*BtorResetParser) (void *);
 
 typedef char *(*BtorParse) (BtorParser *,
-                            BtorCharStack *prefix,
+                            BtorIntStack *prefix,
                             FILE *,
                             const char *,
                             FILE *,
