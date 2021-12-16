@@ -48,7 +48,7 @@ cp /boolector/COPYING pyboolector/LICENSE
 
 cd pyboolector
 
-for py in /opt/python/cp3{6,7,8,9}-*; do
+for py in /opt/python/cp3*; do
   echo "Python: ${py}"
   python=${py}/bin/python
   cd ${BUILD_DIR}/pyboolector
