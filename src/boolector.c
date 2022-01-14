@@ -328,7 +328,7 @@ void
 boolector_set_abort (void (*fun) (const char* msg))
 {
   btor_abort_callback.abort_fun = abort_aux;
-  btor_abort_callback.cb_fun = fun;
+  btor_abort_callback.cb_fun = fun ? fun : btor_abort_fun;
 }
 
 void
