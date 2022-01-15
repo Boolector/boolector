@@ -1066,7 +1066,6 @@ static char g_shmfilename[128];
 #ifdef BTOR_HAVE_SIGNALS
 static int32_t g_caught_sig;
 static void (*sig_int_handler) (int32_t);
-static void (*sig_segv_handler) (int32_t);
 static void (*sig_abrt_handler) (int32_t);
 static void (*sig_term_handler) (int32_t);
 static void (*sig_bus_handler) (int32_t);
@@ -1223,7 +1222,6 @@ static void
 reset_sig_handlers (void)
 {
   (void) signal (SIGINT, sig_int_handler);
-  (void) signal (SIGSEGV, sig_segv_handler);
   (void) signal (SIGABRT, sig_abrt_handler);
   (void) signal (SIGTERM, sig_term_handler);
   (void) signal (SIGBUS, sig_bus_handler);
@@ -1248,7 +1246,6 @@ static void
 set_sig_handlers (void)
 {
   sig_int_handler  = signal (SIGINT, catch_sig);
-  sig_segv_handler = signal (SIGSEGV, catch_sig);
   sig_abrt_handler = signal (SIGABRT, catch_sig);
   sig_term_handler = signal (SIGTERM, catch_sig);
   sig_bus_handler  = signal (SIGBUS, catch_sig);
