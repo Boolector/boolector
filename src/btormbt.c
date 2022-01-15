@@ -1070,8 +1070,7 @@ static void (*sig_abrt_handler) (int32_t);
 static void (*sig_term_handler) (int32_t);
 static void (*sig_bus_handler) (int32_t);
 
-static int32_t g_set_alarm;
-static void (*sig_alrm_handler) (int32_t);
+static int32_t g_time_limit;
 #endif
 
 void boolector_chkclone (Btor *);
@@ -1249,36 +1248,6 @@ set_sig_handlers (void)
   sig_abrt_handler = signal (SIGABRT, catch_sig);
   sig_term_handler = signal (SIGTERM, catch_sig);
   sig_bus_handler  = signal (SIGBUS, catch_sig);
-}
-
-static void
-reset_alarm (void)
-{
-  alarm (0);
-  (void) signal (SIGALRM, sig_alrm_handler);
-}
-
-static void
-catch_alarm (int32_t sig)
-{
-  (void) sig;
-  assert (sig == SIGALRM);
-
-  if (g_btormbt->seeded && g_set_alarm > 0)
-  {
-    btormbt_msg ("ALARM TRIGGERED: time limit %d seconds reached", g_set_alarm);
-    btormbt_print_stats (g_btormbt);
-  }
-  reset_alarm ();
-  _exit (EXIT_TIMEOUT);
-}
-
-static void
-set_alarm (void)
-{
-  sig_alrm_handler = signal (SIGALRM, catch_alarm);
-  assert (g_set_alarm > 0);
-  alarm (g_set_alarm);
 }
 #endif
 
@@ -3875,31 +3844,43 @@ run (BtorMBT *mbt)
 
   BtorMBTState state, next;
   int32_t status, null;
-  pid_t id;
+  pid_t solver_pid, timeout_pid = 0;
 
-  if (!mbt->seeded && (id = fork ()))
+  if (!mbt->seeded && (solver_pid = fork ()))
   {
     mbt->forked++;
     fflush (stdout);
-#ifdef BTOR_HAVE_SIGNALS
-    reset_alarm ();
-#endif
-#ifndef NDEBUG
-    pid_t wid =
-#endif
-        wait (&status);
-    assert (wid == id);
+
+    /* Fork timeout process.*/
+    if (g_time_limit)
+    {
+      BTORMBT_LOG (1, "set time limit to %d second(s)", g_time_limit);
+
+      timeout_pid = fork ();
+      assert (timeout_pid >= 0);
+      if (timeout_pid == 0)
+      {
+        usleep (g_time_limit * 1000000);
+        exit (EXIT_TIMEOUT);
+      }
+    }
+
+    pid_t child_pid = wait (&status);
+    /* Solver finished before time limit reached. Kill timeout process. */
+    if (child_pid == solver_pid)
+    {
+      kill (timeout_pid, SIGKILL);
+      waitpid (timeout_pid, NULL, 0);
+    }
+    else /* Solver runs into time limit. Kill solver process. */
+    {
+      assert (timeout_pid);
+      kill (solver_pid, SIGKILL);
+      waitpid (solver_pid, NULL, 0);
+    }
   }
   else
   {
-#ifdef BTOR_HAVE_SIGNALS
-    if (g_set_alarm)
-    {
-      set_alarm ();
-      BTORMBT_LOG (1, "set time limit to %d second(s)", g_set_alarm);
-    }
-#endif
-
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
     if (!mbt->seeded || !mbt->verbosity)
@@ -4010,7 +3991,7 @@ main (int32_t argc, char **argv)
       if (!is_num_str (argv[i]))
         btormbt_error ("argument '%s' to '-t' is not a number (try '-h')",
                        argv[i]);
-      g_set_alarm = atoi (argv[i]);
+      g_time_limit = atoi (argv[i]);
     }
 #endif
     else if (!strncmp (argv[i], "--logic", 7))
@@ -4190,9 +4171,9 @@ main (int32_t argc, char **argv)
 #ifdef BTOR_HAVE_SIGNALS
     else if (res == EXIT_TIMEOUT)
     {
-      BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_set_alarm);
+      BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_time_limit);
       if (!g_btormbt->verbosity)
-        printf ("timed out after %d second(s)\n", g_set_alarm);
+        printf ("timed out after %d second(s)\n", g_time_limit);
     }
 #endif
     else if (res == EXIT_ERROR)
