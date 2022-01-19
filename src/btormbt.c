@@ -3844,7 +3844,7 @@ run (BtorMBT *mbt)
 
   BtorMBTState state, next;
   int32_t status, null;
-  pid_t solver_pid, timeout_pid = 0;
+  pid_t solver_pid = 0, timeout_pid = 0;
 
   if (!mbt->seeded && (solver_pid = fork ()))
   {
@@ -3869,8 +3869,11 @@ run (BtorMBT *mbt)
     /* Solver finished before time limit reached. Kill timeout process. */
     if (child_pid == solver_pid)
     {
-      kill (timeout_pid, SIGKILL);
-      waitpid (timeout_pid, NULL, 0);
+      if (timeout_pid)
+      {
+        kill (timeout_pid, SIGKILL);
+        waitpid (timeout_pid, NULL, 0);
+      }
     }
     else /* Solver runs into time limit. Kill solver process. */
     {
