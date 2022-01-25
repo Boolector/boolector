@@ -78,8 +78,21 @@ cd boolector
 # Download and build BTOR2Tools
 ./contrib/setup-btor2tools.sh
 
-# Build Boolector
-./configure.sh && cd build && make
+# Configure Boolector
+./configure.sh 
+
+chmod -R o+rw .
+
+#Build Boolector 
+cd build/
+make
+
+#Global Installation
+sudo make install
+try:=>($locate boolector.h)(should show you the path)
+
+#For globalisation of all header files
+setenv CPATH "/usr/local/include/boolector/:$PATH"
 ```
 
 All binaries (boolector, btormc, btormbt, btoruntrace) are generated into
@@ -120,11 +133,14 @@ used by the `find_package()` command to provide information about Boolector's
 include directories, libraries and it's dependencies.
 
 After installing Boolector you can issue the following commands in your CMake
-project to link against Boolector.
-```
-find_package(Boolector)
-target_link_libraries(<your_target> Boolector::boolector)
-```
+
+(in CMakeList.txt file)
+'''
+find_package(Boolector)   ---1
+add_executable(<your_target> main.cpp) ---2
+target_link_libraries(<your_target> Boolector::boolector)  ---3
+(add 1 and 3 above and below 2 as shown)
+'''
 
 ### Windows
 
