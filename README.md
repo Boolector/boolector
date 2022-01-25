@@ -78,8 +78,22 @@ cd boolector
 # Download and build BTOR2Tools
 ./contrib/setup-btor2tools.sh
 
-# Build Boolector
-./configure.sh && cd build && make
+# Configure Boolector 
+./configure.sh 
+
+chmod -R o+rw . 
+
+#Build Boolector 
+cd build/ 
+make 
+
+#Global Installation 
+sudo make install 
+
+try:=>($locate boolector.h)(should show you the path) 
+
+#For globalisation of all header files 
+setenv CPATH "/usr/local/include/boolector/:$PATH"U
 ```
 
 All binaries (boolector, btormc, btormbt, btoruntrace) are generated into
