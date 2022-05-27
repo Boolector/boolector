@@ -1,38 +1,18 @@
-
 jobs:
-- job: PyPi_Linux
+- job: PyPi_Linux_x86_64
   pool:
-   vmImage: 'ubuntu-latest'
+    vmImage: 'ubuntu-latest'
   steps:
   - script: |
-      sudo python3 -m pip install wheel twine
-    displayName: 'Install wheel+twine'
-  - script: |
-      docker pull quay.io/pypa/manylinux2010_x86_64
-      docker build -t pyboolector pypi
-    displayName: 'Setup Docker Image'
-
-  - script: |
-      docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector pyboolector
+      docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector quay.io/pypa/manylinux2010_x86_64 /boolector/pypi/build.sh
     displayName: 'Run PyBoolector Build'
 
-  - task: TwineAuthenticate@1
-    condition: eq(variables['Build.SourceBranchName'], 'master')
-    inputs:
-      pythonUploadServiceConnection: pypi-pyboolector
+  - publish: result/dist
+    artifact: dist-linux-x86_64
 
-  - script: |
-      # Only deploy from master
-      if test "$(Build.SourceBranchName)" = "master"; then
-          python3 -m twine --version
-          echo "Calling twine"
-          python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
-          echo "Calling twine complete"
-      fi
-    displayName: 'Upload to PyPi'
-- job: PyPi_MacOS
+- job: PyPi_MacOS_x86_64
   pool:
-   vmImage: 'macos-latest'
+    vmImage: 'macos-latest'
   strategy:
     matrix:
       production:
@@ -81,32 +61,27 @@ jobs:
       if test $? -ne 0; then exit 1; fi
     displayName: 'Build PyPi package'
 
+  - publish: pypi/dist
+    artifact: dist-macos-x86_64
+
+- job: PyPi_Upload
+  dependsOn:
+  - PyPi_Linux_x86_64
+  - PyPi_MacOS_x86_64
+  pool:
+    vmImage: 'ubuntu-latest'
+  condition: eq(variables['Build.SourceBranchName'], 'master')
+  steps:
+  - download: current
+    displayName: Download all build artifacts
+
   - task: TwineAuthenticate@1
-    condition: eq(variables['Build.SourceBranchName'], 'master')
     inputs:
       pythonUploadServiceConnection: pypi-pyboolector
 
-  - task: CopyFiles@2
-    inputs:
-      sourceFolder: '$(Build.Repository.LocalPath)/pypi/dist'
-      contents: '*.whl'
-      targetFolder: $(Build.ArtifactStagingDirectory)
-
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      ArtifactName: 'dist'
-      publishLocation: 'Container'
-
   - script: |
-      # Only deploy from master
-      if test "$(Build.SourceBranchName)" = "master"; then
-          cd pypi
-          echo "Calling twine"
-
-          python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) dist/*.whl
-          echo "Calling twine complete"
-      fi
+      python3 -m twine --version
+      echo "Calling twine"
+      python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) $(Agent.BuildDirectory)/dist-*/*.whl $(Agent.BuildDirectory)/dist-*/*.tar.gz
+      echo "Calling twine complete"
     displayName: 'Upload to PyPi'
-
-
