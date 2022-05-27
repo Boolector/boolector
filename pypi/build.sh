@@ -35,6 +35,9 @@ make install
 #********************************************************************
 #* pyboolector
 #********************************************************************
+
+for py in /opt/python/cp3*; do  $py/bin/pip install cython wheel; done
+
 cd ${BUILD_DIR}
 rm -rf pyboolector
 
@@ -72,5 +75,5 @@ done
 rm -rf /boolector/result
 mkdir -p /boolector/result
 
-cp -r wheelhouse dist /boolector/result
-
+cp -r dist /boolector/result
+cp -r wheelhouse/* /boolector/result/dist
