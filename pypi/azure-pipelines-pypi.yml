@@ -10,6 +10,22 @@ jobs:
   - publish: result/dist
     artifact: dist-linux-x86_64
 
+- job: PyPi_Linux_ppc64le
+  pool:
+    vmImage: 'ubuntu-latest'
+  timeoutInMinutes: 120 # Builds in emulation are slow
+  steps:
+  - script: |
+      sudo docker run --rm --privileged aptman/qus -s -- -p ppc64le
+    displayName: 'Use Qemu to emulate a ppc64le environment'
+
+  - script: |
+      docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/boolector quay.io/pypa/manylinux2014_ppc64le /boolector/pypi/build.sh
+    displayName: 'Run PyBoolector Build'
+
+  - publish: result/dist
+    artifact: dist-linux-ppc64le
+
 - job: PyPi_MacOS_x86_64
   pool:
     vmImage: 'macos-latest'
@@ -67,6 +83,7 @@ jobs:
 - job: PyPi_Upload
   dependsOn:
   - PyPi_Linux_x86_64
+  - PyPi_Linux_ppc64le
   - PyPi_MacOS_x86_64
   pool:
     vmImage: 'ubuntu-latest'
