@@ -9,6 +9,8 @@ echo "Hello from PyPi build.sh"
 BUILD_DIR=`pwd`
 N_CORES=`nproc`
 
+test -n "$PYTHON_VERSIONS" || { echo PYTHON_VERSIONS must be set.; exit 1; }
+
 cp -r /boolector .
 
 # Setup dependencies
@@ -36,8 +38,6 @@ make install
 #* pyboolector
 #********************************************************************
 
-for py in /opt/python/cp3*; do  $py/bin/pip install cython wheel; done
-
 cd ${BUILD_DIR}
 rm -rf pyboolector
 
@@ -51,9 +51,10 @@ cp /boolector/COPYING pyboolector/LICENSE
 
 cd pyboolector
 
-for py in /opt/python/cp3*; do
-  echo "Python: ${py}"
-  python=${py}/bin/python
+for py in $PYTHON_VERSIONS; do
+  python=$(ls /opt/python/${py}-*/bin/python)
+  echo "Python: ${python}"
+  ${python} -m pip install cython wheel
   cd ${BUILD_DIR}/pyboolector
   rm -rf src
   cp -r ${BUILD_DIR}/boolector/src/api/python src
