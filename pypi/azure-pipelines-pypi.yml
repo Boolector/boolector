@@ -39,7 +39,7 @@ jobs:
   - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
     displayName: 'Determine number of CPUs'
 
-  - script: sudo pip3 install cython wheel twine setuptools
+  - script: sudo pip3 install cython wheel setuptools
     displayName: 'Install Cython'
 
   - script: |
@@ -97,6 +97,7 @@ jobs:
       pythonUploadServiceConnection: pypi-pyboolector
 
   - script: |
+      sudo pip3 install twine
       python3 -m twine --version
       echo "Calling twine"
       python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) $(Agent.BuildDirectory)/dist-*/*.whl $(Agent.BuildDirectory)/dist-*/*.tar.gz
