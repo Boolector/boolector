@@ -87,7 +87,7 @@ jobs:
   - PyPi_MacOS_x86_64
   pool:
     vmImage: 'ubuntu-latest'
-  condition: eq(variables['Build.SourceBranchName'], 'master')
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
   steps:
   - download: current
     displayName: Download all build artifacts
