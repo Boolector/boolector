@@ -99,6 +99,8 @@ jobs:
   - script: |
       sudo pip3 install twine
       python3 -m twine --version
+      echo "Files to upload:"
+      ls -l $(Agent.BuildDirectory)/dist-*/*.whl $(Agent.BuildDirectory)/dist-*/*.tar.gz
       echo "Calling twine"
       python3 -m twine upload -r pyboolector --config-file $(PYPIRC_PATH) $(Agent.BuildDirectory)/dist-*/*.whl $(Agent.BuildDirectory)/dist-*/*.tar.gz
       echo "Calling twine complete"

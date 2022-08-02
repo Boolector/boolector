@@ -46,6 +46,10 @@ export CMAKELISTS_TXT=/boolector/CMakeLists.txt
 
 cp -r /boolector/pypi pyboolector
 
+# Prepare the artifact directory.
+rm -rf /boolector/result
+mkdir -p /boolector/result
+
 # Grab the main license file
 cp /boolector/COPYING pyboolector/LICENSE
 
@@ -69,12 +73,10 @@ for py in $PYTHON_VERSIONS; do
   $python setup.py sdist bdist_wheel
 done
 
+# Copy the source distribution into the artifact directory.
+cp dist/*.tar.gz /boolector/result
+
+# Repair wheels and place them into the artifact directory.
 for whl in dist/*.whl; do
-  auditwheel repair $whl
+  auditwheel repair --wheel-dir /boolector/result/dist $whl
 done
-
-rm -rf /boolector/result
-mkdir -p /boolector/result
-
-cp -r dist /boolector/result
-cp -r wheelhouse/* /boolector/result/dist
