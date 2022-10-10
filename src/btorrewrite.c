@@ -528,7 +528,7 @@ is_urem_exp (Btor *btor,
   if (!btor_node_is_inverted (mul->e[0]) && btor_node_is_bv_udiv (mul->e[0]))
   {
     udiv = mul->e[0];
-    y    = mul->e[0];
+    y    = mul->e[1];
   }
   else if (!btor_node_is_inverted (mul->e[1])
            && btor_node_is_bv_udiv (mul->e[1]))
