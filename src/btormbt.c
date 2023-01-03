@@ -171,6 +171,10 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define FORCE_SHADOW_TRUE 1
 #define FORCE_SHADOW_FALSE -1
 
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_STR(str) #str
