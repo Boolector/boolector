@@ -2397,7 +2397,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (applies_concat_eq (btor, e0, e1));
 
   uint32_t upper, lower;
-  BtorNode *real_e0, *tmp2, *tmp4, *result, *eq1, *eq2;
+  BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result, *eq1, *eq2;
 
   real_e0 = btor_node_real_addr (e0);
 
@@ -2405,8 +2405,10 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   upper = btor_node_bv_get_width (btor, real_e0) - 1;
   lower = upper - btor_node_bv_get_width (btor, real_e0->e[0]) + 1;
 
+  tmp1 = rewrite_slice_exp (btor, e0, upper, lower);
   tmp2 = rewrite_slice_exp (btor, e1, upper, lower);
   lower--;
+  tmp3 = rewrite_slice_exp (btor, e0, lower, 0);
   tmp4 = rewrite_slice_exp (btor, e1, lower, 0);
 
   /* creating two slices on e1 does not really improve the situation here,
@@ -2414,10 +2416,8 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
    * from a slice (through further rewriting) */
   if (!(btor_node_is_bv_slice (tmp2) && btor_node_is_bv_slice (tmp4)))
   {
-    eq1 =
-        rewrite_eq_exp (btor, btor_node_cond_invert (e0, real_e0->e[0]), tmp2);
-    eq2 =
-        rewrite_eq_exp (btor, btor_node_cond_invert (e1, real_e0->e[1]), tmp4);
+    eq1    = rewrite_eq_exp (btor, tmp1, tmp2);
+    eq2    = rewrite_eq_exp (btor, tmp3, tmp4);
     result = rewrite_and_exp (btor, eq1, eq2);
     btor_node_release (btor, eq1);
     btor_node_release (btor, eq2);
@@ -2425,7 +2425,9 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   else
     result = 0;
 
+  btor_node_release (btor, tmp1);
   btor_node_release (btor, tmp2);
+  btor_node_release (btor, tmp3);
   btor_node_release (btor, tmp4);
   BTOR_DEC_REC_RW_CALL (btor);
   return result;
