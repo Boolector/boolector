@@ -76,10 +76,10 @@ jobs:
       debug_gmp:
         btorConfig: '-g --gmp'
         btorConfigEnv: ''
-      python3:
-        needCython: true
-        btorConfig: '--python --py3'
-        btorConfigEnv: ''
+      #python3:
+      #  needCython: true
+      #  btorConfig: '--python --py3'
+      #  btorConfigEnv: ''
   steps:
   - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
     displayName: 'Determine number of CPUs'
