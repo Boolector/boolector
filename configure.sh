@@ -16,6 +16,8 @@ path=
 
 gmp=no
 
+testing=unknown
+
 lingeling=unknown
 minisat=unknown
 picosat=unknown
@@ -28,6 +30,8 @@ python=no
 py2=no
 py3=no
 timestats=no
+
+ninja=no
 
 flags=""
 
@@ -44,6 +48,7 @@ where <option> is one of the following:
   -g                compile with debugging support
   -f...|-m...       add compiler options
 
+  --ninja           use Ninja build system
   --prefix <dir>    install prefix
 
   --path <dir>      look for dependencies in <dir>/{include,lib}
@@ -53,6 +58,10 @@ where <option> is one of the following:
 
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
+
+  --testing         enable unit and regression testing
+  --no-testing      disable unit and regression testing
+
   --asan            compile with -fsanitize=address -fsanitize-recover=address
   --ubsan           compile with -fsanitize=undefined
   --gcov            compile with -fprofile-arcs -ftest-coverage
@@ -108,6 +117,8 @@ do
     -g) debug=yes;;
     -f*|-m*) if [ -z "$flags" ]; then flags=$1; else flags="$flags;$1"; fi;;
 
+    --ninja) ninja=yes;;
+
     --prefix)
       shift
       [ $# -eq 0 ] && die "missing argument to $opt"
@@ -125,6 +136,10 @@ do
 
     -l)      log=yes;;
     -c)      check=yes;;
+
+    --testing) testing=yes;;
+    --no-testing) testing=no;;
+
     --asan)  asan=yes;;
     --ubsan) ubsan=yes;;
     --gcov)  gcov=yes;;
@@ -158,12 +173,17 @@ done
 
 cmake_opts="$CMAKE_OPTS"
 
+[ $ninja = yes ] && cmake_opts="$cmake_opts -G Ninja"
+
 [ $asan = yes ] && cmake_opts="$cmake_opts -DASAN=ON"
 [ $ubsan = yes ] && cmake_opts="$cmake_opts -DUBSAN=ON"
 [ $debug = yes ] && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=Debug"
 [ $check = yes ] && cmake_opts="$cmake_opts -DCHECK=ON"
 [ $log = yes ] && cmake_opts="$cmake_opts -DLOG=ON"
 [ $shared = yes ] && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=ON"
+
+[ $testing = yes ] && cmake_opts="$cmake_opts -DTESTING=ON"
+[ $testing = no ] && cmake_opts="$cmake_opts -DTESTING=OFF"
 
 [ -n "$prefix" ] && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$prefix"
 [ -n "$path" ] && cmake_opts="$cmake_opts -DCMAKE_PREFIX_PATH=$path"

@@ -53,6 +53,7 @@ html: dirs
 	python mkcdoc.py ../src/boolector.h
 	python mkdocopts.py ../src/btortypes.h
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	sed -i 's/<p>File:.*line 1)<\/p>//' $(BUILDDIR)/html/boolector.html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

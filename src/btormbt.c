@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2019 Aina Niemetz.
- *  Copyright (C) 2013-2018 Mathias Preiner.
- *  Copyright (C) 2013-2016 Armin Biere.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -117,6 +114,9 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define MIN_NADDOPLITS_INC 0
 #define MAX_NADDOPLITS_INC 3
 
+#define MIN_NBITS_ROTATE 0
+#define MAX_NBITS_ROTATE_FACT 5
+
 #define MIN_NOPS_INIT 0
 #define MAX_NOPS_INIT 50
 #define MIN_NOPS 20
@@ -171,6 +171,10 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
 #define FORCE_SHADOW_TRUE 1
 #define FORCE_SHADOW_FALSE -1
 
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_STR(str) #str
@@ -184,7 +188,6 @@ void boolector_print_value_smt2 (Btor *, BoolectorNode *, char *, FILE *);
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
   "  -h, --help                  print this message and exit\n"                \
-  "  -ha                         print all options\n"                          \
   "\n"                                                                         \
   "  -v                          be extra verbose\n"                           \
   "  -q                          be extra quiet (stats only)\n"                \
@@ -260,6 +263,8 @@ typedef enum BtorMBTOperator
   DEC,
   UEXT,
   SEXT,
+  ROLI,
+  RORI,
   /* boolean unary funs */
   REDOR,
   REDXOR,
@@ -1065,13 +1070,11 @@ static char g_shmfilename[128];
 #ifdef BTOR_HAVE_SIGNALS
 static int32_t g_caught_sig;
 static void (*sig_int_handler) (int32_t);
-static void (*sig_segv_handler) (int32_t);
 static void (*sig_abrt_handler) (int32_t);
 static void (*sig_term_handler) (int32_t);
 static void (*sig_bus_handler) (int32_t);
 
-static int32_t g_set_alarm;
-static void (*sig_alrm_handler) (int32_t);
+static int32_t g_time_limit;
 #endif
 
 void boolector_chkclone (Btor *);
@@ -1222,7 +1225,6 @@ static void
 reset_sig_handlers (void)
 {
   (void) signal (SIGINT, sig_int_handler);
-  (void) signal (SIGSEGV, sig_segv_handler);
   (void) signal (SIGABRT, sig_abrt_handler);
   (void) signal (SIGTERM, sig_term_handler);
   (void) signal (SIGBUS, sig_bus_handler);
@@ -1247,40 +1249,9 @@ static void
 set_sig_handlers (void)
 {
   sig_int_handler  = signal (SIGINT, catch_sig);
-  sig_segv_handler = signal (SIGSEGV, catch_sig);
   sig_abrt_handler = signal (SIGABRT, catch_sig);
   sig_term_handler = signal (SIGTERM, catch_sig);
   sig_bus_handler  = signal (SIGBUS, catch_sig);
-}
-
-static void
-reset_alarm (void)
-{
-  alarm (0);
-  (void) signal (SIGALRM, sig_alrm_handler);
-}
-
-static void
-catch_alarm (int32_t sig)
-{
-  (void) sig;
-  assert (sig == SIGALRM);
-
-  if (g_btormbt->seeded && g_set_alarm > 0)
-  {
-    btormbt_msg ("ALARM TRIGGERED: time limit %d seconds reached", g_set_alarm);
-    btormbt_print_stats (g_btormbt);
-  }
-  reset_alarm ();
-  _exit (EXIT_TIMEOUT);
-}
-
-static void
-set_alarm (void)
-{
-  sig_alrm_handler = signal (SIGALRM, catch_alarm);
-  assert (g_set_alarm > 0);
-  alarm (g_set_alarm);
 }
 #endif
 
@@ -1632,11 +1603,15 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
-  uint32_t upper, lower, repeat, width;
+  uint32_t upper, lower, repeat, nbits, width;
   BoolectorNode *node;
 
-  upper = lower = repeat = 0;
-  width                  = boolector_get_width (mbt->btor, e);
+  upper  = 0;
+  lower  = 0;
+  repeat = 0;
+  nbits  = 0;
+
+  width = boolector_get_width (mbt->btor, e);
   assert (width <= mbt->bw.max);
 
   if (op == SLICE)
@@ -1653,6 +1628,12 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
     repeat = btor_rng_pick_rand (
         &mbt->round.rng, 1, ((uint32_t) MAX_BITWIDTH / width));
   }
+  else if (op == ROLI || op == RORI)
+  {
+    nbits = btor_rng_pick_rand (&mbt->round.rng,
+                                MIN_NBITS_ROTATE,
+                                MAX_NBITS_ROTATE_FACT * MAX_BITWIDTH);
+  }
 
   node = 0;
   switch (op)
@@ -1665,6 +1646,8 @@ btormbt_unary_op (BtorMBT *mbt, BtorMBTOperator op, BoolectorNode *e)
     case DEC: node = boolector_dec (mbt->btor, e); break;
     case UEXT: node = boolector_uext (mbt->btor, e, upper); break;
     case SEXT: node = boolector_sext (mbt->btor, e, upper); break;
+    case ROLI: node = boolector_roli (mbt->btor, e, nbits); break;
+    case RORI: node = boolector_rori (mbt->btor, e, nbits); break;
     case REDOR: node = boolector_redor (mbt->btor, e); break;
     case REDXOR: node = boolector_redxor (mbt->btor, e); break;
     default: assert (op == REDAND); node = boolector_redand (mbt->btor, e);
@@ -1710,11 +1693,22 @@ btormbt_binary_op (BtorMBT *mbt,
   }
   else if (op >= SLL && op <= ROR)
   {
-    /* modify width of e0 power of 2 and e1 log2(e0) */
-    next_pow_of_2 (e0_width, &tmp0, &tmp1);
-    e0       = modify_bv (mbt, e0, tmp0);
-    e1       = modify_bv (mbt, e1, tmp1);
-    e0_width = tmp0;
+    if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
+    {
+      /* use same bit-width */
+      if (e0_width != e1_width)
+      {
+        e1 = modify_bv (mbt, e1, e0_width);
+      }
+    }
+    else
+    {
+      /* modify width of e0 power of 2 and e1 log2(e0) */
+      next_pow_of_2 (e0_width, &tmp0, &tmp1);
+      e0       = modify_bv (mbt, e0, tmp0);
+      e1       = modify_bv (mbt, e1, tmp1);
+      e0_width = tmp0;
+    }
   }
   else if (op == CONCAT)
   {
@@ -2835,6 +2829,13 @@ btormbt_state_opt (BtorMBT *mbt)
     {
       continue;
     }
+    else if ((btoropt->kind == BTOR_OPT_NONDESTR_SUBST
+              && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+             || (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+                 && boolector_get_opt (mbt->btor, BTOR_OPT_NONDESTR_SUBST)))
+    {
+      continue;
+    }
 
     if (!btoropt->forced_by_cl)
     {
@@ -3442,9 +3443,11 @@ btormbt_state_dump (BtorMBT *mbt)
     boolector_set_opt (tmpbtor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     if (btor_rng_pick_with_prob (&mbt->round.rng, 500))
     {
+      bool parsed_smt2;
       pres = boolector_parse (
-          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat);
+          tmpbtor, outfile, outfilename, stdout, &emsg, &pstat, &parsed_smt2);
       (void) pres;
+      (void) parsed_smt2;
       if (emsg) fprintf (stderr, "error while parsing dumped file: %s\n", emsg);
       assert (pres != BOOLECTOR_PARSE_ERROR);
     }
@@ -3845,31 +3848,46 @@ run (BtorMBT *mbt)
 
   BtorMBTState state, next;
   int32_t status, null;
-  pid_t id;
+  pid_t solver_pid = 0, timeout_pid = 0;
 
-  if (!mbt->seeded && (id = fork ()))
+  if (!mbt->seeded && (solver_pid = fork ()))
   {
     mbt->forked++;
     fflush (stdout);
-#ifdef BTOR_HAVE_SIGNALS
-    reset_alarm ();
-#endif
-#ifndef NDEBUG
-    pid_t wid =
-#endif
-        wait (&status);
-    assert (wid == id);
+
+    /* Fork timeout process.*/
+    if (g_time_limit)
+    {
+      BTORMBT_LOG (1, "set time limit to %d second(s)", g_time_limit);
+
+      timeout_pid = fork ();
+      assert (timeout_pid >= 0);
+      if (timeout_pid == 0)
+      {
+        usleep (g_time_limit * 1000000);
+        exit (EXIT_TIMEOUT);
+      }
+    }
+
+    pid_t child_pid = wait (&status);
+    /* Solver finished before time limit reached. Kill timeout process. */
+    if (child_pid == solver_pid)
+    {
+      if (timeout_pid)
+      {
+        kill (timeout_pid, SIGKILL);
+        waitpid (timeout_pid, NULL, 0);
+      }
+    }
+    else /* Solver runs into time limit. Kill solver process. */
+    {
+      assert (timeout_pid);
+      kill (solver_pid, SIGKILL);
+      waitpid (solver_pid, NULL, 0);
+    }
   }
   else
   {
-#ifdef BTOR_HAVE_SIGNALS
-    if (g_set_alarm)
-    {
-      set_alarm ();
-      BTORMBT_LOG (1, "set time limit to %d second(s)", g_set_alarm);
-    }
-#endif
-
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
     if (!mbt->seeded || !mbt->verbosity)
@@ -3980,7 +3998,7 @@ main (int32_t argc, char **argv)
       if (!is_num_str (argv[i]))
         btormbt_error ("argument '%s' to '-t' is not a number (try '-h')",
                        argv[i]);
-      g_set_alarm = atoi (argv[i]);
+      g_time_limit = atoi (argv[i]);
     }
 #endif
     else if (!strncmp (argv[i], "--logic", 7))
@@ -4160,9 +4178,9 @@ main (int32_t argc, char **argv)
 #ifdef BTOR_HAVE_SIGNALS
     else if (res == EXIT_TIMEOUT)
     {
-      BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_set_alarm);
+      BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_time_limit);
       if (!g_btormbt->verbosity)
-        printf ("timed out after %d second(s)\n", g_set_alarm);
+        printf ("timed out after %d second(s)\n", g_time_limit);
     }
 #endif
     else if (res == EXIT_ERROR)

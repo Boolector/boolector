@@ -1,0 +1,77 @@
+code {
+    border: 0px !important;
+}
+
+code.xref {
+    color: unset !important;
+}
+
+.rst-content code {
+    padding: 1px !important;
+}
+
+.rst-content code.literal {
+    color: #2980b9;
+}
+
+a {
+  color: #999900;
+}
+
+a:visited {
+  color: #999900;
+}
+
+a:hover, a:focus {
+  color:#99cc00;
+}
+
+.highlight .o {
+  color: #ac7339;
+}
+
+.highlight .k {
+  color: #2980b9;
+}
+
+.highlight .m {
+  color: #ba2121;
+}
+
+.wy-side-nav-search {
+  background-color: #000;
+}
+
+.wy-side-nav-search > a {
+    color: #fff;
+}
+
+.wy-side-nav-search > div.version {
+    color: #fff;
+}
+
+.wy-side-nav-search input[type="text"] {
+  border-color: #404040;
+}
+
+.wy-menu-vertical a {
+  color: #b3b300;
+}
+
+.wy-menu-vertical a:visited {
+  color: #b3b300;
+}
+
+.wy-menu-vertical a:hover, a:focus {
+  color:#99cc00;
+}
+
+.wy-nav-top {
+  color: #fff;
+  background-color: #000;
+}
+
+.wy-nav-top a {
+    color: #fff;
+}
+

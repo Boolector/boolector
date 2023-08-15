@@ -1,5 +1,4 @@
 #include "boolector.h"
-#include "btoropt.h"
 #include "maxand.h"
 #include "utils/btorutil.h"
 

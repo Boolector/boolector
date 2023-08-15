@@ -1001,3 +1001,4 @@
 (define-fun |UNROLL#999| () Bool false)
 (define-fun |UNROLL#1002| () (_ BitVec 32) (_ bv0 32))
 (define-fun |UNROLL#1001| () Bool false)
+(check-sat)

@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -196,27 +193,23 @@ btor_hashptr_table_add (BtorPtrHashTable *p2iht, void *key)
   return res;
 }
 
-static uint32_t btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
-
-#define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
-
+/*
+ * Uses djb2 string hash function from [1].
+ *
+ * [1] http://www.cse.yorku.ca/~oz/hash.html
+ */
 uint32_t
 btor_hash_str (const void *str)
 {
   const char *p = (const char *) str;
-  uint32_t res, i;
-  char ch;
+  uint32_t c, hash = 5381;
 
-  i   = 0;
-  res = 0;
-
-  while ((ch = *p++))
+  while ((c = *p++))
   {
-    res += btor_hash_primes[i++] * (uint32_t) ch;
-    if (i == BTOR_HASH_PRIMES) i = 0;
+    hash = ((hash << 5) + hash) + c;
   }
 
-  return res;
+  return hash;
 }
 
 void

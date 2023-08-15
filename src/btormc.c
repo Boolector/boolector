@@ -1,8 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Armin Biere.
- *  Copyright (C) 2013-2017 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -1122,9 +1120,10 @@ print_witness_at_time (BtorMC *mc, BoolectorNode *node, int32_t time)
 }
 
 static void
-print_witness (BtorMC *mc, int32_t time)
+print_witness (BtorMC *mc, int32_t time, size_t bad_id)
 {
   assert (time >= 0);
+  assert (BTOR_PEEK_STACK (mc->reached, bad_id) == time);
 
   size_t i;
   BtorMCstate *state;
@@ -1134,12 +1133,7 @@ print_witness (BtorMC *mc, int32_t time)
 
   full_trace = btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN_FULL) == 1;
 
-  printf ("sat\n");
-  for (i = 0; i < BTOR_COUNT_STACK (mc->reached); i++)
-  {
-    if (BTOR_PEEK_STACK (mc->reached, i) == time) printf ("b%zu ", i);
-  }
-  printf ("\n");
+  printf ("sat\nb%zu\n", bad_id);
 
   for (i = 0; i <= (size_t) time; i++)
   {
@@ -1410,7 +1404,12 @@ check_last_forward_frame (BtorMC *mc)
       }
 
       if (btor_mc_get_opt (mc, BTOR_MC_OPT_TRACE_GEN))
-        print_witness (mc, k);
+      {
+        print_witness (mc, k, i);
+      }
+
+      if (btor_mc_get_opt (mc, BTOR_MC_OPT_STOP_FIRST))
+        break;
     }
     else
     {
@@ -1428,9 +1427,6 @@ check_last_forward_frame (BtorMC *mc)
           {
             goto KINDUCTION_RECHECK;
           }
-          BoolectorNode *not_bad = boolector_not (mc->forward, bad);
-          boolector_assert (mc->forward, not_bad);
-          boolector_release (mc->forward, not_bad);
           mc->state = BTOR_NO_MC_STATE;
         }
         else

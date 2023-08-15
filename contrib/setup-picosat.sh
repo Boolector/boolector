@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 set -e -o pipefail
 
 source "$(dirname "$0")/setup-utils.sh"
@@ -13,7 +21,7 @@ curl -o picosat-965.tar.gz -L http://fmv.jku.at/picosat/picosat-965.tar.gz
 tar xzf picosat-965.tar.gz
 rm picosat-965.tar.gz
 mv picosat-965 ${PICOSAT_DIR}
-cd ${PICOSAT_DIR}
+cd "${PICOSAT_DIR}"
 
 if is_windows; then
   component="PicoSAT"

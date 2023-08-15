@@ -118,11 +118,11 @@
 (define-fun $e51 () (_ BitVec 8) 
  (bvand 
   (bvnot 
-   (bvshl $e49  
-    ((_ zero_extend 5) $e50))) 
+   (bvshl $e49 
+    (concat #b00000 $e50))) 
   (bvnot 
-   (bvlshr $e49  
-    ((_ zero_extend 5) 
+   (bvlshr $e49 
+    (concat #b00000 
      (bvadd #b001 
       (bvnot $e50)))))))
 (define-fun $e52 () (_ BitVec 4) 
@@ -578,59 +578,61 @@
  ((_ extract 11 8) 
   (bvnot 
    (bvshl 
-    (concat #b000000000000000 $e107)  
-    ((_ zero_extend 12) $e74)))))
-(define-fun $e140 () (_ BitVec 3) 
+    (concat #b000000000000000 $e107) 
+    (concat #b000000000000 $e74)))))
+(define-fun $e140 () (_ BitVec 8) 
+ (concat #b00000 $e93))
+(define-fun $e141 () (_ BitVec 3) 
  (bvurem $e41 
   (ite 
    (= #b1 $e108) 
    (bvadd #b001 
     (bvnot $e93)) $e93)))
-(define-fun $e141 () (_ BitVec 3) 
+(define-fun $e142 () (_ BitVec 3) 
  (ite 
   (= #b1 $e38) 
   (bvadd #b001 
-   (bvnot $e140)) $e140))
-(define-fun $e142 () (_ BitVec 1) 
- ((_ extract 0 0) 
-  (bvnot $e138)))
+   (bvnot $e141)) $e141))
 (define-fun $e143 () (_ BitVec 1) 
  ((_ extract 0 0) 
-  (bvnot $e63)))
+  (bvnot $e138)))
 (define-fun $e144 () (_ BitVec 1) 
- ((_ extract 0 0) v4))
+ ((_ extract 0 0) 
+  (bvnot $e63)))
 (define-fun $e145 () (_ BitVec 1) 
+ ((_ extract 0 0) v4))
+(define-fun $e146 () (_ BitVec 1) 
  ((_ extract 0 0) 
   (bvadd 
    (bvnot $e63) 
    (bvadd #b1 
     (bvnot v4)))))
-(define-fun $e146 () (_ BitVec 2) 
+(define-fun $e147 () (_ BitVec 2) 
  (concat #b0 $e73))
-(define-fun $e147 () (_ BitVec 3) 
+(define-fun $e148 () (_ BitVec 3) 
  ((_ extract 2 0) #b1101))
-(define-fun $e148 () (_ BitVec 1) 
+(define-fun $e149 () (_ BitVec 1) 
  (bvand $e111 
   (bvnot 
    (bvand $e35 
     (bvnot 
      (ite $e55 #b1 #b0))))))
-(define-fun $e149 () (_ BitVec 1) 
+(define-fun $e150 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (ite 
     (bvult 
      (bvnot $e43) $e139) #b1 #b0)) 
   ((_ extract 3 3) #b0010)))
-(define-fun $e150 () (_ BitVec 1) 
+(define-fun $e151 () (_ BitVec 1) 
  (bvand 
   (bvnot $e112) $e126))
-(define-fun $e151 () (_ BitVec 3) 
- (bvudiv $e102 $e92))
 (define-fun $e152 () (_ BitVec 3) 
+ (bvudiv $e102 $e92))
+(define-fun $e153 () (_ BitVec 3) 
  (concat #b00 
-  (bvnot $e150)))
-(define-fun $e153 () (_ BitVec 8) 
+  (bvnot $e151)))
+(define-fun $e154 () (_ BitVec 8) 
  (bvshl 
   (bvnot 
    (concat 
@@ -640,40 +642,40 @@
        (bvnot 
         (ite $e87 #b1 #b0)))) #b1111111 #b0000000) 
     (bvnot 
-     (ite $e87 #b1 #b0))))  
-  ((_ zero_extend 5) $e152)))
-(define-fun $e154 () (_ BitVec 16) 
+     (ite $e87 #b1 #b0)))) 
+  (concat #b00000 $e153)))
+(define-fun $e155 () (_ BitVec 16) 
  (concat #b000000000000000 
   (bvnot 
    (bvand 
     (bvnot $e107) 
     (bvnot $e112)))))
-(define-fun $e155 () (_ BitVec 16) 
+(define-fun $e156 () (_ BitVec 16) 
+ (concat #b000000000000 $e53))
+(define-fun $e157 () (_ BitVec 16) 
  (ite 
   (= #b1 
    ((_ extract 15 15) 
-    (bvnot $e154))) 
+    (bvnot $e155))) 
   (bvnot 
-   (bvlshr $e154  
-    ((_ zero_extend 12) $e53))) 
+   (bvlshr $e155 $e156)) 
   (bvlshr 
-   (bvnot $e154)  
-   ((_ zero_extend 12) $e53))))
-(define-fun $e156 () (_ BitVec 2) 
+   (bvnot $e155) $e156)))
+(define-fun $e158 () (_ BitVec 2) 
  (concat #b0 
   (ite 
    (= #b11 $e60) #b1 #b0)))
-(define-fun $e157 () (_ BitVec 2) 
+(define-fun $e159 () (_ BitVec 2) 
  (concat #b0 $e98))
-(define-fun $e158 () (_ BitVec 1) 
- ((_ extract 1 1) $e157))
-(define-fun $e159 () (_ BitVec 1) 
- ((_ extract 1 1) $e156))
-(define-fun $e160 () Bool 
- (bvult 
-  ((_ extract 0 0) $e157) 
-  ((_ extract 0 0) $e156)))
+(define-fun $e160 () (_ BitVec 1) 
+ ((_ extract 1 1) $e159))
 (define-fun $e161 () (_ BitVec 1) 
+ ((_ extract 1 1) $e158))
+(define-fun $e162 () Bool 
+ (bvult 
+  ((_ extract 0 0) $e159) 
+  ((_ extract 0 0) $e158)))
+(define-fun $e163 () (_ BitVec 1) 
  (bvand 
   (ite 
    (bvult $e43 
@@ -691,39 +693,39 @@
     (bvnot 
      (bvand 
       (bvnot $e111) $e133))))))
-(define-fun $e162 () (_ BitVec 1) 
+(define-fun $e164 () (_ BitVec 1) 
  (bvand $e100 
   (bvnot 
    (bvand 
     (bvnot 
-     (bvand $e158 
-      (bvnot $e159))) 
+     (bvand $e160 
+      (bvnot $e161))) 
     (bvand 
      (bvnot 
       (bvand 
-       (ite $e160 #b1 #b0) 
+       (ite $e162 #b1 #b0) 
        (bvand 
-        (bvnot $e158) 
-        (bvnot $e159)))) 
+        (bvnot $e160) 
+        (bvnot $e161)))) 
      (bvnot 
       (bvand 
-       (ite $e160 #b1 #b0) 
-       (bvand $e158 $e159))))))))
-(define-fun $e163 () (_ BitVec 3) 
+       (ite $e162 #b1 #b0) 
+       (bvand $e160 $e161))))))))
+(define-fun $e165 () (_ BitVec 3) 
  (select uf12 $e33))
-(define-fun $e164 () (_ BitVec 2) 
+(define-fun $e166 () (_ BitVec 2) 
  (select uf13 
   (ite $e32 #b1 #b0)))
-(define-fun $e165 () (_ BitVec 2) 
+(define-fun $e167 () (_ BitVec 2) 
  (select 
   (store 
    (store uf23 $e58 $e56) v8 
    (bvnot $e99)) v8))
-(define-fun $e166 () (_ BitVec 1) 
+(define-fun $e168 () (_ BitVec 1) 
  (select 
   (store uf16 $e80 v6) 
-  (bvnot $e146)))
-(define-fun $e167 () (_ BitVec 2) 
+  (bvnot $e147)))
+(define-fun $e169 () (_ BitVec 2) 
  (select 
   (store uf23 $e88 
    (bvnot 
@@ -735,69 +737,59 @@
          (ite $e89 #b1 #b0)))) #b1 #b0) 
      (bvnot 
       (ite $e89 #b1 #b0))))) $e60))
-(define-fun $e168 () (_ BitVec 1) 
+(define-fun $e170 () (_ BitVec 1) 
  (select 
   (store uf22 
    (bvand 
     ((_ extract 2 2) $e114) 
     (ite 
      (= #b00 
-      ((_ extract 1 0) $e114)) #b1 #b0)) $e73) $e161))
-(define-fun $e169 () (_ BitVec 2) 
+      ((_ extract 1 0) $e114)) #b1 #b0)) $e73) $e163))
+(define-fun $e171 () (_ BitVec 2) 
  (select 
-  (store uf10 $e52 $e146) #b1010))
-(define-fun $e170 () (_ BitVec 2) 
+  (store uf10 $e52 $e147) #b1010))
+(define-fun $e172 () (_ BitVec 2) 
  (select 
   (store 
    (store uf18 $e59 $e60) 
    (bvnot $e101) 
    (bvnot 
-    (concat #b0 $e133))) $e151))
-(define-fun $e171 () (_ BitVec 4) 
+    (concat #b0 $e133))) $e152))
+(define-fun $e173 () (_ BitVec 4) 
  (select 
   (store 
    (store uf11 $e80 $e81) 
    (bvnot $e138) $e121) $e99))
-(define-fun $e172 () (_ BitVec 1) 
+(define-fun $e174 () (_ BitVec 1) 
  (bvand 
   ((_ extract 2 2) $e92) 
   (ite 
    (= #b00 
     ((_ extract 1 0) $e92)) #b1 #b0)))
-(define-fun $e173 () (_ BitVec 1) 
+(define-fun $e175 () (_ BitVec 1) 
  ((_ extract 0 0) 
   (bvnot $e115)))
-(define-fun $e174 () (_ BitVec 1) 
+(define-fun $e176 () (_ BitVec 1) 
  ((_ extract 1 1) 
   (bvnot $e115)))
-(define-fun $e175 () (_ BitVec 1) 
+(define-fun $e177 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e173) 
-    (bvnot $e174))) 
+    (bvnot $e175) 
+    (bvnot $e176))) 
   (bvnot 
-   (bvand $e173 $e174))))
-(define-fun $e176 () Bool 
+   (bvand $e175 $e176))))
+(define-fun $e178 () Bool 
  (= #b11 
   (bvadd v8 
    (bvadd #b01 
     (bvnot 
      ((_ extract 3 2) #b1101))))))
-(define-fun $e177 () (_ BitVec 1) 
- ((_ extract 0 0) #b1100))
-(define-fun $e178 () (_ BitVec 1) 
- ((_ extract 1 1) #b1100))
 (define-fun $e179 () (_ BitVec 1) 
- (bvand 
-  (bvnot 
-   (bvand 
-    (bvnot $e177) 
-    (bvnot $e178))) 
-  (bvnot 
-   (bvand $e177 $e178))))
+ ((_ extract 0 0) #b1100))
 (define-fun $e180 () (_ BitVec 1) 
- ((_ extract 2 2) #b1100))
+ ((_ extract 1 1) #b1100))
 (define-fun $e181 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -807,7 +799,7 @@
   (bvnot 
    (bvand $e179 $e180))))
 (define-fun $e182 () (_ BitVec 1) 
- ((_ extract 3 3) #b1100))
+ ((_ extract 2 2) #b1100))
 (define-fun $e183 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -817,19 +809,19 @@
   (bvnot 
    (bvand $e181 $e182))))
 (define-fun $e184 () (_ BitVec 1) 
- ((_ extract 0 0) $e119))
+ ((_ extract 3 3) #b1100))
 (define-fun $e185 () (_ BitVec 1) 
- ((_ extract 1 1) $e119))
-(define-fun $e186 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e184) 
-    (bvnot $e185))) 
+    (bvnot $e183) 
+    (bvnot $e184))) 
   (bvnot 
-   (bvand $e184 $e185))))
+   (bvand $e183 $e184))))
+(define-fun $e186 () (_ BitVec 1) 
+ ((_ extract 0 0) $e119))
 (define-fun $e187 () (_ BitVec 1) 
- ((_ extract 2 2) $e119))
+ ((_ extract 1 1) $e119))
 (define-fun $e188 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -839,7 +831,7 @@
   (bvnot 
    (bvand $e186 $e187))))
 (define-fun $e189 () (_ BitVec 1) 
- ((_ extract 3 3) $e119))
+ ((_ extract 2 2) $e119))
 (define-fun $e190 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -849,7 +841,7 @@
   (bvnot 
    (bvand $e188 $e189))))
 (define-fun $e191 () (_ BitVec 1) 
- ((_ extract 4 4) $e119))
+ ((_ extract 3 3) $e119))
 (define-fun $e192 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -859,18 +851,28 @@
   (bvnot 
    (bvand $e190 $e191))))
 (define-fun $e193 () (_ BitVec 1) 
- ((_ extract 5 5) $e119))
+ ((_ extract 4 4) $e119))
 (define-fun $e194 () (_ BitVec 1) 
+ (bvand 
+  (bvnot 
+   (bvand 
+    (bvnot $e192) 
+    (bvnot $e193))) 
+  (bvnot 
+   (bvand $e192 $e193))))
+(define-fun $e195 () (_ BitVec 1) 
+ ((_ extract 5 5) $e119))
+(define-fun $e196 () (_ BitVec 1) 
  ((_ extract 0 0) 
   (bvnot $e127)))
-(define-fun $e195 () (_ BitVec 1) 
+(define-fun $e197 () (_ BitVec 1) 
  ((_ extract 1 1) 
   (bvnot $e127)))
-(define-fun $e196 () Bool 
- (= 
+(define-fun $e198 () Bool 
+ (= #b11111 
   (concat #b0 
-   (concat #b0 $e93)) #b11111))
-(define-fun $e197 () Bool 
+   (concat #b0 $e93))))
+(define-fun $e199 () Bool 
  (= 
   (bvnot 
    (ite 
@@ -878,46 +880,34 @@
      ((_ extract 7 7) $e51)) 
     (bvnot 
      (bvlshr 
-      (bvnot $e51)  
-      ((_ zero_extend 5) $e93))) 
-    (bvlshr $e51  
-     ((_ zero_extend 5) $e93)))) #b11111111))
-(define-fun $e198 () (_ BitVec 1) 
- ((_ extract 0 0) 
-  (bvnot $e141)))
-(define-fun $e199 () (_ BitVec 1) 
- ((_ extract 1 1) 
-  (bvnot $e141)))
+      (bvnot $e51) $e140)) 
+    (bvlshr $e51 $e140))) #b11111111))
 (define-fun $e200 () (_ BitVec 1) 
+ ((_ extract 0 0) 
+  (bvnot $e142)))
+(define-fun $e201 () (_ BitVec 1) 
+ ((_ extract 1 1) 
+  (bvnot $e142)))
+(define-fun $e202 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e198) 
-    (bvnot $e199))) 
+    (bvnot $e200) 
+    (bvnot $e201))) 
   (bvnot 
-   (bvand $e198 $e199))))
-(define-fun $e201 () (_ BitVec 1) 
+   (bvand $e200 $e201))))
+(define-fun $e203 () (_ BitVec 1) 
  ((_ extract 2 2) 
-  (bvnot $e141)))
-(define-fun $e202 () Bool 
+  (bvnot $e142)))
+(define-fun $e204 () Bool 
  (= #b111 
   (select uf24 $e118)))
-(define-fun $e203 () Bool 
- (= #b000 $e151))
-(define-fun $e204 () (_ BitVec 1) 
- ((_ extract 0 0) $e153))
-(define-fun $e205 () (_ BitVec 1) 
- ((_ extract 1 1) $e153))
+(define-fun $e205 () Bool 
+ (= #b000 $e152))
 (define-fun $e206 () (_ BitVec 1) 
- (bvand 
-  (bvnot 
-   (bvand 
-    (bvnot $e204) 
-    (bvnot $e205))) 
-  (bvnot 
-   (bvand $e204 $e205))))
+ ((_ extract 0 0) $e154))
 (define-fun $e207 () (_ BitVec 1) 
- ((_ extract 2 2) $e153))
+ ((_ extract 1 1) $e154))
 (define-fun $e208 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -927,7 +917,7 @@
   (bvnot 
    (bvand $e206 $e207))))
 (define-fun $e209 () (_ BitVec 1) 
- ((_ extract 3 3) $e153))
+ ((_ extract 2 2) $e154))
 (define-fun $e210 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -937,7 +927,7 @@
   (bvnot 
    (bvand $e208 $e209))))
 (define-fun $e211 () (_ BitVec 1) 
- ((_ extract 4 4) $e153))
+ ((_ extract 3 3) $e154))
 (define-fun $e212 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -947,7 +937,7 @@
   (bvnot 
    (bvand $e210 $e211))))
 (define-fun $e213 () (_ BitVec 1) 
- ((_ extract 5 5) $e153))
+ ((_ extract 4 4) $e154))
 (define-fun $e214 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -957,7 +947,7 @@
   (bvnot 
    (bvand $e212 $e213))))
 (define-fun $e215 () (_ BitVec 1) 
- ((_ extract 6 6) $e153))
+ ((_ extract 5 5) $e154))
 (define-fun $e216 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -967,83 +957,83 @@
   (bvnot 
    (bvand $e214 $e215))))
 (define-fun $e217 () (_ BitVec 1) 
- ((_ extract 7 7) $e153))
+ ((_ extract 6 6) $e154))
 (define-fun $e218 () (_ BitVec 1) 
- ((_ extract 0 0) $e163))
-(define-fun $e219 () (_ BitVec 1) 
- ((_ extract 1 1) $e163))
-(define-fun $e220 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e218) 
-    (bvnot $e219))) 
+    (bvnot $e216) 
+    (bvnot $e217))) 
   (bvnot 
-   (bvand $e218 $e219))))
+   (bvand $e216 $e217))))
+(define-fun $e219 () (_ BitVec 1) 
+ ((_ extract 7 7) $e154))
+(define-fun $e220 () (_ BitVec 1) 
+ ((_ extract 0 0) $e165))
 (define-fun $e221 () (_ BitVec 1) 
- ((_ extract 2 2) $e163))
-(define-fun $e222 () Bool 
+ ((_ extract 1 1) $e165))
+(define-fun $e222 () (_ BitVec 1) 
+ (bvand 
+  (bvnot 
+   (bvand 
+    (bvnot $e220) 
+    (bvnot $e221))) 
+  (bvnot 
+   (bvand $e220 $e221))))
+(define-fun $e223 () (_ BitVec 1) 
+ ((_ extract 2 2) $e165))
+(define-fun $e224 () Bool 
  (= #b00 
   (select 
    (store uf15 
     (bvnot $e43) $e86) $e120)))
-(define-fun $e223 () (_ BitVec 1) 
+(define-fun $e225 () (_ BitVec 1) 
  (bvand 
-  ((_ extract 1 1) $e165) 
+  ((_ extract 1 1) $e167) 
   (ite 
    (= #b0 
-    ((_ extract 0 0) $e165)) #b1 #b0)))
-(define-fun $e224 () (_ BitVec 1) 
- ((_ extract 0 0) $e167))
-(define-fun $e225 () (_ BitVec 1) 
- ((_ extract 1 1) $e167))
+    ((_ extract 0 0) $e167)) #b1 #b0)))
 (define-fun $e226 () (_ BitVec 1) 
+ ((_ extract 0 0) $e169))
+(define-fun $e227 () (_ BitVec 1) 
+ ((_ extract 1 1) $e169))
+(define-fun $e228 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e224) 
-    (bvnot $e225))) 
+    (bvnot $e226) 
+    (bvnot $e227))) 
   (bvnot 
-   (bvand $e224 $e225))))
-(define-fun $e227 () Bool 
+   (bvand $e226 $e227))))
+(define-fun $e229 () Bool 
  (= #b1111 
   (bvnot 
    (select 
     (store uf14 
-     (bvnot $e142) #b1010) $e148))))
-(define-fun $e228 () (_ BitVec 1) 
+     (bvnot $e143) #b1010) $e149))))
+(define-fun $e230 () (_ BitVec 1) 
  (bvand 
   ((_ extract 1 1) 
-   (bvnot $e169)) 
+   (bvnot $e171)) 
   (ite 
    (= #b0 
     ((_ extract 0 0) 
-     (bvnot $e169))) #b1 #b0)))
-(define-fun $e229 () (_ BitVec 1) 
+     (bvnot $e171))) #b1 #b0)))
+(define-fun $e231 () (_ BitVec 1) 
  (bvand 
   ((_ extract 1 1) 
-   (bvnot $e170)) 
+   (bvnot $e172)) 
   (ite 
    (= #b0 
     ((_ extract 0 0) 
-     (bvnot $e170))) #b1 #b0)))
-(define-fun $e230 () Bool 
+     (bvnot $e172))) #b1 #b0)))
+(define-fun $e232 () Bool 
  (= #b000 
   (select uf25 v7)))
-(define-fun $e231 () (_ BitVec 1) 
- ((_ extract 0 0) $e171))
-(define-fun $e232 () (_ BitVec 1) 
- ((_ extract 1 1) $e171))
 (define-fun $e233 () (_ BitVec 1) 
- (bvand 
-  (bvnot 
-   (bvand 
-    (bvnot $e231) 
-    (bvnot $e232))) 
-  (bvnot 
-   (bvand $e231 $e232))))
+ ((_ extract 0 0) $e173))
 (define-fun $e234 () (_ BitVec 1) 
- ((_ extract 2 2) $e171))
+ ((_ extract 1 1) $e173))
 (define-fun $e235 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -1053,7 +1043,7 @@
   (bvnot 
    (bvand $e233 $e234))))
 (define-fun $e236 () (_ BitVec 1) 
- ((_ extract 3 3) $e171))
+ ((_ extract 2 2) $e173))
 (define-fun $e237 () (_ BitVec 1) 
  (bvand 
   (bvnot 
@@ -1063,6 +1053,16 @@
   (bvnot 
    (bvand $e235 $e236))))
 (define-fun $e238 () (_ BitVec 1) 
+ ((_ extract 3 3) $e173))
+(define-fun $e239 () (_ BitVec 1) 
+ (bvand 
+  (bvnot 
+   (bvand 
+    (bvnot $e237) 
+    (bvnot $e238))) 
+  (bvnot 
+   (bvand $e237 $e238))))
+(define-fun $e240 () (_ BitVec 1) 
  (bvand 
   (ite 
    (= #b111 
@@ -1080,24 +1080,16 @@
    (bvnot 
     ((_ extract 1 1) 
      (bvnot $e102))))))
-(define-fun $e239 () (_ BitVec 1) 
+(define-fun $e241 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e161) $e162)) 
+    (bvnot $e163) $e164)) 
   (bvnot 
-   (bvand $e161 
-    (bvnot $e162)))))
-(define-fun $e240 () (_ BitVec 1) 
+   (bvand $e163 
+    (bvnot $e164)))))
+(define-fun $e242 () (_ BitVec 1) 
  (bvand 
-  (bvnot 
-   (bvand 
-    (bvnot 
-     (bvand 
-      (bvnot $e192) 
-      (bvnot $e193))) 
-    (bvnot 
-     (bvand $e192 $e193)))) 
   (bvnot 
    (bvand 
     (bvnot 
@@ -1105,75 +1097,83 @@
       (bvnot $e194) 
       (bvnot $e195))) 
     (bvnot 
-     (bvand $e194 $e195))))))
-(define-fun $e241 () Bool 
+     (bvand $e194 $e195)))) 
+  (bvnot 
+   (bvand 
+    (bvnot 
+     (bvand 
+      (bvnot $e196) 
+      (bvnot $e197))) 
+    (bvnot 
+     (bvand $e196 $e197))))))
+(define-fun $e243 () Bool 
  (and 
   (not 
-   (and $e197 
-    (not $e196))) 
+   (and $e199 
+    (not $e198))) 
   (not 
    (and 
-    (not $e197) $e196))))
-(define-fun $e242 () (_ BitVec 1) 
+    (not $e199) $e198))))
+(define-fun $e244 () (_ BitVec 1) 
  (bvand 
   (bvand 
-   ((_ extract 1 1) $e164) 
+   ((_ extract 1 1) $e166) 
    (ite 
     (= #b0 
-     ((_ extract 0 0) $e164)) #b1 #b0)) 
+     ((_ extract 0 0) $e166)) #b1 #b0)) 
   (bvnot 
    (ite 
     (= #b111 
-     (select uf19 $e152)) #b1 #b0))))
-(define-fun $e243 () (_ BitVec 1) 
- (bvand 
-  (bvnot 
-   (bvand 
-    (ite $e222 #b1 #b0) 
-    (bvnot $e223))) 
-  (bvnot 
-   (bvand 
-    (bvnot 
-     (ite $e222 #b1 #b0)) $e223))))
-(define-fun $e244 () (_ BitVec 1) 
- (bvand 
-  (bvnot 
-   (bvand $e242 $e243)) 
-  (bvnot 
-   (bvand 
-    (bvnot $e242) 
-    (bvnot $e243)))))
+     (select uf19 $e153)) #b1 #b0))))
 (define-fun $e245 () (_ BitVec 1) 
  (bvand 
-  (bvand 
-   (bvnot 
-    (bvand $e226 
-     (bvnot 
-      (ite $e227 #b1 #b0)))) 
-   (bvnot 
-    (bvand 
-     (bvnot $e226) 
-     (ite $e227 #b1 #b0)))) 
+  (bvnot 
+   (bvand 
+    (ite $e224 #b1 #b0) 
+    (bvnot $e225))) 
   (bvnot 
    (bvand 
     (bvnot 
-     (bvand 
-      (bvnot $e228) 
-      (bvnot $e229))) 
-    (bvnot 
-     (bvand $e228 $e229))))))
+     (ite $e224 #b1 #b0)) $e225))))
 (define-fun $e246 () (_ BitVec 1) 
  (bvand 
   (bvnot 
+   (bvand $e244 $e245)) 
+  (bvnot 
+   (bvand 
+    (bvnot $e244) 
+    (bvnot $e245)))))
+(define-fun $e247 () (_ BitVec 1) 
+ (bvand 
+  (bvand 
+   (bvnot 
+    (bvand $e228 
+     (bvnot 
+      (ite $e229 #b1 #b0)))) 
+   (bvnot 
+    (bvand 
+     (bvnot $e228) 
+     (ite $e229 #b1 #b0)))) 
+  (bvnot 
    (bvand 
     (bvnot 
      (bvand 
-      (ite $e230 #b1 #b0) 
-      (bvnot $e237))) 
+      (bvnot $e230) 
+      (bvnot $e231))) 
+    (bvnot 
+     (bvand $e230 $e231))))))
+(define-fun $e248 () (_ BitVec 1) 
+ (bvand 
+  (bvnot 
+   (bvand 
+    (bvnot 
+     (bvand 
+      (ite $e232 #b1 #b0) 
+      (bvnot $e239))) 
     (bvnot 
      (bvand 
       (bvnot 
-       (ite $e230 #b1 #b0)) $e237)))) 
+       (ite $e232 #b1 #b0)) $e239)))) 
   (bvnot 
    (ite 
     (and 
@@ -1194,7 +1194,7 @@
             (= #b000 
              ((_ extract 2 0) 
               (bvnot $e81))) #b1 #b0)))) $e139) $e120))) #b1 #b0))))
-(define-fun $e247 () (_ BitVec 1) 
+(define-fun $e249 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
@@ -1247,7 +1247,7 @@
           (bvand 
            (ite $e131 #b1 #b0) 
            (bvand $e75 $e130))))))))))))
-(define-fun $e248 () (_ BitVec 1) 
+(define-fun $e250 () (_ BitVec 1) 
  (bvand 
   (bvand 
    (bvand 
@@ -1264,14 +1264,14 @@
      (bvnot 
       (bvand 
        (bvnot 
-        (bvand $e145 
+        (bvand $e146 
          (bvand 
-          (bvnot $e143) $e144))) 
+          (bvnot $e144) $e145))) 
        (bvnot 
         (bvand 
-         (bvnot $e145) 
-         (bvand $e143 
-          (bvnot $e144)))))) 
+         (bvnot $e146) 
+         (bvand $e144 
+          (bvnot $e145)))))) 
      (bvnot 
       (bvand 
        (bvnot 
@@ -1283,7 +1283,7 @@
   (bvand 
    (bvand 
     (bvadd #b1 
-     (bvnot $e142)) 
+     (bvnot $e143)) 
     ((_ extract 3 3) 
      (bvadd 
       (concat #b0 
@@ -1299,24 +1299,24 @@
             (bvand $e38 $e39)))) 
          (bvadd #b001 
           (bvnot $e42)) $e42))) 
-      (concat #b0 $e147)))) 
+      (concat #b0 $e148)))) 
    (bvand 
     (bvnot 
      (bvand 
-      (bvnot $e148) $e149)) 
+      (bvnot $e149) $e150)) 
     (bvnot 
-     (bvand $e148 
-      (bvnot $e149)))))))
-(define-fun $e249 () (_ BitVec 1) 
+     (bvand $e149 
+      (bvnot $e150)))))))
+(define-fun $e251 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
     (bvnot 
-     (bvand $e238 $e239)) 
+     (bvand $e240 $e241)) 
     (bvnot 
      (bvand 
-      (bvnot $e238) 
-      (bvnot $e239))))) 
+      (bvnot $e240) 
+      (bvnot $e241))))) 
   (bvand 
    (bvnot 
     (bvand 
@@ -1329,7 +1329,7 @@
            (= #b1 
             ((_ extract 0 0) 
              (bvnot $e118))) #b1 #b0) 
-          (bvnot $e118)))) #b1 #b0) $e150) 
+          (bvnot $e118)))) #b1 #b0) $e151) 
      (bvand $e79 
       (ite $e87 #b1 #b0)))) 
    (bvnot 
@@ -1340,7 +1340,7 @@
       (select 
        (store uf21 v5 
         (bvnot v5)) $e107)))))))
-(define-fun $e250 () (_ BitVec 1) 
+(define-fun $e252 () (_ BitVec 1) 
  (bvand 
   (bvand 
    (bvnot 
@@ -1349,10 +1349,10 @@
       (bvand 
        (bvnot 
         (bvand 
-         (bvnot $e200) 
-         (bvnot $e201))) 
+         (bvnot $e202) 
+         (bvnot $e203))) 
        (bvnot 
-        (bvand $e200 $e201)))) 
+        (bvand $e202 $e203)))) 
      (ite 
       (= #b1111 
        (bvadd #b1111 
@@ -1361,45 +1361,45 @@
     (and 
      (not 
       (and 
-       (not $e203) $e202)) 
+       (not $e205) $e204)) 
      (not 
-      (and $e203 
-       (not $e202)))) #b1 #b0)) 
+      (and $e205 
+       (not $e204)))) #b1 #b0)) 
   (bvand 
    (bvand 
     (bvand 
      (bvnot 
       (bvand 
-       (bvnot $e216) 
-       (bvnot $e217))) 
+       (bvnot $e218) 
+       (bvnot $e219))) 
      (bvnot 
-      (bvand $e216 $e217))) 
+      (bvand $e218 $e219))) 
     (bvnot 
      (bvand 
-      ((_ extract 15 15) $e155) 
+      ((_ extract 15 15) $e157) 
       (ite 
        (= #b000000000000000 
-        ((_ extract 14 0) $e155)) #b1 #b0)))) 
+        ((_ extract 14 0) $e157)) #b1 #b0)))) 
    (bvand 
     (ite 
      (= #b000 
-      (bvadd $e40 $e152)) #b1 #b0) 
+      (bvadd $e40 $e153)) #b1 #b0) 
     (bvand 
      (bvnot 
       (bvand 
-       (bvnot $e220) 
-       (bvnot $e221))) 
+       (bvnot $e222) 
+       (bvnot $e223))) 
      (bvnot 
-      (bvand $e220 $e221)))))))
-(define-fun $e251 () (_ BitVec 1) 
+      (bvand $e222 $e223)))))))
+(define-fun $e253 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
-    (bvnot $e244) $e245)) 
+    (bvnot $e246) $e247)) 
   (bvnot 
-   (bvand $e244 
-    (bvnot $e245)))))
-(define-fun $e252 () (_ BitVec 1) 
+   (bvand $e246 
+    (bvnot $e247)))))
+(define-fun $e254 () (_ BitVec 1) 
  (bvand 
   (bvnot 
    (bvand 
@@ -1417,10 +1417,10 @@
      (bvand 
       (bvnot 
        (bvand 
-        (bvnot $e166) 
-        (bvnot $e168))) 
+        (bvnot $e168) 
+        (bvnot $e170))) 
       (bvnot 
-       (bvand $e166 $e168)))) 
+       (bvand $e168 $e170)))) 
     (bvand 
      (bvand 
       (bvnot 
@@ -1429,15 +1429,15 @@
       (select 
        (store uf26 
         (bvnot $e34) 
-        (bvnot v6)) $e147)) 
+        (bvnot v6)) $e148)) 
      (bvnot 
       (bvand 
        (bvnot 
         (bvand 
          ((_ extract 5 5) $e31) 
          (ite 
-          (= 
-           ((_ extract 4 0) $e31) #b00000) #b1 #b0))) 
+          (= #b00000 
+           ((_ extract 4 0) $e31)) #b1 #b0))) 
        (bvnot 
         (bvand 
          ((_ extract 1 1) $e103) 
@@ -1452,38 +1452,38 @@
        (bvand 
         (bvnot 
          (bvand 
-          (bvnot $e172) 
-          (bvnot $e175))) 
+          (bvnot $e174) 
+          (bvnot $e177))) 
         (bvnot 
-         (bvand $e172 $e175)))) 
+         (bvand $e174 $e177)))) 
       (bvnot 
        (bvand 
         (bvnot 
          (bvand 
           (bvnot 
-           (ite $e176 #b1 #b0)) 
-          (bvnot $e183))) 
+           (ite $e178 #b1 #b0)) 
+          (bvnot $e185))) 
         (bvnot 
          (bvand 
-          (ite $e176 #b1 #b0) $e183)))))) 
+          (ite $e178 #b1 #b0) $e185)))))) 
     (bvnot 
      (bvand 
       (bvnot 
        (bvand 
-        (bvnot $e240) 
+        (bvnot $e242) 
         (bvnot 
-         (ite $e241 #b1 #b0)))) 
+         (ite $e243 #b1 #b0)))) 
       (bvnot 
-       (bvand $e240 
-        (ite $e241 #b1 #b0)))))))))
-(define-fun $e253 () (_ BitVec 1) 
+       (bvand $e242 
+        (ite $e243 #b1 #b0)))))))))
+(define-fun $e255 () (_ BitVec 1) 
  (bvand 
   (bvnot 
-   (bvand $e250 $e251)) 
+   (bvand $e252 $e253)) 
   (bvnot 
    (bvand 
-    (bvnot $e250) 
-    (bvnot $e251)))))
+    (bvnot $e252) 
+    (bvnot $e253)))))
 (assert (distinct 
  (bvnot 
   (bvand 
@@ -1491,24 +1491,24 @@
     (bvand 
      (bvnot 
       (bvand 
-       (bvnot $e246) 
-       (bvnot $e247))) 
+       (bvnot $e248) 
+       (bvnot $e249))) 
      (bvnot 
-      (bvand $e246 $e247))) 
+      (bvand $e248 $e249))) 
     (bvnot 
      (bvand 
       (bvnot 
-       (bvand $e248 
-        (bvnot $e249))) 
+       (bvand $e250 
+        (bvnot $e251))) 
       (bvnot 
        (bvand 
-        (bvnot $e248) $e249))))) 
+        (bvnot $e250) $e251))))) 
    (bvand 
     (bvnot 
-     (bvand $e252 
-      (bvnot $e253))) 
+     (bvand $e254 
+      (bvnot $e255))) 
     (bvnot 
      (bvand 
-      (bvnot $e252) $e253))))) #b0))
+      (bvnot $e254) $e255))))) #b0))
 (check-sat)
 (exit)

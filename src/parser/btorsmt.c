@@ -1,8 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013-2018 Aina Niemetz.
- *  Copyright (C) 2014-2016 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -1070,38 +1068,6 @@ UNEXPECTED_CHARACTER:
   if (isprint (ch)) return !perr_smt (parser, "unexpected character '%c'", ch);
 
   return !perr_smt (parser, "unexpected character with ASCII code %d", ch);
-}
-
-static void
-btorsmtppaux (FILE *file, BtorSMTNode *node, uint32_t indent)
-{
-  uint32_t i;
-
-  if (isleaf (node))
-    fprintf (file, "%s", ((BtorSMTSymbol *) strip (node))->name);
-  else
-  {
-    fputc ('(', file);
-
-    for (;;)
-    {
-      btorsmtppaux (file, car (node), indent + 1);
-      if (!(node = cdr (node))) break;
-
-      fputc ('\n', file);
-      for (i = 0; i <= indent; i++) fputc (' ', file);
-    }
-
-    fputc (')', file);
-  }
-}
-
-void
-btorsmtpp (BtorSMTNode *node)
-{
-  btorsmtppaux (stdout, node, 0);
-  fputc ('\n', stdout);
-  fflush (stdout);
 }
 
 static const char *

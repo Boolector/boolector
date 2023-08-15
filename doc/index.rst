@@ -4,8 +4,9 @@ Welcome to Boolector's API documentation!
 Introduction
 ------------
 
-  Boolector_ is an SMT solver for the quantifier-free theory of bit vectors
-  with arrays. It supports BTOR_, `SMT-LIB v1`_, and `SMT-LIB v2`_
+  Boolector_ is an SMT solver for the theories of bit-vectors, arrays,
+  uninterpreted functions and their combinations.
+  Boolector supports BTOR_, `SMT-LIB v1`_, and `SMT-LIB v2`_
   as input format and can be either used as a stand-alone SMT solver, or as
   back end for other tools via its public API.
   This is the documentation of Boolector's public **C interface** and

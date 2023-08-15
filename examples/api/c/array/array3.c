@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <limits.h>
+#include <stdlib.h>
+
 #include "boolector.h"
-#include "btoropt.h"
 
 #define ARRAY3_EXAMPLE_ELEM_BW 8
 #define ARRAY3_EXAMPLE_INDEX_BW 1

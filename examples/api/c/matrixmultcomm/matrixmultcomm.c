@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btoropt.h"
 #include "utils/btorutil.h"
 
 BoolectorNode **indices;

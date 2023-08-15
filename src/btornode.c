@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2019 Aina Niemetz.
- *  Copyright (C) 2012-2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -256,6 +253,16 @@ btor_node_bv_is_neg (Btor *btor, BtorNode *exp, BtorNode **res)
   }
 
   return false;
+}
+
+/*------------------------------------------------------------------------*/
+
+bool
+btor_node_is_bv (Btor *btor, const BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  return btor_sort_is_bv (btor, btor_node_get_sort_id (exp));
 }
 
 /*------------------------------------------------------------------------*/
@@ -889,12 +896,6 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   set_kind (btor, exp, BTOR_INVALID_NODE);
 
-  if (btor_node_is_bv_const (exp))
-  {
-    btor_bv_free (btor->mm, btor_node_bv_const_get_bits (exp));
-    if (btor_node_bv_const_get_invbits (exp))
-      btor_bv_free (btor->mm, btor_node_bv_const_get_invbits (exp));
-  }
   assert (btor_node_get_sort_id (exp));
   btor_sort_release (btor, btor_node_get_sort_id (exp));
   btor_node_set_sort_id (exp, 0);
@@ -1132,7 +1133,9 @@ btor_node_match_by_symbol (Btor *btor, const char *sym)
 {
   assert (btor);
   assert (sym);
-  return btor_node_copy (btor, btor_node_get_by_symbol (btor, sym));
+  BtorNode *res = btor_node_get_by_symbol (btor, sym);
+  if (res) btor_node_copy (btor, res);
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1615,6 +1618,13 @@ find_binder_exp (Btor *btor,
   uint32_t hash;
 
   hash = hash_binder_exp (btor, param, body, params);
+
+  BTORLOG (2,
+           "find binder %s %s (hash: %u)",
+           btor_util_node2string (param),
+           btor_util_node2string (body),
+           hash);
+
   if (binder_hash) *binder_hash = hash;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
@@ -1634,6 +1644,11 @@ find_binder_exp (Btor *btor,
     }
   }
   assert (!*result || btor_node_is_binder (*result));
+  BTORLOG (2,
+           "found binder %s %s -> %s",
+           btor_util_node2string (param),
+           btor_util_node2string (body),
+           btor_util_node2string (*result));
   return result;
 }
 
@@ -2194,6 +2209,11 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode *e[])
         *lookup = new_lambda_exp_node (btor, simp_e[0], simp_e[1]);
         btor_hashptr_table_get (btor->lambdas, *lookup)->data.as_int =
             binder_hash;
+        BTORLOG (2,
+                 "new lambda: %s (hash: %u, param: %u)",
+                 btor_util_node2string (*lookup),
+                 binder_hash,
+                 (*lookup)->parameterized);
         break;
       case BTOR_FORALL_NODE:
       case BTOR_EXISTS_NODE:

@@ -18,229 +18,203 @@ Interface
 Quickstart
 -----------
 
-  First, create a Boolector instance:
-    
-  .. code-block:: c
+  First, we create a Boolector instance:
 
-    Btor *btor = boolector_new ();
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 7
 
-  You can configure this instance via :c:func:`boolector_set_opt`
-  E.g., if you want to enable model generation:
+  We can configure this instance via :c:func:`boolector_set_opt`
+  For example, if we want to enable model generation:
 
-  .. code-block:: c
-
-    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 9
 
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.
 
-  Next you can either parse an input file, and/or generate expressions to 
-  be either asserted via :c:func:`boolector_assert`, or, if incremental usage
-  is enabled, assumed via :c:func:`boolector_assume` (analogously to
-  MiniSAT). 
-  Note that Boolector's internal design is motivated by hardware design,
-  hence we do not distinguish between type *Boolean* and type *bit vector
-  of length 1*. 
+  Next, we can create expressions and assert formulas via
+  :c:func:`boolector_assert`.
 
-  E.g., if you want to parse an input file "example.btor", you can either
-  use :c:func:`boolector_parse` or :c:func:`boolector_parse_btor`:
+  .. note::
+
+      Boolector's internal design is motivated by hardware design.
+      Hence we do not distinguish between type *Boolean* and type *bit vector
+      of length 1*.
+
+  If incremental usage is enabled, formulas can optionally be assumed via
+  :c:func:`boolector_assume`.
+
+  .. note::
+
+    Assumptions are invalidated after a call to :c:func:`boolector_sat`.
+
+  Alternatively, we can parse an input file prior to creating and asserting
+  expressions. For example, to parse an input file `example.btor`,
+  we can use :c:func:`boolector_parse` (auto detects the input format) or
+  :c:func:`boolector_parse_btor` (for parsing input files in BTOR_ format).
 
   .. code-block:: c
 
-    char *error_msg; 
+    char *error_msg;
     int status;
     int result;
     FILE *fd = fopen ("example.btor", "r");
     result = boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
 
-  Incremental usage is not enabled, hence, if the parser does not encounter
-  an error, it returns :c:macro:`BOOLECTOR_UNKNOWN` (for a more detailed
-  description of the parsers return values, see :c:func:`boolector_parse`).
-  However, if the parser encounters an error, it returns 
-  :c:macro:`BOOLECTOR_PARSE_ERROR` and an explanation of that error is 
-  stored in ``error_msg``. If the input file specifies a (known) status
-  of the input formula (either satisfiable or unsatisfiable), that status
-  is stored in ``status``.
+  In case the input issues a call to check sat (in case of SMT-LIB v2 or
+  incremental SMT-LIB v1), this function either returns
+  :c:macro:`BOOLECTOR_SAT`, :c:macro:`BOOLECTOR_UNSAT` or
+  :c:macro:`BOOLECTOR_UNKNOWN`. In any other non-error case it returns
+  :c:macro:`BOOLECTOR_PARSE_UNKNOWN`.
+  For a more detailed description of the parsers return values, see
+  :c:func:`boolector_parse`, :c:func:`boolector_parse_btor`.
+  :c:func:`boolector_parse_btor2`, :c:func:`boolector_parse_smt1` and
+  :c:func:`boolector_parse_smt2`.
+
+  If the parser encounters an error, it returns
+  :c:macro:`BOOLECTOR_PARSE_ERROR` and an explanation of that error is stored
+  in ``error_msg``.
+  If the input file specifies a (known) status of the input formula (either
+  satisfiable or unsatisfiable), that status is stored in ``status``.
 
   As an example for generating and asserting expressions via
   :c:func:`boolector_assert`, consider the following example: ::
 
-    0 < x <= 100, 0 < y <= 100, x * y < 100
+    0 < x <= 100 && 0 < y <= 100 && x * y < 100
 
-  Given the Boolector instance created above, we generate and assert
-  the following expressions:
+  Assume that this example is given with x and y as natural numbers.
+  We encode it with bit-vectors of size 8, and to preserve semantics,
+  we have to ensure that the multiplication does not overflow.
 
-  .. code-block:: c
+  We first create a bit-vector sort of size 8.
+ 
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 12
 
-    BtorNode *x = boolector_var (btor, 8, "x");
-    BtorNode *y = boolector_var (btor, 8, "y");
-    BtorNode *zero = boolector_zero (btor, 8);
-    BtorNode *hundred = boolector_int (btor, 100, 8);
+  Then, we create and assert the following expressions:
 
-    // 0 < x
-    BoolectorNode *ult_x = boolector_ult (btor, zero, x);
-    boolector_assert (btor, ult_x);
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 15-44
 
-    // x <= 100
-    BtorNode *ulte_x = boolector_ulte (btor, x, hundred);
-    boolector_assert (btor, ulte_x);
+  The satisfiability of the resulting formula can be determined via
+  :c:func:`boolector_sat`.
 
-    // 0 < y
-    BtorNode *ult_y = boolector_ult (btor, zero, y);
-    boolector_assert (btor, ult_y);
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 46
 
-    // y <= 100
-    BtorNode *ulte_y = boolector_ulte (btor, y, hundred);
-    boolector_assert (btor, ulte_y);
+  If the resulting formula is satisfiable and model generation has been enabled
+  via :c:func:`boolector_set_opt`, we can either print the resulting model via
+  :c:func:`boolector_print_model`,
+  or query assignments of bit vector and array variables or uninterpreted
+  functions via :c:func:`boolector_bv_assignment`,
+  :c:func:`boolector_array_assignment` and :c:func:`boolector_uf_assignment`.
 
-    // x * y
-    BtorNode *mul = boolector_mul (btor, x, y);
+  .. note::
+      Querying assignments is not limited to variables. You can query
+      the assignment of any arbitrary expression.
 
-    // x * y < 100
-    BtorNode *ult = boolector_ult (btor, mul, hundred);
-    boolector_assert (btor, ult);
-    BtorNode *umulo = boolector_umulo (btor, x, y);
-    BtorNode *numulo = boolector_not (btor, umulo);  // prevent overflow
-    boolector_assert (btor, numulo)
+  The example above is satisfiable, and we can now either query the assignments
+  of variables ``x`` and ``y`` or print the resulting model via
+  :c:func:`boolector_print_model`.
 
-  After parsing an input file and/or asserting/assuming expressions,
-  the satisfiability of the resulting formula can be determined via
-  :c:func:`boolector_sat`. If the resulting formula is satisfiable and model 
-  generation has been enabled via :c:func:`boolector_set_opt`, you can either
-  print the resulting model via :c:func:`boolector_print_model`,
-  or query assignments
-  of bit vector and array variables or uninterpreted functions via
-  :c:func:`boolector_bv_assignment`, :c:func:`boolector_array_assignment` and
-  :c:func:`boolector_uf_assignment`.
-  Note that querying assignments is not limited to variables---you can query 
-  the assignment of any arbitrary expression.
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 63-79
 
-  E.g., given the example above, we first determine if the formula is
-  satisfiable via :c:func:`boolector_sat` (which it is):
-
-  .. code-block:: c
-
-    int result = boolector_sat (btor);
-
-  Now you can either query the assignments of variables ``x`` and ``y``:
-
-  .. code-block:: c
-
-    char *xstr = boolector_bv_assignment (btor, x);  // returns "00000100"
-    char *ystr = boolector_bv_assignment (btor, y);  // returns "00010101"
-
-  or print the resulting model via :c:func:`boolector_print_model`. 
   Boolector supports printing models in its own format ("btor") or in
-  `SMT-LIB v2`_ format ("smt2"). Printing the resulting model in 
-  Boolector's own format:
+  `SMT-LIB v2`_ format ("smt2"). We print the resulting model in BTOR_
+  format:
 
-  .. code-block:: c
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 82
 
-    boolector_print_model (btor, "btor", stdout);
+  A possible model is shown below and gives the assignments of bit vector
+  variables ``x`` and ``y``.
+  The first column indicates the id of the input, the second column its
+  assignment, and the third column its name (or symbol) if any. ::
 
-  A possible model would be: ::
+    2 00000001 x
+    3 01011111 y
 
-    2 00000100 x
-    3 00010101 y
-
-  which in this case indicates the assignments of bit vector variables 
-  ``x`` and ``y``. Note that the first column indicates the id of an input, 
-  the second column its assignment, and the third column its name (or symbol)
-  if any. 
-  In the case that the formula includes arrays as input, their values at a
+  In the case that the formula includes arrays as inputs, their values at a
   certain index are indicated as follows: ::
 
     4[00] 01 A
 
-  where A has id 4 and is an array with index and element bit width of 2, 
-  and its value at index 0 is 1.
+  Here, array ``A`` has id 4 with index and element bit width of 2, and its
+  value at index 0 is 1.
 
-  Printing the above model in `SMT-LIB v2`_ format:
+  We now print the model of the example above in `SMT-LIB v2`_ format.
 
-  .. code-block:: c
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 85
 
-    boolector_print_model (btor, "smt2", stdout);
+  A possible model is shown below: ::
 
-  A possible model would be: ::
-
-    (model
-      (define-fun x () (_ BitVec 8) #b00000100)
-      (define-fun y () (_ BitVec 8) #b00010101)
-      (define-fun y (
-       (y_x0 (_ BitVec 2)))
-       (ite (= y_x0 #b00) #b01
-         #00))
+    (
+      (define-fun x () (_ BitVec 8) #b00000001)
+      (define-fun y () (_ BitVec 8) #b01011111)
     )
 
-  Note that Boolector internally represents arrays as uninterpreted functions,
-  hence array models are printed as models for UF (without an explicit
-  typecast).
+  .. note::
+      Boolector internally represents arrays as uninterpreted functions and
+      prints array models as models for UF.
 
-  Finally, in case that you generated expressions, you have to clean up, 
-  i.e., release those expressions 
-  (see :ref:`c-internals` and :c:func:`boolector_release`), 
-  and delete Boolector instance ``btor`` via :c:func:`boolector_delete`.
-  E.g., following from the example above, we proceed as follows:
+  Finally, we have to clean up all created expressions (see
+  :ref:`c-internals` and :c:func:`boolector_release`) and delete Boolector
+  instance ``btor`` via :c:func:`boolector_delete`.
+  Queried assignment strings have to be freed via
+  :c:func:`boolector_free_bv_assignment`,
+  :c:func:`boolector_free_array_assignment` and
+  :c:func:`boolector_free_uf_assignment`.
 
-  .. code-block:: c
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+       :lines: 88-110
 
-    boolector_release (btor, x);
-    boolector_release (btor, y);
-    boolector_release (btor, zero);
-    boolector_release (btor, hundred);
-    boolector_release (btor, ult_x);
-    boolector_release (btor, ulte_x);
-    boolector_release (btor, ult_y);
-    boolector_release (btor, ulte_y);
-    boolector_release (btor, mul);
-    boolector_release (btor, ult);
-    boolector_release (btor, numulo);
-    boolector_release (btor, umulo);
-    boolector_delete (btor);
-
-  Note that in case you generated assignment strings you have to release them
-  as well:
-
-  .. code-block:: c
-
-    boolector_free_bv_assignment (btor, xstr);
-    boolector_free_bv_assignment (btor, ystr);
-
+  The source code of the example above can be found at `examples/api/c/quickstart.c <https://github.com/boolector/boolector/tree/master/examples/api/c/quickstart.c>`_.
 
 Options
 -------
 
-  Boolector can be configured either via :c:func:`boolector_set_opt`, 
+  Boolector can be configured either via :c:func:`boolector_set_opt`,
   or via environment variables of the form: ::
 
     BTOR<capitalized option name without '_' and ':'>=<value>
 
-  E.g., given a Boolector instance ``btor``, model generation is enabled either 
-  via 
+  E.g., given a Boolector instance ``btor``, model generation is enabled either
+  via
 
   .. code-block:: c
 
     boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
-  or via setting the environment variable:: 
+  or via setting the environment variable::
 
     BTORMODELGEN=1
 
-  For a list and detailed descriptions of all available options, 
+  For a list and detailed descriptions of all available options,
   see :c:func:`boolector_set_opt`.
 
 API Tracing
 ^^^^^^^^^^^
 
   API tracing allows to record every call to Boolector's public API. The
-  resulting trace can be replayed and the replayed sequence behaves exactly 
+  resulting trace can be replayed and the replayed sequence behaves exactly
   like the original Boolector run.
   This is particularly useful for debugging purposes, as it enables replaying
   erroneous behaviour.
   API tracing can be enabled either via :c:func:`boolector_set_trapi` or by
   setting the environment variable ``BTORAPITRACE=<filename>``.
 
-  E.g., given a Boolector instance ``btor``, enabling API tracing is done as
+  For example, given a Boolector instance ``btor``, API tracing is enabled as
   follows:
 
   .. code-block:: c
@@ -249,59 +223,74 @@ API Tracing
     boolector_set_trapi (btor, fd);
 
   or ::
-  
+ 
     BTORAPITRACE="error.trace"
 
 .. _c-internals:
 
 Internals
 ---------
-  Boolector internally maintains a directed acyclic graph (DAG) of
+  Boolector internally maintains a **directed acyclic graph (DAG)** of
   expressions. As a consequence, each expression maintains a reference
-  counter, which is initially set to 1. 
-  Each time an expression is shared, i.e. for each API call that returns
+  counter, which is initially set to 1.
+  Each time an expression is shared, i.e., for each API call that returns
   an expression (a BoolectorNode), its reference counter is incremented
-  by 1. Not considering API calls that generate expressions, this mainly
+  by 1. Not considering API calls that created expressions, this mainly
   applies to :c:func:`boolector_copy`, which simply increments the reference
-  counter of an expression, and :c:func:`boolector_match_node` resp.
+  counter of an expression, and :c:func:`boolector_match_node` and
   :c:func:`boolector_match_node_by_id`, which retrieve nodes of a given
-  Boolector instance by id resp. a given node's id.
+  Boolector instance by id and a given node's id.
   Expressions are released via :c:func:`boolector_release`, and if its
   reference counter is decremented to zero, it is deleted from memory.
-  Note that by asserting an expression, it will be permanently added to the
-  formula, i.e. Boolector internally holds its reference until it is either
-  eliminated via rewriting, or the Boolector instance is deleted. 
+
+  Note that by **asserting** an expression, it will be **permanently added** to
+  the formula. This means that Boolector internally holds its reference until
+  it is either eliminated via rewriting, or the Boolector instance is deleted.
   Following from that, it is safe to release an expression as soon as you
   asserted it, as long as you don't need it for further querying.
 
 Operators
 ^^^^^^^^^
   Boolector internally describes expressions by means of a set of base
-  operators as documented in BTOR_.
+  operators.
   Boolector's API, however, provides a richer set of operators for
   convenience, where non-base operators are internally rewritten to use
   base operators only.
-  E.g., two's complement (:c:func:`boolector_neg`) is rewritten as one's
-  complement and addition of 1. 
-  Note that this behaviour is not influenced by the rewrite level chosen.
+  For example, two's complement (:c:func:`boolector_neg`) is expressed by means
+  of one's complement.
 
-Rewriting
-^^^^^^^^^
-  Boolector simplifies expressions and the expression DAG by means of 
-  rewriting and supports three so-called rewrite levels.
-  Increasing rewrite levels increase the extent of rewriting performed,
-  and a rewrite level of 0 is equivalent to disabling rewriting at all.
-  Note that Boolector not only simplifies expressions during construction
-  of the expression DAG---for each call to :c:func:`boolector_sat`,
-  various simplification techniques and rewriting phases are initiated.
-  You can force Boolector to initiate rewriting and simplify the expression
+  .. note::
+      This behaviour is not influenced by the configured rewrite level.
+
+Rewriting and Preprocessing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Boolector simplifies expressions and the expression DAG by means of
+  rewriting. It supports three so-called **rewrite levels**.
+  Increasing rewrite levels increase the extent of rewriting and preprocessing
+  performed.  Rewrite level of 0 is equivalent to disabling rewriting and
+  preprocessing at all.
+
+  .. note::
+    Rewriting expressions by means of base operators can not be disabled,
+    not even at rewrite level 0.
+
+  Boolector not only simplifies expressions during construction
+  of the expression DAG but also performs preprocessing on the DAG.
+  For each call to :c:func:`boolector_sat`, various simplification techniques
+  and preprocessing phases are initiated.
+  You can force Boolector to initiate simplifying the expression
   DAG via :c:func:`boolector_simplify`.
   The rewrite level can be configured via :c:func:`boolector_set_opt`.
 
 Examples
 --------
 
-Bit vector examples
+Quickstart Example
+^^^^^^^^^^^^^^^^^^
+  .. literalinclude:: ../examples/api/c/quickstart.c
+       :language: c
+
+Bit-Vector Examples
 ^^^^^^^^^^^^^^^^^^^
   .. literalinclude:: ../examples/api/c/bv/bv1.c
      :language: c
@@ -309,7 +298,7 @@ Bit vector examples
   .. literalinclude:: ../examples/api/c/bv/bv2.c
      :language: c
 
-Array examples
+Array Examples
 ^^^^^^^^^^^^^^
   .. literalinclude:: ../examples/api/c/array/array1.c
      :language: c

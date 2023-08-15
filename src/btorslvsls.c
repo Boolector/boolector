@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2018 Aina Niemetz.
- *  Copyright (C) 2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -1344,24 +1343,6 @@ DONE:
 }
 
 /*------------------------------------------------------------------------*/
-
-void
-clone_data_as_sls_constr_data_ptr (BtorMemMgr *mm,
-                                   const void *map,
-                                   BtorHashTableData *data,
-                                   BtorHashTableData *cloned_data)
-{
-  assert (data);
-  assert (cloned_data);
-
-  BtorSLSConstrData *d, *cd;
-
-  (void) map;
-  d = (BtorSLSConstrData *) data->as_ptr;
-  BTOR_CNEW (mm, cd);
-  memcpy (cd, d, sizeof (BtorSLSConstrData));
-  cloned_data->as_ptr = cd;
-}
 
 static BtorSLSSolver *
 clone_sls_solver (Btor *clone, BtorSLSSolver *slv, BtorNodeMap *exp_map)

@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -185,6 +184,42 @@ class TestBv : public TestBtor
     return x <= y;
   }
 
+  static uint64_t ugt (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x > y;
+  }
+
+  static uint64_t ugte (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x >= y;
+  }
+
+  static int64_t slt (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x < y;
+  }
+
+  static int64_t slte (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x <= y;
+  }
+
+  static int64_t sgt (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x > y;
+  }
+
+  static int64_t sgte (int64_t x, int64_t y, uint32_t bw)
+  {
+    (void) bw;
+    return x >= y;
+  }
+
   static uint64_t sll (uint64_t x, uint64_t y, uint32_t bw)
   {
     assert (bw <= 64);
@@ -197,6 +232,19 @@ class TestBv : public TestBtor
     assert (bw <= 64);
     if (y >= bw) return 0;
     return (x >> y) % (uint64_t) pow (2, bw);
+  }
+
+  static uint64_t sra (uint64_t x, uint64_t y, uint32_t bw)
+  {
+    assert (bw <= 64);
+    uint64_t max = pow (2, bw);
+    if ((x >> (bw - 1)) & 1)
+    {
+      if (y > bw) return ~0 % max;
+      return ~((~x % max) >> y) % max;
+    }
+    if (y > bw) return 0;
+    return (x >> y) % max;
   }
 
   static uint64_t mul (uint64_t x, uint64_t y, uint32_t bw)
@@ -213,6 +261,21 @@ class TestBv : public TestBtor
   static uint64_t urem (uint64_t x, uint64_t y, uint32_t bw)
   {
     if (y == 0) return x;
+    return (x % y) % (uint64_t) pow (2, bw);
+  }
+
+  static int64_t sdiv (int64_t x, int64_t y, uint32_t bw)
+  {
+    if (y == 0)
+    {
+      return x < 0 ? 1 : UINT64_MAX % (uint64_t) pow (2, bw);
+    }
+    return (x / y) % (uint64_t) pow (2, bw);
+  }
+
+  static int64_t srem (int64_t x, int64_t y, uint32_t bw)
+  {
+    if (y == 0) return x % (uint64_t) pow (2, bw);
     return (x % y) % (uint64_t) pow (2, bw);
   }
 
@@ -285,6 +348,81 @@ class TestBv : public TestBtor
       btor_bv_free (d_mm, bv2);
     }
     btor_bv_free (d_mm, zero);
+  }
+
+  void binary_signed_bitvec (
+      int64_t (*int_func) (int64_t, int64_t, uint32_t),
+      BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                     const BtorBitVector *,
+                                     const BtorBitVector *),
+      uint32_t num_tests,
+      uint32_t bit_width)
+  {
+    uint32_t i;
+    BtorBitVector *bv1, *bv2, *zero, *res;
+    int64_t a1, a2, ares, bres;
+
+    zero = btor_bv_new (d_mm, bit_width);
+    for (i = 0; i < num_tests; i++)
+    {
+      bv1 = btor_bv_new_random (d_mm, d_rng, bit_width);
+      bv2 = btor_bv_new_random (d_mm, d_rng, bit_width);
+      a1  = btor_bv_to_uint64 (bv1);
+      a2  = btor_bv_to_uint64 (bv2);
+      if (bit_width < 64 && btor_bv_get_bit (bv1, bit_width - 1))
+      {
+        a1 = (UINT64_MAX << bit_width) | a1;
+      }
+      if (bit_width < 64 && btor_bv_get_bit (bv2, bit_width - 1))
+      {
+        a2 = (UINT64_MAX << bit_width) | a2;
+      }
+      /* test for x = 0 explicitly */
+      res  = bitvec_func (d_mm, zero, bv2);
+      ares = int_func (0, a2, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      /* test for y = 0 explicitly */
+      res  = bitvec_func (d_mm, bv1, zero);
+      ares = int_func (a1, 0, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      /* test x, y random */
+      res  = bitvec_func (d_mm, bv1, bv2);
+      ares = int_func (a1, a2, bit_width);
+      bres = btor_bv_to_uint64 (res);
+      assert (ares == bres);
+      ASSERT_EQ (ares, bres);
+      btor_bv_free (d_mm, res);
+      btor_bv_free (d_mm, bv1);
+      btor_bv_free (d_mm, bv2);
+    }
+    btor_bv_free (d_mm, zero);
+  }
+
+  void shift_bitvec (const char *toshift,
+                     const char *shift,
+                     const char *expected,
+                     BtorBitVector *(*shift_fun) (BtorMemMgr *,
+                                                  const BtorBitVector *,
+                                                  const BtorBitVector *) )
+  {
+    assert (strlen (toshift) == strlen (shift));
+    assert (strlen (toshift) == strlen (expected));
+
+    BtorBitVector *bv, *bv_shift, *bv_res, *bv_expected;
+
+    bv          = btor_bv_char_to_bv (d_mm, toshift);
+    bv_shift    = btor_bv_char_to_bv (d_mm, shift);
+    bv_res      = shift_fun (d_mm, bv, bv_shift);
+    bv_expected = btor_bv_char_to_bv (d_mm, expected);
+    ASSERT_EQ (btor_bv_compare (bv_res, bv_expected), 0);
+    btor_bv_free (d_mm, bv_expected);
+    btor_bv_free (d_mm, bv_res);
+    btor_bv_free (d_mm, bv_shift);
+    btor_bv_free (d_mm, bv);
   }
 
   void concat_bitvec (int32_t num_tests, uint32_t bit_width)
@@ -392,6 +530,8 @@ class TestBv : public TestBtor
       ae   = btor_bv_to_uint64 (bve);
       ares = ite (ac, at, ae, bit_width);
       bres = btor_bv_to_uint64 (res);
+      (void) ares;
+      (void) bres;
       assert (ares == bres);
       btor_bv_free (d_mm, res);
       btor_bv_free (d_mm, bvc);
@@ -741,6 +881,9 @@ TEST_F (TestBv, hash)
     hash1 = btor_bv_hash (bv1);
     hash2 = btor_bv_hash (bv2);
     hash3 = btor_bv_hash (bv3);
+    (void) hash1;
+    (void) hash2;
+    (void) hash3;
     assert (!btor_bv_compare (bv1, bv2) || hash1 != hash2
             || !btor_bv_compare (bv1, bv3) || hash1 != hash3
             || !btor_bv_compare (bv2, bv3) || hash2 != hash3);
@@ -798,10 +941,10 @@ TEST_F (TestBv, uint64_to_bv_to_uint64)
 
 TEST_F (TestBv, int64_to_bv)
 {
+  uint32_t bw;
   uint64_t i;
-  BtorBitVector *a;
+  BtorBitVector *a, *ua, *tmp, *b;
   char *str_a;
-  const char *s;
   int64_t x[] = {
       -1,
       -2,
@@ -835,12 +978,31 @@ TEST_F (TestBv, int64_to_bv)
 
   for (i = 0; str_x[i]; i++)
   {
-    s     = str_x[i];
-    a     = btor_bv_int64_to_bv (d_mm, x[i], strlen (s));
+    assert (str_x[i]);
+    bw    = strlen (str_x[i]);
+    a     = btor_bv_int64_to_bv (d_mm, x[i], bw);
     str_a = btor_bv_to_char (d_mm, a);
-    ASSERT_EQ (strcmp (str_a, s), 0);
-    btor_bv_free (d_mm, a);
+    ASSERT_EQ (strcmp (str_a, str_x[i]), 0);
     btor_mem_freestr (d_mm, str_a);
+    if (x[i] < 0)
+    {
+      tmp = btor_bv_uint64_to_bv (d_mm, -x[i], bw);
+      ua  = btor_bv_neg (d_mm, tmp);
+      btor_bv_free (d_mm, tmp);
+      tmp = btor_bv_uint64_to_bv (d_mm, x[i], bw);
+      b   = btor_bv_neg (d_mm, tmp);
+      btor_bv_free (d_mm, tmp);
+    }
+    else
+    {
+      ua = btor_bv_uint64_to_bv (d_mm, x[i], bw);
+      b  = btor_bv_uint64_to_bv (d_mm, -x[i], bw);
+    }
+    ASSERT_EQ (btor_bv_compare (a, ua), 0);
+    ASSERT_NE (btor_bv_compare (a, b), 0);
+    btor_bv_free (d_mm, a);
+    btor_bv_free (d_mm, b);
+    btor_bv_free (d_mm, ua);
   }
 }
 
@@ -1880,92 +2042,12 @@ TEST_F (TestBv, set_get_flip_bit)
     v  = btor_bv_get_bit (bv, n);
     vv = btor_rng_pick_with_prob (d_rng, 500) ? 1 : 0;
     btor_bv_set_bit (bv, n, vv);
+    (void) v;
     assert (btor_bv_get_bit (bv, n) == vv);
     assert (v == vv || btor_bv_get_bit (bv, n) == (((~v) << 31) >> 31));
     btor_bv_flip_bit (bv, n);
     assert (btor_bv_get_bit (bv, n) == (((~vv) << 31) >> 31));
     btor_bv_free (d_mm, bv);
-  }
-}
-
-TEST_F (TestBv, one)
-{
-  int32_t i;
-  char *s, *sbv;
-  BtorBitVector *bv;
-
-  for (i = 1; i < 32; i++)
-  {
-    bv = btor_bv_one (d_mm, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '0', i - 1);
-    s[i - 1] = '1';
-    sbv      = btor_bv_to_char (d_mm, bv);
-    ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (d_mm, bv);
-    BTOR_DELETEN (d_mm, s, i + 1);
-    btor_mem_freestr (d_mm, sbv);
-  }
-}
-
-TEST_F (TestBv, ones)
-{
-  int32_t i;
-  char *s, *sbv;
-  BtorBitVector *bv;
-
-  for (i = 1; i < 32; i++)
-  {
-    bv = btor_bv_ones (d_mm, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '1', i);
-    sbv = btor_bv_to_char (d_mm, bv);
-    ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (d_mm, bv);
-    BTOR_DELETEN (d_mm, s, i + 1);
-    btor_mem_freestr (d_mm, sbv);
-  }
-}
-
-TEST_F (TestBv, min_signed)
-{
-  int32_t i;
-  char *s, *sbv;
-  BtorBitVector *bv;
-
-  for (i = 1; i < 32; i++)
-  {
-    bv = btor_bv_min_signed (d_mm, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '0', i);
-    s[0] = '1';
-    sbv  = btor_bv_to_char (d_mm, bv);
-    ASSERT_TRUE (btor_bv_is_min_signed (bv));
-    ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (d_mm, bv);
-    BTOR_DELETEN (d_mm, s, i + 1);
-    btor_mem_freestr (d_mm, sbv);
-  }
-}
-
-TEST_F (TestBv, max_signed)
-{
-  int32_t i;
-  char *s, *sbv;
-  BtorBitVector *bv;
-
-  for (i = 1; i < 32; i++)
-  {
-    bv = btor_bv_max_signed (d_mm, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '1', i);
-    s[0] = '0';
-    sbv  = btor_bv_to_char (d_mm, bv);
-    ASSERT_TRUE (btor_bv_is_max_signed (bv));
-    ASSERT_EQ (strcmp (s, sbv), 0);
-    btor_bv_free (d_mm, bv);
-    BTOR_DELETEN (d_mm, s, i + 1);
-    btor_mem_freestr (d_mm, sbv);
   }
 }
 
@@ -2128,12 +2210,158 @@ TEST_F (TestBv, ulte)
   binary_bitvec (ulte, btor_bv_ulte, BTOR_TEST_BITVEC_TESTS, 64);
 }
 
+TEST_F (TestBv, ugt)
+{
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (ugt, btor_bv_ugt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, ugte)
+{
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_bitvec (ugte, btor_bv_ugte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, slt)
+{
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (slt, btor_bv_slt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, slte)
+{
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (slte, btor_bv_slte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, sgt)
+{
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (sgt, btor_bv_sgt, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
+TEST_F (TestBv, sgte)
+{
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 33);
+  binary_signed_bitvec (sgte, btor_bv_sgte, BTOR_TEST_BITVEC_TESTS, 64);
+}
+
 TEST_F (TestBv, sll)
 {
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 2);
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 8);
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 16);
   binary_bitvec (sll, btor_bv_sll, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<2> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<3> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<8> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<65> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sll);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::bitset<128> (i).to_string () << std::string (j, '0');
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (expected.size () - bw, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sll);
+    }
+    /* shift value doesn't fit into uint64_t */
+    for (uint64_t j = 64; j < 128; ++j)
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (j, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sll);
+    }
+  }
 }
 
 TEST_F (TestBv, srl)
@@ -2142,6 +2370,207 @@ TEST_F (TestBv, srl)
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 8);
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 16);
   binary_bitvec (srl, btor_bv_srl, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<2> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<3> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<8> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<65> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_srl);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      ss_expected << std::string (j, '0') << std::bitset<128> (i).to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_srl);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (120, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_srl);
+    }
+  }
+}
+
+TEST_F (TestBv, sra)
+{
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 2);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 8);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 9);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 16);
+  binary_bitvec (sra, btor_bv_sra, BTOR_TEST_BITVEC_TESTS, 32);
+
+  for (uint32_t i = 0, bw = 2; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<2> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<2> (i).to_string ().c_str (),
+                    std::bitset<2> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 3; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<3> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<3> (i).to_string ().c_str (),
+                    std::bitset<3> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 8; i < (1u << bw); ++i)
+  {
+    for (uint32_t j = 0; j < (1u << bw); ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<8> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<8> (i).to_string ().c_str (),
+                    std::bitset<8> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 65; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<65> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<65> (i).to_string ().c_str (),
+                    std::bitset<65> (0u).set (64, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sra);
+    }
+  }
+
+  for (uint32_t i = 0, bw = 128; i < (1u << bw); ++i)
+  {
+    /* shift value fits into uint64_t */
+    for (uint64_t j = 0; j < 32; ++j)
+    {
+      std::stringstream ss_expected;
+      std::bitset<128> bits_i (i);
+      ss_expected << std::string (j, bits_i[bw - 1] == 1 ? '1' : '0')
+                  << bits_i.to_string ();
+      std::string expected = ss_expected.str ();
+      expected             = expected.substr (0, bw);
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (j).to_string ().c_str (),
+                    expected.c_str (),
+                    btor_bv_sra);
+    }
+    /* shift value doesn't fit into uint64_t */
+    {
+      shift_bitvec (std::bitset<128> (i).to_string ().c_str (),
+                    std::bitset<128> (0u).set (120, 1).to_string ().c_str (),
+                    std::string (bw, '0').c_str (),
+                    btor_bv_sra);
+    }
+  }
 }
 
 TEST_F (TestBv, mul)
@@ -2166,6 +2595,22 @@ TEST_F (TestBv, urem)
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (urem, btor_bv_urem, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
+TEST_F (TestBv, sdiv)
+{
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (sdiv, btor_bv_sdiv, BTOR_TEST_BITVEC_TESTS, 33);
+}
+
+TEST_F (TestBv, srem)
+{
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 1);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 7);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 31);
+  binary_signed_bitvec (srem, btor_bv_srem, BTOR_TEST_BITVEC_TESTS, 33);
 }
 
 TEST_F (TestBv, concat)
@@ -2355,18 +2800,27 @@ TEST_F (TestBv, is_false)
 
 TEST_F (TestBv, is_one)
 {
-  int32_t i;
-  char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
-  for (i = 1; i < 32; i++)
+  for (uint32_t i = 1; i <= 128; i++)
   {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
     bv1 = btor_bv_one (d_mm, i);
-    bv2 = btor_bv_uint64_to_bv (d_mm, 1, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '0', i - 1);
-    s[i - 1] = '1';
-    bv3      = btor_bv_char_to_bv (d_mm, s);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
     ASSERT_TRUE (btor_bv_is_one (bv1));
     ASSERT_TRUE (btor_bv_is_one (bv2));
     ASSERT_TRUE (btor_bv_is_one (bv3));
@@ -2375,23 +2829,147 @@ TEST_F (TestBv, is_one)
     btor_bv_free (d_mm, bv1);
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
-    BTOR_DELETEN (d_mm, s, i + 1);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::string s (i, '0');
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_one (bv1));
+    ASSERT_FALSE (btor_bv_is_one (bv2));
+    ASSERT_FALSE (btor_bv_is_one (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::string s (i, '1');
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_one (bv1));
+    ASSERT_FALSE (btor_bv_is_one (bv2));
+    ASSERT_FALSE (btor_bv_is_one (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_one (bv1));
+    ASSERT_FALSE (btor_bv_is_one (bv2));
+    ASSERT_FALSE (btor_bv_is_one (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 3; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_one (bv1));
+    ASSERT_FALSE (btor_bv_is_one (bv2));
+    ASSERT_FALSE (btor_bv_is_one (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
   }
 }
 
 TEST_F (TestBv, is_ones)
 {
-  int32_t i;
-  char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
-  for (i = 1; i < 32; i++)
+  for (uint32_t i = 1; i <= 128; i++)
   {
+    std::string s (i, '1');
     bv1 = btor_bv_ones (d_mm, i);
-    bv2 = btor_bv_uint64_to_bv (d_mm, UINT32_MAX, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '1', i);
-    bv3 = btor_bv_char_to_bv (d_mm, s);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
     ASSERT_TRUE (btor_bv_is_ones (bv1));
     ASSERT_TRUE (btor_bv_is_ones (bv2));
     ASSERT_TRUE (btor_bv_is_ones (bv3));
@@ -2400,23 +2978,148 @@ TEST_F (TestBv, is_ones)
     btor_bv_free (d_mm, bv1);
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
-    BTOR_DELETEN (d_mm, s, i + 1);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::string s (i, '0');
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_ones (bv1));
+    ASSERT_FALSE (btor_bv_is_ones (bv2));
+    ASSERT_FALSE (btor_bv_is_ones (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
   }
 }
 
 TEST_F (TestBv, is_zero)
 {
-  int32_t i;
-  char *s;
   BtorBitVector *bv1, *bv2, *bv3;
 
-  for (i = 1; i < 32; i++)
+  for (uint32_t i = 1; i <= 128; i++)
   {
-    bv1 = btor_bv_new (d_mm, i);
-    bv2 = btor_bv_uint64_to_bv (d_mm, 0, i);
-    BTOR_CNEWN (d_mm, s, i + 1);
-    memset (s, '0', i);
-    bv3 = btor_bv_char_to_bv (d_mm, s);
+    std::string s (i, '0');
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
     ASSERT_TRUE (btor_bv_is_zero (bv1));
     ASSERT_TRUE (btor_bv_is_zero (bv2));
     ASSERT_TRUE (btor_bv_is_zero (bv3));
@@ -2425,7 +3128,423 @@ TEST_F (TestBv, is_zero)
     btor_bv_free (d_mm, bv1);
     btor_bv_free (d_mm, bv2);
     btor_bv_free (d_mm, bv3);
-    BTOR_DELETEN (d_mm, s, i + 1);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_zero (bv1));
+    ASSERT_FALSE (btor_bv_is_zero (bv2));
+    ASSERT_FALSE (btor_bv_is_zero (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::string s (i, '1');
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_zero (bv1));
+    ASSERT_FALSE (btor_bv_is_zero (bv2));
+    ASSERT_FALSE (btor_bv_is_zero (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_zero (bv1));
+    ASSERT_FALSE (btor_bv_is_zero (bv2));
+    ASSERT_FALSE (btor_bv_is_zero (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_zero (bv1));
+    ASSERT_FALSE (btor_bv_is_zero (bv2));
+    ASSERT_FALSE (btor_bv_is_zero (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+}
+
+TEST_F (TestBv, is_max_signed)
+{
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_TRUE (btor_bv_is_max_signed (bv1));
+    ASSERT_TRUE (btor_bv_is_max_signed (bv2));
+    ASSERT_TRUE (btor_bv_is_max_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::string s (i, '0');
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_max_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 3; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_max_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::string s (i, '1');
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_max_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_max_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_max_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+}
+
+TEST_F (TestBv, is_min_signed)
+{
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "1" << std::string (i - 1, '0');
+    bv1 = btor_bv_min_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1), i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l =
+          btor_bv_uint64_to_bv (d_mm, ((uint64_t) 1) << (i - 1 - 64), i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_TRUE (btor_bv_is_min_signed (bv1));
+    ASSERT_TRUE (btor_bv_is_min_signed (bv2));
+    ASSERT_TRUE (btor_bv_is_min_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::string s (i, '0');
+    bv1 = btor_bv_zero (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 0, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 0, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_min_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << std::string (i - 1, '0') << "1";
+    bv1 = btor_bv_one (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, 1, i - 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, 0, 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_min_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 2; i <= 128; i++)
+  {
+    std::string s (i, '1');
+    bv1 = btor_bv_ones (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, s.c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_min_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
+  }
+
+  for (uint32_t i = 1; i <= 128; i++)
+  {
+    std::stringstream ss;
+    ss << "0" << std::string (i - 1, '1');
+    bv1 = btor_bv_max_signed (d_mm, i);
+    bv2 = btor_bv_char_to_bv (d_mm, ss.str ().c_str ());
+    if (i <= 64)
+    {
+      bv3 = btor_bv_uint64_to_bv (d_mm, (((uint64_t) 1) << (i - 1)) - 1, i);
+    }
+    else
+    {
+      BtorBitVector *r = btor_bv_uint64_to_bv (d_mm, UINT64_MAX, 64);
+      BtorBitVector *l = btor_bv_uint64_to_bv (
+          d_mm, (((uint64_t) 1) << (i - 1 - 64)) - 1, i - 64);
+
+      bv3 = btor_bv_concat (d_mm, l, r);
+      btor_bv_free (d_mm, l);
+      btor_bv_free (d_mm, r);
+    }
+    ASSERT_FALSE (btor_bv_is_min_signed (bv1));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv2));
+    ASSERT_FALSE (btor_bv_is_min_signed (bv3));
+    ASSERT_EQ (btor_bv_compare (bv1, bv2), 0);
+    ASSERT_EQ (btor_bv_compare (bv1, bv3), 0);
+    btor_bv_free (d_mm, bv1);
+    btor_bv_free (d_mm, bv2);
+    btor_bv_free (d_mm, bv3);
   }
 }
 

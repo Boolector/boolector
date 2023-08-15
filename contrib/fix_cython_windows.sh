@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 #
 # Cython on Windows has some differences when compared to Linux, which ends up
 # to certain expectations inside of pyboolector.pyx not being met.

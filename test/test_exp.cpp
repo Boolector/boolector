@@ -1,8 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -194,25 +192,27 @@ class TestExp : public TestBtor
     btor_sort_release (d_btor, sort);
   }
 
-  void shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
+  void shift_exp_test (uint32_t bw1,
+                       uint32_t bw2,
+                       BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
   {
     BtorNode *exp1, *exp2, *exp3, *exp4;
     BtorSortId sort;
 
-    sort = btor_sort_bv (d_btor, 32);
+    sort = btor_sort_bv (d_btor, bw1);
     exp1 = btor_exp_var (d_btor, sort, "v1");
     btor_sort_release (d_btor, sort);
-    sort = btor_sort_bv (d_btor, 5);
+    sort = btor_sort_bv (d_btor, bw2);
     exp2 = btor_exp_var (d_btor, sort, "v2");
     btor_sort_release (d_btor, sort);
     exp3 = func (d_btor, exp1, exp2);
     exp4 = func (d_btor, exp1, exp2);
 
     ASSERT_EQ (exp3, exp4);
-    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp1), 32u);
-    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp2), 5u);
-    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp3), 32u);
-    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp4), 32u);
+    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp1), bw1);
+    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp2), bw2);
+    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp3), bw1);
+    ASSERT_EQ (btor_node_bv_get_width (d_btor, exp4), bw1);
     btor_dumpbtor_dump_node (d_btor, d_log_file, exp4);
     btor_node_release (d_btor, exp1);
     btor_node_release (d_btor, exp2);
@@ -756,31 +756,31 @@ TEST_F (TestExp, smulo)
 TEST_F (TestExp, sll)
 {
   open_log_file ("sll_exp");
-  shift_exp_test (btor_exp_bv_sll);
+  shift_exp_test (5, 5, btor_exp_bv_sll);
 }
 
 TEST_F (TestExp, srl)
 {
   open_log_file ("srl_exp");
-  shift_exp_test (btor_exp_bv_srl);
+  shift_exp_test (5, 5, btor_exp_bv_srl);
 }
 
 TEST_F (TestExp, sra)
 {
   open_log_file ("sra_exp");
-  shift_exp_test (btor_exp_bv_sra);
+  shift_exp_test (5, 5, btor_exp_bv_sra);
 }
 
 TEST_F (TestExp, rol)
 {
   open_log_file ("rol_exp");
-  shift_exp_test (btor_exp_bv_rol);
+  shift_exp_test (5, 5, btor_exp_bv_rol);
 }
 
 TEST_F (TestExp, ror)
 {
   open_log_file ("ror_exp");
-  shift_exp_test (btor_exp_bv_ror);
+  shift_exp_test (5, 5, btor_exp_bv_ror);
 }
 
 TEST_F (TestExp, read)

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2018 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -251,32 +251,73 @@ select_path_sll (Btor *btor,
   assert (bve);
 
   int32_t eidx;
-  uint32_t bw_t;
+  uint32_t bw;
   uint64_t i, j, shift;
+  BtorBitVector *bv_bw, *tmp;
+  BtorMemMgr *mm;
 
   eidx = select_path_non_const (sll);
+
+  mm = btor->mm;
+  bw = btor_bv_get_width (bvsll);
+  assert (btor_bv_get_width (bve[0]) == bw);
+  assert (btor_bv_get_width (bve[1]) == bw);
 
   if (eidx == -1)
   {
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
-      shift = btor_bv_to_uint64 (bve[1]);
-      /* bve[1] and number of LSB 0-bits in bvsll must match */
-      for (i = 0; i < shift; i++)
-        if (btor_bv_get_bit (bvsll, i))
+      if (bw > 64)
+      {
+        bv_bw = btor_bv_uint64_to_bv (mm, bw, bw);
+        tmp   = btor_bv_ugte (mm, bve[1], bv_bw);
+        if (btor_bv_is_one (tmp) && !btor_bv_is_zero (bvsll))
         {
+          btor_bv_free (mm, bv_bw);
+          btor_bv_free (mm, tmp);
           eidx = 1;
           goto DONE;
         }
-      /* bve[0] and bvsll (except for the bits shifted out) must match */
-      for (i = 0, j = shift, bw_t = btor_bv_get_width (bvsll); i < bw_t - j;
-           i++)
-        if (btor_bv_get_bit (bve[0], i) != btor_bv_get_bit (bvsll, j + i))
+        btor_bv_free (mm, bv_bw);
+        btor_bv_free (mm, tmp);
+        /* actual value is small enough to fit into 32 bit (max bit width
+         * handled by Boolector is INT32_MAX) */
+        tmp   = btor_bv_slice (mm, bve[1], 32, 0);
+        shift = btor_bv_to_uint64 (tmp);
+        btor_bv_free (mm, tmp);
+      }
+      else
+      {
+        shift = btor_bv_to_uint64 (bve[1]);
+      }
+      /* if shift is greater than bit-width, result must be zero */
+      if (!btor_bv_is_zero (bvsll) && shift >= bw)
+      {
+        eidx = 1;
+        goto DONE;
+      }
+      if (shift < bw)
+      {
+        /* bve[1] and number of LSB 0-bits in bvsll must match */
+        for (i = 0; i < shift; i++)
         {
-          eidx = eidx == -1 ? 0 : -1;
-          break;
+          if (btor_bv_get_bit (bvsll, i))
+          {
+            eidx = 1;
+            goto DONE;
+          }
         }
+        /* bve[0] and bvsll (except for the bits shifted out) must match */
+        for (i = 0, j = shift; i < bw - j; i++)
+        {
+          if (btor_bv_get_bit (bve[0], i) != btor_bv_get_bit (bvsll, j + i))
+          {
+            eidx = eidx == -1 ? 0 : -1;
+            break;
+          }
+        }
+      }
     }
     if (eidx == -1) eidx = select_path_random (btor, sll);
   }
@@ -284,7 +325,6 @@ DONE:
   assert (eidx >= 0);
 #ifndef NBTORLOG
   char *a;
-  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", btor_util_node2string (sll));
   a = btor_bv_to_char (mm, bve[0]);
@@ -311,34 +351,72 @@ select_path_srl (Btor *btor,
   assert (bve);
 
   int32_t eidx;
-  uint32_t bw_srl, bw_e;
+  uint32_t bw;
   uint64_t i, j, shift;
+  BtorBitVector *bv_bw, *tmp;
+  BtorMemMgr *mm;
 
   eidx = select_path_non_const (srl);
+
+  mm = btor->mm;
+  bw = btor_bv_get_width (bvsrl);
+  assert (btor_bv_get_width (bve[0]) == bw);
+  assert (btor_bv_get_width (bve[1]) == bw);
 
   if (eidx == -1)
   {
     if (btor_opt_get (btor, BTOR_OPT_PROP_PATH_SEL)
         == BTOR_PROP_PATH_SEL_ESSENTIAL)
     {
-      bw_srl = btor_bv_get_width (bvsrl);
-      shift = btor_bv_to_uint64 (bve[1]);
-      /* bve[1] and number of MSB 0-bits in bvsrl must match */
-      for (i = 0; i < shift; i++)
-        if (btor_bv_get_bit (bvsrl, bw_srl - 1 - i))
+      if (bw > 64)
+      {
+        bv_bw = btor_bv_uint64_to_bv (mm, bw, bw);
+        tmp   = btor_bv_ugte (mm, bve[1], bv_bw);
+        if (btor_bv_is_one (tmp) && !btor_bv_is_zero (bvsrl))
         {
+          btor_bv_free (mm, bv_bw);
+          btor_bv_free (mm, tmp);
           eidx = 1;
           goto DONE;
         }
-      /* bve[0] and bvsrl (except for the bits shifted out) must match */
-      for (i = 0, j = shift; i < bw_srl - j; i++)
+        btor_bv_free (mm, bv_bw);
+        btor_bv_free (mm, tmp);
+        /* actual value is small enough to fit into 32 bit (max bit width
+         * handled by Boolector is INT32_MAX) */
+        tmp   = btor_bv_slice (mm, bve[1], 32, 0);
+        shift = btor_bv_to_uint64 (tmp);
+        btor_bv_free (mm, tmp);
+      }
+      else
       {
-        bw_e = btor_bv_get_width (bve[0]);
-        if (btor_bv_get_bit (bve[0], bw_e - 1 - i)
-            != btor_bv_get_bit (bvsrl, bw_srl - 1 - (j + i)))
+        shift = btor_bv_to_uint64 (bve[1]);
+      }
+      /* if shift is greater than bit-width, result must be zero */
+      if (!btor_bv_is_zero (bvsrl) && shift >= bw)
+      {
+        eidx = 1;
+        goto DONE;
+      }
+      if (shift < bw)
+      {
+        /* bve[1] and number of MSB 0-bits in bvsrl must match */
+        for (i = 0; i < shift; i++)
         {
-          eidx = eidx == -1 ? 0 : -1;
-          break;
+          if (btor_bv_get_bit (bvsrl, bw - 1 - i))
+          {
+            eidx = 1;
+            goto DONE;
+          }
+        }
+        /* bve[0] and bvsrl (except for the bits shifted out) must match */
+        for (i = 0, j = shift; i < bw - j; i++)
+        {
+          if (btor_bv_get_bit (bve[0], bw - 1 - i)
+              != btor_bv_get_bit (bvsrl, bw - 1 - (j + i)))
+          {
+            eidx = eidx == -1 ? 0 : -1;
+            break;
+          }
         }
       }
     }
@@ -348,7 +426,6 @@ DONE:
   assert (eidx >= 0);
 #ifndef NBTORLOG
   char *a;
-  BtorMemMgr *mm = btor->mm;
   BTORLOG (2, "");
   BTORLOG (2, "select path: %s", btor_util_node2string (srl));
   a = btor_bv_to_char (mm, bve[0]);
@@ -1013,14 +1090,11 @@ cons_sll_bv (Btor *btor,
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
-  assert (eidx
-          || btor_util_log_2 (btor_bv_get_width (bvsll))
-                 == btor_bv_get_width (bve));
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
   assert (!btor_node_is_bv_const (sll->e[eidx]));
 
-  uint32_t i, s, bw, sbw, ctz_bvsll;
-  BtorBitVector *res, *from, *to, *shift;
+  uint32_t i, bw, ctz_bvsll, shift;
+  BtorBitVector *res, *bv_shift;
   BtorMemMgr *mm;
 
   (void) sll;
@@ -1034,31 +1108,27 @@ cons_sll_bv (Btor *btor,
     BTOR_PROP_SOLVER (btor)->stats.props_cons += 1;
   }
 
-  mm  = btor->mm;
-  bw  = btor_bv_get_width (bvsll);
-  sbw = btor_util_log_2 (bw);
+  mm = btor->mm;
+  bw = btor_bv_get_width (bvsll);
 
   ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
-  from      = btor_bv_new (mm, sbw);
-  to        = btor_bv_uint64_to_bv (
-      mm, ctz_bvsll == bw ? ctz_bvsll - 1 : ctz_bvsll, sbw);
-  shift = btor_bv_new_random_range (mm, &btor->rng, sbw, from, to);
-  btor_bv_free (mm, from);
-  btor_bv_free (mm, to);
+  shift     = btor_rng_pick_rand (
+      &btor->rng, 0, ctz_bvsll == bw ? ctz_bvsll - 1 : ctz_bvsll);
+  bv_shift = btor_bv_uint64_to_bv (mm, shift, bw);
 
   if (eidx)
   {
-    res = shift;
+    res = bv_shift;
   }
   else
   {
-    s   = btor_bv_to_uint64 (shift);
-    res = btor_bv_srl (mm, bvsll, shift);
-    for (i = 0; i < s; i++)
+    res = btor_bv_srl (mm, bvsll, bv_shift);
+    for (i = 0; i < shift; i++)
+    {
       btor_bv_set_bit (res, bw - 1 - i, btor_rng_pick_rand (&btor->rng, 0, 1));
-    btor_bv_free (mm, shift);
+    }
+    btor_bv_free (mm, bv_shift);
   }
-
   return res;
 }
 
@@ -1075,14 +1145,11 @@ cons_srl_bv (Btor *btor,
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
-  assert (eidx
-          || btor_util_log_2 (btor_bv_get_width (bvsrl))
-                 == btor_bv_get_width (bve));
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
   assert (!btor_node_is_bv_const (srl->e[eidx]));
 
-  uint32_t i, s, bw, sbw;
-  BtorBitVector *res, *from, *to, *shift;
+  uint32_t i, shift, bw;
+  BtorBitVector *res, *bv_shift;
   BtorMemMgr *mm;
 
   (void) srl;
@@ -1098,30 +1165,28 @@ cons_srl_bv (Btor *btor,
 
   mm  = btor->mm;
   bw  = btor_bv_get_width (bvsrl);
-  sbw = btor_util_log_2 (bw);
 
   for (i = 0; i < bw; i++)
+  {
     if (btor_bv_get_bit (bvsrl, bw - 1 - i)) break;
+  }
 
-  from  = btor_bv_new (mm, sbw);
-  to    = btor_bv_uint64_to_bv (mm, i == bw ? i - 1 : i, sbw);
-  shift = btor_bv_new_random_range (mm, &btor->rng, sbw, from, to);
-  btor_bv_free (mm, from);
-  btor_bv_free (mm, to);
+  shift    = btor_rng_pick_rand (&btor->rng, 0, i == bw ? i - 1 : i);
+  bv_shift = btor_bv_uint64_to_bv (mm, shift, bw);
 
   if (eidx)
   {
-    res = shift;
+    res = bv_shift;
   }
   else
   {
-    s   = btor_bv_to_uint64 (shift);
-    res = btor_bv_srl (mm, bvsrl, shift);
-    for (i = 0; i < s; i++)
+    res = btor_bv_sll (mm, bvsrl, bv_shift);
+    for (i = 0; i < shift; i++)
+    {
       btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
-    btor_bv_free (mm, shift);
+    }
+    btor_bv_free (mm, bv_shift);
   }
-
   return res;
 }
 
@@ -1968,13 +2033,10 @@ inv_sll_bv (Btor *btor,
   assert (bvsll);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
-  assert (eidx
-          || btor_util_log_2 (btor_bv_get_width (bvsll))
-                 == btor_bv_get_width (bve));
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvsll));
   assert (!btor_node_is_bv_const (sll->e[eidx]));
 
-  uint32_t i, j, ctz_bve, ctz_bvsll, shift, sbw, bw_t, bw_s;
+  uint32_t i, j, ctz_bve, ctz_bvsll, shift, bw;
   BtorNode *e;
   BtorBitVector *res, *tmp, *bvmax;
   BtorMemMgr *mm;
@@ -1993,9 +2055,11 @@ inv_sll_bv (Btor *btor,
   mm = btor->mm;
   e  = sll->e[eidx ? 0 : 1];
   assert (e);
-  bw_t = btor_bv_get_width (bvsll);
+  bw = btor_bv_get_width (bvsll);
 
   res = 0;
+  bw        = btor_bv_get_width (bvsll);
+  ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
 
   /* ------------------------------------------------------------------------
    * bve << e[1] = bvsll
@@ -2005,12 +2069,10 @@ inv_sll_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    sbw = btor_util_log_2 (bw_t);
-
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsll))
     {
       /* 0...0 << e[1] = 0...0 -> choose res randomly ----------------------- */
-      res = btor_bv_new_random (mm, &btor->rng, sbw);
+      res = btor_bv_new_random (mm, &btor->rng, bw);
     }
     else
     {
@@ -2019,54 +2081,43 @@ inv_sll_bv (Btor *btor,
        *      -> if bvsll = 0 choose shift <= res < bw
        *      -> else res = shift
        *           + if all remaining shifted bits match
-       *           + and if res < bw
        * -> else conflict
        * -------------------------------------------------------------------- */
       ctz_bve   = btor_bv_get_num_trailing_zeros (bve);
-      ctz_bvsll = btor_bv_get_num_trailing_zeros (bvsll);
       if (ctz_bve <= ctz_bvsll)
       {
         shift = ctz_bvsll - ctz_bve;
 
-        if (shift > bw_t - 1)
-        {
-          /* CONFLICT: do not allow shift by bw ----------------------------- */
-          assert (btor_bv_is_zero (bvsll));
-        BVSLL_CONF:
-          res =
-              res_rec_conf (btor, sll, e, bvsll, bve, eidx, cons_sll_bv, "<<");
-#ifndef NDEBUG
-          is_inv = false;
-#endif
-        }
-        else if (btor_bv_is_zero (bvsll))
+        if (btor_bv_is_zero (bvsll))
         {
           /* x...x0 << e[1] = 0...0
-           * -> choose random shift <= res < bw
+           * -> choose random shift <= res < 2^bw
            * ---------------------------------------------------------------- */
-          bvmax = btor_bv_ones (mm, sbw);
-          tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
-          res   = btor_bv_new_random_range (mm, &btor->rng, sbw, tmp, bvmax);
+          bvmax = btor_bv_ones (mm, bw);
+          tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, bw);
+          res   = btor_bv_new_random_range (mm, &btor->rng, bw, tmp, bvmax);
           btor_bv_free (mm, bvmax);
           btor_bv_free (mm, tmp);
         }
         else
         {
-          for (i = 0, j = shift, bw_s = btor_bv_get_width (bve), res = 0;
-               i < bw_s - j;
-               i++)
+          for (i = 0, j = shift, res = 0; i < bw - j; i++)
           {
             /* CONFLICT: shifted bits must match ---------------------------- */
             if (btor_bv_get_bit (bve, i) != btor_bv_get_bit (bvsll, j + i))
               goto BVSLL_CONF;
           }
 
-          res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
+          res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, bw);
         }
       }
       else
       {
-        goto BVSLL_CONF;
+      BVSLL_CONF:
+        res = res_rec_conf (btor, sll, e, bvsll, bve, eidx, cons_sll_bv, "<<");
+#ifndef NDEBUG
+        is_inv = false;
+#endif
       }
     }
   }
@@ -2078,21 +2129,32 @@ inv_sll_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   else
   {
-    /* using uint64_t here is no problem
-     * (max bit width currently handled by Boolector is INT32_MAX) */
-    shift = btor_bv_to_uint64 (bve);
+    /* actual value is small enough to fit into 32 bit (max bit width handled
+     * by Boolector is INT32_MAX) */
+    if (bw > 64)
+    {
+      tmp   = btor_bv_slice (mm, bve, 32, 0);
+      shift = btor_bv_to_uint64 (tmp);
+      btor_bv_free (mm, tmp);
+    }
+    else
+    {
+      shift = btor_bv_to_uint64 (bve);
+    }
 
-    if (btor_bv_get_num_trailing_zeros (bvsll) < shift)
+    if ((shift < bw && ctz_bvsll < shift) || (shift >= bw && ctz_bvsll != bw))
     {
       /* CONFLICT: the LSBs shifted must be zero ---------------------------- */
       goto BVSLL_CONF;
     }
 
     res = btor_bv_srl (mm, bvsll, bve);
-    for (i = 0; i < shift; i++)
+    for (i = 0; i < shift && i < bw; i++)
+    {
       btor_bv_set_bit (res,
                        btor_bv_get_width (res) - 1 - i,
                        btor_rng_pick_rand (&btor->rng, 0, 1));
+    }
   }
 #ifndef NDEBUG
   if (is_inv)
@@ -2122,13 +2184,10 @@ inv_srl_bv (Btor *btor,
   assert (bvsrl);
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
-  assert (!eidx || btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
-  assert (eidx
-          || btor_util_log_2 (btor_bv_get_width (bvsrl))
-                 == btor_bv_get_width (bve));
+  assert (btor_bv_get_width (bve) == btor_bv_get_width (bvsrl));
   assert (!btor_node_is_bv_const (srl->e[eidx]));
 
-  uint32_t i, j, clz_bve, clz_bvsrl, shift, sbw, bw_t, bw_s;
+  uint32_t i, j, clz_bve, clz_bvsrl, shift, bw;
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp;
   BtorMemMgr *mm;
@@ -2147,9 +2206,11 @@ inv_srl_bv (Btor *btor,
   mm = btor->mm;
   e  = srl->e[eidx ? 0 : 1];
   assert (e);
-  bw_t = btor_bv_get_width (bvsrl);
+  bw = btor_bv_get_width (bvsrl);
 
   res = 0;
+  bw        = btor_bv_get_width (bvsrl);
+  clz_bvsrl = btor_bv_get_num_leading_zeros (bvsrl);
 
   /* ------------------------------------------------------------------------
    * bve >> e[1] = bvsll
@@ -2159,12 +2220,10 @@ inv_srl_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   if (eidx)
   {
-    sbw = btor_util_log_2 (bw_t);
-
     if (btor_bv_is_zero (bve) && btor_bv_is_zero (bvsrl))
     {
       /* 0...0 >> e[1] = 0...0 -> choose random res ------------------------- */
-      res = btor_bv_new_random (mm, &btor->rng, sbw);
+      res = btor_bv_new_random (mm, &btor->rng, bw);
     }
     else
     {
@@ -2174,57 +2233,46 @@ inv_srl_bv (Btor *btor,
        *      -> if bvsrl = 0 choose shift <= res < bw
        *      -> else res = shift
        *           + if all remaining shifted bits match
-       *           + and if res < bw
        * -> else conflict
        * -------------------------------------------------------------------- */
       clz_bve   = btor_bv_get_num_leading_zeros (bve);
-      clz_bvsrl = btor_bv_get_num_leading_zeros (bvsrl);
       if (clz_bve <= clz_bvsrl)
       {
         shift = clz_bvsrl - clz_bve;
 
-        if (shift > bw_t - 1)
-        {
-          /* CONFLICT: do not allow shift by bw ----------------------------- */
-          assert (btor_bv_is_zero (bvsrl));
-        BVSRL_CONF:
-          res =
-              res_rec_conf (btor, srl, e, bvsrl, bve, eidx, cons_srl_bv, ">>");
-#ifndef NDEBUG
-          is_inv = false;
-#endif
-        }
-        else if (btor_bv_is_zero (bvsrl))
+        if (btor_bv_is_zero (bvsrl))
         {
           /* x...x0 >> e[1] = 0...0
-           * -> choose random shift <= res < bw
+           * -> choose random shift <= res < 2^bw
            * ---------------------------------------------------------------- */
-          bvmax = btor_bv_ones (mm, sbw);
-          tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
-          res   = btor_bv_new_random_range (mm, &btor->rng, sbw, tmp, bvmax);
+          bvmax = btor_bv_ones (mm, bw);
+          tmp   = btor_bv_uint64_to_bv (mm, (uint64_t) shift, bw);
+          res   = btor_bv_new_random_range (mm, &btor->rng, bw, tmp, bvmax);
           btor_bv_free (mm, bvmax);
           btor_bv_free (mm, tmp);
         }
         else
         {
-          for (i = 0, j = shift, bw_s = btor_bv_get_width (bve), res = 0;
-               i < bw_s - j;
-               i++)
+          for (i = 0, j = shift, res = 0; i < bw - j; i++)
           {
-            if (btor_bv_get_bit (bve, bw_s - 1 - i)
-                != btor_bv_get_bit (bvsrl, bw_t - 1 - (j + i)))
+            if (btor_bv_get_bit (bve, bw - 1 - i)
+                != btor_bv_get_bit (bvsrl, bw - 1 - (j + i)))
             {
               /* CONFLICT: shifted bits must match -------------------------- */
               goto BVSRL_CONF;
             }
           }
 
-          res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, sbw);
+          res = btor_bv_uint64_to_bv (mm, (uint64_t) shift, bw);
         }
       }
       else
       {
-        goto BVSRL_CONF;
+      BVSRL_CONF:
+        res = res_rec_conf (btor, srl, e, bvsrl, bve, eidx, cons_srl_bv, ">>");
+#ifndef NDEBUG
+        is_inv = false;
+#endif
       }
     }
   }
@@ -2236,18 +2284,30 @@ inv_srl_bv (Btor *btor,
    * ------------------------------------------------------------------------ */
   else
   {
-    /* cast is no problem (max bit width handled by Boolector is INT32_MAX) */
-    shift = (int32_t) btor_bv_to_uint64 (bve);
+    /* actual value is small enough to fit into 32 bit (max bit width handled
+     * by Boolector is INT32_MAX) */
+    if (bw > 64)
+    {
+      tmp   = btor_bv_slice (mm, bve, 32, 0);
+      shift = btor_bv_to_uint64 (tmp);
+      btor_bv_free (mm, tmp);
+    }
+    else
+    {
+      shift = btor_bv_to_uint64 (bve);
+    }
 
-    if (btor_bv_get_num_leading_zeros (bvsrl) < shift)
+    if ((shift < bw && clz_bvsrl < shift) || (shift >= bw && clz_bvsrl != bw))
     {
       /* CONFLICT: the MSBs shifted must be zero ---------------------------- */
       goto BVSRL_CONF;
     }
 
     res = btor_bv_sll (mm, bvsrl, bve);
-    for (i = 0; i < shift; i++)
+    for (i = 0; i < shift && i < bw; i++)
+    {
       btor_bv_set_bit (res, i, btor_rng_pick_rand (&btor->rng, 0, 1));
+    }
   }
 
 #ifndef NDEBUG

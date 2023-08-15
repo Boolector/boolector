@@ -1,8 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Mathias Preiner.
- *  Copyright (C) 2015-2019 Aina Niemetz.
- *  Copyright (C) 2018 Armin Biere.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -264,28 +262,86 @@ BtorBitVector *btor_bv_ulte (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_ugt (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'.
+ */
+BtorBitVector *btor_bv_ugte (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_slt (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'.
+ */
+BtorBitVector *btor_bv_slte (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed less than inequality of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sgt (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the signed less than or equal inequality of bit-vectors 'a' and 'b'.
+ */
+BtorBitVector *btor_bv_sgte (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the logical shift left of bit-vectors 'a' by 'shift'. */
+BtorBitVector *btor_bv_sll_uint64 (BtorMemMgr *mm,
+                                   const BtorBitVector *a,
+                                   uint64_t shift);
+
 /* Create the logical shift left of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_sll (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
+
+/* Create the logical shift right of bit-vectors 'a' by 'shift'. */
+BtorBitVector *btor_bv_srl_uint64 (BtorMemMgr *mm,
+                                   const BtorBitVector *a,
+                                   uint64_t shift);
 
 /* Create the logical shift right of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_srl (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
-/* Create the multiplication of of bit-vectors 'a' and 'b'. */
+/* Create the arithmetic shift right of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sra (BtorMemMgr *mm,
+                            const BtorBitVector *a,
+                            const BtorBitVector *b);
+
+/* Create the multiplication of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_mul (BtorMemMgr *mm,
                             const BtorBitVector *a,
                             const BtorBitVector *b);
 
-/* Create the unsigned divisionof of bit-vectors 'a' and 'b'. */
+/* Create the unsigned division of of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_udiv (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 
 /* Create the unsigned remainder of bit-vectors 'a' and 'b'. */
 BtorBitVector *btor_bv_urem (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed division of of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_sdiv (BtorMemMgr *mm,
+                             const BtorBitVector *a,
+                             const BtorBitVector *b);
+
+/* Create the signed remainder of bit-vectors 'a' and 'b'. */
+BtorBitVector *btor_bv_srem (BtorMemMgr *mm,
                              const BtorBitVector *a,
                              const BtorBitVector *b);
 

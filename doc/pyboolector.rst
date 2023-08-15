@@ -16,134 +16,166 @@ Interface
 
 
 Quickstart
-----------
+-----------
 
+  First, we create a Boolector instance:
 
-  First, create a Boolector instance: ::
-    
-    btor = Boolector() 
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 8
 
-  You can configure this instance via :func:`~pyboolector.Boolector.Set_opt`.
-  E.g., if you want to enable model generation: ::
-   
-    btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
-  
+  We can configure this instance via :func:`~pyboolector.Boolector.Set_opt`.
+  For example, if we want to enable model generation:
+
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 10
+
   For a detailed description of all configurable options, see
   :func:`~pyboolector.Boolector.Set_opt`.
 
-  Next you can either parse an input file, and/or generate expressions to 
-  be either asserted via :func:`~pyboolector.Boolector.Assert`, or, 
-  if incremental usage is enabled,
-  assumed via :func:`~pyboolector.Boolector.Assume` (analogously to MiniSAT). 
-  Note that Boolector's internal design is motivated by hardware design,
-  hence we do not distinguish between type 'Boolean' and type 'bit vector
-  of length 1'. 
+  Next, we can create expressions and assert formulas via
+  :func:`~pyboolector.Boolector.Assert`.
 
-  E.g., if you want to parse an input file "example.btor", 
-  use :func:`~pyboolector.Boolector.Parse`: ::
-  
+  .. note::
+
+      Boolector's internal design is motivated by hardware design.
+      Hence we do not distinguish between type *Boolean* and type *bit-vector
+      of length 1*.
+
+  If incremental usage is enabled, formulas can optionally be assumed via
+  :func:`~pyboolector.Boolector.Assume`.
+
+  .. note::
+
+    Assumptions are invalidated after a call to
+    :func:`~pyboolector.Boolector.Sat`.
+
+  Alternatively, we can parse an input file prior to creating and asserting
+  expressions. For example, to parse an input file `example.btor`, we can use
+  :func:`~pyboolector.Boolector.Parse` (auto detects the input format).
+
+  .. code-block:: python
+
     (result, status, error_msg) = btor.Parse("example.btor")
-  
-  Incremental usage is not enabled, hence, if the parser does not encounter
-  an error, it returns :data:`~pyboolector.Boolector.UNKNOWN` 
-  (for a more detailed description of the parsers return values,
-  see :func:`~pyboolector.Boolector.Parse`).
-  However, if the parser encounters an error, it returns 
-  :data:`~pyboolector.Boolector.PARSE_ERROR`, and an explanation of that error is 
-  stored in ``error_msg``. If the input file specifies a (known) status
-  of the input formula (either satisfiable or unsatisfiable), that status
-  is stored in ``status``.
+
+  In case the input issues a call to check sat (in case of SMT-LIB v2 or
+  incremental SMT-LIB v1), this function either returns
+  :data:`~pyboolector.Boolector.SAT`,
+  :data:`~pyboolector.Boolector.UNSAT`, or
+  :data:`~pyboolector.Boolector.UNKNOWN`.
+  In any other non-error case it returns
+  :data:`~pyboolector.Boolector.UNKNOWN`.
+  For a more detailed description of the parsers return values, see
+  :func:`~pyboolector.Boolector.Parse`.
+
+  If the parser encounters an error, it returns
+  :func:`~pyboolector.Boolector.PARSE_ERROR`
+  and an explanation of that error is stored
+  in ``error_msg``.
+  If the input file specifies a (known) status of the input formula (either
+  satisfiable or unsatisfiable), that status is stored in ``status``.
 
   As an example for generating and asserting expressions via
-  :func:`~pyboolector.Boolector.Assert`, consider the following example: ::
+  :func:`~pyboolector.Boolector.Assert`,
+  consider the following example: ::
 
-    0 < x <= 100, 0 < y <= 100, x * y < 100
+    0 < x <= 100 && 0 < y <= 100 && x * y < 100
 
-  Given the Boolector instance created above, we generate and assert
-  the following expressions: ::
-  
-    x = btor.Var(8, "x")
-    y = btor.Var(8, "y")
+  Assume that this example is given with x and y as natural numbers.
+  We encode it with bit-vectors of size 8, and to preserve semantics,
+  we have to ensure that the multiplication does not overflow.
 
-    btor.Assert(0 < x)
-    btor.Assert(x <= 100)
-    btor.Assert(0 < y)
-    btor.Assert(y <= 100)
-    btor.Assert(x * y < 100)
+  We first create a bit-vector sort of size 8.
 
-    umulo = btor.Umulo(x, y)  # overflow bit of x * y
-    btor.Assert(~umulo)       # do not allow overflows
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 12
 
-  After parsing an input file and/or asserting/assuming expressions,
-  the satisfiability of the resulting formula can be determined via
-  :func:`~pyboolector.Boolector.Sat`.
-  If the resulting formula is satisfiable and model generation has been
-  enabled via :func:`~pyboolector.Boolector.Set_opt`, you can either
-  print the resulting model via :func:`~pyboolector.Boolector.Print_model`,
-  or query assignments
-  of bit vector and array variables or uninterpreted functions via
-  :data:`~pyboolector.BoolectorNode.assignment`. 
-  Note that querying assignments is not limited to variables---you can query 
-  the assignment of any arbitrary expression.
- 
-  E.g., given the example above, we first determine if the formula is
-  satisfiable via :func:`~pyboolector.Boolector.Sat` (which it is): ::
-  
-   result = btor.Sat()
-  
-  Now you can either query the assignments of variables ``x`` and ``y`` ::
+  Then, we create and assert the following expressions:
 
-    print(x.assignment)  # prints: 00000100
-    print(y.assignment)  # prints: 00010101
-    print("{} {}".format(x.symbol, x.assignment))  # prints: x 00000100
-    print("{} {}".format(y.symbol, y.assignment))  # prints: y 00010101 
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 14-37
 
-  or print the resulting model via :func:`~pyboolector.Boolector.Print_model`.
-  Boolector supports printing models in its own format ("btor", the default) 
-  or in `SMT-LIB v2`_ format ("smt2"): ::
-  
-    btor.Print_model()
-  
-  A possible model would be: ::
-  
-    2 00000100 x
-    3 00010101 y
-  
-  which in this case indicates the assignments of bit vector variables 
-  ``x`` and ``y``. Note that the first column indicates the id of an input, 
-  the second column its assignment, and the third column its name (or symbol)
-  if any. 
-  In the case that the formula includes arrays as input, their values at a
+  The satisfiability of the resulting formula can be determined via
+  :func:`~pyboolector.Boolector.Sat`,
+
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 39
+
+  If the resulting formula is satisfiable and model generation has been enabled
+  via :func:`~pyboolector.Boolector.Set_opt`,
+  we can either print the resulting model via
+  :func:`~pyboolector.Boolector.Print_model`,
+  or query assignments of bit-vector and array variables or uninterpreted
+  functions via :func:`~pyboolector.BoolectorNode.assignment`.
+
+  .. note::
+      Querying assignments is not limited to variables. You can query
+      the assignment of any arbitrary expression.
+
+  The example above is satisfiable, and we can now either query the assignments
+  of variables ``x`` and ``y`` or print the resulting model via
+  :c:func:`boolector_print_model`.
+
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 50-53
+
+  Boolector supports printing models in its own format ("btor") or in
+  `SMT-LIB v2`_ format ("smt2"). We print the resulting model in BTOR_
+  format:
+
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 57
+
+  A possible model is shown below and gives the assignments of bit-vector
+  variables ``x`` and ``y``.
+  The first column indicates the id of the input, the second column its
+  assignment, and the third column its name (or symbol) if any. ::
+
+    2 00000001 x
+    3 01011111 y
+
+  In the case that the formula includes arrays as inputs, their values at a
   certain index are indicated as follows: ::
 
     4[00] 01 A
-  
-  where A has id 4 and is an array with index and element bit width of 2, 
-  and its value at index 0 is 1.
 
-  Printing the above model in `SMT-LIB v2`_ format: ::
+  Here, array ``A`` has id 4 with index and element bit width of 2, and its
+  value at index 0 is 1.
 
-    btor.print_model (format="smt2")
+  We now print the model of the example above in `SMT-LIB v2`_ format.
 
-  A possible model would be: ::
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+       :lines: 60
 
-    (model
-      (define-fun x () (_ BitVec 8) #b00000100)
-      (define-fun y () (_ BitVec 8) #b00010101)
-      (define-fun y (
-       (y_x0 (_ BitVec 2)))
-       (ite (= y_x0 #b00) #b01
-         #00))
+  A possible model is shown below: ::
+
+    (
+      (define-fun x () (_ BitVec 8) #b00000001)
+      (define-fun y () (_ BitVec 8) #b01011111)
     )
+
+  .. note::
+      Boolector internally represents arrays as uninterpreted functions and
+      prints array models as models for UF.
+
+  The source code of the example above can be found at `examples/api/python/quickstart.py <https://github.com/boolector/boolector/tree/master/examples/api/python/quickstart.py>`_.
+
 
 .. _operator-overloading:
 
 Python Operator Overloading
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  For convenience the Boolector Python API provides the following overloaded
-  operators on bit vectors (:class:`~pyboolector.BoolectorBVNode`):
+  The Boolector Python API provides the following overloaded
+  operators on bit-vectors (:class:`~pyboolector.BoolectorBVNode`).
 
-  **Arithmetic operators:** ``+ - * / %`` ::
+  **Arithmetic Operators:** ``+ - * / %`` ::
 
     x = btor.Var(32)
     y = btor.Var(32)
@@ -155,7 +187,7 @@ Python Operator Overloading
     bvurem = x % y  # btor.Urem(x, y)
     bvneg  = -x     # btor.Neg(x)
 
-  **Bitwise operators:** ``~ & | ^ << >>`` ::
+  **Bitwise Operators:** ``~ & | ^ << >>`` ::
 
     z = btor.Var(5)
 
@@ -163,10 +195,10 @@ Python Operator Overloading
     bvand = x & y   # btor.And(x, y)
     bvor  = x | y   # btor.Or(x, y)
     bvxor = x ^ y   # btor.Xor(x, y)
-    bvshl = x << z  # btor.Sll(x, z) 
-    bvshr = x >> z  # btor.Srl(x, z) 
+    bvshl = x << z  # btor.Sll(x, z)
+    bvshr = x >> z  # btor.Srl(x, z)
 
-  **Comparison operators:** ``< <= == != >= >`` ::
+  **Comparison Operators:** ``< <= == != >= >`` ::
 
     lt   = x < y   # btor.Ult(x, y)
     lte  = x <= y  # btor.Ulte(x, y)
@@ -175,8 +207,8 @@ Python Operator Overloading
     ugte = x >= y  # btor.Ugte(x, y)
     ugt  = x > y   # btor.Ugt(x, y)
 
-  **Python slices:**
-  It is possible to use Python slices on bit vectors (see 
+  **Python Slices:**
+  It is possible to use Python slices on bit-vectors (see
   :func:`~pyboolector.Boolector.Slice`), e.g.: ::
 
     slice_5_2  = x[5:2]  # btor.Slice(x, 5, 2)
@@ -188,14 +220,14 @@ Python Operator Overloading
   (see :func:`~pyboolector.Boolector.Read`) on arrays, and function applications
   (see :func:`~pyboolector.Boolector.Apply`).
 
-  **Reads on arrays:** ::
+  **Reads on Arrays:** ::
 
     a = btor.Array(8, 32)
 
-    read = a[x]  # btor.Read(a, x) 
+    read = a[x]  # btor.Read(a, x)
 
-  **Function applications:** ::
-  
+  **Function Applications:** ::
+
     bv8 = btor.BitVecSort(8)
     bv32 = btor.BitVecSort(32)
     f = btor.UF(btor.FunSort([bv32, bv32], bv8))
@@ -207,25 +239,25 @@ Python Operator Overloading
 
 Automatic Constant Conversion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                          
+
   For almost every method of :class:`~pyboolector.Boolector` that creates nodes,
   instead of passing arguments of the type :class:`~pyboolector.BoolectorNode`,
   the Python API allows to pass constants as arguments.
   The only requirement is that it must be possible to derive the bit width of
   the constant operands from the remaining operands.
-  For example, binary operators like :func:`~pyboolector.Boolector.Add`
-  operands may be a constant, and its bit width will be derived from the other
-  non-constant operand, e.g.: ::
+  For example, for binary operators like :func:`~pyboolector.Boolector.Add`,
+  an operandsmay be a constant, and its bit-width will be derived from the
+  other non-constant operand, e.g.: ::
 
     btor.Add(x, 42)         # btor.Add(x, btor.Const(42, x.width))
     btor.And(0x2a, x)       # btor.And(btor.Const(0x2a, x.width), x)
     btor.Udiv(0b101010, x)  # btor.Udiv(btor.Const(0b101010, x.width), x)
-           
+
   For all shift operations it is possible to define the shift width as
   constant, e.g.: ::
 
-    btor.Sll(x, 5)  # btor.Sll(x, btor.Const(5, math.ceil(math.log(x.width, 2)))) 
-    btor.Ror(x, 5)  # btor.Ror(x, btor.Const(5, math.ceil(math.log(x.width, 2)))) 
+    btor.Sll(x, 5)  # btor.Sll(x, btor.Const(5, math.ceil(math.log(x.width, 2))))
+    btor.Ror(x, 5)  # btor.Ror(x, btor.Const(5, math.ceil(math.log(x.width, 2))))
 
   For operations on arrays all arguments may be constant (except the array
   itself) since the bit width of the operands can be derived from the array,
@@ -251,86 +283,100 @@ Automatic Constant Conversion
     :func:`~pyboolector.Boolector.Sext`,
     :func:`~pyboolector.Boolector.Inc`,
     :func:`~pyboolector.Boolector.Dec`, and
-    :func:`~pyboolector.Boolector.Concat`
+    :func:`~pyboolector.Boolector.Concat`,
     as the bit with of the resulting node cannot be determined.
 
 Options
 -------
- 
-  Boolector can be configured either via :func:`~pyboolector.Boolector.Set_opt`, 
+
+  Boolector can be configured either via :func:`~pyboolector.Boolector.Set_opt`,
   or via environment variables of the form: ::
 
     BTOR<capitalized option name without '_'>=<value>
 
-  For a list and detailed descriptions of all available options, 
+  For a list and detailed descriptions of all available options,
   see :func:`~pyboolector.Boolector.Set_opt`.
- 
-  E.g., given a Boolector instance ``btor``, model generation is enabled either 
-  via ::
-  
+
+  For example, given a Boolector instance ``btor``, model generation is enabled
+  either via ::
+
     btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
-  
+
   or via setting the environment variable ::
 
     BTORMODELGEN=1
-
 
 API Tracing
 ^^^^^^^^^^^
 
   API tracing allows to record every call to Boolector's public API. The
-  resulting trace can be replayed and the replayed sequence behaves exactly 
+  resulting trace can be replayed and the replayed sequence behaves exactly
   like the original Boolector run.
   This is particularly useful for debugging purposes, as it enables replaying
   erroneous behaviour.
-  API tracing can be enabled either via 
-  setting the environment variable BTORAPITRACE=<filename>.
- 
-  E.g., given a Boolector instance 'btor', enabling API tracing is done as
-  follows: ::
-   
-    BTORAPITRACE="error.trace"
+  API tracing can be enabled via
+  setting the environment variable ``BTORAPITRACE=<filename>``.
 
+  For example, given a Boolector instance 'btor', API tracing is enabled 
+  as follows: ::
+
+    BTORAPITRACE="error.trace"
 
 Internals
 ---------
 
   Boolector internally maintains a directed acyclic graph (DAG) of
-  expressions. 
+  expressions.
   By asserting an expression, it will be permanently added to the
-  formula. 
-  Assumptions, in contrast, are cleared after a call to 
+  formula.
+  Assumptions, in contrast, are cleared after a call to
   :func:`~pyboolector.Boolector.Sat`.
   You can query assumptions that force a formula to be unsatisfiable
   via :func:`~pyboolector.Boolector.Failed`.
 
 Operators
 ^^^^^^^^^
-
   Boolector internally describes expressions by means of a set of base
-  operators as documented in BTOR_.
+  operators.
   Boolector's API, however, provides a richer set of operators for
   convenience, where non-base operators are internally rewritten to use
   base operators only.
-  E.g., two's complement (:func:`~pyboolector.Boolector.Neg`) is rewritten as 
-  one's complement and addition of 1. 
-  Note that this behaviour is not influenced by the rewrite level chosen.
- 
-Rewriting
-^^^^^^^^^
+  For example, two's complement (:func:`~pyboolector.Boolector.Neg`) is
+  expressed by means of one's complement.
 
-  Boolector simplifies expressions and the expression DAG by means of 
-  rewriting and supports three so-called rewrite levels.
-  Increasing rewrite levels increase the extent of rewriting performed,
-  and a rewrite level of 0 is equivalent to disabling rewriting at all.
-  Note that Boolector not only simplifies expressions during construction
-  of the expression DAG---for each call to \ref boolector_sat,
-  various simplification techniques and rewriting phases are initiated.
-  You can force Boolector to initiate rewriting and simplify the expression
+  .. note::
+      This behaviour is not influenced by the configured rewrite level.
+
+Rewriting and Preprocessing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Boolector simplifies expressions and the expression DAG by means of
+  rewriting. It supports three so-called **rewrite levels**.
+  Increasing rewrite levels increase the extent of rewriting and preprocessing
+  performed.  Rewrite level of 0 is equivalent to disabling rewriting and
+  preprocessing at all.
+
+  .. note::
+    Rewriting expressions by means of base operators can not be disabled,
+    not even at rewrite level 0.
+
+  Boolector not only simplifies expressions during construction
+  of the expression DAG but also performs preprocessing on the DAG.
+  For each call to :func:`~pyboolector.Boolector.Sat`, various simplification
+  techniques and preprocessing phases are initiated.
+  You can force Boolector to initiate simplifying the expression
   DAG via :func:`~pyboolector.Boolector.Simplify`.
-  The rewrite level can be configured via :func:`~pyboolector.Boolector.Set_opt`.
+  The rewrite level can be configured via
+  :func:`~pyboolector.Boolector.Set_opt`.
+
 
 Examples
 --------
 
+Quickstart Example
+^^^^^^^^^^^^^^^^^^
+  .. literalinclude:: ../examples/api/python/quickstart.py
+       :language: python
+
+More Comprehensive API Usage Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   .. literalinclude:: ../examples/api/python/api_usage_examples.py

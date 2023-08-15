@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btoropt.h"
 
 #define BV2_EXAMPLE_NUM_BITS 8
 
