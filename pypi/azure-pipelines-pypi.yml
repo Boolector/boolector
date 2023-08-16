@@ -49,7 +49,10 @@ jobs:
       ./contrib/setup-lingeling.sh
     displayName: 'Setup dependencies'
 
-  - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
+  - script: |
+      mkdir build
+      cd build
+      $(btorConfigEnv) cmake .. 
     displayName: 'Configure Boolector'
 
   - script: |
@@ -61,12 +64,13 @@ jobs:
   - script: |
       export BUILD_NUM=$(Build.BuildNumber)
       export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)
+      export PACKAGE_BUILD=1
       cp -r src/api/python pypi/src
       mkdir -p pypi/src/utils
       cp src/*.h pypi/src
       cp COPYING pypi/LICENSE
       cp src/utils/*.h pypi/src/utils
-      version=`grep 'set(VERSION' /boolector/CMakeLists.txt | sed -e 's/^.*\"\(.*\)\".*$/\1/'`
+      grep VERSION CMakeLists.txt | grep set | grep -v ARCHIVE | sed -e 's%^.*\(".*"\).*$%\1%' -e 's/"//g' > pypi/version.txt
       cd pypi
       sed -e 's/override//g' -e 's/noexcept/_NOEXCEPT/g' -e 's/\(BoolectorException (const.*\)/\1    virtual ~BoolectorException() _NOEXCEPT {}/' src/pyboolector_abort.cpp > src/pyboolector_abort.cpp.new
       if test $? -ne 0; then exit 1; fi
