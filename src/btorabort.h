@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2018 Aina Niemetz
- *  Copyright (C) 2013-2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -70,12 +67,11 @@ void btor_abort_warn (
                 #argnode);                                                 \
   } while (0)
 
-#define BTOR_ABORT_IS_NOT_BV(arg)                                     \
-  do                                                                  \
-  {                                                                   \
-    BTOR_ABORT (!btor_sort_is_bv (btor, btor_node_get_sort_id (arg)), \
-                "'%s' must be a bit-vector\n",                        \
-                #arg);                                                \
+#define BTOR_ABORT_IS_NOT_BV(arg)                                           \
+  do                                                                        \
+  {                                                                         \
+    BTOR_ABORT (                                                            \
+        !btor_node_is_bv (btor, arg), "'%s' must be a bit-vector\n", #arg); \
   } while (0)
 
 #define BTOR_ABORT_IS_NOT_ARRAY(arg)                                         \

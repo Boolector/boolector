@@ -1,7 +1,6 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
-# Copyright (C) 2013-2018 Mathias Preiner.
-# Copyright (C) 2014-2018 Aina Niemetz.
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
 #
 # This file is part of Boolector.
 # See COPYING for more information on using this software.
@@ -14,7 +13,7 @@ from cpython.ref cimport PyObject
 from libc.stdint cimport int32_t, uint32_t
 from pyboolector import BoolectorException
 
-#include "pyboolector_options.pxd"
+#include "pyboolector_enums.pxd"
 
 cdef inline int raise_py_error() except *:
     raise BoolectorException(pyboolector_get_err_msg().decode('utf-8'))
@@ -547,7 +546,8 @@ cdef extern from "boolector.h":
                              const char * infile_name,
                              FILE * outfile,
                              char ** error_msg,
-                             int32_t * status) \
+                             int32_t * status,
+                             bool *parsed_smt2) \
       except +raise_py_error
 
     #int32_t boolector_parse_btor (Btor * btor,
@@ -589,7 +589,7 @@ cdef extern from "boolector.h":
                                      bool merge_roots) \
       except +raise_py_error
 
-    void boolector_dump_aiger_binary (Btor * btor, FILE * file,bool merge_roots) \
+    void boolector_dump_aiger_binary (Btor * btor, FILE * file, bool merge_roots) \
       except +raise_py_error
 
     const char * boolector_copyright (Btor * btor) \

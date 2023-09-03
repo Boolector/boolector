@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2016 Mathias Preiner.
- *  Copyright (C) 2014-2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -60,6 +59,15 @@ const BtorPtrHashTable* btor_model_get_fun_aux (Btor* btor,
                                                 BtorIntHashTable* bv_model,
                                                 BtorIntHashTable* fun_model,
                                                 BtorNode* exp);
+
+/**
+ * Get node representation of the model value of the given node.
+ *
+ * For bit-vector nodes, the returned node is a bit-vector const node.
+ * For arrays, the returned node is a write chain.
+ * For functions, the returned node is an ite chain over the argument values.
+ */
+BtorNode* btor_model_get_value (Btor* btor, BtorNode* exp);
 
 /*------------------------------------------------------------------------*/
 

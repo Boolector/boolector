@@ -1,10 +1,12 @@
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
+  # cpython versions to build wheels for.
+  PYTHON_VERSIONS: cp36 cp37 cp38 cp39 cp310
 
 jobs:
 - job: Linux
   pool:
-   vmImage: 'ubuntu-16.04'
+   vmImage: 'ubuntu-latest'
   strategy:
     matrix:
       production:
@@ -18,10 +20,6 @@ jobs:
         btorConfigEnv: ''
       debug_gmp:
         btorConfig: '-g --gmp'
-        btorConfigEnv: ''
-      python2:
-        needCython: true
-        btorConfig: '--python --py2'
         btorConfigEnv: ''
       python3:
         needCython: true
@@ -63,7 +61,7 @@ jobs:
 
 - job: macOS
   pool:
-   vmImage: 'macos-10.13'
+   vmImage: 'macos-latest'
   strategy:
     matrix:
       production:
@@ -78,10 +76,10 @@ jobs:
       debug_gmp:
         btorConfig: '-g --gmp'
         btorConfigEnv: ''
-      python3:
-        needCython: true
-        btorConfig: '--python --py3'
-        btorConfigEnv: ''
+      #python3:
+      #  needCython: true
+      #  btorConfig: '--python --py3'
+      #  btorConfigEnv: ''
   steps:
   - script: echo "##vso[task.setvariable variable=ncpus]$(sysctl -n hw.logicalcpu)"
     displayName: 'Determine number of CPUs'
@@ -119,3 +117,6 @@ jobs:
   - script: ctest -j$(ncpus) --output-on-failure
     workingDirectory: 'build'
     displayName: 'Run CTest'
+
+- template: pypi/azure-pipelines-pypi.yml
+

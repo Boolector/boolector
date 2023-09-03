@@ -1,37 +1,39 @@
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/examples)
+set(EXAMPLES_BIN_DIR ${CMAKE_BINARY_DIR}/bin/examples/api/c)
+
+macro(btor_add_example name src_files output_dir)
+  if("${src_files}" STREQUAL "")
+    set(src_files_list ${name}.${file_ext})
+  else()
+    string(REPLACE " " ";" src_files_list "${src_files}")
+  endif()
+  add_executable(${name} EXCLUDE_FROM_ALL ${src_files_list})
+  target_link_libraries(${name} boolector ${LIBRARIES})
+  set(example_bin_dir ${EXAMPLES_BIN_DIR}/${output_dir})
+  set_target_properties(${name}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${example_bin_dir})
+endmacro()
 
 # array examples
-add_executable(array1 EXCLUDE_FROM_ALL array/array1.c)
-target_link_libraries(array1 boolector ${LIBRARIES})
-
-add_executable(array2 EXCLUDE_FROM_ALL array/array2.c)
-target_link_libraries(array2 boolector ${LIBRARIES})
-
-add_executable(array3 EXCLUDE_FROM_ALL array/array3.c)
-target_link_libraries(array3 boolector ${LIBRARIES})
+btor_add_example(array1 array/array1.c array)
+btor_add_example(array2 array/array2.c array)
+btor_add_example(array3 array/array3.c array)
 
 # binarysearch example
-add_executable(binarysearch EXCLUDE_FROM_ALL binarysearch/binarysearch.c)
-target_link_libraries(binarysearch boolector ${LIBRARIES})
+btor_add_example(binarysearch binarysearch/binarysearch.c binarysearch)
 
 # boundsprop examples
-add_executable(minor EXCLUDE_FROM_ALL boundsprop/minor.c boundsprop/minormain.c)
-target_link_libraries(minor boolector ${LIBRARIES})
-
-add_executable(maxor EXCLUDE_FROM_ALL boundsprop/maxor.c boundsprop/maxormain.c)
-target_link_libraries(maxor boolector ${LIBRARIES})
-
-add_executable(minand EXCLUDE_FROM_ALL boundsprop/minand.c boundsprop/minandmain.c)
-target_link_libraries(minand boolector ${LIBRARIES})
-
-add_executable(maxand EXCLUDE_FROM_ALL boundsprop/maxand.c boundsprop/maxandmain.c)
-target_link_libraries(maxand boolector ${LIBRARIES})
-
-add_executable(minxor EXCLUDE_FROM_ALL boundsprop/minxor.c boundsprop/minxormain.c)
-target_link_libraries(minxor boolector ${LIBRARIES})
-
-add_executable(maxxor EXCLUDE_FROM_ALL boundsprop/maxxor.c boundsprop/maxxormain.c)
-target_link_libraries(maxxor boolector ${LIBRARIES})
+btor_add_example(minor
+  "boundsprop/minor.c boundsprop/minormain.c" boundsprop)
+btor_add_example(maxor
+  "boundsprop/maxor.c boundsprop/maxormain.c" boundsprop)
+btor_add_example(minand
+  "boundsprop/minand.c boundsprop/minandmain.c" boundsprop)
+btor_add_example(maxand
+  "boundsprop/maxand.c boundsprop/maxandmain.c" boundsprop)
+btor_add_example(minxor
+  "boundsprop/minxor.c boundsprop/minxormain.c" boundsprop)
+btor_add_example(maxxor
+  "boundsprop/maxxor.c boundsprop/maxxormain.c" boundsprop)
 
 add_executable(theorems EXCLUDE_FROM_ALL boundsprop/theorems.c boundsprop/minor.c
   boundsprop/minand.c boundsprop/maxor.c boundsprop/maxand.c
@@ -39,72 +41,58 @@ add_executable(theorems EXCLUDE_FROM_ALL boundsprop/theorems.c boundsprop/minor.
 target_link_libraries(theorems boolector ${LIBRARIES})
 
 # bubblesort example
-add_executable(bubblesort EXCLUDE_FROM_ALL bubblesort/bubblesort.c)
-target_link_libraries(bubblesort boolector ${LIBRARIES})
+btor_add_example(bubblesort bubblesort/bubblesort.c bubblesort)
 
 # bubblesortmem example
-add_executable(bubblesortmem EXCLUDE_FROM_ALL bubblesortmem/bubblesortmem.c)
-target_link_libraries(bubblesortmem boolector ${LIBRARIES})
+btor_add_example(bubblesortmem bubblesortmem/bubblesortmem.c bubblesortmem)
 
 # bv examples
-add_executable(bv1 EXCLUDE_FROM_ALL bv/bv1.c)
-target_link_libraries(bv1 boolector ${LIBRARIES})
-
-add_executable(bv2 EXCLUDE_FROM_ALL bv/bv2.c)
-target_link_libraries(bv2 boolector ${LIBRARIES})
+btor_add_example(bv1 bv/bv1.c bv)
+btor_add_example(bv2 bv/bv2.c bv)
 
 # doublereversearray example
-add_executable(doublereversearray EXCLUDE_FROM_ALL
-  doublereversearray/doublereversearray.c)
-target_link_libraries(doublereversearray boolector ${LIBRARIES})
+btor_add_example(doublereversearray
+  doublereversearray/doublereversearray.c doublereversearray)
 
 # ispowerof2 example
-add_executable(ispowerof2 EXCLUDE_FROM_ALL ispowerof2/ispowerof2.c)
-target_link_libraries(ispowerof2 boolector ${LIBRARIES})
+btor_add_example(ispowerof2 ispowerof2/ispowerof2.c ispowerof2)
 
 # linearsearch example
-add_executable(linearsearch EXCLUDE_FROM_ALL linearsearch/linearsearch.c)
-target_link_libraries(linearsearch boolector ${LIBRARIES})
+btor_add_example(linearsearch linearsearch/linearsearch.c linearsearch)
 
 # matrixmultass example
-add_executable(matrixmultass EXCLUDE_FROM_ALL matrixmultass/matrixmultass.c)
-target_link_libraries(matrixmultass boolector ${LIBRARIES})
+btor_add_example(matrixmultass matrixmultass/matrixmultass.c matrixmultass)
 
 # matrixmultcomm example
-add_executable(matrixmultcomm EXCLUDE_FROM_ALL matrixmultcomm/matrixmultcomm.c)
-target_link_libraries(matrixmultcomm boolector ${LIBRARIES})
+btor_add_example(matrixmultcomm matrixmultcomm/matrixmultcomm.c matrixmultcomm)
 
 # max example
-add_executable(max EXCLUDE_FROM_ALL max/max.c)
-target_link_libraries(max boolector ${LIBRARIES})
+btor_add_example(max max/max.c max)
 
 # memcpy example
-add_executable(memcpy EXCLUDE_FROM_ALL memcpy/memcpy.c)
-target_link_libraries(memcpy boolector ${LIBRARIES})
+btor_add_example(memcpy memcpy/memcpy.c memcpy)
 
 # nextpowerof2 example
-add_executable(nextpowerof2 EXCLUDE_FROM_ALL nextpowerof2/nextpowerof2.c)
-target_link_libraries(nextpowerof2 boolector ${LIBRARIES})
+btor_add_example(nextpowerof2 nextpowerof2/nextpowerof2.c nextpowerof2)
 
 # selectionsort example
-add_executable(selectionsort EXCLUDE_FROM_ALL selectionsort/selectionsort.c)
-target_link_libraries(selectionsort boolector ${LIBRARIES})
+btor_add_example(selectionsort selectionsort/selectionsort.c selectionsort)
 
 # selectionsortmem example
-add_executable(selectionsortmem EXCLUDE_FROM_ALL selectionsortmem/selectionsortmem.c)
-target_link_libraries(selectionsortmem boolector ${LIBRARIES})
+btor_add_example(selectionsortmem
+  selectionsortmem/selectionsortmem.c selectionsortmem)
 
 # sudoku example
-add_executable(sudoku EXCLUDE_FROM_ALL sudoku/sudoku.c)
-target_link_libraries(sudoku boolector ${LIBRARIES})
+btor_add_example(sudoku sudoku/sudoku.c sudoku)
 
 # swapmem example
-add_executable(swapmem EXCLUDE_FROM_ALL swapmem/swapmem.c)
-target_link_libraries(swapmem boolector ${LIBRARIES})
+btor_add_example(swapmem swapmem/swapmem.c swapmem)
 
 # exception example
-add_executable(exception EXCLUDE_FROM_ALL exception.cpp)
-target_link_libraries(exception boolector ${LIBRARIES})
+btor_add_example(exception exception.cpp "")
+
+# quickstart example
+btor_add_example(quickstart quickstart.c "")
 
 # build all examples at once
 add_custom_target(examples
@@ -137,4 +125,5 @@ add_custom_target(examples
   sudoku
   swapmem
   exception
+  quickstart
 )

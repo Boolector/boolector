@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2016-2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -14,6 +13,7 @@
 #include "btordbg.h"
 #include "btorlog.h"
 #include "btorsubst.h"
+#include "preprocess/btorpputils.h"
 #include "preprocess/btorpreprocess.h"
 #include "utils/btornodeiter.h"
 #include "utils/btorutil.h"
@@ -43,10 +43,12 @@ btor_eliminate_applies (Btor *btor)
 {
   assert (btor);
 
+  size_t i;
   uint32_t num_applies, num_applies_total = 0, round;
   double start, delta;
   BtorNode *app, *fun, *subst;
   BtorNodeIterator it;
+  BtorNodePtrStack lambdas;
   BtorPtrHashTableIterator h_it;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *substs;
@@ -65,6 +67,7 @@ btor_eliminate_applies (Btor *btor)
                                   (BtorHashPtr) btor_node_pair_hash,
                                   (BtorCmpPtr) btor_node_pair_compare);
   app_cache = btor_hashint_table_new (btor->mm);
+  BTOR_INIT_STACK (btor->mm, lambdas);
 
   /* NOTE: in some cases substitute_and_rebuild creates applies that can be
    * beta-reduced. this can happen when parameterized applies become not
@@ -80,11 +83,12 @@ btor_eliminate_applies (Btor *btor)
                                      (BtorHashPtr) btor_node_hash_by_id,
                                      (BtorCmpPtr) btor_node_compare_by_id);
 
+    btor_pputils_collect_lambdas (btor, &lambdas);
+
     /* collect function applications */
-    btor_iter_hashptr_init (&h_it, btor->lambdas);
-    while (btor_iter_hashptr_has_next (&h_it))
+    for (i = 0; i < BTOR_COUNT_STACK (lambdas); i++)
     {
-      fun = btor_iter_hashptr_next (&h_it);
+      fun = BTOR_PEEK_STACK (lambdas, i);
 
       btor_iter_apply_parent_init (&it, fun);
       while (btor_iter_apply_parent_has_next (&it))
@@ -106,6 +110,7 @@ btor_eliminate_applies (Btor *btor)
         btor_hashint_table_add (app_cache, btor_node_get_id (app));
       }
     }
+    BTOR_RESET_STACK (lambdas);
 
     num_applies_total += num_applies;
     BTOR_MSG (btor->msg,
@@ -129,11 +134,20 @@ btor_eliminate_applies (Btor *btor)
 
   btor_hashint_table_delete (app_cache);
 
-#ifndef NDEBUG
-  btor_iter_hashptr_init (&h_it, btor->lambdas);
+  btor_iter_hashptr_init (&h_it, cache);
   while (btor_iter_hashptr_has_next (&h_it))
   {
-    fun = btor_iter_hashptr_next (&h_it);
+    btor_node_release (btor, h_it.bucket->data.as_ptr);
+    btor_node_pair_delete (btor, btor_iter_hashptr_next (&h_it));
+  }
+  btor_hashptr_table_delete (cache);
+
+#ifndef NDEBUG
+  BTOR_RESET_STACK (lambdas);
+  btor_pputils_collect_lambdas (btor, &lambdas);
+  for (i = 0; i < BTOR_COUNT_STACK (lambdas); i++)
+  {
+    fun = BTOR_PEEK_STACK (lambdas, i);
 
     btor_iter_apply_parent_init (&it, fun);
     while (btor_iter_apply_parent_has_next (&it))
@@ -144,14 +158,7 @@ btor_eliminate_applies (Btor *btor)
     }
   }
 #endif
-
-  btor_iter_hashptr_init (&h_it, cache);
-  while (btor_iter_hashptr_has_next (&h_it))
-  {
-    btor_node_release (btor, h_it.bucket->data.as_ptr);
-    btor_node_pair_delete (btor, btor_iter_hashptr_next (&h_it));
-  }
-  btor_hashptr_table_delete (cache);
+  BTOR_RELEASE_STACK (lambdas);
 
   delta = btor_util_time_stamp () - start;
   btor->time.elimapplies += delta;

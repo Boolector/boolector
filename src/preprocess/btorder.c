@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2016-2017 Mathias Preiner.
- *  Copyright (C) 2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -51,7 +50,11 @@ mk_param_with_symbol (Btor *btor, BtorNode *node)
 }
 
 static bool
-occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
+occurs (Btor *btor,
+        BtorNode *param,
+        BtorNode *term,
+        BtorIntHashTable *deps,
+        BtorIntHashTable *subst_map)
 {
   assert (btor_node_is_regular (param));
   assert (btor_node_is_param (param));
@@ -60,6 +63,7 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
   uint32_t i;
   BtorNodePtrStack visit;
   BtorIntHashTable *mark, *var_deps;
+  BtorHashTableData *d;
   BtorNode *cur;
   BtorMemMgr *mm;
 
@@ -71,14 +75,14 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
   {
     cur = btor_node_real_addr (BTOR_POP_STACK (visit));
 
-    if (!cur->parameterized || btor_hashint_table_contains (mark, cur->id))
-      continue;
-
     if (cur == param)
     {
       res = true;
       break;
     }
+
+    if (!cur->parameterized || btor_hashint_table_contains (mark, cur->id))
+      continue;
 
     /* be dependency aware when substituting variables */
     if (btor_node_is_param (cur)
@@ -97,7 +101,17 @@ occurs (Btor *btor, BtorNode *param, BtorNode *term, BtorIntHashTable *deps)
     }
 
     btor_hashint_table_add (mark, cur->id);
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (visit, cur->e[i]);
+    if ((d = btor_hashint_map_get (subst_map, cur->id)))
+    {
+      BTOR_PUSH_STACK (visit, d->as_ptr);
+    }
+    else
+    {
+      for (i = 0; i < cur->arity; i++)
+      {
+        BTOR_PUSH_STACK (visit, cur->e[i]);
+      }
+    }
   }
   btor_hashint_table_delete (mark);
   BTOR_RELEASE_STACK (visit);
@@ -140,12 +154,9 @@ map_subst_node (BtorIntHashTable *map, BtorNode *left, BtorNode *right)
   // TODO (ma): overwrite subst if substitution is "better"?
   if (btor_hashint_map_contains (map, left->id))
   {
-    //      printf ("skip add subst: %s -> %s\n", node2string (left),
-    //      node2string (right));
     return;
   }
 
-  //  printf ("subst: %s -> %s\n", node2string (left), node2string (right));
   btor_hashint_map_add (map, left->id)->as_ptr = right;
 }
 
@@ -159,7 +170,6 @@ find_substitutions (Btor *btor,
 {
   assert (btor);
   assert (root);
-  assert (!btor_node_is_quantifier (root));
   assert (subst_map);
 
   BtorNode *cur, *real_cur, *top_and = 0;
@@ -203,10 +213,10 @@ find_substitutions (Btor *btor,
     else if (!btor_node_is_inverted (cur) && btor_node_is_bv_eq (cur))
     {
       if (btor_hashint_table_contains (vars, btor_node_get_id (cur->e[0]))
-          && !occurs (btor, cur->e[0], cur->e[1], deps))
+          && !occurs (btor, cur->e[0], cur->e[1], deps, subst_map))
         map_subst_node (subst_map, cur->e[0], cur->e[1]);
       else if (btor_hashint_table_contains (vars, btor_node_get_id (cur->e[1]))
-               && !occurs (btor, cur->e[1], cur->e[0], deps))
+               && !occurs (btor, cur->e[1], cur->e[0], deps, subst_map))
         map_subst_node (subst_map, cur->e[1], cur->e[0]);
     }
   }
@@ -304,6 +314,9 @@ compute_deps (Btor *btor, BtorNode *root)
 static BtorNode *
 elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
 {
+  assert (btor);
+  assert (root);
+
   uint32_t i, num_quant_vars = 0, num_elim_vars = 0, opt_simp_const;
   BtorNode *cur, *real_cur, *e[3], *result;
   BtorNodePtrStack visit;
@@ -358,15 +371,19 @@ elim_vars (Btor *btor, BtorNode *root, bool elim_evars)
 
       /* we need to rebuild the substitution first */
       if ((d = btor_hashint_map_get (map, real_cur->id)))
+      {
         BTOR_PUSH_STACK (visit, d->as_ptr);
+      }
     }
     else if (!cur_d->as_ptr)
     {
       for (i = 0; i < real_cur->arity; i++)
       {
         e[i] = find_subst (map, real_cur->e[i]);
+        assert (e[i]);
         d    = btor_hashint_map_get (mark, btor_node_real_addr (e[i])->id);
         assert (d);
+        assert (d->as_ptr);
         e[i] = btor_node_cond_invert (e[i], d->as_ptr);
       }
       if (real_cur->arity == 0)

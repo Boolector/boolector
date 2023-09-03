@@ -1,23 +1,23 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
-#ifndef AIGPROP_H_INCLUDED
-#define AIGPROP_H_INCLUDED
+#ifndef BTOR_AIGPROP_H_INCLUDED
+#define BTOR_AIGPROP_H_INCLUDED
 
 #include "btoraig.h"
 #include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btorrng.h"
 
-#define AIGPROP_UNKNOWN 0
-#define AIGPROP_SAT 10
-#define AIGPROP_UNSAT 20
+#define BTOR_AIGPROP_UNKNOWN 0
+#define BTOR_AIGPROP_SAT 10
+#define BTOR_AIGPROP_UNSAT 20
 
-struct AIGProp
+struct BtorAIGProp
 {
   BtorAIGMgr *amgr;
   BtorIntHashTable *roots;
@@ -49,25 +49,25 @@ struct AIGProp
   } time;
 };
 
-typedef struct AIGProp AIGProp;
+typedef struct BtorAIGProp BtorAIGProp;
 
-AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr,
-                              uint32_t loglevel,
-                              uint32_t seed,
-                              uint32_t use_restarts,
-                              uint32_t use_bandit);
+BtorAIGProp *btor_aigprop_new_aigprop (BtorAIGMgr *amgr,
+                                       uint32_t loglevel,
+                                       uint32_t seed,
+                                       uint32_t use_restarts,
+                                       uint32_t use_bandit);
 
-AIGProp *aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop);
-void aigprop_delete_aigprop (AIGProp *aprop);
+BtorAIGProp *btor_aigprop_clone_aigprop (BtorAIGMgr *clone, BtorAIGProp *aprop);
+void btor_aigprop_delete_aigprop (BtorAIGProp *aprop);
 
-int32_t aigprop_get_assignment_aig (AIGProp *aprop, BtorAIG *aig);
-void aigprop_generate_model (AIGProp *aprop, bool reset);
+int32_t btor_aigprop_get_assignment_aig (BtorAIGProp *aprop, BtorAIG *aig);
+void btor_aigprop_generate_model (BtorAIGProp *aprop, bool reset);
 
-int32_t aigprop_sat (AIGProp *aprop, BtorIntHashTable *roots);
+int32_t btor_aigprop_sat (BtorAIGProp *aprop, BtorIntHashTable *roots);
 
 #if 0
-void aigprop_print_stats (AIGProp * aprop);
-void aigprop_print_time_stats (AIGProp * aprop);
+void btor_aigprop_print_stats (BtorAIGProp * aprop);
+void btor_aigprop_print_time_stats (BtorAIGProp * aprop);
 #endif
 
 #endif

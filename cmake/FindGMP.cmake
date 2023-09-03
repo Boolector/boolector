@@ -1,3 +1,11 @@
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 # Find GMP
 # GMP_FOUND - system has GMP lib
 # GMP_INCLUDE_DIR - the GMP include directory

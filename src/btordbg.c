@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -89,8 +86,6 @@ btor_dbg_check_hash_table_proxy_free (BtorPtrHashTable *table)
 bool
 btor_dbg_check_all_hash_tables_proxy_free (const Btor *btor)
 {
-  if (!btor_dbg_check_hash_table_proxy_free (btor->varsubst_constraints))
-    return false;
   if (!btor_dbg_check_hash_table_proxy_free (btor->embedded_constraints))
     return false;
   if (!btor_dbg_check_hash_table_proxy_free (btor->unsynthesized_constraints))
@@ -134,8 +129,6 @@ btor_dbg_check_unique_table_rebuild (const Btor *btor)
 bool
 btor_dbg_check_all_hash_tables_simp_free (const Btor *btor)
 {
-  if (!btor_dbg_check_hash_table_simp_free (btor->varsubst_constraints))
-    return false;
   if (!btor_dbg_check_hash_table_simp_free (btor->embedded_constraints))
     return false;
   if (!btor_dbg_check_hash_table_simp_free (btor->unsynthesized_constraints))
@@ -357,9 +350,7 @@ btor_dbg_precond_shift_exp (Btor *btor, const BtorNode *e0, const BtorNode *e1)
   assert (!btor_node_is_simplified (e1));
   assert (!btor_node_is_fun (e0));
   assert (!btor_node_is_fun (e1));
-  assert (btor_node_bv_get_width (btor, e0) > 1);
-  assert (btor_util_is_power_of_2 (btor_node_bv_get_width (btor, e0)));
-  assert (btor_util_log_2 (btor_node_bv_get_width (btor, e0))
+  assert (btor_node_bv_get_width (btor, e0)
           == btor_node_bv_get_width (btor, e1));
   assert (btor_node_real_addr (e0)->btor == btor);
   assert (btor_node_real_addr (e1)->btor == btor);

@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2015-2018 Aina Niemetz.
- *  Copyright (C) 2015-2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -20,6 +17,8 @@
 #ifndef NDEBUG
 #include <float.h>
 #endif
+#include <stdbool.h>
+#include <stdint.h>
 
 /*------------------------------------------------------------------------*/
 

@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -190,7 +189,6 @@ class TestLambda : public TestBtor
     BtorSortId v1_sort, v2_sort, x_sort;
     int32_t x_bw, v1_bw, v2_bw;
 
-    x_bw  = s_elem_bw;
     v1_bw = s_elem_bw;
     v2_bw = s_elem_bw;
 
@@ -198,12 +196,6 @@ class TestLambda : public TestBtor
     {
       v1_bw = 1;
       v2_bw = 1;
-    }
-    else if (func == btor_exp_bv_sll || func == btor_exp_bv_srl
-             || func == btor_exp_bv_sra || func == btor_exp_bv_rol
-             || func == btor_exp_bv_ror)
-    {
-      v2_bw = btor_util_log_2 (v1_bw);
     }
 
     x_bw = (param_pos == 0) ? v1_bw : v2_bw;

@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2017 Mathias Preiner.
- *  Copyright (C) 2012-2017 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -139,21 +136,34 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     slices = btor_hashptr_table_new (
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
     var = BTOR_POP_STACK (vars);
+    BTORLOG (2,
+             "process %s (%s)",
+             btor_util_node2string (var),
+             btor_util_node2string (btor_node_get_simplified (btor, var)));
     assert (btor_node_is_regular (var));
     assert (btor_node_is_bv_var (var));
-    btor_iter_parent_init (&it, var);
+
     /* find all slices on variable */
+    btor_iter_parent_init (&it, var);
     while (btor_iter_parent_has_next (&it))
     {
       cur = btor_iter_parent_next (&it);
       assert (btor_node_is_regular (cur));
-      if (cur->kind == BTOR_BV_SLICE_NODE)
+      if (btor_node_is_simplified (cur))
+      {
+        assert (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST));
+        continue;
+      }
+      if (btor_node_is_bv_slice (cur))
       {
         s1 = new_slice (btor,
                         btor_node_bv_slice_get_upper (cur),
                         btor_node_bv_slice_get_lower (cur));
         assert (!btor_hashptr_table_get (slices, s1));
+        /* full slices should have been eliminated by rewriting */
+        assert (s1->upper - s1->lower + 1 < btor_node_bv_get_width (btor, var));
         btor_hashptr_table_add (slices, s1);
+        BTORLOG (2, "  found slice %u %u", s1->upper, s1->lower);
       }
     }
 

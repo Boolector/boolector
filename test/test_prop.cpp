@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -50,8 +50,7 @@ class TestProp : public TestBtor
   void prop_complete_binary_eidx (
       uint32_t n,
       int32_t eidx,
-      uint32_t bw0,
-      uint32_t bw1,
+      uint32_t bw,
       BtorBitVector *bve,
       BtorBitVector *bvres,
       BtorBitVector *bvexp,
@@ -66,21 +65,20 @@ class TestProp : public TestBtor
     int32_t i, idx, sat_res;
     BtorNode *e[2], *exp, *val, *eq;
     BtorBitVector *bvetmp[2], *bvexptmp, *res[2], *tmp;
-    BtorSortId sort0, sort1;
+    BtorSortId sort;
 
-    sort0 = btor_sort_bv (d_btor, bw0);
-    sort1 = btor_sort_bv (d_btor, bw1);
-    e[0]  = btor_exp_var (d_btor, sort0, 0);
-    e[1]  = btor_exp_var (d_btor, sort1, 0);
+    sort  = btor_sort_bv (d_btor, bw);
+    e[0]  = btor_exp_var (d_btor, sort, 0);
+    e[1]  = btor_exp_var (d_btor, sort, 0);
     exp   = create_exp (d_btor, e[0], e[1]);
     val   = btor_exp_bv_const (d_btor, bvexp);
     eq    = btor_exp_eq (d_btor, exp, val);
 
     idx = eidx ? 0 : 1;
 
-    bvetmp[eidx] = btor_bv_new_random (d_mm, d_rng, eidx ? bw1 : bw0);
+    bvetmp[eidx] = btor_bv_new_random (d_mm, d_rng, bw);
     bvetmp[idx]  = n == 1 ? btor_bv_copy (d_mm, bve)
-                         : btor_bv_new_random (d_mm, d_rng, idx ? bw1 : bw0);
+                         : btor_bv_new_random (d_mm, d_rng, bw);
     bvexptmp = create_bv (d_mm, bvetmp[0], bvetmp[1]);
 
     /* init bv model */
@@ -114,7 +112,7 @@ class TestProp : public TestBtor
         ASSERT_NE (res[eidx], nullptr);
         if (!btor_bv_compare (res[eidx], bvres)) break;
         btor_bv_free (d_mm, res[eidx]);
-        res[eidx] = 0;
+        res[eidx] = nullptr;
       }
       ASSERT_NE (res[eidx], nullptr);
       ASSERT_EQ (btor_bv_compare (res[eidx], bvres), 0);
@@ -138,8 +136,7 @@ class TestProp : public TestBtor
     btor_node_release (d_btor, exp);
     btor_node_release (d_btor, e[0]);
     btor_node_release (d_btor, e[1]);
-    btor_sort_release (d_btor, sort0);
-    btor_sort_release (d_btor, sort1);
+    btor_sort_release (d_btor, sort);
     sat_res = sat_prop_solver_aux (d_btor);
     ASSERT_EQ (sat_res, BTOR_RESULT_SAT);
     ASSERT_LE (((BtorPropSolver *) d_btor->slv)->stats.moves, n);
@@ -147,8 +144,7 @@ class TestProp : public TestBtor
 #else
     (void) n;
     (void) eidx;
-    (void) bw0;
-    (void) bw1;
+    (void) bw;
     (void) bve;
     (void) bvres;
     (void) bvexp;
@@ -167,48 +163,29 @@ class TestProp : public TestBtor
       BtorBitVector *(*inv_bv) (
           Btor *, BtorNode *, BtorBitVector *, BtorBitVector *, int32_t))
   {
-    uint32_t bw0, bw1;
+    uint32_t bw;
     uint64_t i, j, k;
     BtorBitVector *bve[2], *bvexp;
 
-    bw0 = TEST_PROP_COMPLETE_BW;
-    bw1 = TEST_PROP_COMPLETE_BW;
-    if (create_exp == btor_exp_bv_sll || create_exp == btor_exp_bv_srl)
-      bw1 = btor_util_log_2 (bw0);
+    bw = TEST_PROP_COMPLETE_BW;
 
-    for (i = 0; i < (uint32_t) (1 << bw0); i++)
+    for (i = 0; i < (uint32_t) (1 << bw); i++)
     {
-      bve[0] = btor_bv_uint64_to_bv (d_mm, i, bw0);
-      for (j = 0; j < (uint32_t) (1 << bw1); j++)
+      bve[0] = btor_bv_uint64_to_bv (d_mm, i, bw);
+      for (j = 0; j < (uint32_t) (1 << bw); j++)
       {
-        bve[1] = btor_bv_uint64_to_bv (d_mm, j, bw1);
+        bve[1] = btor_bv_uint64_to_bv (d_mm, j, bw);
         bvexp  = create_bv (d_mm, bve[0], bve[1]);
         // printf ("bve[0] %s bve[1] %s bvexp %s\n", btor_bv_to_char (d_mm,
         // bve[0]), btor_bv_to_char (d_mm, bve[1]), btor_bv_to_char (d_mm,
         // bvexp));
         /* -> first test local completeness  */
-        for (k = 0; k < bw0; k++)
+        for (k = 0; k < bw; k++)
         {
-          prop_complete_binary_eidx (n,
-                                     1,
-                                     bw0,
-                                     bw1,
-                                     bve[0],
-                                     bve[1],
-                                     bvexp,
-                                     create_exp,
-                                     create_bv,
-                                     inv_bv);
-          prop_complete_binary_eidx (n,
-                                     0,
-                                     bw0,
-                                     bw1,
-                                     bve[1],
-                                     bve[0],
-                                     bvexp,
-                                     create_exp,
-                                     create_bv,
-                                     inv_bv);
+          prop_complete_binary_eidx (
+              n, 1, bw, bve[0], bve[1], bvexp, create_exp, create_bv, inv_bv);
+          prop_complete_binary_eidx (
+              n, 0, bw, bve[1], bve[0], bvexp, create_exp, create_bv, inv_bv);
         }
         btor_bv_free (d_mm, bve[1]);
         btor_bv_free (d_mm, bvexp);

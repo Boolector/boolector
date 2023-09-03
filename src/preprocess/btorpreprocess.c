@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2017 Armin Biere.
- *  Copyright (C) 2012-2019 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -48,6 +45,8 @@ btor_simplify (Btor *btor)
   rounds = 0;
   start  = btor_util_time_stamp ();
 
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+
   if (btor->inconsistent) goto DONE;
 
   /* empty varsubst_constraints table if variable substitution was disabled
@@ -88,13 +87,16 @@ btor_simplify (Btor *btor)
           break;  // TODO (ma): continue instead of break?
       }
 
-      btor_process_embedded_constraints (btor);
-
-      if (btor->inconsistent)
+      while (btor->embedded_constraints->count)
       {
-        BTORLOG (1,
-                 "formula inconsistent after embedded constraint processing");
-        break;
+        btor_process_embedded_constraints (btor);
+
+        if (btor->inconsistent)
+        {
+          BTORLOG (1,
+                   "formula inconsistent after embedded constraint processing");
+          break;
+        }
       }
 
       if (btor->varsubst_constraints->count) continue;

@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2017 Armin Biere.
- *  Copyright (C) 2012-2019 Mathias Preiner.
- *  Copyright (C) 2012-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -32,31 +29,23 @@ update_assumptions (Btor *btor)
   ass = btor_hashptr_table_new (btor->mm,
                                 (BtorHashPtr) btor_node_hash_by_id,
                                 (BtorCmpPtr) btor_node_compare_by_id);
-  btor_iter_hashptr_init (&it, btor->assumptions);
+  btor_iter_hashptr_init (&it, btor->orig_assumptions);
   while (btor_iter_hashptr_has_next (&it))
   {
     cur = btor_iter_hashptr_next (&it);
     simp = btor_simplify_exp (btor, cur);
-    if (cur != simp)
+    if (!btor_hashptr_table_get (ass, simp))
     {
-      if (!btor_hashptr_table_get (ass, simp))
-      {
-        BTORLOG (2,
-                 "update assumption: %s -> %s\n",
-                 btor_util_node2string (cur),
-                 btor_util_node2string (simp));
-        btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
-      }
-      btor_node_release (btor, cur);
-    }
-    else
-    {
-      if (!btor_hashptr_table_get (ass, cur))
-        btor_hashptr_table_add (ass, cur);
-      else
-        btor_node_release (btor, cur);
+      BTORLOG (2,
+               "update assumption: %s -> %s",
+               btor_util_node2string (cur),
+               btor_util_node2string (simp));
+      btor_hashptr_table_add (ass, btor_node_copy (btor, simp));
     }
   }
+  btor_iter_hashptr_init (&it, btor->assumptions);
+  while (btor_iter_hashptr_has_next (&it))
+    btor_node_release (btor, btor_iter_hashptr_next (&it));
   btor_hashptr_table_delete (btor->assumptions);
   btor->assumptions = ass;
 }
@@ -189,8 +178,23 @@ rebuild_noproxy (Btor *btor, BtorNode *node, BtorIntHashTable *cache)
   assert (btor_node_is_regular (node));
   assert (!btor_node_is_simplified (node));
 
+  size_t i;
+  BtorNode *e[3]   = {0, 0, 0}, *child, *real_child, *simp;
   BtorNode *result = 0;
   BtorHashTableData *d;
+
+  /* Note: the simplified pointer is not set for parameterized nodes. Hence, we
+   * have to lookup cache. */
+  for (i = 0; i < node->arity; i++)
+  {
+    child      = node->e[i];
+    real_child = btor_node_real_addr (child);
+    if (real_child->parameterized
+        && (d = btor_hashint_map_get (cache, real_child->id)))
+      e[i] = btor_node_cond_invert (child, d->as_ptr);
+    else
+      e[i] = child;
+  }
 
   switch (node->kind)
   {
@@ -229,13 +233,17 @@ rebuild_noproxy (Btor *btor, BtorNode *node, BtorIntHashTable *cache)
 
     case BTOR_BV_SLICE_NODE:
       result = btor_exp_bv_slice (btor,
-                                  node->e[0],
+                                  e[0],
                                   btor_node_bv_slice_get_upper (node),
                                   btor_node_bv_slice_get_lower (node));
       break;
 
-    default: result = btor_exp_create (btor, node->kind, node->e, node->arity);
+    default: result = btor_exp_create (btor, node->kind, e, node->arity);
   }
+
+  simp = btor_node_copy (btor, btor_node_get_simplified (btor, result));
+  btor_node_release (btor, result);
+  result = simp;
 
   if (btor_node_is_lambda (node))
   {
@@ -266,10 +274,13 @@ substitute (Btor *btor,
 
   int32_t id;
   size_t i, cur_num_nodes;
-  BtorNodePtrStack visit, reset_stack, release_stack;
+  BtorNodePtrStack visit, release_stack;
   BtorHashTableData *d, *dsub;
   BtorNode *cur, *cur_subst, *real_cur_subst, *rebuilt, *simplified;
   BtorIntHashTable *substs, *cache;
+#ifndef NDEBUG
+  BtorIntHashTable *cnt;
+#endif
   BtorPtrHashTableIterator it;
   bool opt_nondestr_subst = btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST) == 1;
 
@@ -278,9 +289,11 @@ substitute (Btor *btor,
   BTORLOG (1, "start substitute");
 
   BTOR_INIT_STACK (btor->mm, visit);
-  BTOR_INIT_STACK (btor->mm, reset_stack);
   BTOR_INIT_STACK (btor->mm, release_stack);
   cache = btor_hashint_map_new (btor->mm);
+#ifndef NDEBUG
+  cnt = btor_hashint_map_new (btor->mm);
+#endif
 
   /* normalize substitutions: -t1 -> t2 ---> t1 -> -t2 */
   substs = btor_hashint_map_new (btor->mm);
@@ -341,8 +354,10 @@ RESTART:
 
     d = btor_hashint_map_get (cache, id);
     BTORLOG (2,
-             "  visit (%s): %s",
-             !d || d->as_int == 0 ? "pre" : "post",
+             "visit (%s, synth: %u, param: %u): %s",
+             d == 0 ? "pre" : "post",
+             btor_node_is_synth (cur),
+             cur->parameterized,
              btor_util_node2string (cur));
     assert (opt_nondestr_subst || !btor_node_is_simplified (cur));
     assert (!btor_node_is_proxy (cur));
@@ -398,10 +413,20 @@ RESTART:
 
       if (cur != rebuilt && btor_node_real_addr (rebuilt)->rebuild)
       {
-        BTORLOG (1, "needs rebuild: %s", btor_util_node2string (rebuilt));
+        BTORLOG (1,
+                 "needs rebuild: %s != %s",
+                 btor_util_node2string (cur),
+                 btor_util_node2string (rebuilt));
         BTOR_PUSH_STACK (release_stack, rebuilt);
         BTOR_PUSH_STACK (visit, cur);
         BTOR_PUSH_STACK (visit, rebuilt);
+#ifndef NDEBUG
+        BtorHashTableData *d;
+        if (!(d = btor_hashint_map_get (cnt, btor_node_real_addr (cur)->id)))
+          d = btor_hashint_map_add (cnt, btor_node_real_addr (cur)->id);
+        d->as_int++;
+        assert (d->as_int < 100);
+#endif
         continue;
       }
 
@@ -419,17 +444,14 @@ RESTART:
 
       if (cur != rebuilt)
       {
-        /* Do not rewrite synthesized nodes if non-destructive substitution is
-         * enabled.
+        /* Do not rewrite synthesized and parameterized nodes if
+         * non-destructive substitution is enabled.
          */
-        if (!opt_nondestr_subst || !btor_node_is_synth (cur))
+        if (!opt_nondestr_subst
+            || (!btor_node_is_synth (cur) && !cur->parameterized))
         {
           simplified = btor_simplify_exp (btor, rebuilt);
           btor_set_simplified_exp (btor, cur, simplified);
-          if (cur->parameterized)
-          {
-            BTOR_PUSH_STACK (reset_stack, cur);
-          }
         }
       }
       btor_node_release (btor, rebuilt);
@@ -480,26 +502,13 @@ RESTART:
   }
   btor_hashint_map_delete (cache);
   btor_hashint_map_delete (substs);
+#ifndef NDEBUG
+  btor_hashint_map_delete (cnt);
+#endif
   BTOR_RELEASE_STACK (visit);
 
   update_node_hash_tables (btor);
   update_assumptions (btor);
-
-  if (btor_opt_get (btor, BTOR_OPT_NONDESTR_SUBST)
-      && !BTOR_EMPTY_STACK(reset_stack))
-  {
-    while (!BTOR_EMPTY_STACK (reset_stack))
-    {
-      cur = BTOR_POP_STACK (reset_stack);
-      assert (btor_node_is_regular (cur));
-      simplified = btor_node_real_addr (cur->simplified);
-      assert (simplified);
-      btor_node_release (btor, simplified);
-      cur->simplified = 0;
-      BTORLOG (2, "reset simplified: %s", btor_util_node2string (cur));
-    }
-  }
-  BTOR_RELEASE_STACK (reset_stack);
 
   while (!BTOR_EMPTY_STACK (release_stack))
   {
@@ -544,8 +553,6 @@ btor_substitute_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
   {
     cur = btor_iter_hashptr_next (&it);
     assert (!btor_node_is_simplified (cur));
-    // assert (btor_node_is_regular (cur));
-    // assert (btor_node_is_bv_var (cur) || btor_node_is_uf (cur));
     BTOR_PUSH_STACK (stack, cur);
   }
 

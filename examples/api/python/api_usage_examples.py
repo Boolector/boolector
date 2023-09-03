@@ -3,7 +3,7 @@ import pyboolector
 from pyboolector import Boolector, BoolectorException
 
 if __name__ == "__main__":
-    b = Boolector() 
+    b = Boolector()
     print ("Boolector version " + b.Version())
     print ("Boolector id " + b.GitId())
     print ()
@@ -65,11 +65,11 @@ if __name__ == "__main__":
     _array = b.Array(_arrsort, "array_symbol")
     _uf    = b.UF(_funsort)
 
-    # One's complement  
+    # One's complement 
     _not0    = b.Not(_const)
     _not1    = ~_const
 
-    # Two's complement 
+    # Two's complement
     _neg0    = b.Neg(_zero)
     _neg1    = -_zero
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     _redxor  = b.Redxor(_one)
     _redand  = b.Redand(_uint)
 
-    # Slicing of bit vectors 
+    # Slicing of bit vectors
     _slice0  = b.Slice(_param, 8, 0)
     _slice1  = _param[8:0]
     _slice3  = _param[:]   # copy
@@ -93,8 +93,8 @@ if __name__ == "__main__":
 
     _inc     = b.Inc(_not0)
     _dec     = b.Dec(_not1)
-    
-    _implies0 = b.Implies(_redor, _redxor) 
+   
+    _implies0 = b.Implies(_redor, _redxor)
     _implies1 = b.Implies(False, _redor)
     _implies2 = b.Implies(True, _redxor)
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     _nand0    = b.Nand(_inc, _dec)
     _nand1    = b.Nand(128, _dec)
     _nand2    = b.Nand(_dec, 0xaa)
-    _nand3    = ~(_dec & 0xaa) 
+    _nand3    = ~(_dec & 0xaa)
 
     _or0      = b.Or(_inc, _dec)
     _or1      = b.Or(128, _dec)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     _nor0     = b.Nor(_inc, _dec)
     _nor1     = b.Nor(128, _dec)
     _nor2     = b.Nor(_dec, 0xaa)
-    _nor3     = ~(_dec | 0xaa) 
+    _nor3     = ~(_dec | 0xaa)
 
     _eq0      = b.Eq(_inc, _dec)
     _eq1      = b.Eq(128, _dec)
@@ -258,21 +258,21 @@ if __name__ == "__main__":
 
 
     # Reads on arrays
-    _read0    = b.Read(_array, _var) 
+    _read0    = b.Read(_array, _var)
     _read1    = b.Read(_array, 12)
     _read2    = _array[_var]
     _read3    = _array[0x1a]
 
     # Writes on arrays
-    _write0   = b.Write(_array, _var, _var) 
-    _write1   = b.Write(_array, 10, 0b00001) 
+    _write0   = b.Write(_array, _var, _var)
+    _write1   = b.Write(_array, 10, 0b00001)
 
     # If-Then-Else on bit vectors
     _cond0    = b.Cond(_read0[0], _read0, _read1)
     _cond1    = b.Cond(False, _read0, _read1)
     _cond2    = b.Cond(True, 1, _read1)
 
-    # If-Then-Else on arrays 
+    # If-Then-Else on arrays
     _cond3    = b.Cond(0, _write0, _write1)
 
     # Function
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     w = _apply4.width
     w = _fun.width
 
-    # Get bit width of array index 
+    # Get bit width of array index
     w = _array.index_width
 
     # Get arity of functions
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # Get bit vector representation of constants as string
     bits = _const.bits
 
-    # Dump nodes to stdout or files (default format is BTOR) 
+    # Dump nodes to stdout or files (default format is BTOR)
     _apply4.Dump()
     # Dump to file 'dump.btor'
     _apply4.Dump(outfile="dump.btor")
@@ -396,10 +396,10 @@ if __name__ == "__main__":
         bb.Failed(~_cond0_matched[1])
         bb.Failed(_cond0_matched[2])
 
-    os.remove("dump.btor") 
+    os.remove("dump.btor")
 
 ### Quantifiers
-    bbb = Boolector() 
+    bbb = Boolector()
     bbb.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, 1)
     _bvsort   = bbb.BitVecSort(128)
     x        = bbb.Param(_bvsort)
@@ -411,3 +411,19 @@ if __name__ == "__main__":
     res       = bbb.Sat()
     if res == bbb.SAT: print("result: SAT")
     else             : print("result: UNSAT")
+
+### Option interaction
+    bbbb = Boolector()
+    desired_output_format = pyboolector.BTOR_OUTPUT_FORMAT_AIGER_ASCII
+    bbbb.Set_opt(
+        pyboolector.BTOR_OPT_OUTPUT_FORMAT, desired_output_format
+    )
+    assert (
+        bbbb.Get_opt(pyboolector.BTOR_OPT_OUTPUT_FORMAT).val
+        == desired_output_format
+    )
+    assert (
+        bbbb.Get_opt(pyboolector.BTOR_OPT_OUTPUT_FORMAT).val
+        != pyboolector.BTOR_OUTPUT_FORMAT_SMT2
+    )
+

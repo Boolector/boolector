@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -124,18 +124,15 @@ class TestPropInv : public TestBtor
                                                BtorBitVector *,
                                                int32_t eidx))
   {
-    uint32_t bw, sbw;
+    uint32_t bw;
     uint64_t i, j;
     BtorNode *exp, *e[2];
     BtorSortId sort;
     BtorBitVector *bve[2], *bvexp;
 
     bw   = TEST_PROP_INV_COMPLETE_BW;
-    sbw  = btor_util_log_2 (bw);
     sort = btor_sort_bv (d_btor, bw);
     e[0] = btor_exp_var (d_btor, sort, 0);
-    btor_sort_release (d_btor, sort);
-    sort = btor_sort_bv (d_btor, sbw);
     e[1] = btor_exp_var (d_btor, sort, 0);
     btor_sort_release (d_btor, sort);
     exp = exp_fun (d_btor, e[0], e[1]);
@@ -143,9 +140,9 @@ class TestPropInv : public TestBtor
     for (i = 0; i < (uint32_t) (1 << bw); i++)
     {
       bve[0] = btor_bv_uint64_to_bv (d_mm, i, bw);
-      for (j = 0; j < (uint32_t) (1 << sbw); j++)
+      for (j = 0; j < (uint32_t) (1 << bw); j++)
       {
-        bve[1] = btor_bv_uint64_to_bv (d_mm, j, sbw);
+        bve[1] = btor_bv_uint64_to_bv (d_mm, j, bw);
         bvexp  = bv_fun (d_mm, bve[0], bve[1]);
         check_result (inv_fun, exp, bve[0], bvexp, bve[1], 1);
         check_result (inv_fun, exp, bve[1], bvexp, bve[0], 0);
@@ -364,16 +361,12 @@ class TestPropInv : public TestBtor
   {
 #ifndef NDEBUG
     (void) bw;
-    int32_t i;
-    BtorNode *sll, *e[2], *csll, *ce;
+    BtorNode *sll, *e[2];
     BtorSortId sort;
-    BtorBitVector *res, *bvsll, *bve;
     BtorSolver *slv = 0;
 
     sort = btor_sort_bv (d_btor, bw);
     e[0] = btor_exp_var (d_btor, sort, 0);
-    btor_sort_release (d_btor, sort);
-    sort = btor_sort_bv (d_btor, btor_util_log_2 (bw));
     e[1] = btor_exp_var (d_btor, sort, 0);
     btor_sort_release (d_btor, sort);
     sll = btor_exp_bv_sll (d_btor, e[0], e[1]);
@@ -382,29 +375,6 @@ class TestPropInv : public TestBtor
 
   PROP_INV_CONF_SLL_TESTS:
     /* bve << e[1] = bvsll */
-
-    /* -> shifts by bw are not allowed */
-    bvsll = btor_bv_new (d_mm, bw);
-    for (i = 0; i < 10; i++)
-    {
-      bve = btor_bv_new_random (d_mm, &d_btor->rng, bw);
-      if (!btor_bv_get_bit (bve, 0)) btor_bv_set_bit (bve, 0, 1);
-      ce   = btor_exp_bv_const (d_btor, bve);
-      csll = btor_exp_bv_sll (d_btor, ce, e[1]);
-      res  = inv_sll_bv (d_btor, sll, bvsll, bve, 1);
-      ASSERT_NE (res, nullptr);
-      btor_bv_free (d_mm, res);
-      res = inv_sll_bv (d_btor, csll, bvsll, bve, 1);
-      ASSERT_TRUE (
-          (btor_opt_get (d_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res)
-          || (btor_opt_get (d_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS
-              && res));
-      if (res) btor_bv_free (d_mm, res);
-      btor_bv_free (d_mm, bve);
-      btor_node_release (d_btor, ce);
-      btor_node_release (d_btor, csll);
-    }
-    btor_bv_free (d_mm, bvsll);
 
     /* -> shifted bits must match */
     switch (bw)
@@ -530,32 +500,34 @@ class TestPropInv : public TestBtor
     switch (bw)
     {
       case 2:
-        check_conf_shift (0, sll, e, btor_exp_bv_sll, inv_sll_bv, "1", "01", 0);
-        check_conf_shift (0, sll, e, btor_exp_bv_sll, inv_sll_bv, "1", "11", 0);
+        check_conf_shift (
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "01", "01", 0);
+        check_conf_shift (
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "01", "11", 0);
         break;
       case 4:
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "01", "0001", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "0001", "0001", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "10", "0110", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "0010", "0110", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "11", "1100", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "0011", "1100", 0);
         break;
       case 8:
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "001", "00000011", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000001", "00000011", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "010", "00001110", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000010", "00001110", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "011", "00001100", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000011", "00001100", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "100", "11111100", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000100", "11111100", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "101", "00011000", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000101", "00011000", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "110", "11001100", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000110", "11001100", 0);
         check_conf_shift (
-            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "111", "11000000", 0);
+            0, sll, e, btor_exp_bv_sll, inv_sll_bv, "00000111", "11000000", 0);
         break;
       default: break;
     }
@@ -586,16 +558,12 @@ class TestPropInv : public TestBtor
   {
 #ifndef NDEBUG
     (void) bw;
-    int32_t i;
-    BtorNode *srl, *e[2], *csrl, *ce;
+    BtorNode *srl, *e[2];
     BtorSortId sort;
-    BtorBitVector *res, *bvsrl, *bve;
     BtorSolver *slv = 0;
 
     sort = btor_sort_bv (d_btor, bw);
     e[0] = btor_exp_var (d_btor, sort, 0);
-    btor_sort_release (d_btor, sort);
-    sort = btor_sort_bv (d_btor, btor_util_log_2 (bw));
     e[1] = btor_exp_var (d_btor, sort, 0);
     btor_sort_release (d_btor, sort);
     srl = btor_exp_bv_srl (d_btor, e[0], e[1]);
@@ -604,29 +572,6 @@ class TestPropInv : public TestBtor
 
   PROP_INV_CONF_SRL_TESTS:
     /* bve >> e[1] = bvsrl */
-
-    /* -> shifts by bw are not allowed */
-    bvsrl = btor_bv_new (d_mm, bw);
-    for (i = 0; i < 10; i++)
-    {
-      bve = btor_bv_new_random (d_mm, &d_btor->rng, bw);
-      if (!btor_bv_get_bit (bve, bw - 1)) btor_bv_set_bit (bve, bw - 1, 1);
-      ce   = btor_exp_bv_const (d_btor, bve);
-      csrl = btor_exp_bv_srl (d_btor, ce, e[1]);
-      res  = inv_srl_bv (d_btor, srl, bvsrl, bve, 1);
-      ASSERT_NE (res, nullptr);
-      btor_bv_free (d_mm, res);
-      res = inv_srl_bv (d_btor, csrl, bvsrl, bve, 1);
-      ASSERT_TRUE (
-          (btor_opt_get (d_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res)
-          || (btor_opt_get (d_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS
-              && res));
-      if (res) btor_bv_free (d_mm, res);
-      btor_bv_free (d_mm, bve);
-      btor_node_release (d_btor, ce);
-      btor_node_release (d_btor, csrl);
-    }
-    btor_bv_free (d_mm, bvsrl);
 
     /* -> shifted bits must match */
     switch (bw)
@@ -752,32 +697,34 @@ class TestPropInv : public TestBtor
     switch (bw)
     {
       case 2:
-        check_conf_shift (0, srl, e, btor_exp_bv_srl, inv_srl_bv, "1", "10", 0);
-        check_conf_shift (0, srl, e, btor_exp_bv_srl, inv_srl_bv, "1", "11", 0);
+        check_conf_shift (
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "01", "10", 0);
+        check_conf_shift (
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "01", "11", 0);
         break;
       case 4:
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "01", "1000", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "0001", "1000", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "10", "0110", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "0010", "0110", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "11", "0011", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "0011", "0011", 0);
         break;
       case 8:
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "001", "11000000", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000001", "11000000", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "010", "01110000", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000010", "01110000", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "011", "00110000", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000011", "00110000", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "100", "00111111", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000100", "00111111", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "101", "00011000", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000101", "00011000", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "110", "00110011", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000110", "00110011", 0);
         check_conf_shift (
-            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "111", "00000011", 0);
+            0, srl, e, btor_exp_bv_srl, inv_srl_bv, "00000111", "00000011", 0);
         break;
       default: break;
     }

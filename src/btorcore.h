@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2016 Armin Biere.
- *  Copyright (C) 2012-2018 Mathias Preiner.
- *  Copyright (C) 2012-2018 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -150,9 +147,6 @@ struct Btor
   /* maintains non-simplified assumptions as assumed via boolector_assume,
    * this stack is needed for boolector_get_failed_assumptions only */
   BtorNodePtrStack failed_assumptions;
-
-  BtorPtrHashTable *var_rhs;
-  BtorPtrHashTable *fun_rhs;
 
   /* maintain assertions for different contexts push/pop */
   BtorNodePtrStack assertions;

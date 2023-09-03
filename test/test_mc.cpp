@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2016 Armin Biere.
- *  Copyright (C) 2016-2019 Aina Niemetz.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -366,6 +365,7 @@ static int32_t test_mccount2multi_reached[4];
 static void
 test_mccount2multi_call_back (void *state, int32_t i, int32_t k)
 {
+  (void) state;
   assert (test_mccount2multi_reached == (int32_t *) state);
   assert (0 <= i), assert (i < 4);
   assert (k >= 0);

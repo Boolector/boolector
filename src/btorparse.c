@@ -1,9 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2018 Aina Niemetz.
- *  Copyright (C) 2012-2016 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -38,7 +35,7 @@ has_compressed_suffix (const char *str, const char *suffix)
 static int32_t
 parse_aux (Btor *btor,
            FILE *infile,
-           BtorCharStack *prefix,
+           BtorIntStack *prefix,
            const char *infile_name,
            FILE *outfile,
            const BtorParserAPI *parser_api,
@@ -115,7 +112,8 @@ btor_parse (Btor *btor,
             const char *infile_name,
             FILE *outfile,
             char **error_msg,
-            int32_t *status)
+            int32_t *status,
+            bool *parsed_smt2)
 {
   assert (btor);
   assert (infile);
@@ -123,12 +121,13 @@ btor_parse (Btor *btor,
   assert (outfile);
   assert (error_msg);
   assert (status);
+  assert (parsed_smt2);
 
   const BtorParserAPI *parser_api;
-  int32_t idx, first, second, res;
+  int32_t idx, first, second, res, ch;
   uint32_t len;
-  char ch, *msg;
-  BtorCharStack prefix;
+  char *msg;
+  BtorIntStack prefix;
   BtorMemMgr *mem;
 
   idx = 0;
@@ -136,6 +135,7 @@ btor_parse (Btor *btor,
   BTOR_NEWN (btor->mm, msg, len);
   mem = btor_mem_mgr_new ();
   BTOR_INIT_STACK (mem, prefix);
+  *parsed_smt2 = false;
 
   if (has_compressed_suffix (infile_name, ".btor"))
   {
@@ -151,6 +151,7 @@ btor_parse (Btor *btor,
   {
     parser_api = btor_parsesmt2_parser_api ();
     sprintf (msg, "parsing '%s'", infile_name);
+    *parsed_smt2 = true;
   }
   else
   {
@@ -203,6 +204,7 @@ btor_parse (Btor *btor,
         else
         {
           parser_api = btor_parsesmt2_parser_api ();
+          *parsed_smt2 = true;
           sprintf (
               msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
@@ -215,14 +217,23 @@ btor_parse (Btor *btor,
           if (ch == EOF) break;
           BTOR_PUSH_STACK (prefix, ch);
         } while (ch != '\n');
-        BTOR_PUSH_STACK (prefix, 0);
-        if (strstr (prefix.start + idx, " sort ") != NULL)
+        for (size_t i = idx; i < BTOR_COUNT_STACK (prefix); ++i)
         {
-          parser_api = btor_parsebtor2_parser_api ();
-          sprintf (
-              msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
+          /* check if input is BTOR2 */
+          if (i < BTOR_COUNT_STACK (prefix) - 6)
+          {
+            if (BTOR_PEEK_STACK (prefix, i) == ' '
+                && BTOR_PEEK_STACK (prefix, i + 1) == 's'
+                && BTOR_PEEK_STACK (prefix, i + 2) == 'o'
+                && BTOR_PEEK_STACK (prefix, i + 3) == 'r'
+                && BTOR_PEEK_STACK (prefix, i + 4) == 't'
+                && BTOR_PEEK_STACK (prefix, i + 5) == ' ')
+            {
+              parser_api = btor_parsebtor2_parser_api ();
+              sprintf (msg, "assuming BTOR2 input,  parsing '%s'", infile_name);
+            }
+          }
         }
-        (void) BTOR_POP_STACK (prefix);
       }
     }
   }

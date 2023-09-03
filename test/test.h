@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2019 Aina Niemetz
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -150,6 +150,7 @@ class TestFile : public TestBoolector
     int32_t parse_status;
     char* parse_err;
     int32_t sat_res;
+    bool parsed_smt2;
 
     ss_in << BTOR_OUT_DIR << name;
     f_in = fopen (ss_in.str ().c_str (), "r");
@@ -158,11 +159,12 @@ class TestFile : public TestBoolector
     boolector_set_opt (d_btor, BTOR_OPT_VERBOSITY, verbosity);
 
     sat_res = boolector_parse (d_btor,
-                                 f_in,
-                                 ss_in.str ().c_str (),
-                                 d_log_file,
-                                 &parse_err,
-                                 &parse_status);
+                               f_in,
+                               ss_in.str ().c_str (),
+                               d_log_file,
+                               &parse_err,
+                               &parse_status,
+                               &parsed_smt2);
     if (d_expect_parse_error)
     {
       ASSERT_EQ (sat_res, BOOLECTOR_PARSE_ERROR);

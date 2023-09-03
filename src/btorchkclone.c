@@ -1,7 +1,6 @@
 /*  Boolector: Satisfiability Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2019 Aina Niemetz.
- *  Copyright (C) 2013-2017 Mathias Preiner.
+ *  Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
@@ -869,8 +868,6 @@ chkclone_tables (Btor *btor, Btor *clone)
   chkclone_node_ptr_hash_table (
       btor->synthesized_constraints, clone->synthesized_constraints, 0);
   chkclone_node_ptr_hash_table (btor->assumptions, clone->assumptions, 0);
-  chkclone_node_ptr_hash_table (btor->var_rhs, clone->var_rhs, 0);
-  chkclone_node_ptr_hash_table (btor->fun_rhs, clone->fun_rhs, 0);
 
   if (!btor->parameterized)
     assert (!clone->parameterized);

@@ -1,5 +1,4 @@
 #include "boolector.h"
-#include "btoropt.h"
 
 #include <ctype.h>
 #include <stdarg.h>

@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2007-2021 by the authors listed in the AUTHORS file.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 # main track QF_ABV, QF_AUFBV, QF_UFBV, QF_BV, BV (with lingeling + CaDiCaL)
 make clean
 
