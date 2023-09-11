@@ -328,7 +328,7 @@ if(USE_GMP)
 endif()
 
 if(USE_LINGELING)
-find_package(Lingeling)
+  find_package(Lingeling)
 endif()
 if(USE_CADICAL)
   find_package(CaDiCaL)

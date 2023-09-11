@@ -41,9 +41,8 @@ make install
 cd ${BUILD_DIR}
 rm -rf pyboolector
 
-# Ensure that setup.py knows that a package is being built, and
-# it's not being installed
-export PACKAGE_BUILD=1
+# Specify path to CmakeLists.txt so setup.py can extract the version
+export CMAKELISTS_TXT=/boolector/CMakeLists.txt
 
 cp -r /boolector/pypi pyboolector
 
@@ -53,10 +52,6 @@ mkdir -p /boolector/result
 
 # Grab the main license file
 cp /boolector/COPYING pyboolector/LICENSE
-
-# Create a version file for the extension to look at
-grep VERSION /boolector/CMakeLists.txt | grep set | grep -v ARCHIVE | \
-  sed -e 's%^.*\(".*"\).*$%\1%' -e 's/"//g' > pyboolector/version.txt
 
 cd pyboolector
 
