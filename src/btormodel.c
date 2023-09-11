@@ -1216,6 +1216,7 @@ btor_model_get_value (Btor *btor, BtorNode *exp)
   BtorBitVectorTuple *tup;
   BtorPtrHashTableIterator it;
   BtorTupleSortIterator tit;
+  BtorBitVector *bv_val;
 
   exp  = btor_simplify_exp (btor, exp);
   sort = btor_node_get_sort_id (exp);
@@ -1242,13 +1243,41 @@ btor_model_get_value (Btor *btor, BtorNode *exp)
     {
       if (btor_node_is_array (exp))
       {
-        res = btor_exp_array (btor, sort, 0);
+        /* Check for const array. */
+        val = 0;
+        btor_iter_hashptr_init (&it, model);
+        while (btor_iter_hashptr_has_next (&it))
+        {
+          bv_val = it.bucket->data.as_ptr;
+          tup    = btor_iter_hashptr_next (&it);
+          if (tup->arity == 0)
+          {
+            val = btor_exp_bv_const (btor, bv_val);
+            break;
+          }
+        }
+
+        // Default value for base array
+        if (!val)
+        {
+          val =
+              btor_exp_bv_zero (btor, btor_sort_array_get_element (btor, sort));
+        }
+        assert (val);
+        res = btor_exp_const_array (btor, sort, val);
+        btor_node_release (btor, val);
+
         btor_iter_hashptr_init (&it, (BtorPtrHashTable *) model);
         while (btor_iter_hashptr_has_next (&it))
         {
-          val = btor_exp_bv_const (btor, it.bucket->data.as_ptr);
+          bv_val = it.bucket->data.as_ptr;
           tup = (BtorBitVectorTuple *) btor_iter_hashptr_next (&it);
-          assert (tup->arity == 1);
+          /* Skip const array. */
+          if (tup->arity == 0)
+          {
+            continue;
+          }
+          val = btor_exp_bv_const (btor, it.bucket->data.as_ptr);
           arg = btor_exp_bv_const (btor, tup->bv[0]);
           tmp = btor_exp_write (btor, res, arg, val);
           btor_node_release (btor, arg);

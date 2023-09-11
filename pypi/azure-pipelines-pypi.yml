@@ -4,7 +4,7 @@ jobs:
     vmImage: 'ubuntu-latest'
   steps:
   - script: |
-      docker run -e BUILD_NUM=$(Build.BuildNumber) -e PYTHON_VERSIONS="$(PYTHON_VERSIONS)" -v $(Build.Repository.LocalPath):/boolector quay.io/pypa/manylinux2010_x86_64 /boolector/pypi/build.sh
+      docker run -e BUILD_NUM=$(Build.BuildNumber) -e PYTHON_VERSIONS="$(PYTHON_VERSIONS)" -v $(Build.Repository.LocalPath):/boolector quay.io/pypa/manylinux2014_x86_64 /boolector/pypi/build.sh
     displayName: 'Run PyBoolector Build'
 
   - publish: result/dist

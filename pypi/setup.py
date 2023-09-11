@@ -16,7 +16,7 @@ if "PACKAGE_BUILD" in os.environ.keys() and os.environ["PACKAGE_BUILD"] != "":
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 
-version="3.2.1"
+version="3.2.2"
 if os.path.isfile(os.path.join(basedir, "version.txt")):
     with open(os.path.join(basedir, "version.txt")) as fp:
         version = fp.read()
@@ -58,6 +58,8 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]

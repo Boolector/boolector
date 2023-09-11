@@ -1213,7 +1213,7 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
 }
 
 static void
-dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
+dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun, bool print_lambda)
 {
   assert (fun);
   assert (sdc);
@@ -1279,8 +1279,15 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   }
 
   /* dump function signature */
-  fputs ("(define-fun ", sdc->file);
-  dump_smt_id (sdc, fun);
+  if (print_lambda)
+  {
+    fputs ("(lambda ", sdc->file);
+  }
+  else
+  {
+    fputs ("(define-fun ", sdc->file);
+    dump_smt_id (sdc, fun);
+  }
   fputs (" (", sdc->file);
 
   btor_iter_lambda_init (&it, fun);
@@ -1706,7 +1713,7 @@ dump_smt (BtorSMTDumpContext *sdc)
     assert (!cur->parameterized);
 
     if (btor_node_is_lambda (cur) && !btor_node_is_array (cur))
-      dump_fun_smt2 (sdc, cur);
+      dump_fun_smt2 (sdc, cur, false);
     else
       dump_fun_let_smt2 (sdc, cur);
   }
@@ -1886,7 +1893,7 @@ btor_dumpsmt_dump_node (Btor *btor, FILE *file, BtorNode *exp, uint32_t depth)
 
   mark_boolean (sdc, &all);
   if (btor_node_is_lambda (exp) && !btor_node_is_array (exp))
-    dump_fun_smt2 (sdc, exp);
+    dump_fun_smt2 (sdc, exp, true);
   else
   {
     recursively_dump_exp_let_smt (sdc, exp, false, depth);
