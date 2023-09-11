@@ -16,7 +16,7 @@ if "PACKAGE_BUILD" in os.environ.keys() and os.environ["PACKAGE_BUILD"] != "":
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 
-version="3.2.2"
+version="3.2.3"
 if os.path.isfile(os.path.join(basedir, "version.txt")):
     with open(os.path.join(basedir, "version.txt")) as fp:
         version = fp.read()
