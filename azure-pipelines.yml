@@ -1,7 +1,7 @@
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
   # cpython versions to build wheels for.
-  PYTHON_VERSIONS: cp36 cp37 cp38 cp39 cp310
+  PYTHON_VERSIONS: cp36 cp37 cp38 cp39 cp310 cp311 cp312
 
 jobs:
 - job: Linux
