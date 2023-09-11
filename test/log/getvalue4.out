@@ -1,0 +1,11 @@
+sat
+((A ((as const (Array (_ BitVec 4) (_ BitVec 8))) #b00000000)))
+(((store A (_ bv4 4) (_ bv1 8)) (store ((as const (Array (_ BitVec 4) (_ BitVec 8))) #b00000000) #b0100 #b00000000)))
+(((_ bv10 8) #b00001010))
+(
+ (bv #b00000000000000000000000000000000)
+ ((bvnot bv) #b11111111111111111111111111111111)
+)
+((f (lambda  ((_f_x (_ BitVec 8))) (_ BitVec 8)
+(bvadd _f_x #b00000001))
+))

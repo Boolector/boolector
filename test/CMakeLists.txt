@@ -959,6 +959,8 @@ set(cmp_testcases
 "getvalue1.smt2"
 "getvalue2.smt2"
 "getvalue3.smt2"
+"getvalue4.smt2"
+"issue200.smt2 -i"
 "normalize_add_incomplete.btor -db"
 "normalize_and_incomplete.btor -db"
 "normalize_mul_incomplete.btor -db"
