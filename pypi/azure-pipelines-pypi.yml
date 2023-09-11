@@ -45,8 +45,15 @@ jobs:
   - script: |
       brew remove boost
       ./contrib/setup-btor2tools.sh
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
       ./contrib/setup-cadical.sh
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
       ./contrib/setup-lingeling.sh
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
+      file deps/install/lib/libcadical.a
     displayName: 'Setup dependencies'
 
   - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
@@ -60,7 +67,10 @@ jobs:
 
   - script: |
       export BUILD_NUM=$(Build.BuildNumber)
+      echo "Build.Repository.LocalPath/deps/install/lib:"
+      ls $(Build.Repository.LocalPath)/deps/install/lib
       export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)/build/lib
+      echo "LIBRARY_PATH: $LIBRARY_PATH"
       export PACKAGE_BUILD=1
       cp -r src/api/python pypi/src
       mkdir -p pypi/src/utils
