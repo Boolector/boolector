@@ -26,6 +26,12 @@ More information about Boolector is available at: https://boolector.github.io
 The latest version of Boolector is available on GitHub:
 https://github.com/boolector/boolector
 
+## Installation
+### On macOS (or Linux) via Homebrew
+```
+brew install boolector
+```
+Note: this installation doesn't come with Python bindings and it uses Lingeling as backend.
 
 ## Prerequisites
 
