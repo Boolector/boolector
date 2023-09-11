@@ -1,0 +1,33 @@
+diff -rcNB lingeling.orig/configure.sh lingeling/configure.sh
+*** lingeling.orig/configure.sh	2023-09-11 14:07:53.000000000 -0700
+--- lingeling/configure.sh	2023-09-11 14:14:54.000000000 -0700
+***************
+*** 16,21 ****
+--- 16,22 ----
+  aiger=undefined
+  yalsat=undefined
+  files=no
++ arch=""
+  
+  ##########################################################################
+  
+***************
+*** 76,81 ****
+--- 77,83 ----
+      -O0|-O1|-O2|-O3|-O4) olevel=$1;;
+      -lto|-flto|--lto|--flto) lto=yes;;
+      -static|--static|-s) static=yes;;
++     -arch) arch="$2"; shift;;
+      --aiger=*) aiger=`echo "$1"|sed -e 's,^--aiger=,,'`;;
+      --no-aiger) aiger=no;;
+      --yalsat=*) yalsat=`echo "$1"|sed -e 's,^--yalsat=,,'`;;
+***************
+*** 243,248 ****
+--- 245,251 ----
+  [ $yalsat = no ] && CFLAGS="$CFLAGS -DNLGLYALSAT"
+  [ $files = no ] && CFLAGS="$CFLAGS -DNLGLFILES"
+  [ $dema = no ] && CFLAGS="$CFLAGS -DNLGLDEMA"
++ [ "x$arch" != "x" ] && CFLAGS="$CFLAGS -arch $arch"
+  
+  if [ $classify = yes -a -d sc14classify ]
+  then

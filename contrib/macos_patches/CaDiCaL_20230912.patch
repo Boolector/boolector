@@ -1,0 +1,13 @@
+diff -rcNB cadical.orig/configure cadical/configure
+*** cadical.orig/configure	2023-09-11 13:33:58.000000000 -0700
+--- cadical/configure	2023-09-11 13:36:40.000000000 -0700
+***************
+*** 145,150 ****
+--- 145,151 ----
+      -m32) options="$options $1";m32=yes;;
+      -f*|-ggdb3|-O|-O1|-O2|-O3) options="$options $1";;
+      -s|--symbols) options="$options -ggdb3";;
++     -arch) options="$options $1 $2"; shift;;
+  
+      CXX=*)
+        CXX="`expr \"$1\" : 'CXX=\(.*\)'`"

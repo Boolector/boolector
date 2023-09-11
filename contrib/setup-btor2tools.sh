@@ -22,9 +22,30 @@ if is_windows; then
   component="Btor2Tools"
   last_patch_date="20190110"
   test_apply_patch "${component}" "${last_patch_date}"
+elif is_macos; then
+  component="Btor2Tools"
+  last_patch_date="20230912"
+  test_apply_patch "${component}" "${last_patch_date}"
 fi
 
-./configure.sh -fPIC
-make -j${NPROC}
+if is_macos; then
+  rm -rf build.x86_64 build.arm64
+
+  ./configure.sh -fPIC -arch x86_64
+  make -j${NPROC}
+  mv build build.x86_64
+  ./configure.sh -fPIC -arch arm64
+  make -j${NPROC}
+  mv build build.arm64
+
+  mkdir -p build
+  lipo -create -output build/libbtor2parser.a \
+    build.x86_64/libbtor2parser.a \
+    build.arm64/libbtor2parser.a
+else
+  ./configure.sh -fPIC
+  make -j${NPROC}
+fi
+
 install_lib build/libbtor2parser.a
 install_include src/btor2parser/btor2parser.h

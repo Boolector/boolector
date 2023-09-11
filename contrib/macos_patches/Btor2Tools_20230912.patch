@@ -1,0 +1,40 @@
+diff -rcNB btor2tools/configure.sh btor2tools.mod/configure.sh
+*** btor2tools/configure.sh	2019-04-18 22:02:29.000000000 -0700
+--- btor2tools.mod/configure.sh	2023-09-11 13:21:35.000000000 -0700
+***************
+*** 8,13 ****
+--- 8,14 ----
+  flto=no
+  shared=no
+  static=no
++ arch=""
+  
+  flags=none
+  
+***************
+*** 59,64 ****
+--- 60,66 ----
+      -asan) asan=yes;;
+      -gcov) gcov=yes;;
+      -gprof) gprof=yes;;
++     -arch)  arch="$arch $1 $2"; shift;;
+      -f*|-m*) if [ $flags = none ]; then flags=$1; else flags="$flags $1"; fi;;
+      -h|-help|--help) usage;;
+      -*) die "invalid option '$1' (try '-h')";;
+***************
+*** 73,79 ****
+  if [ X"$CFLAGS" = X ]
+  then
+    [ $debug = unknown ] && debug=no
+!   CFLAGS="-W -Wall -Wextra -Wredundant-decls -std=gnu99"
+    [ $static = yes ] && CFLAGS="$CFLAGS -static"
+    [ $shared = yes ] && CFLAGS="$CFLAGS -fPIC"
+    [ $flags = none ] || CFLAGS="$CFLAGS $flags"
+--- 75,81 ----
+  if [ X"$CFLAGS" = X ]
+  then
+    [ $debug = unknown ] && debug=no
+!   CFLAGS="-W -Wall -Wextra -Wredundant-decls -std=gnu99 $arch"
+    [ $static = yes ] && CFLAGS="$CFLAGS -static"
+    [ $shared = yes ] && CFLAGS="$CFLAGS -fPIC"
+    [ $flags = none ] || CFLAGS="$CFLAGS $flags"

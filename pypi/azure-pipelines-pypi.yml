@@ -26,7 +26,7 @@ jobs:
   - publish: result/dist
     artifact: dist-linux-ppc64le
 
-- job: PyPi_MacOS_x86_64
+- job: PyPi_MacOS
   pool:
     vmImage: 'macos-latest'
   strategy:
@@ -52,7 +52,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      $(btorConfigEnv) cmake .. 
+      $(btorConfigEnv) cmake .. -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'
     displayName: 'Configure Boolector'
 
   - script: |
@@ -63,7 +63,7 @@ jobs:
 
   - script: |
       export BUILD_NUM=$(Build.BuildNumber)
-      export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)
+      export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)/build/lib
       export PACKAGE_BUILD=1
       cp -r src/api/python pypi/src
       mkdir -p pypi/src/utils
@@ -82,13 +82,13 @@ jobs:
     displayName: 'Build PyPi package'
 
   - publish: pypi/dist
-    artifact: dist-macos-x86_64
+    artifact: dist-macos
 
 - job: PyPi_Upload
   dependsOn:
   - PyPi_Linux_x86_64
   - PyPi_Linux_ppc64le
-  - PyPi_MacOS_x86_64
+  - PyPi_MacOS
   pool:
     vmImage: 'ubuntu-latest'
   condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))

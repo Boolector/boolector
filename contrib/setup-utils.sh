@@ -24,6 +24,7 @@ INSTALL_LIB_DIR="${INSTALL_DIR}/lib"
 INSTALL_INCLUDE_DIR="${INSTALL_DIR}/include"
 INSTALL_BIN_DIR="${INSTALL_DIR}/bin"
 WINDOWS_PATCHES_DIR="$(pwd)/contrib/windows_patches"
+MACOS_PATCHES_DIR="$(pwd)/contrib/macos_patches"
 
 if type nproc > /dev/null 2>&1; then
   NPROC=$(nproc)
@@ -73,6 +74,16 @@ function is_windows
   false
 }
 
+function is_macos
+{
+    case "$(uname -s)" in
+      Darwin*)
+        return
+        ;;
+    esac
+    false
+}
+
 function test_apply_patch
 {
   #
@@ -84,7 +95,13 @@ function test_apply_patch
   #
   local component="$1"
   local last_patch_date="$2"
-  local patch_set="${WINDOWS_PATCHES_DIR}/${component}_${last_patch_date}.patch"
+  if is_windows; then
+    local patch_set="${WINDOWS_PATCHES_DIR}/${component}_${last_patch_date}.patch"
+    local os_name="Windows"
+  else
+    local patch_set="${MACOS_PATCHES_DIR}/${component}_${last_patch_date}.patch"
+    local os_name="macOS"
+  fi
   patch -p1 -N --dry-run --silent < "${patch_set}" 2>/dev/null
   if [ $? -eq 0 ]; then
     #
@@ -98,7 +115,7 @@ function test_apply_patch
     echo "##############################################################"
     echo "# ***Critical error***"
     echo "#"
-    echo "#    Failed to patch ${component} to be Windows-compatible!"
+    echo "#    Failed to patch ${component} to be ${os_name}-compatible!"
     echo "#"
     echo "#    Please create an issue on GitHub.com:"
     echo "#"

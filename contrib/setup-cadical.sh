@@ -34,11 +34,30 @@ if is_windows; then
   # fPIC is not valid, so we set CXXFLAGS per-platform
   #
   export CXXFLAGS=""
+elif is_macos; then
+  component="CaDiCaL"
+  last_patch_date="20230912"
+  test_apply_patch "${component}" "${last_patch_date}"
+  export CXXFLAGS="-fPIC"
 else
   export CXXFLAGS="-fPIC"
 fi
 
-./configure ${EXTRA_FLAGS}
-make -j${NPROC}
+if is_macos; then
+  rm -rf build.x86_64 build.arm64
+  ./configure ${EXTRA_FLAGS} -arch x86_64
+  make -j${NPROC}
+  mv build build.x86_64
+  ./configure ${EXTRA_FLAGS} -arch arm64
+  make -j${NPROC}
+  mv build build.arm64
+  mkdir -p build
+  lipo -create -output build/libcadical.a \
+    build.x86_64/libcadical.a build.arm64/libcadical.a
+else
+  ./configure ${EXTRA_FLAGS}
+  make -j${NPROC}
+fi
+
 install_lib build/libcadical.a
 install_include src/ccadical.h
