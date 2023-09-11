@@ -212,6 +212,13 @@ cmake_opts="$CMAKE_OPTS"
 
 [ -n "$flags" ] && cmake_opts="$cmake_opts -DFLAGS=$flags"
 
+# Create a universal binary on macOS
+case "$(uname -a)" in
+  Darwin*)
+    cmake_opts="$cmake_opts -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'"
+    ;;
+esac
+
 mkdir -p $BUILDDIR
 cd $BUILDDIR || exit 1
 

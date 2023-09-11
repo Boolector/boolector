@@ -49,10 +49,7 @@ jobs:
       ./contrib/setup-lingeling.sh
     displayName: 'Setup dependencies'
 
-  - script: |
-      mkdir build
-      cd build
-      $(btorConfigEnv) cmake .. -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'
+  - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
     displayName: 'Configure Boolector'
 
   - script: |
