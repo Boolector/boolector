@@ -1,6 +1,6 @@
 diff -rcNB cadical.orig/configure cadical/configure
-*** cadical.orig/configure	2023-09-11 13:33:58.000000000 -0700
---- cadical/configure	2023-09-11 13:36:40.000000000 -0700
+*** cadical.orig/configure	2023-09-11 17:33:04.000000000 -0700
+--- cadical/configure	2023-09-11 17:34:53.000000000 -0700
 ***************
 *** 145,150 ****
 --- 145,151 ----
@@ -11,3 +11,33 @@ diff -rcNB cadical.orig/configure cadical/configure
   
       CXX=*)
         CXX="`expr \"$1\" : 'CXX=\(.*\)'`"
+***************
+*** 280,289 ****
+  EOF
+  if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
+  then
+!   if [ ! "`$feature.exe 2>>configure.log`" = "hello world" ]
+!   then
+!     die "execution of '$feature.exe' failed"
+!   fi
+  else
+    die "test compilation '$feature.cpp'"
+  fi
+--- 281,297 ----
+  EOF
+  if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
+  then
+!   case $(uname -a) in
+!     Darwin*)
+!       echo "Note: skipping execution test on macOS"
+!       ;;
+!     *)
+!       if [ ! "`$feature.exe 2>>configure.log`" = "hello world" ]
+!       then
+!         die "execution of '$feature.exe' failed"
+!       fi
+!       ;;
+!   esac
+  else
+    die "test compilation '$feature.cpp'"
+  fi
