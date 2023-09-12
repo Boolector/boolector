@@ -52,6 +52,12 @@ if is_macos; then
 
   echo "** Building arm64 cadical"
   /bin/bash -x ./configure ${EXTRA_FLAGS} -arch arm64
+  if test -f configure.log; then
+    echo "Contents of configure.log"
+    cat configure.log
+  else
+    echo "configure.log does not exist"
+  fi
   make -j${NPROC}
   mv build build.arm64
   mkdir -p build

@@ -57,7 +57,7 @@ jobs:
       ./contrib/setup-lingeling.sh
       echo "Content of deps/install/lib"
       ls deps/install/lib
-      file deps/install/lib/libcadical.a
+      file deps/install/lib/liblgl.a
     displayName: 'Setup lingeling dependency'
 
   - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
