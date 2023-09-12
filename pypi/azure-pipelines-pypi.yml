@@ -60,7 +60,7 @@ jobs:
       file deps/install/lib/liblgl.a
     displayName: 'Setup lingeling dependency'
 
-  - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
+  - script: $(btorConfigEnv) ./configure.sh -fPIC --universal $(btorConfig)
     displayName: 'Configure Boolector'
 
   - script: |
