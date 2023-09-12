@@ -44,11 +44,14 @@ else
 fi
 
 if is_macos; then
+  echo "** Building x86_64 cadical"
   rm -rf build.x86_64 build.arm64
   ./configure ${EXTRA_FLAGS} -arch x86_64
   make -j${NPROC}
   mv build build.x86_64
-  ./configure ${EXTRA_FLAGS} -arch arm64
+
+  echo "** Building arm64 cadical"
+  /bin/bash -x ./configure ${EXTRA_FLAGS} -arch arm64
   make -j${NPROC}
   mv build build.arm64
   mkdir -p build

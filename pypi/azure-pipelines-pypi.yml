@@ -47,14 +47,18 @@ jobs:
       ./contrib/setup-btor2tools.sh
       echo "Content of deps/install/lib"
       ls deps/install/lib
+    displayName: 'Setup btor2tools dependency'
+  - script: |
       ./contrib/setup-cadical.sh
       echo "Content of deps/install/lib"
       ls deps/install/lib
+    displayName: 'Setup cadical dependency'
+  - script: |
       ./contrib/setup-lingeling.sh
       echo "Content of deps/install/lib"
       ls deps/install/lib
       file deps/install/lib/libcadical.a
-    displayName: 'Setup dependencies'
+    displayName: 'Setup lingeling dependency'
 
   - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
     displayName: 'Configure Boolector'
