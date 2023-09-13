@@ -1,6 +1,6 @@
-diff -rcNB cadical.orig/configure cadical/configure
-*** cadical.orig/configure	2023-09-11 17:33:04.000000000 -0700
---- cadical/configure	2023-09-11 17:34:53.000000000 -0700
+diff -rcNB cadical.orig/configure cadical.new/configure
+*** cadical.orig/configure	2023-09-13 14:39:49.000000000 -0700
+--- cadical.new/configure	2023-09-13 14:44:19.000000000 -0700
 ***************
 *** 145,150 ****
 --- 145,151 ----
@@ -41,3 +41,100 @@ diff -rcNB cadical.orig/configure cadical/configure
   else
     die "test compilation '$feature.cpp'"
   fi
+***************
+*** 323,344 ****
+  EOF
+  if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
+  then
+!   if [ "`$feature.exe 2>>configure.log`" = 42 ]
+!   then
+!     msg "compiler supports all required C99/C++0x extensions"
+!   else
+!     die "checking compilation without '-std=c++0x' failed"
+!   fi
+  else
+    CXXFLAGS="$CXXFLAGS -std=c++0x"
+    if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
+    then
+!     if [ "`$feature.exe 2>>configure.log`" = 42 ]
+!     then
+!       msg "using '-std=c++0x' for all required C99/C++0x extensions"
+!     else
+!       die "checking compilation with '-std=c++0x' failed"
+!     fi
+    else
+      die "compiler does not support C99/C++0x even with '-std=c++0x'"
+    fi
+--- 331,366 ----
+  EOF
+  if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
+  then
+!   case $(uname -a) in
+!     Darwin*)
+!       echo "Note: skipping execution test on macOS"
+!       ;;
+!     *)
+!       if [ "`$feature.exe 2>>configure.log`" = 42 ]
+!       then
+!         msg "compiler supports all required C99/C++0x extensions"
+!       else
+!         die "checking compilation without '-std=c++0x' failed"
+!       fi
+!       ;;
+!   esac
+  else
+    CXXFLAGS="$CXXFLAGS -std=c++0x"
+    if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
+    then
+!     case $(uname -a) in
+!       Darwin*)
+!         echo "Note: skipping execution test on macOS"
+!         ;;
+!       *)
+!         if [ "`$feature.exe 2>>configure.log`" = 42 ]
+!         then
+!           msg "using '-std=c++0x' for all required C99/C++0x extensions"
+!         else
+!           die "checking compilation with '-std=c++0x' failed"
+!         fi
+!         ;;
+!     esac
+    else
+      die "compiler does not support C99/C++0x even with '-std=c++0x'"
+    fi
+***************
+*** 368,380 ****
+  EOF
+    if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
+    then
+!     if $feature.exe
+!     then
+!       msg "unlocked IO with '{putc,getc}_unlocked' seems to work"
+!     else
+!       msg "not using unlocked IO (running '$feature.exe' failed)"
+!       unlocked=no
+!     fi
+    else
+      msg "not using unlocked IO (failed to compile '$feature.cpp')"
+      unlocked=no
+--- 390,409 ----
+  EOF
+    if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
+    then
+!     case $(uname -a) in
+!       Darwin*)
+!         echo "Note: skipping execution test on macOS"
+!         ;;
+!       *)
+!         if $feature.exe
+!         then
+!            msg "unlocked IO with '{putc,getc}_unlocked' seems to work"
+!         else
+!            msg "not using unlocked IO (running '$feature.exe' failed)"
+!            unlocked=no
+!         fi
+!         ;;
+!     esac
+    else
+      msg "not using unlocked IO (failed to compile '$feature.cpp')"
+      unlocked=no
