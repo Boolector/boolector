@@ -1,7 +1,11 @@
-news since 3.2.2
+news since 3.2.3
+
+news for release 3.2.3 since 3.2.2
 --------------------------------------------------------------------------------
 + new API calls
   - boolector_get_value
++ fix printing of constant arrays for get-value
++ build PyPi packages for Python version <=3.12
 
  news for release 3.2.2 since 3.2.1
 --------------------------------------------------------------------------------
