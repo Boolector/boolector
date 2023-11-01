@@ -31,6 +31,9 @@ py2=no
 py3=no
 timestats=no
 
+# Enable macOS universal binaries
+univeral=no
+
 ninja=no
 
 flags=""
@@ -71,6 +74,7 @@ where <option> is one of the following:
   --py2             prefer Python 2.7
   --py3             prefer Python 3
   --time-stats      compile with time statistics
+  --universal       produce macOS universal x86_64/arm64 binaries
 
   --gmp             use gmp for bit-vector implementation
 
@@ -149,6 +153,7 @@ do
     --py2)        py2=yes;;
     --py3)        py3=yes;;
     --time-stats) timestats=yes;;
+    --universal)  universal=yes;;
 
     --gmp) gmp=yes;;
 
@@ -211,6 +216,13 @@ cmake_opts="$CMAKE_OPTS"
 [ $timestats = yes ] && cmake_opts="$cmake_opts -DTIME_STATS=ON"
 
 [ -n "$flags" ] && cmake_opts="$cmake_opts -DFLAGS=$flags"
+
+# Create a universal binary on macOS
+case "$(uname -a)" in
+  Darwin*)
+    [ $universal = yes ] && cmake_opts="$cmake_opts -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'"
+    ;;
+esac
 
 mkdir -p $BUILDDIR
 cd $BUILDDIR || exit 1

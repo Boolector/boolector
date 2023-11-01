@@ -26,7 +26,7 @@ jobs:
   - publish: result/dist
     artifact: dist-linux-ppc64le
 
-- job: PyPi_MacOS_x86_64
+- job: PyPi_MacOS
   pool:
     vmImage: 'macos-latest'
   strategy:
@@ -45,11 +45,22 @@ jobs:
   - script: |
       brew remove boost
       ./contrib/setup-btor2tools.sh
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
+    displayName: 'Setup btor2tools dependency'
+  - script: |
       ./contrib/setup-cadical.sh
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
+    displayName: 'Setup cadical dependency'
+  - script: |
       ./contrib/setup-lingeling.sh
-    displayName: 'Setup dependencies'
+      echo "Content of deps/install/lib"
+      ls deps/install/lib
+      file deps/install/lib/liblgl.a
+    displayName: 'Setup lingeling dependency'
 
-  - script: $(btorConfigEnv) ./configure.sh -fPIC $(btorConfig)
+  - script: $(btorConfigEnv) ./configure.sh -fPIC --universal $(btorConfig)
     displayName: 'Configure Boolector'
 
   - script: |
@@ -60,13 +71,17 @@ jobs:
 
   - script: |
       export BUILD_NUM=$(Build.BuildNumber)
-      export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)
+      echo "Build.Repository.LocalPath/deps/install/lib:"
+      ls $(Build.Repository.LocalPath)/deps/install/lib
+      export LIBRARY_PATH=$(Build.Repository.LocalPath)/deps/install/lib:$(Build.Repository.LocalPath)/build/lib
+      echo "LIBRARY_PATH: $LIBRARY_PATH"
+      export PACKAGE_BUILD=1
       cp -r src/api/python pypi/src
       mkdir -p pypi/src/utils
       cp src/*.h pypi/src
       cp COPYING pypi/LICENSE
       cp src/utils/*.h pypi/src/utils
-      version=`grep 'set(VERSION' /boolector/CMakeLists.txt | sed -e 's/^.*\"\(.*\)\".*$/\1/'`
+      grep VERSION CMakeLists.txt | grep set | grep -v ARCHIVE | sed -e 's%^.*\(".*"\).*$%\1%' -e 's/"//g' > pypi/version.txt
       cd pypi
       sed -e 's/override//g' -e 's/noexcept/_NOEXCEPT/g' -e 's/\(BoolectorException (const.*\)/\1    virtual ~BoolectorException() _NOEXCEPT {}/' src/pyboolector_abort.cpp > src/pyboolector_abort.cpp.new
       if test $? -ne 0; then exit 1; fi
@@ -78,13 +93,13 @@ jobs:
     displayName: 'Build PyPi package'
 
   - publish: pypi/dist
-    artifact: dist-macos-x86_64
+    artifact: dist-macos
 
 - job: PyPi_Upload
   dependsOn:
   - PyPi_Linux_x86_64
   - PyPi_Linux_ppc64le
-  - PyPi_MacOS_x86_64
+  - PyPi_MacOS
   pool:
     vmImage: 'ubuntu-latest'
   condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))

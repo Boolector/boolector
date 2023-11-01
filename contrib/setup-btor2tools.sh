@@ -18,9 +18,24 @@ COMMIT_ID="037f1fa88fb439dca6f648ad48a3463256d69d8b"
 download_github "boolector/btor2tools" "$COMMIT_ID" "$BTOR2TOOLS_DIR"
 cd "${BTOR2TOOLS_DIR}"
 
-CFLAGS="-fPIC" ./configure.sh --static
-pushd build
-make -j${NPROC}
-popd
+if is_windows; then
+  component="Btor2Tools"
+  last_patch_date="20190110"
+  test_apply_patch "${component}" "${last_patch_date}"
+fi
+
+if is_macos; then
+   mkdir build
+   pushd build
+   cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64'
+   make -j${NPROC}
+   popd
+else
+  CFLAGS="-fPIC" ./configure.sh --static
+  pushd build
+  make -j${NPROC}
+  popd
+fi
+
 install_lib build/lib/libbtor2parser.a
 install_include src/btor2parser/btor2parser.h

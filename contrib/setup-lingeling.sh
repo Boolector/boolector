@@ -22,9 +22,32 @@ if is_windows; then
   component="Lingeling"
   last_patch_date="20190110"
   test_apply_patch "${component}" "${last_patch_date}"
+elif is_macos; then
+  component="Lingeling"
+  last_patch_date="20230912"
+  test_apply_patch "${component}" "${last_patch_date}"
 fi
 
-./configure.sh -fPIC
-make -j${NPROC}
+if is_macos; then
+  rm -rf x86_64 arm64
+  if test -f makefile; then
+    make clean
+  fi
+  ./configure.sh -fPIC -arch x86_64
+  make -j${NPROC}
+  mkdir -p x86_64
+  cp liblgl.a x86_64
+
+  make clean
+  ./configure.sh -fPIC -arch arm64
+  make -j${NPROC}
+  mkdir -p arm64
+  cp liblgl.a arm64
+
+  lipo -create -output liblgl.a x86_64/liblgl.a arm64/liblgl.a
+else
+  ./configure.sh -fPIC
+  make -j${NPROC}
+fi
 install_lib liblgl.a
 install_include lglib.h
