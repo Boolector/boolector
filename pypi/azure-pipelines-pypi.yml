@@ -13,7 +13,7 @@ jobs:
 - job: PyPi_Linux_ppc64le
   pool:
     vmImage: 'ubuntu-latest'
-  timeoutInMinutes: 120 # Builds in emulation are slow
+  timeoutInMinutes: 180 # Builds in emulation are slow
   steps:
   - script: |
       sudo docker run --rm --privileged aptman/qus -s -- -p ppc64le
