@@ -818,7 +818,9 @@ main (int32_t argc, char **argv)
       else if (btor_util_file_has_suffix (infile_name, ".zip"))
         sprintf (cmd, "unzip -p %s", infile_name);
 
+#ifndef __wasm
       if ((infile = popen (cmd, "r"))) close_infile = 2;
+#endif
 
       BTOR_DELETEN (mm, cmd, len + 40);
     }
@@ -956,8 +958,10 @@ main (int32_t argc, char **argv)
 DONE:
   if (close_infile == 1)
     fclose (infile);
+#ifndef __wasm
   else if (close_infile == 2)
     pclose (infile);
+#endif
   boolector_mc_delete (mc);
   while (!BTOR_EMPTY_STACK (opts))
   {

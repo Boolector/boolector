@@ -21,7 +21,9 @@
 
 #include <assert.h>
 #include <limits.h>
+#ifndef __wasm
 #include <signal.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1061,7 +1063,9 @@ boolector_main (int32_t argc, char **argv)
       else if (btor_util_file_has_suffix (g_app->infile_name, ".zip"))
         sprintf (cmd, "unzip -p %s", g_app->infile_name);
 
+#ifndef __wasm
       if ((g_app->infile = popen (cmd, "r"))) g_app->close_infile = 2;
+#endif
 
       BTOR_DELETEN (g_app->mm, cmd, len + 40);
     }
@@ -1595,8 +1599,10 @@ DONE:
 
   if (g_app->close_infile == 1)
     fclose (g_app->infile);
+#ifndef __wasm
   else if (g_app->close_infile == 2)
     pclose (g_app->infile);
+#endif
   if (g_app->close_outfile) fclose (g_app->outfile);
 
   if (!boolector_get_opt (btor, BTOR_OPT_EXIT_CODES))

@@ -64,7 +64,9 @@ btor_trapi_open_trace (Btor *btor, const char *name)
     len += 20;
     BTOR_NEWN (btor->mm, cmd, len);
     sprintf (cmd, "gzip -c > %s", name);
+#ifndef __wasm
     if ((file = popen (cmd, "w"))) btor->close_apitrace = 2;
+#endif
     BTOR_DELETEN (btor->mm, cmd, len);
   }
   else
