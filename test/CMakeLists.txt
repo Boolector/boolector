@@ -51,7 +51,7 @@ foreach(test ${test_names})
   target_include_directories(test${test} PRIVATE ${PROJECT_SOURCE_DIR}/test/new_test)
   target_link_libraries(test${test} boolector m)
   target_link_libraries(test${test} GTest::gtest_main)
-  set_target_properties(test${test} PROPERTIES OUTPUT_NAME test${test})
+  set_target_properties(test${test} PROPERTIES OUTPUT_NAME test${test} CXX_STANDARD 14)
   add_test(${test} ${CMAKE_BINARY_DIR}/bin/tests/test${test})
 endforeach()
 
