@@ -293,8 +293,10 @@ boolector_delete (Btor *btor)
   BTOR_TRAPI ("");
   if (btor->close_apitrace == 1)
     fclose (btor->apitrace);
+#ifndef __wasm
   else if (btor->close_apitrace == 2)
     pclose (btor->apitrace);
+#endif
 #ifndef NDEBUG
   if (btor->clone) boolector_delete (btor->clone);
 #endif
