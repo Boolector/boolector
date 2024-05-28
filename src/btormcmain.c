@@ -858,6 +858,7 @@ main (int32_t argc, char **argv)
     else if (strcmp (po->name.start, "version") == 0)
     {
       fprintf (out, "%s\n", boolector_version (mc->btor));
+      return 0;
     }
     else if (strcmp (po->name.start, "d") == 0
              || strcmp (po->name.start, "dump") == 0)
