@@ -152,8 +152,8 @@ print_help (FILE *out, BtorMC *mc)
 
   print_opt (
       out, mc->mm, "help", "h", true, 0, "print this message and exit", false);
-  print_opt (out, mc->mm, "copyright", 0, true, 0, "print copyright", false);
-  print_opt (out, mc->mm, "version", 0, true, 0, "print version", false);
+  print_opt (out, mc->mm, "copyright", 0, true, 0, "print copyright and exit", false);
+  print_opt (out, mc->mm, "version", 0, true, 0, "print version and exit", false);
 
   fprintf (out, "\n");
 
