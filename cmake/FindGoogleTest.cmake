@@ -26,7 +26,7 @@ if(NOT GTest_FOUND OR NOT TARGET GTest::gtest_main)
     DOWNLOAD_NAME gtest.tar.gz
     CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-    BUILD_COMMAND ${CMAKE_COMMAND} --build .
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . --target gtest --target gtest_main
     BUILD_BYPRODUCTS
         <INSTALL_DIR>/lib/libgtest.a
         <INSTALL_DIR>/lib/libgtest_main.a
