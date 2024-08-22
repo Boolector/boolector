@@ -6,19 +6,18 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "boolectormc.h"
-#include "btormc.h"
+#include <assert.h>
+#include <inttypes.h>
+#include <limits.h>
 
+#include "boolectormc.h"
 #include "btor2parser.h"
+#include "btormc.h"
 #include "utils/btorhashint.h"
 #include "utils/btormem.h"
 #include "utils/btoroptparse.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
-
-#include <assert.h>
-#include <inttypes.h>
-#include <limits.h>
 
 #define LEN_OPTSTR 38
 #define LEN_PARAMSTR 16
@@ -65,8 +64,7 @@ print_opt (FILE *out,
     for (i = 0, len = strlen (shrt); i < len; i++)
       BTOR_PUSH_STACK (optstr, shrt[i]);
     if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, ' ');
-    for (i = 0; i < len_paramstr; i++)
-      BTOR_PUSH_STACK (optstr, paramstr[i]);
+    for (i = 0; i < len_paramstr; i++) BTOR_PUSH_STACK (optstr, paramstr[i]);
     BTOR_PUSH_STACK (optstr, ',');
     BTOR_PUSH_STACK (optstr, ' ');
   }
@@ -75,8 +73,7 @@ print_opt (FILE *out,
   for (i = 0, len = strlen (lng); i < len; i++)
     BTOR_PUSH_STACK (optstr, lng[i]);
   if (len_paramstr > 0) BTOR_PUSH_STACK (optstr, '=');
-  for (i = 0; i < len_paramstr; i++)
-    BTOR_PUSH_STACK (optstr, paramstr[i]);
+  for (i = 0; i < len_paramstr; i++) BTOR_PUSH_STACK (optstr, paramstr[i]);
 
   len = BTOR_COUNT_STACK (optstr);
   for (i = len; i < LEN_OPTSTR - 1; i++) BTOR_PUSH_STACK (optstr, ' ');
@@ -152,8 +149,10 @@ print_help (FILE *out, BtorMC *mc)
 
   print_opt (
       out, mc->mm, "help", "h", true, 0, "print this message and exit", false);
-  print_opt (out, mc->mm, "copyright", 0, true, 0, "print copyright", false);
-  print_opt (out, mc->mm, "version", 0, true, 0, "print version", false);
+  print_opt (
+      out, mc->mm, "copyright", 0, true, 0, "print copyright and exit", false);
+  print_opt (
+      out, mc->mm, "version", 0, true, 0, "print version and exit", false);
 
   fprintf (out, "\n");
 
@@ -858,6 +857,7 @@ main (int32_t argc, char **argv)
     else if (strcmp (po->name.start, "version") == 0)
     {
       fprintf (out, "%s\n", boolector_version (mc->btor));
+      return 0;
     }
     else if (strcmp (po->name.start, "d") == 0
              || strcmp (po->name.start, "dump") == 0)
@@ -956,8 +956,7 @@ main (int32_t argc, char **argv)
   }
 
 DONE:
-  if (close_infile == 1)
-    fclose (infile);
+  if (close_infile == 1) fclose (infile);
 #ifndef __wasm
   else if (close_infile == 2)
     pclose (infile);
