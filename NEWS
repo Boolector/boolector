@@ -1,4 +1,8 @@
-news since 3.2.3
+news for final release 3.2.4
+--------------------------------------------------------------------------------
+This is the final release of Boolector. Active development and maintenance has
+stopped.
+Boolector was succeeded by Bitwuzla (https://github.com/bitwuzla/bitwuzla).
 
 news for release 3.2.3 since 3.2.2
 --------------------------------------------------------------------------------
